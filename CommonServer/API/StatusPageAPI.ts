@@ -67,6 +67,8 @@ import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
 import MonitorGroupResourceService from '../Services/MonitorGroupResourceService';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from '../Services/IncidentStateService';
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import ScheduledMaintenanceStateService from '../Services/ScheduledMaintenanceStateService';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -1401,6 +1403,7 @@ export default class StatusPageAPI extends BaseAPI<
                 isScheduledState: true,
                 isResolvedState: true,
                 isOngoingState: true,
+                order: true,
             },
             monitors: {
                 _id: true,
@@ -1591,10 +1594,34 @@ export default class StatusPageAPI extends BaseAPI<
             monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
         }
 
+        // get scheduled event states.
+        const scheduledEventStates: Array<ScheduledMaintenanceState> =
+            await ScheduledMaintenanceStateService.findBy({
+                query: {
+                    projectId: statusPage.projectId!,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                    order: true,
+                    isEndedState: true,
+                    isOngoingState: true,
+                    isScheduledState: true,
+                },
+            });
+
         const response: JSONObject = {
             scheduledMaintenanceEventsPublicNotes: JSONFunctions.toJSONArray(
                 scheduledMaintenanceEventsPublicNotes,
                 ScheduledMaintenancePublicNote
+            ),
+            scheduledMaintenanceStates: JSONFunctions.toJSONArray(
+                scheduledEventStates,
+                ScheduledMaintenanceState
             ),
             scheduledMaintenanceEvents: JSONFunctions.toJSONArray(
                 scheduledMaintenanceEvents,

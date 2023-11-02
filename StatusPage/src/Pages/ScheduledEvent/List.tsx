@@ -36,6 +36,8 @@ import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import StatusPageResource from 'Model/Models/StatusPageResource';
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import Section from '../../Components/Section/Section';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -52,7 +54,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         scheduledMaintenanceStateTimelines,
         setscheduledMaintenanceStateTimelines,
     ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
-    const [parsedData, setParsedData] =
+
+    const [ongoingEventsParsedData, setOngoingEventsParsedData] =
+        useState<EventHistoryListComponentProps | null>(null);
+    const [scheduledEventsParsedData, setScheduledEventsParsedData] =
+        useState<EventHistoryListComponentProps | null>(null);
+    const [endedEventsParsedData, setEndedEventsParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
 
     const [statusPageResources, setStatusPageResources] = useState<
@@ -63,7 +70,56 @@ const Overview: FunctionComponent<PageComponentProps> = (
         Dictionary<Array<ObjectID>>
     >({});
 
+    const [scheduledMaintenanceStates, setScheduledMaintenanceStates] =
+        useState<Array<ScheduledMaintenanceState>>([]);
+
     StatusPageUtil.checkIfUserHasLoggedIn();
+
+    const getEventHistoryListComponentProps: Function = (
+        scheduledMaintenanceEvents: ScheduledMaintenance[],
+        scheduledMaintenanceEventsPublicNotes: ScheduledMaintenancePublicNote[],
+        scheduledMaintenanceStateTimelines: ScheduledMaintenanceStateTimeline[],
+        statusPageResources: StatusPageResource[],
+        monitorsInGroup: Dictionary<ObjectID[]>
+    ): EventHistoryListComponentProps => {
+        const eventHistoryListComponentProps: EventHistoryListComponentProps = {
+            items: [],
+        };
+
+        const days: Dictionary<EventHistoryDayListComponentProps> = {};
+
+        for (const scheduledMaintenance of scheduledMaintenanceEvents) {
+            const dayString: string = OneUptimeDate.getDateString(
+                scheduledMaintenance.startsAt!
+            );
+
+            if (!days[dayString]) {
+                days[dayString] = {
+                    date: scheduledMaintenance.startsAt!,
+                    items: [],
+                };
+            }
+
+            days[dayString]?.items.push(
+                getScheduledEventEventItem(
+                    scheduledMaintenance,
+                    scheduledMaintenanceEventsPublicNotes,
+                    scheduledMaintenanceStateTimelines,
+                    statusPageResources,
+                    monitorsInGroup,
+                    Boolean(StatusPageUtil.isPreviewPage()),
+                    true
+                )
+            );
+        }
+
+        for (const key in days) {
+            eventHistoryListComponentProps.items.push(
+                days[key] as EventHistoryDayListComponentProps
+            );
+        }
+        return eventHistoryListComponentProps;
+    };
 
     useAsyncEffect(async () => {
         try {
@@ -122,6 +178,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['monitorsInGroup'] as JSONObject) || {}
                 ) as Dictionary<Array<ObjectID>>;
 
+            const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+                JSONFunctions.fromJSONArray(
+                    (data['scheduledMaintenanceStates'] as JSONArray) || [],
+                    ScheduledMaintenanceState
+                );
+
+            setScheduledMaintenanceStates(scheduledMaintenanceStates);
             setStatusPageResources(statusPageResources);
             setMonitorsInGroup(monitorsInGroup);
 
@@ -148,48 +211,86 @@ const Overview: FunctionComponent<PageComponentProps> = (
     useEffect(() => {
         if (isLoading) {
             // parse data;
-            setParsedData(null);
+            setOngoingEventsParsedData(null);
+            setScheduledEventsParsedData(null);
+            setEndedEventsParsedData(null);
             return;
         }
 
-        const eventHistoryListComponentProps: EventHistoryListComponentProps = {
-            items: [],
-        };
+        const ongoingOrder: number =
+            scheduledMaintenanceStates.find(
+                (state: ScheduledMaintenanceState) => {
+                    return state.isOngoingState;
+                }
+            )?.order || 0;
 
-        const days: Dictionary<EventHistoryDayListComponentProps> = {};
+        const endedEventOrder: number =
+            scheduledMaintenanceStates.find(
+                (state: ScheduledMaintenanceState) => {
+                    return state.isEndedState;
+                }
+            )?.order || 0;
 
-        for (const scheduledMaintenance of scheduledMaintenanceEvents) {
-            const dayString: string = OneUptimeDate.getDateString(
-                scheduledMaintenance.startsAt!
+        // get ongoing events - anything after ongoing state but before ended state
+
+        const ongoingEvents: ScheduledMaintenance[] =
+            scheduledMaintenanceEvents.filter((event: ScheduledMaintenance) => {
+                return (
+                    event.currentScheduledMaintenanceState!.order! >=
+                        ongoingOrder &&
+                    event.currentScheduledMaintenanceState!.order! <
+                        endedEventOrder
+                );
+            });
+
+        // get scheduled events - anything before ongoing state
+
+        const scheduledEvents: ScheduledMaintenance[] =
+            scheduledMaintenanceEvents.filter((event: ScheduledMaintenance) => {
+                return (
+                    event.currentScheduledMaintenanceState!.order! <
+                    ongoingOrder
+                );
+            });
+
+        // get ended events - anythign equalTo or after ended state
+
+        const endedEvents: ScheduledMaintenance[] =
+            scheduledMaintenanceEvents.filter((event: ScheduledMaintenance) => {
+                return (
+                    event.currentScheduledMaintenanceState!.order! >=
+                    endedEventOrder
+                );
+            });
+
+        const endedEventProps: EventHistoryListComponentProps =
+            getEventHistoryListComponentProps(
+                endedEvents,
+                scheduledMaintenanceEventsPublicNotes,
+                scheduledMaintenanceStateTimelines,
+                statusPageResources,
+                monitorsInGroup
+            );
+        const scheduledEventProps: EventHistoryListComponentProps =
+            getEventHistoryListComponentProps(
+                scheduledEvents,
+                scheduledMaintenanceEventsPublicNotes,
+                scheduledMaintenanceStateTimelines,
+                statusPageResources,
+                monitorsInGroup
+            );
+        const ongoingEventProps: EventHistoryListComponentProps =
+            getEventHistoryListComponentProps(
+                ongoingEvents,
+                scheduledMaintenanceEventsPublicNotes,
+                scheduledMaintenanceStateTimelines,
+                statusPageResources,
+                monitorsInGroup
             );
 
-            if (!days[dayString]) {
-                days[dayString] = {
-                    date: scheduledMaintenance.startsAt!,
-                    items: [],
-                };
-            }
-
-            days[dayString]?.items.push(
-                getScheduledEventEventItem(
-                    scheduledMaintenance,
-                    scheduledMaintenanceEventsPublicNotes,
-                    scheduledMaintenanceStateTimelines,
-                    statusPageResources,
-                    monitorsInGroup,
-                    Boolean(StatusPageUtil.isPreviewPage()),
-                    true
-                )
-            );
-        }
-
-        for (const key in days) {
-            eventHistoryListComponentProps.items.push(
-                days[key] as EventHistoryDayListComponentProps
-            );
-        }
-
-        setParsedData(eventHistoryListComponentProps);
+        setOngoingEventsParsedData(ongoingEventProps);
+        setScheduledEventsParsedData(scheduledEventProps);
+        setEndedEventsParsedData(endedEventProps);
     }, [isLoading]);
 
     if (isLoading) {
@@ -198,10 +299,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     if (error) {
         return <ErrorMessage error={error} />;
-    }
-
-    if (!parsedData) {
-        return <PageLoader isVisible={true} />;
     }
 
     return (
@@ -228,9 +325,41 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 },
             ]}
         >
-            {scheduledMaintenanceEvents &&
-            scheduledMaintenanceEvents.length > 0 ? (
-                <EventHistoryList {...parsedData} />
+            {ongoingEventsParsedData?.items &&
+            ongoingEventsParsedData?.items.length > 0 ? (
+                <div>
+                    <Section title="Ongoing Events" />
+
+                    <EventHistoryList
+                        items={ongoingEventsParsedData?.items || []}
+                    />
+                </div>
+            ) : (
+                <></>
+            )}
+
+            {scheduledEventsParsedData?.items &&
+            scheduledEventsParsedData?.items.length > 0 ? (
+                <div>
+                    <Section title="Scheduled Events" />
+
+                    <EventHistoryList
+                        items={scheduledEventsParsedData?.items || []}
+                    />
+                </div>
+            ) : (
+                <></>
+            )}
+
+            {endedEventsParsedData?.items &&
+            endedEventsParsedData?.items.length > 0 ? (
+                <div>
+                    <Section title="Completed Events" />
+
+                    <EventHistoryList
+                        items={endedEventsParsedData?.items || []}
+                    />
+                </div>
             ) : (
                 <></>
             )}

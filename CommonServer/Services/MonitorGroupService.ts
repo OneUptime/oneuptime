@@ -53,6 +53,10 @@ export class Service extends DatabaseService<MonitorGroup> {
                 },
             });
 
+        if (monitorGroupResources.length === 0) {
+            return [];
+        }
+
         const monitorStatusTimelines: Array<MonitorStatusTimeline> =
             await MonitorStatusTimelineService.findBy({
                 query: {
