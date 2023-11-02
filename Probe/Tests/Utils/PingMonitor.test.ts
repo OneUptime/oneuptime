@@ -4,7 +4,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import Ping, {
     PingResponse,
 } from '../../Utils/Monitors/MonitorTypes/PingMonitor';
-import '@types/jest';
+import { describe, expect, test, jest } from '@jest/globals';
 
 describe('Ping', () => {
     jest.setTimeout(10000);
