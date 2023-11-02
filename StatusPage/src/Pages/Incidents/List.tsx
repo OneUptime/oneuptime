@@ -36,6 +36,8 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import Section from '../../Components/Section/Section';
+import IncidentState from 'Model/Models/IncidentState';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -52,12 +54,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [incidentStateTimelines, setIncidentStateTimelines] = useState<
         Array<IncidentStateTimeline>
     >([]);
-    const [parsedData, setParsedData] =
+
+    const [parsedActiveIncidentsData, setParsedActiveIncidentsData] =
+        useState<EventHistoryListComponentProps | null>(null);
+
+    const [parsedResolvedIncidentsData, setParsedResolvedIncidentsData] =
         useState<EventHistoryListComponentProps | null>(null);
 
     const [monitorsInGroup, setMonitorsInGroup] = useState<
         Dictionary<Array<ObjectID>>
     >({});
+
+    const [incidentStates, setIncidentStates] = useState<Array<IncidentState>>(
+        []
+    );
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -114,7 +124,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['monitorsInGroup'] as JSONObject) || {}
                 ) as Dictionary<Array<ObjectID>>;
 
+            const incidentStates: Array<IncidentState> =
+                JSONFunctions.fromJSONArray(
+                    (data['incidentStates'] as JSONArray) || [],
+                    IncidentState
+                );
+
             setMonitorsInGroup(monitorsInGroup);
+            setIncidentStates(incidentStates);
 
             // save data. set()
             setIncidentPublicNotes(incidentPublicNotes);
@@ -133,13 +150,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
-    useEffect(() => {
-        if (isLoading) {
-            // parse data;
-            setParsedData(null);
-            return;
-        }
-
+    const getEventHistoryListComponentProps: Function = (
+        incidents: Array<Incident>
+    ): EventHistoryListComponentProps => {
         const eventHistoryListComponentProps: EventHistoryListComponentProps = {
             items: [],
         };
@@ -177,7 +190,46 @@ const Overview: FunctionComponent<PageComponentProps> = (
             );
         }
 
-        setParsedData(eventHistoryListComponentProps);
+        return eventHistoryListComponentProps;
+    };
+
+    useEffect(() => {
+        if (isLoading) {
+            // parse data;
+            setParsedActiveIncidentsData(null);
+            setParsedResolvedIncidentsData(null);
+            return;
+        }
+
+        const resolvedIncidentStateOrder: number =
+            incidentStates.find((state: IncidentState) => {
+                return state.isResolvedState;
+            })?.order || 0;
+
+        const activeIncidents: Array<Incident> = incidents.filter(
+            (incident: Incident) => {
+                return (
+                    (incident.currentIncidentState?.order || 0) <
+                    resolvedIncidentStateOrder
+                );
+            }
+        );
+
+        const resolvedIncidents: Array<Incident> = incidents.filter(
+            (incident: Incident) => {
+                return !(
+                    (incident.currentIncidentState?.order || 0) <
+                    resolvedIncidentStateOrder
+                );
+            }
+        );
+
+        setParsedActiveIncidentsData(
+            getEventHistoryListComponentProps(activeIncidents)
+        );
+        setParsedResolvedIncidentsData(
+            getEventHistoryListComponentProps(resolvedIncidents)
+        );
     }, [isLoading]);
 
     if (isLoading) {
@@ -186,10 +238,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     if (error) {
         return <ErrorMessage error={error} />;
-    }
-
-    if (!parsedData) {
-        return <PageLoader isVisible={true} />;
     }
 
     return (
@@ -214,8 +262,28 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 },
             ]}
         >
-            {incidents && incidents.length > 0 ? (
-                <EventHistoryList {...parsedData} />
+            {parsedActiveIncidentsData?.items &&
+            parsedActiveIncidentsData?.items.length > 0 ? (
+                <div>
+                    <Section title="Active Incidents" />
+
+                    <EventHistoryList
+                        items={parsedActiveIncidentsData?.items || []}
+                    />
+                </div>
+            ) : (
+                <></>
+            )}
+
+            {parsedResolvedIncidentsData?.items &&
+            parsedResolvedIncidentsData?.items.length > 0 ? (
+                <div>
+                    <Section title="Resolved Incidents" />
+
+                    <EventHistoryList
+                        items={parsedResolvedIncidentsData?.items || []}
+                    />
+                </div>
             ) : (
                 <></>
             )}

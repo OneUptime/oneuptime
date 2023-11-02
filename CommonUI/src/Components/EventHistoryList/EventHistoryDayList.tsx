@@ -25,7 +25,12 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
         >
             <div
                 className="text-gray-400 mt-2 text-sm"
-                style={{ padding: '20px', paddingRight: '0px', width: '15%' }}
+                style={{
+                    padding: '20px',
+                    paddingLeft: '10px',
+                    paddingRight: '0px',
+                    width: '15%',
+                }}
             >
                 {OneUptimeDate.getDateAsLocalFormattedString(props.date, true)}
             </div>

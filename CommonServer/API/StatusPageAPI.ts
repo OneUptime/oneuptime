@@ -65,6 +65,8 @@ import Dictionary from 'Common/Types/Dictionary';
 import MonitorGroupService from '../Services/MonitorGroupService';
 import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
 import MonitorGroupResourceService from '../Services/MonitorGroupResourceService';
+import IncidentState from 'Model/Models/IncidentState';
+import IncidentStateService from '../Services/IncidentStateService';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -685,8 +687,10 @@ export default class StatusPageAPI extends BaseAPI<
                                 color: true,
                             },
                             currentIncidentState: {
+                                _id: true,
                                 name: true,
                                 color: true,
+                                order: true,
                             },
                             monitors: {
                                 _id: true,
@@ -1873,6 +1877,8 @@ export default class StatusPageAPI extends BaseAPI<
             currentIncidentState: {
                 name: true,
                 color: true,
+                _id: true,
+                order: true,
             },
             monitors: {
                 _id: true,
@@ -1994,10 +2000,31 @@ export default class StatusPageAPI extends BaseAPI<
             });
         }
 
+        // get all the incident states for this project.
+        const incidentStates: Array<IncidentState> =
+            await IncidentStateService.findBy({
+                query: {
+                    projectId: statusPage.projectId!,
+                },
+                select: {
+                    isResolvedState: true,
+                    order: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+
         const response: JSONObject = {
             incidentPublicNotes: JSONFunctions.toJSONArray(
                 incidentPublicNotes,
                 IncidentPublicNote
+            ),
+            incidentStates: JSONFunctions.toJSONArray(
+                incidentStates,
+                IncidentState
             ),
             incidents: JSONFunctions.toJSONArray(incidents, Incident),
             statusPageResources: JSONFunctions.toJSONArray(
