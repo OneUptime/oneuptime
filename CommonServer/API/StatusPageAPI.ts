@@ -426,6 +426,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 isPublicStatusPage: true,
                                 overviewPageDescription: true,
                                 showIncidentLabelsOnStatusPage: true,
+                                showScheduledEventLabelsOnStatusPage: true,
                             },
                             props: {
                                 isRoot: true,
@@ -822,6 +823,35 @@ export default class StatusPageAPI extends BaseAPI<
 
                     // check if status page has active scheduled events.
 
+                    let scheduledEventsSelect: Select<ScheduledMaintenance> = {
+                        createdAt: true,
+                        title: true,
+                        description: true,
+                        _id: true,
+                        endsAt: true,
+                        startsAt: true,
+                        currentScheduledMaintenanceState: {
+                            name: true,
+                            color: true,
+                            isScheduledState: true,
+                            isResolvedState: true,
+                            isOngoingState: true,
+                        },
+                        monitors: {
+                            _id: true,
+                        },
+                    };
+
+                    if (statusPage.showScheduledEventLabelsOnStatusPage) {
+                        scheduledEventsSelect = {
+                            ...scheduledEventsSelect,
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        };
+                    }
+
                     const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                         await ScheduledMaintenanceService.findBy({
                             query: {
@@ -831,24 +861,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 statusPages: objectId as any,
                                 projectId: statusPage.projectId!,
                             },
-                            select: {
-                                createdAt: true,
-                                title: true,
-                                description: true,
-                                _id: true,
-                                endsAt: true,
-                                startsAt: true,
-                                currentScheduledMaintenanceState: {
-                                    name: true,
-                                    color: true,
-                                    isScheduledState: true,
-                                    isResolvedState: true,
-                                    isOngoingState: true,
-                                },
-                                monitors: {
-                                    _id: true,
-                                },
-                            },
+                            select: scheduledEventsSelect,
                             sort: {
                                 createdAt: SortOrder.Ascending,
                             },
@@ -869,24 +882,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 statusPages: objectId as any,
                                 projectId: statusPage.projectId!,
                             },
-                            select: {
-                                createdAt: true,
-                                title: true,
-                                description: true,
-                                _id: true,
-                                endsAt: true,
-                                startsAt: true,
-                                currentScheduledMaintenanceState: {
-                                    name: true,
-                                    color: true,
-                                    isScheduledState: true,
-                                    isResolvedState: true,
-                                    isOngoingState: true,
-                                },
-                                monitors: {
-                                    _id: true,
-                                },
-                            },
+                            select: scheduledEventsSelect,
                             sort: {
                                 createdAt: SortOrder.Ascending,
                             },
@@ -1330,6 +1326,7 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     projectId: true,
                     showScheduledEventHistoryInDays: true,
+                    showScheduledEventLabelsOnStatusPage: true,
                 },
                 props: {
                     isRoot: true,
@@ -1387,27 +1384,39 @@ export default class StatusPageAPI extends BaseAPI<
             };
         }
 
+        let scheduledEventsSelect: Select<ScheduledMaintenance> = {
+            createdAt: true,
+            title: true,
+            description: true,
+            _id: true,
+            endsAt: true,
+            startsAt: true,
+            currentScheduledMaintenanceState: {
+                name: true,
+                color: true,
+                isScheduledState: true,
+                isResolvedState: true,
+                isOngoingState: true,
+            },
+            monitors: {
+                _id: true,
+            },
+        };
+
+        if (statusPage.showScheduledEventLabelsOnStatusPage) {
+            scheduledEventsSelect = {
+                ...scheduledEventsSelect,
+                labels: {
+                    name: true,
+                    color: true,
+                },
+            };
+        }
+
         const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
             await ScheduledMaintenanceService.findBy({
                 query: query,
-                select: {
-                    createdAt: true,
-                    title: true,
-                    description: true,
-                    _id: true,
-                    endsAt: true,
-                    startsAt: true,
-                    currentScheduledMaintenanceState: {
-                        name: true,
-                        color: true,
-                        isScheduledState: true,
-                        isResolvedState: true,
-                        isOngoingState: true,
-                    },
-                    monitors: {
-                        _id: true,
-                    },
-                },
+                select: scheduledEventsSelect,
                 sort: {
                     startsAt: SortOrder.Descending,
                 },
@@ -1432,24 +1441,7 @@ export default class StatusPageAPI extends BaseAPI<
                         statusPages: [statusPageId] as any,
                         projectId: statusPage.projectId!,
                     },
-                    select: {
-                        createdAt: true,
-                        title: true,
-                        description: true,
-                        _id: true,
-                        endsAt: true,
-                        startsAt: true,
-                        currentScheduledMaintenanceState: {
-                            name: true,
-                            color: true,
-                            isScheduledState: true,
-                            isResolvedState: true,
-                            isOngoingState: true,
-                        },
-                        monitors: {
-                            _id: true,
-                        },
-                    },
+                    select: scheduledEventsSelect,
                     sort: {
                         createdAt: SortOrder.Ascending,
                     },

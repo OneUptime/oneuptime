@@ -163,6 +163,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: '14',
                     },
+                    {
+                        field: {
+                            showScheduledEventLabelsOnStatusPage: true,
+                        },
+                        title: 'Show Event Labels',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -175,6 +183,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Number,
                             title: 'Show Scheduled Event History (in days)',
+                        },
+                        {
+                            field: {
+                                showScheduledEventLabelsOnStatusPage: true,
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Show Event Labels',
+                            placeholder: 'No',
                         },
                     ],
                     modelId: modelId,

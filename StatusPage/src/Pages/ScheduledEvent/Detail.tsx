@@ -40,6 +40,7 @@ import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import Dictionary from 'Common/Types/Dictionary';
 import Monitor from 'Model/Models/Monitor';
+import Label from 'Model/Models/Label';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -234,6 +235,13 @@ export const getScheduledEventEventItem: Function = (
                   scheduledMaintenance.startsAt!
               )
             : '',
+        labels:
+            scheduledMaintenance.labels?.map((label: Label) => {
+                return {
+                    name: label.name!,
+                    color: label.color!,
+                };
+            }) || [],
     };
 };
 

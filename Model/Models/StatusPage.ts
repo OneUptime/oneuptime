@@ -941,6 +941,43 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
+        title: 'Show Scheduled Event Labels',
+        description: 'Show Scheduled Event Labels on Status Page?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
+    })
+    public showScheduledEventLabelsOnStatusPage?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
         title: 'Enable Subscribers',
         description: 'Can subscribers subscribe to this Status Page?',
     })
