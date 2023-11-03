@@ -296,6 +296,8 @@ export class Service extends DatabaseService<Model> {
                     project.paymentProviderPlanId !==
                     updateBy.data.paymentProviderPlanId
                 ) {
+                    logger.info('Changing plan for project ' + project.id);
+
                     const plan: SubscriptionPlan | undefined =
                         SubscriptionPlan.getSubscriptionPlanById(
                             updateBy.data.paymentProviderPlanId! as string,
@@ -306,12 +308,28 @@ export class Service extends DatabaseService<Model> {
                         throw new BadDataException('Invalid plan');
                     }
 
+                    logger.info(
+                        'Changing plan for project ' +
+                            project.id?.toString() +
+                            ' to ' +
+                            plan.getName()
+                    );
+
                     if (!project.paymentProviderSubscriptionSeats) {
                         project.paymentProviderSubscriptionSeats =
                             await TeamMemberService.getUniqueTeamMemberCountInProject(
                                 project.id!
                             );
                     }
+
+                    logger.info(
+                        'Changing plan for project ' +
+                            project.id?.toString() +
+                            ' to ' +
+                            plan.getName() +
+                            ' with seats ' +
+                            project.paymentProviderSubscriptionSeats
+                    );
 
                     const subscription: {
                         subscriptionId: string;
@@ -333,6 +351,16 @@ export class Service extends DatabaseService<Model> {
                         endTrialAt: project.trialEndsAt,
                     });
 
+                    logger.info(
+                        'Changing plan for project ' +
+                            project.id?.toString() +
+                            ' to ' +
+                            plan.getName() +
+                            ' with seats ' +
+                            project.paymentProviderSubscriptionSeats +
+                            ' completed.'
+                    );
+
                     await this.updateOneById({
                         id: new ObjectID(updateBy.query._id! as string),
                         data: {
@@ -350,6 +378,16 @@ export class Service extends DatabaseService<Model> {
                             ignoreHooks: true,
                         },
                     });
+
+                    logger.info(
+                        'Changing plan for project ' +
+                            project.id?.toString() +
+                            ' to ' +
+                            plan.getName() +
+                            ' with seats ' +
+                            project.paymentProviderSubscriptionSeats +
+                            ' completed and project updated.'
+                    );
                 }
             }
         }

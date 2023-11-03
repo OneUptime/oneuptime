@@ -451,7 +451,12 @@ export class BillingService extends BaseService {
         meteredSubscriptionId: string;
         trialEndsAt?: Date | undefined;
     }> {
+        logger.info('Changing plan');
+        logger.info(data);
+
         if (!this.isBillingEnabled()) {
+            logger.info('Billing not enabled');
+
             throw new BadDataException(
                 'Billing is not enabled for this server.'
             );
@@ -460,25 +465,44 @@ export class BillingService extends BaseService {
         const subscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.retrieve(data.subscriptionId);
 
+        logger.info('Subscription');
+        logger.info(subscription);
+
         if (!subscription) {
+            logger.info('Subscription not found');
             throw new BadDataException('Subscription not found');
         }
+
+        logger.info('Subscription status');
+        logger.info(subscription.status);
 
         const paymentMethods: Array<PaymentMethod> =
             await this.getPaymentMethods(subscription.customer.toString());
 
+        logger.info('Payment methods');
+        logger.info(paymentMethods);
+
         if (paymentMethods.length === 0) {
+            logger.info('No payment methods');
+
             throw new BadDataException(
                 'No payment methods added. Please add your card to this project to change your plan'
             );
         }
 
+        logger.info('Cancelling subscriptions');
+        logger.info(data.subscriptionId);
         await this.cancelSubscription(data.subscriptionId);
+
+        logger.info('Cancelling metered subscriptions');
+        logger.info(data.meteredSubscriptionId);
         await this.cancelSubscription(data.meteredSubscriptionId);
 
         if (data.endTrialAt && !OneUptimeDate.isInTheFuture(data.endTrialAt)) {
             data.endTrialAt = undefined;
         }
+
+        logger.info('Subscribing to plan');
 
         const subscribeToPlan: {
             subscriptionId: string;
@@ -496,11 +520,19 @@ export class BillingService extends BaseService {
             promoCode: undefined,
         });
 
-        return {
+        logger.info('Subscribed to plan');
+
+        const value: {
+            subscriptionId: string;
+            meteredSubscriptionId: string;
+            trialEndsAt?: Date | undefined;
+        } = {
             subscriptionId: subscribeToPlan.subscriptionId,
             meteredSubscriptionId: subscribeToPlan.meteredSubscriptionId,
             trialEndsAt: subscribeToPlan.trialEndsAt || undefined,
         };
+
+        return value;
     }
 
     public async deletePaymentMethod(
