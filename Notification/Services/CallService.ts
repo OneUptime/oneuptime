@@ -38,6 +38,8 @@ export default class CallService {
             userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
         }
     ): Promise<void> {
+        logger.info('Call Request received.');
+
         let callCost: number = 0;
 
         if (IsBillingEnabled) {
@@ -46,6 +48,8 @@ export default class CallService {
                 callCost = CallHighRiskCostInCentsPerMinute / 100;
             }
         }
+
+        logger.info('Call Cost: ' + callCost);
 
         const twilioConfig: TwilioConfig | null = await getTwilioConfig();
 
@@ -90,6 +94,8 @@ export default class CallService {
                         isRoot: true,
                     },
                 });
+
+                logger.info('Project found.');
 
                 if (!project) {
                     callLog.status = CallStatus.Error;
@@ -224,6 +230,8 @@ export default class CallService {
                 }
             }
 
+            logger.info('Sending Call Request.');
+
             const twillioCall: CallInstance = await client.calls.create({
                 twiml: this.generateTwimlForCall(callRequest),
                 to: callRequest.to.toString(),
@@ -233,11 +241,17 @@ export default class CallService {
                         : twilioConfig.phoneNumber.toString(), // From a valid Twilio number
             });
 
+            logger.info('Call Request sent successfully.');
+
             callLog.status = CallStatus.Success;
             callLog.statusMessage = 'Call ID: ' + twillioCall.sid;
-            logger.info('Call Request sent successfully.');
+
+            logger.info('Call ID: ' + twillioCall.sid);
             logger.info(callLog.statusMessage);
+
             if (IsBillingEnabled && project) {
+                logger.info('Updating Project Balance.');
+
                 callLog.callCostInUSDCents = callCost * 100;
 
                 if (twillioCall && parseInt(twillioCall.duration) > 60) {
@@ -246,6 +260,8 @@ export default class CallService {
                             (callCost * 100)
                     );
                 }
+
+                logger.info('Call Cost: ' + callLog.callCostInUSDCents);
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
                     project.smsOrCallCurrentBalanceInUSDCents! - callCost * 100
@@ -262,6 +278,12 @@ export default class CallService {
                         isRoot: true,
                     },
                 });
+
+                logger.info("Project's current balance updated.");
+                logger.info(
+                    'Current Balance: ' +
+                        project.smsOrCallCurrentBalanceInUSDCents
+                );
             }
         } catch (e: any) {
             callLog.callCostInUSDCents = 0;
@@ -273,13 +295,19 @@ export default class CallService {
             logger.error(callLog.statusMessage);
         }
 
+        logger.info('Saving Call Log if project id is provided.');
+
         if (options.projectId) {
+            logger.info('Saving Call Log.');
             await CallLogService.create({
                 data: callLog,
                 props: {
                     isRoot: true,
                 },
             });
+            logger.info('Call Log saved.');
+        } else {
+            logger.info('Project Id is not provided. Call Log not saved.');
         }
 
         if (options.userOnCallLogTimelineId) {
