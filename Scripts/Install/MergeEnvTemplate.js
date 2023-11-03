@@ -2,12 +2,12 @@
 
 import fs from 'fs';
 
-const init: Function = (): void => {
-    const tempate: string = fs.readFileSync('./config.example.env', 'utf8');
-    const env: string = fs.readFileSync('./config.env', 'utf8');
+const init = () => {
+    const tempate = fs.readFileSync('./config.example.env', 'utf8');
+    const env = fs.readFileSync('./config.env', 'utf8');
 
-    const linesInTemplate: Array<string> = tempate.split('\n');
-    const linesInEnv: Array<string> = env.split('\n');
+    const linesInTemplate = tempate.split('\n');
+    const linesInEnv= env.split('\n');
 
     for (const line of linesInTemplate) {
         // this is a comment, ignore.
@@ -23,7 +23,7 @@ const init: Function = (): void => {
         // if the line is present in template but is not present in env file then add it to the env file. We assume, values in template file are default values.
         if (line.split('=').length > 0) {
             if (
-                linesInEnv.filter((envLine: string) => {
+                linesInEnv.filter((envLine) => {
                     return (
                         envLine.split('=').length > 0 &&
                         envLine.split('=')[0] === line.split('=')[0]

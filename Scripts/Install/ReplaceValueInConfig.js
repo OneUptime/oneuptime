@@ -2,14 +2,14 @@
 
 import fs from 'fs';
 
-const init: Function = (): void => {
-    let env: string = '';
+const init = () => {
+    let env = '';
     try {
         env = fs.readFileSync('./config.env', 'utf8');
     } catch (err) {
         // do nothing.
     }
-    const envValToReplace: string | undefined = process.argv[2];
+    const envValToReplace = process.argv[2];
 
     if (!envValToReplace) {
         // eslint-disable-next-line
@@ -17,7 +17,7 @@ const init: Function = (): void => {
         return;
     }
 
-    const envValToReplaceWith: string | undefined = process.argv[3];
+    const envValToReplaceWith= process.argv[3];
 
     if (!envValToReplaceWith) {
         // eslint-disable-next-line
@@ -25,9 +25,9 @@ const init: Function = (): void => {
         return;
     }
 
-    const linesInEnv: Array<string> = env.split('\n');
-    const linesToRender: Array<string> = [];
-    let found: boolean = false;
+    const linesInEnv = env.split('\n');
+    const linesToRender = [];
+    let found = false;
 
     for (let line of linesInEnv) {
         // this is a comment, ignore.
@@ -35,7 +35,7 @@ const init: Function = (): void => {
             linesToRender.push(line);
         } else {
             found = true;
-            const items: Array<string> = line.split('=');
+            const items = line.split('=');
             items[1] = envValToReplaceWith;
             line = items.join('=');
             linesToRender.push(line);

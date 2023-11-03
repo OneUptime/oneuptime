@@ -170,7 +170,7 @@ touch config.env
 source ~/.bashrc
 
 #Run a scirpt to merge config.env.tpl to config.env
-ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
+node ./Scripts/Install/MergeEnvTemplate.js
 
 
 # Load env values from config.env
