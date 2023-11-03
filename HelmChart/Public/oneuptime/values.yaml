@@ -60,10 +60,10 @@ redis:
     enabled: true
   master:
     persistence:
-      size: 25Gi
+      enabled: false # We dont need redis persistence, because we dont do anything with it. 
   replica:
     persistence:
-      size: 25Gi
+      enabled: false # We dont need redis persistence, because we dont do anything with it. 
   
 
 image:
