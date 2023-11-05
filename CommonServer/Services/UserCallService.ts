@@ -120,6 +120,7 @@ export class Service extends DatabaseService<Model> {
                 phone: true,
                 verificationCode: true,
                 isVerified: true,
+                projectId: true,
             },
         });
 
