@@ -9,7 +9,9 @@ import logger from '../Utils/Logger';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../EnvironmentConfig';
 import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
-import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import SubscriptionStatus, {
+    SubscriptionStatusUtil,
+} from 'Common/Types/Billing/SubscriptionStatus';
 import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
@@ -96,14 +98,7 @@ export class BillingService extends BaseService {
     }
 
     public isSubscriptionActive(status: SubscriptionStatus): boolean {
-        if (!status) {
-            return true;
-        }
-
-        return (
-            status === SubscriptionStatus.Active ||
-            status === SubscriptionStatus.Trialing
-        );
+        return SubscriptionStatusUtil.isSubscriptionActive(status);
     }
 
     public async subscribeToMeteredPlan(data: {

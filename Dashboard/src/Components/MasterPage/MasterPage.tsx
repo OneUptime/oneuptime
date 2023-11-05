@@ -9,6 +9,12 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import SSOAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
+import TopAlert, {
+    TopAlertType,
+} from 'CommonUI/src/Components/TopAlert/TopAlert';
+import Link from 'CommonUI/src/Components/Link/Link';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import { SubscriptionStatusUtil } from 'Common/Types/Billing/SubscriptionStatus';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -46,30 +52,67 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         error = props.error;
     }
 
+    let isSubscriptionInactive: boolean = false;
+
+    if (props.selectedProject) {
+        const isMeteredSubscriptionInactive: boolean =
+            SubscriptionStatusUtil.isSubscriptionInactive(
+                props.selectedProject?.paymentProviderMeteredSubscriptionStatus
+            );
+        const isProjectSubscriptionInactive: boolean =
+            SubscriptionStatusUtil.isSubscriptionInactive(
+                props.selectedProject?.paymentProviderSubscriptionStatus
+            );
+
+        isSubscriptionInactive =
+            isMeteredSubscriptionInactive || isProjectSubscriptionInactive;
+    }
+
     return (
-        <MasterPage
-            footer={<Footer />}
-            header={
-                <Header
-                    projects={props.projects}
-                    onProjectSelected={props.onProjectSelected}
-                    showProjectModal={props.showProjectModal}
-                    onProjectModalClose={props.onProjectModalClose}
-                    selectedProject={props.selectedProject || null}
-                    paymentMethodsCount={props.paymentMethodsCount}
+        <div>
+            {BILLING_ENABLED && isSubscriptionInactive && (
+                <TopAlert
+                    alertType={TopAlertType.DANGER}
+                    title="Your project is not active because some invoices are unpaid."
+                    description={
+                        <Link
+                            className="underline"
+                            to={RouteUtil.populateRouteParams(
+                                RouteMap[
+                                    PageMap.SETTINGS_BILLING_INVOICES
+                                ] as Route
+                            )}
+                        >
+                            Click here to pay your unpaid invoices.
+                        </Link>
+                    }
                 />
-            }
-            navBar={
-                <NavBar
-                    show={props.projects.length > 0 && !isOnHideNavbarPage}
-                />
-            }
-            isLoading={props.isLoading}
-            error={error}
-            className="flex flex-col h-screen justify-between"
-        >
-            {props.children}
-        </MasterPage>
+            )}
+
+            <MasterPage
+                footer={<Footer />}
+                header={
+                    <Header
+                        projects={props.projects}
+                        onProjectSelected={props.onProjectSelected}
+                        showProjectModal={props.showProjectModal}
+                        onProjectModalClose={props.onProjectModalClose}
+                        selectedProject={props.selectedProject || null}
+                        paymentMethodsCount={props.paymentMethodsCount}
+                    />
+                }
+                navBar={
+                    <NavBar
+                        show={props.projects.length > 0 && !isOnHideNavbarPage}
+                    />
+                }
+                isLoading={props.isLoading}
+                error={error}
+                className="flex flex-col h-screen justify-between"
+            >
+                {props.children}
+            </MasterPage>
+        </div>
     );
 };
 
