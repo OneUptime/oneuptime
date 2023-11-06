@@ -24,6 +24,13 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import MonitorGroup from './MonitorGroup';
 
+export enum UptimePrecision {
+    NO_DECIMAL = '99% (No Decimal)',
+    ONE_DECIMAL = '99.9% (One Decimal)',
+    TWO_DECIMAL = '99.99% (Two Decimal)',
+    THREE_DECIMAL = '99.999% (Three Decimal)',
+}
+
 @EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
@@ -568,6 +575,71 @@ export default class StatusPageResource extends BaseModel {
         default: true,
     })
     public showCurrentStatus?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Show Uptime Percent',
+        description: 'Show uptime percent of this monitor for the last 90 days',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public showUptimePercent?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.ShortText,
+        title: 'Uptime Percent Precision',
+        required: false,
+        description:
+            'Precision of uptime percent of this monitor for the last 90 days',
+    })
+    @Column({
+        type: ColumnType.ShortText,
+        nullable: true,
+    })
+    public uptimePercentPrecision?: UptimePrecision = undefined;
 
     @ColumnAccessControl({
         create: [

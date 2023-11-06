@@ -12,7 +12,9 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPageResource from 'Model/Models/StatusPageResource';
+import StatusPageResource, {
+    UptimePrecision,
+} from 'Model/Models/StatusPageResource';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -34,6 +36,8 @@ import { ModelField } from 'CommonUI/src/Components/Forms/ModelForm';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import Link from 'CommonUI/src/Components/Link/Link';
 import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupElement';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -205,6 +209,33 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             description:
                 'Current Resource Status will be shown beside this resource on your status page.',
             stepId: 'advanced',
+        },
+        {
+            field: {
+                showUptimePercent: true,
+            },
+            title: 'Show Uptime %',
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: false,
+            description:
+                'Show uptime percentage for the past 90 days beside this resource on your status page.',
+            stepId: 'advanced',
+        },
+        {
+            field: {
+                uptimePercentPrecision: true,
+            },
+            stepId: 'advanced',
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+                DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
+            showIf: (item: FormValues<StatusPageResource>): boolean => {
+                return Boolean(item.showUptimePercent);
+            },
+            title: 'Select Uptime Precision',
+            defaultValue: UptimePrecision.ONE_DECIMAL,
+            required: true,
         },
         {
             field: {
