@@ -237,7 +237,7 @@ export default class UptimeUtil {
         let totalDowntime: number = 0;
 
         for (const monitorEvent of monitorEvents) {
-            if (monitorEvent.priority < operationalStatePriority) {
+            if (monitorEvent.priority > operationalStatePriority) {
                 totalDowntime += OneUptimeDate.getSecondsBetweenDates(
                     monitorEvent.startDate,
                     monitorEvent.endDate
@@ -248,7 +248,9 @@ export default class UptimeUtil {
         // calculate percentage.
 
         const percentage: number =
-            ((totalSecondsInTimePeriod - totalDowntime) / totalSecondsInTimePeriod) * 100;
+            ((totalSecondsInTimePeriod - totalDowntime) /
+                totalSecondsInTimePeriod) *
+            100;
 
         if (precision === UptimePrecision.NO_DECIMAL) {
             return Math.round(percentage);
@@ -261,7 +263,7 @@ export default class UptimeUtil {
         if (precision === UptimePrecision.TWO_DECIMAL) {
             return Math.round(percentage * 100) / 100;
         }
-        
+
         if (precision === UptimePrecision.THREE_DECIMAL) {
             return Math.round(percentage * 1000) / 1000;
         }
