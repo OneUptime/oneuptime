@@ -15,7 +15,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import CurrentStatusElement from '../../../Components/MonitorGroup/CurrentStatus';
 import Card from 'CommonUI/src/Components/Card/Card';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import useAsyncEffect from 'use-async-effect';
@@ -26,15 +25,71 @@ import URL from 'Common/Types/API/URL';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import API from 'CommonUI/src/Utils/API/API';
 import OneUptimeDate from 'Common/Types/Date';
+import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import { UptimePrecision } from 'Model/Models/StatusPageResource';
+import { Green } from 'Common/Types/BrandColors';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 const MonitorGroupView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
-    const [data, setData] = useState<Array<MonitorStatusTimeline>>([]);
+    const [currentGroupStatus, setCurrentGroupStatus] =
+        React.useState<MonitorStatus | null>(null);
+
+    const [statusTimelines, setStatusTimelines] = useState<
+        Array<MonitorStatusTimeline>
+    >([]);
+    const [monitorStatuses, setMonitorStatuses] = useState<
+        Array<MonitorStatus>
+    >([]);
+
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    const getUptimePercent: () => ReactElement = (): ReactElement => {
+        if (isLoading) {
+            return <></>;
+        }
+
+        const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
+            statusTimelines,
+            monitorStatuses,
+            UptimePrecision.THREE_DECIMAL
+        );
+
+        return (
+            <div
+                className="font-medium mt-5"
+                style={{
+                    color:
+                        currentGroupStatus?.color?.toString() ||
+                        Green.toString(),
+                }}
+            >
+                {uptimePercent}% uptime
+            </div>
+        );
+    };
+
+    const getCurrentStatusBubble: () => ReactElement = (): ReactElement => {
+        if (isLoading) {
+            return <></>;
+        }
+
+        return (
+            <Statusbubble
+                text={currentGroupStatus?.name || 'Operational'}
+                color={currentGroupStatus?.color || Green}
+            />
+        );
+    };
 
     useAsyncEffect(async () => {
         await fetchItem();
@@ -45,7 +100,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
         setError('');
 
         try {
-            const monitorStatus: ListResult<MonitorStatusTimeline> =
+            const statusTimelines: ListResult<MonitorStatusTimeline> =
                 await ModelAPI.getList(
                     MonitorStatusTimeline,
                     {},
@@ -63,13 +118,52 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     }
                 );
 
-            setData(monitorStatus.data);
+            const monitorStatuses: ListResult<MonitorStatus> =
+                await ModelAPI.getList(
+                    MonitorStatus,
+                    {
+                        projectId: ProjectUtil.getCurrentProjectId(),
+                    },
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        _id: true,
+                        priority: true,
+                        isOperationalState: true,
+                        name: true,
+                        color: true,
+                    },
+                    {
+                        priority: SortOrder.Ascending,
+                    }
+                );
+
+            const currentStatus: MonitorStatus | null =
+                await ModelAPI.post<MonitorStatus>(
+                    MonitorStatus,
+                    URL.fromString(DASHBOARD_API_URL.toString())
+                        .addRoute(new MonitorGroup().getCrudApiPath()!)
+                        .addRoute('/current-status/')
+                        .addRoute(`/${modelId.toString()}`)
+                );
+
+            setCurrentGroupStatus(currentStatus);
+            setStatusTimelines(statusTimelines.data);
+            setMonitorStatuses(monitorStatuses.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
     };
+
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
+    }
+
+    if (error) {
+        return <ErrorMessage error={error} />;
+    }
 
     return (
         <ModelPage
@@ -215,12 +309,8 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Element,
                             title: 'Current Status',
-                            getElement: (): ReactElement => {
-                                return (
-                                    <CurrentStatusElement
-                                        monitorGroupId={modelId}
-                                    />
-                                );
+                            getElement: () => {
+                                return getCurrentStatusBubble();
                             },
                         },
                     ],
@@ -231,10 +321,11 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
             <Card
                 title="Uptime Graph"
                 description="Here the 90 day uptime history of this monitor group."
+                rightElement={getUptimePercent()}
             >
                 <MonitorUptimeGraph
                     error={error}
-                    items={data}
+                    items={statusTimelines}
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
                     isLoading={isLoading}

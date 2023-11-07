@@ -75,6 +75,7 @@ export class Service extends DatabaseService<MonitorGroup> {
                     monitorStatus: {
                         name: true,
                         color: true,
+                        isOperationalState: true,
                         priority: true,
                     } as any,
                 },
