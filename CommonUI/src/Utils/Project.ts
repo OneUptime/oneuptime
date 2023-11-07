@@ -6,6 +6,7 @@ import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
 import { BILLING_ENABLED, getAllEnvVars } from '../Config';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class ProjectUtil {
     public static getCurrentProject(): Project | null {
@@ -16,6 +17,10 @@ export default class ProjectUtil {
             'current_project'
         ) as JSONObject;
         return JSONFunctions.fromJSON(projectJson, Project) as Project;
+    }
+
+    public static getCurrentProjectId(): ObjectID | null {
+        return this.getCurrentProject()?.id || null;
     }
 
     public static setCurrentProject(project: JSONObject | Project): void {

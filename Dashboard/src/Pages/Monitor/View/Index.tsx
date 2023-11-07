@@ -31,22 +31,59 @@ import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncomingMonitorLink from './IncomingMonitorLink';
-import { Grey } from 'Common/Types/BrandColors';
+import { Green, Grey } from 'Common/Types/BrandColors';
+import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import { UptimePrecision } from 'Model/Models/StatusPageResource';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
-    const [data, setData] = useState<Array<MonitorStatusTimeline>>([]);
+    const [statusTimelines, setStatusTimelines] = useState<
+        Array<MonitorStatusTimeline>
+    >([]);
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
     const endDate: Date = OneUptimeDate.getCurrentDate();
+    const [monitorStatuses, setMonitorStatuses] = useState<
+        Array<MonitorStatus>
+    >([]);
+    const [currentMonitorStatus, setCurrentMonitorStatus] = useState<
+        MonitorStatus | undefined
+    >(undefined);
 
     const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
         undefined
     );
+
+    const getUptimePercent: () => ReactElement = (): ReactElement => {
+        if (isLoading) {
+            return <></>;
+        }
+
+        const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
+            statusTimelines,
+            monitorStatuses,
+            UptimePrecision.THREE_DECIMAL
+        );
+
+        return (
+            <div
+                className="font-medium mt-5"
+                style={{
+                    color:
+                        currentMonitorStatus?.color?.toString() ||
+                        Green.toString(),
+                }}
+            >
+                {uptimePercent}% uptime
+            </div>
+        );
+    };
 
     useAsyncEffect(async () => {
         await fetchItem();
@@ -63,6 +100,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     {
                         createdAt: new InBetween(startDate, endDate),
                         monitorId: modelId,
+                        projectId: ProjectUtil.getCurrentProjectId(),
                     },
                     LIMIT_PER_PROJECT,
                     0,
@@ -72,6 +110,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         monitorStatus: {
                             name: true,
                             color: true,
+                            isOperationalState: true,
                             priority: true,
                         },
                     },
@@ -85,9 +124,33 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 modelId,
                 {
                     monitorType: true,
+                    currentMonitorStatus: {
+                        name: true,
+                        color: true,
+                    },
                 } as any,
                 {}
             );
+
+            const monitorStatuses: ListResult<MonitorStatus> =
+                await ModelAPI.getList(
+                    MonitorStatus,
+                    {
+                        projectId: ProjectUtil.getCurrentProjectId(),
+                    },
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        _id: true,
+                        priority: true,
+                        isOperationalState: true,
+                        name: true,
+                        color: true,
+                    },
+                    {
+                        priority: SortOrder.Ascending,
+                    }
+                );
 
             if (!item) {
                 setError(`Monitor not found`);
@@ -96,8 +159,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             }
 
             setMonitorType(item.monitorType);
+            setCurrentMonitorStatus(item.currentMonitorStatus);
+            setMonitorStatuses(monitorStatuses.data);
 
-            setData(monitorStatus.data);
+            setStatusTimelines(monitorStatus.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -314,10 +379,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             <Card
                 title="Uptime Graph"
                 description="Here the 90 day uptime history of this monitor."
+                rightElement={getUptimePercent()}
             >
                 <MonitorUptimeGraph
                     error={error}
-                    items={data}
+                    items={statusTimelines}
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
                     isLoading={isLoading}
