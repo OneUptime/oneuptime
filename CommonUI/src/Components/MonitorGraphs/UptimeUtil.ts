@@ -220,10 +220,11 @@ export default class UptimeUtil {
             return 100;
         }
 
-        totalSecondsInTimePeriod = OneUptimeDate.getSecondsBetweenDates(
-            monitorEvents[0]!.startDate,
-            OneUptimeDate.getCurrentDate()
-        );
+        totalSecondsInTimePeriod =
+            OneUptimeDate.getSecondsBetweenDates(
+                monitorEvents[0]!.startDate,
+                OneUptimeDate.getCurrentDate()
+            ) || 1;
 
         // get order of operational state.
 
