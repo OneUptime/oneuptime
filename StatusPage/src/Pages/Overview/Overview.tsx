@@ -18,7 +18,9 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
-import StatusPageResource from 'Model/Models/StatusPageResource';
+import StatusPageResource, {
+    UptimePrecision,
+} from 'Model/Models/StatusPageResource';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import Incident from 'Model/Models/Incident';
@@ -391,7 +393,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             }
                             description={resource.displayDescription || ''}
                             tooltip={resource.displayTooltip || ''}
-                            monitorStatus={currentStatus}
+                            currentStatus={currentStatus}
+                            monitorStatuses={monitorStatuses}
+                            showUptimePercent={Boolean(
+                                resource.showUptimePercent
+                            )}
+                            uptimePrecision={
+                                resource.uptimePercentPrecision ||
+                                UptimePrecision.ONE_DECIMAL
+                            }
                             monitorStatusTimeline={[
                                 ...monitorStatusTimelines,
                             ].filter((timeline: MonitorStatusTimeline) => {
@@ -436,9 +446,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 resource.monitor?.name ||
                                 ''
                             }
+                            showUptimePercent={Boolean(
+                                resource.showUptimePercent
+                            )}
+                            uptimePrecision={
+                                resource.uptimePercentPrecision ||
+                                UptimePrecision.ONE_DECIMAL
+                            }
                             description={resource.displayDescription || ''}
                             tooltip={resource.displayTooltip || ''}
-                            monitorStatus={currentStatus}
+                            currentStatus={currentStatus}
+                            monitorStatuses={monitorStatuses}
                             monitorStatusTimeline={[
                                 ...monitorStatusTimelines,
                             ].filter((timeline: MonitorStatusTimeline) => {

@@ -507,6 +507,8 @@ export default class StatusPageAPI extends BaseAPI<
                                     currentMonitorStatusId: true,
                                 },
                                 monitorGroupId: true,
+                                showUptimePercent: true,
+                                uptimePercentPrecision: true,
                             },
                             sort: {
                                 order: SortOrder.Ascending,
@@ -599,7 +601,8 @@ export default class StatusPageAPI extends BaseAPI<
                                     return (
                                         resource.monitorGroupId?.toString() ===
                                             monitorGroupId.toString() &&
-                                        resource.showStatusHistoryChart
+                                        (resource.showStatusHistoryChart ||
+                                            resource.showUptimePercent)
                                     );
                                 }
                             )

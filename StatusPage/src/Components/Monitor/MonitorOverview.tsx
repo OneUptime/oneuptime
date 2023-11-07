@@ -7,12 +7,14 @@ import Icon from 'CommonUI/src/Components/Icon/Icon';
 import Tooltip from 'CommonUI/src/Components/Tooltip/Tooltip';
 import IconProp from 'Common/Types/Icon/IconProp';
 import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
+import { UptimePrecision } from 'Model/Models/StatusPageResource';
+import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 
 export interface ComponentProps {
     monitorName: string;
     description?: string | undefined;
     tooltip?: string | undefined;
-    monitorStatus: MonitorStatus;
+    currentStatus: MonitorStatus;
     monitorStatusTimeline: Array<MonitorStatusTimelne>;
     startDate: Date;
     endDate: Date;
@@ -20,11 +22,65 @@ export interface ComponentProps {
     showCurrentStatus?: boolean | undefined;
     uptimeGraphHeight?: number | undefined;
     className?: string | undefined;
+    showUptimePercent: boolean;
+    uptimePrecision?: UptimePrecision | undefined;
+    monitorStatuses: Array<MonitorStatus>;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const getCurrentStatus: Function = (): ReactElement => {
+        // if the current status is operational then show uptime Percent.
+
+        let precision: UptimePrecision = UptimePrecision.ONE_DECIMAL;
+
+        if (props.uptimePrecision) {
+            precision = props.uptimePrecision;
+        }
+
+        if (
+            props.currentStatus?.isOperationalState &&
+            props.showUptimePercent
+        ) {
+            const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
+                props.monitorStatusTimeline,
+                props.monitorStatuses,
+                precision
+            );
+
+            return (
+                <div
+                    className="font-medium"
+                    style={{
+                        color:
+                            props.currentStatus?.color?.toString() ||
+                            Green.toString(),
+                    }}
+                >
+                    {uptimePercent}% uptime
+                </div>
+            );
+        }
+
+        if (props.showCurrentStatus) {
+            return (
+                <div
+                    className=""
+                    style={{
+                        color:
+                            props.currentStatus?.color?.toString() ||
+                            Green.toString(),
+                    }}
+                >
+                    {props.currentStatus?.name || 'Operational'}
+                </div>
+            );
+        }
+
+        return <></>;
+    };
+
     return (
         <div className={props.className}>
             <div>
@@ -48,18 +104,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                             </Tooltip>
                         )}
                     </div>
-                    {props.showCurrentStatus && (
-                        <div
-                            className=""
-                            style={{
-                                color:
-                                    props.monitorStatus?.color?.toString() ||
-                                    Green.toString(),
-                            }}
-                        >
-                            {props.monitorStatus?.name || 'Operational'}
-                        </div>
-                    )}
+                    {getCurrentStatus()}
                 </div>
                 <div className="mb-2 text-sm">
                     {props.description && (
