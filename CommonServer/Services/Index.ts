@@ -128,6 +128,7 @@ import MonitorGroupService from './MonitorGroupService';
 import MonitorGroupResourceService from './MonitorGroupResourceService';
 import MonitorGroupOwnerUserService from './MonitorGroupOwnerUserService';
 import MonitorGroupOwnerTeamService from './MonitorGroupOwnerTeamService';
+import ServiceService from './ServiceService';
 
 const services: Array<BaseService> = [
     PromoCodeService,
@@ -243,6 +244,8 @@ const services: Array<BaseService> = [
     MonitorGroupResourceService,
     MonitorGroupOwnerUserService,
     MonitorGroupOwnerTeamService,
+
+    ServiceService
 ];
 
 export const AnalyticsServices: Array<

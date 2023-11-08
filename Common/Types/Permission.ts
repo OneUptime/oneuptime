@@ -58,6 +58,11 @@ enum Permission {
     CanEditProjectProbe = 'CanEditProjectProbe',
     CanReadProjectProbe = 'CanReadProjectProbe',
 
+    CanCreateService = 'CanCreateService',
+    CanDeleteService = 'CanDeleteService',
+    CanEditService = 'CanEditService',
+    CanReadService = 'CanReadService',
+
     CanCreateMonitorGroupResource = 'CanCreateMonitorGroupResource',
     CanDeleteMonitorGroupResource = 'CanDeleteMonitorGroupResource',
     CanEditMonitorGroupResource = 'CanEditMonitorGroupResource',
@@ -1827,6 +1832,38 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+            {
+                permission: Permission.CanCreateService,
+                title: 'Can Create Service',
+                description: 'This permission can create Service this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanDeleteService,
+                title: 'Can Delete Service',
+                description:
+                    'This permission can delete Service of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanEditService,
+                title: 'Can Edit Service',
+                description: 'This permission can edit Service of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanReadService,
+                title: 'Can Read Service',
+                description: 'This permission can read Service of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+
 
             {
                 permission: Permission.CanCreateMonitorGroupResource,

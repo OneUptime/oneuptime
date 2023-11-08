@@ -130,6 +130,7 @@ import MonitorGroup from './MonitorGroup';
 import MonitorGroupOwnerTeam from './MonitorGroupOwnerTeam';
 import MonitorGroupOwnerUser from './MonitorGroupOwnerUser';
 import MonitorGroupResource from './MonitorGroupResource';
+import Service from './Service';
 
 export default [
     User,
@@ -247,4 +248,6 @@ export default [
     MonitorGroupOwnerTeam,
     MonitorGroupOwnerUser,
     MonitorGroupResource,
+
+    Service
 ];

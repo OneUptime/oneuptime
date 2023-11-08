@@ -311,10 +311,23 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.REPORTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/reports/`
     ),
+
     [PageMap.ERROR_TRACKER]: new Route(
         `/dashboard/${RouteParams.ProjectID}/error-tracker/`
     ),
 
+    [PageMap.TELEMETRY]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/`
+    ),
+
+    [PageMap.TELEMETRY_SERVICES_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/delete`
+    ),
+    
     // User Settings Routes
     [PageMap.USER_SETTINGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/user-settings/notification-methods`

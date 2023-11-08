@@ -129,6 +129,19 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
+
+                            <NavBarMenuItem
+                                title="Telemetry"
+                                description="Logs, Traces, Metrics and more."
+                                route={RouteUtil.populateRouteParams(
+                                    RouteMap[PageMap.TELEMETRY] as Route
+                                )}
+                                icon={IconProp.Cube}
+                                onClick={() => {
+                                    forceHideMoreMenu();
+                                }}
+                            />
+
                             <NavBarMenuItem
                                 title="On-Call Duty"
                                 description="Manage your on-call schedules, escalations and more."
