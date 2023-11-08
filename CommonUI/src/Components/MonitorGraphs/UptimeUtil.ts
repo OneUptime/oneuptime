@@ -254,19 +254,40 @@ export default class UptimeUtil {
             100;
 
         if (precision === UptimePrecision.NO_DECIMAL) {
-            return Math.round(percentage);
+            const noDecimalPercent: number = Math.round(percentage);
+            if (noDecimalPercent === 100 && totalDowntime > 0) {
+                return 99;
+            }
+
+            return noDecimalPercent;
         }
 
         if (precision === UptimePrecision.ONE_DECIMAL) {
-            return Math.round(percentage * 10) / 10;
+            const noDecimalPercent: number = Math.round(percentage * 10) / 10;
+            if (noDecimalPercent === 100 && totalDowntime > 0) {
+                return 99.9;
+            }
+
+            return noDecimalPercent;
         }
 
         if (precision === UptimePrecision.TWO_DECIMAL) {
-            return Math.round(percentage * 100) / 100;
+            const noDecimalPercent: number = Math.round(percentage * 100) / 100;
+            if (noDecimalPercent === 100 && totalDowntime > 0) {
+                return 99.99;
+            }
+
+            return noDecimalPercent;
         }
 
         if (precision === UptimePrecision.THREE_DECIMAL) {
-            return Math.round(percentage * 1000) / 1000;
+            const noDecimalPercent: number =
+                Math.round(percentage * 1000) / 1000;
+            if (noDecimalPercent === 100 && totalDowntime > 0) {
+                return 99.999;
+            }
+
+            return noDecimalPercent;
         }
 
         return percentage;
