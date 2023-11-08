@@ -317,7 +317,11 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.TELEMETRY]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/telemetry/`
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services`
+    ),
+
+    [PageMap.TELEMETRY_SERVICES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services`
     ),
 
     [PageMap.TELEMETRY_SERVICES_VIEW]: new Route(
@@ -326,6 +330,16 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/delete`
+    ),
+
+    //TELEMETRY_SERVICE_VIEW_LOGS
+    [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/logs`
+    ),
+
+    //TELEMETRY_SERVICE_VIEW_TRACES
+    [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/traces`
     ),
     
     // User Settings Routes
