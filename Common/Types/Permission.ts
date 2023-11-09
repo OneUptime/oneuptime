@@ -1833,7 +1833,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateService,
                 title: 'Can Create Service',
@@ -1852,18 +1851,19 @@ export class PermissionHelper {
             {
                 permission: Permission.CanEditService,
                 title: 'Can Edit Service',
-                description: 'This permission can edit Service of this project.',
+                description:
+                    'This permission can edit Service of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
                 permission: Permission.CanReadService,
                 title: 'Can Read Service',
-                description: 'This permission can read Service of this project.',
+                description:
+                    'This permission can read Service of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
-
 
             {
                 permission: Permission.CanCreateMonitorGroupResource,

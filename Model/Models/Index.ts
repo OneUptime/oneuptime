@@ -249,5 +249,5 @@ export default [
     MonitorGroupOwnerUser,
     MonitorGroupResource,
 
-    Service
+    Service,
 ];

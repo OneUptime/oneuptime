@@ -181,6 +181,13 @@ import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLog
 import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
 import URL from 'Common/Types/API/URL';
 
+// Add Telemetry.
+import TelemetryServices from './Pages/Telemetry/Services';
+import TelemetryServiceView from './Pages/Telemetry/Services/View/Index';
+import TelemetryServiceViewDelete from './Pages/Telemetry/Services/View/Delete';
+import TelemetryServiceViewLogs from './Pages/Telemetry/Services/View/Logs/Index';
+import TelemetryServiceViewTraces from './Pages/Telemetry/Services/View/Traces/Index';
+
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
@@ -366,6 +373,103 @@ const App: () => JSX.Element = () => {
                             onClickShowProjectModal={() => {
                                 setShowProjectModal(true);
                             }}
+                        />
+                    }
+                />
+
+                {/* Telemetry Pages */}
+
+                <PageRoute
+                    path={RouteMap[PageMap.TELEMETRY]?.toString() || ''}
+                    element={
+                        <TelemetryServices
+                            {...commonPageProps}
+                            pageRoute={RouteMap[PageMap.TELEMETRY] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.TELEMETRY_SERVICES]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServices
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[PageMap.TELEMETRY_SERVICES] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.TELEMETRY_SERVICES_VIEW]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <TelemetryServiceView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.TELEMETRY_SERVICES_VIEW
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServiceViewDelete
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.TELEMETRY_SERVICES_VIEW_LOGS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServiceViewLogs
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.TELEMETRY_SERVICES_VIEW_LOGS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServiceViewTraces
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                ] as Route
+                            }
                         />
                     }
                 />

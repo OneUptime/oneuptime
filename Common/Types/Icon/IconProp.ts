@@ -12,6 +12,7 @@ enum IconProp {
     Notification = 'Notification',
     Cube = 'Cube',
     Squares = 'Squares',
+    RectangleStack = 'RectangleStack',
     SquareStack = 'SquareStack',
     Help = 'Help',
     JSON = 'JSON',

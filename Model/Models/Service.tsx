@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -361,7 +369,6 @@ export default class Service extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -409,5 +416,4 @@ export default class Service extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
-
 }

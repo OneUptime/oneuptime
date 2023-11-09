@@ -132,7 +132,6 @@ import WorkflowVariableService, {
     Service as WorkflowVariableServiceType,
 } from 'CommonServer/Services/WorkflowVariableService';
 
-
 import Service from 'Model/Models/Service';
 import ServiceService, {
     Service as ServiceServiceType,
@@ -527,7 +526,6 @@ app.use(
         ServiceService
     ).getRouter()
 );
-
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,

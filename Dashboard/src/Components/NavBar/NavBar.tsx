@@ -129,7 +129,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
-
                             <NavBarMenuItem
                                 title="Telemetry"
                                 description="Logs, Traces, Metrics and more."

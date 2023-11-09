@@ -14,13 +14,14 @@ import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import SideMenu from './SideMenu';
 
 const Services: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Telemetry - Services'}
+            title={'Telemetry'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -41,6 +42,7 @@ const Services: FunctionComponent<PageComponentProps> = (
                     ),
                 },
             ]}
+            sideMenu={<SideMenu />}
         >
             <ModelTable<Service>
                 modelType={Service}
@@ -52,8 +54,7 @@ const Services: FunctionComponent<PageComponentProps> = (
                 isViewable={true}
                 cardProps={{
                     title: 'Services',
-                    description:
-                        'Here is a list of services for this project.',
+                    description: 'Here is a list of services for this project.',
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No services found.'}

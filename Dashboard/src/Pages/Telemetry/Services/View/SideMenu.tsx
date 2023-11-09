@@ -32,7 +32,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Logs',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_LOGS] as Route,
+                            RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_LOGS
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
@@ -42,11 +44,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Traces',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_TRACES] as Route,
+                            RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
-                    icon={IconProp.Info}
+                    icon={IconProp.RectangleStack}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">
@@ -54,7 +58,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Delete Service',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_DELETE] as Route,
+                            RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
@@ -62,7 +68,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     className="danger-on-hover"
                 />
             </SideMenuSection>
-
         </SideMenu>
     );
 };

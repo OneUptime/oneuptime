@@ -1,12 +1,11 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../../Utils/RouteMap';
-import PageComponentProps from '../../../PageComponentProps';
-import SideMenu from './SideMenu';
+import PageMap from '../../../../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../../../../Utils/RouteMap';
+import PageComponentProps from '../../../../PageComponentProps';
+import SideMenu from '../SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import Service from 'Model/Models/Service';
 
@@ -51,26 +50,16 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Service',
+                    title: 'Logs',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_DELETE
-                        ] as Route,
+                        RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_LOGS] as Route,
                         { modelId }
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={Service}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.TELEMETRY_SERVICES] as Route
-                    );
-                }}
-            />
+            <div>Logs</div>
         </ModelPage>
     );
 };

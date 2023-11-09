@@ -245,7 +245,7 @@ const services: Array<BaseService> = [
     MonitorGroupOwnerUserService,
     MonitorGroupOwnerTeamService,
 
-    ServiceService
+    ServiceService,
 ];
 
 export const AnalyticsServices: Array<
