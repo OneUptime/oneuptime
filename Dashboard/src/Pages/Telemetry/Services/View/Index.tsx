@@ -172,6 +172,13 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Description',
                         },
+                        {
+                            field: {
+                                serviceToken: true,
+                            },
+                            title: 'Service Token',
+                            fieldType: FieldType.HiddenText,
+                        },
                     ],
                     modelId: modelId,
                 }}

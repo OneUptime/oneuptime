@@ -5,7 +5,7 @@ import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotCon
 import OneUptimeDate from 'Common/Types/Date';
 import logger from '../Utils/Logger';
 
-export default abstract class Cache {
+export default abstract class GlobalCache {
     public static async getJSON(
         namespace: string,
         key: string

@@ -11,7 +11,7 @@ receivers:
 exporters:
   otlphttp:
     endpoint: "http://ingestor:3400/otel"
-    headers: {"x-api-key": "****************", "Content-Type": "application/json"}
+    headers: {"Content-Type": "application/json"}
 
 service:
   pipelines:

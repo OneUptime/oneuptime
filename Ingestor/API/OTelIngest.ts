@@ -22,6 +22,10 @@ import LogService from 'CommonServer/Services/LogService';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
+import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
+import ServiceService from 'CommonServer/Services/ServiceService';
+import Service from 'Model/Models/Service';
+
 // Load proto file for OTel
 
 // Create a root namespace
@@ -42,6 +46,11 @@ const MetricsData: protobuf.Type = MetricsProto.lookupType('MetricsData');
 
 const router: ExpressRouter = Express.getRouter();
 
+export interface OtelRequest extends ExpressRequest {
+    serviceId: ObjectID; // Service ID
+    projectId: ObjectID; // Project ID
+}
+
 /**
  *
  *  Otel Middleware
@@ -49,7 +58,7 @@ const router: ExpressRouter = Express.getRouter();
  */
 router.use(
     '/otel/*',
-    (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+    async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
         try {
             if (req.baseUrl === '/otel/v1/traces') {
                 req.body = TracesData.decode(req.body);
@@ -60,6 +69,66 @@ router.use(
             } else {
                 throw new BadRequestException('Invalid URL: ' + req.baseUrl);
             }
+
+            // check header.
+
+            if (!req.headers['oneuptime-service-token']) {
+                throw new BadRequestException(
+                    'Missing header: oneuptime-service-token'
+                );
+            }
+
+            const cachedServiceId: string | null = await GlobalCache.getString(
+                'service-token',
+                req.headers['oneuptime-service-token'] as string
+            );
+            const serviceProjectId: string | null = await GlobalCache.getString(
+                'service-project-id',
+                req.headers['oneuptime-service-token'] as string
+            );
+
+            if (!cachedServiceId || !serviceProjectId) {
+                // load from the database and set the cache.
+                const service: Service | null = await ServiceService.findOneBy({
+                    query: {
+                        serviceToken: new ObjectID(
+                            req.headers['oneuptime-service-token'] as string
+                        ),
+                    },
+                    select: {
+                        _id: true,
+                        projectId: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                if (!service) {
+                    throw new BadRequestException('Invalid service token');
+                }
+
+                await GlobalCache.setString(
+                    'service-token',
+                    req.headers['oneuptime-service-token'] as string,
+                    service._id?.toString() as string
+                );
+                await GlobalCache.setString(
+                    'service-project-id',
+                    req.headers['oneuptime-service-token'] as string,
+                    service.projectId?.toString() as string
+                );
+
+                (req as OtelRequest).serviceId = service.id as ObjectID;
+                (req as OtelRequest).projectId = service.projectId as ObjectID;
+            }
+
+            (req as OtelRequest).serviceId = ObjectID.fromString(
+                cachedServiceId as string
+            );
+            (req as OtelRequest).projectId = ObjectID.fromString(
+                serviceProjectId as string
+            );
 
             next();
         } catch (err) {
@@ -94,8 +163,8 @@ router.post(
                     for (const span of spans) {
                         const dbSpan: Span = new Span();
 
-                        dbSpan.projectId = ObjectID.getZeroObjectID();
-                        dbSpan.serviceId = ObjectID.getZeroObjectID();
+                        dbSpan.projectId = (req as OtelRequest).projectId;
+                        dbSpan.serviceId = (req as OtelRequest).serviceId;
 
                         dbSpan.spanId = span['spanId'] as string;
                         dbSpan.traceId = span['traceId'] as string;
@@ -186,10 +255,12 @@ router.post(
                             )['dataPoints'] as JSONArray) {
                                 const dbMetricSum: MetricSum = new MetricSum();
 
-                                dbMetricSum.projectId =
-                                    ObjectID.getZeroObjectID();
-                                dbMetricSum.serviceId =
-                                    ObjectID.getZeroObjectID();
+                                dbMetricSum.projectId = (
+                                    req as OtelRequest
+                                ).projectId;
+                                dbMetricSum.serviceId = (
+                                    req as OtelRequest
+                                ).serviceId;
 
                                 dbMetricSum.name = metricName;
                                 dbMetricSum.description = metricDescription;
@@ -235,10 +306,12 @@ router.post(
                                 const dbMetricGauge: MetricGauge =
                                     new MetricGauge();
 
-                                dbMetricGauge.projectId =
-                                    ObjectID.getZeroObjectID();
-                                dbMetricGauge.serviceId =
-                                    ObjectID.getZeroObjectID();
+                                dbMetricGauge.projectId = (
+                                    req as OtelRequest
+                                ).projectId;
+                                dbMetricGauge.serviceId = (
+                                    req as OtelRequest
+                                ).serviceId;
 
                                 dbMetricGauge.name = metricName;
                                 dbMetricGauge.description = metricDescription;
@@ -284,10 +357,12 @@ router.post(
                                 const dbMetricHistogram: MetricHistogram =
                                     new MetricHistogram();
 
-                                dbMetricHistogram.projectId =
-                                    ObjectID.getZeroObjectID();
-                                dbMetricHistogram.serviceId =
-                                    ObjectID.getZeroObjectID();
+                                dbMetricHistogram.projectId = (
+                                    req as OtelRequest
+                                ).projectId;
+                                dbMetricHistogram.serviceId = (
+                                    req as OtelRequest
+                                ).serviceId;
 
                                 dbMetricHistogram.name = metricName;
                                 dbMetricHistogram.description =
@@ -419,8 +494,8 @@ router.post(
                         }
                         */
 
-                        dbLog.projectId = ObjectID.getZeroObjectID();
-                        dbLog.serviceId = ObjectID.getZeroObjectID();
+                        dbLog.projectId = (req as OtelRequest).projectId;
+                        dbLog.serviceId = (req as OtelRequest).serviceId;
 
                         dbLog.timeUnixNano = log['timeUnixNano'] as number;
                         dbLog.time = OneUptimeDate.fromUnixNano(

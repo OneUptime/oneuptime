@@ -27,15 +27,18 @@ builder.Logging.AddOpenTelemetry(logging =>
         // In production environment, ConsoleExporter should be replaced with other exporters (e.g. OTLP Exporter).
         .AddConsoleExporter()
         .AddOtlpExporter(opt =>
-                {
-                    // If endpoint was not specified, the proper one will be selected according to the protocol.
-                    if (!string.IsNullOrEmpty(endpoint))
-                    {
-                        opt.Endpoint = new Uri(endpoint);
-                    }
+        {
+            // If endpoint was not specified, the proper one will be selected according to the protocol.
+            if (!string.IsNullOrEmpty(endpoint))
+            {
+                opt.Endpoint = new Uri(endpoint);
 
-                    System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
-                });
+                // Set headers in OTLP exporter
+                opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+            }
+
+            System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
+        });
 });
 
 // Traces. 
@@ -51,6 +54,8 @@ builder.Services.AddOpenTelemetry()
                     if (!string.IsNullOrEmpty(endpoint))
                     {
                         opt.Endpoint = new Uri(endpoint);
+                        // Set headers in OTLP exporter
+                        opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
                     }
 
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
@@ -77,10 +82,12 @@ builder.Services.AddOpenTelemetry()
                     if (!string.IsNullOrEmpty(endpoint))
                     {
                         opt.Endpoint = new Uri(endpoint);
+                        // Set headers in OTLP exporter
+                        opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
                     }
 
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
- 
+
                 }));
 
 

@@ -416,4 +416,39 @@ export default class Service extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateService,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.CanReadService,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditService,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        isDefaultValueColumn: false,
+        title: 'Service Token',
+        description: 'Service Token for this service',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public serviceToken?: ObjectID = undefined;
 }
