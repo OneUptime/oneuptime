@@ -219,7 +219,7 @@ describe('BaseAPI', () => {
                         baseApiInstance as any,
                         shouldBeCalled as any
                     );
-                    mockRouter
+                    await mockRouter
                         .match(method, uri)
                         .handlerFunction(emptyRequest, res, next);
                     expect(spy).toHaveBeenCalledWith(emptyRequest, res);
@@ -234,7 +234,7 @@ describe('BaseAPI', () => {
                         throw error;
                     });
                     const next: jest.Mock = jest.fn();
-                    mockRouter
+                    await mockRouter
                         .match(method, uri)
                         .handlerFunction(emptyRequest, res, next);
                     expect(next).toHaveBeenCalledWith(error);
