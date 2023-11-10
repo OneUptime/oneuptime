@@ -19,6 +19,7 @@ import { SMSMessage } from 'Common/Types/SMS/SMS';
 import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
 import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
+import Monitor from 'Model/Models/Monitor';
 
 RunCron(
     'IncidentOwner:SendsNotePostedEmail',
@@ -157,7 +158,7 @@ RunCron(
                 ),
                 resourcesAffected:
                     incident
-                        .monitors!.map((monitor) => {
+                        .monitors!.map((monitor: Monitor) => {
                             return monitor.name!;
                         })
                         .join(', ') || 'None',

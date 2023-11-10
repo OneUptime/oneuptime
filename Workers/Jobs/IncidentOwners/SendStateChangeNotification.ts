@@ -18,6 +18,7 @@ import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
 import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 import ObjectID from 'Common/Types/ObjectID';
+import Monitor from 'Model/Models/Monitor';
 
 RunCron(
     'IncidentOwner:SendStateChangeEmail',
@@ -141,7 +142,7 @@ RunCron(
                 ),
                 resourcesAffected:
                     incident
-                        .monitors!.map((monitor) => {
+                        .monitors!.map((monitor: Monitor) => {
                             return monitor.name!;
                         })
                         .join(', ') || 'None',
