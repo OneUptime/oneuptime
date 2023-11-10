@@ -116,6 +116,9 @@ RunCron(
                         incidentSeverity: {
                             name: true,
                         },
+                        monitors: {
+                            name: true,
+                        },
                     },
                 }
             );
@@ -152,6 +155,9 @@ RunCron(
                 note: Markdown.convertToHTML(
                     (note.getColumnValue('note')! as string) || ''
                 ),
+                resourcesAffected: incident.monitors!.map((monitor) => {
+                    return monitor.name!;
+                }).join(', ') || 'None',
                 incidentSeverity: incident.incidentSeverity!.name!,
                 incidentViewLink: (
                     await IncidentService.getIncidentLinkInDashboard(

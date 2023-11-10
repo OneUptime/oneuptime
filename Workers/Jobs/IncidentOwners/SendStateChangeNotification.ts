@@ -17,6 +17,7 @@ import { SMSMessage } from 'Common/Types/SMS/SMS';
 import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
 import UserNotificationSettingService from 'CommonServer/Services/UserNotificationSettingService';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
+import ObjectID from 'Common/Types/ObjectID';
 
 RunCron(
     'IncidentOwner:SendStateChangeEmail',
@@ -41,11 +42,7 @@ RunCron(
                     project: {
                         name: true,
                     },
-                    incident: {
-                        _id: true,
-                        title: true,
-                        description: true,
-                    },
+                    incidentId: true,
                     incidentState: {
                         name: true,
                     },
@@ -53,7 +50,37 @@ RunCron(
             });
 
         for (const incidentStateTimeline of incidentStateTimelines) {
-            const incident: Incident = incidentStateTimeline.incident!;
+
+            const incidentId: ObjectID = incidentStateTimeline.incidentId!;
+
+            if (!incidentId) {
+                continue;
+            }
+
+            // get incident
+
+
+
+            const incident: Incident | null = await IncidentService.findOneById({
+                id: incidentId,
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                    title: true,
+                    description: true,
+                    monitors: {
+                        name: true,
+                    }
+                }
+            });
+
+
+            if (!incident) {
+                continue;
+            }
+
             const incidentState: IncidentState =
                 incidentStateTimeline.incidentState!;
 
@@ -114,6 +141,9 @@ RunCron(
                 incidentDescription: Markdown.convertToHTML(
                     incident.description! || ''
                 ),
+                resourcesAffected: incident.monitors!.map((monitor) => {
+                    return monitor.name!;
+                }).join(', ') || 'None',
                 stateChangedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
                         incidentStateTimeline.createdAt!
@@ -140,19 +170,17 @@ RunCron(
                 };
 
                 const sms: SMSMessage = {
-                    message: `This is a message from OneUptime. Incident: ${
-                        incident.title
-                    } - state changed to ${incidentState!
-                        .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+                    message: `This is a message from OneUptime. Incident: ${incident.title
+                        } - state changed to ${incidentState!
+                            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
                 };
 
                 const callMessage: CallRequestMessage = {
                     data: [
                         {
-                            sayMessage: `This is a message from OneUptime. Incident ${
-                                incident.title
-                            }       state changed to ${incidentState!
-                                .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                            sayMessage: `This is a message from OneUptime. Incident ${incident.title
+                                }       state changed to ${incidentState!
+                                    .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
                         },
                     ],
                 };
