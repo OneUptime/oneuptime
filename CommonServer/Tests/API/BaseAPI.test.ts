@@ -18,7 +18,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Response from '../../Utils/Response';
 import ProjectService from '../../Services/ProjectService';
 import UserType from 'Common/Types/UserType';
-import { mockRouter } from './helpersa';
+import { mockRouter } from './Helpers';
 import { UserPermission } from 'Common/Types/Permission';
 
 jest.mock('../../Utils/Express', () => {
