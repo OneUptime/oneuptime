@@ -4,14 +4,19 @@ import '@testing-library/jest-dom/extend-expect';
 import ProgressBar from '../../Components/ProgressBar/ProgressBar';
 
 describe('ProgressBar Component', () => {
-    function getProgressBar(): Element | null {
+    function getProgressBar(): HTMLElement {
         //BAD IDEA: should be .progressBar
-        return document.querySelector('.bg-indigo-599');
+        const element: HTMLElement | null =
+            document.querySelector('.bg-indigo-600');
+        if (!element) {
+            throw 'Not Found';
+        }
+        return element;
     }
 
     test('should calculate and display the correct percentage', () => {
         render(<ProgressBar count={0} totalCount={100} suffix="items" />);
-        const progressBar: Element | null = getProgressBar();
+        const progressBar: HTMLElement | null = getProgressBar();
         expect(progressBar).toHaveStyle({ width: '0%' });
     });
 
