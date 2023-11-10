@@ -1,4 +1,4 @@
-import Express, { ExpressRequest, ExpressResponse, NextFunction, OneUptimeRequest} from '../../Utils/Express';
+import Express, { ExpressResponse, NextFunction, OneUptimeRequest} from '../../Utils/Express';
 import DatabaseService from '../../Services/DatabaseService';
 import UserMiddleware from '../../Middleware/UserAuthorization';
 import BaseModel from 'Common/Models/BaseModel';
@@ -12,33 +12,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Response  from '../../Utils/Response'
 import ProjectService from '../../Services/ProjectService';
 import UserType from 'Common/Types/UserType';
-
-type RouterFunction = (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => void;
-
-type Route = {method: String, uri: String, middleware: RouterFunction, handlerFunction: RouterFunction}
-
-const mockRouterForMethod = (method: string) => (
-  uri: string, 
-  middleware: RouterFunction, 
-  handlerFunction: RouterFunction
-): void => {
-  mockRouter.routes.push({method: method.toUpperCase(), uri, middleware, handlerFunction})
-}
-
-const mockRouter = {
-  get: jest.fn().mockImplementation(mockRouterForMethod('get')),
-  post: jest.fn().mockImplementation(mockRouterForMethod('post')),
-  put: jest.fn().mockImplementation(mockRouterForMethod('put')),
-  delete: jest.fn().mockImplementation(mockRouterForMethod('delete')),
-  routes: [] as any as Route[],
-  match: (method: String, uri: String) => {
-    const route = mockRouter.routes.find((route: Route) => 
-      method.toUpperCase() === route.method && uri === route.uri
-    )
-    if (!route) throw "not found"
-    return route
-  }
-};
+import { mockRouter } from './helpers';
 
 jest.mock('../../Utils/Express', () => ({
   getRouter: () => mockRouter,
