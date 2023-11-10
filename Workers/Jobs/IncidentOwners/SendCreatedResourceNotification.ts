@@ -45,7 +45,7 @@ RunCron(
                 rootCause: true,
                 monitors: {
                     name: true,
-                }
+                },
             },
         });
 
@@ -86,9 +86,12 @@ RunCron(
                 incidentDescription: Markdown.convertToHTML(
                     incident.description! || ''
                 ),
-                resourcesAffected: incident.monitors!.map((monitor) => {
-                    return monitor.name!;
-                }).join(', ') || 'None',
+                resourcesAffected:
+                    incident
+                        .monitors!.map((monitor) => {
+                            return monitor.name!;
+                        })
+                        .join(', ') || 'None',
                 incidentSeverity: incident.incidentSeverity!.name!,
                 rootCause:
                     incident.rootCause ||

@@ -50,7 +50,6 @@ RunCron(
             });
 
         for (const incidentStateTimeline of incidentStateTimelines) {
-
             const incidentId: ObjectID = incidentStateTimeline.incidentId!;
 
             if (!incidentId) {
@@ -59,23 +58,22 @@ RunCron(
 
             // get incident
 
-
-
-            const incident: Incident | null = await IncidentService.findOneById({
-                id: incidentId,
-                props: {
-                    isRoot: true,
-                },
-                select: {
-                    _id: true,
-                    title: true,
-                    description: true,
-                    monitors: {
-                        name: true,
-                    }
+            const incident: Incident | null = await IncidentService.findOneById(
+                {
+                    id: incidentId,
+                    props: {
+                        isRoot: true,
+                    },
+                    select: {
+                        _id: true,
+                        title: true,
+                        description: true,
+                        monitors: {
+                            name: true,
+                        },
+                    },
                 }
-            });
-
+            );
 
             if (!incident) {
                 continue;
@@ -141,9 +139,12 @@ RunCron(
                 incidentDescription: Markdown.convertToHTML(
                     incident.description! || ''
                 ),
-                resourcesAffected: incident.monitors!.map((monitor) => {
-                    return monitor.name!;
-                }).join(', ') || 'None',
+                resourcesAffected:
+                    incident
+                        .monitors!.map((monitor) => {
+                            return monitor.name!;
+                        })
+                        .join(', ') || 'None',
                 stateChangedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
                         incidentStateTimeline.createdAt!
@@ -170,17 +171,19 @@ RunCron(
                 };
 
                 const sms: SMSMessage = {
-                    message: `This is a message from OneUptime. Incident: ${incident.title
-                        } - state changed to ${incidentState!
-                            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+                    message: `This is a message from OneUptime. Incident: ${
+                        incident.title
+                    } - state changed to ${incidentState!
+                        .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
                 };
 
                 const callMessage: CallRequestMessage = {
                     data: [
                         {
-                            sayMessage: `This is a message from OneUptime. Incident ${incident.title
-                                }       state changed to ${incidentState!
-                                    .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                            sayMessage: `This is a message from OneUptime. Incident ${
+                                incident.title
+                            }       state changed to ${incidentState!
+                                .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
                         },
                     ],
                 };
