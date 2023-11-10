@@ -346,6 +346,19 @@
                 "run-script",
                 "dev"
             ],
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to Remote",
+            "address": "127.0.0.1",
+            "port": 9229,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/app", // or the path where your application is running in the remote environment
+            "restart": true,
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         }
     ]
 }
