@@ -35,14 +35,15 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
     return (
         <div className="w-full h-4 mb-4 bg-gray-200 rounded-full dark:bg-gray-700">
             <div
+                data-testid="progress-bar"
                 className="h-4 bg-indigo-600 rounded-full dark:bg-indigo-500"
                 style={{ width: percent + '%' }}
             ></div>
             <div className="text-sm text-gray-400 mt-1 flex justify-between">
-                <div>
+                <div data-testid="progress-bar-count">
                     {props.count} {props.suffix}
                 </div>
-                <div>
+                <div data-testid="progress-bar-total-count">
                     {props.totalCount} {props.suffix}
                 </div>
             </div>
