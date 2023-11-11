@@ -12,14 +12,14 @@ describe('ProbeElement Component', () => {
 
     test('should display the probe name', () => {
         render(<ProbeElement probe={mockProbe} />);
-        const probeName: HTMLElement = screen.getByText('Test Probe');
+        const probeName: HTMLElement = screen.getByTestId('probe-name');
         expect(probeName).toBeInTheDocument();
     });
 
     test('should display the image when iconFileId is present', () => {
         render(<ProbeElement probe={mockProbe} />);
-        const imageElement: HTMLImageElement | null =
-            document.querySelector('img');
+        const imageElement: HTMLImageElement =
+            screen.getByTestId('probe-image');
         expect(imageElement).toBeInTheDocument();
         expect(imageElement).toHaveAttribute('alt', 'Test Probe');
     });
@@ -29,14 +29,13 @@ describe('ProbeElement Component', () => {
         probeWithoutIcon.name = 'Test Probe';
 
         render(<ProbeElement probe={probeWithoutIcon} />);
-        const iconElement: Element | null =
-            document.querySelector('.text-gray-400');
+        const iconElement: HTMLElement = screen.getByTestId('probe-icon');
         expect(iconElement).toBeInTheDocument();
     });
 
     test('should display "No probe found" when no probe is provided', () => {
         render(<ProbeElement probe={null} />);
-        const noProbeText: HTMLElement = screen.getByText('No probe found.');
+        const noProbeText: HTMLElement = screen.getByTestId('probe-not-found');
         expect(noProbeText).toBeInTheDocument();
     });
 
@@ -46,8 +45,8 @@ describe('ProbeElement Component', () => {
         probeWithIcon.name = 'Probe with Icon';
 
         render(<ProbeElement probe={probeWithIcon} />);
-        const imageElement: HTMLElement =
-            screen.getByAltText('Probe with Icon');
+        const imageElement: HTMLImageElement =
+            screen.getByTestId('probe-image');
         expect(imageElement).toBeInTheDocument();
         expect(imageElement).toHaveAttribute(
             'src',
@@ -60,8 +59,7 @@ describe('ProbeElement Component', () => {
         probeWithoutIcon.name = 'Probe without Icon';
 
         render(<ProbeElement probe={probeWithoutIcon} />);
-        const iconElement: Element | null =
-            document.querySelector('.text-gray-400');
+        const iconElement: HTMLElement = screen.getByTestId('probe-icon');
         expect(iconElement).toBeInTheDocument();
     });
 });
