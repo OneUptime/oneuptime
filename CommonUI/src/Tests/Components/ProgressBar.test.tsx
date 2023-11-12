@@ -26,6 +26,9 @@ describe('ProgressBar Component', () => {
         );
         expect(countText).toBeInTheDocument();
         expect(totalCountText).toBeInTheDocument();
+
+        expect(countText.innerHTML).toEqual('30 items');
+        expect(totalCountText.innerHTML).toEqual('99 items');
     });
 
     test('should handle zero total count without crashing', () => {
