@@ -9,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 const string endpoint = "http://localhost:4317";
 
+Console.WriteLine($"Env var: {Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_HEADERS")?.ToString()}");
+
 
 // Logging. 
 builder.Logging.ClearProviders();
@@ -34,7 +36,7 @@ builder.Logging.AddOpenTelemetry(logging =>
                 opt.Endpoint = new Uri(endpoint);
 
                 // Set headers in OTLP exporter
-                opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+                // opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
             }
 
             System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
@@ -55,7 +57,7 @@ builder.Services.AddOpenTelemetry()
                     {
                         opt.Endpoint = new Uri(endpoint);
                         // Set headers in OTLP exporter
-                        opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+                        // opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
                         
 
                     }
@@ -85,7 +87,7 @@ builder.Services.AddOpenTelemetry()
                     {
                         opt.Endpoint = new Uri(endpoint);
                         // Set headers in OTLP exporter
-                        opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+                        // opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
                     }
 
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
@@ -123,6 +125,8 @@ async Task<String> SendGreeting(ILogger<Program> logger)
     // Add a tag to the Activity
     activity?.SetTag("greeting", "Hello World!");
 
+    //log out env var 
+   
     histogram.Record("Hello World!".Length);
 
     return $"Hello World! OpenTelemetry Trace: {Activity.Current?.Id}";
