@@ -1,3 +1,10 @@
+extensions:
+  headers_setter:
+    headers:
+      - action: insert
+        key: oneuptime-service-token
+        from_context: oneuptime-service-token
+
 processors:
 
 receivers:
@@ -5,6 +12,7 @@ receivers:
     protocols:
       grpc:
       http:
+        include_metadata: true
 
 
 
@@ -14,6 +22,7 @@ exporters:
     headers: {"Content-Type": "application/json"}
 
 service:
+  extensions: [ headers_setter ]
   pipelines:
     traces:
       receivers: [otlp]

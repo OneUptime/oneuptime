@@ -10,6 +10,7 @@ enum IconProp {
     Settings = 'Settings',
     Criteria = 'Criteria',
     Notification = 'Notification',
+    CursorArrowRays = 'CursorArrowRays',
     Cube = 'Cube',
     Squares = 'Squares',
     RectangleStack = 'RectangleStack',

@@ -56,6 +56,8 @@ builder.Services.AddOpenTelemetry()
                         opt.Endpoint = new Uri(endpoint);
                         // Set headers in OTLP exporter
                         opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+                        
+
                     }
 
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");

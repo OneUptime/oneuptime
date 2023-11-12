@@ -8,6 +8,7 @@ export interface ComponentProps {
     icon: IconProp | undefined;
     footer?: ReactElement | undefined;
     id: string;
+    iconClassName?: string;
 }
 
 const EmptyState: FunctionComponent<ComponentProps> = (
@@ -20,7 +21,7 @@ const EmptyState: FunctionComponent<ComponentProps> = (
                     {props.icon && (
                         <Icon
                             icon={props.icon}
-                            className="mx-auto h-12 w-12 text-gray-400"
+                            className={props.iconClassName || `mx-auto h-12 w-12 text-gray-400`}
                         />
                     )}
 

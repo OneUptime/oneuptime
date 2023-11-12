@@ -22,9 +22,9 @@ import LogService from 'CommonServer/Services/LogService';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
-import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
-import ServiceService from 'CommonServer/Services/ServiceService';
-import Service from 'Model/Models/Service';
+// import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
+// import ServiceService from 'CommonServer/Services/ServiceService';
+// import Service from 'Model/Models/Service';
 
 // Load proto file for OTel
 
@@ -72,63 +72,63 @@ router.use(
 
             // check header.
 
-            if (!req.headers['oneuptime-service-token']) {
-                throw new BadRequestException(
-                    'Missing header: oneuptime-service-token'
-                );
-            }
+            // if (!req.headers['oneuptime-service-token']) {
+            //     throw new BadRequestException(
+            //         'Missing header: oneuptime-service-token'
+            //     );
+            // }
 
-            const cachedServiceId: string | null = await GlobalCache.getString(
-                'service-token',
-                req.headers['oneuptime-service-token'] as string
-            );
-            const serviceProjectId: string | null = await GlobalCache.getString(
-                'service-project-id',
-                req.headers['oneuptime-service-token'] as string
-            );
+            // const cachedServiceId: string | null = await GlobalCache.getString(
+            //     'service-token',
+            //     req.headers['oneuptime-service-token'] as string
+            // );
+            // const serviceProjectId: string | null = await GlobalCache.getString(
+            //     'service-project-id',
+            //     req.headers['oneuptime-service-token'] as string
+            // );
 
-            if (!cachedServiceId || !serviceProjectId) {
-                // load from the database and set the cache.
-                const service: Service | null = await ServiceService.findOneBy({
-                    query: {
-                        serviceToken: new ObjectID(
-                            req.headers['oneuptime-service-token'] as string
-                        ),
-                    },
-                    select: {
-                        _id: true,
-                        projectId: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
+            // if (!cachedServiceId || !serviceProjectId) {
+            //     // load from the database and set the cache.
+            //     const service: Service | null = await ServiceService.findOneBy({
+            //         query: {
+            //             serviceToken: new ObjectID(
+            //                 req.headers['oneuptime-service-token'] as string
+            //             ),
+            //         },
+            //         select: {
+            //             _id: true,
+            //             projectId: true,
+            //         },
+            //         props: {
+            //             isRoot: true,
+            //         },
+            //     });
 
-                if (!service) {
-                    throw new BadRequestException('Invalid service token');
-                }
+            //     if (!service) {
+            //         throw new BadRequestException('Invalid service token');
+            //     }
 
-                await GlobalCache.setString(
-                    'service-token',
-                    req.headers['oneuptime-service-token'] as string,
-                    service._id?.toString() as string
-                );
-                await GlobalCache.setString(
-                    'service-project-id',
-                    req.headers['oneuptime-service-token'] as string,
-                    service.projectId?.toString() as string
-                );
+            //     await GlobalCache.setString(
+            //         'service-token',
+            //         req.headers['oneuptime-service-token'] as string,
+            //         service._id?.toString() as string
+            //     );
+            //     await GlobalCache.setString(
+            //         'service-project-id',
+            //         req.headers['oneuptime-service-token'] as string,
+            //         service.projectId?.toString() as string
+            //     );
 
-                (req as OtelRequest).serviceId = service.id as ObjectID;
-                (req as OtelRequest).projectId = service.projectId as ObjectID;
-            }
+            //     (req as OtelRequest).serviceId = service.id as ObjectID;
+            //     (req as OtelRequest).projectId = service.projectId as ObjectID;
+            // }
 
-            (req as OtelRequest).serviceId = ObjectID.fromString(
-                cachedServiceId as string
-            );
-            (req as OtelRequest).projectId = ObjectID.fromString(
-                serviceProjectId as string
-            );
+            // (req as OtelRequest).serviceId = ObjectID.fromString(
+            //     cachedServiceId as string
+            // );
+            // (req as OtelRequest).projectId = ObjectID.fromString(
+            //     serviceProjectId as string
+            // );
 
             next();
         } catch (err) {
@@ -455,6 +455,9 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
+
+            debugger;
+
             logger.info('OTel Ingestor API called');
 
             req.body = req.body.toJSON();

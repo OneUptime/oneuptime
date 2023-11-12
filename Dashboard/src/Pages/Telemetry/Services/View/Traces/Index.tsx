@@ -8,6 +8,8 @@ import SideMenu from '../SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Service from 'Model/Models/Service';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -61,7 +63,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <div>Traces</div>
+            <EmptyState id="coming-soon" icon={IconProp.CursorArrowRays} title="Coming soon!" description="We will be launching this feature very soon. Stay Tuned!" />
         </ModelPage>
     );
 };
