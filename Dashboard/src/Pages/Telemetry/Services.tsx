@@ -44,8 +44,8 @@ const Services: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu />}
         >
-            <ModelTable<Service>
-                modelType={Service}
+            <ModelTable<TelemetryService>
+                modelType={TelemetryService}
                 id="services-table"
                 isDeleteable={false}
                 isEditable={false}

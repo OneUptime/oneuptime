@@ -187,6 +187,8 @@ import TelemetryServiceView from './Pages/Telemetry/Services/View/Index';
 import TelemetryServiceViewDelete from './Pages/Telemetry/Services/View/Delete';
 import TelemetryServiceViewLogs from './Pages/Telemetry/Services/View/Logs/Index';
 import TelemetryServiceViewTraces from './Pages/Telemetry/Services/View/Traces/Index';
+import TelemetryServiceViewMetrics from './Pages/Telemetry/Services/View/Metrics/Index';
+import TelemetryServiceViewDahboard from './Pages/Telemetry/Services/View/Dashboard/Index';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -413,7 +415,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW
+                                PageMap.TELEMETRY_SERVICES_VIEW
                                 ] as Route
                             }
                         />
@@ -431,7 +433,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                                PageMap.TELEMETRY_SERVICES_VIEW_DELETE
                                 ] as Route
                             }
                         />
@@ -449,7 +451,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_LOGS
+                                PageMap.TELEMETRY_SERVICES_VIEW_LOGS
                                 ] as Route
                             }
                         />
@@ -467,7 +469,43 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServiceViewMetrics
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServiceViewDahboard
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
                                 ] as Route
                             }
                         />
@@ -508,7 +546,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
                                 ] as Route
                             }
                         />
@@ -528,8 +566,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap
+                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
                         />
@@ -557,7 +595,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITORS_INOPERATIONAL
+                                PageMap.MONITORS_INOPERATIONAL
                                 ] as Route
                             }
                         />
@@ -640,7 +678,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
                                 ] as Route
                             }
                         />
@@ -672,7 +710,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_INCIDENTS
+                                PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
                             }
                         />
@@ -690,7 +728,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                                PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -788,7 +826,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.WORKFLOW_VIEW_SETTINGS
+                                PageMap.WORKFLOW_VIEW_SETTINGS
                                 ] as Route
                             }
                         />
@@ -887,7 +925,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_DELETE
+                                PageMap.STATUS_PAGE_VIEW_DELETE
                                 ] as Route
                             }
                         />
@@ -905,7 +943,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_BRANDING
+                                PageMap.STATUS_PAGE_VIEW_BRANDING
                                 ] as Route
                             }
                         />
@@ -923,7 +961,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                                 ] as Route
                             }
                         />
@@ -941,7 +979,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
                                 ] as Route
                             }
                         />
@@ -959,7 +997,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -976,7 +1014,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_OWNERS
+                                PageMap.STATUS_PAGE_VIEW_OWNERS
                                 ] as Route
                             }
                         />
@@ -1008,7 +1046,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                                 ] as Route
                             }
                         />
@@ -1026,8 +1064,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                                PageMap
+                                    .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                                 ] as Route
                             }
                         />
@@ -1045,7 +1083,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
                                 ] as Route
                             }
                         />
@@ -1063,7 +1101,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_SETTINGS
+                                PageMap.STATUS_PAGE_VIEW_SETTINGS
                                 ] as Route
                             }
                         />
@@ -1081,7 +1119,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                                PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                                 ] as Route
                             }
                         />
@@ -1099,7 +1137,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                                 ] as Route
                             }
                         />
@@ -1117,7 +1155,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                                PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
                                 ] as Route
                             }
                         />
@@ -1135,7 +1173,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
                                 ] as Route
                             }
                         />
@@ -1153,7 +1191,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
                                 ] as Route
                             }
                         />
@@ -1171,7 +1209,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                                 ] as Route
                             }
                         />
@@ -1189,7 +1227,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                PageMap.STATUS_PAGE_VIEW_EMBEDDED
                                 ] as Route
                             }
                         />
@@ -1207,7 +1245,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                PageMap.STATUS_PAGE_VIEW_RESOURCES
                                 ] as Route
                             }
                         />
@@ -1225,7 +1263,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                PageMap.STATUS_PAGE_VIEW_DOMAINS
                                 ] as Route
                             }
                         />
@@ -1242,7 +1280,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_GROUPS
+                                PageMap.STATUS_PAGE_VIEW_GROUPS
                                 ] as Route
                             }
                         />
@@ -1260,7 +1298,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
                                 ] as Route
                             }
                         />
@@ -1328,7 +1366,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
                         />
@@ -1345,7 +1383,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_INTERNAL_NOTE
+                                PageMap.INCIDENT_INTERNAL_NOTE
                                 ] as Route
                             }
                         />
@@ -1363,7 +1401,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
+                                PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -1381,8 +1419,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                                PageMap
+                                    .ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -1430,7 +1468,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap.SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
                         />
@@ -1448,7 +1486,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
                         />
@@ -1466,7 +1504,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW
                                 ] as Route
                             }
                         />
@@ -1484,8 +1522,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                                PageMap
+                                    .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -1503,7 +1541,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
                                 ] as Route
                             }
                         />
@@ -1521,7 +1559,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
                                 ] as Route
                             }
                         />
@@ -1539,8 +1577,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                                PageMap
+                                    .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
                         />
@@ -1558,7 +1596,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                                 ] as Route
                             }
                         />
@@ -1576,7 +1614,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                                PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                                 ] as Route
                             }
                         />
@@ -1630,7 +1668,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_TEMPLATES
+                                PageMap.SETTINGS_INCIDENT_TEMPLATES
                                 ] as Route
                             }
                         />
@@ -1648,7 +1686,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
                                 ] as Route
                             }
                         />
@@ -1665,7 +1703,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_FEATURE_FLAGS
+                                PageMap.SETTINGS_FEATURE_FLAGS
                                 ] as Route
                             }
                         />
@@ -1683,7 +1721,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                                PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
                                 ] as Route
                             }
                         />
@@ -1701,8 +1739,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                                PageMap
+                                    .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
                                 ] as Route
                             }
                         />
@@ -1721,8 +1759,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
                                 ] as Route
                             }
                         />
@@ -1741,8 +1779,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
                                 ] as Route
                             }
                         />
@@ -1820,7 +1858,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITORS_STATUS
+                                PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
                         />
@@ -1838,7 +1876,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
                         />
@@ -1856,7 +1894,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
                         />
@@ -1884,7 +1922,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                PageMap.SETTINGS_INCIDENTS_SEVERITY
                                 ] as Route
                             }
                         />
@@ -1954,7 +1992,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -1972,7 +2010,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -1990,8 +2028,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -2009,7 +2047,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -2027,8 +2065,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -2058,7 +2096,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_BILLING_INVOICES
+                                PageMap.SETTINGS_BILLING_INVOICES
                                 ] as Route
                             }
                         />
@@ -2138,7 +2176,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.ON_CALL_DUTY_EXECUTION_LOGS
+                                PageMap.ON_CALL_DUTY_EXECUTION_LOGS
                                 ] as Route
                             }
                         />
@@ -2156,7 +2194,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
+                                PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
                                 ] as Route
                             }
                         />
@@ -2189,7 +2227,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.ON_CALL_DUTY_POLICY_VIEW
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW
                                 ] as Route
                             }
                         />
@@ -2207,7 +2245,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
                                 ] as Route
                             }
                         />
@@ -2225,7 +2263,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                                PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
                                 ] as Route
                             }
                         />
@@ -2243,8 +2281,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                                PageMap
+                                    .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                                 ] as Route
                             }
                         />
@@ -2262,8 +2300,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                                PageMap
+                                    .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
                                 ] as Route
                             }
                         />
@@ -2375,7 +2413,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_LOGS
+                                PageMap.USER_SETTINGS_ON_CALL_LOGS
                                 ] as Route
                             }
                         />
@@ -2393,7 +2431,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
+                                PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
                                 ] as Route
                             }
                         />
@@ -2411,7 +2449,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
+                                PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
                                 ] as Route
                             }
                         />
@@ -2429,7 +2467,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_METHODS
+                                PageMap.USER_SETTINGS_NOTIFICATION_METHODS
                                 ] as Route
                             }
                         />
@@ -2447,7 +2485,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_RULES
+                                PageMap.USER_SETTINGS_ON_CALL_RULES
                                 ] as Route
                             }
                         />
@@ -2493,7 +2531,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_DELETE
+                                PageMap.MONITOR_GROUP_VIEW_DELETE
                                 ] as Route
                             }
                         />
@@ -2511,7 +2549,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_MONITORS
+                                PageMap.MONITOR_GROUP_VIEW_MONITORS
                                 ] as Route
                             }
                         />
@@ -2529,12 +2567,14 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_INCIDENTS
+                                PageMap.MONITOR_GROUP_VIEW_INCIDENTS
                                 ] as Route
                             }
                         />
                     }
                 />
+
+
 
                 <PageRoute
                     path={
@@ -2547,7 +2587,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_OWNERS
+                                PageMap.MONITOR_GROUP_VIEW_OWNERS
                                 ] as Route
                             }
                         />

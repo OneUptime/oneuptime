@@ -51,10 +51,10 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Traces',
+                    title: 'Metrics',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                            PageMap.TELEMETRY_SERVICES_VIEW_METRICS
                         ] as Route,
                         { modelId }
                     ),

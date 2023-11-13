@@ -342,6 +342,16 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/traces`
     ),
 
+    // Metrics
+    [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/metrics`
+    ),
+
+    // Dashboard
+    [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/dashboards`
+    ),
+
     // User Settings Routes
     [PageMap.USER_SETTINGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/user-settings/notification-methods`
