@@ -1,15 +1,15 @@
+import ping from 'ping';
+import logger from 'CommonServer/Utils/Logger';
+import Sleep from 'Common/Types/Sleep';
+import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
+
 import Hostname from 'Common/Types/API/Hostname';
 import URL from 'Common/Types/API/URL';
 import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import logger from 'CommonServer/Utils/Logger';
-import ping from 'ping';
-import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
-import Sleep from 'Common/Types/Sleep';
 
-// TODO - make sure it  work for the IPV6
 export interface PingResponse {
     isOnline: boolean;
     responseTimeInMS?: PositiveNumber | undefined;
@@ -18,155 +18,116 @@ export interface PingResponse {
 
 export interface PingOptions {
     timeout?: PositiveNumber;
-    retry?: number | undefined;
-    currentRetryCount?: number | undefined;
-    monitorId?: ObjectID | undefined;
-    isOnlineCheckRequest?: boolean | undefined;
+    retry?: number;
+    currentRetryCount?: number;
+    monitorId?: ObjectID;
+    isOnlineCheckRequest?: boolean;
+    deadline?: number;
 }
 
 export default class PingMonitor {
-    // burn domain names into the code to see if this probe is online.
-    public static async isProbeOnline(): Promise<boolean> {
-        if (
-            (
-                await PingMonitor.ping(new Hostname('google.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('facebook.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('microsoft.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('youtube.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('apple.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        }
+    private static checkHosts = [
+        'google.com',
+        'facebook.com',
+        'microsoft.com',
+        'youtube.com',
+        'apple.com',
+    ];
 
+    public static async isProbeOnline(): Promise<boolean> {
+        for (const host of PingMonitor.checkHosts) {
+            const response: PingResponse | null = await PingMonitor.ping(
+                new Hostname(host),
+                {
+                    isOnlineCheckRequest: true,
+                }
+            );
+            if (response?.isOnline) {
+                return true;
+            }
+        }
         return false;
     }
 
     public static async ping(
         host: Hostname | IPv4 | IPv6 | URL,
-        pingOptions?: PingOptions
+        pingOptions: PingOptions = {}
     ): Promise<PingResponse | null> {
-        let hostAddress: string = '';
-        if (host instanceof Hostname) {
-            hostAddress = host.hostname;
-        } else if (host instanceof URL) {
-            hostAddress = host.hostname.hostname;
-        } else {
-            hostAddress = host.toString();
-        }
+        const hostAddress: string =
+            host instanceof URL ? host.hostname.hostname : host.toString();
+        const isIPv6: boolean = host instanceof IPv6;
+        const {
+            monitorId,
+            currentRetryCount = 0,
+            timeout = isIPv6
+                ? false
+                : (new PositiveNumber(5000) as false | PositiveNumber),
+            retry = 5,
+        } = pingOptions;
 
         logger.info(
-            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress} - Retry: ${
-                pingOptions?.currentRetryCount
-            }`
+            `Pinging host ${monitorId?.toString()} at ${hostAddress}, Retry: ${currentRetryCount}`
         );
 
         try {
             const res: ping.PingResponse = await ping.promise.probe(
                 hostAddress,
                 {
-                    timeout: Math.ceil(
-                        (pingOptions?.timeout?.toNumber() || 5000) / 1000
-                    ),
+                    v6: isIPv6,
+                    // @ts-ignore
+                    timeout: isIPv6
+                        ? false
+                        : // @ts-ignore
+                          Math.ceil(timeout.toNumber() / 1000),
+                    deadline: pingOptions.deadline,
                 }
             );
 
-            logger.info(
-                `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} success: `
-            );
-            logger.info(res);
-
             if (!res.alive) {
                 throw new UnableToReachServer(
-                    `Unable to reach host ${hostAddress}. Monitor ID: ${pingOptions?.monitorId?.toString()}`
+                    `Unable to reach host ${hostAddress}. Monitor ID: ${monitorId?.toString()}`
                 );
             }
 
             return {
-                isOnline: res.alive,
+                isOnline: true,
                 responseTimeInMS: res.time
                     ? new PositiveNumber(Math.ceil(res.time as any))
                     : undefined,
                 failureCause: '',
             };
-        } catch (err: unknown) {
-            logger.info(
-                `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} error: `
+        } catch (err) {
+            logger.error(
+                `Error pinging host ${monitorId?.toString()} at ${hostAddress}:`,
+                err
             );
-            logger.info(err);
 
-            if (!pingOptions) {
-                pingOptions = {};
-            }
-
-            if (!pingOptions.currentRetryCount) {
-                pingOptions.currentRetryCount = 0;
-            }
-
-            if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
-                pingOptions.currentRetryCount++;
+            if (currentRetryCount < retry) {
                 await Sleep.sleep(1000);
-                return await this.ping(host, pingOptions);
+                return this.ping(host, {
+                    ...pingOptions,
+                    currentRetryCount: currentRetryCount + 1,
+                });
             }
 
-            // check if timeout exceeded and if yes, return null
             if (
-                (err as any).toString().includes('timeout') &&
-                (err as any).toString().includes('exceeded')
+                typeof err === 'string' &&
+                err.includes('timeout') &&
+                err.includes('exceeded')
             ) {
-                logger.info(
-                    `Ping Monitor - Timeout exceeded ${pingOptions.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
-                );
-
-                return {
-                    isOnline: false,
-                    failureCause: 'Timeout exceeded',
-                };
+                return { isOnline: false, failureCause: 'Timeout exceeded' };
             }
 
-            // check if the probe is online.
-            if (!pingOptions.isOnlineCheckRequest) {
-                if (!(await PingMonitor.isProbeOnline())) {
-                    logger.error(
-                        `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
-                    );
-                    return null;
-                }
+            if (
+                !pingOptions.isOnlineCheckRequest &&
+                !(await PingMonitor.isProbeOnline())
+            ) {
+                return null;
             }
 
             return {
                 isOnline: false,
-                failureCause: (err as any).toString(),
+                failureCause: err instanceof Error ? err.message : String(err),
             };
         }
     }
