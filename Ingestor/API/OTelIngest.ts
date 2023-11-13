@@ -23,7 +23,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
 import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
-import ServiceService from 'CommonServer/Services/ServiceService';
+import TelemetryServiceService from 'CommonServer/Services/TelemetryServiceService';
 import TelemetryService from 'Model/Models/TelemetryService';
 
 // Load proto file for OTel
@@ -92,9 +92,9 @@ router.use(
 
             if (!cachedServiceId || !serviceProjectId) {
                 // load from the database and set the cache.
-                const service: Service | null = await ServiceService.findOneBy({
+                const service: TelemetryService | null = await TelemetryServiceService.findOneBy({
                     query: {
-                        serviceToken: new ObjectID(
+                        telemetryServiceToken: new ObjectID(
                             serviceTokenInHeader as string
                         ),
                     },
