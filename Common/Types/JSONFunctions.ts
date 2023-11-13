@@ -8,6 +8,7 @@ import TableColumnType from './Database/TableColumnType';
 import SerializableObject from './SerializableObject';
 import SerializableObjectDictionary from './SerializableObjectDictionary';
 import JSON5 from 'json5';
+import AnalyticsDataModel from '../AnalyticsModels/BaseModel';
 
 export default class JSONFunctions {
     public static isEmptyObject(
@@ -21,20 +22,20 @@ export default class JSONFunctions {
     }
 
     public static toJSON(
-        model: BaseModel,
-        modelType: { new (): BaseModel }
+        model: BaseModel | AnalyticsDataModel,
+        modelType: { new (): BaseModel | AnalyticsDataModel }
     ): JSONObject {
         const json: JSONObject = this.toJSONObject(model, modelType);
         return JSONFunctions.serialize(json);
     }
 
     public static toJSONObject(
-        model: BaseModel,
-        modelType: { new (): BaseModel }
+        model: BaseModel | AnalyticsDataModel,
+        modelType: { new (): BaseModel | AnalyticsDataModel }
     ): JSONObject {
         const json: JSONObject = {};
 
-        const vanillaModel: BaseModel = new modelType();
+        const vanillaModel: BaseModel | AnalyticsDataModel = new modelType();
 
         for (const key of vanillaModel.getTableColumns().columns) {
             if ((model as any)[key] === undefined) {
@@ -89,8 +90,8 @@ export default class JSONFunctions {
     }
 
     public static toJSONArray(
-        list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
+        list: Array<BaseModel | AnalyticsDataModel>,
+        modelType: { new (): BaseModel | AnalyticsDataModel }
     ): JSONArray {
         const array: JSONArray = [];
 

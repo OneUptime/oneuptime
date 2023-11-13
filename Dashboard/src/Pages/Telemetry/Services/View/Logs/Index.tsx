@@ -14,6 +14,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+    
     return (
         <ModelPage
             title="Service"

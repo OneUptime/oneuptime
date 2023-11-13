@@ -8,14 +8,17 @@ import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
+import Route from '../Types/API/Route';
 
 export default class AnalyticsDataModel extends CommonModel {
+
     public constructor(data: {
         tableName: string;
         singularName: string;
         pluralName: string;
         tableEngine?: AnalyticsTableEngine | undefined;
         tableColumns: Array<AnalyticsTableColumn>;
+        crudApiPath?: Route;
         allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
         tableBillingAccessControl?: TableBillingAccessControl | undefined;
         accessControl?: TableAccessControl | undefined;
@@ -100,6 +103,7 @@ export default class AnalyticsDataModel extends CommonModel {
             data.allowAccessIfSubscriptionIsUnpaid || false;
         this.accessControl = data.accessControl;
         this.enableWorkflowOn = data.enableWorkflowOn;
+        this.crudApiPath = data.crudApiPath;    
 
         // initialize Arrays.
         for (const column of this.tableColumns) {
@@ -184,6 +188,17 @@ export default class AnalyticsDataModel extends CommonModel {
     public set allowAccessIfSubscriptionIsUnpaid(v: boolean) {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
+
+
+    
+    private _crudApiPath! : Route;
+    public get crudApiPath() : Route {
+        return this._crudApiPath;
+    }
+    public set crudApiPath(v : Route) {
+        this._crudApiPath = v;
+    }
+    
 
     public getTenantColumn(): AnalyticsTableColumn | null {
         const column: AnalyticsTableColumn | undefined = this.tableColumns.find(

@@ -1,5 +1,3 @@
-import BaseModel from 'Common/Models/BaseModel';
-import DatabaseService from '../Services/DatabaseService';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -14,38 +12,35 @@ import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import CreateBy from '../Types/Database/CreateBy';
+import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import Query from '../Types/Database/Query';
-import Select from '../Types/Database/Select';
-import Sort from '../Types/Database/Sort';
+import Query from '../Types/AnalyticsDatabase/Query';
+import Select from '../Types/AnalyticsDatabase/Select';
+import Sort from '../Types/AnalyticsDatabase/Sort';
 import {
     DEFAULT_LIMIT,
     LIMIT_PER_PROJECT,
 } from 'Common/Types/Database/LimitMax';
-import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
-import { IsBillingEnabled } from '../EnvironmentConfig';
-import ProjectService from '../Services/ProjectService';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import UserType from 'Common/Types/UserType';
+import AnalyticsDataModel from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsDatabaseService from '../Services/AnalyticsDatabaseService';
 import CommonAPI from './CommonAPI';
 
-export default class BaseAPI<
-    TBaseModel extends BaseModel,
-    TBaseService extends DatabaseService<BaseModel>
+export default class BaseAnalyticsAPI<
+    TAnalyticsDataModel extends AnalyticsDataModel,
+    TBaseService extends AnalyticsDatabaseService<AnalyticsDataModel>
 > {
-    public entityType: { new (): TBaseModel };
+    public entityType: { new (): TAnalyticsDataModel };
 
     public router: ExpressRouter;
     public service: TBaseService;
 
-    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
+    public constructor(type: { new (): TAnalyticsDataModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
         // Create
         router.post(
-            `${new this.entityType().getCrudApiPath()?.toString()}`,
+            `${new this.entityType().crudApiPath.toString()}`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -62,7 +57,7 @@ export default class BaseAPI<
 
         // List
         router.post(
-            `${new this.entityType().getCrudApiPath()?.toString()}/get-list`,
+            `${new this.entityType().crudApiPath?.toString()}/get-list`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -79,7 +74,7 @@ export default class BaseAPI<
 
         // List
         router.get(
-            `${new this.entityType().getCrudApiPath()?.toString()}/get-list`,
+            `${new this.entityType().crudApiPath?.toString()}/get-list`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -96,7 +91,7 @@ export default class BaseAPI<
 
         // count
         router.post(
-            `${new this.entityType().getCrudApiPath()?.toString()}/count`,
+            `${new this.entityType().crudApiPath?.toString()}/count`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -114,7 +109,7 @@ export default class BaseAPI<
         // Get Item
         router.post(
             `${new this.entityType()
-                .getCrudApiPath()
+                .crudApiPath
                 ?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
             async (
@@ -133,7 +128,7 @@ export default class BaseAPI<
         // Get Item
         router.get(
             `${new this.entityType()
-                .getCrudApiPath()
+                .crudApiPath
                 ?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
             async (
@@ -151,7 +146,7 @@ export default class BaseAPI<
 
         // Update
         router.put(
-            `${new this.entityType().getCrudApiPath()?.toString()}/:id`,
+            `${new this.entityType().crudApiPath?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -168,7 +163,7 @@ export default class BaseAPI<
 
         // Delete
         router.delete(
-            `${new this.entityType().getCrudApiPath()?.toString()}/:id`,
+            `${new this.entityType().crudApiPath?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -218,6 +213,7 @@ export default class BaseAPI<
         return null;
     }
 
+
     public async getList(
         req: ExpressRequest,
         res: ExpressResponse
@@ -238,28 +234,28 @@ export default class BaseAPI<
             );
         }
 
-        let query: Query<BaseModel> = {};
-        let select: Select<BaseModel> = {};
-        let sort: Sort<BaseModel> = {};
+        let query: Query<AnalyticsDataModel> = {};
+        let select: Select<AnalyticsDataModel> = {};
+        let sort: Sort<AnalyticsDataModel> = {};
 
         if (req.body) {
             query = JSONFunctions.deserialize(
                 req.body['query']
-            ) as Query<BaseModel>;
+            ) as Query<AnalyticsDataModel>;
 
             select = JSONFunctions.deserialize(
                 req.body['select']
-            ) as Select<BaseModel>;
+            ) as Select<AnalyticsDataModel>;
 
             sort = JSONFunctions.deserialize(
                 req.body['sort']
-            ) as Sort<BaseModel>;
+            ) as Sort<AnalyticsDataModel>;
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-        const list: Array<BaseModel> = await this.service.findBy({
+        const list: Array<AnalyticsDataModel> = await this.service.findBy({
             query,
             select,
             skip: skip,
@@ -286,14 +282,14 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        let query: Query<BaseModel> = {};
+        let query: Query<AnalyticsDataModel> = {};
 
         await this.onBeforeCount(req, res);
 
         if (req.body) {
             query = JSONFunctions.deserialize(
                 req.body['query']
-            ) as Query<BaseModel>;
+            ) as Query<AnalyticsDataModel>;
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
@@ -315,15 +311,15 @@ export default class BaseAPI<
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         await this.onBeforeGet(req, res);
-        let select: Select<BaseModel> = {};
+        let select: Select<AnalyticsDataModel> = {};
 
         if (req.body) {
             select = JSONFunctions.deserialize(
                 req.body['select']
-            ) as Select<BaseModel>;
+            ) as Select<AnalyticsDataModel>;
         }
 
-        const item: BaseModel | null = await this.service.findOneById({
+        const item: AnalyticsDataModel | null = await this.service.findOneById({
             id: objectId,
             select,
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
@@ -358,9 +354,9 @@ export default class BaseAPI<
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: PartialEntity<TBaseModel> = JSONFunctions.deserialize(
+        const item: PartialEntity<TAnalyticsDataModel> = JSONFunctions.deserialize(
             body['data'] as JSONObject
-        ) as PartialEntity<TBaseModel>;
+        ) as PartialEntity<TAnalyticsDataModel>;
 
         delete (item as any)['_id'];
         delete (item as any)['createdAt'];
@@ -384,22 +380,22 @@ export default class BaseAPI<
         await this.onBeforeCreate(req, res);
         const body: JSONObject = req.body;
 
-        const item: TBaseModel = JSONFunctions.fromJSON<TBaseModel>(
+        const item: TAnalyticsDataModel = JSONFunctions.fromJSON<TAnalyticsDataModel>(
             body['data'] as JSONObject,
             this.entityType
-        ) as TBaseModel;
+        ) as TAnalyticsDataModel;
 
         const miscDataProps: JSONObject = JSONFunctions.deserialize(
             body['miscDataProps'] as JSONObject
         );
 
-        const createBy: CreateBy<TBaseModel> = {
+        const createBy: CreateBy<TAnalyticsDataModel> = {
             data: item,
             miscDataProps: miscDataProps,
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         };
 
-        const savedItem: BaseModel = await this.service.create(createBy);
+        const savedItem: AnalyticsDataModel = await this.service.create(createBy);
 
         return Response.sendEntityResponse(
             req,

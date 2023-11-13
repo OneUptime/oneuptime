@@ -18,6 +18,7 @@ import FileModel from 'Common/Models/FileModel';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusCode from 'Common/Types/API/StatusCode';
 import { DEFAULT_LIMIT } from 'Common/Types/Database/LimitMax';
+import AnalyticsDataModel from 'Common/AnalyticsModels/BaseModel';
 
 export default class Response {
     private static logResponse(
@@ -174,7 +175,7 @@ export default class Response {
     public static sendEntityArrayResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        list: Array<BaseModel>,
+        list: Array<BaseModel | AnalyticsDataModel>,
         count: PositiveNumber | number,
         modelType: { new (): BaseModel }
     ): void {
@@ -186,7 +187,7 @@ export default class Response {
             req,
             res,
             JSONFunctions.serializeArray(
-                JSONFunctions.toJSONArray(list as Array<BaseModel>, modelType)
+                JSONFunctions.toJSONArray(list as Array<BaseModel | AnalyticsDataModel>, modelType)
             ),
             count
         );

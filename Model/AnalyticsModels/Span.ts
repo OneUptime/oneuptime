@@ -5,6 +5,7 @@ import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableE
 import ObjectID from 'Common/Types/ObjectID';
 import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
+import Route from 'Common/Types/API/Route';
 
 export class SpanEvent extends NestedModel {
     public constructor() {
@@ -113,6 +114,7 @@ export default class Span extends AnalyticsBaseModel {
             tableEngine: AnalyticsTableEngine.MergeTree,
             singularName: 'Span',
             pluralName: 'Spans',
+            crudApiPath: new Route('/span'),
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',

@@ -4,6 +4,7 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
 import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
+import Route from 'Common/Types/API/Route';
 
 export default class Metric extends AnalyticsBaseModel {
     public constructor() {
@@ -12,6 +13,7 @@ export default class Metric extends AnalyticsBaseModel {
             tableEngine: AnalyticsTableEngine.MergeTree,
             singularName: 'Metric Histogram',
             pluralName: 'Metrics Histogram',
+            crudApiPath: new Route('/metrics/histogram'),
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',
