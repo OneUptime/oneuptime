@@ -7,7 +7,7 @@ import PageComponentProps from '../../../../PageComponentProps';
 import SideMenu from '../SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import Service from 'Model/Models/Service';
+import TelemetryService from 'Model/Models/TelemetryService';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -17,7 +17,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
     return (
         <ModelPage
             title="Service"
-            modelType={Service}
+            modelType={TelemetryService}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[

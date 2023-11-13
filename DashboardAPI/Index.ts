@@ -132,10 +132,10 @@ import WorkflowVariableService, {
     Service as WorkflowVariableServiceType,
 } from 'CommonServer/Services/WorkflowVariableService';
 
-import Service from 'Model/Models/Service';
-import ServiceService, {
-    Service as ServiceServiceType,
-} from 'CommonServer/Services/ServiceService';
+import TelemetryService from 'Model/Models/TelemetryService';
+import TelemetryServiceService, {
+    Service as TelemetryServiceServiceType,
+} from 'CommonServer/Services/TelemetryServiceService';
 
 import MonitorProbe from 'Model/Models/MonitorProbe';
 import MonitorProbeService, {
@@ -521,9 +521,9 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<Service, ServiceServiceType>(
-        Service,
-        ServiceService
+    new BaseAPI<TelemetryService, TelemetryServiceServiceType>(
+        TelemetryService,
+        TelemetryServiceService
     ).getRouter()
 );
 

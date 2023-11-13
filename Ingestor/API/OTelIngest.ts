@@ -24,7 +24,7 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
 import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
 import ServiceService from 'CommonServer/Services/ServiceService';
-import Service from 'Model/Models/Service';
+import TelemetryService from 'Model/Models/TelemetryService';
 
 // Load proto file for OTel
 

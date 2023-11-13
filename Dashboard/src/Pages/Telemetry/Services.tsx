@@ -5,7 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Service from 'Model/Models/Service';
+import TelemetryService from 'Model/Models/TelemetryService';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';

@@ -128,7 +128,7 @@ import MonitorGroupService from './MonitorGroupService';
 import MonitorGroupResourceService from './MonitorGroupResourceService';
 import MonitorGroupOwnerUserService from './MonitorGroupOwnerUserService';
 import MonitorGroupOwnerTeamService from './MonitorGroupOwnerTeamService';
-import ServiceService from './ServiceService';
+import TelemetryServiceService from './TelemetryServiceService';
 
 const services: Array<BaseService> = [
     PromoCodeService,
@@ -245,7 +245,7 @@ const services: Array<BaseService> = [
     MonitorGroupOwnerUserService,
     MonitorGroupOwnerTeamService,
 
-    ServiceService,
+    TelemetryServiceService,
 ];
 
 export const AnalyticsServices: Array<
