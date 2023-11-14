@@ -56,6 +56,8 @@ export default class PingMonitor {
         const hostAddress: string =
             host instanceof URL ? host.hostname.hostname : host.toString();
         const isIPv6: boolean = host instanceof IPv6;
+
+        /// @dev IPv6 does not support the use of timeout so it must be set to false
         const {
             monitorId,
             currentRetryCount = 0,
@@ -110,11 +112,7 @@ export default class PingMonitor {
                 });
             }
 
-            if (
-                typeof err === 'string' &&
-                err.includes('timeout') &&
-                err.includes('exceeded')
-            ) {
+            if (this.hasTimedOut(err)) {
                 return { isOnline: false, failureCause: 'Timeout exceeded' };
             }
 
@@ -130,5 +128,13 @@ export default class PingMonitor {
                 failureCause: err instanceof Error ? err.message : String(err),
             };
         }
+    }
+
+    private static hasTimedOut(err: any): boolean {
+        let strError: string = '';
+        if (typeof err === 'object') {
+            strError = err.toString();
+        }
+        return strError.includes('timeout') && strError.includes('exceeded');
     }
 }
