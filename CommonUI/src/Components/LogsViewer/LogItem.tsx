@@ -23,7 +23,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
     
     return (
         <div className='color-gray-100'>
-
+            {props.log.body}
         </div>
     );
 };

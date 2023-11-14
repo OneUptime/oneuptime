@@ -52,7 +52,6 @@ import SubscriptionPlan, {
 } from 'Common/Types/Billing/SubscriptionPlan';
 import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ModalWidth } from '../Modal/Modal';
 import ProjectUtil from '../../Utils/Project';
 import API from '../../Utils/API/API';

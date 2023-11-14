@@ -13,7 +13,6 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Route from 'Common/Types/API/Route';
 import Navigation from '../../Utils/Navigation';
 import BasicFormModal from '../FormModal/BasicFormModal';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };

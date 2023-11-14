@@ -26,7 +26,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Route from 'Common/Types/API/Route';
 import logger from 'CommonServer/Utils/Logger';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
@@ -36,6 +35,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import CookieUtil from 'CommonServer/Utils/Cookie';
+import BaseModel from 'Common/Models/BaseModel';
 
 const router: ExpressRouter = Express.getRouter();
 

@@ -26,6 +26,7 @@ import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import CookieUtil from 'CommonServer/Utils/Cookie';
+import BaseModel from 'Common/Models/BaseModel';
 
 const router: ExpressRouter = Express.getRouter();
 

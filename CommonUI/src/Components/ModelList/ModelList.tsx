@@ -15,7 +15,6 @@ import API from '../../Utils/API/API';
 import URL from 'Common/Types/API/URL';
 import { JSONArray } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;

@@ -30,7 +30,6 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import { ButtonStyleType } from '../Button/Button';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from '../../Utils/API/API';
 import { FormStep } from './Types/FormStep';
 import Field from './Types/Field';
