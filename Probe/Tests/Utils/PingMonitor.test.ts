@@ -7,7 +7,7 @@ import Ping, {
 } from '../../Utils/Monitors/MonitorTypes/PingMonitor';
 
 describe('Ping', () => {
-    jest.setTimeout(10000);
+    jest.setTimeout(20000);
 
     test('should succeed with a valid and reachable hostname', async () => {
         const result: PingResponse | null = await Ping.ping(
