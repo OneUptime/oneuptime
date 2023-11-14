@@ -1,9 +1,10 @@
-// import ObjectID from 'Common/Types/ObjectID';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import LogsViewer from 'CommonUI/src/Components/LogsViewer/LogsViewer';
 import Log from 'Model/AnalyticsModels/Log';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import AnalyticsModelAPI, {ListResult} from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
+import AnalyticsModelAPI, {
+    ListResult,
+} from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import API from 'CommonUI/src/Utils/API/API';
 import ObjectID from 'Common/Types/ObjectID';
@@ -26,7 +27,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setError('');
         setIsLoading(true);
 
-
         try {
             const listResult: ListResult<Log> =
                 await AnalyticsModelAPI.getList<Log>(
@@ -37,15 +37,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                     LIMIT_PER_PROJECT,
                     0,
                     {
-                        body: true, 
+                        body: true,
                         time: true,
                         projectId: true,
                         serviceId: true,
                         spanId: true,
                         traceId: true,
+                        severityText: true,
                     },
                     {
-                        time: SortOrder.Descending
+                        time: SortOrder.Descending,
                     },
                     {}
                 );
@@ -58,19 +59,18 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
     };
 
-
     useEffect(() => {
-        fetchItems().catch((err: unknown)=>{
+        fetchItems().catch((err: unknown) => {
             setError(API.getFriendlyMessage(err));
-        })
+        });
     }, []);
 
-    if(error) {
-        return (<ErrorMessage error={error} />)
+    if (error) {
+        return <ErrorMessage error={error} />;
     }
 
-    if(isLoading) {
-        return <ComponentLoader />
+    if (isLoading) {
+        return <ComponentLoader />;
     }
 
     return (

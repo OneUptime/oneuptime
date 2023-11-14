@@ -8,6 +8,7 @@ import SideMenu from '../SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import TelemetryService from 'Model/Models/TelemetryService';
+import DashboardLogsViewer from '../../../../../Components/LogsViewer/LogsViewer';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -59,7 +60,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <div>Logs</div>
+            <DashboardLogsViewer telemetryServiceIds={[modelId]} id="logs" />
         </ModelPage>
     );
 };

@@ -402,8 +402,9 @@ import MonitorGroupResourceService, {
 } from 'CommonServer/Services/MonitorGroupResourceService';
 
 import Log from 'Model/AnalyticsModels/Log';
-import LogService, { LogService as LogServiceType } from 'CommonServer/Services/LogService';
-
+import LogService, {
+    LogService as LogServiceType,
+} from 'CommonServer/Services/LogService';
 
 const app: ExpressApplication = Express.getExpressApp();
 

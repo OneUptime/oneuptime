@@ -6,7 +6,12 @@ import Typeof from '../Typeof';
 import Headers from './Headers';
 
 export default class HTTPResponse<
-    T extends JSONObjectOrArray | BaseModel | Array<BaseModel> | AnalyticsBaseModel | Array<AnalyticsBaseModel>
+    T extends
+        | JSONObjectOrArray
+        | BaseModel
+        | Array<BaseModel>
+        | AnalyticsBaseModel
+        | Array<AnalyticsBaseModel>
 > {
     private _statusCode: number = -1;
     public get statusCode(): number {

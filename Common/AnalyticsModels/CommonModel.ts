@@ -120,8 +120,7 @@ export default class CommonModel {
             const arr: Array<T> = [];
 
             for (const item of json) {
-
-                if(item instanceof CommonModel) {
+                if (item instanceof CommonModel) {
                     arr.push(item as T);
                     continue;
                 }
@@ -186,13 +185,12 @@ export default class CommonModel {
 
     public static fromJSONArray<TBaseModel extends CommonModel>(
         jsonArray: Array<JSONObject | CommonModel>,
-        modelType: { new (): CommonModel },
+        modelType: { new (): CommonModel }
     ): Array<TBaseModel> {
         const models: Array<CommonModel> = [];
 
         jsonArray.forEach((json: JSONObject | CommonModel) => {
-
-            if(json instanceof CommonModel) {
+            if (json instanceof CommonModel) {
                 models.push(json);
                 return;
             }

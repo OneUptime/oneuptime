@@ -82,22 +82,6 @@ export default class AnalyticsDatabaseService<
         countBy: CountBy<TBaseModel>
     ): Promise<PositiveNumber> {
         try {
-            if (!countBy.skip) {
-                countBy.skip = new PositiveNumber(0);
-            }
-
-            if (!countBy.limit) {
-                countBy.limit = new PositiveNumber(Infinity);
-            }
-
-            if (!(countBy.skip instanceof PositiveNumber)) {
-                countBy.skip = new PositiveNumber(countBy.skip);
-            }
-
-            if (!(countBy.limit instanceof PositiveNumber)) {
-                countBy.limit = new PositiveNumber(countBy.limit);
-            }
-
             const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
                 await ModelPermission.checkReadPermission(
                     this.modelType,
@@ -204,7 +188,7 @@ export default class AnalyticsDatabaseService<
             let items: Array<TBaseModel> =
                 AnalyticsBaseModel.fromJSONArray<TBaseModel>(
                     jsonItems,
-                    this.modelType,
+                    this.modelType
                 );
 
             items = this.sanitizeFindByItems(items, onBeforeFind);
@@ -296,13 +280,13 @@ export default class AnalyticsDatabaseService<
 
         if (countBy.limit) {
             statement += `
-            LIMIT ${countBy.limit}
+            LIMIT ${countBy.limit.toString()}
             `;
         }
 
         if (countBy.skip) {
             statement += `
-            OFFSET ${countBy.skip}
+            OFFSET ${countBy.skip.toString()}
             `;
         }
         logger.info(`${this.model.tableName} Count Statement`);
@@ -329,8 +313,8 @@ export default class AnalyticsDatabaseService<
             Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
         } ${this.statementGenerator.toWhereStatement(findBy.query)}
         ORDER BY ${this.statementGenerator.toSortStatemennt(findBy.sort!)}
-        LIMIT ${findBy.limit}
-        OFFSET ${findBy.skip}
+        LIMIT ${findBy.limit.toString()}
+        OFFSET ${findBy.skip.toString()}
         `;
 
         logger.info(`${this.model.tableName} Find Statement`);
@@ -354,13 +338,13 @@ export default class AnalyticsDatabaseService<
 
         if (deleteBy.limit) {
             statement += `
-            LIMIT ${deleteBy.limit}
+            LIMIT ${deleteBy.limit.toString()}
             `;
         }
 
         if (deleteBy.skip) {
             statement += `
-            OFFSET ${deleteBy.skip}
+            OFFSET ${deleteBy.skip.toString()}
             `;
         }
 

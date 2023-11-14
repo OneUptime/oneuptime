@@ -120,6 +120,10 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('body', v);
     }
 
+    public get body(): string | undefined {
+        return this.getColumnValue('body');
+    }
+
     public get time(): Date | undefined {
         return this.getColumnValue('time') as Date | undefined;
     }

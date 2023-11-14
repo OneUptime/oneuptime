@@ -179,7 +179,13 @@ export default class API {
     }
 
     public static async get<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel> | AnalyticsBaseModel | Array<AnalyticsBaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -189,7 +195,13 @@ export default class API {
     }
 
     public static async delete<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel> | AnalyticsBaseModel | Array<AnalyticsBaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -199,7 +211,13 @@ export default class API {
     }
 
     public static async head<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel> | AnalyticsBaseModel | Array<AnalyticsBaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -209,7 +227,13 @@ export default class API {
     }
 
     public static async put<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel> | AnalyticsBaseModel | Array<AnalyticsBaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -219,7 +243,13 @@ export default class API {
     }
 
     public static async post<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel> | AnalyticsBaseModel | Array<AnalyticsBaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -229,7 +259,13 @@ export default class API {
     }
 
     public static async fetch<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel> | AnalyticsBaseModel | Array<AnalyticsBaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         method: HTTPMethod,
         url: URL,

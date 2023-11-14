@@ -19,7 +19,8 @@ import Sort from './Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
 
-export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel> extends JSONObject {
+export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
+    extends JSONObject {
     data: Array<TAnalyticsBaseModel>;
     count: number;
     skip: number;
@@ -37,7 +38,12 @@ export default class ModelAPI {
         modelType: { new (): TAnalyticsBaseModel },
         requestOptions?: RequestOptions | undefined
     ): Promise<
-        HTTPResponse<JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>>
+        HTTPResponse<
+            | JSONObject
+            | JSONArray
+            | TAnalyticsBaseModel
+            | Array<TAnalyticsBaseModel>
+        >
     > {
         return await ModelAPI.createOrUpdate(
             model,
@@ -52,19 +58,31 @@ export default class ModelAPI {
         model: TAnalyticsBaseModel,
         modelType: { new (): TAnalyticsBaseModel }
     ): Promise<
-        HTTPResponse<JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>>
+        HTTPResponse<
+            | JSONObject
+            | JSONArray
+            | TAnalyticsBaseModel
+            | Array<TAnalyticsBaseModel>
+        >
     > {
         return await ModelAPI.createOrUpdate(model, modelType, FormType.Update);
     }
 
-    public static async updateById<TAnalyticsBaseModel extends AnalyticsBaseModel>(
+    public static async updateById<
+        TAnalyticsBaseModel extends AnalyticsBaseModel
+    >(
         modelType: { new (): TAnalyticsBaseModel },
         id: ObjectID,
         data: JSONObject,
         apiUrlOverride?: URL,
         requestOptions?: RequestOptions
     ): Promise<
-        HTTPResponse<JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>>
+        HTTPResponse<
+            | JSONObject
+            | JSONArray
+            | TAnalyticsBaseModel
+            | Array<TAnalyticsBaseModel>
+        >
     > {
         const model: AnalyticsBaseModel = new modelType();
         let apiUrl: URL | null = apiUrlOverride || null;
@@ -83,9 +101,15 @@ export default class ModelAPI {
         apiUrl = apiUrl.addRoute(`/${id.toString()}`);
 
         const result: HTTPResponse<
-            JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>
+            | JSONObject
+            | JSONArray
+            | TAnalyticsBaseModel
+            | Array<TAnalyticsBaseModel>
         > = await API.fetch<
-            JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>
+            | JSONObject
+            | JSONArray
+            | TAnalyticsBaseModel
+            | Array<TAnalyticsBaseModel>
         >(
             HTTPMethod.PUT,
             apiUrl,
@@ -104,7 +128,9 @@ export default class ModelAPI {
         throw result;
     }
 
-    public static async createOrUpdate<TAnalyticsBaseModel extends AnalyticsBaseModel>(
+    public static async createOrUpdate<
+        TAnalyticsBaseModel extends AnalyticsBaseModel
+    >(
         model: TAnalyticsBaseModel,
         modelType: { new (): TAnalyticsBaseModel },
         formType: FormType,
@@ -151,7 +177,10 @@ export default class ModelAPI {
             const result: HTTPResponse<TAnalyticsBaseModel> =
                 apiResult as HTTPResponse<TAnalyticsBaseModel>;
 
-            result.data = AnalyticsBaseModel.fromJSON(result.data, modelType) as TAnalyticsBaseModel;
+            result.data = AnalyticsBaseModel.fromJSON(
+                result.data,
+                modelType
+            ) as TAnalyticsBaseModel;
 
             return result;
         }
@@ -194,7 +223,6 @@ export default class ModelAPI {
 
         const headers: Dictionary<string> =
             this.getCommonHeaders(requestOptions);
-        
 
         const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
             await API.fetch<JSONArray>(
@@ -213,10 +241,11 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const list: Array<TAnalyticsBaseModel> = AnalyticsBaseModel.fromJSONArray(
-                result.data as JSONArray,
-                modelType
-            );
+            const list: Array<TAnalyticsBaseModel> =
+                AnalyticsBaseModel.fromJSONArray(
+                    result.data as JSONArray,
+                    modelType
+                );
 
             return {
                 data: list,
@@ -260,7 +289,6 @@ export default class ModelAPI {
 
         const headers: Dictionary<string> =
             this.getCommonHeaders(requestOptions);
-        
 
         const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
             await API.fetch<JSONObject>(
@@ -333,7 +361,12 @@ export default class ModelAPI {
             );
         }
 
-        return this.post<TAnalyticsBaseModel>(modelType, apiUrl, select, requestOptions);
+        return this.post<TAnalyticsBaseModel>(
+            modelType,
+            apiUrl,
+            select,
+            requestOptions
+        );
     }
 
     public static async post<TAnalyticsBaseModel extends AnalyticsBaseModel>(
@@ -364,7 +397,9 @@ export default class ModelAPI {
         throw result;
     }
 
-    public static async deleteItem<TAnalyticsBaseModel extends AnalyticsBaseModel>(
+    public static async deleteItem<
+        TAnalyticsBaseModel extends AnalyticsBaseModel
+    >(
         modelType: { new (): TAnalyticsBaseModel },
         id: ObjectID,
         requestOptions?: RequestOptions | undefined
@@ -403,10 +438,15 @@ export default class ModelAPI {
         throw result;
     }
 
-    private static checkStatusCode<TAnalyticsBaseModel extends AnalyticsBaseModel>(
+    private static checkStatusCode<
+        TAnalyticsBaseModel extends AnalyticsBaseModel
+    >(
         result:
             | HTTPResponse<
-                  TAnalyticsBaseModel | JSONObject | JSONArray | Array<TAnalyticsBaseModel>
+                  | TAnalyticsBaseModel
+                  | JSONObject
+                  | JSONArray
+                  | Array<TAnalyticsBaseModel>
               >
             | HTTPErrorResponse
     ): void {
