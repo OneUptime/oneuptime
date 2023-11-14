@@ -10,7 +10,7 @@ import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 import Route from '../Types/API/Route';
 
-export default class AnalyticsDataModel extends CommonModel {
+export default class AnalyticsBaseModel extends CommonModel {
     public constructor(data: {
         tableName: string;
         singularName: string;

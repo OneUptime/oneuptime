@@ -113,17 +113,27 @@ export default class CommonModel {
     }
 
     public static fromJSON<T extends CommonModel>(
-        json: JSONObject | JSONArray,
+        json: JSONObject | JSONArray | CommonModel | Array<CommonModel>,
         type: { new (): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
 
             for (const item of json) {
+
+                if(item instanceof CommonModel) {
+                    arr.push(item as T);
+                    continue;
+                }
+
                 arr.push(new type().fromJSON(item) as T);
             }
 
             return arr;
+        }
+
+        if (json instanceof CommonModel) {
+            return json as T;
         }
 
         return new type().fromJSON(json) as T;
@@ -175,12 +185,18 @@ export default class CommonModel {
     }
 
     public static fromJSONArray<TBaseModel extends CommonModel>(
+        jsonArray: Array<JSONObject | CommonModel>,
         modelType: { new (): CommonModel },
-        jsonArray: Array<JSONObject>
     ): Array<TBaseModel> {
         const models: Array<CommonModel> = [];
 
-        jsonArray.forEach((json: JSONObject) => {
+        jsonArray.forEach((json: JSONObject | CommonModel) => {
+
+            if(json instanceof CommonModel) {
+                models.push(json);
+                return;
+            }
+
             const model: CommonModel = new modelType();
             model.fromJSON(json);
             models.push(model);
