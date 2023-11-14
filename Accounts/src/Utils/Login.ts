@@ -11,7 +11,7 @@ import Analytics from 'CommonUI/src/Utils/Analytics';
 
 export default abstract class LoginUtil {
     public static login(value: JSONObject): void {
-        const user: User = JSONFunctions.fromJSON(
+        const user: User = BaseModel.fromJSON(
             value['user'] as JSONObject,
             User
         ) as User;

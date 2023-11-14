@@ -104,7 +104,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <WorkflowElement
                                         workflow={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'workflow'
                                                 ] as JSONObject) || [],

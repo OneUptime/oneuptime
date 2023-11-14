@@ -119,7 +119,7 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
                     onSubmit={(item: TBaseModel) => {
                         setShowModal(false);
                         duplicateItem(
-                            JSONFunctions.fromJSONObject(
+                            BaseModel.fromJSONObject(
                                 item,
                                 props.modelType
                             ) as TBaseModel

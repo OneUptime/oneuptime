@@ -94,7 +94,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
                         onSuccess={(data: TBaseModel) => {
                             props.onSuccess &&
                                 props.onSuccess(
-                                    JSONFunctions.fromJSONObject(
+                                    BaseModel.fromJSONObject(
                                         data as TBaseModel,
                                         props.modelType
                                     )

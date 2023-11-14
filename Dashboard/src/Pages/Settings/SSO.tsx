@@ -276,7 +276,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <TeamsElement
                                         teams={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['teams'] as JSONArray) ||
                                                     [],
                                                 Team

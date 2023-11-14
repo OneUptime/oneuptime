@@ -20,6 +20,7 @@ import ProjectService from '../../Services/ProjectService';
 import UserType from 'Common/Types/UserType';
 import { mockRouter } from './Helpers';
 import { UserPermission } from 'Common/Types/Permission';
+import CommonAPI from '../../API/CommonAPI';
 
 jest.mock('../../Utils/Express', () => {
     return {
@@ -139,7 +140,7 @@ describe('BaseAPI', () => {
 
         baseApiInstance = new BaseAPI(BaseModel, TestService);
         emptyDatabaseCommonInteractionProps =
-            await baseApiInstance.getDatabaseCommonInteractionProps(
+             await CommonAPI.getDatabaseCommonInteractionProps(
                 emptyRequest
             );
     });
@@ -246,7 +247,7 @@ describe('BaseAPI', () => {
     describe('BaseAPI.getPermissionsForTenant', () => {
         it('should return empty permissions if userTenantAccessPermission is not set', async () => {
             jest.spyOn(
-                baseApiInstance,
+                CommonAPI,
                 'getDatabaseCommonInteractionProps'
             ).mockResolvedValueOnce({});
             const permissions: UserPermission[] =
@@ -258,7 +259,7 @@ describe('BaseAPI', () => {
             // eslint-disable-next-line @typescript-eslint/typedef
             const mockPermissions = [{ permission: 'granted' }];
             jest.spyOn(
-                baseApiInstance,
+                CommonAPI,
                 'getDatabaseCommonInteractionProps'
             ).mockResolvedValueOnce({
                 userTenantAccessPermission: {
@@ -274,7 +275,7 @@ describe('BaseAPI', () => {
 
         it('should return empty permissions if tenantId is not available', async () => {
             jest.spyOn(
-                baseApiInstance,
+                CommonAPI,
                 'getDatabaseCommonInteractionProps'
             ).mockResolvedValueOnce({
                 userTenantAccessPermission: {
@@ -321,7 +322,7 @@ describe('BaseAPI', () => {
 
         it('should initialize props with undefined values', async () => {
             const props: DatabaseCommonInteractionProps =
-                await baseApiInstance.getDatabaseCommonInteractionProps(
+                 await CommonAPI.getDatabaseCommonInteractionProps(
                     request
                 );
             expect(props).toEqual(
@@ -339,7 +340,7 @@ describe('BaseAPI', () => {
         it('should set userId if userAuthorization is present', async () => {
             request.userAuthorization = { userId: new ObjectID('123') } as any;
             const props: DatabaseCommonInteractionProps =
-                await baseApiInstance.getDatabaseCommonInteractionProps(
+                 await CommonAPI.getDatabaseCommonInteractionProps(
                     request
                 );
             expect(props.userId).toEqual(new ObjectID('123'));
@@ -348,7 +349,7 @@ describe('BaseAPI', () => {
         it('should set userGlobalAccessPermission if present in the request', async () => {
             request.userGlobalAccessPermission = { canEdit: true } as any;
             const props: DatabaseCommonInteractionProps =
-                await baseApiInstance.getDatabaseCommonInteractionProps(
+                 await CommonAPI.getDatabaseCommonInteractionProps(
                     request
                 );
             expect(props.userGlobalAccessPermission).toEqual({ canEdit: true });
@@ -357,7 +358,7 @@ describe('BaseAPI', () => {
         it('should set userTenantAccessPermission if present in the request', async () => {
             request.userTenantAccessPermission = { canView: true } as any;
             const props: DatabaseCommonInteractionProps =
-                await baseApiInstance.getDatabaseCommonInteractionProps(
+                 await CommonAPI.getDatabaseCommonInteractionProps(
                     request
                 );
             expect(props.userTenantAccessPermission).toEqual({ canView: true });
@@ -366,7 +367,7 @@ describe('BaseAPI', () => {
         it('should set tenantId if present in the request', async () => {
             request.tenantId = new ObjectID('456');
             const props: DatabaseCommonInteractionProps =
-                await baseApiInstance.getDatabaseCommonInteractionProps(
+                 await CommonAPI.getDatabaseCommonInteractionProps(
                     request
                 );
             expect(props.tenantId).toEqual(new ObjectID('456'));
@@ -375,7 +376,7 @@ describe('BaseAPI', () => {
         it('should set isMultiTenantRequest based on headers', async () => {
             request.headers['is-multi-tenant-query'] = 'true';
             const props: DatabaseCommonInteractionProps =
-                await baseApiInstance.getDatabaseCommonInteractionProps(
+                 await CommonAPI.getDatabaseCommonInteractionProps(
                     request
                 );
             expect(props.isMultiTenantRequest).toBe(true);
@@ -394,7 +395,7 @@ describe('BaseAPI', () => {
                 );
 
                 const props: DatabaseCommonInteractionProps =
-                    await baseApiInstance.getDatabaseCommonInteractionProps(
+                     await CommonAPI.getDatabaseCommonInteractionProps(
                         request
                     );
                 expect(props.currentPlan).toBe('Free');
@@ -403,7 +404,7 @@ describe('BaseAPI', () => {
 
             it('should set currentPlan and isSubscriptionUnpaid to undefined if tenantId is not present', async () => {
                 const props: DatabaseCommonInteractionProps =
-                    await baseApiInstance.getDatabaseCommonInteractionProps(
+                     await CommonAPI.getDatabaseCommonInteractionProps(
                         request
                     );
                 expect(props.currentPlan).toBeUndefined();
@@ -414,7 +415,7 @@ describe('BaseAPI', () => {
         it('should set isMasterAdmin if userType is MasterAdmin', async () => {
             request.userType = UserType.MasterAdmin;
             const props: DatabaseCommonInteractionProps =
-                await baseApiInstance.getDatabaseCommonInteractionProps(
+                 await CommonAPI.getDatabaseCommonInteractionProps(
                     request
                 );
             expect(props.isMasterAdmin).toBe(true);

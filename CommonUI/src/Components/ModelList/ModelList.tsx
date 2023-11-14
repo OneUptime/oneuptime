@@ -78,7 +78,7 @@ const ModelList: <TBaseModel extends BaseModel>(
                 )) as HTTPResponse<JSONArray>;
 
                 listResult = {
-                    data: JSONFunctions.fromJSONArray(
+                    data: BaseModel.fromJSONArray(
                         result.data as JSONArray,
                         props.modelType
                     ),

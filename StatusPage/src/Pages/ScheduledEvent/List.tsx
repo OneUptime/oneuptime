@@ -149,26 +149,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceEvents'] as JSONArray) || [],
                     ScheduledMaintenance
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline
                 );
 
             const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
@@ -179,7 +179,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ) as Dictionary<Array<ObjectID>>;
 
             const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStates'] as JSONArray) || [],
                     ScheduledMaintenanceState
                 );

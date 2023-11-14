@@ -272,7 +272,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                             return (
                                 <MonitorsElement
                                     monitors={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
                                                 [],
                                             Monitor

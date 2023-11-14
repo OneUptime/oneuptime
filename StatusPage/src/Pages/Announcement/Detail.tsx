@@ -111,7 +111,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 (data['announcements'] as JSONArray) || [];
 
             const announcement: StatusPageAnnouncement =
-                JSONFunctions.fromJSONObject(
+                BaseModel.fromJSONObject(
                     (rawAnnouncements[0] as JSONObject) || {},
                     StatusPageAnnouncement
                 );

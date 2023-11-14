@@ -69,7 +69,7 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel(),
+                    nestedModelType: KeyValueNestedModel,
                 }),
 
                 new AnalyticsTableColumn({

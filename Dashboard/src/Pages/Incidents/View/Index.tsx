@@ -271,7 +271,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitors'
                                                 ] as JSONArray) || [],
@@ -295,7 +295,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <OnCallDutyPoliciesView
                                         onCallPolicies={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'onCallDutyPolicies'
                                                 ] as JSONArray) || [],
@@ -326,7 +326,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

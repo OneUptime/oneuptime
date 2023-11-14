@@ -97,7 +97,7 @@ export default class CreateOneBaseModel<
             }
 
             const model: TBaseModel = (await this.modelService.create({
-                data: JSONFunctions.fromJSON<TBaseModel>(
+                data: BaseModel.fromJSON<TBaseModel>(
                     (args['json'] as JSONObject) || {},
                     this.modelService.modelType
                 ) as TBaseModel,
@@ -109,7 +109,7 @@ export default class CreateOneBaseModel<
 
             return {
                 returnValues: {
-                    model: JSONFunctions.toJSON(
+                    model: BaseModel.toJSON(
                         model,
                         this.modelService.modelType
                     ),

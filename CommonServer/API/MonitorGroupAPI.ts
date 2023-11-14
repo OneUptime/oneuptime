@@ -15,6 +15,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import OneUptimeDate from 'Common/Types/Date';
+import CommonAPI from './CommonAPI';
 
 export default class MonitorGroupAPI extends BaseAPI<
     MonitorGroup,
@@ -47,7 +48,7 @@ export default class MonitorGroupAPI extends BaseAPI<
                             new ObjectID(
                                 req.params['monitorGroupId'].toString()
                             ),
-                            await this.getDatabaseCommonInteractionProps(req)
+                            await CommonAPI.getDatabaseCommonInteractionProps(req)
                         );
 
                     return Response.sendEntityResponse(
@@ -91,7 +92,7 @@ export default class MonitorGroupAPI extends BaseAPI<
                             ),
                             startDate,
                             endDate,
-                            await this.getDatabaseCommonInteractionProps(req)
+                            await CommonAPI.getDatabaseCommonInteractionProps(req)
                         );
 
                     return Response.sendEntityArrayResponse(

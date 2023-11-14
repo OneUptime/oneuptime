@@ -98,7 +98,7 @@ export default class OnTriggerBaseModel<
             return {
                 returnValues: {
                     model: data
-                        ? JSONFunctions.toJSON(
+                        ? BaseModel.toJSON(
                               data as any,
                               this.service!.modelType
                           )
@@ -136,7 +136,7 @@ export default class OnTriggerBaseModel<
         return {
             returnValues: {
                 model: data
-                    ? JSONFunctions.toJSON(
+                    ? BaseModel.toJSON(
                           model as any,
                           this.service!.modelType
                       )

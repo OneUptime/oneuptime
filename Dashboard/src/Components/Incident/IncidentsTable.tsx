@@ -108,7 +108,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             if (incidentTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         incidentTemplate,
                         IncidentTemplate
                     ),
@@ -519,7 +519,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             return (
                                 <MonitorsElement
                                     monitors={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
                                                 [],
                                             Monitor
@@ -560,7 +560,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

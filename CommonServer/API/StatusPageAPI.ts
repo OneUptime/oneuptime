@@ -69,6 +69,8 @@ import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from '../Services/IncidentStateService';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from '../Services/ScheduledMaintenanceStateService';
+import BaseModel from 'Common/Models/BaseModel';
+import CommonAPI from './CommonAPI';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -323,12 +325,12 @@ export default class StatusPageAPI extends BaseAPI<
                         });
 
                     const response: JSONObject = {
-                        statusPage: JSONFunctions.toJSON(item, StatusPage),
-                        footerLinks: JSONFunctions.toJSONArray(
+                        statusPage: BaseModel.toJSON(item, StatusPage),
+                        footerLinks: BaseModel.toJSONArray(
                             footerLinks,
                             StatusPageFooterLink
                         ),
-                        headerLinks: JSONFunctions.toJSONArray(
+                        headerLinks: BaseModel.toJSONArray(
                             headerLinks,
                             StatusPageHeaderLink
                         ),
@@ -410,7 +412,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            await this.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(req),
                             req
                         ))
                     ) {
@@ -985,52 +987,52 @@ export default class StatusPageAPI extends BaseAPI<
 
                     const response: JSONObject = {
                         scheduledMaintenanceEventsPublicNotes:
-                            JSONFunctions.toJSONArray(
+                            BaseModel.toJSONArray(
                                 scheduledMaintenanceEventsPublicNotes,
                                 ScheduledMaintenancePublicNote
                             ),
-                        scheduledMaintenanceEvents: JSONFunctions.toJSONArray(
+                        scheduledMaintenanceEvents: BaseModel.toJSONArray(
                             scheduledMaintenanceEvents,
                             ScheduledMaintenance
                         ),
-                        activeAnnouncements: JSONFunctions.toJSONArray(
+                        activeAnnouncements: BaseModel.toJSONArray(
                             activeAnnouncements,
                             StatusPageAnnouncement
                         ),
-                        incidentPublicNotes: JSONFunctions.toJSONArray(
+                        incidentPublicNotes: BaseModel.toJSONArray(
                             incidentPublicNotes,
                             IncidentPublicNote
                         ),
-                        activeIncidents: JSONFunctions.toJSONArray(
+                        activeIncidents: BaseModel.toJSONArray(
                             activeIncidents,
                             Incident
                         ),
-                        monitorStatusTimelines: JSONFunctions.toJSONArray(
+                        monitorStatusTimelines: BaseModel.toJSONArray(
                             monitorStatusTimelines,
                             MonitorStatusTimeline
                         ),
-                        resourceGroups: JSONFunctions.toJSONArray(
+                        resourceGroups: BaseModel.toJSONArray(
                             groups,
                             StatusPageGroup
                         ),
-                        monitorStatuses: JSONFunctions.toJSONArray(
+                        monitorStatuses: BaseModel.toJSONArray(
                             monitorStatuses,
                             MonitorStatus
                         ),
-                        statusPageResources: JSONFunctions.toJSONArray(
+                        statusPageResources: BaseModel.toJSONArray(
                             statusPageResources,
                             StatusPageResource
                         ),
-                        incidentStateTimelines: JSONFunctions.toJSONArray(
+                        incidentStateTimelines: BaseModel.toJSONArray(
                             incidentStateTimelines,
                             IncidentStateTimeline
                         ),
-                        statusPage: JSONFunctions.toJSONObject(
+                        statusPage: BaseModel.toJSONObject(
                             statusPage,
                             StatusPage
                         ),
                         scheduledMaintenanceStateTimelines:
-                            JSONFunctions.toJSONArray(
+                            BaseModel.toJSONArray(
                                 scheduledMaintenanceStateTimelines,
                                 ScheduledMaintenanceStateTimeline
                             ),
@@ -1067,7 +1069,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            await this.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(req),
                             req
                         ))
                     ) {
@@ -1143,7 +1145,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getIncidents(
                         objectId,
                         null,
-                        await this.getDatabaseCommonInteractionProps(req),
+                        await CommonAPI.getDatabaseCommonInteractionProps(req),
                         req
                     );
 
@@ -1173,7 +1175,7 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             null,
-                            await this.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(req),
                             req
                         );
 
@@ -1202,7 +1204,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getAnnouncements(
                         objectId,
                         null,
-                        await this.getDatabaseCommonInteractionProps(req),
+                        await CommonAPI.getDatabaseCommonInteractionProps(req),
                         req
                     );
 
@@ -1235,7 +1237,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getIncidents(
                         objectId,
                         incidentId,
-                        await this.getDatabaseCommonInteractionProps(req),
+                        await CommonAPI.getDatabaseCommonInteractionProps(req),
                         req
                     );
 
@@ -1269,7 +1271,7 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             scheduledMaintenanceId,
-                            await this.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(req),
                             req
                         );
 
@@ -1302,7 +1304,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getAnnouncements(
                         objectId,
                         announcementId,
-                        await this.getDatabaseCommonInteractionProps(req),
+                        await CommonAPI.getDatabaseCommonInteractionProps(req),
                         req
                     );
 
@@ -1618,23 +1620,23 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
         const response: JSONObject = {
-            scheduledMaintenanceEventsPublicNotes: JSONFunctions.toJSONArray(
+            scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
                 scheduledMaintenanceEventsPublicNotes,
                 ScheduledMaintenancePublicNote
             ),
-            scheduledMaintenanceStates: JSONFunctions.toJSONArray(
+            scheduledMaintenanceStates: BaseModel.toJSONArray(
                 scheduledEventStates,
                 ScheduledMaintenanceState
             ),
-            scheduledMaintenanceEvents: JSONFunctions.toJSONArray(
+            scheduledMaintenanceEvents: BaseModel.toJSONArray(
                 scheduledMaintenanceEvents,
                 ScheduledMaintenance
             ),
-            statusPageResources: JSONFunctions.toJSONArray(
+            statusPageResources: BaseModel.toJSONArray(
                 statusPageResources,
                 StatusPageResource
             ),
-            scheduledMaintenanceStateTimelines: JSONFunctions.toJSONArray(
+            scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
                 scheduledMaintenanceStateTimelines,
                 ScheduledMaintenanceStateTimeline
             ),
@@ -1741,11 +1743,11 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
         const response: JSONObject = {
-            announcements: JSONFunctions.toJSONArray(
+            announcements: BaseModel.toJSONArray(
                 announcements,
                 StatusPageAnnouncement
             ),
-            statusPageResources: JSONFunctions.toJSONArray(
+            statusPageResources: BaseModel.toJSONArray(
                 statusPageResources,
                 StatusPageResource
             ),
@@ -2048,20 +2050,20 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
         const response: JSONObject = {
-            incidentPublicNotes: JSONFunctions.toJSONArray(
+            incidentPublicNotes: BaseModel.toJSONArray(
                 incidentPublicNotes,
                 IncidentPublicNote
             ),
-            incidentStates: JSONFunctions.toJSONArray(
+            incidentStates: BaseModel.toJSONArray(
                 incidentStates,
                 IncidentState
             ),
-            incidents: JSONFunctions.toJSONArray(incidents, Incident),
-            statusPageResources: JSONFunctions.toJSONArray(
+            incidents: BaseModel.toJSONArray(incidents, Incident),
+            statusPageResources: BaseModel.toJSONArray(
                 statusPageResources,
                 StatusPageResource
             ),
-            incidentStateTimelines: JSONFunctions.toJSONArray(
+            incidentStateTimelines: BaseModel.toJSONArray(
                 incidentStateTimelines,
                 IncidentStateTimeline
             ),

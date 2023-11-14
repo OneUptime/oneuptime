@@ -16,7 +16,7 @@ export default class ProjectUtil {
         const projectJson: JSONObject = LocalStorage.getItem(
             'current_project'
         ) as JSONObject;
-        return JSONFunctions.fromJSON(projectJson, Project) as Project;
+        return BaseModel.fromJSON(projectJson, Project) as Project;
     }
 
     public static getCurrentProjectId(): ObjectID | null {
@@ -25,7 +25,7 @@ export default class ProjectUtil {
 
     public static setCurrentProject(project: JSONObject | Project): void {
         if (project instanceof Project) {
-            project = JSONFunctions.toJSON(project, Project);
+            project = BaseModel.toJSON(project, Project);
         }
         LocalStorage.setItem('current_project', project);
     }

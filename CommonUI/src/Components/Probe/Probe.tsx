@@ -18,7 +18,7 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
     let probe: JSONObject | null | undefined = null;
 
     if (props.probe instanceof Probe) {
-        probe = JSONFunctions.toJSONObject(props.probe, Probe);
+        probe = BaseModel.toJSONObject(props.probe, Probe);
     } else {
         probe = props.probe;
     }

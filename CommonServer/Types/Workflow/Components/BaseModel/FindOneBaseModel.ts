@@ -144,7 +144,7 @@ export default class FindOneBaseModel<
             return {
                 returnValues: {
                     model: model
-                        ? JSONFunctions.toJSON(
+                        ? BaseModel.toJSON(
                               model,
                               this.modelService.modelType
                           )

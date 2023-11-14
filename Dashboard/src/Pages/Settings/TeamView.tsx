@@ -183,7 +183,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <UserElement
                                         user={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 item['user'] as JSONObject,
                                                 User
                                             ) as User
@@ -356,7 +356,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

@@ -156,7 +156,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

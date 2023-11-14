@@ -292,7 +292,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         );
 
         if (!(item instanceof BaseModel) && item) {
-            item = JSONFunctions.fromJSON(
+            item = BaseModel.fromJSON(
                 item as JSONObject,
                 props.modelType
             ) as BaseModel;
@@ -524,7 +524,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 }
             }
 
-            let tBaseModel: TBaseModel = JSONFunctions.fromJSON(
+            let tBaseModel: TBaseModel = BaseModel.fromJSON(
                 valuesToSend,
                 props.modelType
             ) as TBaseModel;
@@ -552,7 +552,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
             if (props.onSuccess) {
                 props.onSuccess(
-                    JSONFunctions.fromJSONObject(result.data, props.modelType),
+                    BaseModel.fromJSONObject(result.data, props.modelType),
                     miscData
                 );
             }

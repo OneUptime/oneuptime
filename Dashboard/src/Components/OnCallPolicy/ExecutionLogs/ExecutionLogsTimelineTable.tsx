@@ -127,7 +127,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                                 return (
                                     <UserElement
                                         user={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 item[
                                                     'alertSentToUser'
                                                 ] as JSONObject,

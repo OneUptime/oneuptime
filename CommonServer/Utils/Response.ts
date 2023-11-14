@@ -13,7 +13,6 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
 import BaseModel from 'Common/Models/BaseModel';
 import EmptyResponse from 'Common/Types/API/EmptyResponse';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import FileModel from 'Common/Models/FileModel';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusCode from 'Common/Types/API/StatusCode';
@@ -177,18 +176,29 @@ export default class Response {
         res: ExpressResponse,
         list: Array<BaseModel | AnalyticsDataModel>,
         count: PositiveNumber | number,
-        modelType: { new (): BaseModel }
+        modelType: { new (): BaseModel | AnalyticsDataModel }
     ): void {
         if (!(count instanceof PositiveNumber)) {
             count = new PositiveNumber(count);
         }
 
+        let jsonArray: JSONArray = []; 
+
+        const model: BaseModel | AnalyticsDataModel = new modelType();
+
+        if(model instanceof BaseModel) {
+            jsonArray = BaseModel.toJSONArray(list as Array<BaseModel>, modelType as { new (): BaseModel });
+        }
+
+        if(model instanceof AnalyticsDataModel) {
+            jsonArray = AnalyticsDataModel.toJSONArray(list as Array<AnalyticsDataModel>, modelType as { new (): AnalyticsDataModel });
+        }
+
+
         return this.sendJsonArrayResponse(
             req,
             res,
-            JSONFunctions.serializeArray(
-                JSONFunctions.toJSONArray(list as Array<BaseModel | AnalyticsDataModel>, modelType)
-            ),
+            jsonArray,
             count
         );
     }
@@ -196,8 +206,8 @@ export default class Response {
     public static sendEntityResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: BaseModel | null,
-        modelType: { new (): BaseModel },
+        item: BaseModel |AnalyticsDataModel | null,
+        modelType: { new (): BaseModel | AnalyticsDataModel },
         options?:
             | {
                   miscData?: JSONObject;
@@ -206,10 +216,12 @@ export default class Response {
     ): void {
         let response: JSONObject = {};
 
-        if (item) {
-            response = JSONFunctions.serialize(
-                JSONFunctions.toJSONObject(item, modelType)
-            );
+        if (item && item instanceof BaseModel) {
+            response = BaseModel.toJSON(item, modelType as { new (): BaseModel });
+        }
+
+        if (item && item instanceof AnalyticsDataModel) {
+            response = AnalyticsDataModel.toJSON(item, modelType as { new (): AnalyticsDataModel });
         }
 
         if (options?.miscData) {

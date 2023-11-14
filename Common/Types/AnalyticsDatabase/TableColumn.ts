@@ -112,9 +112,20 @@ export default class AnalyticsTableColumn {
         this._nestedModel = v;
     }
 
+
+
+    private _nestedModelType?: { new(): NestedModel } | undefined;
+    public get nestedModelType(): { new(): NestedModel } | undefined {
+        return this._nestedModelType;
+    }
+    public set nestedModelType(v: { new(): NestedModel } | undefined) {
+        this._nestedModelType = v;
+    }
+
+
     public constructor(data: {
         key: string;
-        nestedModel?: NestedModel | undefined;
+        nestedModelType?: { new(): NestedModel } | undefined;
         title: string;
         description: string;
         required: boolean;
@@ -125,10 +136,10 @@ export default class AnalyticsTableColumn {
         accessControl?: ColumnAccessControl | undefined;
         allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
         forceGetDefaultValueOnCreate?:
-            | (() => Date | string | number | boolean)
-            | undefined;
+        | (() => Date | string | number | boolean)
+        | undefined;
     }) {
-        if (data.type === TableColumnType.NestedModel && !data.nestedModel) {
+        if (data.type === TableColumnType.NestedModel && !data.nestedModelType) {
             throw new Error('NestedModel is required when type is NestedModel');
         }
 
@@ -144,6 +155,10 @@ export default class AnalyticsTableColumn {
         this.billingAccessControl = data.billingAccessControl;
         this.allowAccessIfSubscriptionIsUnpaid =
             data.allowAccessIfSubscriptionIsUnpaid || false;
-        this.nestedModel = data.nestedModel;
+        if (data.nestedModelType) {
+            this.nestedModel = new data.nestedModelType();
+            this.nestedModelType = data.nestedModelType;
+        }
+
     }
 }

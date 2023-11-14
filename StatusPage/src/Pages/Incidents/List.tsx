@@ -100,21 +100,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const incidents: Array<Incident> = JSONFunctions.fromJSONArray(
+            const incidents: Array<Incident> = BaseModel.fromJSONArray(
                 (data['incidents'] as JSONArray) || [],
                 Incident
             );
             const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
@@ -125,7 +125,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ) as Dictionary<Array<ObjectID>>;
 
             const incidentStates: Array<IncidentState> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['incidentStates'] as JSONArray) || [],
                     IncidentState
                 );

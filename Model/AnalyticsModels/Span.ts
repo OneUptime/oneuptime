@@ -33,7 +33,7 @@ export class SpanEvent extends NestedModel {
                 //     description: 'Attributes',
                 //     required: false,
                 //     type: TableColumnType.NestedModel,
-                //     nestedModel: new KeyValueNestedModel(),
+                //     nestedModelType: KeyValueNestedModel,
                 // }),
             ],
         });
@@ -100,7 +100,7 @@ export class SpanLink extends NestedModel {
                 //     description: 'Attributes',
                 //     required: false,
                 //     type: TableColumnType.NestedModel,
-                //     nestedModel: new KeyValueNestedModel(),
+                //     nestedModelType: KeyValueNestedModel,
                 // }),
             ],
         });
@@ -202,7 +202,7 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel(),
+                    nestedModelType: KeyValueNestedModel,
                 }),
 
                 new AnalyticsTableColumn({
@@ -211,7 +211,7 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Span Events',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new SpanEvent(),
+                    nestedModelType: SpanEvent,
                 }),
 
                 new AnalyticsTableColumn({
@@ -220,7 +220,7 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Span Links',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new SpanLink(),
+                    nestedModelType: SpanLink,
                 }),
 
                 new AnalyticsTableColumn({

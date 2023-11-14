@@ -354,9 +354,10 @@ export default class BaseAnalyticsAPI<
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: PartialEntity<TAnalyticsDataModel> = JSONFunctions.deserialize(
-            body['data'] as JSONObject
-        ) as PartialEntity<TAnalyticsDataModel>;
+        const item: TAnalyticsDataModel = AnalyticsDataModel.fromJSON<TAnalyticsDataModel>(
+            body['data'] as JSONObject,
+            this.entityType
+        ) as TAnalyticsDataModel;
 
         delete (item as any)['_id'];
         delete (item as any)['createdAt'];
@@ -380,18 +381,14 @@ export default class BaseAnalyticsAPI<
         await this.onBeforeCreate(req, res);
         const body: JSONObject = req.body;
 
-        const item: TAnalyticsDataModel = JSONFunctions.fromJSON<TAnalyticsDataModel>(
+        const item: TAnalyticsDataModel = AnalyticsDataModel.fromJSON<TAnalyticsDataModel>(
             body['data'] as JSONObject,
             this.entityType
         ) as TAnalyticsDataModel;
 
-        const miscDataProps: JSONObject = JSONFunctions.deserialize(
-            body['miscDataProps'] as JSONObject
-        );
 
         const createBy: CreateBy<TAnalyticsDataModel> = {
             data: item,
-            miscDataProps: miscDataProps,
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         };
 

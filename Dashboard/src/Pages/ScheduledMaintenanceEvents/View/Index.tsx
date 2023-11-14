@@ -286,7 +286,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitors'
                                                 ] as JSONArray) || [],
@@ -310,7 +310,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <StatusPagesElement
                                         statusPages={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'statusPages'
                                                 ] as JSONArray) || [],
@@ -355,7 +355,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

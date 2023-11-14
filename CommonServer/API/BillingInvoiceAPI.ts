@@ -1,6 +1,5 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Permission, { UserPermission } from 'Common/Types/Permission';
 import BillingInvoice from 'Model/Models/BillingInvoice';
 import Project from 'Model/Models/Project';
@@ -19,6 +18,7 @@ import {
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import BaseModel from 'Common/Models/BaseModel';
 
 export default class UserAPI extends BaseAPI<
     BillingInvoice,
@@ -98,7 +98,7 @@ export default class UserAPI extends BaseAPI<
                     const body: JSONObject = req.body;
 
                     const item: BillingInvoice =
-                        JSONFunctions.fromJSON<BillingInvoice>(
+                        BaseModel.fromJSON<BillingInvoice>(
                             body['data'] as JSONObject,
                             this.entityType
                         ) as BillingInvoice;

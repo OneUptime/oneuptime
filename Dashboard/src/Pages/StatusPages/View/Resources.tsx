@@ -351,7 +351,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorElement
                                         monitor={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitor'
                                                 ] as JSONObject) || [],
@@ -371,7 +371,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorGroupElement
                                         monitorGroup={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitorGroup'
                                                 ] as JSONObject) || [],

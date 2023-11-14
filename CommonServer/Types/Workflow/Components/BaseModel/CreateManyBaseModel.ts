@@ -103,7 +103,7 @@ export default class CreateManyBaseModel<
 
                     array.push(
                         (await this.modelService.create({
-                            data: JSONFunctions.fromJSON<TBaseModel>(
+                            data: BaseModel.fromJSON<TBaseModel>(
                                 (item as JSONObject) || {},
                                 this.modelService.modelType
                             ) as TBaseModel,
@@ -118,7 +118,7 @@ export default class CreateManyBaseModel<
 
             return {
                 returnValues: {
-                    models: JSONFunctions.toJSONArray(
+                    models: BaseModel.toJSONArray(
                         array,
                         this.modelService.modelType
                     ),

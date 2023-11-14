@@ -67,7 +67,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
 
             if (incidentNoteTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         incidentNoteTemplate,
                         IncidentNoteTemplate
                     ),
@@ -228,7 +228,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <UserElement
                                     user={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             item['createdByUser'] as JSONObject,
                                             User
                                         ) as User

@@ -18,7 +18,7 @@ export default class AnalyticsDataModel extends CommonModel {
         pluralName: string;
         tableEngine?: AnalyticsTableEngine | undefined;
         tableColumns: Array<AnalyticsTableColumn>;
-        crudApiPath?: Route;
+        crudApiPath: Route;
         allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
         tableBillingAccessControl?: TableBillingAccessControl | undefined;
         accessControl?: TableAccessControl | undefined;
@@ -273,4 +273,6 @@ export default class AnalyticsDataModel extends CommonModel {
     public set updatedAt(v: Date | undefined) {
         this.setColumnValue('updatedAt', v);
     }
+
+    
 }

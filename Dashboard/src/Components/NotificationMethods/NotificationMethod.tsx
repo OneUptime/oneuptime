@@ -11,7 +11,7 @@ export interface ComponentProps {
 const NotificationMethodView: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const item: BaseModel = JSONFunctions.fromJSONObject(
+    const item: BaseModel = BaseModel.fromJSONObject(
         props.item,
         props.modelType
     );

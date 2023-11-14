@@ -173,7 +173,7 @@ router.get(
 
             return Response.sendJsonObjectResponse(req, res, {
                 firstMonitorToBeFetched: firstMonitorToBeFetched
-                    ? JSONFunctions.toJSONObject(
+                    ? BaseModel.toJSONObject(
                           firstMonitorToBeFetched,
                           MonitorProbe
                       )

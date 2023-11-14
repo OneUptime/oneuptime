@@ -72,7 +72,7 @@ export default class FetchListAndProbe {
             logger.info('Fetched monitor list');
             logger.info(result);
 
-            const monitors: Array<Monitor> = JSONFunctions.fromJSONArray(
+            const monitors: Array<Monitor> = BaseModel.fromJSONArray(
                 result.data as JSONArray,
                 Monitor
             );

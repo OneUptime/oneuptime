@@ -9,7 +9,7 @@ import Route from 'Common/Types/API/Route';
 
 export default abstract class LoginUtil {
     public static login(value: JSONObject): void {
-        const user: StatusPagePrivateUser = JSONFunctions.fromJSON(
+        const user: StatusPagePrivateUser = BaseModel.fromJSON(
             value['user'] as JSONObject,
             StatusPagePrivateUser
         ) as StatusPagePrivateUser;

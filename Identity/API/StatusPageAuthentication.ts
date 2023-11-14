@@ -71,7 +71,7 @@ router.post(
                 throw new BadDataException('Email is required.');
             }
 
-            const user: StatusPagePrivateUser = JSONFunctions.fromJSON(
+            const user: StatusPagePrivateUser = BaseModel.fromJSON(
                 data as JSONObject,
                 StatusPagePrivateUser
             ) as StatusPagePrivateUser;
@@ -205,7 +205,7 @@ router.post(
                 throw new BadDataException('Status Page ID is required.');
             }
 
-            const user: StatusPagePrivateUser = JSONFunctions.fromJSON(
+            const user: StatusPagePrivateUser = BaseModel.fromJSON(
                 data as JSONObject,
                 StatusPagePrivateUser
             ) as StatusPagePrivateUser;
@@ -336,7 +336,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: StatusPagePrivateUser = JSONFunctions.fromJSON(
+            const user: StatusPagePrivateUser = BaseModel.fromJSON(
                 data as JSONObject,
                 StatusPagePrivateUser
             ) as StatusPagePrivateUser;

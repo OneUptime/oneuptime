@@ -204,7 +204,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorElement
                                         monitor={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitor'
                                                 ] as JSONObject) || [],

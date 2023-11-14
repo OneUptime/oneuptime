@@ -90,7 +90,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                             return (
                                 <ProjectElement
                                     project={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['project'] as JSONObject) ||
                                                 [],
                                             Project
@@ -198,7 +198,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                             return (
                                 <MonitorsElement
                                     monitors={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
                                                 [],
                                             Monitor

@@ -16,7 +16,7 @@ import {
     OnUpdate,
 } from '../Types/AnalyticsDatabase/Hooks';
 import Typeof from 'Common/Types/Typeof';
-import ModelPermission from '../Types/AnalyticsDatabase/ModelPermission';
+import ModelPermission, { CheckReadPermissionType } from '../Types/AnalyticsDatabase/ModelPermission';
 import ObjectID from 'Common/Types/ObjectID';
 import Exception from 'Common/Types/Exception/Exception';
 import API from 'Common/Utils/API';
@@ -32,7 +32,6 @@ import UpdateBy from '../Types/AnalyticsDatabase/UpdateBy';
 import FindBy from '../Types/AnalyticsDatabase/FindBy';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import Query from '../Types/AnalyticsDatabase/Query';
 import Select from '../Types/AnalyticsDatabase/Select';
 import { ExecResult } from '@clickhouse/client';
 import { Stream } from 'node:stream';
@@ -43,18 +42,21 @@ import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
 import OneUptimeDate from 'Common/Types/Date';
 import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
 import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
+import CountBy from '../Types/AnalyticsDatabase/CountBy';
+import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
+import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
     public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -72,6 +74,58 @@ export default class AnalyticsDatabaseService<
             modelType: this.modelType,
             database: this.database,
         });
+    }
+
+
+    public async countBy(countBy: CountBy<TBaseModel>): Promise<PositiveNumber> {
+        try {
+            if (!countBy.skip) {
+                countBy.skip = new PositiveNumber(0);
+            }
+
+            if (!countBy.limit) {
+                countBy.limit = new PositiveNumber(Infinity);
+            }
+
+            if (!(countBy.skip instanceof PositiveNumber)) {
+                countBy.skip = new PositiveNumber(countBy.skip);
+            }
+
+            if (!(countBy.limit instanceof PositiveNumber)) {
+                countBy.limit = new PositiveNumber(countBy.limit);
+            }
+
+            
+            const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+                await ModelPermission.checkReadPermission(
+                    this.modelType,
+                    countBy.query,
+                    null,
+                    countBy.props
+                );
+
+            countBy.query = checkReadPermissionType.query;
+
+            const countStatement: string =
+                this.toCountStatement(countBy);
+
+            const dbResult: ExecResult<Stream> = await this.execute(
+                countStatement
+            );
+
+            const strResult: string = await StreamUtil.convertStreamToText(
+                dbResult.stream
+            );
+
+
+            let countPositive: PositiveNumber = new PositiveNumber(strResult);
+
+            countPositive = await this.onCountSuccess(countPositive);
+            return countPositive;
+        } catch (error) {
+            await this.onCountError(error as Exception);
+            throw this.getException(error as Exception);
+        }
     }
 
     public async findBy(
@@ -111,10 +165,7 @@ export default class AnalyticsDatabaseService<
                 (onBeforeFind.select as any)['_id'] = true;
             }
 
-            const result: {
-                query: Query<TBaseModel>;
-                select: Select<TBaseModel> | null;
-            } = await ModelPermission.checkReadPermission(
+            const result: CheckReadPermissionType<TBaseModel> = await ModelPermission.checkReadPermission(
                 this.modelType,
                 onBeforeFind.query,
                 onBeforeFind.select || null,
@@ -229,6 +280,36 @@ export default class AnalyticsDatabaseService<
         return Promise.resolve({ findBy, carryForward: null });
     }
 
+
+    public toCountStatement(countBy: CountBy<TBaseModel>): string {
+        if (!this.database) {
+            this.useDefaultDatabase();
+        }
+
+
+        let statement: string = `SELECT count() FROM ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+        ${Object.keys(countBy.query).length > 0 ? 'WHERE' : ''
+            } ${this.statementGenerator.toWhereStatement(countBy.query)}
+        `;
+
+        if(countBy.limit){
+            statement += `
+            LIMIT ${countBy.limit}
+            `;
+        }
+
+        if(countBy.skip){
+            statement += `
+            OFFSET ${countBy.skip}
+            `;
+        }
+        logger.info(`${this.model.tableName} Count Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
     public toFindStatement(findBy: FindBy<TBaseModel>): {
         statement: string;
         columns: Array<string>;
@@ -240,12 +321,10 @@ export default class AnalyticsDatabaseService<
         const select: { statement: string; columns: Array<string> } =
             this.statementGenerator.toSelectStatement(findBy.select!);
 
-        const statement: string = `SELECT ${select.statement} FROM ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ${
-            Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
-        } ${this.statementGenerator.toWhereStatement(findBy.query)}
+        const statement: string = `SELECT ${select.statement} FROM ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+        ${Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
+            } ${this.statementGenerator.toWhereStatement(findBy.query)}
         ORDER BY ${this.statementGenerator.toSortStatemennt(findBy.sort!)}
         LIMIT ${findBy.limit}
         OFFSET ${findBy.skip}
@@ -262,13 +341,23 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `ALTER TABLE ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-            DELETE ${
-                Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
+        let statement: string = `ALTER TABLE ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+            DELETE ${Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
             } ${this.statementGenerator.toWhereStatement(deleteBy.query)}
         `;
+
+        if(deleteBy.limit){
+            statement += `
+            LIMIT ${deleteBy.limit}
+            `;
+        }
+
+        if(deleteBy.skip){
+            statement += `
+            OFFSET ${deleteBy.skip}
+            `;
+        }
 
         logger.info(`${this.model.tableName} Delete Statement`);
         logger.info(statement);
@@ -289,6 +378,14 @@ export default class AnalyticsDatabaseService<
             return documents[0];
         }
         return null;
+    }
+
+    public async deleteOneBy(deleteBy: DeleteOneBy<TBaseModel>): Promise<void> {
+        return await this._deleteBy({
+            ...deleteBy,
+            limit: 1,
+            skip: 0,
+        });
     }
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
@@ -338,6 +435,13 @@ export default class AnalyticsDatabaseService<
             },
             select: findOneById.select || {},
             props: findOneById.props,
+        });
+    }
+
+    public async updateOneBy(updateOneBy: UpdateOneBy<TBaseModel>): Promise<void> { 
+        return await this._updateBy({
+            ...updateOneBy,
+            limit: 1,
         });
     }
 
@@ -507,16 +611,16 @@ export default class AnalyticsDatabaseService<
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                      createBy: {
-                          data: data,
-                          props: createBy.props,
-                      },
-                      carryForward: [],
-                  }
+                    createBy: {
+                        data: data,
+                        props: createBy.props,
+                    },
+                    carryForward: [],
+                }
                 : await this._onBeforeCreate({
-                      data: data,
-                      props: createBy.props,
-                  });
+                    data: data,
+                    props: createBy.props,
+                });
 
             data = onCreate.createBy.data;
 

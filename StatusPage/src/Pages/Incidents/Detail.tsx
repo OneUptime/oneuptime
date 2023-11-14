@@ -271,25 +271,25 @@ const Detail: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
 
             const rawIncidents: JSONArray =
                 (data['incidents'] as JSONArray) || [];
-            const incident: Incident = JSONFunctions.fromJSONObject(
+            const incident: Incident = BaseModel.fromJSONObject(
                 (rawIncidents[0] as JSONObject) || {},
                 Incident
             );
             const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
 
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );

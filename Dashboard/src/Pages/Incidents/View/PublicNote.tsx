@@ -67,7 +67,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
             if (incidentNoteTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         incidentNoteTemplate,
                         IncidentNoteTemplate
                     ),
@@ -229,7 +229,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             return (
                                 <UserElement
                                     user={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             item['createdByUser'] as JSONObject,
                                             User
                                         ) as User

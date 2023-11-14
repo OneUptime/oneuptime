@@ -121,7 +121,7 @@ router.post(
                     },
                 });
             } else {
-                const user: User = JSONFunctions.fromJSON(
+                const user: User = BaseModel.fromJSON(
                     partialUser as JSONObject,
                     User
                 ) as User;
@@ -216,7 +216,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = JSONFunctions.fromJSON(
+            const user: User = BaseModel.fromJSON(
                 data as JSONObject,
                 User
             ) as User;
@@ -298,7 +298,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const token: EmailVerificationToken = JSONFunctions.fromJSON(
+            const token: EmailVerificationToken = BaseModel.fromJSON(
                 data as JSONObject,
                 EmailVerificationToken
             ) as EmailVerificationToken;
@@ -404,7 +404,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = JSONFunctions.fromJSON(
+            const user: User = BaseModel.fromJSON(
                 data as JSONObject,
                 User
             ) as User;
@@ -513,7 +513,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = JSONFunctions.fromJSON(
+            const user: User = BaseModel.fromJSON(
                 data as JSONObject,
                 User
             ) as User;

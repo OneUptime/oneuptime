@@ -163,7 +163,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                     return (
                         <UserElement
                             user={
-                                JSONFunctions.fromJSON(
+                                BaseModel.fromJSON(
                                     item['acknowledgedByUser'] as JSONObject,
                                     User
                                 ) as User

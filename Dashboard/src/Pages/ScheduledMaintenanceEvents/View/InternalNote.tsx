@@ -72,7 +72,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
 
             if (scheduledMaintenanceNoteTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         scheduledMaintenanceNoteTemplate,
                         ScheduledMaintenanceNoteTemplate
                     ),
@@ -238,7 +238,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <UserElement
                                     user={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             item['createdByUser'] as JSONObject,
                                             User
                                         ) as User

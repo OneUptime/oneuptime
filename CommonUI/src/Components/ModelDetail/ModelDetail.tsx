@@ -258,7 +258,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     return (
         <Detail
             id={props.id}
-            item={JSONFunctions.toJSONObject(item, props.modelType)}
+            item={BaseModel.toJSONObject(item, props.modelType)}
             fields={fields}
             showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
         />
