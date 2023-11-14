@@ -116,10 +116,6 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('serviceId', v);
     }
 
-    public get name(): string | undefined {
-        return this.getColumnValue('name') as string | undefined;
-    }
-
     public set body(v: string | undefined) {
         this.setColumnValue('body', v);
     }

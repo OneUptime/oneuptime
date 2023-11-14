@@ -203,8 +203,8 @@ export default class AnalyticsDatabaseService<
 
             let items: Array<TBaseModel> =
                 AnalyticsBaseModel.fromJSONArray<TBaseModel>(
+                    jsonItems,
                     this.modelType,
-                    jsonItems
                 );
 
             items = this.sanitizeFindByItems(items, onBeforeFind);
