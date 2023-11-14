@@ -12,7 +12,6 @@ export interface ComponentProps {
 const LogsFilter: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [filterOptions, setFilterOptions] = React.useState<FiterOptions>({});
 
     useEffect(() => {
@@ -21,11 +20,13 @@ const LogsFilter: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <Input onChange={(value: string) => {
-                setFilterOptions({
-                    searchText: value
-                })
-            }} />
+            <Input
+                onChange={(value: string) => {
+                    setFilterOptions({
+                        searchText: value,
+                    });
+                }}
+            />
         </div>
     );
 };

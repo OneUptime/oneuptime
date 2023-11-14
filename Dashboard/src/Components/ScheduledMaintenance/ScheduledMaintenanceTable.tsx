@@ -16,11 +16,11 @@ import Route from 'Common/Types/API/Route';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../StatusPage/StatusPagesLabel';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import OneUptimeDate from 'Common/Types/Date';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../Utils/ProjectUser';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;

@@ -587,7 +587,6 @@ export default class BaseModel extends BaseEntity {
         return json;
     }
 
-
     public static toJSONObjectArray(
         list: Array<BaseModel>,
         modelType: { new (): BaseModel }
@@ -667,7 +666,6 @@ export default class BaseModel extends BaseEntity {
 
         return baseModel as T;
     }
-
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,

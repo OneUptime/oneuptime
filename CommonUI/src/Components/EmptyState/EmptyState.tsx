@@ -21,7 +21,10 @@ const EmptyState: FunctionComponent<ComponentProps> = (
                     {props.icon && (
                         <Icon
                             icon={props.icon}
-                            className={props.iconClassName || `mx-auto h-12 w-12 text-gray-400`}
+                            className={
+                                props.iconClassName ||
+                                `mx-auto h-12 w-12 text-gray-400`
+                            }
                         />
                     )}
 

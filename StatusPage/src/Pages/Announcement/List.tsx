@@ -7,7 +7,6 @@ import React, {
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 
 import useAsyncEffect from 'use-async-effect';

@@ -35,7 +35,10 @@ export default class BaseAnalyticsAPI<
     public router: ExpressRouter;
     public service: TBaseService;
 
-    public constructor(type: { new (): TAnalyticsDataModel }, service: TBaseService) {
+    public constructor(
+        type: { new (): TAnalyticsDataModel },
+        service: TBaseService
+    ) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
         // Create
@@ -108,9 +111,7 @@ export default class BaseAnalyticsAPI<
 
         // Get Item
         router.post(
-            `${new this.entityType()
-                .crudApiPath
-                ?.toString()}/:id/get-item`,
+            `${new this.entityType().crudApiPath?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -127,9 +128,7 @@ export default class BaseAnalyticsAPI<
 
         // Get Item
         router.get(
-            `${new this.entityType()
-                .crudApiPath
-                ?.toString()}/:id/get-item`,
+            `${new this.entityType().crudApiPath?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -212,7 +211,6 @@ export default class BaseAnalyticsAPI<
 
         return null;
     }
-
 
     public async getList(
         req: ExpressRequest,
@@ -354,10 +352,11 @@ export default class BaseAnalyticsAPI<
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: TAnalyticsDataModel = AnalyticsDataModel.fromJSON<TAnalyticsDataModel>(
-            body['data'] as JSONObject,
-            this.entityType
-        ) as TAnalyticsDataModel;
+        const item: TAnalyticsDataModel =
+            AnalyticsDataModel.fromJSON<TAnalyticsDataModel>(
+                body['data'] as JSONObject,
+                this.entityType
+            ) as TAnalyticsDataModel;
 
         delete (item as any)['_id'];
         delete (item as any)['createdAt'];
@@ -381,18 +380,20 @@ export default class BaseAnalyticsAPI<
         await this.onBeforeCreate(req, res);
         const body: JSONObject = req.body;
 
-        const item: TAnalyticsDataModel = AnalyticsDataModel.fromJSON<TAnalyticsDataModel>(
-            body['data'] as JSONObject,
-            this.entityType
-        ) as TAnalyticsDataModel;
-
+        const item: TAnalyticsDataModel =
+            AnalyticsDataModel.fromJSON<TAnalyticsDataModel>(
+                body['data'] as JSONObject,
+                this.entityType
+            ) as TAnalyticsDataModel;
 
         const createBy: CreateBy<TAnalyticsDataModel> = {
             data: item,
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         };
 
-        const savedItem: AnalyticsDataModel = await this.service.create(createBy);
+        const savedItem: AnalyticsDataModel = await this.service.create(
+            createBy
+        );
 
         return Response.sendEntityResponse(
             req,

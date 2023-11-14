@@ -8,7 +8,7 @@ import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-
+import BaseModel from 'Common/Models/BaseModel';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';

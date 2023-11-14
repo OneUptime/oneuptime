@@ -27,7 +27,6 @@ import Label from 'Model/Models/Label';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import OneUptimeDate from 'Common/Types/Date';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (

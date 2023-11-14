@@ -26,7 +26,6 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';

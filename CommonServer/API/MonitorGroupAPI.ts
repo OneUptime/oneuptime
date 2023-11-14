@@ -48,7 +48,9 @@ export default class MonitorGroupAPI extends BaseAPI<
                             new ObjectID(
                                 req.params['monitorGroupId'].toString()
                             ),
-                            await CommonAPI.getDatabaseCommonInteractionProps(req)
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            )
                         );
 
                     return Response.sendEntityResponse(
@@ -92,7 +94,9 @@ export default class MonitorGroupAPI extends BaseAPI<
                             ),
                             startDate,
                             endDate,
-                            await CommonAPI.getDatabaseCommonInteractionProps(req)
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            )
                         );
 
                     return Response.sendEntityArrayResponse(

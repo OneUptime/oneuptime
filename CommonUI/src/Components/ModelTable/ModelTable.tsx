@@ -852,10 +852,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             const baseModel: TBaseModel =
-                                BaseModel.fromJSONObject(
-                                    item,
-                                    props.modelType
-                                );
+                                BaseModel.fromJSONObject(item, props.modelType);
 
                             if (props.onBeforeView) {
                                 item = BaseModel.toJSONObject(

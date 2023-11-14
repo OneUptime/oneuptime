@@ -14,7 +14,6 @@ import Label from 'Model/Models/Label';
 import DashboardNavigation from '../../Utils/Navigation';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ModelProgress from 'CommonUI/src/Components/ModelProgress/ModelProgress';

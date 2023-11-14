@@ -18,7 +18,6 @@ export default class JSONFunctions {
         return Object.keys(obj).length === 0;
     }
 
-    
     public static toCompressedString(val: JSONValue): string {
         return JSON.stringify(val, null, 2);
     }

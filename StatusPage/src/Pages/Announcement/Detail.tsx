@@ -25,7 +25,6 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import EventItem, {
     ComponentProps as EventItemComponentProps,
 } from 'CommonUI/src/Components/EventItem/EventItem';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { Blue } from 'Common/Types/BrandColors';

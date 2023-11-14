@@ -8,7 +8,6 @@ import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
 import MonitorUtil from '../../Utils/Monitors/Monitor';
 import logger from 'CommonServer/Utils/Logger';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import { JSONArray } from 'Common/Types/JSON';
 import OneUptimeDate from 'Common/Types/Date';
 import Sleep from 'Common/Types/Sleep';

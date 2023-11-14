@@ -41,6 +41,7 @@ import StatusPageResource from 'Model/Models/StatusPageResource';
 import Dictionary from 'Common/Types/Dictionary';
 import Monitor from 'Model/Models/Monitor';
 import Label from 'Model/Models/Label';
+import BaseModel from 'Common/Models/BaseModel';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,

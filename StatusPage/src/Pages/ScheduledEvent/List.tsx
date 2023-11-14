@@ -38,6 +38,7 @@ import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import Section from '../../Components/Section/Section';
+import BaseModel from 'Common/Models/BaseModel';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

@@ -12,7 +12,6 @@ import IncidentView from '../../../Components/Incident/Incident';
 import Incident from 'Model/Models/Incident';
 import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
 import UserElement from '../../../Components/User/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import User from 'Model/Models/User';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import ObjectID from 'Common/Types/ObjectID';
@@ -21,6 +20,7 @@ import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import OnCallPolicyView from '../OnCallPolicy';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.

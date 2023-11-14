@@ -144,7 +144,6 @@ export default class CommonModel {
         return this;
     }
 
-
     public toJSON(): JSONObject {
         const json: JSONObject = {};
 
@@ -159,10 +158,7 @@ export default class CommonModel {
             }
 
             if (recordValue instanceof Array) {
-                if (
-                    recordValue.length > 0 &&
-                    column.nestedModelType
-                ) {
+                if (recordValue.length > 0 && column.nestedModelType) {
                     json[column.key] = CommonModel.toJSONArray(
                         recordValue as Array<CommonModel>,
                         column.nestedModelType
@@ -193,9 +189,10 @@ export default class CommonModel {
         return models as Array<TBaseModel>;
     }
 
-
-
-    public static toJSONArray(models: Array<CommonModel>,  modelType: { new (): CommonModel }): Array<JSONObject> {
+    public static toJSONArray(
+        models: Array<CommonModel>,
+        modelType: { new (): CommonModel }
+    ): Array<JSONObject> {
         const json: Array<JSONObject> = [];
 
         models.forEach((model: CommonModel) => {

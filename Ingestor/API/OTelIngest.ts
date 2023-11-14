@@ -72,8 +72,9 @@ router.use(
 
             // check header.
 
-            const serviceTokenInHeader: string | undefined = req.headers['x-oneuptime-service-token'] as string | undefined; 
-
+            const serviceTokenInHeader: string | undefined = req.headers[
+                'x-oneuptime-service-token'
+            ] as string | undefined;
 
             if (!serviceTokenInHeader) {
                 throw new BadRequestException(
@@ -92,20 +93,21 @@ router.use(
 
             if (!cachedServiceId || !serviceProjectId) {
                 // load from the database and set the cache.
-                const service: TelemetryService | null = await TelemetryServiceService.findOneBy({
-                    query: {
-                        telemetryServiceToken: new ObjectID(
-                            serviceTokenInHeader as string
-                        ),
-                    },
-                    select: {
-                        _id: true,
-                        projectId: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
+                const service: TelemetryService | null =
+                    await TelemetryServiceService.findOneBy({
+                        query: {
+                            telemetryServiceToken: new ObjectID(
+                                serviceTokenInHeader as string
+                            ),
+                        },
+                        select: {
+                            _id: true,
+                            projectId: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
                 if (!service) {
                     throw new BadRequestException('Invalid service token');
@@ -458,7 +460,6 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             logger.info('OTel Ingestor API called');
 
             req.body = req.body.toJSON();

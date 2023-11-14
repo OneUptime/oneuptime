@@ -13,7 +13,6 @@ import WorkflowSideMenu from './SideMenu';
 import { JSONObject } from 'Common/Types/JSON';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowElement from '../../Components/Workflow/WorkflowElement';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';

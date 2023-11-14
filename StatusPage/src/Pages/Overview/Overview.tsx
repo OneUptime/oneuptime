@@ -4,6 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
@@ -175,11 +176,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const activeIncidents: Array<Incident> =
-                BaseModel.fromJSONArray(
-                    (data['activeIncidents'] as JSONArray) || [],
-                    Incident
-                );
+            const activeIncidents: Array<Incident> = BaseModel.fromJSONArray(
+                (data['activeIncidents'] as JSONArray) || [],
+                Incident
+            );
             const monitorStatusTimelines: Array<MonitorStatusTimeline> =
                 BaseModel.fromJSONArray(
                     (data['monitorStatusTimelines'] as JSONArray) || [],

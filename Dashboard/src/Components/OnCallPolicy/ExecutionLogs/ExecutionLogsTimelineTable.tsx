@@ -11,11 +11,11 @@ import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyE
 import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
 import UserElement from '../../User/User';
 import User from 'Model/Models/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import EscalationRule from '../EscalationRule/EscalationRule';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     onCallPolicyExecutionLogId: ObjectID;

@@ -14,7 +14,6 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

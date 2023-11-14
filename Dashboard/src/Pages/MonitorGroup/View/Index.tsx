@@ -14,7 +14,6 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Card from 'CommonUI/src/Components/Card/Card';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import useAsyncEffect from 'use-async-effect';

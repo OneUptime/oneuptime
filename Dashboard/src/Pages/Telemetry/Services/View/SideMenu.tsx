@@ -28,8 +28,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Info}
                 />
-                </SideMenuSection>
-                <SideMenuSection title="Telemetry">
+            </SideMenuSection>
+            <SideMenuSection title="Telemetry">
                 <SideMenuItem
                     link={{
                         title: 'Logs',

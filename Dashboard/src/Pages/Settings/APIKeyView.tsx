@@ -20,7 +20,6 @@ import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

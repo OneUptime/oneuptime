@@ -17,7 +17,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import Incident from 'Model/Models/Incident';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';

@@ -12,7 +12,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';

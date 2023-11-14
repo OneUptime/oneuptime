@@ -62,9 +62,9 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ComingSoon />    
+            <ComingSoon />
         </ModelPage>
-    )
+    );
 };
 
 export default ServiceDelete;

@@ -6,7 +6,7 @@ import { ExpressRequest, OneUptimeRequest } from '../Utils/Express';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 
 export default class CommonAPI {
-    public static async  getDatabaseCommonInteractionProps(
+    public static async getDatabaseCommonInteractionProps(
         req: ExpressRequest
     ): Promise<DatabaseCommonInteractionProps> {
         const props: DatabaseCommonInteractionProps = {

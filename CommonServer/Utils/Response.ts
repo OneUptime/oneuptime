@@ -182,31 +182,31 @@ export default class Response {
             count = new PositiveNumber(count);
         }
 
-        let jsonArray: JSONArray = []; 
+        let jsonArray: JSONArray = [];
 
         const model: BaseModel | AnalyticsDataModel = new modelType();
 
-        if(model instanceof BaseModel) {
-            jsonArray = BaseModel.toJSONArray(list as Array<BaseModel>, modelType as { new (): BaseModel });
+        if (model instanceof BaseModel) {
+            jsonArray = BaseModel.toJSONArray(
+                list as Array<BaseModel>,
+                modelType as { new (): BaseModel }
+            );
         }
 
-        if(model instanceof AnalyticsDataModel) {
-            jsonArray = AnalyticsDataModel.toJSONArray(list as Array<AnalyticsDataModel>, modelType as { new (): AnalyticsDataModel });
+        if (model instanceof AnalyticsDataModel) {
+            jsonArray = AnalyticsDataModel.toJSONArray(
+                list as Array<AnalyticsDataModel>,
+                modelType as { new (): AnalyticsDataModel }
+            );
         }
 
-
-        return this.sendJsonArrayResponse(
-            req,
-            res,
-            jsonArray,
-            count
-        );
+        return this.sendJsonArrayResponse(req, res, jsonArray, count);
     }
 
     public static sendEntityResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: BaseModel |AnalyticsDataModel | null,
+        item: BaseModel | AnalyticsDataModel | null,
         modelType: { new (): BaseModel | AnalyticsDataModel },
         options?:
             | {
@@ -217,11 +217,17 @@ export default class Response {
         let response: JSONObject = {};
 
         if (item && item instanceof BaseModel) {
-            response = BaseModel.toJSON(item, modelType as { new (): BaseModel });
+            response = BaseModel.toJSON(
+                item,
+                modelType as { new (): BaseModel }
+            );
         }
 
         if (item && item instanceof AnalyticsDataModel) {
-            response = AnalyticsDataModel.toJSON(item, modelType as { new (): AnalyticsDataModel });
+            response = AnalyticsDataModel.toJSON(
+                item,
+                modelType as { new (): AnalyticsDataModel }
+            );
         }
 
         if (options?.miscData) {

@@ -22,7 +22,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import MonitorsElement from '../../Components/Monitor/Monitors';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import OnCallDutyPoliciesView from '../../Components/OnCallPolicy/OnCallPolicies';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';

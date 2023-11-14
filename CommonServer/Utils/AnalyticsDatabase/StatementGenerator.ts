@@ -38,7 +38,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         } ${this.toWhereStatement(updateBy.query)}
         `;
 
-        if(updateBy.limit){
+        if (updateBy.limit) {
             statement += ` LIMIT ${updateBy.limit}`;
         }
 

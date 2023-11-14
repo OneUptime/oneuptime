@@ -17,7 +17,6 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';

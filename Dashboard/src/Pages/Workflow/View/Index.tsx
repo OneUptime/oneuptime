@@ -13,7 +13,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Label from 'Model/Models/Label';
 
 const Delete: FunctionComponent<PageComponentProps> = (

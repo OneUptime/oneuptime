@@ -412,7 +412,9 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            await CommonAPI.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            ),
                             req
                         ))
                     ) {
@@ -1069,7 +1071,9 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            await CommonAPI.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            ),
                             req
                         ))
                     ) {
@@ -1175,7 +1179,9 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             null,
-                            await CommonAPI.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            ),
                             req
                         );
 
@@ -1271,7 +1277,9 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             scheduledMaintenanceId,
-                            await CommonAPI.getDatabaseCommonInteractionProps(req),
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            ),
                             req
                         );
 

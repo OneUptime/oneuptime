@@ -26,8 +26,9 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
+import BaseModel from 'Common/Models/BaseModel';
+
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {

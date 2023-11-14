@@ -15,7 +15,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Monitor from 'Model/Models/Monitor';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';

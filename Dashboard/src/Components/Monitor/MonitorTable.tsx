@@ -13,7 +13,6 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import MonitorTypeUtil from '../../Utils/MonitorType';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
@@ -26,6 +25,7 @@ import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 import { Grey } from 'Common/Types/BrandColors';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;

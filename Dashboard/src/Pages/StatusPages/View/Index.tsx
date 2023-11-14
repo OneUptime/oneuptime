@@ -15,7 +15,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

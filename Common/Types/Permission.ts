@@ -1836,7 +1836,8 @@ export class PermissionHelper {
             {
                 permission: Permission.CanCreateTelemetryService,
                 title: 'Can Create Telemetry Service',
-                description: 'This permission can create Telemetry Service this project.',
+                description:
+                    'This permission can create Telemetry Service this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },

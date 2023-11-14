@@ -109,10 +109,7 @@ export default class CreateOneBaseModel<
 
             return {
                 returnValues: {
-                    model: BaseModel.toJSON(
-                        model,
-                        this.modelService.modelType
-                    ),
+                    model: BaseModel.toJSON(model, this.modelService.modelType),
                 },
                 executePort: successPort,
             };

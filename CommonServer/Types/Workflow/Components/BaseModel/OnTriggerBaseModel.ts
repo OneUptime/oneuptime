@@ -98,10 +98,7 @@ export default class OnTriggerBaseModel<
             return {
                 returnValues: {
                     model: data
-                        ? BaseModel.toJSON(
-                              data as any,
-                              this.service!.modelType
-                          )
+                        ? BaseModel.toJSON(data as any, this.service!.modelType)
                         : null,
                 },
                 executePort: successPort,
@@ -136,10 +133,7 @@ export default class OnTriggerBaseModel<
         return {
             returnValues: {
                 model: data
-                    ? BaseModel.toJSON(
-                          model as any,
-                          this.service!.modelType
-                      )
+                    ? BaseModel.toJSON(model as any, this.service!.modelType)
                     : null,
             },
             executePort: successPort,

@@ -1,22 +1,25 @@
-
 import ObjectID from 'Common/Types/ObjectID';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import LogsViewer from 'CommonUI/src/Components/LogsViewer/LogsViewer';
+import Log from 'Model/AnalyticsModels/Log';
 
 export interface ComponentProps {
     telemetryServiceIds: Array<ObjectID>;
 }
 
 const LabelsElement: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+    _props: ComponentProps
 ): ReactElement => {
-    
-    
+
+    const [logs, setLogs] = React.useState<Array<Log>>([]);
+
+    useEffect(() => {
+        setLogs([]);
+    }, []);
 
     return (
         <div>
-            {props.labels.map((label: Label, i: number) => {
-                return <LabelElement label={label} key={i} />;
-            })}
+           <LogsViewer logs={logs} />
         </div>
     );
 };

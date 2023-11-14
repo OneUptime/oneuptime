@@ -19,7 +19,6 @@ import Project from 'Model/Models/Project';
 import Team from 'Model/Models/Team';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import TeamsElement from '../../Components/Team/TeamsElement';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
 import URL from 'Common/Types/API/URL';
