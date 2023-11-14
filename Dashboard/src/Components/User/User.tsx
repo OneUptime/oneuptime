@@ -7,6 +7,7 @@ import URL from 'Common/Types/API/URL';
 import { FILE_URL } from 'CommonUI/src/Config';
 import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
 import Route from 'Common/Types/API/Route';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     user?: User | JSONObject | undefined | null;

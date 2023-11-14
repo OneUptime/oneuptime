@@ -17,6 +17,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

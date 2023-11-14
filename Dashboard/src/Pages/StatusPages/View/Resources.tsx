@@ -1,5 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import BaseModel from 'Common/Models/BaseModel';
 import React, {
     FunctionComponent,
     ReactElement,

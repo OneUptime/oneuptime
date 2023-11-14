@@ -11,6 +11,7 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';

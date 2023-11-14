@@ -5,6 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';

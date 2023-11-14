@@ -13,6 +13,7 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import BaseModel from 'Common/Models/BaseModel';
 
 const StatusPages: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

@@ -5,6 +5,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Monitor from 'Model/Models/Monitor';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import BaseModel from 'Common/Models/BaseModel';
 import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
 import MonitorUtil from '../../Utils/Monitors/Monitor';
 import logger from 'CommonServer/Utils/Logger';

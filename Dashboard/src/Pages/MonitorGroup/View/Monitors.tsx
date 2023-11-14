@@ -25,6 +25,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import MonitorGroup from 'Model/Models/MonitorGroup';
+import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

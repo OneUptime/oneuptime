@@ -4,6 +4,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';

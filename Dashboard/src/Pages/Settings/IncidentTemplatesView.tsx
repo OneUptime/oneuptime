@@ -5,6 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';

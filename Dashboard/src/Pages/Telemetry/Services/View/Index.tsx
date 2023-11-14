@@ -14,6 +14,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../../../Components/Label/Labels';
 import Label from 'Model/Models/Label';
+import BaseModel from 'Common/Models/BaseModel';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

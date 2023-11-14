@@ -21,6 +21,7 @@ import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import OneUptimeDate from 'Common/Types/Date';
 import InBetween from 'Common/Types/Database/InBetween';
+import BaseModel from 'Common/Models/BaseModel';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

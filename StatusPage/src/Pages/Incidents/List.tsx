@@ -4,6 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';

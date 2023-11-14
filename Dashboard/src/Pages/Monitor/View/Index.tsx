@@ -35,6 +35,7 @@ import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
+import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

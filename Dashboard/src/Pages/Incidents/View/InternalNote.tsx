@@ -7,6 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import BaseModel from 'Common/Models/BaseModel';
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
 import ModelTable, {
     ShowTableAs,

@@ -21,6 +21,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DashboardNavigation from '../../Utils/Navigation';
+import BaseModel from 'Common/Models/BaseModel';
+
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {

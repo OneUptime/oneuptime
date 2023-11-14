@@ -1,16 +1,16 @@
-import ObjectID from 'Common/Types/ObjectID';
+// import ObjectID from 'Common/Types/ObjectID';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import LogsViewer from 'CommonUI/src/Components/LogsViewer/LogsViewer';
 import Log from 'Model/AnalyticsModels/Log';
 
 export interface ComponentProps {
-    telemetryServiceIds: Array<ObjectID>;
+    id: string;
+    // telemetryServiceIds: Array<ObjectID>;
 }
 
 const LabelsElement: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
+    props: ComponentProps
 ): ReactElement => {
-
     const [logs, setLogs] = React.useState<Array<Log>>([]);
 
     useEffect(() => {
@@ -18,8 +18,8 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
     }, []);
 
     return (
-        <div>
-           <LogsViewer logs={logs} />
+        <div id={props.id}>
+            <LogsViewer logs={logs} />
         </div>
     );
 };

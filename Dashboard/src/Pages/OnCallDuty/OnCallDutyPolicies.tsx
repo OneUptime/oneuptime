@@ -14,6 +14,7 @@ import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardSideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
