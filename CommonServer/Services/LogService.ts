@@ -7,4 +7,5 @@ export class LogService extends AnalyticsDatabaseService<Log> {
         super({ modelType: Log, database: clickhouseDatabase });
     }
 }
+
 export default new LogService();

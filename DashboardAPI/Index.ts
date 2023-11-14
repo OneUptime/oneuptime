@@ -3,6 +3,7 @@ import Redis from 'CommonServer/Infrastructure/Redis';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import BaseAPI from 'CommonServer/API/BaseAPI';
+import BaseAnalyticsAPI from 'CommonServer/API/BaseAnalyticsAPI';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
@@ -400,6 +401,10 @@ import MonitorGroupResourceService, {
     Service as MonitorGroupResourceServiceType,
 } from 'CommonServer/Services/MonitorGroupResourceService';
 
+import Log from 'Model/AnalyticsModels/Log';
+import LogService, { LogService as LogServiceType } from 'CommonServer/Services/LogService';
+
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -408,6 +413,11 @@ const APP_NAME: string = 'api';
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<User, UserServiceType>(User, UserService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter()
 );
 
 app.use(
