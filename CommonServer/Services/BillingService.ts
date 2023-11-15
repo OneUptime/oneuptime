@@ -4,7 +4,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import Typeof from 'Common/Types/Typeof';
 import logger from '../Utils/Logger';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../EnvironmentConfig';
@@ -197,13 +196,15 @@ export class BillingService extends BaseService {
 
         let trialDate: Date | null = null;
 
-        if (typeof data.trial === Typeof.Boolean) {
-            trialDate = data.trial
-                ? OneUptimeDate.getSomeDaysAfter(data.plan.getTrialPeriod())
-                : null;
-        }
-
-        if (data.trial instanceof Date) {
+        if (typeof data.trial === 'boolean') {
+            if (data.trial) {
+                trialDate = OneUptimeDate.getSomeDaysAfter(
+                    data.plan.getTrialPeriod()
+                );
+            } else {
+                trialDate = null;
+            }
+        } else if (data.trial instanceof Date) {
             trialDate = data.trial;
         }
 
@@ -801,7 +802,7 @@ export class BillingService extends BaseService {
 
         if (paymentMethods.length === 0) {
             throw new BadDataException(
-                Errors.BillingService.NO_PAYMENTS_METHODS_2
+                Errors.BillingService.NO_PAYMENTS_METHODS
             );
         }
 

@@ -12,7 +12,7 @@ import {
 
 import Errors from '../../Utils/Errors';
 
-import { mockStripe, Stripe } from '../TestingUtils/__mocks__/stripe.mock';
+import { mockStripe, Stripe } from '../TestingUtils/__mocks__/Stripe.mock';
 import {
     mockIsBillingEnabled,
     getStripeCustomer,
@@ -1549,7 +1549,7 @@ describe('BillingService', () => {
 
                 await expect(
                     billingService.payInvoice(customerId, invoiceId)
-                ).rejects.toThrow(Errors.BillingService.NO_PAYMENTS_METHODS_2);
+                ).rejects.toThrow(Errors.BillingService.NO_PAYMENTS_METHODS);
             });
 
             it('should successfully pay an invoice', async () => {

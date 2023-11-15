@@ -4,9 +4,6 @@ export default {
         SUBSCRIPTION_ITEM_NOT_FOUND: 'Subscription item not found.',
         SUBSCRIPTION_NOT_FOUND: 'Subscription not found.',
         NO_PAYMENTS_METHODS:
-            'No payment methods added. Please add your card to this project to change your plan',
-        /// @dev consider consolidating the above and below error messages
-        NO_PAYMENTS_METHODS_2:
             'Payment Method not added. Please go to Project Settings > Billing and add a payment method.',
         MIN_REQUIRED_PAYMENT_METHOD_NOT_MET:
             "There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account.",
