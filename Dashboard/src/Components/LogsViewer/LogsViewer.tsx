@@ -51,6 +51,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                     {}
                 );
 
+            // reverse the logs so that the newest logs are at the bottom
+            listResult.data.reverse();
+
             setLogs(listResult.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));

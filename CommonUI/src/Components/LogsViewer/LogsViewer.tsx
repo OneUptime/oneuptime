@@ -10,7 +10,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="shadow rounded-xl bg-slate-800 p-3">
+        <div className="shadow rounded-xl bg-slate-800 p-5">
             {props.logs.map((log: Log, i: number) => {
                 return <LogItem key={i} log={log} />;
             })}
