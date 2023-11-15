@@ -8,15 +8,29 @@ export default class LessThan extends CompareBase {
     }
 
     public override toJSON(): JSONObject {
+        let value: number | string;
+        try {
+            value = (this as LessThan).toNumber();
+        } catch {
+            value = (this as LessThan).toString();
+        }
         return {
             _type: ObjectType.LessThan,
-            value: (this as LessThan).toString(),
+            value,
         };
     }
 
     public static override fromJSON(json: JSONObject): LessThan {
         if (json['_type'] === ObjectType.LessThan) {
-            return new LessThan(json['value'] as number | Date);
+            if (isNaN(Number(json['value']))) {
+                const date = new Date(json['value'] as string);
+                if (isNaN(date.getTime())) {
+                    throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
+                }
+                return new LessThan(date);
+            } else {
+                return new LessThan(Number(json['value']));
+            }
         }
 
         throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));

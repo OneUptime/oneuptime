@@ -122,7 +122,7 @@ export default class BaseModel extends BaseEntity {
     public totalItemsNumber!: number | null;
     public totalItemsErrorMessage!: string | null;
 
-    public isPermissionIf: Dictionary<JSONObject> = {};
+    public isPermissionIf!: Dictionary<JSONObject>;
 
     public isMultiTenantRequestAllowed!: boolean | null;
     public allowUserQueryWithoutTenant!: boolean | null;
@@ -146,6 +146,9 @@ export default class BaseModel extends BaseEntity {
         super();
         if (id) {
             this.id = id;
+        }
+        if (!this.isPermissionIf) {
+            this.isPermissionIf = {};
         }
     }
 

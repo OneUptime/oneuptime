@@ -16,12 +16,23 @@ export default class CompareBase extends SerializableObject {
         this.value = value;
     }
 
+    public isNumber(): boolean {
+        return Typeof.Number === typeof this.value;
+    }
+
+    public isDate(): boolean {
+        return this.value instanceof Date;
+    }
+
     public override toString(): string {
+        if (this.isDate()) {
+            return this.toDate().toJSON();
+        }
         return this.value.toString();
     }
 
     public toNumber(): number {
-        if (Typeof.Number === typeof this.value) {
+        if (this.isNumber()) {
             return this.value as number;
         }
 
@@ -29,7 +40,7 @@ export default class CompareBase extends SerializableObject {
     }
 
     public toDate(): Date {
-        if (this.value instanceof Date) {
+        if (this.isDate()) {
             return this.value as Date;
         }
 
