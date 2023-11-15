@@ -9,9 +9,9 @@ export default class GreaterThan extends CompareBase {
 
     public override toJSON(): JSONObject {
         let value: number | string;
-        try {
+        if (this.isNumber()) {
             value = (this as GreaterThan).toNumber();
-        } catch {
+        } else {
             value = (this as GreaterThan).toString();
         }
         return {
@@ -22,7 +22,8 @@ export default class GreaterThan extends CompareBase {
 
     public static override fromJSON(json: JSONObject): GreaterThan {
         if (json['_type'] === ObjectType.GreaterThan) {
-            if (isNaN(Number(json['value']))) {
+            const numValue: number = Number(json['value']);
+            if (isNaN(numValue)) {
                 const date: Date = new Date(json['value'] as string);
                 if (isNaN(date.getTime())) {
                     throw new BadDataException(
@@ -31,7 +32,7 @@ export default class GreaterThan extends CompareBase {
                 }
                 return new GreaterThan(date);
             }
-            return new GreaterThan(Number(json['value']));
+            return new GreaterThan(numValue);
         }
         throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }

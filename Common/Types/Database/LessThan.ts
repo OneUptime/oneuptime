@@ -9,9 +9,9 @@ export default class LessThan extends CompareBase {
 
     public override toJSON(): JSONObject {
         let value: number | string;
-        try {
+        if (this.isNumber()) {
             value = (this as LessThan).toNumber();
-        } catch {
+        } else {
             value = (this as LessThan).toString();
         }
         return {
@@ -22,7 +22,8 @@ export default class LessThan extends CompareBase {
 
     public static override fromJSON(json: JSONObject): LessThan {
         if (json['_type'] === ObjectType.LessThan) {
-            if (isNaN(Number(json['value']))) {
+            const numValue: number = Number(json['value']);
+            if (isNaN(numValue)) {
                 const date: Date = new Date(json['value'] as string);
                 if (isNaN(date.getTime())) {
                     throw new BadDataException(
@@ -31,7 +32,7 @@ export default class LessThan extends CompareBase {
                 }
                 return new LessThan(date);
             }
-            return new LessThan(Number(json['value']));
+            return new LessThan(numValue);
         }
 
         throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
