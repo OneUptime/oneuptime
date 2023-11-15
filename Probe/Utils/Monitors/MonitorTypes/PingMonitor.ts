@@ -57,15 +57,18 @@ export default class PingMonitor {
             host instanceof URL ? host.hostname.hostname : host.toString();
         const isIPv6: boolean = host instanceof IPv6;
 
-        /// @dev IPv6 does not support the use of timeout so it must be set to false
-        const {
-            monitorId,
-            currentRetryCount = 0,
-            timeout = isIPv6
-                ? false
-                : (new PositiveNumber(5000) as false | PositiveNumber),
-            retry = 5,
-        } = pingOptions;
+        const { monitorId, currentRetryCount = 0, retry = 5 } = pingOptions;
+
+        let timeout: PositiveNumber | false | undefined = pingOptions.timeout;
+        // if undefined or null, set default timeout (5 seconds)
+        if (timeout === undefined || timeout === null) {
+            timeout = new PositiveNumber(5000);
+        } else if (isIPv6) {
+            // for IPv6, since node-ping does not support timeout (see https://github.com/danielzzz/node-ping/issues/145#issuecomment-1140529228), we set it to false
+            timeout = false;
+        } else if (timeout) {
+            timeout = new PositiveNumber(Math.ceil(timeout.toNumber() / 1000));
+        }
 
         logger.info(
             `Pinging host ${monitorId?.toString()} at ${hostAddress}, Retry: ${currentRetryCount}`
@@ -76,11 +79,8 @@ export default class PingMonitor {
                 hostAddress,
                 {
                     v6: isIPv6,
-                    // @ts-ignore
-                    timeout: isIPv6
-                        ? false
-                        : // @ts-ignore
-                          Math.ceil(timeout.toNumber() / 1000),
+                    // @ts-ignore (probe expects timeout to be number | undefined but at the same time they say we should set to false if we want to disable an argument -> https://github.com/danielzzz/node-ping/blob/842a04247856abfab6667919d682ec064ece3f2c/README.md?plain=1#L181)
+                    timeout: timeout,
                     deadline: pingOptions.deadline,
                 }
             );
