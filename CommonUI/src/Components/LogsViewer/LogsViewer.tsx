@@ -9,9 +9,10 @@ export interface ComponentProps {
 const LogsViewer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [screenHeight, setScreenHeight] = React.useState<number>(window.innerHeight);
-    const [ autoScroll, setAutoScroll] = React.useState<boolean>(true);
+    const [screenHeight, setScreenHeight] = React.useState<number>(
+        window.innerHeight
+    );
+    const [autoScroll, setAutoScroll] = React.useState<boolean>(true);
     const logsViewerRef = React.useRef<HTMLDivElement>(null);
 
     // Update the screen height when the window is resized
@@ -50,8 +51,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     // Keep scroll to the bottom of the log
 
     React.useEffect(() => {
-
-        if(!autoScroll) {
+        if (!autoScroll) {
             return;
         }
 
@@ -63,9 +63,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }, [props.logs]);
 
     return (
-        <div ref={logsViewerRef} className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto" style={{
-            height: screenHeight - 330,
-        }}>
+        <div
+            ref={logsViewerRef}
+            className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto"
+            style={{
+                height: screenHeight - 330,
+            }}
+        >
             {props.logs.map((log: Log, i: number) => {
                 return <LogItem key={i} log={log} />;
             })}

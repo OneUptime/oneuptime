@@ -27,3 +27,5 @@ export const ApiReferenceRoute: Route = new Route('/reference');
 export const AdminDashboardRoute: Route = new Route('/admin');
 
 export const IngestorRoute: Route = new Route('/ingestor');
+
+export const RealtimeRoute: Route = new Route('/realtime');
