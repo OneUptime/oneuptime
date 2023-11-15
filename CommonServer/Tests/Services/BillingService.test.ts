@@ -1,4 +1,3 @@
-import APIErrors from 'Common/Utils/Errors';
 import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
@@ -1232,7 +1231,7 @@ describe('BillingService', () => {
 
                 await expect(
                     billingService.getSetupIntentSecret(customerId)
-                ).rejects.toThrow(APIErrors.API.CLIENT_SECRET_MISSING);
+                ).rejects.toThrow(Errors.BillingService.CLIENT_SECRET_MISSING);
             });
         });
 
@@ -1458,7 +1457,7 @@ describe('BillingService', () => {
                         itemText,
                         amountInUsd
                     )
-                ).rejects.toThrow(APIErrors.API.INVOICE_NOT_GENERATED);
+                ).rejects.toThrow(Errors.BillingService.INVOICE_NOT_GENERATED);
             });
 
             it('should handle payment method errors when charging the invoice', async () => {

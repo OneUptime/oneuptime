@@ -15,7 +15,6 @@ import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
 import Errors from '../Utils/Errors';
-import APIErrors from 'Common/Utils/Errors';
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -688,7 +687,7 @@ export class BillingService extends BaseService {
             });
 
         if (!setupIntent.client_secret) {
-            throw new APIException(APIErrors.API.CLIENT_SECRET_MISSING);
+            throw new APIException(Errors.BillingService.CLIENT_SECRET_MISSING);
         }
 
         return setupIntent.client_secret;
@@ -763,7 +762,7 @@ export class BillingService extends BaseService {
         });
 
         if (!invoice || !invoice.id) {
-            throw new APIException(APIErrors.API.INVOICE_NOT_GENERATED);
+            throw new APIException(Errors.BillingService.INVOICE_NOT_GENERATED);
         }
 
         await this.stripe.invoiceItems.create({
