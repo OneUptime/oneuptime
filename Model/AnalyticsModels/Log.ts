@@ -12,6 +12,9 @@ export default class Log extends AnalyticsBaseModel {
             tableName: 'Log',
             tableEngine: AnalyticsTableEngine.MergeTree,
             singularName: 'Log',
+            enableRealtimeEventsOn: {
+                create: true,
+            },
             pluralName: 'Logs',
             crudApiPath: new Route('/logs'),
             tableColumns: [

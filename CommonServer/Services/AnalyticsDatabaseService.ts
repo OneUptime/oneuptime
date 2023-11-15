@@ -47,6 +47,8 @@ import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
 import CountBy from '../Types/AnalyticsDatabase/CountBy';
 import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
 import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
+import Realtime from '../Utils/Realtime';
+import { ModelEventType } from 'Common/Utils/Realtime';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -681,6 +683,18 @@ export default class AnalyticsDatabaseService<
                     if (tenantId) {
                         await this.onTrigger(item.id!, tenantId, 'on-create');
                     }
+                }
+            }
+
+            // emit realtime events to the client. 
+            if(this.getModel().enableRealtimeEventsOn?.create && createBy.props.tenantId){
+                for(const item of items){
+                    await Realtime.emitModelEvent({
+                        model: item, 
+                        tenantId: createBy.props.tenantId,
+                        eventType: ModelEventType.Create,
+                        modelType: this.modelType,
+                    })
                 }
             }
 

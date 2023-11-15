@@ -17,4 +17,12 @@ export interface ListenToModelEventJSON {
     query: JSONObject;
     eventType: ModelEventType;
     tenantId: string;
+    select: JSONObject;
+}
+
+export default interface EnableRealtimeEventsOn {
+    create?: boolean | undefined;
+    update?: boolean | undefined;
+    delete?: boolean | undefined;
+    read?: boolean | undefined;
 }

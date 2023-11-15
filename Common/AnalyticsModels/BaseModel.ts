@@ -9,6 +9,7 @@ import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 import Route from '../Types/API/Route';
+import EnableRealtimeEventsOn from '../Utils/Realtime';
 
 export default class AnalyticsBaseModel extends CommonModel {
     public constructor(data: {
@@ -23,6 +24,7 @@ export default class AnalyticsBaseModel extends CommonModel {
         accessControl?: TableAccessControl | undefined;
         primaryKeys: Array<string>; // this should be the subset of tableColumns
         enableWorkflowOn?: EnableWorkflowOn | undefined;
+        enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined
     }) {
         super({
             tableColumns: data.tableColumns,
@@ -103,6 +105,7 @@ export default class AnalyticsBaseModel extends CommonModel {
         this.accessControl = data.accessControl;
         this.enableWorkflowOn = data.enableWorkflowOn;
         this.crudApiPath = data.crudApiPath;
+        this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
 
         // initialize Arrays.
         for (const column of this.tableColumns) {
@@ -143,6 +146,16 @@ export default class AnalyticsBaseModel extends CommonModel {
     public set tableEngine(v: AnalyticsTableEngine) {
         this._tableEngine = v;
     }
+
+    
+    private _enableRealtimeEventsOn : EnableRealtimeEventsOn | undefined;
+    public get enableRealtimeEventsOn() : EnableRealtimeEventsOn| undefined {
+        return this._enableRealtimeEventsOn;
+    }
+    public set enableRealtimeEventsOn(v : EnableRealtimeEventsOn| undefined) {
+        this._enableRealtimeEventsOn = v;
+    }
+    
 
     private _primaryKeys: Array<string> = [];
     public get primaryKeys(): Array<string> {

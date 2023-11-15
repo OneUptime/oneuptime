@@ -9,12 +9,15 @@ import { REALTIME_URL } from "../Config";
 import URL from "Common/Types/API/URL";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
+import AnalyticsSelect from "./AnalyticsModelAPI/Select";
+import Select from "./ModelAPI/Select";
 
 export interface ListenToAnalyticsModelEvent<Model extends AnalyticsBaseModel> {
     modelType: { new(): Model },
     query: AnalyticsQuery<Model>,
     eventType: ModelEventType,
-    tenantId: ObjectID
+    tenantId: ObjectID,
+    select: AnalyticsSelect<Model>
 }
 
 export interface ListenToModelEvent<Model extends BaseModel> {
@@ -22,6 +25,7 @@ export interface ListenToModelEvent<Model extends BaseModel> {
     query: Query<Model>,
     tenantId: ObjectID
     eventType: ModelEventType,
+    select: Select<Model>
 }
 
 export default class Reatime {
@@ -29,7 +33,7 @@ export default class Reatime {
     private socket!: Socket;
 
     public constructor(){
-        const socket: Socket = SocketIO(URL.fromString(REALTIME_URL.toString()).addRoute("/socket.io").toString());
+        const socket: Socket = SocketIO(URL.fromString(REALTIME_URL.toString()).addRoute("/socket").toString());
         this.socket = socket;
     }
 
@@ -41,7 +45,8 @@ export default class Reatime {
             modelType: DatabaseType.Database,
             modelName: listenToModelEvent.modelType.name,
             query: JSONFunctions.serialize(listenToModelEvent.query),
-            tenantId: listenToModelEvent.tenantId.toString()
+            tenantId: listenToModelEvent.tenantId.toString(),
+            select: JSONFunctions.serialize(listenToModelEvent.select)
         }
 
         this.socket.emit(EventName.ListenToModalEvent, listenToModelEventJSON);
@@ -54,7 +59,8 @@ export default class Reatime {
             modelType: DatabaseType.AnalyticsDatabase,
             modelName: listenToModelEvent.modelType.name,
             query: JSONFunctions.serialize(listenToModelEvent.query),
-            tenantId: listenToModelEvent.tenantId.toString()
+            tenantId: listenToModelEvent.tenantId.toString(),
+            select: JSONFunctions.serialize(listenToModelEvent.select)
         }
 
         this.socket.emit(EventName.ListenToModalEvent, listenToModelEventJSON);
