@@ -5,14 +5,14 @@ import { JSONObject } from '../../../Types/JSON';
 describe('IsNull', () => {
     describe('toString', () => {
         it('should return the correct string representation', () => {
-            const isNull = new IsNull();
+            const isNull: IsNull = new IsNull();
             expect(isNull.toString()).toEqual('');
         });
     });
 
     describe('toJSON', () => {
         it('should generate the correct JSON representation', () => {
-            const isNull = new IsNull();
+            const isNull: IsNull = new IsNull();
             const expectedJSON: JSONObject = {
                 _type: 'IsNull',
                 value: null,

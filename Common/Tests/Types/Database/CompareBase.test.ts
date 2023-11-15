@@ -9,7 +9,7 @@ describe('CompareBase', () => {
         });
 
         it('should return string representation of value if it is a date', () => {
-            const now = new Date();
+            const now: Date = new Date();
             const compareBase: CompareBase = new CompareBase(now);
             expect(compareBase.toString()).toBe(now.toJSON());
         });

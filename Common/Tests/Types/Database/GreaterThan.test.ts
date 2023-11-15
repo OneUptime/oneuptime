@@ -5,7 +5,7 @@ import { JSONObject } from '../../../Types/JSON';
 describe('GreaterThan', () => {
     describe('toJSON', () => {
         it('number - should generate the correct JSON representation', () => {
-            const greaterThan = new GreaterThan(2023);
+            const greaterThan: GreaterThan = new GreaterThan(2023);
             const expectedJSON: JSONObject = {
                 _type: 'GreaterThan',
                 value: 2023,
@@ -14,8 +14,8 @@ describe('GreaterThan', () => {
         });
 
         it('date - should generate the correct JSON representation', () => {
-            const now = new Date();
-            const greaterThan = new GreaterThan(now);
+            const now: Date = new Date();
+            const greaterThan: GreaterThan = new GreaterThan(now);
             const expectedJSON: JSONObject = {
                 _type: 'GreaterThan',
                 value: now.toJSON(),
@@ -35,7 +35,7 @@ describe('GreaterThan', () => {
         });
 
         it('date - should create an GreaterThan object from valid JSON input', () => {
-            const now = new Date();
+            const now: Date = new Date();
             const jsonInput: JSONObject = {
                 _type: 'GreaterThan',
                 value: now.toJSON(),

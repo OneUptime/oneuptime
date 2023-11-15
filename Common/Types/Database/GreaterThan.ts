@@ -23,14 +23,15 @@ export default class GreaterThan extends CompareBase {
     public static override fromJSON(json: JSONObject): GreaterThan {
         if (json['_type'] === ObjectType.GreaterThan) {
             if (isNaN(Number(json['value']))) {
-                const date = new Date(json['value'] as string);
+                const date: Date = new Date(json['value'] as string);
                 if (isNaN(date.getTime())) {
-                    throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
+                    throw new BadDataException(
+                        'Invalid JSON: ' + JSON.stringify(json)
+                    );
                 }
                 return new GreaterThan(date);
-            } else {
-                return new GreaterThan(Number(json['value']));
             }
+            return new GreaterThan(Number(json['value']));
         }
         throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
     }

@@ -4,7 +4,7 @@ import IsPermissionsIf from '../../../Types/Database/IsPermissionsIf';
 
 describe('IsPermissionsIf', () => {
     it('should not set isPermissionIf', () => {
-        class Test extends BaseModel{};
+        class Test extends BaseModel {}
 
         expect(new Test().isPermissionIf).toEqual({});
     });
@@ -12,15 +12,15 @@ describe('IsPermissionsIf', () => {
     it('should set isPermissionIf', () => {
         @IsPermissionsIf(Permission.Public, 'projectId', null)
         @IsPermissionsIf(Permission.ProjectUser, 'userId', true)
-        class Test extends BaseModel{};
+        class Test extends BaseModel {}
 
         expect(new Test().isPermissionIf).toEqual({
             [Permission.Public]: {
-                'projectId': null,
+                projectId: null,
             },
             [Permission.ProjectUser]: {
-                'userId': true,
-            }
+                userId: true,
+            },
         });
     });
 });

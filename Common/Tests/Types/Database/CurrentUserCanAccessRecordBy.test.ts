@@ -3,14 +3,14 @@ import CurrentUserCanAccessRecordBy from '../../../Types/Database/CurrentUserCan
 
 describe('CurrentUserCanAccessRecordBy', () => {
     it('should not set currentUserCanAccessColumnBy', () => {
-        class Test extends BaseModel{};
+        class Test extends BaseModel {}
 
         expect(new Test().currentUserCanAccessColumnBy).toBe(undefined);
     });
 
     it('should set currentUserCanAccessColumnBy', () => {
         @CurrentUserCanAccessRecordBy('userId')
-        class Test extends BaseModel{};
+        class Test extends BaseModel {}
 
         expect(new Test().currentUserCanAccessColumnBy).toBe('userId');
     });

@@ -2,7 +2,7 @@ import { getMaxLengthFromTableColumnType } from '../../../Types/Database/ColumnL
 import TableColumnType from '../../../Types/Database/TableColumnType';
 
 describe('enum ColumnLength', () => {
-    test.each([
+    const testCases: [TableColumnType, number | undefined][] = [
         [TableColumnType.Version, 30],
         [TableColumnType.Slug, 100],
         [TableColumnType.Email, 100],
@@ -19,9 +19,12 @@ describe('enum ColumnLength', () => {
         [TableColumnType.OTP, 8],
 
         [TableColumnType.Date, undefined],
-        ['Random', undefined],
+    ];
 
-    ])('length for column %s is %d ', (columnType, expected) => {
-        expect(getMaxLengthFromTableColumnType(columnType)).toBe(expected);
-    });
+    test.each(testCases)(
+        'length for column %s is %d ',
+        (columnType: TableColumnType, expected: number | undefined) => {
+            expect(getMaxLengthFromTableColumnType(columnType)).toBe(expected);
+        }
+    );
 });

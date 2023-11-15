@@ -4,15 +4,15 @@ import CrudApiEndpoint from '../../../Types/Database/CrudApiEndpoint';
 
 describe('CrudApiEndpoint', () => {
     it('should not set crudApiPath', () => {
-        class Test extends BaseModel{};
+        class Test extends BaseModel {}
 
         expect(new Test().crudApiPath).toBe(undefined);
     });
 
     it('should set crudApiPath', () => {
-        const testRoute = new Route('/test');
+        const testRoute: Route = new Route('/test');
         @CrudApiEndpoint(testRoute)
-        class Test extends BaseModel{};
+        class Test extends BaseModel {}
 
         expect(new Test().crudApiPath).toBe(testRoute);
     });

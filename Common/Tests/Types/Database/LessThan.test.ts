@@ -5,7 +5,7 @@ import { JSONObject } from '../../../Types/JSON';
 describe('LessThan', () => {
     describe('toJSON', () => {
         it('number - should generate the correct JSON representation', () => {
-            const lessThan = new LessThan(2023);
+            const lessThan: LessThan = new LessThan(2023);
             const expectedJSON: JSONObject = {
                 _type: 'LessThan',
                 value: 2023,
@@ -14,8 +14,8 @@ describe('LessThan', () => {
         });
 
         it('date - should generate the correct JSON representation', () => {
-            const now = new Date();
-            const lessThan = new LessThan(now);
+            const now: Date = new Date();
+            const lessThan: LessThan = new LessThan(now);
             const expectedJSON: JSONObject = {
                 _type: 'LessThan',
                 value: now.toJSON(),
@@ -35,7 +35,7 @@ describe('LessThan', () => {
         });
 
         it('date - should create an LessThan object from valid JSON input', () => {
-            const now = new Date();
+            const now: Date = new Date();
             const jsonInput: JSONObject = {
                 _type: 'LessThan',
                 value: now.toJSON(),
@@ -75,4 +75,3 @@ describe('LessThan', () => {
         });
     });
 });
-
