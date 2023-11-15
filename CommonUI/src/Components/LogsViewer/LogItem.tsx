@@ -25,7 +25,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     if (isCollapsed) {
         return (
-            <div className="text-slate-200 flex cursor-pointer hover:border-slate-700 px-2 border-transparent border-2" onClick={() => {
+            <div className="text-slate-200 flex cursor-pointer hover:border-slate-700 px-2 border-transparent border-2 rounded-md" onClick={() => {
                 setIsCollapsed(false);
             }}>
                 {props.log.time && (
@@ -49,7 +49,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div className="text-slate-200 cursor-pointer hover:border-slate-700 px-2 border-transparent border-2" onClick={() => {
+        <div className="text-slate-200 cursor-pointer hover:border-slate-700 px-2 border-transparent border-2 rounded-md" onClick={() => {
             setIsCollapsed(true);
         }}>
             {props.log.time && (

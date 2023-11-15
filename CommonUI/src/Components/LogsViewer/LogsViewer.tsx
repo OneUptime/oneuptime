@@ -9,8 +9,63 @@ export interface ComponentProps {
 const LogsViewer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const [screenHeight, setScreenHeight] = React.useState<number>(window.innerHeight);
+    const [ autoScroll, setAutoScroll] = React.useState<boolean>(true);
+    const logsViewerRef = React.useRef<HTMLDivElement>(null);
+
+    // Update the screen height when the window is resized
+
+    React.useEffect(() => {
+        const handleResize = () => {
+            setScreenHeight(window.innerHeight);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
+    // if scrolled up set autoscrol to false, if scrolled to the bottom set it to true
+
+    React.useEffect(() => {
+        const logsViewer = logsViewerRef.current;
+
+        if (!logsViewer) {
+            return;
+        }
+
+        const scrollPosition = logsViewer.scrollTop + logsViewer.offsetHeight;
+        const scrollHeight = logsViewer.scrollHeight;
+
+        if (scrollPosition < scrollHeight) {
+            setAutoScroll(false);
+        } else {
+            setAutoScroll(true);
+        }
+    }, [props.logs]);
+
+    // Keep scroll to the bottom of the log
+
+    React.useEffect(() => {
+
+        if(!autoScroll) {
+            return;
+        }
+
+        const logsViewer = logsViewerRef.current;
+
+        if (logsViewer) {
+            logsViewer.scrollTop = logsViewer.scrollHeight;
+        }
+    }, [props.logs]);
+
     return (
-        <div className="shadow rounded-xl bg-slate-800 p-5">
+        <div ref={logsViewerRef} className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto" style={{
+            height: screenHeight - 330,
+        }}>
             {props.logs.map((log: Log, i: number) => {
                 return <LogItem key={i} log={log} />;
             })}
