@@ -33,7 +33,7 @@ describe('EnableDocumentation', () => {
         'enableDocumentation with props = %o',
         (
             props: EnableDocumentationProps,
-            expected: { [key: string]: boolean }
+            expected: EnableDocumentationProps
         ) => {
             @EnableDocumentation(props)
             class Test extends BaseModel {}
