@@ -12,7 +12,7 @@ import {
 
 import Errors from '../../Utils/Errors';
 
-import { mockStripe, Stripe } from '../TestingUtils/__mocks__/MockStripe.mock';
+import { mockStripe, Stripe } from '../TestingUtils/__mocks__/Stripe.mock';
 import {
     mockIsBillingEnabled,
     getStripeCustomer,
