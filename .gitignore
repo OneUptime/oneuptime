@@ -13,7 +13,7 @@ node_modules
 
 .idea
 # testing
-/coverage
+**/coverage
 
 # production
 /build
