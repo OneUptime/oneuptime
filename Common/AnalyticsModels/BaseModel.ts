@@ -24,7 +24,7 @@ export default class AnalyticsBaseModel extends CommonModel {
         accessControl?: TableAccessControl | undefined;
         primaryKeys: Array<string>; // this should be the subset of tableColumns
         enableWorkflowOn?: EnableWorkflowOn | undefined;
-        enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined
+        enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     }) {
         super({
             tableColumns: data.tableColumns,
@@ -147,15 +147,13 @@ export default class AnalyticsBaseModel extends CommonModel {
         this._tableEngine = v;
     }
 
-    
-    private _enableRealtimeEventsOn : EnableRealtimeEventsOn | undefined;
-    public get enableRealtimeEventsOn() : EnableRealtimeEventsOn| undefined {
+    private _enableRealtimeEventsOn: EnableRealtimeEventsOn | undefined;
+    public get enableRealtimeEventsOn(): EnableRealtimeEventsOn | undefined {
         return this._enableRealtimeEventsOn;
     }
-    public set enableRealtimeEventsOn(v : EnableRealtimeEventsOn| undefined) {
+    public set enableRealtimeEventsOn(v: EnableRealtimeEventsOn | undefined) {
         this._enableRealtimeEventsOn = v;
     }
-    
 
     private _primaryKeys: Array<string> = [];
     public get primaryKeys(): Array<string> {

@@ -15,7 +15,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
         setIsCollapsed(true);
     }, []);
 
-    let bodyColor = 'text-slate-200';
+    let bodyColor: string = 'text-slate-200';
 
     if (props.log.severityText === 'Warning') {
         bodyColor = 'text-amber-400';
@@ -33,7 +33,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
             >
                 {props.log.time && (
                     <div className="text-slate-500 courier-prime">
-                        {OneUptimeDate.getDateAsLocalFormattedString(props.log.time)}{' '}
+                        {OneUptimeDate.getDateAsLocalFormattedString(
+                            props.log.time
+                        )}{' '}
                         &nbsp;{' '}
                     </div>
                 )}

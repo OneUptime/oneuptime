@@ -1,8 +1,8 @@
 import SocketIO from 'socket.io';
 import http from 'http';
 import Express, { ExpressApplication } from '../Utils/Express';
-import { createAdapter } from "@socket.io/redis-adapter";
-import Redis from './Redis';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis, { ClientType } from './Redis';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -25,13 +25,14 @@ const io: SocketIO.Server = new SocketIO.Server(server, {
     },
 });
 
-
-if(!Redis.getClient()){
-    throw new DatabaseNotConnectedException('Redis is not connected. Please connect to Redis before connecting to SocketIO.');
+if (!Redis.getClient()) {
+    throw new DatabaseNotConnectedException(
+        'Redis is not connected. Please connect to Redis before connecting to SocketIO.'
+    );
 }
 
-const pubClient = Redis.getClient()!.duplicate();
-const subClient = Redis.getClient()!.duplicate();
+const pubClient: ClientType = Redis.getClient()!.duplicate();
+const subClient: ClientType = Redis.getClient()!.duplicate();
 
 io.adapter(createAdapter(pubClient, subClient));
 

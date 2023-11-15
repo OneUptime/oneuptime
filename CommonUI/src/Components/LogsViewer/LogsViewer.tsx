@@ -1,5 +1,5 @@
 import Log from 'Model/AnalyticsModels/Log';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import LogItem from './LogItem';
 
 export interface ComponentProps {
@@ -13,12 +13,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         window.innerHeight
     );
     const [autoScroll, setAutoScroll] = React.useState<boolean>(true);
-    const logsViewerRef = React.useRef<HTMLDivElement>(null);
+    const logsViewerRef: Ref<HTMLDivElement> =
+        React.useRef<HTMLDivElement>(null);
 
     // Update the screen height when the window is resized
 
     React.useEffect(() => {
-        const handleResize = () => {
+        const handleResize: any = (): void => {
             setScreenHeight(window.innerHeight);
         };
 
@@ -32,14 +33,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     // if scrolled up set autoscrol to false, if scrolled to the bottom set it to true
 
     React.useEffect(() => {
-        const logsViewer = logsViewerRef.current;
+        const logsViewer: HTMLDivElement | null = logsViewerRef.current;
 
         if (!logsViewer) {
             return;
         }
 
-        const scrollPosition = logsViewer.scrollTop + logsViewer.offsetHeight;
-        const scrollHeight = logsViewer.scrollHeight;
+        const scrollPosition: number = logsViewer.scrollTop + logsViewer.offsetHeight;
+        const scrollHeight: number = logsViewer.scrollHeight;
 
         if (scrollPosition < scrollHeight) {
             setAutoScroll(false);
@@ -55,7 +56,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             return;
         }
 
-        const logsViewer = logsViewerRef.current;
+        const logsViewer: HTMLDivElement | null = logsViewerRef.current;
 
         if (logsViewer) {
             logsViewer.scrollTop = logsViewer.scrollHeight;

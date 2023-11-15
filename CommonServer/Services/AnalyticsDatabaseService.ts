@@ -686,16 +686,25 @@ export default class AnalyticsDatabaseService<
                 }
             }
 
-            // emit realtime events to the client. 
-            if(this.getModel().enableRealtimeEventsOn?.create && createBy.props.tenantId){
-                for(const item of items){
-                    await Realtime.emitModelEvent({
-                        model: item, 
-                        tenantId: createBy.props.tenantId,
-                        eventType: ModelEventType.Create,
-                        modelType: this.modelType,
-                    })
+            // emit realtime events to the client.
+            if (
+                this.getModel().enableRealtimeEventsOn?.create &&
+                createBy.props.tenantId
+            ) {
+                const promises: Array<Promise<void>> = [];
+
+                for (const item of items) {
+                    promises.push(
+                        Realtime.emitModelEvent({
+                            model: item,
+                            tenantId: createBy.props.tenantId,
+                            eventType: ModelEventType.Create,
+                            modelType: this.modelType,
+                        })
+                    );
                 }
+
+                await Promise.allSettled(promises);
             }
 
             return createBy.items;

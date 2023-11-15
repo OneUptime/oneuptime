@@ -14,7 +14,7 @@ import {
     StatusPageRoute,
     WorkflowRoute,
     homeRoute,
-    RealtimeRoute
+    RealtimeRoute,
 } from 'Common/ServiceRoute';
 import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL';
@@ -49,7 +49,7 @@ export const NOTIFICATION_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-// realtime 
+// realtime
 export const REALTIME_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(HOST);
