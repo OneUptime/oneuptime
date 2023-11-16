@@ -20,7 +20,7 @@ export default abstract class Realtime {
         return this.socketServer !== null;
     }
 
-    public static init(): void {
+    public static init(): SocketServer | null {
         if (!this.socketServer) {
             this.socketServer = IO.getSocketServer();
             logger.info('Realtime socket server initialized');
