@@ -43,7 +43,7 @@
         "nodemailer": "^6.7.3",
         "nodemailer-express-handlebars": "^5.0.0",
         "pg": "^8.7.3",
-        "socket.io": "^4.4.1",
+        "socket.io": "^4.7.2",
         "stripe": "^10.17.0",
         "twilio": "^4.13.0",
         "typeorm": "^0.3.10",

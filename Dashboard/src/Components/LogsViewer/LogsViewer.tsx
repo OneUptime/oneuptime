@@ -10,6 +10,9 @@ import API from 'CommonUI/src/Utils/API/API';
 import ObjectID from 'Common/Types/ObjectID';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import Realtime from 'CommonUI/src/Utils/Realtime';
+import { ModelEventType } from 'Common/Utils/Realtime';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 
 export interface ComponentProps {
     id: string;
@@ -22,6 +25,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     const [logs, setLogs] = React.useState<Array<Log>>([]);
     const [error, setError] = React.useState<string>('');
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
+
+    
 
     const fetchItems: Function = async () => {
         setError('');
@@ -66,6 +71,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         fetchItems().catch((err: unknown) => {
             setError(API.getFriendlyMessage(err));
         });
+
+        const disconnectFunction = Realtime.listenToAnalyticsModelEvent({
+            modelType: Log,
+            query: {},
+            eventType: ModelEventType.Create,
+            tenantId: ProjectUtil.getCurrentProjectId()!,
+            select: {
+                body: true,
+                time: true,
+                projectId: true,
+                serviceId: true,
+                spanId: true,
+                traceId: true,
+                severityText: true,
+            }
+            
+        }, (model: Log)=>{
+            setLogs((logs) => [...logs, model]);
+        })
+
+        return () => {
+            disconnectFunction();
+        }
+
     }, []);
 
     if (error) {

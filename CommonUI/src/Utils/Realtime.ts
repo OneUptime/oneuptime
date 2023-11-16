@@ -2,7 +2,7 @@ import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import BaseModel from 'Common/Models/BaseModel';
 import AnalyticsQuery from './AnalyticsModelAPI/Query';
 import Query from './ModelAPI/Query';
-import {
+import RealtimeUtil, {
     EventName,
     ListenToModelEventJSON,
     ModelEventType,
@@ -15,6 +15,8 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
 import AnalyticsSelect from './AnalyticsModelAPI/Select';
 import Select from './ModelAPI/Select';
+import { JSONObject } from 'Common/Types/JSON';
+import { RealtimeRoute } from 'Common/ServiceRoute';
 
 export interface ListenToAnalyticsModelEvent<Model extends AnalyticsBaseModel> {
     modelType: { new (): Model };
@@ -32,22 +34,30 @@ export interface ListenToModelEvent<Model extends BaseModel> {
     select: Select<Model>;
 }
 
-export default class Reatime {
-    private socket!: Socket;
+export default abstract class Reatime {
+    private static socket: Socket;
 
-    public constructor() {
+    public static init() {
+
+        const url: string = REALTIME_URL.toString();
+
         const socket: Socket = SocketIO(
-            URL.fromString(REALTIME_URL.toString())
-                .addRoute('/socket')
-                .toString()
+            URL.fromString(url)
+                .toString(), {
+                    path: RealtimeRoute.toString()
+                }
         );
         this.socket = socket;
     }
 
-    public listenToModelEvent<Model extends BaseModel>(
-        listenToModelEvent: ListenToModelEvent<Model>
-    ): void {
+    public static listenToModelEvent<Model extends BaseModel>(
+        listenToModelEvent: ListenToModelEvent<Model>, onEvent: (model: Model) => void
+    ): () => void {
         // conver this to json and send it to the server.
+
+        if(!this.socket){
+            this.init();
+        }
 
         const listenToModelEventJSON: ListenToModelEventJSON = {
             eventType: listenToModelEvent.eventType,
@@ -59,11 +69,28 @@ export default class Reatime {
         };
 
         this.socket.emit(EventName.ListenToModalEvent, listenToModelEventJSON);
+
+        this.socket.on(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType), (model: JSONObject) => {
+            onEvent(BaseModel.fromJSON(model, listenToModelEvent.modelType) as Model);
+        });
+
+
+        // Stop listening to the event.
+        const stopListening = (): void => {
+            this.socket.off(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType));
+        }
+
+        return stopListening;
     }
 
-    public listenToAnalyticsModelEvent<Model extends AnalyticsBaseModel>(
-        listenToModelEvent: ListenToAnalyticsModelEvent<Model>
-    ): void {
+    public static listenToAnalyticsModelEvent<Model extends AnalyticsBaseModel>(
+        listenToModelEvent: ListenToAnalyticsModelEvent<Model>, onEvent: (model: Model) => void
+    ): () => void {
+
+        if(!this.socket){
+            this.init();
+        }
+        
         const listenToModelEventJSON: ListenToModelEventJSON = {
             eventType: listenToModelEvent.eventType,
             modelType: DatabaseType.AnalyticsDatabase,
@@ -74,5 +101,18 @@ export default class Reatime {
         };
 
         this.socket.emit(EventName.ListenToModalEvent, listenToModelEventJSON);
+
+        this.socket.on(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType), (model: JSONObject) => {
+            onEvent(AnalyticsBaseModel.fromJSON(model, listenToModelEvent.modelType) as Model);
+        });
+
+
+        // Stop listening to the event.
+        const stopListening = (): void => {
+            this.socket.off(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType));
+        }
+
+        return stopListening;
+        
     }
 }

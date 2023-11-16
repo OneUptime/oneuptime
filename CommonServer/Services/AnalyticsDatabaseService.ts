@@ -53,14 +53,14 @@ import { ModelEventType } from 'Common/Utils/Realtime';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
     public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -272,12 +272,10 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        let statement: string = `SELECT count() FROM ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ${
-            Object.keys(countBy.query).length > 0 ? 'WHERE' : ''
-        } ${this.statementGenerator.toWhereStatement(countBy.query)}
+        let statement: string = `SELECT count() FROM ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+        ${Object.keys(countBy.query).length > 0 ? 'WHERE' : ''
+            } ${this.statementGenerator.toWhereStatement(countBy.query)}
         `;
 
         if (countBy.limit) {
@@ -308,12 +306,10 @@ export default class AnalyticsDatabaseService<
         const select: { statement: string; columns: Array<string> } =
             this.statementGenerator.toSelectStatement(findBy.select!);
 
-        const statement: string = `SELECT ${select.statement} FROM ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ${
-            Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
-        } ${this.statementGenerator.toWhereStatement(findBy.query)}
+        const statement: string = `SELECT ${select.statement} FROM ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+        ${Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
+            } ${this.statementGenerator.toWhereStatement(findBy.query)}
         ORDER BY ${this.statementGenerator.toSortStatemennt(findBy.sort!)}
         LIMIT ${findBy.limit.toString()}
         OFFSET ${findBy.skip.toString()}
@@ -330,11 +326,9 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        let statement: string = `ALTER TABLE ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-            DELETE ${
-                Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
+        let statement: string = `ALTER TABLE ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
+            DELETE ${Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
             } ${this.statementGenerator.toWhereStatement(deleteBy.query)}
         `;
 
@@ -604,16 +598,16 @@ export default class AnalyticsDatabaseService<
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                      createBy: {
-                          data: data,
-                          props: createBy.props,
-                      },
-                      carryForward: [],
-                  }
+                    createBy: {
+                        data: data,
+                        props: createBy.props,
+                    },
+                    carryForward: [],
+                }
                 : await this._onBeforeCreate({
-                      data: data,
-                      props: createBy.props,
-                  });
+                    data: data,
+                    props: createBy.props,
+                });
 
             data = onCreate.createBy.data;
 
@@ -686,25 +680,33 @@ export default class AnalyticsDatabaseService<
                 }
             }
 
+
+
             // emit realtime events to the client.
             if (
                 this.getModel().enableRealtimeEventsOn?.create &&
                 createBy.props.tenantId
             ) {
-                const promises: Array<Promise<void>> = [];
 
-                for (const item of items) {
-                    promises.push(
-                        Realtime.emitModelEvent({
-                            model: item,
-                            tenantId: createBy.props.tenantId,
-                            eventType: ModelEventType.Create,
-                            modelType: this.modelType,
-                        })
-                    );
+                if (Realtime.isInitialized()) {
+                    const promises: Array<Promise<void>> = [];
+
+                    for (const item of items) {
+                        promises.push(
+                            Realtime.emitModelEvent({
+                                model: item,
+                                tenantId: createBy.props.tenantId,
+                                eventType: ModelEventType.Create,
+                                modelType: this.modelType,
+                            })
+                        );
+                    }
+
+                    await Promise.allSettled(promises);
+                } else {
+                    logger.warn(`Realtime is not initialized. Skipping emitModelEvent for ${this.getModel().tableName}`)
                 }
 
-                await Promise.allSettled(promises);
             }
 
             return createBy.items;

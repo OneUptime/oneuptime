@@ -118,6 +118,11 @@ async Task<String> SendGreeting(ILogger<Program> logger)
 
     // Log a message
     logger.LogInformation("Sending greeting");
+    logger.LogError("Error sending greeting");
+    logger.LogWarning("Warning sending greeting");
+
+    // very big log message 
+    logger.LogInformation("LONG LOG:  sdsfdg dfgdfgdfg dfgdfgfdgdfg dfgdfgdfg fdgfdgdf fdjgk gkdfjgf dfkgjdfkgjdfkjgkdfjgk  gdkfjgkdfjgkdfj gjdfkjgkdfjgkdfjgk fdjgkdfjgkdfjgkjdfkgj fdkgjfdkgjdfkgjkdfg dfkgjdfkjgkfdjgkfjkgdfjkg fdkgjkfdgjkdfjgkjdkg fdkgjdfkjgk");
 
     // Increment the custom counter
     countGreetings.Add(1);

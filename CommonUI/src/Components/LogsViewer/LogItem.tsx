@@ -32,7 +32,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 }}
             >
                 {props.log.time && (
-                    <div className="text-slate-500 courier-prime">
+                    <div className="text-slate-500 courier-prime" style={{
+                        width: "230px !important"
+                    }}>
                         {OneUptimeDate.getDateAsLocalFormattedString(
                             props.log.time
                         )}{' '}
@@ -51,10 +53,10 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 )}
                 {props.log.severityText === 'Error' && (
                     <div className="text-rose-400 courier-prime">
-                        [ERROR] &nbsp;
+                        [ERRR] &nbsp;
                     </div>
                 )}
-                <div className={`${bodyColor} courier-prime`}>
+                <div className={`${bodyColor} courier-prime truncate`}>
                     {props.log.body?.toString()}
                 </div>
             </div>
@@ -100,7 +102,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                         SEVERITY:
                     </div>
                     <div className="text-rose-400 courier-prime">
-                        [ERROR] &nbsp;
+                        [ERRR] &nbsp;
                     </div>
                 </div>
             )}

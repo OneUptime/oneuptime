@@ -405,6 +405,7 @@ import Log from 'Model/AnalyticsModels/Log';
 import LogService, {
     LogService as LogServiceType,
 } from 'CommonServer/Services/LogService';
+import Realtime from 'CommonServer/Utils/Realtime';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -1082,6 +1083,9 @@ const init: () => Promise<void> = async (): Promise<void> => {
         await ClickhouseAppInstance.connect(
             ClickhouseAppInstance.getDatasourceOptions()
         );
+
+        Realtime.init();
+
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
