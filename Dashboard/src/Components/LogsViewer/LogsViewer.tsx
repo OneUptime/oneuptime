@@ -26,8 +26,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     const [error, setError] = React.useState<string>('');
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
-    
-
     const fetchItems: Function = async () => {
         setError('');
         setIsLoading(true);
@@ -72,29 +70,37 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             setError(API.getFriendlyMessage(err));
         });
 
-        const disconnectFunction = Realtime.listenToAnalyticsModelEvent({
-            modelType: Log,
-            query: {},
-            eventType: ModelEventType.Create,
-            tenantId: ProjectUtil.getCurrentProjectId()!,
-            select: {
-                body: true,
-                time: true,
-                projectId: true,
-                serviceId: true,
-                spanId: true,
-                traceId: true,
-                severityText: true,
-            }
-            
-        }, (model: Log)=>{
-            setLogs((logs) => [...logs, model]);
-        })
+        const disconnectFunction: () => void =
+            Realtime.listenToAnalyticsModelEvent(
+                {
+                    modelType: Log,
+                    query: {},
+                    eventType: ModelEventType.Create,
+                    tenantId: ProjectUtil.getCurrentProjectId()!,
+                    select: {
+                        body: true,
+                        time: true,
+                        projectId: true,
+                        serviceId: true,
+                        spanId: true,
+                        traceId: true,
+                        severityText: true,
+                    },
+                },
+                (model: Log) => {
+                    setLogs((logs: Array<Log>) => {
+                        return [...logs, model];
+                    });
+                }
+            );
+
+        setInterval(() => {
+            Realtime.emit('HERE', { message: "I'm HERE" });
+        }, 1000);
 
         return () => {
             disconnectFunction();
-        }
-
+        };
     }, []);
 
     if (error) {

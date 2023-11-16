@@ -1085,7 +1085,6 @@ const init: () => Promise<void> = async (): Promise<void> => {
         );
 
         Realtime.init();
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

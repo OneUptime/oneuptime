@@ -39,7 +39,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             return;
         }
 
-        const scrollPosition: number = logsViewer.scrollTop + logsViewer.offsetHeight;
+        const scrollPosition: number =
+            logsViewer.scrollTop + logsViewer.offsetHeight;
         const scrollHeight: number = logsViewer.scrollHeight;
 
         if (scrollPosition < scrollHeight) {

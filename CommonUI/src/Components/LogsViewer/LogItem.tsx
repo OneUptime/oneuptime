@@ -32,9 +32,12 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 }}
             >
                 {props.log.time && (
-                    <div className="text-slate-500 courier-prime" style={{
-                        width: "230px !important"
-                    }}>
+                    <div
+                        className="text-slate-500 courier-prime"
+                        style={{
+                            width: '230px !important',
+                        }}
+                    >
                         {OneUptimeDate.getDateAsLocalFormattedString(
                             props.log.time
                         )}{' '}

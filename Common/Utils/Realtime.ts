@@ -28,7 +28,7 @@ export interface EnableRealtimeEventsOn {
     read?: boolean | undefined;
 }
 
-export default class RealtimeUtil { 
+export default class RealtimeUtil {
     public static getRoomId(
         tenantId: string | ObjectID,
         modelName: string,

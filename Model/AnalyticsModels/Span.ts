@@ -122,6 +122,7 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'ID of project',
                     required: true,
                     type: TableColumnType.ObjectID,
+                    isTenantId: true,
                 }),
 
                 new AnalyticsTableColumn({

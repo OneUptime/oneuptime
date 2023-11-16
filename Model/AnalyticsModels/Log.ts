@@ -24,6 +24,7 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'ID of project',
                     required: true,
                     type: TableColumnType.ObjectID,
+                    isTenantId: true,
                 }),
 
                 new AnalyticsTableColumn({

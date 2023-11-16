@@ -5,26 +5,18 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import Redis, { ClientType } from './Redis';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 import { RealtimeRoute } from 'Common/ServiceRoute';
-import logger from '../Utils/Logger';
-// import { RealtimeRoute } from 'Common/ServiceRoute';
 
 export type Socket = SocketIO.Socket;
 export type SocketServer = SocketIO.Server;
 
 export default abstract class IO {
-
     private static socketServer: SocketIO.Server | null = null;
 
-    public static init() {
+    public static init(): void {
         const server: http.Server = Express.getHttpServer();
 
         this.socketServer = new SocketIO.Server(server, {
-            path: RealtimeRoute.toString()
-        });
-
-
-        this.socketServer.on("connection", (_socket) => {
-            logger.info("Client socket connected!");
+            path: RealtimeRoute.toString(),
         });
 
         if (!Redis.getClient()) {
@@ -37,11 +29,9 @@ export default abstract class IO {
         const subClient: ClientType = Redis.getClient()!.duplicate();
 
         this.socketServer.adapter(createAdapter(pubClient, subClient));
-
     }
 
     public static getSocketServer(): SocketIO.Server | null {
-
         if (!this.socketServer) {
             this.init();
         }
@@ -49,7 +39,3 @@ export default abstract class IO {
         return this.socketServer;
     }
 }
-
-
-
-

@@ -9,7 +9,7 @@ import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 import Route from '../Types/API/Route';
-import {EnableRealtimeEventsOn} from '../Utils/Realtime';
+import { EnableRealtimeEventsOn } from '../Utils/Realtime';
 
 export default class AnalyticsBaseModel extends CommonModel {
     public constructor(data: {
@@ -219,6 +219,16 @@ export default class AnalyticsBaseModel extends CommonModel {
         }
 
         return column;
+    }
+
+    public getTenantColumnValue(): ObjectID | null {
+        const column: AnalyticsTableColumn | null = this.getTenantColumn();
+
+        if (!column) {
+            return null;
+        }
+
+        return this.getColumnValue(column.key) as ObjectID | null;
     }
 
     public getRequiredColumns(): Array<AnalyticsTableColumn> {

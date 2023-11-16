@@ -9,7 +9,7 @@ import RealtimeUtil, {
 } from 'Common/Utils/Realtime';
 import ObjectID from 'Common/Types/ObjectID';
 import SocketIO, { Socket } from 'socket.io-client';
-import { REALTIME_URL } from '../Config';
+import { HOST, HTTP_PROTOCOL } from '../Config';
 import URL from 'Common/Types/API/URL';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
@@ -37,25 +37,24 @@ export interface ListenToModelEvent<Model extends BaseModel> {
 export default abstract class Reatime {
     private static socket: Socket;
 
-    public static init() {
-
-        const url: string = REALTIME_URL.toString();
-
+    public static init(): void {
         const socket: Socket = SocketIO(
-            URL.fromString(url)
-                .toString(), {
-                    path: RealtimeRoute.toString()
-                }
+            new URL(HTTP_PROTOCOL, HOST).toString(),
+            {
+                path: RealtimeRoute.toString(),
+            }
         );
+
         this.socket = socket;
     }
 
     public static listenToModelEvent<Model extends BaseModel>(
-        listenToModelEvent: ListenToModelEvent<Model>, onEvent: (model: Model) => void
+        listenToModelEvent: ListenToModelEvent<Model>,
+        onEvent: (model: Model) => void
     ): () => void {
         // conver this to json and send it to the server.
 
-        if(!this.socket){
+        if (!this.socket) {
             this.init();
         }
 
@@ -68,29 +67,36 @@ export default abstract class Reatime {
             select: JSONFunctions.serialize(listenToModelEvent.select),
         };
 
-        this.socket.emit(EventName.ListenToModalEvent, listenToModelEventJSON);
+        this.emit(EventName.ListenToModalEvent, listenToModelEventJSON as any);
 
-        this.socket.on(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType), (model: JSONObject) => {
-            onEvent(BaseModel.fromJSON(model, listenToModelEvent.modelType) as Model);
+        const roomId: string = RealtimeUtil.getRoomId(
+            listenToModelEvent.tenantId,
+            listenToModelEvent.modelType.name,
+            listenToModelEvent.eventType
+        );
+
+        this.socket.on(roomId, (model: JSONObject) => {
+            onEvent(
+                BaseModel.fromJSON(model, listenToModelEvent.modelType) as Model
+            );
         });
 
-
         // Stop listening to the event.
-        const stopListening = (): void => {
-            this.socket.off(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType));
-        }
+        const stopListening: () => void = (): void => {
+            this.socket.off(roomId);
+        };
 
         return stopListening;
     }
 
     public static listenToAnalyticsModelEvent<Model extends AnalyticsBaseModel>(
-        listenToModelEvent: ListenToAnalyticsModelEvent<Model>, onEvent: (model: Model) => void
+        listenToModelEvent: ListenToAnalyticsModelEvent<Model>,
+        onEvent: (model: Model) => void
     ): () => void {
-
-        if(!this.socket){
+        if (!this.socket) {
             this.init();
         }
-        
+
         const listenToModelEventJSON: ListenToModelEventJSON = {
             eventType: listenToModelEvent.eventType,
             modelType: DatabaseType.AnalyticsDatabase,
@@ -100,19 +106,36 @@ export default abstract class Reatime {
             select: JSONFunctions.serialize(listenToModelEvent.select),
         };
 
-        this.socket.emit(EventName.ListenToModalEvent, listenToModelEventJSON);
+        this.emit(EventName.ListenToModalEvent, listenToModelEventJSON as any);
 
-        this.socket.on(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType), (model: JSONObject) => {
-            onEvent(AnalyticsBaseModel.fromJSON(model, listenToModelEvent.modelType) as Model);
+        const roomId: string = RealtimeUtil.getRoomId(
+            listenToModelEvent.tenantId,
+            listenToModelEvent.modelType.name,
+            listenToModelEvent.eventType
+        );
+
+        this.socket.on(roomId, (model: JSONObject) => {
+            onEvent(
+                AnalyticsBaseModel.fromJSON(
+                    model,
+                    listenToModelEvent.modelType
+                ) as Model
+            );
         });
 
-
         // Stop listening to the event.
-        const stopListening = (): void => {
-            this.socket.off(RealtimeUtil.getRoomId(listenToModelEvent.tenantId, listenToModelEvent.modelType.name, listenToModelEvent.eventType));
-        }
+        const stopListening: () => void = (): void => {
+            this.socket.off(roomId);
+        };
 
         return stopListening;
-        
+    }
+
+    public static emit(eventName: string, data: JSONObject): void {
+        if (!this.socket) {
+            this.init();
+        }
+
+        this.socket.emit(eventName, data);
     }
 }
