@@ -24,22 +24,26 @@ import IncidentTemplate from './IncidentTemplate';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateIncidentTemplateOwnerUser,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
+        Permission.ProjectMember,
         Permission.CanReadIncidentTemplateOwnerUser,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteIncidentTemplateOwnerUser,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanEditIncidentTemplateOwnerUser,
     ],
 })
@@ -65,11 +69,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -101,11 +107,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -131,11 +139,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -167,11 +177,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -196,11 +208,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -232,11 +246,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -262,11 +278,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -298,11 +316,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -326,6 +346,7 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
@@ -359,6 +380,7 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
+            Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
         update: [],
@@ -380,11 +402,13 @@ export default class IncidentTemplateOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentTemplateOwnerUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.ProjectMember,
             Permission.CanReadIncidentTemplateOwnerUser,
         ],
