@@ -42,6 +42,13 @@ enum Permission {
     CanEditProjectApiKey = 'CanEditProjectApiKey',
     CanEditProjectApiKeyPermissions = 'CanEditProjectApiKeyPermissions',
 
+    // Logs
+    
+    CanCreateTelemetryServiceLog = 'CanCreateTelemetryServiceLog',
+    CanDeleteTelemetryServiceLog = 'CanDeleteTelemetryServiceLog',
+    CanEditTelemetryServiceLog = 'CanEditTelemetryServiceLog',
+    CanReadTelemetryServiceLog = 'CanReadTelemetryServiceLog',
+
     // Billing Permissions (Owner Permission)
     CanManageProjectBilling = 'CanManageProjectBilling',
 
@@ -2112,6 +2119,43 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+
+            {
+                permission: Permission.CanCreateTelemetryServiceLog,
+                title: 'Can Create Telemetry Service Log',
+                description:
+                    'This permission can create Telemetry Service Log this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteTelemetryServiceLog,
+                title: 'Can Delete Telemetry Service Log',
+                description:
+                    'This permission can delete Telemetry Service Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditTelemetryServiceLog,
+                title: 'Can Edit Telemetry Service Log',
+                description:
+                    'This permission can edit Telemetry Service Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadTelemetryServiceLog,
+                title: 'Can Read Telemetry Service Log',
+                description:
+                    'This permission can read Telemetry Service Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
 
             {
                 permission: Permission.CanCreateScheduledMaintenanceOwnerTeam,

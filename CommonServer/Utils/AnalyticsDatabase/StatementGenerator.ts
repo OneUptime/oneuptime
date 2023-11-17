@@ -288,7 +288,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 throw new BadDataException(`Unknown column: ${key}`);
             }
 
-            whereStatement += `${key} = ${this.sanitizeValue(
+            whereStatement += ` ${key} = ${this.sanitizeValue(
                 value,
                 tableColumn
             )} AND`;

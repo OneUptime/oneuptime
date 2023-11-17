@@ -316,7 +316,7 @@ export default class ModelAPI {
     ): Dictionary<string> {
         let headers: Dictionary<string> = {};
 
-        if (!requestOptions) {
+        if (!requestOptions || Object.keys(requestOptions).length === 0) {
             const project: Project | null = ProjectUtil.getCurrentProject();
 
             if (project && project.id) {
