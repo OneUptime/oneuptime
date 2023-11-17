@@ -15,7 +15,9 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
     return (
         <div className="flex" style={props.style}>
             <div
-                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full mr-2 ${props.shouldAnimate ? 'animate-pulse' : ''}`}
+                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full mr-2 ${
+                    props.shouldAnimate ? 'animate-pulse' : ''
+                }`}
                 style={{
                     backgroundColor: props.color
                         ? props.color.toString()

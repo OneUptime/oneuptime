@@ -214,7 +214,11 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
                         if (item && item['disableActiveMonitoring']) {
                             return (
-                                <Statusbubble shouldAnimate={false} color={Grey} text={'Disabled'} />
+                                <Statusbubble
+                                    shouldAnimate={false}
+                                    color={Grey}
+                                    text={'Disabled'}
+                                />
                             );
                         }
 
