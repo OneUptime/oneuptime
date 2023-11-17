@@ -175,7 +175,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             getAllEnvVars()
                         ) &&
                         props.paymentMethodsCount !== undefined &&
-                        props.paymentMethodsCount === 0 ? (
+                        props.paymentMethodsCount === 0 &&
+                        !props.selectedProject.resellerId ? (
                             <Button
                                 title="Add Card Details"
                                 onClick={() => {

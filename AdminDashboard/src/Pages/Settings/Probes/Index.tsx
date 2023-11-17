@@ -187,6 +187,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                                     <Statusbubble
                                         text={'Connected'}
                                         color={Green}
+                                        shouldAnimate={true}
                                     />
                                 );
                             }
@@ -195,6 +196,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 <Statusbubble
                                     text={'Disconnected'}
                                     color={Red}
+                                    shouldAnimate={false}
                                 />
                             );
                         },

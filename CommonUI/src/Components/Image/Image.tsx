@@ -14,6 +14,7 @@ export interface ComponentProps {
     className?: string | undefined;
     alt?: string | undefined;
     style?: React.CSSProperties | undefined;
+    'data-testid'?: string;
 }
 
 export class ImageFunctions {
@@ -36,6 +37,7 @@ const Image: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                     props.onClick && props.onClick();
                 }}
+                data-testid={props['data-testid']}
                 alt={props.alt}
                 src={url}
                 height={props.height}

@@ -40,6 +40,7 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanReadProjectSMTPConfig,
     ],
     delete: [
@@ -75,6 +76,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [],
@@ -110,6 +112,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [],
@@ -139,6 +142,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [
@@ -165,6 +169,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [],
@@ -192,6 +197,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [
@@ -222,6 +228,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [],
@@ -257,6 +264,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [],
@@ -279,6 +287,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [],
@@ -310,6 +319,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [],
@@ -338,6 +348,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [
@@ -388,6 +399,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [
@@ -414,6 +426,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [
@@ -439,6 +452,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [
@@ -465,6 +479,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [
@@ -490,6 +505,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectSMTPConfig,
         ],
         update: [

@@ -25,6 +25,7 @@ import Team from './Team';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateMonitorOwnerTeam,
     ],
     read: [
@@ -36,11 +37,13 @@ import Team from './Team';
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteMonitorOwnerTeam,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanEditMonitorOwnerTeam,
     ],
 })
@@ -66,6 +69,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -102,6 +106,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -132,6 +137,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -168,6 +174,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -197,6 +204,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -233,6 +241,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -263,6 +272,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -299,6 +309,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [
@@ -381,6 +392,7 @@ export default class MonitorOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerTeam,
         ],
         read: [

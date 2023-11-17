@@ -6,6 +6,7 @@
     "scripts": {
         "compile": "tsc",
         "test": "jest --detectOpenHandles",
+        "coverage": "jest --detectOpenHandles --coverage",
         "debug:test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd CommonServer && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
     },
     "author": "",
@@ -60,6 +61,7 @@
         "@types/jsonwebtoken": "^8.5.9",
         "@types/node": "^17.0.22",
         "jest": "^27.5.1",
-        "ts-jest": "^27.1.4"
+        "ts-jest": "^27.1.4",
+        "jest-mock-extended": "^3.0.5"
     }
 }

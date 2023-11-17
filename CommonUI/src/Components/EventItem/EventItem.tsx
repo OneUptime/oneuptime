@@ -143,7 +143,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 {props.eventResourcesAffected &&
                 props.eventResourcesAffected?.length > 0 ? (
                     <div key={0}>
-                        <div className="flex space-x-1">
+                        <div className="flex flex-wrap gap-y-4 space-x-1">
                             <div className="text-sm text-gray-400 mr-3 mt-1">
                                 Affected resources
                             </div>

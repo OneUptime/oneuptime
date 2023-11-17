@@ -108,7 +108,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             monitorCriteriaInstance.data = {
                 id: ObjectID.generate().toString(),
                 monitorStatusId: arg.monitorStatusId,
-                filterCondition: FilterCondition.All,
+                filterCondition: FilterCondition.Any,
                 filters: [
                     {
                         checkOn: CheckOn.IsOnline,

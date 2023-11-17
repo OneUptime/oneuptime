@@ -117,6 +117,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                                         <Statusbubble
                                             text={'Connected'}
                                             color={Green}
+                                            shouldAnimate={true}
                                         />
                                     );
                                 }
@@ -125,6 +126,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                                     <Statusbubble
                                         text={'Disconnected'}
                                         color={Red}
+                                        shouldAnimate={false}
                                     />
                                 );
                             },
@@ -279,6 +281,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                                         <Statusbubble
                                             text={'Connected'}
                                             color={Green}
+                                            shouldAnimate={true}
                                         />
                                     );
                                 }
@@ -287,6 +290,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                                     <Statusbubble
                                         text={'Disconnected'}
                                         color={Red}
+                                        shouldAnimate={false}
                                     />
                                 );
                             },

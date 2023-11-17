@@ -67,6 +67,7 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
         <Statusbubble
             color={currentGroupStatus.color! as Color}
             text={currentGroupStatus.name! as string}
+            shouldAnimate={true}
         />
     );
 };

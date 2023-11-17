@@ -90,6 +90,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                                             }
                                         )?.color as Color) || Black
                                     }
+                                    shouldAnimate={false}
                                     text={
                                         (props.monitorStatusOptions.find(
                                             (option: IncidentSeverity) => {

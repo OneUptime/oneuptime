@@ -11,9 +11,12 @@
     "transform": {
         ".(ts|tsx)": "ts-jest"
     },
+    "transformIgnorePatterns": [
+        "/node_modules/(?!Common).+\\.js$"
+    ],
     "testEnvironment": "jsdom",
-    "collectCoverage": true,
-    "coverageReporters": ["text", "html"],
+    "collectCoverage": false,
+    "coverageReporters": ["text", "lcov", "html"],
     "testRegex": "./src/Tests/(.*).test.(tsx||ts)",
     "collectCoverageFrom": ["./**/*.(tsx||ts)"],
     "coverageThreshold": {
