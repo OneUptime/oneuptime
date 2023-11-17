@@ -33,7 +33,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             >
                 {props.log.time && (
                     <div
-                        className="text-slate-500 courier-prime"
+                        className="text-slate-500 courier-prime flex-none"
                         style={{
                             width: '230px !important',
                         }}
@@ -45,21 +45,21 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     </div>
                 )}
                 {props.log.severityText === 'Information' && (
-                    <div className="text-sky-400 courier-prime">
+                    <div className="text-sky-400 courier-prime flex-none">
                         [INFO] &nbsp;
                     </div>
                 )}
                 {props.log.severityText === 'Warning' && (
-                    <div className="text-amber-400 courier-prime">
+                    <div className="text-amber-400 courier-prime flex-none">
                         [WARN] &nbsp;
                     </div>
                 )}
                 {props.log.severityText === 'Error' && (
-                    <div className="text-rose-400 courier-prime">
+                    <div className="text-rose-400 courier-prime flex-none">
                         [EROR] &nbsp;
                     </div>
                 )}
-                <div className={`${bodyColor} courier-prime truncate`}>
+                <div className={`${bodyColor} courier-prime`}>
                     {props.log.body?.toString()}
                 </div>
             </div>
@@ -112,7 +112,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
             <div className="flex">
                 <div className="font-medium text-slate-200 courier-prime mr-2">
-                    MESSAGE:
+                    MESSAGE:&nbsp;
                 </div>
                 <div className={`${bodyColor} courier-prime`}>
                     {props.log.body?.toString()}
@@ -122,7 +122,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             {props.log.traceId && (
                 <div className="flex">
                     <div className="font-medium text-slate-200 courier-prime mr-2">
-                        TRACE:
+                        TRACE:&nbsp;&nbsp;&nbsp;
                     </div>
                     <div className={`${bodyColor} courier-prime`}>
                         {props.log.traceId?.toString()}
@@ -133,7 +133,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             {props.log.spanId && (
                 <div className="flex">
                     <div className="font-medium text-slate-200 courier-prime mr-2">
-                        SPAN:
+                        SPAN:&nbsp;&nbsp;&nbsp;&nbsp;
                     </div>
                     <div className={`${bodyColor} courier-prime`}>
                         {props.log.spanId?.toString()}
