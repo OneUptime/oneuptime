@@ -64,10 +64,30 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         }
     }, [props.logs]);
 
+    /** 
+     * 
+     * ::-webkit-scrollbar {
+    height: 12px;
+    width: 12px;
+    background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #393812;
+    -webkit-border-radius: 1ex;
+    -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);
+}
+
+::-webkit-scrollbar-corner {
+    background: #000;
+}
+     * 
+    */
+
     return (
         <div
             ref={logsViewerRef}
-            className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto"
+            className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
             style={{
                 height: screenHeight - 330,
             }}
