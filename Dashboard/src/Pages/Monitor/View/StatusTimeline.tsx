@@ -193,6 +193,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                                             'color'
                                         ] as Color
                                     }
+                                    shouldAnimate={false}
                                     text={
                                         (item['monitorStatus'] as JSONObject)[
                                             'name'

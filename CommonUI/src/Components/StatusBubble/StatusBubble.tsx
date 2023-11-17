@@ -6,6 +6,7 @@ export interface ComponentProps {
     text: string;
     color: Color;
     style?: CSSProperties;
+    shouldAnimate: boolean;
 }
 
 const Statusbubble: FunctionComponent<ComponentProps> = (
@@ -14,7 +15,7 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
     return (
         <div className="flex" style={props.style}>
             <div
-                className="animate-pulse flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full mr-2"
+                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full mr-2 ${props.shouldAnimate ? 'animate-pulse' : ''}`}
                 style={{
                     backgroundColor: props.color
                         ? props.color.toString()

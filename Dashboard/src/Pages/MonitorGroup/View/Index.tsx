@@ -87,6 +87,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
             <Statusbubble
                 text={currentGroupStatus?.name || 'Operational'}
                 color={currentGroupStatus?.color || Green}
+                shouldAnimate={true}
             />
         );
     };

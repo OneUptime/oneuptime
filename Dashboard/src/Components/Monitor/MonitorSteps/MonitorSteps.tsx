@@ -173,6 +173,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                             }
                                         )?.color as Color) || Black
                                     }
+                                    shouldAnimate={false}
                                     text={
                                         (monitorStatusOptions.find(
                                             (option: IncidentSeverity) => {
@@ -191,6 +192,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                                     <Statusbubble
                                         color={defaultMonitorStatus.color!}
                                         text={defaultMonitorStatus.name!}
+                                        shouldAnimate={false}
                                     />
                                 )}
                         </div>

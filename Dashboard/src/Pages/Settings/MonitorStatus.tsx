@@ -153,6 +153,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                                 <StatusBubble
                                     color={item['color'] as Color}
                                     text={item['name'] as string}
+                                    shouldAnimate={false}
                                 />
                             );
                         },

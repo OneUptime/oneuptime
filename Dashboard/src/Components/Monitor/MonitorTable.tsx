@@ -214,7 +214,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
                         if (item && item['disableActiveMonitoring']) {
                             return (
-                                <Statusbubble color={Grey} text={'Disabled'} />
+                                <Statusbubble shouldAnimate={false} color={Grey} text={'Disabled'} />
                             );
                         }
 
@@ -227,6 +227,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                         ] as JSONObject
                                     )['color'] as Color
                                 }
+                                shouldAnimate={true}
                                 text={
                                     (
                                         item[
