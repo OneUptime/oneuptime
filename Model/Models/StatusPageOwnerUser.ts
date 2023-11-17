@@ -24,6 +24,7 @@ import StatusPage from './StatusPage';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateStatusPageOwnerUser,
     ],
     read: [
@@ -65,6 +66,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -101,6 +103,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -131,6 +134,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -167,6 +171,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -196,6 +201,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -232,6 +238,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -262,6 +269,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -298,6 +306,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [
@@ -380,6 +389,7 @@ export default class StatusPageOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerUser,
         ],
         read: [

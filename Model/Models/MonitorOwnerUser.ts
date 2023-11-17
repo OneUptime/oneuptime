@@ -24,6 +24,7 @@ import Monitor from './Monitor';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateMonitorOwnerUser,
     ],
     read: [
@@ -35,11 +36,13 @@ import Monitor from './Monitor';
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteMonitorOwnerUser,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanEditMonitorOwnerUser,
     ],
 })
@@ -65,6 +68,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -101,6 +105,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -131,6 +136,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -167,6 +173,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -196,6 +203,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -232,6 +240,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -262,6 +271,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -298,6 +308,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [
@@ -380,6 +391,7 @@ export default class MonitorOwnerUser extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateMonitorOwnerUser,
         ],
         read: [

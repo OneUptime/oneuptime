@@ -35,6 +35,7 @@ export interface ComponentProps {
     onClick?: (() => void) | undefined;
     type?: IconType | undefined;
     style?: React.CSSProperties | undefined;
+    'data-testid'?: string;
 }
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
@@ -45,6 +46,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     onClick,
     type,
     style,
+    'data-testid': dataTestId,
 }: ComponentProps): ReactElement => {
     let sizeClassName: string = '';
     if (
@@ -115,6 +117,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     strokeWidth="1.5"
                     stroke="currentColor"
                     aria-hidden="true"
+                    data-testid={dataTestId}
                 >
                     {children}
                 </svg>

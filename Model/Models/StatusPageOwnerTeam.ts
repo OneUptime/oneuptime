@@ -25,6 +25,7 @@ import Team from './Team';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateStatusPageOwnerTeam,
     ],
     read: [
@@ -66,6 +67,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -102,6 +104,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -132,6 +135,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -168,6 +172,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -197,6 +202,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -233,6 +239,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -263,6 +270,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -299,6 +307,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [
@@ -381,6 +390,7 @@ export default class StatusPageOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageOwnerTeam,
         ],
         read: [

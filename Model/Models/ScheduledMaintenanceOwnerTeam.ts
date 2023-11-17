@@ -25,6 +25,7 @@ import Team from './Team';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateScheduledMaintenanceOwnerTeam,
     ],
     read: [
@@ -36,11 +37,13 @@ import Team from './Team';
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteScheduledMaintenanceOwnerTeam,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanEditScheduledMaintenanceOwnerTeam,
     ],
 })
@@ -67,6 +70,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -103,6 +107,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -133,6 +138,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -169,6 +175,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -198,6 +205,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -234,6 +242,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -264,6 +273,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -300,6 +310,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [
@@ -382,6 +393,7 @@ export default class ScheduledMaintenanceOwnerTeam extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceOwnerTeam,
         ],
         read: [

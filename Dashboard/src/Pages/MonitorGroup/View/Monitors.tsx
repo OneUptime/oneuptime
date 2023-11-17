@@ -263,6 +263,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                     <Statusbubble
                                         color={monitorStatus.color! as Color}
                                         text={monitorStatus.name! as string}
+                                        shouldAnimate={true}
                                     />
                                 );
                             },

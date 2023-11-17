@@ -243,11 +243,32 @@ export default class API {
         }
 
         try {
+            const finalHeaders: Dictionary<string> = {
+                ...apiHeaders,
+                ...headers,
+            };
+
+            let finalBody:
+                | JSONObject
+                | JSONArray
+                | URLSearchParams
+                | undefined = data;
+
+            // if content-type is form-url-encoded, then stringify the data
+
+            if (
+                finalHeaders['Content-Type'] ===
+                    'application/x-www-form-urlencoded' &&
+                data
+            ) {
+                finalBody = new URLSearchParams(data as Dictionary<string>);
+            }
+
             const result: AxiosResponse = await axios({
                 method: method,
                 url: url.toString(),
-                headers: { ...apiHeaders, ...headers },
-                data,
+                headers: finalHeaders,
+                data: finalBody,
             });
 
             result.headers = await this.onResponseSuccessHeaders(

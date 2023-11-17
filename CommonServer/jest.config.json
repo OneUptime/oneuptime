@@ -12,8 +12,11 @@
         ".(ts|tsx)": "ts-jest"
     },
     "testEnvironment": "node",
-    "collectCoverage": true,
-    "coverageReporters": ["text"],
+    "collectCoverage": false,
+    "transformIgnorePatterns": [
+        "/node_modules/(?!Common).+\\.js$"
+    ],
+    "coverageReporters": ["text", "lcov"],
     "testRegex": "./Tests/(.*).test.ts",
     "collectCoverageFrom": ["./**/*.(tsx||ts)"],
     "coverageThreshold": {

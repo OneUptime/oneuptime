@@ -21,8 +21,16 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 @EnableDocumentation()
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Free,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth,
+})
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({

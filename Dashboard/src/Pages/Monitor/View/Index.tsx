@@ -304,6 +304,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         <Statusbubble
                                             color={Grey}
                                             text={'Disabled'}
+                                            shouldAnimate={false}
                                         />
                                     );
                                 }
@@ -317,6 +318,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
+                                        shouldAnimate={true}
                                         text={
                                             (
                                                 item[

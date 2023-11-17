@@ -4,7 +4,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import Typeof from 'Common/Types/Typeof';
 import logger from '../Utils/Logger';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../EnvironmentConfig';
@@ -15,6 +14,7 @@ import SubscriptionStatus, {
 import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
+import Errors from '../Utils/Errors';
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -54,10 +54,9 @@ export class BillingService extends BaseService {
     }): Promise<string> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
-
         const customer: Stripe.Response<Stripe.Customer> =
             await this.stripe.customers.create({
                 name: data.name,
@@ -66,7 +65,6 @@ export class BillingService extends BaseService {
                     id: data.id.toString(),
                 },
             });
-
         return customer.id;
     }
 
@@ -76,7 +74,7 @@ export class BillingService extends BaseService {
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -86,7 +84,7 @@ export class BillingService extends BaseService {
     public async deleteCustomer(id: string): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -191,19 +189,21 @@ export class BillingService extends BaseService {
     }> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
         let trialDate: Date | null = null;
 
-        if (typeof data.trial === Typeof.Boolean) {
-            trialDate = OneUptimeDate.getSomeDaysAfter(
-                data.plan.getTrialPeriod()
-            );
-        }
-
-        if (data.trial instanceof Date) {
+        if (typeof data.trial === 'boolean') {
+            if (data.trial) {
+                trialDate = OneUptimeDate.getSomeDaysAfter(
+                    data.plan.getTrialPeriod()
+                );
+            } else {
+                trialDate = null;
+            }
+        } else if (data.trial instanceof Date) {
             trialDate = data.trial;
         }
 
@@ -260,7 +260,7 @@ export class BillingService extends BaseService {
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -268,9 +268,10 @@ export class BillingService extends BaseService {
             await this.stripe.subscriptions.retrieve(subscriptionId);
 
         if (!subscription) {
-            throw new BadDataException('Subscription not found');
+            throw new BadDataException(
+                Errors.BillingService.SUBSCRIPTION_NOT_FOUND
+            );
         }
-
         if (subscription.status === 'canceled') {
             // subscription is canceled.
             return;
@@ -280,7 +281,9 @@ export class BillingService extends BaseService {
             subscription.items.data[0]?.id;
 
         if (!subscriptionItemId) {
-            throw new BadDataException('Subscription Item not found');
+            throw new BadDataException(
+                Errors.BillingService.SUBSCRIPTION_ITEM_NOT_FOUND
+            );
         }
 
         await this.stripe.subscriptionItems.update(subscriptionItemId, {
@@ -295,7 +298,7 @@ export class BillingService extends BaseService {
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -305,7 +308,9 @@ export class BillingService extends BaseService {
         );
 
         if (!subscription) {
-            throw new BadDataException('Subscription not found');
+            throw new BadDataException(
+                Errors.BillingService.SUBSCRIPTION_NOT_FOUND
+            );
         }
 
         // check if this pricing exists
@@ -324,7 +329,9 @@ export class BillingService extends BaseService {
                 })?.id;
 
             if (!subscriptionItemId) {
-                throw new BadDataException('Subscription Item not found');
+                throw new BadDataException(
+                    Errors.BillingService.SUBSCRIPTION_ITEM_NOT_FOUND
+                );
             }
 
             // use stripe usage based api to update the quantity.
@@ -357,7 +364,7 @@ export class BillingService extends BaseService {
     public async isPromoCodeValid(promoCode: string): Promise<boolean> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
         try {
@@ -365,13 +372,16 @@ export class BillingService extends BaseService {
                 await this.stripe.coupons.retrieve(promoCode);
 
             if (!promoCodeResponse) {
-                throw new BadDataException('Promo code not found');
+                throw new BadDataException(
+                    Errors.BillingService.PROMO_CODE_NOT_FOUND
+                );
             }
 
             return promoCodeResponse.valid;
         } catch (err) {
             throw new BadDataException(
-                (err as Error).message || 'Invalid promo code'
+                (err as Error).message ||
+                    Errors.BillingService.PROMO_CODE_INVALID
             );
         }
     }
@@ -383,7 +393,7 @@ export class BillingService extends BaseService {
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -391,7 +401,9 @@ export class BillingService extends BaseService {
             await this.stripe.subscriptions.retrieve(subscriptionId);
 
         if (!subscription) {
-            throw new BadDataException('Subscription not found');
+            throw new BadDataException(
+                Errors.BillingService.SUBSCRIPTION_NOT_FOUND
+            );
         }
 
         if (subscription.status === 'canceled') {
@@ -418,7 +430,7 @@ export class BillingService extends BaseService {
     ): Promise<Array<SubscriptionItem>> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -426,7 +438,9 @@ export class BillingService extends BaseService {
             await this.stripe.subscriptions.retrieve(subscriptionId);
 
         if (!subscription) {
-            throw new BadDataException('Subscription not found');
+            throw new BadDataException(
+                Errors.BillingService.SUBSCRIPTION_NOT_FOUND
+            );
         }
 
         return subscription.items.data;
@@ -450,10 +464,10 @@ export class BillingService extends BaseService {
         logger.info(data);
 
         if (!this.isBillingEnabled()) {
-            logger.info('Billing not enabled');
+            logger.info(Errors.BillingService.BILLING_NOT_ENABLED);
 
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -464,8 +478,10 @@ export class BillingService extends BaseService {
         logger.info(subscription);
 
         if (!subscription) {
-            logger.info('Subscription not found');
-            throw new BadDataException('Subscription not found');
+            logger.info(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);
+            throw new BadDataException(
+                Errors.BillingService.SUBSCRIPTION_NOT_FOUND
+            );
         }
 
         logger.info('Subscription status');
@@ -481,7 +497,7 @@ export class BillingService extends BaseService {
             logger.info('No payment methods');
 
             throw new BadDataException(
-                'No payment methods added. Please add your card to this project to change your plan'
+                Errors.BillingService.NO_PAYMENTS_METHODS
             );
         }
 
@@ -536,7 +552,7 @@ export class BillingService extends BaseService {
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -545,7 +561,7 @@ export class BillingService extends BaseService {
 
         if (paymentMethods.length === 1) {
             throw new BadDataException(
-                "There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account."
+                Errors.BillingService.MIN_REQUIRED_PAYMENT_METHOD_NOT_MET
             );
         }
 
@@ -576,7 +592,7 @@ export class BillingService extends BaseService {
     ): Promise<Array<PaymentMethod>> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
         const paymentMethods: Array<PaymentMethod> = [];
@@ -671,9 +687,7 @@ export class BillingService extends BaseService {
             });
 
         if (!setupIntent.client_secret) {
-            throw new APIException(
-                'client_secret not returned by payment provider.'
-            );
+            throw new APIException(Errors.BillingService.CLIENT_SECRET_MISSING);
         }
 
         return setupIntent.client_secret;
@@ -682,7 +696,7 @@ export class BillingService extends BaseService {
     public async cancelSubscription(subscriptionId: string): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
         try {
@@ -706,7 +720,7 @@ export class BillingService extends BaseService {
     ): Promise<Stripe.Subscription> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
-                'Billing is not enabled for this server.'
+                Errors.BillingService.BILLING_NOT_ENABLED
             );
         }
 
@@ -748,7 +762,7 @@ export class BillingService extends BaseService {
         });
 
         if (!invoice || !invoice.id) {
-            throw new APIException('Invoice not generated.');
+            throw new APIException(Errors.BillingService.INVOICE_NOT_GENERATED);
         }
 
         await this.stripe.invoiceItems.create({
@@ -787,7 +801,7 @@ export class BillingService extends BaseService {
 
         if (paymentMethods.length === 0) {
             throw new BadDataException(
-                'Payment Method not added. Please go to Project Settings > Billing and add a payment method.'
+                Errors.BillingService.NO_PAYMENTS_METHODS
             );
         }
 
