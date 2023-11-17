@@ -56,7 +56,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 )}
                 {props.log.severityText === 'Error' && (
                     <div className="text-rose-400 courier-prime">
-                        [ERRR] &nbsp;
+                        [EROR] &nbsp;
                     </div>
                 )}
                 <div className={`${bodyColor} courier-prime truncate`}>
@@ -105,7 +105,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                         SEVERITY:
                     </div>
                     <div className="text-rose-400 courier-prime">
-                        [ERRR] &nbsp;
+                        [EROR] &nbsp;
                     </div>
                 </div>
             )}
