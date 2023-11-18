@@ -22,6 +22,7 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import DashboardNavigation from '../../Utils/Navigation';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -38,18 +39,23 @@ const Settings: FunctionComponent<ComponentProps> = (
         try {
             setIsLoading(true);
 
-            await BaseAPI.post<JSONObject>(
-                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                    `/billing-invoices/pay`
-                ),
-                {
-                    data: {
-                        paymentProviderInvoiceId: invoiceId,
-                        paymentProviderCustomerId: customerId,
+            const result: HTTPResponse<JSONObject> =
+                await BaseAPI.post<JSONObject>(
+                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                        `/billing-invoices/pay`
+                    ),
+                    {
+                        data: {
+                            paymentProviderInvoiceId: invoiceId,
+                            paymentProviderCustomerId: customerId,
+                        },
                     },
-                },
-                ModelAPI.getCommonHeaders()
-            );
+                    ModelAPI.getCommonHeaders()
+                );
+
+            if (result.isFailure()) {
+                throw result;
+            }
 
             Navigation.reload();
         } catch (err) {
@@ -220,7 +226,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             {error ? (
                 <ConfirmModal
-                    title={`Error`}
+                    title={`Something is not quite right...`}
                     description={`${error}`}
                     submitButtonText={'Close'}
                     onSubmit={() => {
