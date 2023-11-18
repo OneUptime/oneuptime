@@ -19,6 +19,7 @@ enum IconProp {
     Help = 'Help',
     JSON = 'JSON',
     Signal = 'Signal',
+    Stop = 'Stop',
     Database = 'Database',
     ChevronDown = 'ChevronDown',
     Pencil = 'Pencil',

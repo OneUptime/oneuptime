@@ -1,9 +1,12 @@
 import Log from 'Model/AnalyticsModels/Log';
 import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import LogItem from './LogItem';
+import LogsFilters, { FiterOptions } from './LogsFilters';
 
 export interface ComponentProps {
     logs: Array<Log>;
+    onFilterChanged: (filterOptions: FiterOptions) => void;
+
 }
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
@@ -30,71 +33,49 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
-    // if scrolled up set autoscrol to false, if scrolled to the bottom set it to true
-
-    React.useEffect(() => {
-        const logsViewer: HTMLDivElement | null = logsViewerRef.current;
-
-        if (!logsViewer) {
-            return;
-        }
-
-        const scrollPosition: number =
-            logsViewer.scrollTop + logsViewer.offsetHeight;
-        const scrollHeight: number = logsViewer.scrollHeight;
-
-        if (scrollPosition < scrollHeight) {
-            setAutoScroll(false);
-        } else {
-            setAutoScroll(true);
-        }
-    }, [props.logs]);
 
     // Keep scroll to the bottom of the log
+
+    const scrollToBottom = (): void => {
+        const logsViewer: HTMLDivElement | null = logsViewerRef.current;
+
+        if (logsViewer) {
+            logsViewer.scrollTop = logsViewer.scrollHeight;
+        }
+    }
+
 
     React.useEffect(() => {
         if (!autoScroll) {
             return;
         }
 
-        const logsViewer: HTMLDivElement | null = logsViewerRef.current;
-
-        if (logsViewer) {
-            logsViewer.scrollTop = logsViewer.scrollHeight;
-        }
+        scrollToBottom();
     }, [props.logs]);
 
-    /** 
-     * 
-     * ::-webkit-scrollbar {
-    height: 12px;
-    width: 12px;
-    background: #000;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #393812;
-    -webkit-border-radius: 1ex;
-    -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);
-}
-
-::-webkit-scrollbar-corner {
-    background: #000;
-}
-     * 
-    */
-
     return (
-        <div
-            ref={logsViewerRef}
-            className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
-            style={{
-                height: screenHeight - 330,
-            }}
-        >
-            {props.logs.map((log: Log, i: number) => {
-                return <LogItem key={i} log={log} />;
-            })}
+        <div>
+            <div className='mb-5'>
+                <LogsFilters onAutoScrollChanged={(autoscroll: boolean)=>{
+                    setAutoScroll(autoscroll);
+
+                    if(autoScroll){
+                        scrollToBottom();
+                    }
+                }} onFilterChanged={props.onFilterChanged} />
+            </div>
+            <div
+                ref={logsViewerRef}
+                className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
+                style={{
+                    height: screenHeight - 330,
+                }}
+            >
+
+                {props.logs.map((log: Log, i: number) => {
+                    return <LogItem key={i} log={log} />;
+                })}
+            </div>
         </div>
     );
 };

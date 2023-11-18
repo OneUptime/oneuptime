@@ -94,10 +94,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                 }
             );
 
-        setInterval(() => {
-            Realtime.emit('HERE', { message: "I'm HERE" });
-        }, 1000);
-
         return () => {
             disconnectFunction();
         };
@@ -113,7 +109,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     return (
         <div id={props.id}>
-            <LogsViewer logs={logs} />
+            <LogsViewer onFilterChanged={()=>{}} logs={logs} />
         </div>
     );
 };

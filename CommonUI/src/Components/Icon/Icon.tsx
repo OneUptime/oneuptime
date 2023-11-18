@@ -141,6 +141,10 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"
             />
         );
+    }else if (icon === IconProp.Stop) {
+        return getSvgWrapper(
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z" />
+        );
     } else if (icon === IconProp.Copy) {
         return getSvgWrapper(
             <path
