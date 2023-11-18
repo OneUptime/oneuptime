@@ -28,8 +28,8 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 @TableBillingAccessControl({
     create: PlanSelect.Growth,
     read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    delete: PlanSelect.Growth,
+    update: PlanSelect.Free,
+    delete: PlanSelect.Free,
 })
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
