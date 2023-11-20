@@ -361,17 +361,19 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             limit: LIMIT_MAX,
         });
 
-        const uniqueUserIds = new Set<string>();
-        const uniqueMembers = members.filter(member => {
-            const userId = member.user?._id?.toString();
-            if (userId && !uniqueUserIds.has(userId)) {
-                uniqueUserIds.add(userId);
-                return true;
+        const uniqueUserIds: Set<string> = new Set<string>();
+        const uniqueMembers: TeamMember[] = members.filter(
+            (member: TeamMember) => {
+                const userId: string | undefined = member.user?._id?.toString();
+                if (userId && !uniqueUserIds.has(userId)) {
+                    uniqueUserIds.add(userId);
+                    return true;
+                }
+                return false;
             }
-            return false;
-        });
+        );
 
-        return uniqueMembers.map(member => {
+        return uniqueMembers.map((member: TeamMember) => {
             return member.user!;
         });
     }
