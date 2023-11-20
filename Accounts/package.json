@@ -6,7 +6,7 @@
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
-        "crypto-js": "^4.1.1",
+        "crypto-js": "^4.2.0",
         "formik": "^2.2.9",
         "Model": "file:../Model",
         "react": "^18.1.0",
