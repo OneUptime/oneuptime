@@ -29,7 +29,7 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
     create: PlanSelect.Growth,
     read: PlanSelect.Free,
     update: PlanSelect.Growth,
-    delete: PlanSelect.Growth,
+    delete: PlanSelect.Free,
 })
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
