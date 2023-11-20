@@ -145,19 +145,22 @@ describe('ProjectMiddleware', () => {
 
         let database!: Database;
 
-        beforeEach(async () => {
-            jest.clearAllMocks();
-            next = jest.fn();
-            database = new Database();
-            await database.createAndConnect();
+        beforeEach(
+            async () => {
+                jest.clearAllMocks();
+                next = jest.fn();
+                database = new Database();
+                await database.createAndConnect();
 
-            if (req.headers === undefined) {
-                req.headers = {};
-            }
+                if (req.headers === undefined) {
+                    req.headers = {};
+                }
 
-            req.headers['tenantid'] = mockedObjectId.toString();
-            req.headers['apikey'] = mockedObjectId.toString();
-        });
+                req.headers['tenantid'] = mockedObjectId.toString();
+                req.headers['apikey'] = mockedObjectId.toString();
+            },
+            10 * 1000 // 10 second timeout because setting up the DB is slow
+        );
 
         afterEach(async () => {
             await database.disconnectAndDropDatabase();
