@@ -7,7 +7,7 @@ import Version from 'Common/Types/Version';
 import Faker from 'Common/Utils/Faker';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import User from 'Model/Models/User';
-import UserTestService from '../TestingUtils/Services/UserTestService';
+import UserTestService from '../TestingUtils/Services/UserServiceHelper';
 import { fail } from 'assert';
 
 describe('probeService', () => {
@@ -682,13 +682,11 @@ describe('probeService', () => {
     });
 
     test('add user to createdBy column', async () => {
-        const userTestService: UserTestService = new UserTestService(
-            database.getDatabase()
-        );
         const probeService: ProbeService = new ProbeService(
             database.getDatabase()
         );
-        const user: User = await userTestService.generateRandomUser();
+        const user: User =
+            await UserTestService.generateRandomUser().data.save();
 
         const name: string = Faker.generateName();
         const probeVersion: Version = new Version('1.0.2');
@@ -738,10 +736,8 @@ describe('probeService', () => {
         const probeService: ProbeService = new ProbeService(
             database.getDatabase()
         );
-        const userTestService: UserTestService = new UserTestService(
-            database.getDatabase()
-        );
-        const user: User = await userTestService.generateRandomUser();
+        const user: User =
+            await UserTestService.generateRandomUser().data.save();
 
         const name: string = Faker.generateName();
         const probeVersion: Version = new Version('1.0.2');
@@ -799,10 +795,8 @@ describe('probeService', () => {
         const probeService: ProbeService = new ProbeService(
             database.getDatabase()
         );
-        const userTestService: UserTestService = new UserTestService(
-            database.getDatabase()
-        );
-        const user: User = await userTestService.generateRandomUser();
+        const user: User =
+            await UserTestService.generateRandomUser().data.save();
 
         const name: string = Faker.generateName();
         const probeVersion: Version = new Version('1.0.2');

@@ -13,4 +13,11 @@ export default {
         SUBSCRIPTION_ITEM_NOT_FOUND: 'Subscription item not found.',
         SUBSCRIPTION_NOT_FOUND: 'Subscription not found.',
     },
+    TeamMemberService: {
+        ALREADY_INVITED: 'This user has already been invited to this team',
+        ONE_MEMBER_REQUIRED:
+            'This team should have at least 1 member who has accepted the invitation.',
+        LIMIT_REACHED:
+            'You have reached the user limit. You cannot invite any more users to this project. Please contact billing@oneuptime.com to increase your user limit.',
+    },
 };

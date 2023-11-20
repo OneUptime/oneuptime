@@ -29,6 +29,7 @@ import UserNotificationRuleService from './UserNotificationRuleService';
 import UserNotificationSettingService from './UserNotificationSettingService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import Errors from '../Utils/Errors';
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -39,7 +40,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         createBy: CreateBy<TeamMember>
     ): Promise<OnCreate<TeamMember>> {
         // check if this project can have more members.
-
         if (IsBillingEnabled && createBy.data.projectId) {
             const project: Project | null = await ProjectService.findOneById({
                 id: createBy.data.projectId!,
@@ -59,7 +59,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 project.paymentProviderSubscriptionSeats >= project.seatLimit
             ) {
                 throw new BadDataException(
-                    'You have reached the user limit. You cannot invite any more users to this project. Please contact billing@oneuptime.com to increase your user limit.'
+                    Errors.TeamMemberService.LIMIT_REACHED
                 );
             }
         }
@@ -143,7 +143,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         const member: TeamMember | null = await this.findOneBy({
             query: {
                 userId: createBy.data.userId!,
-                teamId: createBy.data.teamId!,
+                teamId: new ObjectID(createBy.data.team!._id!),
             },
             props: {
                 isRoot: true,
@@ -155,7 +155,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
         if (member) {
             throw new BadDataException(
-                'This user has already been invited to this team'
+                Errors.TeamMemberService.ALREADY_INVITED
             );
         }
 
@@ -281,7 +281,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
                 if (membersInTeam.toNumber() <= 1) {
                     throw new BadDataException(
-                        'This team should have at least 1 member who has accepted the invitation.'
+                        Errors.TeamMemberService.ONE_MEMBER_REQUIRED
                     );
                 }
             }
@@ -361,7 +361,17 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             limit: LIMIT_MAX,
         });
 
-        return members.map((member: TeamMember) => {
+        const uniqueUserIds = new Set<string>();
+        const uniqueMembers = members.filter(member => {
+            const userId = member.user?._id?.toString();
+            if (userId && !uniqueUserIds.has(userId)) {
+                uniqueUserIds.add(userId);
+                return true;
+            }
+            return false;
+        });
+
+        return uniqueMembers.map(member => {
             return member.user!;
         });
     }
