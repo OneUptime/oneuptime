@@ -7,15 +7,27 @@
             "babelConfig": false
         }
     },
-    "moduleFileExtensions": ["ts", "js", "json"],
+    "moduleFileExtensions": [
+        "ts",
+        "js",
+        "json"
+    ],
     "transform": {
         ".(ts|tsx)": "ts-jest"
     },
     "testEnvironment": "node",
     "collectCoverage": true,
-    "coverageReporters": ["text", "lcov"],
+    "coverageReporters": [
+        "text",
+        "lcov"
+    ],
     "testRegex": "./Tests/(.*).test.ts",
-    "collectCoverageFrom": ["./**/*.(tsx||ts)"],
+    "collectCoverageFrom": [
+        "./**/*.(tsx||ts)"
+    ],
+    "moduleNameMapper": {
+        "axios": "axios/dist/node/axios.cjs"
+    },
     "coverageThreshold": {
         "global": {
             "lines": 0,

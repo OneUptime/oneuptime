@@ -10,6 +10,7 @@ import axios, {
     AxiosStatic,
     AxiosRequestConfig,
     Method,
+    AxiosHeaders,
 } from 'axios';
 import { expect, jest } from '@jest/globals';
 import HTTPResponse from '../../Types/API/HTTPResponse';
@@ -51,13 +52,17 @@ function createAxiosResponse<T = any, D = any>(
         data = [] as T,
         status = 200,
         statusText = 'OK',
-        config = {},
+        config = {
+            headers: DEFAULT_HEADERS as AxiosHeaders,
+        },
         headers = DEFAULT_HEADERS,
     }: Partial<AxiosResponse<T, D>> = {
         data: [] as T,
         status: 200,
         statusText: 'OK',
-        config: {},
+        config: {
+            headers: DEFAULT_HEADERS as AxiosHeaders,
+        },
         headers: DEFAULT_HEADERS,
     }
 ): AxiosResponse<T, D> {
@@ -82,7 +87,9 @@ const mergedHeaders: Headers = {
  */
 function createAxiosError<T = any, D = any>(
     {
-        config = {},
+        config = {
+            headers: DEFAULT_HEADERS as AxiosHeaders,
+        },
         isAxiosError = true,
         toJSON = () => {
             return {};
@@ -91,7 +98,9 @@ function createAxiosError<T = any, D = any>(
         message = 'Something went wrong',
         response = createAxiosResponse(),
     }: Partial<AxiosError<T, D>> = {
-        config: {},
+        config: {
+            headers: DEFAULT_HEADERS as AxiosHeaders,
+        },
         isAxiosError: true,
         toJSON: () => {
             return {};
@@ -219,7 +228,7 @@ describe('getErrorResponse', () => {
         // NOTE: Passing undefined will initialize the default parameter
         const axiosError: AxiosError<null, {}> = createAxiosError({
             response: null!,
-        });
+        }) as AxiosError<null, {}>;
 
         // Use bracket notation property access to access private method
         expect(() => {
@@ -279,7 +288,7 @@ describe('fetch', () => {
                 data,
             }),
             message: 'An error occurred',
-        });
+        }) as AxiosError<undefined, {}>;
 
         mockedAxios.mockRejectedValueOnce(mockedAxiosError);
 

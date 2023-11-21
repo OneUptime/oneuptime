@@ -16,6 +16,9 @@
     "transformIgnorePatterns": [
         "/node_modules/(?!Common).+\\.js$"
     ],
+    "moduleNameMapper": {
+        "axios": "axios/dist/node/axios.cjs"
+    },
     "coverageReporters": ["text", "lcov"],
     "testRegex": "./Tests/(.*).test.ts",
     "collectCoverageFrom": ["./**/*.(tsx||ts)"],
