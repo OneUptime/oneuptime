@@ -8,6 +8,7 @@ import logger from 'CommonServer/Utils/Logger';
 import ping from 'ping';
 import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
 import Sleep from 'Common/Types/Sleep';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 // TODO - make sure it  work for the IPV6
 export interface PingResponse {
@@ -79,6 +80,12 @@ export default class PingMonitor {
         let hostAddress: string = '';
         if (host instanceof Hostname) {
             hostAddress = host.hostname;
+
+            if (host.port) {
+                throw new BadDataException(
+                    'Port is not supported for ping monitor'
+                );
+            }
         } else if (host instanceof URL) {
             hostAddress = host.hostname.hostname;
         } else {

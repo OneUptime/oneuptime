@@ -57,9 +57,9 @@ export default class WebsiteRequest {
         return {
             url: url,
             requestHeaders: options.headers || {},
-            responseHeaders: response.headers as Dictionary<string>,
-            responseStatusCode: response.status,
-            responseBody: new HTML(response.data),
+            responseHeaders: response!.headers as Dictionary<string>,
+            responseStatusCode: response!.status,
+            responseBody: new HTML(response!.data),
             isOnline: true,
         };
     }
