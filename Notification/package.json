@@ -24,7 +24,7 @@
         "nodemailer": "^6.7.3",
         "nodemailer-express-handlebars": "^5.0.0",
         "ts-node": "^10.9.1",
-        "twilio": "^4.11.2"
+        "twilio": "^4.19.0"
     },
     "devDependencies": {
         "nodemon": "^2.0.20"
