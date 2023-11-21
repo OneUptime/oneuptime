@@ -31,6 +31,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import OneUptimeDate from 'Common/Types/Date';
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -207,6 +208,19 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         description:
                             'This note is visible on your Status Page. This is in Markdown.',
                     },
+                    {
+                        field: {
+                            postedAt: true,
+                        },
+                        title: 'Posted At',
+                        fieldType: FormFieldSchemaType.DateTime,
+                        required: true,
+                        description:
+                            'This is the date and time this note was posted. This is in ' +
+                            OneUptimeDate.getCurrentTimezoneString() +
+                            '.',
+                        defaultValue: OneUptimeDate.getCurrentDate(),
+                    },
                 ]}
                 showTableAs={ShowTableAs.List}
                 showRefreshButton={true}
@@ -247,7 +261,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            createdAt: true,
+                            postedAt: true,
                         },
                         isFilterable: true,
                         alignItem: AlignItem.Right,

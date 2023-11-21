@@ -751,12 +751,12 @@ export default class StatusPageAPI extends BaseAPI<
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
-                                    createdAt: true,
                                     note: true,
                                     incidentId: true,
+                                    postedAt: true,
                                 },
                                 sort: {
-                                    createdAt: SortOrder.Descending, // new note first
+                                    postedAt: SortOrder.Descending, // new note first
                                 },
                                 skip: 0,
                                 limit: LIMIT_PER_PROJECT,
@@ -930,12 +930,12 @@ export default class StatusPageAPI extends BaseAPI<
                                     projectId: statusPage.projectId!,
                                 },
                                 select: {
-                                    createdAt: true,
+                                    postedAt: true,
                                     note: true,
                                     scheduledMaintenanceId: true,
                                 },
                                 sort: {
-                                    createdAt: SortOrder.Ascending,
+                                    postedAt: SortOrder.Ascending,
                                 },
                                 skip: 0,
                                 limit: LIMIT_PER_PROJECT,
@@ -1488,12 +1488,12 @@ export default class StatusPageAPI extends BaseAPI<
                         projectId: statusPage.projectId!,
                     },
                     select: {
-                        createdAt: true,
+                        postedAt: true,
                         note: true,
                         scheduledMaintenanceId: true,
                     },
                     sort: {
-                        createdAt: SortOrder.Ascending,
+                        postedAt: SortOrder.Ascending,
                     },
                     skip: 0,
                     limit: LIMIT_PER_PROJECT,
@@ -1987,12 +1987,12 @@ export default class StatusPageAPI extends BaseAPI<
                     projectId: statusPage.projectId!,
                 },
                 select: {
-                    createdAt: true,
+                    postedAt: true,
                     note: true,
                     incidentId: true,
                 },
                 sort: {
-                    createdAt: SortOrder.Descending, // new note first
+                    postedAt: SortOrder.Descending, // new note first
                 },
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,

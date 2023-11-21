@@ -392,4 +392,36 @@ export default class IncidentPublicNote extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateIncidentPublicNote,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditIncidentPublicNote,
+        ],
+    })
+    @TableColumn({
+        title: 'Note Posted At',
+        description: 'Date and time when the note was posted',
+        type: TableColumnType.Date,
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public postedAt?: Date = undefined;
 }

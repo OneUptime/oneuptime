@@ -393,4 +393,36 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenancePublicNote,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditScheduledMaintenancePublicNote,
+        ],
+    })
+    @TableColumn({
+        title: 'Note Posted At',
+        description: 'Date and time when the note was posted',
+        type: TableColumnType.Date,
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public postedAt?: Date = undefined;
 }

@@ -69,7 +69,7 @@ export default interface Field<TEntity> {
     onChange?: ((value: any, form?: any | undefined) => void) | undefined;
     fieldType?: FormFieldSchemaType;
     overrideFieldKey?: string;
-    defaultValue?: boolean | string | undefined;
+    defaultValue?: boolean | string | Date | undefined;
     radioButtonOptions?: Array<RadioButton>;
     footerElement?: ReactElement | undefined;
     getCustomElement?: (

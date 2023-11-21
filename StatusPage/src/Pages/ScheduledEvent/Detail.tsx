@@ -65,8 +65,7 @@ export const getScheduledEventEventItem: Function = (
                 a: ScheduledMaintenancePublicNote,
                 b: ScheduledMaintenancePublicNote
             ) => {
-                return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) ===
-                    false
+                return OneUptimeDate.isAfter(a.postedAt!, b.postedAt!) === false
                     ? 1
                     : -1;
             }
@@ -93,7 +92,7 @@ export const getScheduledEventEventItem: Function = (
         ) {
             timeline.push({
                 note: scheduledMaintenancePublicNote?.note || '',
-                date: scheduledMaintenancePublicNote?.createdAt as Date,
+                date: scheduledMaintenancePublicNote?.postedAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
                 iconColor: Grey,

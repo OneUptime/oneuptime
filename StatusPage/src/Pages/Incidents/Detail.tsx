@@ -61,8 +61,7 @@ export const getIncidentEventItem: Function = (
         // If this is summary then reverse the order so we show the latest first
         incidentPublicNotes.sort(
             (a: IncidentPublicNote, b: IncidentPublicNote) => {
-                return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) ===
-                    false
+                return OneUptimeDate.isAfter(a.postedAt!, b.postedAt!) === false
                     ? 1
                     : -1;
             }
@@ -86,7 +85,7 @@ export const getIncidentEventItem: Function = (
         ) {
             timeline.push({
                 note: incidentPublicNote?.note,
-                date: incidentPublicNote?.createdAt as Date,
+                date: incidentPublicNote?.postedAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
                 iconColor: Grey,

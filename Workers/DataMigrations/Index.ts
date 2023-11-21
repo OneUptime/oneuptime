@@ -2,6 +2,7 @@ import AddDefaultGlobalConfig from './AddDefaultGlobalConfig';
 import AddEndedState from './AddEndedState';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
+import AddPostedAtToPublicNotes from './AddPostedAtToPublicNotes';
 import DataMigrationBase from './DataMigrationBase';
 import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotificationRule';
 import MigrateDefaultUserNotificationSetting from './MigrateDefaultUserSettingNotification';
@@ -21,6 +22,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddEndedState(),
     new AddDefaultGlobalConfig(),
     new UpdateGlobalConfigFromEnv(),
+    new AddPostedAtToPublicNotes()
 ];
 
 export default DataMigrations;
