@@ -154,7 +154,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     scrollBeyondLastColumn: 5,
                     scrollBeyondLastLine: true,
                     selectOnLineNumbers: true,
-                    lineNumbers: props.showLineNumbers ? 'on' :'off',
+                    lineNumbers: props.showLineNumbers ? 'on' : 'off',
                     selectionClipboard: true,
                     selectionHighlight: true,
                     showFoldingControls: 'mouseover',

@@ -6,7 +6,6 @@ import LogsFilters, { FiterOptions } from './LogsFilters';
 export interface ComponentProps {
     logs: Array<Log>;
     onFilterChanged: (filterOptions: FiterOptions) => void;
-
 }
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
@@ -33,17 +32,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
-
     // Keep scroll to the bottom of the log
 
-    const scrollToBottom = (): void => {
+    const scrollToBottom: Function = (): void => {
         const logsViewer: HTMLDivElement | null = logsViewerRef.current;
 
         if (logsViewer) {
             logsViewer.scrollTop = logsViewer.scrollHeight;
         }
-    }
-
+    };
 
     React.useEffect(() => {
         if (!autoScroll) {
@@ -55,14 +52,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <div className='mb-5'>
-                <LogsFilters onAutoScrollChanged={(autoscroll: boolean)=>{
-                    setAutoScroll(autoscroll);
+            <div className="mb-5">
+                <LogsFilters
+                    onAutoScrollChanged={(autoscroll: boolean) => {
+                        setAutoScroll(autoscroll);
 
-                    if(autoScroll){
-                        scrollToBottom();
-                    }
-                }} onFilterChanged={props.onFilterChanged} />
+                        if (autoScroll) {
+                            scrollToBottom();
+                        }
+                    }}
+                    onFilterChanged={props.onFilterChanged}
+                />
             </div>
             <div
                 ref={logsViewerRef}
@@ -71,7 +71,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     height: screenHeight - 330,
                 }}
             >
-
                 {props.logs.map((log: Log, i: number) => {
                     return <LogItem key={i} log={log} />;
                 })}

@@ -306,7 +306,11 @@ export default class ModelAPI {
     ): Dictionary<string> {
         let headers: Dictionary<string> = {};
 
-        if (!requestOptions || !requestOptions.isMultiTenantRequest ||  Object.keys(requestOptions).length === 0) {
+        if (
+            !requestOptions ||
+            !requestOptions.isMultiTenantRequest ||
+            Object.keys(requestOptions).length === 0
+        ) {
             const project: Project | null = ProjectUtil.getCurrentProject();
 
             if (project && project.id) {

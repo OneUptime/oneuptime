@@ -109,7 +109,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     return (
         <div id={props.id}>
-            <LogsViewer onFilterChanged={()=>{}} logs={logs} />
+            <LogsViewer onFilterChanged={() => {}} logs={logs} />
         </div>
     );
 };

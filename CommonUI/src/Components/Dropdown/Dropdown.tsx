@@ -108,7 +108,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     return (
         <div
             className={`${
-                props.className || 'relative mt-2 mb-1 rounded-md w-full overflow-visible'
+                props.className ||
+                'relative mt-2 mb-1 rounded-md w-full overflow-visible'
             }`}
             onClick={() => {
                 props.onClick && props.onClick();

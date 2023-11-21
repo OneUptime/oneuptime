@@ -43,7 +43,7 @@ enum Permission {
     CanEditProjectApiKeyPermissions = 'CanEditProjectApiKeyPermissions',
 
     // Logs
-    
+
     CanCreateTelemetryServiceLog = 'CanCreateTelemetryServiceLog',
     CanDeleteTelemetryServiceLog = 'CanDeleteTelemetryServiceLog',
     CanEditTelemetryServiceLog = 'CanEditTelemetryServiceLog',
@@ -2120,8 +2120,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateTelemetryServiceLog,
                 title: 'Can Create Telemetry Service Log',
@@ -2154,8 +2152,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateScheduledMaintenanceOwnerTeam,
