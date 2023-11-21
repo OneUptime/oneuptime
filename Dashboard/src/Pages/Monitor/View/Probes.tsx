@@ -31,6 +31,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
+import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -248,6 +249,19 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                                     probe={item['probe'] as JSONObject}
                                 />
                             );
+                        },
+                    },
+                    {
+                        field: {
+                            probe: {
+                                lastAlive: true,
+                            }
+                        },
+                        title: 'Probe Status',
+                        type: FieldType.Text,
+                        isFilterable: false,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return <ProbeStatusElement probe={item['probe'] as JSONObject} />;
                         },
                     },
                     {

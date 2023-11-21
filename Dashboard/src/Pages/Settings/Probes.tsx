@@ -21,6 +21,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
+import ProbeStatusElement from '../../Components/Probe/ProbeStatus';
 
 const ProbePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -99,36 +100,11 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             field: {
                                 lastAlive: true,
                             },
-                            title: 'Status',
+                            title: 'Probe Status',
                             type: FieldType.Text,
                             isFilterable: false,
                             getElement: (item: JSONObject): ReactElement => {
-                                if (
-                                    item &&
-                                    item['lastAlive'] &&
-                                    OneUptimeDate.getNumberOfMinutesBetweenDates(
-                                        OneUptimeDate.fromString(
-                                            item['lastAlive'] as string
-                                        ),
-                                        OneUptimeDate.getCurrentDate()
-                                    ) < 5
-                                ) {
-                                    return (
-                                        <Statusbubble
-                                            text={'Connected'}
-                                            color={Green}
-                                            shouldAnimate={true}
-                                        />
-                                    );
-                                }
-
-                                return (
-                                    <Statusbubble
-                                        text={'Disconnected'}
-                                        color={Red}
-                                        shouldAnimate={false}
-                                    />
-                                );
+                                return <ProbeStatusElement probe={item} />;
                             },
                         },
                     ]}

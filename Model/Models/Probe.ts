@@ -199,6 +199,7 @@ export default class Probe extends BaseModel {
         isDefaultValueColumn: false,
         required: false,
         type: TableColumnType.Date,
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: true,
