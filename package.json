@@ -7,7 +7,7 @@
     "dependencies": {
         "@types/lodash": "^4.14.200",
         "eslint-plugin-progress": "^0.0.1",
-        "the-new-css-reset": "^1.7.3",
+        "the-new-css-reset": "^1.11.1",
         "ts-node": "^10.9.1",
         "typeorm": "^0.3.14"
     },
