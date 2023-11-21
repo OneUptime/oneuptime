@@ -19,7 +19,7 @@
     "@types/markdown-it": "^12.2.3",
     "@types/node-cron": "^3.0.4",
     "acme-http-01-standalone": "^3.0.5",
-    "axios": "^1.2.1",
+    "axios": "^1.6.2",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "greenlock": "^4.0.4",

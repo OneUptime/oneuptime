@@ -23,7 +23,7 @@
         "@types/markdown-it": "^12.2.3",
         "@types/nodemailer": "^6.4.7",
         "airtable": "^0.11.3",
-        "axios": "^1.3.3",
+        "axios": "^1.6.2",
         "bullmq": "^3.6.6",
         "Common": "file:../Common",
         "cookie-parser": "^1.4.6",

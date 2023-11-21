@@ -13,20 +13,19 @@ export default class AddPostedAtToPublicNotes extends DataMigrationBase {
     public override async migrate(): Promise<void> {
         // get all the users with email isVerified true.
 
-        const incidentPublicNotes: Array<IncidentPublicNote> = await IncidentPublicNoteService.findBy({
-            query: {
-
-            },
-            select: {
-                _id: true,
-                createdAt: true,
-            },
-            skip: 0,
-            limit: LIMIT_MAX,
-            props: {
-                isRoot: true,
-            },
-        });
+        const incidentPublicNotes: Array<IncidentPublicNote> =
+            await IncidentPublicNoteService.findBy({
+                query: {},
+                select: {
+                    _id: true,
+                    createdAt: true,
+                },
+                skip: 0,
+                limit: LIMIT_MAX,
+                props: {
+                    isRoot: true,
+                },
+            });
 
         for (const publicNote of incidentPublicNotes) {
             await IncidentPublicNoteService.updateOneById({
@@ -36,26 +35,25 @@ export default class AddPostedAtToPublicNotes extends DataMigrationBase {
                 },
                 props: {
                     isRoot: true,
-                }
+                },
             });
         }
 
-        // do the same for scheduledeventpublic notes. 
+        // do the same for scheduledeventpublic notes.
 
-        const eventPublicNotes: Array<ScheduledMaintenancePublicNote> = await ScheduledMaintenancePublicNoteService.findBy({
-            query: {
-
-            },
-            select: {
-                _id: true,
-                createdAt: true,
-            },
-            skip: 0,
-            limit: LIMIT_MAX,
-            props: {
-                isRoot: true,
-            },
-        });
+        const eventPublicNotes: Array<ScheduledMaintenancePublicNote> =
+            await ScheduledMaintenancePublicNoteService.findBy({
+                query: {},
+                select: {
+                    _id: true,
+                    createdAt: true,
+                },
+                skip: 0,
+                limit: LIMIT_MAX,
+                props: {
+                    isRoot: true,
+                },
+            });
 
         for (const publicNote of eventPublicNotes) {
             await ScheduledMaintenancePublicNoteService.updateOneById({
@@ -65,10 +63,9 @@ export default class AddPostedAtToPublicNotes extends DataMigrationBase {
                 },
                 props: {
                     isRoot: true,
-                }
+                },
             });
         }
-
     }
 
     public override async rollback(): Promise<void> {

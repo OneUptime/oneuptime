@@ -22,7 +22,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddEndedState(),
     new AddDefaultGlobalConfig(),
     new UpdateGlobalConfigFromEnv(),
-    new AddPostedAtToPublicNotes()
+    new AddPostedAtToPublicNotes(),
 ];
 
 export default DataMigrations;
