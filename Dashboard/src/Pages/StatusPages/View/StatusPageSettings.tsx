@@ -49,7 +49,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                        PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -196,6 +196,44 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Settings"
+                cardProps={{
+                    title: 'Powered By OneUptime Branding',
+                    description: 'Show or hide the Powered By OneUptime Branding',
+                }}
+                editButtonText="Edit Settings"
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            hidePoweredByOneUptimeBranding: true,
+                        },
+                        title: 'Hide Powered By OneUptime Branding',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                        placeholder: 'No',
+                    }
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                hidePoweredByOneUptimeBranding: true,
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Hide Powered By OneUptime Branding',
+                        }
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
         </ModelPage>
     );
 };

@@ -59,6 +59,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     const [headerHtml, setHeaderHtml] = useState<null | string>(null);
     const [footerHtml, setFooterHTML] = useState<null | string>(null);
 
+    const [hidePoweredByOneUptimeBranding, setHidePoweredByOneUptimeBranding] =
+        useState<boolean>(false);
+
     useEffect(() => {
         // if there is an SSO token. We need to save that to localstorage.
 
@@ -199,6 +202,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 response.data || {},
                 'statusPage.headerHTML'
             ) as string | null;
+
+            const hidePoweredByOneUptimeBranding: boolean | null = JSONFunctions.getJSONValueInPath(
+                response.data || {},
+                'statusPage.hidePoweredByOneUptimeBranding'
+            ) as boolean | null;
+
+            setHidePoweredByOneUptimeBranding(Boolean(hidePoweredByOneUptimeBranding));
+
+
             const footHTML: string | null = JSONFunctions.getJSONValueInPath(
                 response.data || {},
                 'statusPage.footerHTML'
@@ -307,6 +319,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     {props.children}
                     {!footerHtml ? (
                         <Footer
+                            hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
                             className="mx-auto w-full py-5 px-0 md:flex md:items-center md:justify-between lg:px-0"
                             copyright={
                                 (JSONFunctions.getJSONValueInPath(

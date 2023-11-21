@@ -1338,4 +1338,43 @@ export default class StatusPage extends BaseModel {
         nullable: true,
     })
     public overviewPageDescription?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Hide Powered By OneUptime Branding',
+        description: 'Hide Powered By OneUptime Branding?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Scale,
+        create: PlanSelect.Free,
+    })
+    public hidePoweredByOneUptimeBranding?: boolean = undefined;
+
 }
