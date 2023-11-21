@@ -23,6 +23,7 @@ export interface ComponentProps {
     tabIndex?: number | undefined;
     error?: string | undefined;
     value?: string | undefined;
+    showLineNumbers?: boolean | undefined;
 }
 
 const CodeEditor: FunctionComponent<ComponentProps> = (
@@ -153,7 +154,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     scrollBeyondLastColumn: 5,
                     scrollBeyondLastLine: true,
                     selectOnLineNumbers: true,
-                    lineNumbers: 'off',
+                    lineNumbers: props.showLineNumbers ? 'on' :'off',
                     selectionClipboard: true,
                     selectionHighlight: true,
                     showFoldingControls: 'mouseover',

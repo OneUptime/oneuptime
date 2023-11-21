@@ -4,6 +4,7 @@ enum CodeType {
     HTML = 'html',
     JSON = 'json',
     Markdown = 'markdown',
+    SQL = 'sql',
     // TODO add more mime types.
 }
 

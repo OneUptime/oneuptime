@@ -75,6 +75,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 {props.logs.map((log: Log, i: number) => {
                     return <LogItem key={i} log={log} />;
                 })}
+
+                {props.logs.length === 0 && (
+                    <div className={`text-slate-200 courier-prime`}>
+                        No logs found for this service.
+                    </div>
+                )}
             </div>
         </div>
     );
