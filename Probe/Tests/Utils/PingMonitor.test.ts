@@ -7,7 +7,7 @@ import Ping, {
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 describe('Ping', () => {
-    jest.setTimeout(120000);
+    jest.setTimeout(240000);
     test('Ping.ping should return appropriate object if the valid hostname is given', async () => {
         let result: PingResponse | null = await Ping.ping(
             new Hostname('google.com')
