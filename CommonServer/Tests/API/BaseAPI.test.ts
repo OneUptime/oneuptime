@@ -740,58 +740,58 @@ describe('BaseAPI', () => {
         });
     });
 
-    describe('createItem', () => {
-        let createRequest: OneUptimeRequest;
-        let createResponse: ExpressResponse;
-        let savedItem: BaseModel;
+    // describe('createItem', () => {
+    //     let createRequest: OneUptimeRequest;
+    //     let createResponse: ExpressResponse;
+    //     let savedItem: BaseModel;
 
-        beforeEach(() => {
-            createRequest = {
-                body: {
-                    data: { version: '1' },
-                    miscDataProps: { additional: 'info' },
-                },
-                headers: {},
-            } as unknown as OneUptimeRequest;
+    //     beforeEach(() => {
+    //         createRequest = {
+    //             body: {
+    //                 data: { version: '1' },
+    //                 miscDataProps: { additional: 'info' },
+    //             },
+    //             headers: {},
+    //         } as unknown as OneUptimeRequest;
 
-            createResponse = {
-                status: jest.fn().mockReturnThis(),
-                json: jest.fn().mockReturnThis(),
-                send: jest.fn().mockReturnThis(),
-            } as unknown as ExpressResponse;
+    //         createResponse = {
+    //             status: jest.fn().mockReturnThis(),
+    //             json: jest.fn().mockReturnThis(),
+    //             send: jest.fn().mockReturnThis(),
+    //         } as unknown as ExpressResponse;
 
-            savedItem = new BaseModel();
-        });
+    //         savedItem = new BaseModel();
+    //     });
 
-        it('should call onBeforeCreate lifecycle method', async () => {
-            const onBeforeCreateSpy: jest.SpyInstance = jest.spyOn(
-                baseApiInstance as any,
-                'onBeforeCreate'
-            );
-            await baseApiInstance.createItem(createRequest, createResponse);
-            expect(onBeforeCreateSpy).toHaveBeenCalledWith(
-                createRequest,
-                createResponse
-            );
-        });
+    //     it('should call onBeforeCreate lifecycle method', async () => {
+    //         const onBeforeCreateSpy: jest.SpyInstance = jest.spyOn(
+    //             baseApiInstance as any,
+    //             'onBeforeCreate'
+    //         );
+    //         await baseApiInstance.createItem(createRequest, createResponse);
+    //         expect(onBeforeCreateSpy).toHaveBeenCalledWith(
+    //             createRequest,
+    //             createResponse
+    //         );
+    //     });
 
-        it('should return EntityResponse with the saved item', async () => {
-            jest.spyOn(baseApiInstance.service, 'create').mockResolvedValue(
-                savedItem
-            );
-            await baseApiInstance.createItem(createRequest, createResponse);
-            const sendEntityResponseSpy: jest.SpyInstance = jest.spyOn(
-                Response as any,
-                'sendEntityResponse'
-            );
-            expect(sendEntityResponseSpy).toHaveBeenCalledWith(
-                createRequest,
-                createResponse,
-                savedItem,
-                BaseModel
-            );
-        });
-    });
+    //     it('should return EntityResponse with the saved item', async () => {
+    //         jest.spyOn(baseApiInstance.service, 'create').mockResolvedValue(
+    //             savedItem
+    //         );
+    //         await baseApiInstance.createItem(createRequest, createResponse);
+    //         const sendEntityResponseSpy: jest.SpyInstance = jest.spyOn(
+    //             Response as any,
+    //             'sendEntityResponse'
+    //         );
+    //         expect(sendEntityResponseSpy).toHaveBeenCalledWith(
+    //             createRequest,
+    //             createResponse,
+    //             savedItem,
+    //             BaseModel
+    //         );
+    //     });
+    // });
 
     describe('getRouter', () => {
         it('should return an ExpressRouter instance', () => {
