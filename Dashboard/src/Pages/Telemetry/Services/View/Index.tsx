@@ -7,14 +7,14 @@ import PageComponentProps from '../../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import Service from 'Model/Models/Service';
+import TelemetryService from 'Model/Models/TelemetryService';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Label from 'Model/Models/Label';
+import BaseModel from 'Common/Models/BaseModel';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -24,7 +24,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
     return (
         <ModelPage
             title="Service"
-            modelType={Service}
+            modelType={TelemetryService}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
@@ -128,7 +128,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
-                    modelType: Service,
+                    modelType: TelemetryService,
                     id: 'model-detail-services',
                     fields: [
                         {
@@ -156,7 +156,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label
@@ -174,7 +174,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                serviceToken: true,
+                                telemetryServiceToken: true,
                             },
                             title: 'Service Token',
                             fieldType: FieldType.HiddenText,

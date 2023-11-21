@@ -4,6 +4,8 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
 import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
+import Route from 'Common/Types/API/Route';
+import Permission from 'Common/Types/Permission';
 
 export default class Log extends AnalyticsBaseModel {
     public constructor() {
@@ -11,7 +13,17 @@ export default class Log extends AnalyticsBaseModel {
             tableName: 'Log',
             tableEngine: AnalyticsTableEngine.MergeTree,
             singularName: 'Log',
+            enableRealtimeEventsOn: {
+                create: true,
+            },
+            accessControl: {
+                read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                update: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanEditTelemetryServiceLog],
+                delete: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanDeleteTelemetryServiceLog],
+            },
             pluralName: 'Logs',
+            crudApiPath: new Route('/logs'),
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',
@@ -19,6 +31,12 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'ID of project',
                     required: true,
                     type: TableColumnType.ObjectID,
+                    isTenantId: true,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -27,6 +45,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'ID of the Service which created the log',
                     required: true,
                     type: TableColumnType.ObjectID,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -35,6 +58,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'When was the log created?',
                     required: true,
                     type: TableColumnType.Date,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -43,6 +71,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'When was the log created?',
                     required: true,
                     type: TableColumnType.LongNumber,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -51,6 +84,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'Log Severity Text',
                     required: true,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -59,6 +97,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'Log Severity Number',
                     required: true,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -67,7 +110,12 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel(),
+                    nestedModelType: KeyValueNestedModel,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -76,6 +124,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'ID of the trace',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -84,6 +137,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'ID of the span',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -92,6 +150,11 @@ export default class Log extends AnalyticsBaseModel {
                     description: 'Body of the Log',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanReadTelemetryServiceLog],
+                        create: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember, Permission.CanCreateTelemetryServiceLog],
+                        update: [],
+                    },
                 }),
             ],
             primaryKeys: ['projectId', 'serviceId', 'time'],
@@ -114,12 +177,12 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('serviceId', v);
     }
 
-    public get name(): string | undefined {
-        return this.getColumnValue('name') as string | undefined;
-    }
-
     public set body(v: string | undefined) {
         this.setColumnValue('body', v);
+    }
+
+    public get body(): string | undefined {
+        return this.getColumnValue('body');
     }
 
     public get time(): Date | undefined {

@@ -8,7 +8,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import Service from 'Model/Models/Service';
+import TelemetryService from 'Model/Models/TelemetryService';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -18,7 +18,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
     return (
         <ModelPage
             title="Service"
-            modelType={Service}
+            modelType={TelemetryService}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
@@ -63,7 +63,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <ModelDelete
-                modelType={Service}
+                modelType={TelemetryService}
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(

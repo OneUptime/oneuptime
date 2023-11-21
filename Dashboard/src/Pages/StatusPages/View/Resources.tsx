@@ -1,5 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import BaseModel from 'Common/Models/BaseModel';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -28,7 +29,6 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import API from 'CommonUI/src/Utils/API/API';
 import StatusPage from 'Model/Models/StatusPage';
@@ -351,7 +351,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorElement
                                         monitor={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitor'
                                                 ] as JSONObject) || [],
@@ -371,7 +371,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorGroupElement
                                         monitorGroup={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitorGroup'
                                                 ] as JSONObject) || [],

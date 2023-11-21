@@ -144,10 +144,7 @@ export default class FindOneBaseModel<
             return {
                 returnValues: {
                     model: model
-                        ? JSONFunctions.toJSON(
-                              model,
-                              this.modelService.modelType
-                          )
+                        ? BaseModel.toJSON(model, this.modelService.modelType)
                         : null,
                 },
                 executePort: successPort,

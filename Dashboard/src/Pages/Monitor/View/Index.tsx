@@ -26,7 +26,6 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
@@ -36,6 +35,7 @@ import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
+import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -350,7 +350,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

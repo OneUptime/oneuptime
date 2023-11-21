@@ -20,8 +20,9 @@ import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
+import BaseModel from 'Common/Models/BaseModel';
+
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -263,7 +264,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

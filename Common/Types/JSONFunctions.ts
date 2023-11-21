@@ -3,8 +3,6 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import OneUptimeDate from './Date';
 import BaseModel from '../Models/BaseModel';
 import { JSONArray, JSONObject, JSONValue, ObjectType } from './JSON';
-import { TableColumnMetadata } from '../Types/Database/TableColumn';
-import TableColumnType from './Database/TableColumnType';
 import SerializableObject from './SerializableObject';
 import SerializableObjectDictionary from './SerializableObjectDictionary';
 import JSON5 from 'json5';
@@ -18,182 +16,6 @@ export default class JSONFunctions {
         }
 
         return Object.keys(obj).length === 0;
-    }
-
-    public static toJSON(
-        model: BaseModel,
-        modelType: { new (): BaseModel }
-    ): JSONObject {
-        const json: JSONObject = this.toJSONObject(model, modelType);
-        return JSONFunctions.serialize(json);
-    }
-
-    public static toJSONObject(
-        model: BaseModel,
-        modelType: { new (): BaseModel }
-    ): JSONObject {
-        const json: JSONObject = {};
-
-        const vanillaModel: BaseModel = new modelType();
-
-        for (const key of vanillaModel.getTableColumns().columns) {
-            if ((model as any)[key] === undefined) {
-                continue;
-            }
-
-            const tableColumnMetadata: TableColumnMetadata =
-                vanillaModel.getTableColumnMetadata(key);
-
-            if (tableColumnMetadata) {
-                if (
-                    (model as any)[key] &&
-                    tableColumnMetadata.modelType &&
-                    tableColumnMetadata.type === TableColumnType.Entity &&
-                    (model as any)[key] instanceof BaseModel
-                ) {
-                    (json as any)[key] = this.toJSONObject(
-                        (model as any)[key],
-                        tableColumnMetadata.modelType
-                    );
-                } else if (
-                    (model as any)[key] &&
-                    Array.isArray((model as any)[key]) &&
-                    (model as any)[key].length > 0 &&
-                    tableColumnMetadata.modelType &&
-                    tableColumnMetadata.type === TableColumnType.EntityArray
-                ) {
-                    (json as any)[key] = this.toJSONObjectArray(
-                        (model as any)[key] as Array<BaseModel>,
-                        tableColumnMetadata.modelType
-                    );
-                } else {
-                    (json as any)[key] = (model as any)[key];
-                }
-            }
-        }
-
-        return json;
-    }
-
-    public static toJSONObjectArray(
-        list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
-    ): JSONArray {
-        const array: JSONArray = [];
-
-        for (const item of list) {
-            array.push(this.toJSONObject(item, modelType));
-        }
-
-        return array;
-    }
-
-    public static toJSONArray(
-        list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
-    ): JSONArray {
-        const array: JSONArray = [];
-
-        for (const item of list) {
-            array.push(this.toJSON(item, modelType));
-        }
-
-        return array;
-    }
-
-    private static _fromJSON<T extends BaseModel>(
-        json: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (json instanceof BaseModel) {
-            return json;
-        }
-
-        json = JSONFunctions.deserialize(json);
-        const baseModel: T = new type();
-
-        for (const key of Object.keys(json)) {
-            const tableColumnMetadata: TableColumnMetadata =
-                baseModel.getTableColumnMetadata(key);
-            if (tableColumnMetadata) {
-                if (
-                    json[key] &&
-                    tableColumnMetadata.modelType &&
-                    tableColumnMetadata.type === TableColumnType.Entity
-                ) {
-                    if (
-                        json[key] &&
-                        Array.isArray(json[key]) &&
-                        (json[key] as Array<any>).length > 0
-                    ) {
-                        json[key] = (json[key] as Array<any>)[0];
-                    }
-
-                    (baseModel as any)[key] = this.fromJSON(
-                        json[key] as JSONObject,
-                        tableColumnMetadata.modelType
-                    );
-                } else if (
-                    json[key] &&
-                    tableColumnMetadata.modelType &&
-                    tableColumnMetadata.type === TableColumnType.EntityArray
-                ) {
-                    if (json[key] && !Array.isArray(json[key])) {
-                        json[key] = [json[key]];
-                    }
-
-                    (baseModel as any)[key] = this.fromJSONArray(
-                        json[key] as JSONArray,
-                        tableColumnMetadata.modelType
-                    );
-                } else {
-                    (baseModel as any)[key] = json[key];
-                }
-            }
-        }
-
-        return baseModel as T;
-    }
-
-    public static fromJSON<T extends BaseModel>(
-        json: JSONObject | JSONArray,
-        type: { new (): T }
-    ): T | Array<T> {
-        if (Array.isArray(json)) {
-            const arr: Array<T> = [];
-
-            for (const item of json) {
-                arr.push(this._fromJSON<T>(item, type));
-            }
-
-            return arr;
-        }
-
-        return this._fromJSON<T>(json, type);
-    }
-
-    public static fromJSONObject<T extends BaseModel>(
-        json: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (json instanceof BaseModel) {
-            return json;
-        }
-
-        return this.fromJSON<T>(json, type) as T;
-    }
-
-    public static fromJSONArray<T extends BaseModel>(
-        json: Array<JSONObject | T>,
-        type: { new (): T }
-    ): Array<T> {
-        const arr: Array<T> = [];
-
-        for (const item of json) {
-            arr.push(this._fromJSON<T>(item, type));
-        }
-
-        return arr;
     }
 
     public static toCompressedString(val: JSONValue): string {
@@ -262,7 +84,7 @@ export default class JSONFunctions {
         ) {
             return val;
         } else if (val instanceof BaseModel) {
-            return this.toJSON(val, BaseModel);
+            return BaseModel.toJSON(val, BaseModel);
         } else if (typeof val === Typeof.Number) {
             return val;
         } else if (ArrayBuffer.isView(val)) {

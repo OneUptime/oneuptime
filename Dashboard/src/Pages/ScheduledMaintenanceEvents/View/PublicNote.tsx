@@ -5,6 +5,7 @@ import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
@@ -17,7 +18,6 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
@@ -73,7 +73,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
             if (scheduledMaintenanceNoteTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         scheduledMaintenanceNoteTemplate,
                         ScheduledMaintenanceNoteTemplate
                     ),
@@ -252,7 +252,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             return (
                                 <UserElement
                                     user={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             item['createdByUser'] as JSONObject,
                                             User
                                         ) as User

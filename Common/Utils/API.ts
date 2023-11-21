@@ -11,6 +11,7 @@ import Hostname from '../Types/API/Hostname';
 import Route from '../Types/API/Route';
 import BaseModel from '../Models/BaseModel';
 import Dictionary from '../Types/Dictionary';
+import AnalyticsBaseModel from '../AnalyticsModels/BaseModel';
 
 export default class API {
     private _protocol: Protocol = Protocol.HTTPS;
@@ -178,7 +179,13 @@ export default class API {
     }
 
     public static async get<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -188,7 +195,13 @@ export default class API {
     }
 
     public static async delete<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -198,7 +211,13 @@ export default class API {
     }
 
     public static async head<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -208,7 +227,13 @@ export default class API {
     }
 
     public static async put<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -218,7 +243,13 @@ export default class API {
     }
 
     public static async post<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         url: URL,
         data?: JSONObject | JSONArray,
@@ -228,7 +259,13 @@ export default class API {
     }
 
     public static async fetch<
-        T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
+        T extends
+            | JSONObject
+            | JSONArray
+            | BaseModel
+            | Array<BaseModel>
+            | AnalyticsBaseModel
+            | Array<AnalyticsBaseModel>
     >(
         method: HTTPMethod,
         url: URL,

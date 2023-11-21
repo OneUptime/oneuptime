@@ -130,7 +130,7 @@ import MonitorGroup from './MonitorGroup';
 import MonitorGroupOwnerTeam from './MonitorGroupOwnerTeam';
 import MonitorGroupOwnerUser from './MonitorGroupOwnerUser';
 import MonitorGroupResource from './MonitorGroupResource';
-import Service from './Service';
+import TelemetryService from './TelemetryService';
 
 export default [
     User,
@@ -249,5 +249,5 @@ export default [
     MonitorGroupOwnerUser,
     MonitorGroupResource,
 
-    Service,
+    TelemetryService,
 ];

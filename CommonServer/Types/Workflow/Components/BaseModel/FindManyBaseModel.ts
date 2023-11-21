@@ -172,7 +172,7 @@ export default class FindManyBaseModel<
 
             return {
                 returnValues: {
-                    models: JSONFunctions.toJSONArray(
+                    models: BaseModel.toJSONArray(
                         models,
                         this.modelService.modelType
                     ),

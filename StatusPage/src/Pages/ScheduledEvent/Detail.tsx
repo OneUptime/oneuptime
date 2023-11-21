@@ -41,6 +41,7 @@ import StatusPageResource from 'Model/Models/StatusPageResource';
 import Dictionary from 'Common/Types/Dictionary';
 import Monitor from 'Model/Models/Monitor';
 import Label from 'Model/Models/Label';
+import BaseModel from 'Common/Models/BaseModel';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -304,7 +305,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
@@ -315,19 +316,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 (data['scheduledMaintenanceEvents'] as JSONArray) || [];
 
             const scheduledMaintenanceEvent: ScheduledMaintenance =
-                JSONFunctions.fromJSONObject(
+                BaseModel.fromJSONObject(
                     (rawAnnouncements[0] as JSONObject) || {},
                     ScheduledMaintenance
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline
                 );
 
             const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );

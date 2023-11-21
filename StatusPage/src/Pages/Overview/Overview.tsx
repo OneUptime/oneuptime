@@ -4,6 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
@@ -154,65 +155,64 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceEvents'] as JSONArray) || [],
                     ScheduledMaintenance
                 );
             const activeAnnouncements: Array<StatusPageAnnouncement> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['activeAnnouncements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const activeIncidents: Array<Incident> =
-                JSONFunctions.fromJSONArray(
-                    (data['activeIncidents'] as JSONArray) || [],
-                    Incident
-                );
+            const activeIncidents: Array<Incident> = BaseModel.fromJSONArray(
+                (data['activeIncidents'] as JSONArray) || [],
+                Incident
+            );
             const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['monitorStatusTimelines'] as JSONArray) || [],
                     MonitorStatusTimeline
                 );
             const resourceGroups: Array<StatusPageGroup> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['resourceGroups'] as JSONArray) || [],
                     StatusPageGroup
                 );
             const monitorStatuses: Array<MonitorStatus> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['monitorStatuses'] as JSONArray) || [],
                     MonitorStatus
                 );
             const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
 
-            const statusPage: StatusPage = JSONFunctions.fromJSONObject(
+            const statusPage: StatusPage = BaseModel.fromJSONObject(
                 (data['statusPage'] as JSONObject) || [],
                 StatusPage
             );
 
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline

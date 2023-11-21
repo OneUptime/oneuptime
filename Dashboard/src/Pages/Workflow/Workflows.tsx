@@ -14,7 +14,6 @@ import Label from 'Model/Models/Label';
 import DashboardNavigation from '../../Utils/Navigation';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ModelProgress from 'CommonUI/src/Components/ModelProgress/ModelProgress';
@@ -22,6 +21,7 @@ import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import OneUptimeDate from 'Common/Types/Date';
 import InBetween from 'Common/Types/Database/InBetween';
+import BaseModel from 'Common/Models/BaseModel';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -198,7 +198,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

@@ -4,7 +4,8 @@ import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import OneUptimeDate from '../Types/Date';
 import BadDataException from '../Types/Exception/BadDataException';
-import { JSONObject, JSONValue } from '../Types/JSON';
+import { JSONArray, JSONObject, JSONValue } from '../Types/JSON';
+import JSONFunctions from '../Types/JSONFunctions';
 import ObjectID from '../Types/ObjectID';
 
 export type RecordValue =
@@ -111,6 +112,39 @@ export default class CommonModel {
         return this.tableColumns;
     }
 
+    public static fromJSON<T extends CommonModel>(
+        json: JSONObject | JSONArray | CommonModel | Array<CommonModel>,
+        type: { new (): T }
+    ): T | Array<T> {
+        if (Array.isArray(json)) {
+            const arr: Array<T> = [];
+
+            for (const item of json) {
+                if (item instanceof CommonModel) {
+                    arr.push(item as T);
+                    continue;
+                }
+
+                arr.push(new type().fromJSON(item) as T);
+            }
+
+            return arr;
+        }
+
+        if (json instanceof CommonModel) {
+            return json as T;
+        }
+
+        return new type().fromJSON(json) as T;
+    }
+
+    public static toJSON<T extends CommonModel>(
+        model: T,
+        _modelType: { new (): T }
+    ): JSONObject {
+        return model.toJSON();
+    }
+
     public fromJSON(json: JSONObject): CommonModel {
         for (const key in json) {
             this.setColumnValue(key, json[key]);
@@ -133,12 +167,10 @@ export default class CommonModel {
             }
 
             if (recordValue instanceof Array) {
-                if (
-                    recordValue.length > 0 &&
-                    recordValue[0] instanceof CommonModel
-                ) {
+                if (recordValue.length > 0 && column.nestedModelType) {
                     json[column.key] = CommonModel.toJSONArray(
-                        recordValue as Array<CommonModel>
+                        recordValue as Array<CommonModel>,
+                        column.nestedModelType
                     );
                 }
 
@@ -148,16 +180,21 @@ export default class CommonModel {
             json[column.key] = recordValue;
         });
 
-        return json;
+        return JSONFunctions.serialize(json);
     }
 
     public static fromJSONArray<TBaseModel extends CommonModel>(
-        modelType: { new (): CommonModel },
-        jsonArray: Array<JSONObject>
+        jsonArray: Array<JSONObject | CommonModel>,
+        modelType: { new (): CommonModel }
     ): Array<TBaseModel> {
         const models: Array<CommonModel> = [];
 
-        jsonArray.forEach((json: JSONObject) => {
+        jsonArray.forEach((json: JSONObject | CommonModel) => {
+            if (json instanceof CommonModel) {
+                models.push(json);
+                return;
+            }
+
             const model: CommonModel = new modelType();
             model.fromJSON(json);
             models.push(model);
@@ -166,11 +203,14 @@ export default class CommonModel {
         return models as Array<TBaseModel>;
     }
 
-    public static toJSONArray(models: Array<CommonModel>): Array<JSONObject> {
+    public static toJSONArray(
+        models: Array<CommonModel>,
+        modelType: { new (): CommonModel }
+    ): Array<JSONObject> {
         const json: Array<JSONObject> = [];
 
         models.forEach((model: CommonModel) => {
-            json.push(model.toJSON());
+            json.push(this.toJSON(model, modelType));
         });
 
         return json;

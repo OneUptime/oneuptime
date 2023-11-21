@@ -15,7 +15,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Monitor from 'Model/Models/Monitor';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -26,6 +25,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import MonitorGroup from 'Model/Models/MonitorGroup';
+import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -204,7 +204,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorElement
                                         monitor={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitor'
                                                 ] as JSONObject) || [],

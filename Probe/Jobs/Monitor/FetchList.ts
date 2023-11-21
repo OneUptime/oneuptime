@@ -5,10 +5,10 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Monitor from 'Model/Models/Monitor';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import BaseModel from 'Common/Models/BaseModel';
 import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
 import MonitorUtil from '../../Utils/Monitors/Monitor';
 import logger from 'CommonServer/Utils/Logger';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import { JSONArray } from 'Common/Types/JSON';
 import OneUptimeDate from 'Common/Types/Date';
 import Sleep from 'Common/Types/Sleep';
@@ -72,7 +72,7 @@ export default class FetchListAndProbe {
             logger.info('Fetched monitor list');
             logger.info(result);
 
-            const monitors: Array<Monitor> = JSONFunctions.fromJSONArray(
+            const monitors: Array<Monitor> = BaseModel.fromJSONArray(
                 result.data as JSONArray,
                 Monitor
             );

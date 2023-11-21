@@ -28,6 +28,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Info}
                 />
+            </SideMenuSection>
+            <SideMenuSection title="Telemetry">
                 <SideMenuItem
                     link={{
                         title: 'Logs',
@@ -51,6 +53,30 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.RectangleStack}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Metrics',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.ChartBar}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Dashboards',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.Window}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">

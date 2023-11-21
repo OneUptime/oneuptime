@@ -26,7 +26,6 @@ import BaseModel from 'Common/Models/BaseModel';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Label from 'Model/Models/Label';
 import LabelsElement from '../../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import GlobalEvent from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../../Utils/EventName';
 import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
@@ -271,7 +270,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitors'
                                                 ] as JSONArray) || [],
@@ -295,7 +294,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <OnCallDutyPoliciesView
                                         onCallPolicies={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'onCallDutyPolicies'
                                                 ] as JSONArray) || [],
@@ -326,7 +325,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

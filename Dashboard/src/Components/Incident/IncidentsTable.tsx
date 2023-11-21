@@ -15,7 +15,6 @@ import LabelsElement from '../../Components/Label/Labels';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -34,6 +33,7 @@ import IncidentTemplateOwnerUser from 'Model/Models/IncidentTemplateOwnerUser';
 import IncidentTemplateOwnerTeam from 'Model/Models/IncidentTemplateOwnerTeam';
 import ObjectID from 'Common/Types/ObjectID';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -108,7 +108,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             if (incidentTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         incidentTemplate,
                         IncidentTemplate
                     ),
@@ -519,7 +519,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             return (
                                 <MonitorsElement
                                     monitors={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
                                                 [],
                                             Monitor
@@ -560,7 +560,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

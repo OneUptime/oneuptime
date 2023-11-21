@@ -1,11 +1,17 @@
 import BaseModel from '../../Models/BaseModel';
+import AnalyticsBaseModel from '../../AnalyticsModels/BaseModel';
 import { JSONArray, JSONObject, JSONObjectOrArray } from '../JSON';
 import JSONFunctions from '../JSONFunctions';
 import Typeof from '../Typeof';
 import Headers from './Headers';
 
 export default class HTTPResponse<
-    T extends JSONObjectOrArray | BaseModel | Array<BaseModel>
+    T extends
+        | JSONObjectOrArray
+        | BaseModel
+        | Array<BaseModel>
+        | AnalyticsBaseModel
+        | Array<AnalyticsBaseModel>
 > {
     private _statusCode: number = -1;
     public get statusCode(): number {

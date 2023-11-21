@@ -4,10 +4,10 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 
 import useAsyncEffect from 'use-async-effect';
@@ -80,7 +80,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const announcements: Array<StatusPageAnnouncement> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['announcements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );

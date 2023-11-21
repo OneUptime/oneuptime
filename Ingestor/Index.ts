@@ -12,6 +12,7 @@ import OTelIngestAPI from './API/OTelIngest';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 
 import Redis from 'CommonServer/Infrastructure/Redis';
+import Realtime from 'CommonServer/Utils/Realtime';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -39,6 +40,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
         await ClickhouseAppInstance.connect(
             ClickhouseAppInstance.getDatasourceOptions()
         );
+
+        Realtime.init();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

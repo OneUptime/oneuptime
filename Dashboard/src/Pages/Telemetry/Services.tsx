@@ -5,16 +5,16 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Service from 'Model/Models/Service';
+import TelemetryService from 'Model/Models/TelemetryService';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import SideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 
 const Services: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -44,8 +44,8 @@ const Services: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu />}
         >
-            <ModelTable<Service>
-                modelType={Service}
+            <ModelTable<TelemetryService>
+                modelType={TelemetryService}
                 id="services-table"
                 isDeleteable={false}
                 isEditable={false}
@@ -124,7 +124,7 @@ const Services: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

@@ -28,12 +28,12 @@ describe('JSONFunctions Class', () => {
 
     describe('toJSON and fromJSON Methods', () => {
         test('toJSON returns a valid JSON object', () => {
-            const json: JSONObject = JSONFunctions.toJSON(baseModel, BaseModel);
+            const json: JSONObject = BaseModel.toJSON(baseModel, BaseModel);
             expect(json).toEqual(expect.objectContaining({}));
         });
 
         test('toJSONObject returns a valid JSON object', () => {
-            const json: JSONObject = JSONFunctions.toJSONObject(
+            const json: JSONObject = BaseModel.toJSONObject(
                 baseModel,
                 BaseModel
             );
@@ -42,7 +42,7 @@ describe('JSONFunctions Class', () => {
 
         test('fromJSON returns a BaseModel instance', () => {
             const json: JSONObject = { name: 'oneuptime' };
-            const result: BaseModel | BaseModel[] = JSONFunctions.fromJSON(
+            const result: BaseModel | BaseModel[] = BaseModel.fromJSON(
                 json,
                 BaseModel
             );

@@ -14,7 +14,6 @@ import Field from './Field';
 import DetailField from '../Detail/Field';
 import Detail from '../Detail/Detail';
 import API from '../../Utils/API/API';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { useAsyncEffect } from 'use-async-effect';
 import User from '../../Utils/User';
@@ -258,7 +257,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     return (
         <Detail
             id={props.id}
-            item={JSONFunctions.toJSONObject(item, props.modelType)}
+            item={BaseModel.toJSONObject(item, props.modelType)}
             fields={fields}
             showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
         />

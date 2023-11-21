@@ -38,6 +38,7 @@ import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import Section from '../../Components/Section/Section';
+import BaseModel from 'Common/Models/BaseModel';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -149,26 +150,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceEvents'] as JSONArray) || [],
                     ScheduledMaintenance
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline
                 );
 
             const statusPageResources: Array<StatusPageResource> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
@@ -179,7 +180,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ) as Dictionary<Array<ObjectID>>;
 
             const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
-                JSONFunctions.fromJSONArray(
+                BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStates'] as JSONArray) || [],
                     ScheduledMaintenanceState
                 );

@@ -27,7 +27,6 @@ import Label from 'Model/Models/Label';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import OneUptimeDate from 'Common/Types/Date';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
@@ -286,7 +285,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitors'
                                                 ] as JSONArray) || [],
@@ -310,7 +309,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <StatusPagesElement
                                         statusPages={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'statusPages'
                                                 ] as JSONArray) || [],
@@ -355,7 +354,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

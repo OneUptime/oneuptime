@@ -25,10 +25,7 @@ import {
 } from 'Common/Types/Database/LimitMax';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
-import { IsBillingEnabled } from '../EnvironmentConfig';
-import ProjectService from '../Services/ProjectService';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import UserType from 'Common/Types/UserType';
+import CommonAPI from './CommonAPI';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -192,7 +189,7 @@ export default class BaseAPI<
         const permissions: Array<UserPermission> = [];
 
         const props: DatabaseCommonInteractionProps =
-            await this.getDatabaseCommonInteractionProps(req);
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
 
         if (
             props &&
@@ -215,63 +212,6 @@ export default class BaseAPI<
         }
 
         return null;
-    }
-
-    public async getDatabaseCommonInteractionProps(
-        req: ExpressRequest
-    ): Promise<DatabaseCommonInteractionProps> {
-        const props: DatabaseCommonInteractionProps = {
-            tenantId: undefined,
-            userGlobalAccessPermission: undefined,
-            userTenantAccessPermission: undefined,
-            userId: undefined,
-            userType: (req as OneUptimeRequest).userType,
-            isMultiTenantRequest: undefined,
-        };
-
-        if (
-            (req as OneUptimeRequest).userAuthorization &&
-            (req as OneUptimeRequest).userAuthorization?.userId
-        ) {
-            props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
-        }
-
-        if ((req as OneUptimeRequest).userGlobalAccessPermission) {
-            props.userGlobalAccessPermission = (
-                req as OneUptimeRequest
-            ).userGlobalAccessPermission;
-        }
-
-        if ((req as OneUptimeRequest).userTenantAccessPermission) {
-            props.userTenantAccessPermission = (
-                req as OneUptimeRequest
-            ).userTenantAccessPermission;
-        }
-
-        if ((req as OneUptimeRequest).tenantId) {
-            props.tenantId = (req as OneUptimeRequest).tenantId || undefined;
-        }
-
-        if (req.headers['is-multi-tenant-query']) {
-            props.isMultiTenantRequest = true;
-        }
-
-        if (IsBillingEnabled && props.tenantId) {
-            const plan: {
-                plan: PlanSelect | null;
-                isSubscriptionUnpaid: boolean;
-            } = await ProjectService.getCurrentPlan(props.tenantId!);
-            props.currentPlan = plan.plan || undefined;
-            props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
-        }
-
-        // check for root permissions.
-
-        if (props.userType === UserType.MasterAdmin) {
-            props.isMasterAdmin = true;
-        }
-
-        return props;
     }
 
     public async getList(
@@ -313,7 +253,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-            await this.getDatabaseCommonInteractionProps(req);
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
 
         const list: Array<BaseModel> = await this.service.findBy({
             query,
@@ -353,7 +293,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-            await this.getDatabaseCommonInteractionProps(req);
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
 
         const count: PositiveNumber = await this.service.countBy({
             query,
@@ -382,7 +322,7 @@ export default class BaseAPI<
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
             select,
-            props: await this.getDatabaseCommonInteractionProps(req),
+            props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEntityResponse(req, res, item, this.entityType);
@@ -399,7 +339,7 @@ export default class BaseAPI<
             query: {
                 _id: objectId.toString(),
             },
-            props: await this.getDatabaseCommonInteractionProps(req),
+            props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -427,7 +367,7 @@ export default class BaseAPI<
                 _id: objectIdString,
             },
             data: item,
-            props: await this.getDatabaseCommonInteractionProps(req),
+            props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -440,7 +380,7 @@ export default class BaseAPI<
         await this.onBeforeCreate(req, res);
         const body: JSONObject = req.body;
 
-        const item: TBaseModel = JSONFunctions.fromJSON<TBaseModel>(
+        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
             body['data'] as JSONObject,
             this.entityType
         ) as TBaseModel;
@@ -452,7 +392,7 @@ export default class BaseAPI<
         const createBy: CreateBy<TBaseModel> = {
             data: item,
             miscDataProps: miscDataProps,
-            props: await this.getDatabaseCommonInteractionProps(req),
+            props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         };
 
         const savedItem: BaseModel = await this.service.create(createBy);

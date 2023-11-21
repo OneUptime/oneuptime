@@ -16,7 +16,9 @@ import {
     OnUpdate,
 } from '../Types/AnalyticsDatabase/Hooks';
 import Typeof from 'Common/Types/Typeof';
-import ModelPermission from '../Types/AnalyticsDatabase/ModelPermission';
+import ModelPermission, {
+    CheckReadPermissionType,
+} from '../Types/AnalyticsDatabase/ModelPermission';
 import ObjectID from 'Common/Types/ObjectID';
 import Exception from 'Common/Types/Exception/Exception';
 import API from 'Common/Utils/API';
@@ -32,7 +34,6 @@ import UpdateBy from '../Types/AnalyticsDatabase/UpdateBy';
 import FindBy from '../Types/AnalyticsDatabase/FindBy';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import Query from '../Types/AnalyticsDatabase/Query';
 import Select from '../Types/AnalyticsDatabase/Select';
 import { ExecResult } from '@clickhouse/client';
 import { Stream } from 'node:stream';
@@ -43,6 +44,11 @@ import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
 import OneUptimeDate from 'Common/Types/Date';
 import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
 import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
+import CountBy from '../Types/AnalyticsDatabase/CountBy';
+import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
+import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
+import Realtime from '../Utils/Realtime';
+import { ModelEventType } from 'Common/Utils/Realtime';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -74,6 +80,40 @@ export default class AnalyticsDatabaseService<
         });
     }
 
+    public async countBy(
+        countBy: CountBy<TBaseModel>
+    ): Promise<PositiveNumber> {
+        try {
+            const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+                await ModelPermission.checkReadPermission(
+                    this.modelType,
+                    countBy.query,
+                    null,
+                    countBy.props
+                );
+
+            countBy.query = checkReadPermissionType.query;
+
+            const countStatement: string = this.toCountStatement(countBy);
+
+            const dbResult: ExecResult<Stream> = await this.execute(
+                countStatement
+            );
+
+            const strResult: string = await StreamUtil.convertStreamToText(
+                dbResult.stream
+            );
+
+            let countPositive: PositiveNumber = new PositiveNumber(strResult);
+
+            countPositive = await this.onCountSuccess(countPositive);
+            return countPositive;
+        } catch (error) {
+            await this.onCountError(error as Exception);
+            throw this.getException(error as Exception);
+        }
+    }
+
     public async findBy(
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
@@ -84,6 +124,9 @@ export default class AnalyticsDatabaseService<
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
         try {
+
+            debugger;
+            
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
@@ -111,15 +154,13 @@ export default class AnalyticsDatabaseService<
                 (onBeforeFind.select as any)['_id'] = true;
             }
 
-            const result: {
-                query: Query<TBaseModel>;
-                select: Select<TBaseModel> | null;
-            } = await ModelPermission.checkReadPermission(
-                this.modelType,
-                onBeforeFind.query,
-                onBeforeFind.select || null,
-                onBeforeFind.props
-            );
+            const result: CheckReadPermissionType<TBaseModel> =
+                await ModelPermission.checkReadPermission(
+                    this.modelType,
+                    onBeforeFind.query,
+                    onBeforeFind.select || null,
+                    onBeforeFind.props
+                );
 
             onBeforeFind.query = result.query;
             onBeforeFind.select = result.select || undefined;
@@ -151,8 +192,8 @@ export default class AnalyticsDatabaseService<
 
             let items: Array<TBaseModel> =
                 AnalyticsBaseModel.fromJSONArray<TBaseModel>(
-                    this.modelType,
-                    jsonItems
+                    jsonItems,
+                    this.modelType
                 );
 
             items = this.sanitizeFindByItems(items, onBeforeFind);
@@ -229,6 +270,36 @@ export default class AnalyticsDatabaseService<
         return Promise.resolve({ findBy, carryForward: null });
     }
 
+    public toCountStatement(countBy: CountBy<TBaseModel>): string {
+        if (!this.database) {
+            this.useDefaultDatabase();
+        }
+
+        let statement: string = `SELECT count() FROM ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
+        ${
+            Object.keys(countBy.query).length > 0 ? 'WHERE' : ''
+        } ${this.statementGenerator.toWhereStatement(countBy.query)}
+        `;
+
+        if (countBy.limit) {
+            statement += `
+            LIMIT ${countBy.limit.toString()}
+            `;
+        }
+
+        if (countBy.skip) {
+            statement += `
+            OFFSET ${countBy.skip.toString()}
+            `;
+        }
+        logger.info(`${this.model.tableName} Count Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
     public toFindStatement(findBy: FindBy<TBaseModel>): {
         statement: string;
         columns: Array<string>;
@@ -247,8 +318,8 @@ export default class AnalyticsDatabaseService<
             Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
         } ${this.statementGenerator.toWhereStatement(findBy.query)}
         ORDER BY ${this.statementGenerator.toSortStatemennt(findBy.sort!)}
-        LIMIT ${findBy.limit}
-        OFFSET ${findBy.skip}
+        LIMIT ${findBy.limit.toString()}
+        OFFSET ${findBy.skip.toString()}
         `;
 
         logger.info(`${this.model.tableName} Find Statement`);
@@ -262,13 +333,25 @@ export default class AnalyticsDatabaseService<
             this.useDefaultDatabase();
         }
 
-        const statement: string = `ALTER TABLE ${
+        let statement: string = `ALTER TABLE ${
             this.database.getDatasourceOptions().database
         }.${this.model.tableName} 
             DELETE ${
                 Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
             } ${this.statementGenerator.toWhereStatement(deleteBy.query)}
         `;
+
+        if (deleteBy.limit) {
+            statement += `
+            LIMIT ${deleteBy.limit.toString()}
+            `;
+        }
+
+        if (deleteBy.skip) {
+            statement += `
+            OFFSET ${deleteBy.skip.toString()}
+            `;
+        }
 
         logger.info(`${this.model.tableName} Delete Statement`);
         logger.info(statement);
@@ -289,6 +372,14 @@ export default class AnalyticsDatabaseService<
             return documents[0];
         }
         return null;
+    }
+
+    public async deleteOneBy(deleteBy: DeleteOneBy<TBaseModel>): Promise<void> {
+        return await this._deleteBy({
+            ...deleteBy,
+            limit: 1,
+            skip: 0,
+        });
     }
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
@@ -338,6 +429,15 @@ export default class AnalyticsDatabaseService<
             },
             select: findOneById.select || {},
             props: findOneById.props,
+        });
+    }
+
+    public async updateOneBy(
+        updateOneBy: UpdateOneBy<TBaseModel>
+    ): Promise<void> {
+        return await this._updateBy({
+            ...updateOneBy,
+            limit: 1,
         });
     }
 
@@ -586,6 +686,42 @@ export default class AnalyticsDatabaseService<
                     if (tenantId) {
                         await this.onTrigger(item.id!, tenantId, 'on-create');
                     }
+                }
+            }
+
+            // emit realtime events to the client.
+            if (
+                this.getModel().enableRealtimeEventsOn?.create &&
+                this.model.getTenantColumn()
+            ) {
+                if (Realtime.isInitialized()) {
+                    const promises: Array<Promise<void>> = [];
+
+                    for (const item of items) {
+                        const tenantId: ObjectID | null =
+                            item.getTenantColumnValue();
+
+                        if (!tenantId) {
+                            continue;
+                        }
+
+                        promises.push(
+                            Realtime.emitModelEvent({
+                                model: item,
+                                tenantId: tenantId,
+                                eventType: ModelEventType.Create,
+                                modelType: this.modelType,
+                            })
+                        );
+                    }
+
+                    await Promise.allSettled(promises);
+                } else {
+                    logger.warn(
+                        `Realtime is not initialized. Skipping emitModelEvent for ${
+                            this.getModel().tableName
+                        }`
+                    );
                 }
             }
 

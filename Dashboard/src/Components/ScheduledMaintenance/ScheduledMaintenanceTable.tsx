@@ -16,11 +16,11 @@ import Route from 'Common/Types/API/Route';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../StatusPage/StatusPagesLabel';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
 import OneUptimeDate from 'Common/Types/Date';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../Utils/ProjectUser';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;
@@ -316,7 +316,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         return (
                             <MonitorsElement
                                 monitors={
-                                    JSONFunctions.fromJSON(
+                                    BaseModel.fromJSON(
                                         (item['monitors'] as JSONArray) || [],
                                         Monitor
                                     ) as Array<Monitor>
@@ -349,7 +349,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         return (
                             <StatusPagesElement
                                 statusPages={
-                                    JSONFunctions.fromJSON(
+                                    BaseModel.fromJSON(
                                         (item['statusPages'] as JSONArray) ||
                                             [],
                                         StatusPage
@@ -398,7 +398,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         return (
                             <LabelsElement
                                 labels={
-                                    JSONFunctions.fromJSON(
+                                    BaseModel.fromJSON(
                                         (item['labels'] as JSONArray) || [],
                                         Label
                                     ) as Array<Label>

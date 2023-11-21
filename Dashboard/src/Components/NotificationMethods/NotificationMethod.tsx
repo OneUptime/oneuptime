@@ -1,7 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -11,7 +10,7 @@ export interface ComponentProps {
 const NotificationMethodView: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const item: BaseModel = JSONFunctions.fromJSONObject(
+    const item: BaseModel = BaseModel.fromJSONObject(
         props.item,
         props.modelType
     );

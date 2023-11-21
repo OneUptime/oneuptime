@@ -5,6 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -19,7 +20,6 @@ import Project from 'Model/Models/Project';
 import Team from 'Model/Models/Team';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import TeamsElement from '../../Components/Team/TeamsElement';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
 import URL from 'Common/Types/API/URL';
@@ -276,7 +276,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <TeamsElement
                                         teams={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['teams'] as JSONArray) ||
                                                     [],
                                                 Team

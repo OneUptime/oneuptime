@@ -12,12 +12,12 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -148,7 +148,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

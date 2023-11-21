@@ -30,7 +30,6 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import { ButtonStyleType } from '../Button/Button';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import API from '../../Utils/API/API';
 import { FormStep } from './Types/FormStep';
 import Field from './Types/Field';
@@ -292,7 +291,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         );
 
         if (!(item instanceof BaseModel) && item) {
-            item = JSONFunctions.fromJSON(
+            item = BaseModel.fromJSON(
                 item as JSONObject,
                 props.modelType
             ) as BaseModel;
@@ -524,7 +523,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 }
             }
 
-            let tBaseModel: TBaseModel = JSONFunctions.fromJSON(
+            let tBaseModel: TBaseModel = BaseModel.fromJSON(
                 valuesToSend,
                 props.modelType
             ) as TBaseModel;
@@ -552,7 +551,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
             if (props.onSuccess) {
                 props.onSuccess(
-                    JSONFunctions.fromJSONObject(result.data, props.modelType),
+                    BaseModel.fromJSONObject(result.data, props.modelType),
                     miscData
                 );
             }

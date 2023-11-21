@@ -5,6 +5,7 @@ import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
@@ -14,7 +15,6 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -143,7 +143,7 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

@@ -6,12 +6,12 @@ import Name from 'Common/Types/Name';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import { JSONObject } from 'Common/Types/JSON';
 import User from 'Model/Models/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Analytics from 'CommonUI/src/Utils/Analytics';
+import BaseModel from 'Common/Models/BaseModel';
 
 export default abstract class LoginUtil {
     public static login(value: JSONObject): void {
-        const user: User = JSONFunctions.fromJSON(
+        const user: User = BaseModel.fromJSON(
             value['user'] as JSONObject,
             User
         ) as User;

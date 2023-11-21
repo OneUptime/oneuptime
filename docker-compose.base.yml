@@ -365,6 +365,7 @@ services:
         restart: always
         ports:
           - '4317:4317'
+          - '4318:4318'
 
 
     ingestor:

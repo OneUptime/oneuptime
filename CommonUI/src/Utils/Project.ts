@@ -1,12 +1,12 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
 import Project from 'Model/Models/Project';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
 import { BILLING_ENABLED, getAllEnvVars } from '../Config';
 import ObjectID from 'Common/Types/ObjectID';
+import BaseModel from 'Common/Models/BaseModel';
 
 export default class ProjectUtil {
     public static getCurrentProject(): Project | null {
@@ -16,7 +16,7 @@ export default class ProjectUtil {
         const projectJson: JSONObject = LocalStorage.getItem(
             'current_project'
         ) as JSONObject;
-        return JSONFunctions.fromJSON(projectJson, Project) as Project;
+        return BaseModel.fromJSON(projectJson, Project) as Project;
     }
 
     public static getCurrentProjectId(): ObjectID | null {
@@ -25,7 +25,7 @@ export default class ProjectUtil {
 
     public static setCurrentProject(project: JSONObject | Project): void {
         if (project instanceof Project) {
-            project = JSONFunctions.toJSON(project, Project);
+            project = BaseModel.toJSON(project, Project);
         }
         LocalStorage.setItem('current_project', project);
     }

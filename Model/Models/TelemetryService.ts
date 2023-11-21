@@ -38,26 +38,26 @@ import Label from './Label';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateService,
+        Permission.CanCreateTelemetryService,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
         Permission.ProjectMember,
-        Permission.CanReadService,
+        Permission.CanReadTelemetryService,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteService,
+        Permission.CanDeleteTelemetryService,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditService,
+        Permission.CanEditTelemetryService,
     ],
 })
 @EnableWorkflow({
@@ -66,33 +66,33 @@ import Label from './Label';
     update: true,
     read: true,
 })
-@CrudApiEndpoint(new Route('/service'))
+@CrudApiEndpoint(new Route('/telemetry-service'))
 @SlugifyColumn('name', 'slug')
 @TableMetadata({
-    tableName: 'Service',
-    singularName: 'Service',
-    pluralName: 'Services',
+    tableName: 'TelemetryService',
+    singularName: 'Telemetry Service',
+    pluralName: 'Telemetry Services',
     icon: IconProp.SquareStack,
     tableDescription:
-        'Organize resources for your project by using labels / tags.',
+        'Telemetry Services are the services that you can use to monitor your services. You can create multiple Telemetry Services and use them to monitor your services.',
 })
 @Entity({
-    name: 'Service',
+    name: 'TelemetryService',
 })
-export default class Service extends BaseModel {
+export default class TelemetryService extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [],
     })
@@ -123,14 +123,14 @@ export default class Service extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [],
     })
@@ -155,20 +155,20 @@ export default class Service extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditService,
+            Permission.CanEditTelemetryService,
         ],
     })
     @TableColumn({
@@ -193,7 +193,7 @@ export default class Service extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [],
     })
@@ -216,20 +216,20 @@ export default class Service extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditService,
+            Permission.CanEditTelemetryService,
         ],
     })
     @TableColumn({
@@ -250,14 +250,14 @@ export default class Service extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [],
     })
@@ -288,14 +288,14 @@ export default class Service extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [],
     })
@@ -319,7 +319,7 @@ export default class Service extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [],
     })
@@ -352,7 +352,7 @@ export default class Service extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [],
     })
@@ -374,20 +374,20 @@ export default class Service extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditService,
+            Permission.CanEditTelemetryService,
         ],
     })
     @TableColumn({
@@ -411,7 +411,7 @@ export default class Service extends BaseModel {
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'serviceId',
+            name: 'telemetryServiceId',
             referencedColumnName: '_id',
         },
     })
@@ -422,20 +422,20 @@ export default class Service extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateService,
+            Permission.CanCreateTelemetryService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.ProjectMember,
-            Permission.CanReadService,
+            Permission.CanReadTelemetryService,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditService,
+            Permission.CanEditTelemetryService,
         ],
     })
     @Index()
@@ -443,12 +443,12 @@ export default class Service extends BaseModel {
         type: TableColumnType.ObjectID,
         isDefaultValueColumn: false,
         title: 'Service Token',
-        description: 'Service Token for this service',
+        description: 'Service Token for this telemetry service',
     })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public serviceToken?: ObjectID = undefined;
+    public telemetryServiceToken?: ObjectID = undefined;
 }

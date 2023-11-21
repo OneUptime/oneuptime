@@ -10,7 +10,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from '../Alerts/Alert';
 import FormValues from '../Forms/Types/FormValues';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -94,7 +93,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
                         onSuccess={(data: TBaseModel) => {
                             props.onSuccess &&
                                 props.onSuccess(
-                                    JSONFunctions.fromJSONObject(
+                                    BaseModel.fromJSONObject(
                                         data as TBaseModel,
                                         props.modelType
                                     )

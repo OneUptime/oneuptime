@@ -1,5 +1,4 @@
 import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Image from '../Image/Image';
 import URL from 'Common/Types/API/URL';
@@ -7,6 +6,7 @@ import { FILE_URL } from '../../Config';
 import Probe from 'Model/Models/Probe';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     probe?: Probe | JSONObject | undefined | null;
@@ -18,7 +18,7 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
     let probe: JSONObject | null | undefined = null;
 
     if (props.probe instanceof Probe) {
-        probe = JSONFunctions.toJSONObject(props.probe, Probe);
+        probe = BaseModel.toJSONObject(props.probe, Probe);
     } else {
         probe = props.probe;
     }

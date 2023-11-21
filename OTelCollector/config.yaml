@@ -1,10 +1,19 @@
+extensions:
+  headers_setter:
+    headers:
+      - action: upsert
+        key: x-oneuptime-service-token
+        from_context: x-oneuptime-service-token
+
 processors:
 
 receivers:
   otlp:
     protocols:
       grpc:
+        include_metadata: true
       http:
+        include_metadata: true
 
 
 
@@ -12,8 +21,14 @@ exporters:
   otlphttp:
     endpoint: "http://ingestor:3400/otel"
     headers: {"Content-Type": "application/json"}
+    auth:
+      authenticator: headers_setter
 
 service:
+  telemetry:
+    logs:
+      level: "debug"
+  extensions: [ headers_setter ]
   pipelines:
     traces:
       receivers: [otlp]

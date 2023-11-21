@@ -7,6 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import BaseModel from 'Common/Models/BaseModel';
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
 import ModelTable, {
     ShowTableAs,
@@ -17,7 +18,6 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
@@ -67,7 +67,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
 
             if (incidentNoteTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         incidentNoteTemplate,
                         IncidentNoteTemplate
                     ),
@@ -228,7 +228,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <UserElement
                                     user={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             item['createdByUser'] as JSONObject,
                                             User
                                         ) as User

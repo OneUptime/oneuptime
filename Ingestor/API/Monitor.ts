@@ -23,8 +23,8 @@ import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthoriza
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Query from 'CommonServer/Types/Database/Query';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import logger from 'CommonServer/Utils/Logger';
+import BaseModel from 'Common/Models/BaseModel';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -173,7 +173,7 @@ router.get(
 
             return Response.sendJsonObjectResponse(req, res, {
                 firstMonitorToBeFetched: firstMonitorToBeFetched
-                    ? JSONFunctions.toJSONObject(
+                    ? BaseModel.toJSONObject(
                           firstMonitorToBeFetched,
                           MonitorProbe
                       )

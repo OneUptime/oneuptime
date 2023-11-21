@@ -4,6 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
@@ -25,7 +26,6 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import EventItem, {
     ComponentProps as EventItemComponentProps,
 } from 'CommonUI/src/Components/EventItem/EventItem';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { Blue } from 'Common/Types/BrandColors';
@@ -111,7 +111,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 (data['announcements'] as JSONArray) || [];
 
             const announcement: StatusPageAnnouncement =
-                JSONFunctions.fromJSONObject(
+                BaseModel.fromJSONObject(
                     (rawAnnouncements[0] as JSONObject) || {},
                     StatusPageAnnouncement
                 );

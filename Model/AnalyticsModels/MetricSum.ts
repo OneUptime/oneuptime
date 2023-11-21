@@ -4,6 +4,7 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
 import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
+import Route from 'Common/Types/API/Route';
 
 export default class Metric extends AnalyticsBaseModel {
     public constructor() {
@@ -11,6 +12,7 @@ export default class Metric extends AnalyticsBaseModel {
             tableName: 'MetricSum',
             tableEngine: AnalyticsTableEngine.MergeTree,
             singularName: 'Metric Sum',
+            crudApiPath: new Route('/metrics/sum'),
             pluralName: 'Metrics Sum',
             tableColumns: [
                 new AnalyticsTableColumn({
@@ -19,6 +21,7 @@ export default class Metric extends AnalyticsBaseModel {
                     description: 'ID of project',
                     required: true,
                     type: TableColumnType.ObjectID,
+                    isTenantId: true,
                 }),
 
                 new AnalyticsTableColumn({
@@ -85,7 +88,7 @@ export default class Metric extends AnalyticsBaseModel {
                     description: 'Attributes',
                     required: false,
                     type: TableColumnType.NestedModel,
-                    nestedModel: new KeyValueNestedModel(),
+                    nestedModelType: KeyValueNestedModel,
                 }),
 
                 new AnalyticsTableColumn({

@@ -15,7 +15,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
-import JSONFunctions from 'Common/Types/JSONFunctions';
+import BaseModel from 'Common/Models/BaseModel';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -145,7 +145,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

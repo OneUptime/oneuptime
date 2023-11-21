@@ -4,6 +4,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
@@ -13,7 +14,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../../Components/Label/Labels';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Label from 'Model/Models/Label';
 
 const Delete: FunctionComponent<PageComponentProps> = (
@@ -169,7 +169,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

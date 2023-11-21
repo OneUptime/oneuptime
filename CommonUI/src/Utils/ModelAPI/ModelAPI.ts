@@ -144,7 +144,7 @@ export default class ModelAPI {
                 apiUrl,
                 {
                     data: JSONFunctions.serialize(
-                        JSONFunctions.toJSON(model, modelType)
+                        BaseModel.toJSON(model, modelType)
                     ),
                     miscDataProps: miscDataProps || {},
                 },
@@ -165,7 +165,7 @@ export default class ModelAPI {
                 delete (result.data as any)['_miscData'];
             }
 
-            result.data = JSONFunctions.fromJSONObject(result.data, modelType);
+            result.data = BaseModel.fromJSONObject(result.data, modelType);
 
             return result;
         }
@@ -229,7 +229,7 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const list: Array<TBaseModel> = JSONFunctions.fromJSONArray(
+            const list: Array<TBaseModel> = BaseModel.fromJSONArray(
                 result.data as JSONArray,
                 modelType
             );
@@ -306,7 +306,7 @@ export default class ModelAPI {
     ): Dictionary<string> {
         let headers: Dictionary<string> = {};
 
-        if (!requestOptions || !requestOptions.isMultiTenantRequest) {
+        if (!requestOptions || !requestOptions.isMultiTenantRequest ||  Object.keys(requestOptions).length === 0) {
             const project: Project | null = ProjectUtil.getCurrentProject();
 
             if (project && project.id) {
@@ -375,7 +375,7 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            return JSONFunctions.fromJSONObject(
+            return BaseModel.fromJSONObject(
                 result.data as JSONObject,
                 modelType
             );

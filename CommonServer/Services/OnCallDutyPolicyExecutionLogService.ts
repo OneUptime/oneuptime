@@ -11,6 +11,7 @@ import UserNotificationEventType from 'Common/Types/UserNotification/UserNotific
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays('createdAt', 30);
     }
 
     protected override async onBeforeCreate(

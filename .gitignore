@@ -97,3 +97,5 @@ Llama/Models/tokenizer*
 Llama/Models/llama*
 
 Llama/__pycache__/*
+
+Examples/otel-dotnet/obj

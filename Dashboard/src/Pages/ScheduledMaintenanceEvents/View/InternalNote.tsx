@@ -17,7 +17,6 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
@@ -31,6 +30,7 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ScheduledMaintenanceNoteTemplate from 'Model/Models/ScheduledMaintenanceNoteTemplate';
+import BaseModel from 'Common/Models/BaseModel';
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -72,7 +72,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
 
             if (scheduledMaintenanceNoteTemplate) {
                 const initialValue: JSONObject = {
-                    ...JSONFunctions.toJSONObject(
+                    ...BaseModel.toJSONObject(
                         scheduledMaintenanceNoteTemplate,
                         ScheduledMaintenanceNoteTemplate
                     ),
@@ -238,7 +238,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <UserElement
                                     user={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             item['createdByUser'] as JSONObject,
                                             User
                                         ) as User

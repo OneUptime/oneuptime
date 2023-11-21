@@ -23,8 +23,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
 import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
-import ServiceService from 'CommonServer/Services/ServiceService';
-import Service from 'Model/Models/Service';
+import TelemetryServiceService from 'CommonServer/Services/TelemetryServiceService';
+import TelemetryService from 'Model/Models/TelemetryService';
 
 // Load proto file for OTel
 
@@ -72,7 +72,11 @@ router.use(
 
             // check header.
 
-            if (!req.headers['oneuptime-service-token']) {
+            const serviceTokenInHeader: string | undefined = req.headers[
+                'x-oneuptime-service-token'
+            ] as string | undefined;
+
+            if (!serviceTokenInHeader) {
                 throw new BadRequestException(
                     'Missing header: oneuptime-service-token'
                 );
@@ -80,29 +84,30 @@ router.use(
 
             const cachedServiceId: string | null = await GlobalCache.getString(
                 'service-token',
-                req.headers['oneuptime-service-token'] as string
+                serviceTokenInHeader as string
             );
             const serviceProjectId: string | null = await GlobalCache.getString(
                 'service-project-id',
-                req.headers['oneuptime-service-token'] as string
+                serviceTokenInHeader as string
             );
 
             if (!cachedServiceId || !serviceProjectId) {
                 // load from the database and set the cache.
-                const service: Service | null = await ServiceService.findOneBy({
-                    query: {
-                        serviceToken: new ObjectID(
-                            req.headers['oneuptime-service-token'] as string
-                        ),
-                    },
-                    select: {
-                        _id: true,
-                        projectId: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
+                const service: TelemetryService | null =
+                    await TelemetryServiceService.findOneBy({
+                        query: {
+                            telemetryServiceToken: new ObjectID(
+                                serviceTokenInHeader as string
+                            ),
+                        },
+                        select: {
+                            _id: true,
+                            projectId: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
 
                 if (!service) {
                     throw new BadRequestException('Invalid service token');
@@ -110,12 +115,12 @@ router.use(
 
                 await GlobalCache.setString(
                     'service-token',
-                    req.headers['oneuptime-service-token'] as string,
+                    serviceTokenInHeader as string,
                     service._id?.toString() as string
                 );
                 await GlobalCache.setString(
                     'service-project-id',
-                    req.headers['oneuptime-service-token'] as string,
+                    serviceTokenInHeader as string,
                     service.projectId?.toString() as string
                 );
 

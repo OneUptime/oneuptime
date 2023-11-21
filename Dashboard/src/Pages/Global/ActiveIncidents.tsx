@@ -14,7 +14,7 @@ import Monitor from 'Model/Models/Monitor';
 import Color from 'Common/Types/Color';
 import ProjectElement from '../../Components/Project/Project';
 import Project from 'Model/Models/Project';
-import JSONFunctions from 'Common/Types/JSONFunctions';
+import BaseModel from 'Common/Models/BaseModel';
 
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -90,7 +90,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                             return (
                                 <ProjectElement
                                     project={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['project'] as JSONObject) ||
                                                 [],
                                             Project
@@ -198,7 +198,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                             return (
                                 <MonitorsElement
                                     monitors={
-                                        JSONFunctions.fromJSON(
+                                        BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
                                                 [],
                                             Monitor

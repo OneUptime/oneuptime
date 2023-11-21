@@ -37,4 +37,5 @@ export class Service extends DatabaseService<Model> {
         return Promise.resolve({ createBy, carryForward: null });
     }
 }
+
 export default new Service();

@@ -5,6 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
+import BaseModel from 'Common/Models/BaseModel';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
@@ -22,7 +23,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import MonitorsElement from '../../Components/Monitor/Monitors';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import OnCallDutyPoliciesView from '../../Components/OnCallPolicy/OnCallPolicies';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -320,7 +320,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'monitors'
                                                 ] as JSONArray) || [],
@@ -344,7 +344,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <OnCallDutyPoliciesView
                                         onCallPolicies={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'onCallDutyPolicies'
                                                 ] as JSONArray) || [],
@@ -375,7 +375,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

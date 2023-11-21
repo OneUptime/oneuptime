@@ -11,10 +11,10 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import Card from 'CommonUI/src/Components/Card/Card';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import useAsyncEffect from 'use-async-effect';
@@ -288,7 +288,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

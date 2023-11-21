@@ -26,7 +26,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Route from 'Common/Types/API/Route';
 import logger from 'CommonServer/Utils/Logger';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
@@ -36,6 +35,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import CookieUtil from 'CommonServer/Utils/Cookie';
+import BaseModel from 'Common/Models/BaseModel';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -121,7 +121,7 @@ router.post(
                     },
                 });
             } else {
-                const user: User = JSONFunctions.fromJSON(
+                const user: User = BaseModel.fromJSON(
                     partialUser as JSONObject,
                     User
                 ) as User;
@@ -216,7 +216,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = JSONFunctions.fromJSON(
+            const user: User = BaseModel.fromJSON(
                 data as JSONObject,
                 User
             ) as User;
@@ -298,7 +298,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const token: EmailVerificationToken = JSONFunctions.fromJSON(
+            const token: EmailVerificationToken = BaseModel.fromJSON(
                 data as JSONObject,
                 EmailVerificationToken
             ) as EmailVerificationToken;
@@ -404,7 +404,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = JSONFunctions.fromJSON(
+            const user: User = BaseModel.fromJSON(
                 data as JSONObject,
                 User
             ) as User;
@@ -513,7 +513,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = JSONFunctions.fromJSON(
+            const user: User = BaseModel.fromJSON(
                 data as JSONObject,
                 User
             ) as User;

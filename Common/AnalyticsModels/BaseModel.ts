@@ -8,19 +8,23 @@ import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
+import Route from '../Types/API/Route';
+import { EnableRealtimeEventsOn } from '../Utils/Realtime';
 
-export default class AnalyticsDataModel extends CommonModel {
+export default class AnalyticsBaseModel extends CommonModel {
     public constructor(data: {
         tableName: string;
         singularName: string;
         pluralName: string;
         tableEngine?: AnalyticsTableEngine | undefined;
         tableColumns: Array<AnalyticsTableColumn>;
+        crudApiPath: Route;
         allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
         tableBillingAccessControl?: TableBillingAccessControl | undefined;
         accessControl?: TableAccessControl | undefined;
         primaryKeys: Array<string>; // this should be the subset of tableColumns
         enableWorkflowOn?: EnableWorkflowOn | undefined;
+        enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     }) {
         super({
             tableColumns: data.tableColumns,
@@ -100,6 +104,8 @@ export default class AnalyticsDataModel extends CommonModel {
             data.allowAccessIfSubscriptionIsUnpaid || false;
         this.accessControl = data.accessControl;
         this.enableWorkflowOn = data.enableWorkflowOn;
+        this.crudApiPath = data.crudApiPath;
+        this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
 
         // initialize Arrays.
         for (const column of this.tableColumns) {
@@ -139,6 +145,14 @@ export default class AnalyticsDataModel extends CommonModel {
     }
     public set tableEngine(v: AnalyticsTableEngine) {
         this._tableEngine = v;
+    }
+
+    private _enableRealtimeEventsOn: EnableRealtimeEventsOn | undefined;
+    public get enableRealtimeEventsOn(): EnableRealtimeEventsOn | undefined {
+        return this._enableRealtimeEventsOn;
+    }
+    public set enableRealtimeEventsOn(v: EnableRealtimeEventsOn | undefined) {
+        this._enableRealtimeEventsOn = v;
     }
 
     private _primaryKeys: Array<string> = [];
@@ -185,6 +199,14 @@ export default class AnalyticsDataModel extends CommonModel {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
 
+    private _crudApiPath!: Route;
+    public get crudApiPath(): Route {
+        return this._crudApiPath;
+    }
+    public set crudApiPath(v: Route) {
+        this._crudApiPath = v;
+    }
+
     public getTenantColumn(): AnalyticsTableColumn | null {
         const column: AnalyticsTableColumn | undefined = this.tableColumns.find(
             (column: AnalyticsTableColumn) => {
@@ -197,6 +219,16 @@ export default class AnalyticsDataModel extends CommonModel {
         }
 
         return column;
+    }
+
+    public getTenantColumnValue(): ObjectID | null {
+        const column: AnalyticsTableColumn | null = this.getTenantColumn();
+
+        if (!column) {
+            return null;
+        }
+
+        return this.getColumnValue(column.key) as ObjectID | null;
     }
 
     public getRequiredColumns(): Array<AnalyticsTableColumn> {

@@ -42,6 +42,13 @@ enum Permission {
     CanEditProjectApiKey = 'CanEditProjectApiKey',
     CanEditProjectApiKeyPermissions = 'CanEditProjectApiKeyPermissions',
 
+    // Logs
+    
+    CanCreateTelemetryServiceLog = 'CanCreateTelemetryServiceLog',
+    CanDeleteTelemetryServiceLog = 'CanDeleteTelemetryServiceLog',
+    CanEditTelemetryServiceLog = 'CanEditTelemetryServiceLog',
+    CanReadTelemetryServiceLog = 'CanReadTelemetryServiceLog',
+
     // Billing Permissions (Owner Permission)
     CanManageProjectBilling = 'CanManageProjectBilling',
 
@@ -58,10 +65,10 @@ enum Permission {
     CanEditProjectProbe = 'CanEditProjectProbe',
     CanReadProjectProbe = 'CanReadProjectProbe',
 
-    CanCreateService = 'CanCreateService',
-    CanDeleteService = 'CanDeleteService',
-    CanEditService = 'CanEditService',
-    CanReadService = 'CanReadService',
+    CanCreateTelemetryService = 'CanCreateTelemetryService',
+    CanDeleteTelemetryService = 'CanDeleteTelemetryService',
+    CanEditTelemetryService = 'CanEditTelemetryService',
+    CanReadTelemetryService = 'CanReadTelemetryService',
 
     CanCreateMonitorGroupResource = 'CanCreateMonitorGroupResource',
     CanDeleteMonitorGroupResource = 'CanDeleteMonitorGroupResource',
@@ -1834,31 +1841,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateService,
-                title: 'Can Create Service',
-                description: 'This permission can create Service this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: true,
-            },
-            {
-                permission: Permission.CanDeleteService,
-                title: 'Can Delete Service',
+                permission: Permission.CanCreateTelemetryService,
+                title: 'Can Create Telemetry Service',
                 description:
-                    'This permission can delete Service of this project.',
+                    'This permission can create Telemetry Service this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditService,
-                title: 'Can Edit Service',
+                permission: Permission.CanDeleteTelemetryService,
+                title: 'Can Delete Telemetry Service',
                 description:
-                    'This permission can edit Service of this project.',
+                    'This permission can delete Telemetry Service of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadService,
-                title: 'Can Read Service',
+                permission: Permission.CanEditTelemetryService,
+                title: 'Can Edit Telemetry Service',
+                description:
+                    'This permission can edit Telemetry Service of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanReadTelemetryService,
+                title: 'Can Read Telemetry Service',
                 description:
                     'This permission can read Service of this project.',
                 isAssignableToTenant: true,
@@ -2111,6 +2119,43 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+
+            {
+                permission: Permission.CanCreateTelemetryServiceLog,
+                title: 'Can Create Telemetry Service Log',
+                description:
+                    'This permission can create Telemetry Service Log this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteTelemetryServiceLog,
+                title: 'Can Delete Telemetry Service Log',
+                description:
+                    'This permission can delete Telemetry Service Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditTelemetryServiceLog,
+                title: 'Can Edit Telemetry Service Log',
+                description:
+                    'This permission can edit Telemetry Service Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadTelemetryServiceLog,
+                title: 'Can Read Telemetry Service Log',
+                description:
+                    'This permission can read Telemetry Service Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
 
             {
                 permission: Permission.CanCreateScheduledMaintenanceOwnerTeam,

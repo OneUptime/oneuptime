@@ -187,6 +187,8 @@ import TelemetryServiceView from './Pages/Telemetry/Services/View/Index';
 import TelemetryServiceViewDelete from './Pages/Telemetry/Services/View/Delete';
 import TelemetryServiceViewLogs from './Pages/Telemetry/Services/View/Logs/Index';
 import TelemetryServiceViewTraces from './Pages/Telemetry/Services/View/Traces/Index';
+import TelemetryServiceViewMetrics from './Pages/Telemetry/Services/View/Metrics/Index';
+import TelemetryServiceViewDahboard from './Pages/Telemetry/Services/View/Dashboard/Index';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -468,6 +470,42 @@ const App: () => JSX.Element = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServiceViewMetrics
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <TelemetryServiceViewDahboard
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
                                 ] as Route
                             }
                         />

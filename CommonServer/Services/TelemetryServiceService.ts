@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/Service';
+import Model from 'Model/Models/TelemetryService';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import { OnCreate } from '../Types/Database/Hooks';
@@ -13,7 +13,7 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-        createBy.data.serviceToken = ObjectID.generate();
+        createBy.data.telemetryServiceToken = ObjectID.generate();
 
         return {
             carryForward: null,

@@ -3,6 +3,7 @@ import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import WorkflowLogs from 'Model/Models/WorkflowLog';
@@ -13,7 +14,6 @@ import WorkflowSideMenu from './SideMenu';
 import { JSONObject } from 'Common/Types/JSON';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowElement from '../../Components/Workflow/WorkflowElement';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -104,7 +104,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <WorkflowElement
                                         workflow={
-                                            JSONFunctions.fromJSON(
+                                            BaseModel.fromJSON(
                                                 (item[
                                                     'workflow'
                                                 ] as JSONObject) || [],

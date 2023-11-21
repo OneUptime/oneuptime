@@ -29,7 +29,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): string {
-        const statement: string = `ALTER TABLE ${
+        let statement: string = `ALTER TABLE ${
             this.database.getDatasourceOptions().database
         }.${this.model.tableName} 
         UPDATE ${this.toSetStatement(updateBy.data)}
@@ -37,6 +37,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             Object.keys(updateBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
         } ${this.toWhereStatement(updateBy.query)}
         `;
+
+        if (updateBy.limit) {
+            statement += ` LIMIT ${updateBy.limit}`;
+        }
 
         logger.info(`${this.model.tableName} Update Statement`);
         logger.info(statement);
@@ -284,7 +288,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 throw new BadDataException(`Unknown column: ${key}`);
             }
 
-            whereStatement += `${key} = ${this.sanitizeValue(
+            whereStatement += ` ${key} = ${this.sanitizeValue(
                 value,
                 tableColumn
             )} AND`;
