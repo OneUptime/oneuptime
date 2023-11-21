@@ -1,4 +1,3 @@
-
 import React, { FunctionComponent, ReactElement } from 'react';
 import Probe from 'Model/Models/Probe';
 import { JSONObject } from 'Common/Types/JSON';
@@ -14,12 +13,10 @@ const ProbeStatusElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     if (
-       props.probe &&
-       props.probe['lastAlive'] &&
+        props.probe &&
+        props.probe['lastAlive'] &&
         OneUptimeDate.getNumberOfMinutesBetweenDates(
-            OneUptimeDate.fromString(
-               props.probe['lastAlive'] as string
-            ),
+            OneUptimeDate.fromString(props.probe['lastAlive'] as string),
             OneUptimeDate.getCurrentDate()
         ) < 5
     ) {
@@ -33,11 +30,7 @@ const ProbeStatusElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <Statusbubble
-            text={'Disconnected'}
-            color={Red}
-            shouldAnimate={false}
-        />
+        <Statusbubble text={'Disconnected'} color={Red} shouldAnimate={false} />
     );
 };
 

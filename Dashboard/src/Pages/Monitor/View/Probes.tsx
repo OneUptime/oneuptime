@@ -255,13 +255,17 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         field: {
                             probe: {
                                 lastAlive: true,
-                            }
+                            },
                         },
                         title: 'Probe Status',
                         type: FieldType.Text,
                         isFilterable: false,
                         getElement: (item: JSONObject): ReactElement => {
-                            return <ProbeStatusElement probe={item['probe'] as JSONObject} />;
+                            return (
+                                <ProbeStatusElement
+                                    probe={item['probe'] as JSONObject}
+                                />
+                            );
                         },
                     },
                     {
