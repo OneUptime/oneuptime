@@ -203,13 +203,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 'statusPage.headerHTML'
             ) as string | null;
 
-            const hidePoweredByOneUptimeBranding: boolean | null = JSONFunctions.getJSONValueInPath(
-                response.data || {},
-                'statusPage.hidePoweredByOneUptimeBranding'
-            ) as boolean | null;
+            const hidePoweredByOneUptimeBranding: boolean | null =
+                JSONFunctions.getJSONValueInPath(
+                    response.data || {},
+                    'statusPage.hidePoweredByOneUptimeBranding'
+                ) as boolean | null;
 
-            setHidePoweredByOneUptimeBranding(Boolean(hidePoweredByOneUptimeBranding));
-
+            setHidePoweredByOneUptimeBranding(
+                Boolean(hidePoweredByOneUptimeBranding)
+            );
 
             const footHTML: string | null = JSONFunctions.getJSONValueInPath(
                 response.data || {},
@@ -319,7 +321,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     {props.children}
                     {!footerHtml ? (
                         <Footer
-                            hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
+                            hidePoweredByOneUptimeBranding={
+                                hidePoweredByOneUptimeBranding
+                            }
                             className="mx-auto w-full py-5 px-0 md:flex md:items-center md:justify-between lg:px-0"
                             copyright={
                                 (JSONFunctions.getJSONValueInPath(

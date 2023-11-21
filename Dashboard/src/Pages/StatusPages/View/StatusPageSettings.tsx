@@ -49,7 +49,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                            PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -201,7 +201,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 name="Status Page > Settings"
                 cardProps={{
                     title: 'Powered By OneUptime Branding',
-                    description: 'Show or hide the Powered By OneUptime Branding',
+                    description:
+                        'Show or hide the Powered By OneUptime Branding',
                 }}
                 editButtonText="Edit Settings"
                 isEditable={true}
@@ -214,7 +215,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         placeholder: 'No',
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -227,13 +228,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Hide Powered By OneUptime Branding',
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-
-
         </ModelPage>
     );
 };

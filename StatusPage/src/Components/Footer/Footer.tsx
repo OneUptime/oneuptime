@@ -13,11 +13,7 @@ export interface ComponentProps {
 const StatusPageFooter: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const links = [
-        ...props.links,
-
-    ];
+    const links: Array<Link> = [...props.links];
 
     if (!props.hidePoweredByOneUptimeBranding) {
         links.push({

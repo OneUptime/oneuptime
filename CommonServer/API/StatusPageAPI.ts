@@ -231,7 +231,7 @@ export default class StatusPageAPI extends BaseAPI<
                         copyrightText: true,
                         customCSS: true,
                         customJavaScript: true,
-                        hidePoweredByOneUptimeBranding:  true,
+                        hidePoweredByOneUptimeBranding: true,
                         headerHTML: true,
                         footerHTML: true,
                         enableSubscribers: true,

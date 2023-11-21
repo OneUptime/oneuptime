@@ -1339,7 +1339,6 @@ export default class StatusPage extends BaseModel {
     })
     public overviewPageDescription?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -1376,5 +1375,4 @@ export default class StatusPage extends BaseModel {
         create: PlanSelect.Free,
     })
     public hidePoweredByOneUptimeBranding?: boolean = undefined;
-
 }
