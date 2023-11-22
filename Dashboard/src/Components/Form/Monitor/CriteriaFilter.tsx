@@ -44,7 +44,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         if (
             props.monitorType === MonitorType.Ping ||
-            props.monitorType === MonitorType.IP
+            props.monitorType === MonitorType.IP || 
+            props.monitorType === MonitorType.Port
         ) {
             options = options.filter((i: DropdownOption) => {
                 return (

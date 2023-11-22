@@ -14,7 +14,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';
 
 export interface ComponentProps {
-    initialValue?: undefined | string | number;
+    initialValue?: undefined | string;
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;

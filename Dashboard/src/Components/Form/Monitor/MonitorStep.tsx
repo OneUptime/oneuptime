@@ -217,7 +217,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 required={true}
                             />
                             <Input
-                                initialValue={monitorStep?.data?.monitorDestinationPort?.toNumber()}
+                                initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
                                 onChange={(value: string) => {
                                     const port = new Port(value);
                                     monitorStep.setPort(port);

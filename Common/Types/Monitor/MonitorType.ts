@@ -64,6 +64,12 @@ export class MonitorTypeHelper {
                 description:
                     'This monitor types lets you ping OneUptime from any external device or service with a custom payload.',
             },
+            {
+                monitorType: MonitorType.Port,
+                title: 'Port',
+                description:
+                    'This monitor types lets you monitor any TCP or UDP port.',
+            }
         ];
 
         return monitorTypeProps;
