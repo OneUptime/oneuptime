@@ -9,6 +9,7 @@ import net from 'net';
 import Sleep from 'Common/Types/Sleep';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Port from 'Common/Types/Port';
+import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
 
 // TODO - make sure it  work for the IPV6
 export interface PortMonitorResponse {
@@ -99,11 +100,11 @@ export default class PortMonitor {
         pingOptions?: PingOptions
     ): Promise<PortMonitorResponse | null> {
 
-        if(!pingOptions){
+        if (!pingOptions) {
             pingOptions = {};
         }
 
-        if(pingOptions?.currentRetryCount === undefined){
+        if (pingOptions?.currentRetryCount === undefined) {
             pingOptions.currentRetryCount = 1;
         }
 
@@ -129,8 +130,7 @@ export default class PortMonitor {
         }
 
         logger.info(
-            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${
-                pingOptions?.currentRetryCount
+            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${pingOptions?.currentRetryCount
             }`
         );
 
@@ -142,13 +142,20 @@ export default class PortMonitor {
 
                 const socket = new net.Socket();
 
-                socket.setTimeout(pingOptions?.timeout?.toNumber() || 5000);
+                const timeout: number = pingOptions?.timeout?.toNumber() || 5000;
+
+                socket.setTimeout(timeout);
 
                 if (!port) {
                     throw new BadDataException('Port is not specified');
                 }
 
+
+                let hasPromiseResolved: boolean = false;
+
                 socket.connect(port.toNumber(), hostAddress, () => {
+
+
                     const endTime: [number, number] = process.hrtime(startTime);
                     const responseTimeInMS: PositiveNumber = new PositiveNumber(
                         (endTime[0] * 1000000000 + endTime[1]) / 1000000
@@ -159,12 +166,39 @@ export default class PortMonitor {
                     );
 
                     socket.destroy(); // Close the connection after success
-                    return resolve(responseTimeInMS);
+                    if (!hasPromiseResolved) {
+                        resolve(responseTimeInMS);
+                    }
+
+                    hasPromiseResolved = true;
+                    return;
+
+                });
+
+                socket.on('timeout', () => {
+                    socket.destroy();
+                    logger.info('Ping timeout');
+
+
+                    if (!hasPromiseResolved) {
+                        reject(new UnableToReachServer('Ping timeout'));
+                    }
+
+                    hasPromiseResolved = true;
+                    return;
+
                 });
 
                 socket.on('error', error => {
-                    reject(error);
+                    socket.destroy();
                     logger.info('Could not connect to: ' + host + ':' + port);
+
+                    if (!hasPromiseResolved) {
+                        reject(error);
+                    }
+
+                    hasPromiseResolved = true;
+                    return;
                 });
             });
 
