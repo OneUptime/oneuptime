@@ -9,7 +9,7 @@ export interface ComponentProps {
     className?: string | undefined;
 }
 
-const HeaderAlert: Function = (props: ComponentProps): ReactElement => {
+const HeaderAlert: (props: ComponentProps) => ReactElement = (props: ComponentProps): ReactElement => {
     return (
         <div
             className={`rounded-md ${props.className} p-3 pr-4`}
