@@ -17,7 +17,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/ping": "^0.4.1",
+    "@types/ping": "^0.4.3",
     "axios": "^1.6.2",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
