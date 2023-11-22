@@ -70,7 +70,7 @@ describe('StatementGenerator', () => {
                     'column_Decimal = 234.56, ' +
                     'column_ArrayNumber = [3, 4, 5], ' +
                     "column_ArrayText = ['<value-1>', '<value-2>'], " +
-                    "column_LongNumber = 12345678901234567890"
+                    "column_LongNumber = CAST('12345678901234567890' AS Int128)"
             );
         });
 
@@ -93,14 +93,14 @@ describe('StatementGenerator', () => {
                 '0; DROP TABLE Students;--'
             );
             expect(generator.toSetStatement(model)).toEqual(
-                "column_ObjectID = 'Robert'; DROP TABLE Students;--', " + // TODO unsafe!
-                "column_Number = NULL, " +
-                "column_Text = 'Robert'; DROP TABLE Students;--', " + // TODO unsafe!
-                "column_JSON = '{\"key\":\"Robert'; DROP TABLE Students;--\"}', " + // TODO unsafe!
-                "column_Decimal = NULL, " +
-                "column_ArrayNumber = []; DROP TABLE Students;--], " + // TODO unsafe!
-                "column_ArrayText = ['Robert']; DROP TABLE Students;--'], " + // TODO unsafe!
-                "column_LongNumber = 0; DROP TABLE Students;--" // TODO unsafe!
+                "column_ObjectID = 'Robert\\'; DROP TABLE Students;--', " +
+                    'column_Number = NULL, ' +
+                    "column_Text = 'Robert\\'; DROP TABLE Students;--', " +
+                    'column_JSON = \'{"key":"Robert\\\'; DROP TABLE Students;--"}\', ' +
+                    'column_Decimal = NULL, ' +
+                    'column_ArrayNumber = [NULL], ' +
+                    "column_ArrayText = ['Robert\\']; DROP TABLE Students;--'], " +
+                    "column_LongNumber = CAST('0; DROP TABLE Students;--' AS Int128)"
             );
         });
 

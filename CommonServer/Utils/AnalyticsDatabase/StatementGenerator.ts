@@ -190,6 +190,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return record;
     }
 
+    private escapeStringLiteral(raw: string): string {
+        // escape String literal based on https://clickhouse.com/docs/en/sql-reference/syntax#string
+        return `'${raw.replace(/'|\\/g, '\\$&')}'`;
+    }
+
     private sanitizeValue(
         value: RecordValue | undefined,
         column: AnalyticsTableColumn,
@@ -215,7 +220,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             column.type === TableColumnType.ObjectID ||
             column.type === TableColumnType.Text
         ) {
-            value = `'${value?.toString()}'`;
+            value = this.escapeStringLiteral(value?.toString());
         }
 
         if (column.type === TableColumnType.Date && value instanceof Date) {
@@ -239,6 +244,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         if (column.type === TableColumnType.ArrayNumber) {
             value = `[${(value as Array<number>)
                 .map((v: number) => {
+                    if (v && typeof v !== 'number') {
+                        v = parseFloat(v);
+                        return isNaN(v) ? 'NULL' : v;
+                    }
                     return v;
                 })
                 .join(', ')}]`;
@@ -247,13 +256,19 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         if (column.type === TableColumnType.ArrayText) {
             value = `[${(value as Array<string>)
                 .map((v: string) => {
-                    return `'${v}'`;
+                    return this.escapeStringLiteral(v);
                 })
                 .join(', ')}]`;
         }
 
         if (column.type === TableColumnType.JSON) {
-            value = `'${JSON.stringify(value)}'`;
+            value = this.escapeStringLiteral(JSON.stringify(value));
+        }
+
+        if (column.type === TableColumnType.LongNumber) {
+            value = `CAST(${this.escapeStringLiteral(
+                value.toString()
+            )} AS Int128)`;
         }
 
         return value;
