@@ -11,7 +11,7 @@
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "Model": "file:../Model",
-        "react": "^18.1.0",
+        "react": "^18.2.0",
         "react-dnd": "^16.0.1",
         "react-dnd-html5-backend": "^16.0.1",
         "react-dom": "^18.1.0",
@@ -20,7 +20,6 @@
         "react-router-dom": "^6.3.0",
         "reactflow": "^11.5.3",
         "stripe": "^11.0.0",
-        
         "use-async-effect": "^2.2.6"
     },
     "scripts": {
@@ -29,7 +28,7 @@
         "test": "react-app-rewired test",
         "eject": "webpack eject",
         "compile": "tsc",
-    "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
+        "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "start": "node --require ts-node/register Serve.ts",
         "audit": "npm audit --audit-level=low",
         "configure": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
@@ -53,7 +52,7 @@
         "@testing-library/user-event": "^13.5.0",
         "@types/jest": "^27.5.1",
         "@types/node": "^16.11.35",
-        "@types/react": "^18.0.9",
+        "@types/react": "^18.2.38",
         "@types/react-dom": "^18.0.4",
         "@types/react-router-dom": "^5.3.3",
         "css-loader": "^6.7.1",

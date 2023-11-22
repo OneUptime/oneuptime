@@ -6,7 +6,8 @@
     "scripts": {
         "test": "jest --detectOpenHandles",
         "coverage": "jest --detectOpenHandles --coverage",
-        "compile": "tsc"
+        "compile": "tsc",
+        "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install"
     },
     "author": "",
     "license": "MIT",
@@ -19,8 +20,8 @@
         "@headlessui/react": "^1.7.7",
         "@heroicons/react": "^2.0.13",
         "@monaco-editor/react": "^4.4.6",
-        "@nivo/bar": "^0.79.1",
-        "@nivo/core": "^0.79.0",
+        "@nivo/bar": "^0.84.0",
+        "@nivo/core": "^0.84.0",
         "@tippyjs/react": "^4.2.6",
         "@types/prismjs": "^1.26.0",
         "@types/react-beautiful-dnd": "^13.1.2",
@@ -37,7 +38,7 @@
         "npm": "^8.18.0",
         "prismjs": "^1.29.0",
         "prop-types": "^15.8.1",
-        "react": "^18.1.0",
+        "react": "^18.2.0",
         "react-beautiful-dnd": "^13.1.1",
         "react-color": "^2.19.3",
         "react-dnd": "^16.0.1",
@@ -76,7 +77,7 @@
         "@testing-library/user-event": "^14.4.3",
         "@types/jest": "^28.1.4",
         "@types/node": "^17.0.45",
-        "@types/react": "^18.0.9",
+        "@types/react": "^18.2.38",
         "@types/react-test-renderer": "^18.0.0",
         "identity-obj-proxy": "^3.0.0",
         "jest": "^28.1.1",
