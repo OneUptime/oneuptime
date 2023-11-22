@@ -15,7 +15,7 @@
         "react-router-dom": "^6.18.0",
         "react-scripts": "5.0.1",
         "the-new-css-reset": "^1.11.1",
-        "typescript": "^4.6.4",
+        "typescript": "^5.3.2",
         "use-async-effect": "^2.2.7"
     },
     "scripts": {
