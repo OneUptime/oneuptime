@@ -17,7 +17,7 @@ describe('Ping', () => {
         expect(result!.responseTimeInMS?.toNumber()).toBeGreaterThan(0);
         expect(result!.responseTimeInMS?.toNumber()).toBeLessThanOrEqual(5000);
         expect(result!.isOnline).toBe(true);
-        result = await Ping.ping(new Hostname('www.google.com'), {
+        result = await Ping.ping(new Hostname('www.apple.com'), {
             timeout: new PositiveNumber(5000),
         });
 
@@ -27,7 +27,7 @@ describe('Ping', () => {
         expect(result!.responseTimeInMS?.toNumber()).toBeLessThanOrEqual(5000);
 
         try {
-            await Ping.ping(new Hostname('www.google.com', 65000), {
+            await Ping.ping(new Hostname('www.apple.com', 65000), {
                 timeout: new PositiveNumber(5000),
             });
         } catch (err) {
@@ -46,9 +46,9 @@ describe('Ping', () => {
         // change test timeout to 2 minutes
         let result: PingResponse | null = null;
 
-        result = await Ping.ping(new IPv4('172.217.170.206'), {
+        result = await Ping.ping(new IPv4('1.1.1.1'), {
             timeout: new PositiveNumber(5000),
-        }); // One of the google ip
+        });
         expect(result).not.toBeNull();
         expect(result!.isOnline).toBe(true);
         expect(result!.responseTimeInMS?.toNumber()).toBeGreaterThan(0);
