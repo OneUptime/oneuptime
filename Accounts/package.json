@@ -20,6 +20,7 @@
         "build": "webpack build --mode=production",
         "test": "",
         "compile": "tsc",
+    "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "start": "node --require ts-node/register Serve.ts",
         "audit": "npm audit --audit-level=low",
         "configure": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",

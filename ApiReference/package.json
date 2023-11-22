@@ -5,6 +5,7 @@
         "configure": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "node --require ts-node/register Index.ts",
         "compile": "tsc",
+    "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "dev": "npx nodemon",
         "test": "jest --detectOpenHandles",
         "coverage": "jest --detectOpenHandles --coverage",
