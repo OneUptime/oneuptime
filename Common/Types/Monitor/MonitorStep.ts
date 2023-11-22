@@ -11,10 +11,12 @@ import ObjectID from '../ObjectID';
 import MonitorType from './MonitorType';
 import JSONFunctions from '../JSONFunctions';
 import Hostname from '../API/Hostname';
+import Port from '../Port';
 
 export interface MonitorStepType {
     id: string;
     monitorDestination?: URL | IP | Hostname | undefined;
+    monitorDestinationPort?: Port | undefined;
     monitorCriteria: MonitorCriteria;
     requestType: HTTPMethod;
     requestHeaders?: Dictionary<string> | undefined;
@@ -30,6 +32,7 @@ export default class MonitorStep extends DatabaseProperty {
         this.data = {
             id: ObjectID.generate().toString(),
             monitorDestination: undefined,
+            monitorDestinationPort: undefined,
             monitorCriteria: new MonitorCriteria(),
             requestType: HTTPMethod.GET,
             requestHeaders: undefined,
@@ -48,6 +51,7 @@ export default class MonitorStep extends DatabaseProperty {
         monitorStep.data = {
             id: ObjectID.generate().toString(),
             monitorDestination: undefined,
+            monitorDestinationPort: undefined,
             monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
             requestType: HTTPMethod.GET,
             requestHeaders: undefined,
@@ -91,6 +95,11 @@ export default class MonitorStep extends DatabaseProperty {
         return this;
     }
 
+    public setPort(monitorDestinationPort: Port): MonitorStep {
+        this.data!.monitorDestinationPort = monitorDestinationPort;
+        return this;
+    }
+
     public setMonitorCriteria(monitorCriteria: MonitorCriteria): MonitorStep {
         this.data!.monitorCriteria = monitorCriteria;
         return this;
@@ -102,6 +111,7 @@ export default class MonitorStep extends DatabaseProperty {
             value: {
                 id: ObjectID.generate().toString(),
                 monitorDestination: undefined,
+                monitorDestinationPort: undefined,
                 monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
                 requestType: HTTPMethod.GET,
                 requestHeaders: undefined,
@@ -146,6 +156,11 @@ export default class MonitorStep extends DatabaseProperty {
             return 'Request Type is required';
         }
 
+
+        if(monitorType === MonitorType.Port && !value.data.monitorDestinationPort) {
+            return 'Port is required';
+        }
+
         return null;
     }
 
@@ -157,6 +172,7 @@ export default class MonitorStep extends DatabaseProperty {
                     id: this.data.id,
                     monitorDestination:
                         this.data?.monitorDestination?.toJSON() || undefined,
+                        monitorDestinationPort: this.data?.monitorDestinationPort?.toJSON() || undefined,
                     monitorCriteria: this.data.monitorCriteria.toJSON(),
                     requestType: this.data.requestType,
                     requestHeaders: this.data.requestHeaders || undefined,
@@ -196,6 +212,8 @@ export default class MonitorStep extends DatabaseProperty {
             );
         }
 
+        
+
         if (
             json &&
             json['monitorDestination'] &&
@@ -218,6 +236,10 @@ export default class MonitorStep extends DatabaseProperty {
             );
         }
 
+
+        const monitorDestinationPort: Port | undefined = json['monitorDestinationPort'] ? Port.fromJSON(json['monitorDestinationPort'] as JSONObject) : undefined;
+
+
         if (!json['monitorCriteria']) {
             throw new BadDataException('Invalid monitor criteria');
         }
@@ -234,6 +256,7 @@ export default class MonitorStep extends DatabaseProperty {
         monitorStep.data = JSONFunctions.deserialize({
             id: json['id'] as string,
             monitorDestination: monitorDestination || undefined,
+            monitorDestinationPort: monitorDestinationPort || undefined,
             monitorCriteria: MonitorCriteria.fromJSON(
                 json['monitorCriteria'] as JSONObject
             ),

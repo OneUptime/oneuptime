@@ -8,6 +8,7 @@ enum MonitorType {
     Kubernetes = 'Kubernetes',
     IP = 'IP',
     IncomingRequest = 'Incoming Request',
+    Port = 'Port',
 }
 
 export default MonitorType;

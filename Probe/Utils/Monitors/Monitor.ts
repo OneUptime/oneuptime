@@ -3,6 +3,7 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Monitor from 'Model/Models/Monitor';
 import PingMonitor, { PingResponse } from './MonitorTypes/PingMonitor';
+import PortMonitor, { PortMonitorResponse } from './MonitorTypes/PortMonitor';
 import API from 'Common/Utils/API';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import URL from 'Common/Types/API/URL';
@@ -130,6 +131,33 @@ export default class MonitorUtil {
         ) {
             const response: PingResponse | null = await PingMonitor.ping(
                 monitorStep.data?.monitorDestination,
+                {
+                    retry: 5,
+                    monitorId: monitor.id!,
+                }
+            );
+
+            if (!response) {
+                return null;
+            }
+
+            result.isOnline = response.isOnline;
+            result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+            result.failureCause = response.failureCause;
+        }
+
+        if (monitor.monitorType === MonitorType.Port) {
+            if (!monitorStep.data?.monitorDestinationPort) {
+                result.isOnline = false;
+                result.responseTimeInMs = 0;
+                result.failureCause = 'Port is not specified';
+
+                return result;
+            }
+
+            const response: PortMonitorResponse | null = await PortMonitor.ping(
+                monitorStep.data?.monitorDestination,
+                monitorStep.data.monitorDestinationPort,
                 {
                     retry: 5,
                     monitorId: monitor.id!,

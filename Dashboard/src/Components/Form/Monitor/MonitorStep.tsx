@@ -26,6 +26,7 @@ import CodeType from 'Common/Types/Code/CodeType';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Exception from 'Common/Types/Exception/Exception';
 import Hostname from 'Common/Types/API/Hostname';
+import Port from 'Common/Types/Port';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -90,6 +91,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             setDestinationFieldDescription(
                 'Whats the IP address you want to monitor?'
             );
+        } else if (props.monitorType === MonitorType.Port) {
+            setDestinationFieldTitle('Hostname or IP address');
+            setDestinationFieldDescription(
+                'Whats the Hostname or IP address of the resource you want to ping?'
+            );
         }
     }, [props.monitorType]);
 
@@ -153,6 +159,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                                 Hostname.fromString(value);
                                         }
                                     } else if (
+                                        props.monitorType === MonitorType.Port
+                                    ) {
+                                        if (IP.isIP(value)) {
+                                            destination = IP.fromString(value);
+                                        } else {
+                                            destination =
+                                                Hostname.fromString(value);
+                                        }
+                                    } else if (
                                         props.monitorType ===
                                         MonitorType.Website
                                     ) {
@@ -192,6 +207,27 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                             }}
                         />
                     </div>
+                    {props.monitorType === MonitorType.Port && (
+                        <div className="mt-5">
+                            <FieldLabelElement
+                                title={'Port'}
+                                description={
+                                    'Whats the port you want to monitor?'
+                                }
+                                required={true}
+                            />
+                            <Input
+                                initialValue={monitorStep?.data?.monitorDestinationPort?.toNumber()}
+                                onChange={(value: string) => {
+                                    const port = new Port(value);
+                                    monitorStep.setPort(port);
+                                    setMonitorStep(
+                                        MonitorStep.clone(monitorStep)
+                                    );
+                                }}
+                            />
+                        </div>
+                    )}
                     {props.monitorType === MonitorType.API && (
                         <div className="mt-5">
                             <FieldLabelElement

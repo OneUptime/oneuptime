@@ -87,6 +87,25 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     placeholder: 'No data entered',
                 },
             ];
+        } else if (props.monitorType === MonitorType.Port) {
+            fields = [
+                {
+                    key: 'monitorDestination',
+                    title: 'Ping Hostname or IP Address',
+                    description:
+                        'Hostname or IP Address of the resource you would like us to ping.',
+                    fieldType: FieldType.Text,
+                    placeholder: 'No data entered',
+                },
+                {
+                    key: 'monitorDestinationPort',
+                    title: 'Port',
+                    description:
+                        'Port of the resource you would like us to ping.',
+                    fieldType: FieldType.Port,
+                    placeholder: 'No port entered',
+                }
+            ];
         } else if (props.monitorType === MonitorType.IP) {
             fields = [
                 {
