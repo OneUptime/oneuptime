@@ -6,16 +6,13 @@
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
-        "crypto-js": "^4.2.0",
         "formik": "^2.4.5",
         "Model": "file:../Model",
         "react": "^18.1.0",
         "react-dom": "^18.1.0",
-        "react-router": "^6.3.0",
+        "react-router": "^6.19.0",
         "react-router-dom": "^6.18.0",
-        "react-scripts": "5.0.1",
-        "the-new-css-reset": "^1.11.1",
-        "typescript": "^4.6.4",
+        
         "use-async-effect": "^2.2.7"
     },
     "scripts": {
