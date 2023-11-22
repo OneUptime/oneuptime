@@ -98,6 +98,15 @@ export default class PortMonitor {
         port: Port,
         pingOptions?: PingOptions
     ): Promise<PortMonitorResponse | null> {
+
+        if(!pingOptions){
+            pingOptions = {};
+        }
+
+        if(pingOptions?.currentRetryCount === undefined){
+            pingOptions.currentRetryCount = 1;
+        }
+
         let hostAddress: string = '';
         if (host instanceof Hostname) {
             hostAddress = host.hostname;
@@ -132,6 +141,8 @@ export default class PortMonitor {
                 const startTime: [number, number] = process.hrtime();
 
                 const socket = new net.Socket();
+
+                socket.setTimeout(pingOptions?.timeout?.toNumber() || 5000);
 
                 if (!port) {
                     throw new BadDataException('Port is not specified');

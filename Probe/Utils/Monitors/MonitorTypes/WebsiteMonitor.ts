@@ -97,6 +97,16 @@ export default class WebsiteMonitor {
             isOnlineCheckRequest?: boolean | undefined;
         }
     ): Promise<ProbeWebsiteResponse | null> {
+
+        if(!options){
+            options = {};
+        }
+
+        if(options?.currentRetryCount === undefined){
+            options.currentRetryCount = 1;
+        }
+
+        
         let requestType: HTTPMethod = HTTPMethod.GET;
 
         if (options.isHeadRequest) {

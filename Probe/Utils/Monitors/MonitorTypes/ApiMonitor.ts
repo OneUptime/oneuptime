@@ -95,6 +95,15 @@ export default class ApiMonitor {
             isOnlineCheckRequest?: boolean | undefined;
         }
     ): Promise<APIResponse | null> {
+
+        if(!options){
+            options = {};
+        }
+
+        if(options?.currentRetryCount === undefined){
+            options.currentRetryCount = 1;
+        }
+
         let requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
 
         if (options.isHeadRequest) {
