@@ -7,7 +7,9 @@ export interface ComponentProps<T> {
     state: FormStepState;
 }
 
-const Step: <T extends Object>(props: ComponentProps<T>) => ReactElement = <T extends Object>(
+const Step: <T extends Object>(props: ComponentProps<T>) => ReactElement = <
+    T extends Object
+>(
     props: ComponentProps<T>
 ): ReactElement => {
     return (
