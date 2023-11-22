@@ -139,7 +139,7 @@ services:
             REDIS_PASSWORD: ${REDIS_PASSWORD}
 
     clickhouse:
-        image: clickhouse/clickhouse-server:23.7
+        image: clickhouse/clickhouse-server:23.10
         restart: always
         environment:
             CLICKHOUSE_USER: ${CLICKHOUSE_USER}
