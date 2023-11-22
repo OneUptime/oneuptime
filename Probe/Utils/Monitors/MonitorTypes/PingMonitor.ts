@@ -77,15 +77,14 @@ export default class PingMonitor {
         host: Hostname | IPv4 | IPv6 | URL,
         pingOptions?: PingOptions
     ): Promise<PingResponse | null> {
-
-        if(!pingOptions){
+        if (!pingOptions) {
             pingOptions = {};
         }
 
-        if(pingOptions?.currentRetryCount === undefined){
+        if (pingOptions?.currentRetryCount === undefined) {
             pingOptions.currentRetryCount = 1;
         }
-        
+
         let hostAddress: string = '';
         if (host instanceof Hostname) {
             hostAddress = host.hostname;

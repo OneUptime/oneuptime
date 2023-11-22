@@ -219,7 +219,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                             <Input
                                 initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
                                 onChange={(value: string) => {
-                                    const port = new Port(value);
+                                    const port: Port = new Port(value);
                                     monitorStep.setPort(port);
                                     setMonitorStep(
                                         MonitorStep.clone(monitorStep)

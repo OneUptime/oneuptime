@@ -95,12 +95,11 @@ export default class ApiMonitor {
             isOnlineCheckRequest?: boolean | undefined;
         }
     ): Promise<APIResponse | null> {
-
-        if(!options){
+        if (!options) {
             options = {};
         }
 
-        if(options?.currentRetryCount === undefined){
+        if (options?.currentRetryCount === undefined) {
             options.currentRetryCount = 1;
         }
 

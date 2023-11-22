@@ -104,7 +104,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         'Port of the resource you would like us to ping.',
                     fieldType: FieldType.Port,
                     placeholder: 'No port entered',
-                }
+                },
             ];
         } else if (props.monitorType === MonitorType.IP) {
             fields = [

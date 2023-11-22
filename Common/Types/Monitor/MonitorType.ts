@@ -69,7 +69,7 @@ export class MonitorTypeHelper {
                 title: 'Port',
                 description:
                     'This monitor types lets you monitor any TCP or UDP port.',
-            }
+            },
         ];
 
         return monitorTypeProps;

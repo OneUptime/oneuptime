@@ -99,7 +99,6 @@ export default class PortMonitor {
         port: Port,
         pingOptions?: PingOptions
     ): Promise<PortMonitorResponse | null> {
-
         if (!pingOptions) {
             pingOptions = {};
         }
@@ -130,77 +129,79 @@ export default class PortMonitor {
         }
 
         logger.info(
-            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${pingOptions?.currentRetryCount
+            `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${
+                pingOptions?.currentRetryCount
             }`
         );
 
         try {
             // Ping a host with port
 
-            const promiseResult = new Promise((resolve, reject) => {
-                const startTime: [number, number] = process.hrtime();
+            const promiseResult: Promise<PositiveNumber> = new Promise(
+                (resolve: Function, reject: Function) => {
+                    const startTime: [number, number] = process.hrtime();
 
-                const socket = new net.Socket();
+                    const socket: net.Socket = new net.Socket();
 
-                const timeout: number = pingOptions?.timeout?.toNumber() || 5000;
+                    const timeout: number =
+                        pingOptions?.timeout?.toNumber() || 5000;
 
-                socket.setTimeout(timeout);
+                    socket.setTimeout(timeout);
 
-                if (!port) {
-                    throw new BadDataException('Port is not specified');
+                    if (!port) {
+                        throw new BadDataException('Port is not specified');
+                    }
+
+                    let hasPromiseResolved: boolean = false;
+
+                    socket.connect(port.toNumber(), hostAddress, () => {
+                        const endTime: [number, number] =
+                            process.hrtime(startTime);
+                        const responseTimeInMS: PositiveNumber =
+                            new PositiveNumber(
+                                (endTime[0] * 1000000000 + endTime[1]) / 1000000
+                            );
+
+                        logger.info(
+                            `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port!.toString()} success: Response Time ${responseTimeInMS} ms`
+                        );
+
+                        socket.destroy(); // Close the connection after success
+                        if (!hasPromiseResolved) {
+                            resolve(responseTimeInMS);
+                        }
+
+                        hasPromiseResolved = true;
+                        return;
+                    });
+
+                    socket.on('timeout', () => {
+                        socket.destroy();
+                        logger.info('Ping timeout');
+
+                        if (!hasPromiseResolved) {
+                            reject(new UnableToReachServer('Ping timeout'));
+                        }
+
+                        hasPromiseResolved = true;
+                        return;
+                    });
+
+                    socket.on('error', (error: Error) => {
+                        socket.destroy();
+                        logger.info(
+                            'Could not connect to: ' + host + ':' + port
+                        );
+
+                        if (!hasPromiseResolved) {
+                            reject(error);
+                        }
+
+                        hasPromiseResolved = true;
+                        return;
+                    });
                 }
-
-
-                let hasPromiseResolved: boolean = false;
-
-                socket.connect(port.toNumber(), hostAddress, () => {
-
-
-                    const endTime: [number, number] = process.hrtime(startTime);
-                    const responseTimeInMS: PositiveNumber = new PositiveNumber(
-                        (endTime[0] * 1000000000 + endTime[1]) / 1000000
-                    );
-
-                    logger.info(
-                        `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port!.toString()} success: Response Time ${responseTimeInMS} ms`
-                    );
-
-                    socket.destroy(); // Close the connection after success
-                    if (!hasPromiseResolved) {
-                        resolve(responseTimeInMS);
-                    }
-
-                    hasPromiseResolved = true;
-                    return;
-
-                });
-
-                socket.on('timeout', () => {
-                    socket.destroy();
-                    logger.info('Ping timeout');
-
-
-                    if (!hasPromiseResolved) {
-                        reject(new UnableToReachServer('Ping timeout'));
-                    }
-
-                    hasPromiseResolved = true;
-                    return;
-
-                });
-
-                socket.on('error', error => {
-                    socket.destroy();
-                    logger.info('Could not connect to: ' + host + ':' + port);
-
-                    if (!hasPromiseResolved) {
-                        reject(error);
-                    }
-
-                    hasPromiseResolved = true;
-                    return;
-                });
-            });
+            );
 
             const responseTimeInMS: PositiveNumber =
                 (await promiseResult) as PositiveNumber;

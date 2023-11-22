@@ -156,8 +156,10 @@ export default class MonitorStep extends DatabaseProperty {
             return 'Request Type is required';
         }
 
-
-        if(monitorType === MonitorType.Port && !value.data.monitorDestinationPort) {
+        if (
+            monitorType === MonitorType.Port &&
+            !value.data.monitorDestinationPort
+        ) {
             return 'Port is required';
         }
 
@@ -172,7 +174,9 @@ export default class MonitorStep extends DatabaseProperty {
                     id: this.data.id,
                     monitorDestination:
                         this.data?.monitorDestination?.toJSON() || undefined,
-                        monitorDestinationPort: this.data?.monitorDestinationPort?.toJSON() || undefined,
+                    monitorDestinationPort:
+                        this.data?.monitorDestinationPort?.toJSON() ||
+                        undefined,
                     monitorCriteria: this.data.monitorCriteria.toJSON(),
                     requestType: this.data.requestType,
                     requestHeaders: this.data.requestHeaders || undefined,
@@ -212,8 +216,6 @@ export default class MonitorStep extends DatabaseProperty {
             );
         }
 
-        
-
         if (
             json &&
             json['monitorDestination'] &&
@@ -236,9 +238,11 @@ export default class MonitorStep extends DatabaseProperty {
             );
         }
 
-
-        const monitorDestinationPort: Port | undefined = json['monitorDestinationPort'] ? Port.fromJSON(json['monitorDestinationPort'] as JSONObject) : undefined;
-
+        const monitorDestinationPort: Port | undefined = json[
+            'monitorDestinationPort'
+        ]
+            ? Port.fromJSON(json['monitorDestinationPort'] as JSONObject)
+            : undefined;
 
         if (!json['monitorCriteria']) {
             throw new BadDataException('Invalid monitor criteria');
