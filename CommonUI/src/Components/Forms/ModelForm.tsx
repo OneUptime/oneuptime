@@ -272,11 +272,6 @@ const ModelForm: <TBaseModel extends BaseModel>(
     useAsyncEffect(async () => {
         // set fields.
         await setFormFields();
-    }, []);
-
-    useAsyncEffect(async () => {
-        // set fields.
-        await setFormFields();
     }, [props.fields]);
 
     const fetchItem: () => Promise<void> = async (): Promise<void> => {
