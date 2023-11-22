@@ -4,7 +4,8 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "jest",
+        "test": "jest --detectOpenHandles",
+        "coverage": "jest --detectOpenHandles --coverage",
         "compile": "tsc"
     },
     "author": "",

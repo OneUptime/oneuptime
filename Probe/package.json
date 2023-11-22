@@ -9,7 +9,8 @@
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
     "dep-check": "depcheck ./ --skip-missing=true",
-    "test": "jest --passWithNoTests",
+    "test": "jest --detectOpenHandles",
+        "coverage": "jest --detectOpenHandles --coverage",
     "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
   },
   "author": "",
