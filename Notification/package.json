@@ -22,7 +22,7 @@
         "ejs": "^3.1.8",
         "handlebars": "^4.7.7",
         "Model": "file:../Model",
-        "nodemailer": "^6.7.3",
+        "nodemailer": "^6.9.7",
         "nodemailer-express-handlebars": "^5.0.0",
         "ts-node": "^10.9.1",
         "twilio": "^4.19.0"
