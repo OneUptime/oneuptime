@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
