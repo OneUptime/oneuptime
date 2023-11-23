@@ -7,11 +7,9 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -20,8 +18,6 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import BaseModel from 'Common/Models/BaseModel';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import OnCallDutyPolicySchedule from './OnCallDutyPolicySchedule';
-import Rotation from 'Common/Types/OnCallDutyPolicy/Rotation';
-import RestrictionTimes from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
 import OnCallDutyPolicyScheduleLayer from './OnCallDutyPolicyScheduleLayer';
 
 @EnableDocumentation()
@@ -136,7 +132,6 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -204,7 +199,6 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public onCallDutyPolicyScheduleId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -274,7 +268,6 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     })
     public onCallDutyPolicyScheduleLayerId?: ObjectID = undefined;
 
-    
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -395,7 +388,6 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -428,7 +420,6 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
         type: ColumnType.Number,
     })
     public order?: number = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -503,8 +494,4 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userId?: ObjectID = undefined;
-
-
-   
-
 }

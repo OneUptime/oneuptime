@@ -1,10 +1,9 @@
-import DatabaseProperty from "../Database/DatabaseProperty";
-import EventInterval from "../Events/EventInterval";
-import BadDataException from "../Exception/BadDataException";
-import { JSONObject, ObjectType } from "../JSON";
-import JSONFunctions from "../JSONFunctions";
-import PositiveNumber from "../PositiveNumber";
-
+import DatabaseProperty from '../Database/DatabaseProperty';
+import EventInterval from '../Events/EventInterval';
+import BadDataException from '../Exception/BadDataException';
+import { JSONObject, ObjectType } from '../JSON';
+import JSONFunctions from '../JSONFunctions';
+import PositiveNumber from '../PositiveNumber';
 
 export interface RotationData extends JSONObject {
     rotationInterval: EventInterval;
@@ -12,8 +11,6 @@ export interface RotationData extends JSONObject {
 }
 
 export default class Rotation extends DatabaseProperty {
-
-
     public static getDefaultRotationData(): RotationData {
         return {
             rotationInterval: EventInterval.Day,
@@ -21,9 +18,7 @@ export default class Rotation extends DatabaseProperty {
         };
     }
 
-
     private data: RotationData = Rotation.getDefaultRotationData();
-
 
     public get rotationInterval(): EventInterval {
         return this.data.rotationInterval;
@@ -42,17 +37,15 @@ export default class Rotation extends DatabaseProperty {
         this.data.rotationIntervalCount = v;
     }
 
-
     public constructor() {
         super();
 
         this.data = Rotation.getDefaultRotationData();
     }
 
-    public static getDefault() {
+    public static getDefault(): Rotation {
         return new Rotation();
     }
-
 
     public override toJSON(): JSONObject {
         return JSONFunctions.serialize({
@@ -63,7 +56,6 @@ export default class Rotation extends DatabaseProperty {
             },
         });
     }
-
 
     public static override fromJSON(json: JSONObject): Rotation {
         if (json instanceof Rotation) {
@@ -80,28 +72,19 @@ export default class Rotation extends DatabaseProperty {
 
         json = json['value'] as JSONObject;
 
-
         let rotationInterval: EventInterval = EventInterval.Day;
 
-        if (
-            json &&
-            json['rotationInterval']
-        ) {
+        if (json && json['rotationInterval']) {
             rotationInterval = json['rotationInterval'] as EventInterval;
         }
 
         let rotationIntervalCount: PositiveNumber = new PositiveNumber(1);
 
-        if (
-            json &&
-            json['rotationIntervalCount']
-        ) {
-
-
-            rotationIntervalCount = PositiveNumber.fromJSON(json['rotationIntervalCount']);
+        if (json && json['rotationIntervalCount']) {
+            rotationIntervalCount = PositiveNumber.fromJSON(
+                json['rotationIntervalCount']
+            );
         }
-
-
 
         const rotation: Rotation = new Rotation();
 

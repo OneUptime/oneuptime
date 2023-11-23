@@ -24,6 +24,7 @@ import NotEqual from './Database/NotEqual';
 import { CheckOn, FilterType } from './Monitor/CriteriaFilter';
 import CallRequest from './Call/CallRequest';
 import PositiveNumber from './PositiveNumber';
+import StartAndEndTime from './Time/StartAndEndTime';
 
 export enum ObjectType {
     ObjectID = 'ObjectID',
@@ -32,6 +33,7 @@ export enum ObjectType {
     MonitorSteps = 'MonitorSteps',
     MonitorStep = 'MonitorStep',
     Rotation = 'Rotation',
+    RestrictionTimes = 'RestrictionTimes',
     MonitorCriteria = 'MonitorCriteria',
     PositiveNumber = 'PositiveNumber',
     MonitorCriteriaInstance = 'MonitorCriteriaInstance',
@@ -131,7 +133,9 @@ export type JSONValue =
     | Array<ObjectID>
     | CallRequest
     | undefined
-    | null;
+    | null
+    | StartAndEndTime
+    | Array<StartAndEndTime>;
 
 export interface JSONObject {
     [x: string]: JSONValue;

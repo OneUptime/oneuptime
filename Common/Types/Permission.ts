@@ -378,11 +378,11 @@ enum Permission {
     CanDeleteProjectOnCallDutyPolicy = 'CanDeleteProjectOnCallDutyPolicy',
     CanReadProjectOnCallDutyPolicy = 'CanReadProjectOnCallDutyPolicy',
 
-     // Resource Permissions (Team Permission)
-     CanCreateProjectOnCallDutyPolicySchedule = 'CanCreateProjectOnCallDutyPolicySchedule',
-     CanEditProjectOnCallDutyPolicySchedule = 'CanEditProjectOnCallDutyPolicySchedule',
-     CanDeleteProjectOnCallDutyPolicySchedule = 'CanDeleteProjectOnCallDutyPolicySchedule',
-     CanReadProjectOnCallDutyPolicySchedule = 'CanReadProjectOnCallDutyPolicySchedule',
+    // Resource Permissions (Team Permission)
+    CanCreateProjectOnCallDutyPolicySchedule = 'CanCreateProjectOnCallDutyPolicySchedule',
+    CanEditProjectOnCallDutyPolicySchedule = 'CanEditProjectOnCallDutyPolicySchedule',
+    CanDeleteProjectOnCallDutyPolicySchedule = 'CanDeleteProjectOnCallDutyPolicySchedule',
+    CanReadProjectOnCallDutyPolicySchedule = 'CanReadProjectOnCallDutyPolicySchedule',
 
     CanReadProjectOnCallDutyPolicyExecutionLogTimeline = 'CanReadProjectOnCallDutyPolicyExecutionLogTimeline',
     CanReadProjectOnCallDutyPolicyExecutionLog = 'CanReadProjectOnCallDutyPolicyExecutionLog',
@@ -1793,8 +1793,6 @@ export class PermissionHelper {
                 isAccessControlPermission: true,
             },
 
-
-
             {
                 permission: Permission.CanCreateProjectOnCallDutyPolicySchedule,
                 title: 'Can Create On-Call Duty Policy Schedule',
@@ -1827,7 +1825,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
-
 
             {
                 permission: Permission.CanCreateProjectStatusPage,
@@ -1989,8 +1986,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateOnCallDutyPolicyScheduleLayer,
                 title: 'Can Create On-Call Schedule Layer',
@@ -2024,11 +2019,9 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
             {
-                permission: Permission.CanCreateOnCallDutyPolicyScheduleLayerUser,
+                permission:
+                    Permission.CanCreateOnCallDutyPolicyScheduleLayerUser,
                 title: 'Can Create On-Call Schedule Layer User',
                 description:
                     'This permission can create On-Call Schedule Layer User this project.',
@@ -2036,7 +2029,8 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteOnCallDutyPolicyScheduleLayerUser,
+                permission:
+                    Permission.CanDeleteOnCallDutyPolicyScheduleLayerUser,
                 title: 'Can Delete On-Call Schedule Layer User',
                 description:
                     'This permission can delete On-Call Schedule Layer User of this project.',
@@ -2059,7 +2053,7 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-            
+
             {
                 permission: Permission.CanCreateMonitorCustomField,
                 title: 'Can Create Monitor Custom Field',

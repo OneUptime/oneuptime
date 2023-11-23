@@ -135,7 +135,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -271,7 +270,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     })
     public description?: string = undefined;
 
-    
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -392,7 +390,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -426,7 +423,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     })
     public order?: number = undefined;
 
-
     @TableColumn({
         title: 'Start At',
         type: TableColumnType.Date,
@@ -458,7 +454,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         type: ColumnType.Date,
     })
     public startsAt?: Date = undefined;
-
 
     @TableColumn({
         title: 'Rotation',
@@ -494,7 +489,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     })
     public rotation?: Rotation = undefined;
 
-
     @TableColumn({
         title: 'Restriction Times',
         type: TableColumnType.JSON,
@@ -528,5 +522,4 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         transformer: RestrictionTimes.getDatabaseTransformer(),
     })
     public restrictionTimes?: RestrictionTimes = undefined;
-
 }

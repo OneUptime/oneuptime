@@ -50,7 +50,7 @@ export default class PositiveNumber {
             return json;
         }
 
-        if (typeof json ===  Typeof.Number) {
+        if (typeof json === Typeof.Number) {
             return new PositiveNumber(json as number);
         }
 
@@ -58,10 +58,15 @@ export default class PositiveNumber {
             return new PositiveNumber(json as string);
         }
 
-        if (!json || (json as JSONObject)['_type'] !== ObjectType.PositiveNumber) {
+        if (
+            !json ||
+            (json as JSONObject)['_type'] !== ObjectType.PositiveNumber
+        ) {
             throw new BadDataException('Invalid PositiveNumber');
         }
 
-        return new PositiveNumber((json as JSONObject)['value'] as number | string);
+        return new PositiveNumber(
+            (json as JSONObject)['value'] as number | string
+        );
     }
 }

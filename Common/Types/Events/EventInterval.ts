@@ -2,7 +2,7 @@ enum EventInterval {
     Day = 'Day',
     Week = 'Week',
     Month = 'Month',
-    Year = 'Year'
+    Year = 'Year',
 }
 
-export default EventInterval;   
+export default EventInterval;
