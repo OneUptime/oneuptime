@@ -9,6 +9,7 @@ import ping from 'ping';
 import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
 import Sleep from 'Common/Types/Sleep';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import OnlineCheck from '../../OnlineCheck';
 
 // TODO - make sure it  work for the IPV6
 export interface PingResponse {
@@ -26,53 +27,6 @@ export interface PingOptions {
 }
 
 export default class PingMonitor {
-    // burn domain names into the code to see if this probe is online.
-    public static async isProbeOnline(): Promise<boolean> {
-        if (
-            (
-                await PingMonitor.ping(new Hostname('google.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('facebook.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('microsoft.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('youtube.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PingMonitor.ping(new Hostname('apple.com'), {
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
     public static async ping(
         host: Hostname | IPv4 | IPv6 | URL,
         pingOptions?: PingOptions
@@ -171,7 +125,7 @@ export default class PingMonitor {
 
             // check if the probe is online.
             if (!pingOptions.isOnlineCheckRequest) {
-                if (!(await PingMonitor.isProbeOnline())) {
+                if (!(await OnlineCheck.isProbeOnline())) {
                     logger.error(
                         `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                     );

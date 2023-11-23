@@ -12,9 +12,9 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.1.0",
-    "react-icons": "^4.4.0",
+    "react-icons": "^4.11.0",
     "react-router": "^6.19.0",
-    "react-router-dom": "^6.3.0",
+    "react-router-dom": "^6.18.0",
     
     "use-async-effect": "^2.2.6"
   },

@@ -9,6 +9,7 @@ import logger from 'CommonServer/Utils/Logger';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import ObjectID from 'Common/Types/ObjectID';
 import Sleep from 'Common/Types/Sleep';
+import OnlineCheck from '../../OnlineCheck';
 
 export interface ProbeWebsiteResponse {
     url: URL;
@@ -23,70 +24,6 @@ export interface ProbeWebsiteResponse {
 }
 
 export default class WebsiteMonitor {
-    // burn domain names into the code to see if this probe is online.
-    public static async isProbeOnline(): Promise<boolean> {
-        if (
-            (
-                await WebsiteMonitor.ping(
-                    URL.fromString('https://google.com'),
-                    {
-                        isHeadRequest: true,
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await WebsiteMonitor.ping(
-                    URL.fromString('https://facebook.com'),
-                    {
-                        isHeadRequest: true,
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await WebsiteMonitor.ping(
-                    URL.fromString('https://microsoft.com'),
-                    {
-                        isHeadRequest: true,
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await WebsiteMonitor.ping(
-                    URL.fromString('https://youtube.com'),
-                    {
-                        isHeadRequest: true,
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await WebsiteMonitor.ping(URL.fromString('https://apple.com'), {
-                    isHeadRequest: true,
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
     public static async ping(
         url: URL,
         options: {
@@ -219,7 +156,7 @@ export default class WebsiteMonitor {
             }
 
             if (!options.isOnlineCheckRequest) {
-                if (!(await WebsiteMonitor.isProbeOnline())) {
+                if (!(await OnlineCheck.isProbeOnline())) {
                     logger.error(
                         `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                     );

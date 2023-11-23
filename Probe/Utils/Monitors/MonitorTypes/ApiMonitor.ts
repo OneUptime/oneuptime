@@ -10,6 +10,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import logger from 'CommonServer/Utils/Logger';
 import ObjectID from 'Common/Types/ObjectID';
 import Sleep from 'Common/Types/Sleep';
+import OnlineCheck from '../../OnlineCheck';
 
 export interface APIResponse {
     url: URL;
@@ -25,63 +26,6 @@ export interface APIResponse {
 }
 
 export default class ApiMonitor {
-    // burn domain names into the code to see if this probe is online.
-    public static async isProbeOnline(): Promise<boolean> {
-        if (
-            (
-                await ApiMonitor.ping(URL.fromString('https://google.com'), {
-                    requestType: HTTPMethod.GET,
-                    isHeadRequest: true,
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await ApiMonitor.ping(URL.fromString('https://facebook.com'), {
-                    requestType: HTTPMethod.GET,
-                    isHeadRequest: true,
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await ApiMonitor.ping(URL.fromString('https://microsoft.com'), {
-                    requestType: HTTPMethod.GET,
-                    isHeadRequest: true,
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await ApiMonitor.ping(URL.fromString('https://youtube.com'), {
-                    requestType: HTTPMethod.GET,
-                    isHeadRequest: true,
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await ApiMonitor.ping(URL.fromString('https://apple.com'), {
-                    requestType: HTTPMethod.GET,
-                    isHeadRequest: true,
-                    isOnlineCheckRequest: true,
-                })
-            )?.isOnline
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
     public static async ping(
         url: URL,
         options: {
@@ -198,7 +142,7 @@ export default class ApiMonitor {
             }
 
             if (!options.isOnlineCheckRequest) {
-                if (!(await ApiMonitor.isProbeOnline())) {
+                if (!(await OnlineCheck.isProbeOnline())) {
                     logger.error(
                         `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                     );
