@@ -85,6 +85,16 @@ enum Permission {
     CanEditOnCallDutyPolicyCustomField = 'CanEditOnCallDutyPolicyCustomField',
     CanReadOnCallDutyPolicyCustomField = 'CanReadOnCallDutyPolicyCustomField',
 
+    CanCreateOnCallDutyPolicyScheduleLayer = 'CanCreateOnCallDutyPolicyScheduleLayer',
+    CanDeleteOnCallDutyPolicyScheduleLayer = 'CanDeleteOnCallDutyPolicyScheduleLayer',
+    CanEditOnCallDutyPolicyScheduleLayer = 'CanEditOnCallDutyPolicyScheduleLayer',
+    CanReadOnCallDutyPolicyScheduleLayer = 'CanReadOnCallDutyPolicyScheduleLayer',
+
+    CanCreateOnCallDutyPolicyScheduleLayerUser = 'CanCreateOnCallDutyPolicyScheduleLayerUser',
+    CanDeleteOnCallDutyPolicyScheduleLayerUser = 'CanDeleteOnCallDutyPolicyScheduleLayerUser',
+    CanEditOnCallDutyPolicyScheduleLayerUser = 'CanEditOnCallDutyPolicyScheduleLayerUser',
+    CanReadOnCallDutyPolicyScheduleLayerUser = 'CanReadOnCallDutyPolicyScheduleLayerUser',
+
     CanCreateScheduledMaintenanceCustomField = 'CanCreateScheduledMaintenanceCustomField',
     CanDeleteScheduledMaintenanceCustomField = 'CanDeleteScheduledMaintenanceCustomField',
     CanEditScheduledMaintenanceCustomField = 'CanEditScheduledMaintenanceCustomField',
@@ -367,6 +377,12 @@ enum Permission {
     CanEditProjectOnCallDutyPolicy = 'CanEditProjectOnCallDutyPolicy',
     CanDeleteProjectOnCallDutyPolicy = 'CanDeleteProjectOnCallDutyPolicy',
     CanReadProjectOnCallDutyPolicy = 'CanReadProjectOnCallDutyPolicy',
+
+     // Resource Permissions (Team Permission)
+     CanCreateProjectOnCallDutyPolicySchedule = 'CanCreateProjectOnCallDutyPolicySchedule',
+     CanEditProjectOnCallDutyPolicySchedule = 'CanEditProjectOnCallDutyPolicySchedule',
+     CanDeleteProjectOnCallDutyPolicySchedule = 'CanDeleteProjectOnCallDutyPolicySchedule',
+     CanReadProjectOnCallDutyPolicySchedule = 'CanReadProjectOnCallDutyPolicySchedule',
 
     CanReadProjectOnCallDutyPolicyExecutionLogTimeline = 'CanReadProjectOnCallDutyPolicyExecutionLogTimeline',
     CanReadProjectOnCallDutyPolicyExecutionLog = 'CanReadProjectOnCallDutyPolicyExecutionLog',
@@ -1777,6 +1793,42 @@ export class PermissionHelper {
                 isAccessControlPermission: true,
             },
 
+
+
+            {
+                permission: Permission.CanCreateProjectOnCallDutyPolicySchedule,
+                title: 'Can Create On-Call Duty Policy Schedule',
+                description:
+                    'This permission can create on-call duty schedule this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectOnCallDutyPolicySchedule,
+                title: 'Can Delete On-Call Duty Policy Schedule',
+                description:
+                    'This permission can delete on-call duty schedule of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanEditProjectOnCallDutyPolicySchedule,
+                title: 'Can Edit On-Call Duty Policy Schedule',
+                description:
+                    'This permission can edit on-call duty schedule of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanReadProjectOnCallDutyPolicySchedule,
+                title: 'Can Read On-Call Duty Policy Schedule',
+                description:
+                    'This permission can read on-call duty schedule of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+
+
             {
                 permission: Permission.CanCreateProjectStatusPage,
                 title: 'Can Create Status Page',
@@ -1937,6 +1989,77 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
+
+
+            {
+                permission: Permission.CanCreateOnCallDutyPolicyScheduleLayer,
+                title: 'Can Create On-Call Schedule Layer',
+                description:
+                    'This permission can create On-Call Schedule Layer this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteOnCallDutyPolicyScheduleLayer,
+                title: 'Can Delete On-Call Schedule Layer',
+                description:
+                    'This permission can delete On-Call Schedule Layer of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditOnCallDutyPolicyScheduleLayer,
+                title: 'Can Edit On-Call Schedule Layer',
+                description:
+                    'This permission can edit On-Call Schedule Layer of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadOnCallDutyPolicyScheduleLayer,
+                title: 'Can Read On-Call Schedule Layer',
+                description:
+                    'This permission can read On-Call Schedule Layer of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+
+            {
+                permission: Permission.CanCreateOnCallDutyPolicyScheduleLayerUser,
+                title: 'Can Create On-Call Schedule Layer User',
+                description:
+                    'This permission can create On-Call Schedule Layer User this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteOnCallDutyPolicyScheduleLayerUser,
+                title: 'Can Delete On-Call Schedule Layer User',
+                description:
+                    'This permission can delete On-Call Schedule Layer User of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditOnCallDutyPolicyScheduleLayerUser,
+                title: 'Can Edit On-Call Schedule Layer User',
+                description:
+                    'This permission can edit On-Call Schedule Layer User of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadOnCallDutyPolicyScheduleLayerUser,
+                title: 'Can Read On-Call Schedule Layer User',
+                description:
+                    'This permission can read On-Call Schedule Layer User of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            
             {
                 permission: Permission.CanCreateMonitorCustomField,
                 title: 'Can Create Monitor Custom Field',
