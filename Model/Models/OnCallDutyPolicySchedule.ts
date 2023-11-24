@@ -217,13 +217,13 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
         { eager: false }
     )
     @JoinTable({
-        name: 'OnCallDutyPolicyLabel',
+        name: 'OnCallDutyPolicyScheduleLabel',
         inverseJoinColumn: {
             name: 'labelId',
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'onCallDutyPolicyId',
+            name: 'onCallDutyPolicyScheduleId',
             referencedColumnName: '_id',
         },
     })
