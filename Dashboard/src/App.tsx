@@ -137,6 +137,13 @@ import OnCallDutyPolicyViewLogsView from './Pages/OnCallDuty/OnCallDutyPolicy/Ex
 import OnCallDutyPolicyViewEscalation from './Pages/OnCallDuty/OnCallDutyPolicy/Escalation';
 import OnCallDutyPolicyViewCustomFields from './Pages/OnCallDuty/OnCallDutyPolicy/CustomFields';
 
+// On Call Schedules
+
+import OnCallDutySchedules from './Pages/OnCallDuty/OnCallDutySchedules';
+import OnCallDutyScheduleView from './Pages/OnCallDuty/OnCallDutySchedule/Index';
+import OnCallDutyScheduleViewDelete from './Pages/OnCallDuty/OnCallDutySchedule/Delete';
+import OnCallDutyScheduleViewLayers from './Pages/OnCallDuty/OnCallDutySchedule/Layers';
+
 // Monitors
 import MonitorPage from './Pages/Monitor/Monitors';
 import MonitorView from './Pages/Monitor/View/Index';
@@ -2148,6 +2155,79 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                            }
+                        />
+                    }
+                />
+
+                {/* On-Call Schedules */}
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <OnCallDutySchedules
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_SCHEDULES
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyScheduleView
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_SCHEDULE_VIEW
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyScheduleViewDelete
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyScheduleViewLayers
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS
+                                ] as Route
                             }
                         />
                     }

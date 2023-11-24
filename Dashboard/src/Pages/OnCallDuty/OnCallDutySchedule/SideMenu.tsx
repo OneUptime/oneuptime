@@ -15,9 +15,6 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
-
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
@@ -25,7 +22,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] as Route,
+                            RouteMap[
+                                PageMap.ON_CALL_DUTY_SCHEDULE_VIEW
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
@@ -46,10 +45,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-           
-
             <SideMenuSection title="Advanced">
-               
                 <SideMenuItem
                     link={{
                         title: 'Delete Schedule',

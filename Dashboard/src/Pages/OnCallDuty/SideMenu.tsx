@@ -41,7 +41,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     link={{
                         title: 'On-Call Schedules',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
+                            RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route
                         ),
                     }}
                     icon={IconProp.Calendar}

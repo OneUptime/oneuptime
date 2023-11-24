@@ -288,7 +288,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules/${RouteParams.ModelID}/layers`
     ),
 
-
     [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
