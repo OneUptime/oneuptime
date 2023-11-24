@@ -25,7 +25,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
 
     return (
         <SideMenu>
-            <SideMenuSection title="Overview">
+            <SideMenuSection title="Policies">
                 <SideMenuItem
                     link={{
                         title: 'On-Call Policies',
@@ -34,6 +34,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Call}
+                />
+            </SideMenuSection>
+            <SideMenuSection title="Schedules">
+                <SideMenuItem
+                    link={{
+                        title: 'On-Call Schedules',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
+                        ),
+                    }}
+                    icon={IconProp.Calendar}
                 />
             </SideMenuSection>
             <SideMenuSection title="More">

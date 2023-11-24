@@ -14,17 +14,17 @@ import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
 
-const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
+const OnCallDutyScheduleView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
         <ModelPage
-            title="On-Call Policy"
-            modelType={OnCallDutyPolicy}
+            title="On-Call Schedule"
+            modelType={OnCallDutySchedule}
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={[
@@ -36,34 +36,34 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On-Call Duty',
+                    title: 'On-Call Schedule',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY] as Route,
+                        RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route,
                         { modelId }
                     ),
                 },
                 {
-                    title: 'View On-Call Policy',
+                    title: 'View On-Call Schedule',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
+                        RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] as Route,
                         { modelId }
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            {/* OnCallDutyPolicy View  */}
+            {/* OnCallDutySchedule View  */}
             <CardModelDetail
-                name="On-Call Policy > On-Call Policy Details"
+                name="On-Call Schedule > On-Call Schedule Details"
                 cardProps={{
-                    title: 'On-Call Policy Details',
+                    title: 'On-Call Schedule Details',
                     description:
-                        'Here are more details for this on-call policy.',
+                        'Here are more details for this on-call Schedule.',
                 }}
                 formSteps={[
                     {
-                        title: 'On-Call Policy Info',
-                        id: 'on-call-policy-info',
+                        title: 'On-Call Schedule Info',
+                        id: 'on-call-Schedule-info',
                     },
                     {
                         title: 'Labels',
@@ -77,10 +77,10 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        stepId: 'on-call-policy-info',
+                        stepId: 'on-call-Schedule-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'On-Call Policy Name',
+                        placeholder: 'On-Call Schedule Name',
                         validation: {
                             minLength: 2,
                         },
@@ -89,7 +89,7 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                        stepId: 'on-call-policy-info',
+                        stepId: 'on-call-Schedule-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -115,14 +115,14 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
-                    modelType: OnCallDutyPolicy,
+                    modelType: OnCallDutySchedule,
                     id: 'model-detail-monitors',
                     fields: [
                         {
                             field: {
                                 _id: true,
                             },
-                            title: 'On-Call Policy ID',
+                            title: 'On-Call Schedule ID',
                         },
                         {
                             field: {
@@ -167,4 +167,4 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default OnCallDutyPolicyView;
+export default OnCallDutyScheduleView;

@@ -34,5 +34,8 @@ If applicable, add screenshots to help explain your problem.
  - Browser [e.g. stock browser, safari]
  - Version [e.g. 22]
 
+**Deployment Type**
+Is this issue on SaaS (at https://oneuptime.com) or self hosted (the version that you deployed on your server)? 
+
 **Additional context**
 Add any other context about the problem here.
