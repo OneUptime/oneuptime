@@ -5,6 +5,7 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import StatementGenerator from '../../../Utils/AnalyticsDatabase/StatementGenerator';
 import { ClickhouseAppInstance } from '../../../Infrastructure/ClickhouseDatabase';
 import ObjectID from 'Common/Types/ObjectID';
+import Route from 'Common/Types/API/Route';
 
 describe('StatementGenerator', () => {
     class TestModel extends AnalyticsBaseModel {
@@ -29,6 +30,7 @@ describe('StatementGenerator', () => {
                             ],
                         });
                     }),
+                crudApiPath: new Route('route'),
                 primaryKeys: ['column_ObjectID'],
             });
         }
