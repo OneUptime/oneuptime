@@ -12,10 +12,13 @@ import { fail } from 'assert';
 
 describe('probeService', () => {
     let database!: Database;
-    beforeEach(async () => {
-        database = new Database();
-        await database.createAndConnect();
-    });
+    beforeEach(
+        async () => {
+            database = new Database();
+            await database.createAndConnect();
+        },
+        10 * 1000 // 10 second timeout because setting up the DB is slow
+    );
 
     afterEach(async () => {
         await database.disconnectAndDropDatabase();
