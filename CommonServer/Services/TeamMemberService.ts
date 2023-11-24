@@ -143,7 +143,9 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         const member: TeamMember | null = await this.findOneBy({
             query: {
                 userId: createBy.data.userId!,
-                teamId: new ObjectID(createBy.data.team!._id!),
+                teamId:
+                    createBy.data.teamId ||
+                    new ObjectID(createBy.data.team!._id!),
             },
             props: {
                 isRoot: true,
