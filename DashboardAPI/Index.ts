@@ -334,6 +334,21 @@ import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
 
+import OnCallDutyPolicySchedule from 'Model/Models/OnCallDutyPolicySchedule';
+import OnCallDutyPolicyScheduleService, {
+    Service as OnCallDutyPolicyScheduleServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyScheduleService';
+
+import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
+import OnCallDutyPolicyScheduleLayerService, {
+    Service as OnCallDutyPolicyScheduleLayerServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyScheduleLayerService';
+
+import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
+import OnCallDutyPolicyScheduleLayerUserService, {
+    Service as OnCallDutyPolicyScheduleLayerUserServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyScheduleLayerUserService';
+
 import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
 import OnCallDutyPolicyExecutionLogTimelineService, {
     Service as OnCallDutyPolicyExecutionLogTimelineServiceType,
@@ -456,6 +471,34 @@ app.use(
     new BaseAPI<MonitorGroupOwnerUser, MonitorGroupOwnerUserServiceType>(
         MonitorGroupOwnerUser,
         MonitorGroupOwnerUserService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<OnCallDutyPolicySchedule, OnCallDutyPolicyScheduleServiceType>(
+        OnCallDutyPolicySchedule,
+        OnCallDutyPolicyScheduleService
+    ).getRouter()
+);
+
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyScheduleLayer,
+        OnCallDutyPolicyScheduleLayerServiceType
+    >(OnCallDutyPolicyScheduleLayer, OnCallDutyPolicyScheduleLayerService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyScheduleLayerUser,
+        OnCallDutyPolicyScheduleLayerUserServiceType
+    >(
+        OnCallDutyPolicyScheduleLayerUser,
+        OnCallDutyPolicyScheduleLayerUserService
     ).getRouter()
 );
 
