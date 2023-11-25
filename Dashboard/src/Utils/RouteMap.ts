@@ -39,7 +39,7 @@ export const TelemetryRouthPath: Dictionary<string> = {
     [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
     [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
     [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `${RouteParams.ModelID}/dashboards`,
-}
+};
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
