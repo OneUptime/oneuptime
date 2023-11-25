@@ -34,7 +34,7 @@ export const env: Function = (key: string): string => {
 export const HTTP_PROTOCOL: Protocol =
     env('HTTP_PROTOCOL') === 'https' ? Protocol.HTTPS : Protocol.HTTP;
 
-export const HOST: string = env('HOST');
+export const HOST: string = env('HOST') || '';
 
 export const BILLING_ENABLED: boolean = env('BILLING_ENABLED') === 'true';
 export const BILLING_PUBLIC_KEY: string = env('BILLING_PUBLIC_KEY') || '';
