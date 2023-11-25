@@ -9,23 +9,11 @@ import {
 } from 'react-router-dom';
 import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
-import Init from './Pages/Init/Init';
-
 import Home from './Pages/Home/Home';
 import NotOperationalMonitors from './Pages/Home/NotOperationalMonitors';
 import OngoingScheduledEvents from './Pages/Home/OngoingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
-
-import Workflows from './Pages/Workflow/Workflows';
-import WorkflowsVariables from './Pages/Workflow/Variable';
-import WorkflowsLogs from './Pages/Workflow/Logs';
-import WorkflowLogs from './Pages/Workflow/View/Logs';
-import WorkflowDelete from './Pages/Workflow/View/Delete';
-import WorkflowBuilder from './Pages/Workflow/View/Builder';
-import WorkflowOverview from './Pages/Workflow/View/Index';
-import WorkflowVariables from './Pages/Workflow/View/Variable';
-import WorkflowSettings from './Pages/Workflow/View/Settings';
 
 import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
@@ -137,21 +125,6 @@ import OnCallDutyPolicyViewLogsView from './Pages/OnCallDuty/OnCallDutyPolicy/Ex
 import OnCallDutyPolicyViewEscalation from './Pages/OnCallDuty/OnCallDutyPolicy/Escalation';
 import OnCallDutyPolicyViewCustomFields from './Pages/OnCallDuty/OnCallDutyPolicy/CustomFields';
 
-// Monitors
-import MonitorPage from './Pages/Monitor/Monitors';
-import MonitorView from './Pages/Monitor/View/Index';
-import MonitorViewDelete from './Pages/Monitor/View/Delete';
-import MonitorViewCriteria from './Pages/Monitor/View/Criteria';
-import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
-import MonitorIncidents from './Pages/Monitor/View/Incidents';
-import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
-import MonitorDisabled from './Pages/Monitor/DisabledMonitors';
-import MonitorViewCustomFields from './Pages/Monitor/View/CustomFields';
-import MonitorViewInterval from './Pages/Monitor/View/Interval';
-import MonitorViewProbes from './Pages/Monitor/View/Probes';
-import MonitorViewOwner from './Pages/Monitor/View/Owners';
-import MonitorViewSettings from './Pages/Monitor/View/Settings';
-
 // Monitor Groups.
 import MonitorGroups from './Pages/MonitorGroup/MonitorGroups';
 import MonitorGroupView from './Pages/MonitorGroup/View/Index';
@@ -181,14 +154,11 @@ import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLog
 import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
 import URL from 'Common/Types/API/URL';
 
-// Add Telemetry.
-import TelemetryServices from './Pages/Telemetry/Services';
-import TelemetryServiceView from './Pages/Telemetry/Services/View/Index';
-import TelemetryServiceViewDelete from './Pages/Telemetry/Services/View/Delete';
-import TelemetryServiceViewLogs from './Pages/Telemetry/Services/View/Logs/Index';
-import TelemetryServiceViewTraces from './Pages/Telemetry/Services/View/Traces/Index';
-import TelemetryServiceViewMetrics from './Pages/Telemetry/Services/View/Metrics/Index';
-import TelemetryServiceViewDahboard from './Pages/Telemetry/Services/View/Dashboard/Index';
+//Routes
+import InitRoutes from './Routes/InitRoutes';
+import TelemetryRoutes from './Routes/TelemetryRoutes';
+import MonitorsRoutes from './Routes/MonitorsRoutes';
+import WorkflowRoutes from './Routes/WorkflowRoutes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -343,25 +313,12 @@ const App: () => JSX.Element = () => {
         >
             <Routes>
                 <PageRoute
-                    path={RouteMap[PageMap.INIT]?.toString() || ''}
+                    path="/*"
                     element={
-                        <Init
+                        <InitRoutes
                             {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.INIT] as Route}
                             projects={projects}
-                            isLoadingProjects={isLoading}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.INIT_PROJECT]?.toString() || ''}
-                    element={
-                        <Init
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
-                            projects={projects}
-                            isLoadingProjects={isLoading}
+                            isLoading={isLoading}
                         />
                     }
                 />
@@ -375,139 +332,6 @@ const App: () => JSX.Element = () => {
                             onClickShowProjectModal={() => {
                                 setShowProjectModal(true);
                             }}
-                        />
-                    }
-                />
-
-                {/* Telemetry Pages */}
-
-                <PageRoute
-                    path={RouteMap[PageMap.TELEMETRY]?.toString() || ''}
-                    element={
-                        <TelemetryServices
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.TELEMETRY] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.TELEMETRY_SERVICES]?.toString() || ''
-                    }
-                    element={
-                        <TelemetryServices
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.TELEMETRY_SERVICES] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.TELEMETRY_SERVICES_VIEW]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <TelemetryServiceView
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_DELETE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <TelemetryServiceViewDelete
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_DELETE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_LOGS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <TelemetryServiceViewLogs
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_LOGS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_TRACES
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <TelemetryServiceViewTraces
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_TRACES
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_METRICS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <TelemetryServiceViewMetrics
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_METRICS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <TelemetryServiceViewDahboard
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
-                                ] as Route
-                            }
                         />
                     }
                 />
@@ -573,310 +397,23 @@ const App: () => JSX.Element = () => {
                         />
                     }
                 />
+                {/* Telemetry */}
+                <PageRoute
+                    path={RouteMap[PageMap.TELEMETRY_ROOT]?.toString() || ''}
+                    element={<TelemetryRoutes {...commonPageProps} />}
+                />
 
                 {/* Monitors */}
                 <PageRoute
-                    path={RouteMap[PageMap.MONITORS]?.toString() || ''}
-                    element={
-                        <MonitorPage
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.MONITORS] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITORS_INOPERATIONAL]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <MonitorInoperational
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITORS_INOPERATIONAL
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITOR_VIEW_SETTINGS]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <MonitorViewSettings
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_VIEW_SETTINGS] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.MONITORS_DISABLED]?.toString() || ''}
-                    element={
-                        <MonitorDisabled
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITORS_DISABLED] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.MONITOR_VIEW]?.toString() || ''}
-                    element={
-                        <MonitorView
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITOR_VIEW_OWNERS]?.toString() || ''
-                    }
-                    element={
-                        <MonitorViewOwner
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITOR_VIEW_DELETE]?.toString() || ''
-                    }
-                    element={
-                        <MonitorViewDelete
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.MONITOR_VIEW_STATUS_TIMELINE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <MonitorViewStatusTimeline
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITOR_VIEW_CRITERIA]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <MonitorViewCriteria
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITOR_VIEW_INCIDENTS]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <MonitorIncidents
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_VIEW_INCIDENTS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.MONITOR_VIEW_CUSTOM_FIELDS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <MonitorViewCustomFields
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_VIEW_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITOR_VIEW_INTERVAL]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <MonitorViewInterval
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.MONITOR_VIEW_PROBES]?.toString() || ''
-                    }
-                    element={
-                        <MonitorViewProbes
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route
-                            }
-                        />
-                    }
+                    path={RouteMap[PageMap.MONITORS_ROOT]?.toString() || ''}
+                    element={<MonitorsRoutes {...commonPageProps} />}
                 />
 
                 {/* Workflows  */}
-
                 <PageRoute
-                    path={RouteMap[PageMap.WORKFLOWS]?.toString() || ''}
-                    element={
-                        <Workflows
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
-                        />
-                    }
+                    path={RouteMap[PageMap.WORKFLOWS_ROOT]?.toString() || ''}
+                    element={<WorkflowRoutes {...commonPageProps} />}
                 />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.WORKFLOWS_VARIABLES]?.toString() || ''
-                    }
-                    element={
-                        <WorkflowsVariables
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.WORKFLOWS_LOGS]?.toString() || ''}
-                    element={
-                        <WorkflowsLogs
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOWS_LOGS] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.WORKFLOW_VARIABLES]?.toString() || ''
-                    }
-                    element={
-                        <WorkflowVariables
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOW_VARIABLES] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.WORKFLOW_VIEW_SETTINGS]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <WorkflowSettings
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.WORKFLOW_VIEW_SETTINGS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.WORKFLOW_BUILDER]?.toString() || ''}
-                    element={
-                        <WorkflowBuilder
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOW_BUILDER] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.WORKFLOW_VIEW]?.toString() || ''}
-                    element={
-                        <WorkflowOverview
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.WORKFLOW_LOGS]?.toString() || ''}
-                    element={
-                        <WorkflowLogs
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.WORKFLOW_DELETE]?.toString() || ''}
-                    element={
-                        <WorkflowDelete
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOW_DELETE] as Route
-                            }
-                        />
-                    }
-                />
-
                 {/* Status Pages */}
 
                 <PageRoute

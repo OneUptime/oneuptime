@@ -6,6 +6,41 @@ import PageMap from './PageMap';
 import RouteParams from './RouteParams';
 import ObjectID from 'Common/Types/ObjectID';
 
+export const MonitorsRoutePath: Dictionary<string> = {
+    [PageMap.MONITORS_INOPERATIONAL]: 'inoperational',
+    [PageMap.MONITORS_DISABLED]: 'disabled',
+    [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
+    [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+    [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: `${RouteParams.ModelID}/status-timeline`,
+    [PageMap.MONITOR_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+    [PageMap.MONITOR_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+    [PageMap.MONITOR_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.MONITOR_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+    [PageMap.MONITOR_VIEW_CRITERIA]: `${RouteParams.ModelID}/criteria`,
+    [PageMap.MONITOR_VIEW_PROBES]: `${RouteParams.ModelID}/probes`,
+};
+
+export const WorkflowRoutePath: Dictionary<string> = {
+    [PageMap.WORKFLOWS_LOGS]: 'logs',
+    [PageMap.WORKFLOWS_VARIABLES]: 'variables',
+    [PageMap.WORKFLOW_VARIABLES]: `workflow/${RouteParams.ModelID}/variables`,
+    [PageMap.WORKFLOW_BUILDER]: `workflow/${RouteParams.ModelID}/builder`,
+    [PageMap.WORKFLOW_VIEW]: `workflow/${RouteParams.ModelID}`,
+    [PageMap.WORKFLOW_LOGS]: `workflow/${RouteParams.ModelID}/logs`,
+    [PageMap.WORKFLOW_DELETE]: `workflow/${RouteParams.ModelID}/delete`,
+    [PageMap.WORKFLOW_VIEW_SETTINGS]: `workflow/${RouteParams.ModelID}/settings`,
+};
+
+export const TelemetryRouthPath: Dictionary<string> = {
+    [PageMap.TELEMETRY_SERVICES_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `${RouteParams.ModelID}/dashboards`,
+}
+
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -24,20 +59,83 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`
     ),
 
+    [PageMap.MONITORS_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/*`
+    ),
+    [PageMap.MONITORS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors`
+    ),
+
+    [PageMap.MONITORS_INOPERATIONAL]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL]
+        }`
+    ),
+
+    [PageMap.MONITORS_DISABLED]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITORS_DISABLED]
+        }`
+    ),
+
+    [PageMap.MONITOR_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW]
+        }`
+    ),
+
+    [PageMap.MONITOR_VIEW_INTERVAL]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_INTERVAL]
+        }`
+    ),
+
+    [PageMap.MONITOR_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_OWNERS]
+        }`
+    ),
+
+    [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_STATUS_TIMELINE]
+        }`
+    ),
+
+    [PageMap.MONITOR_VIEW_CUSTOM_FIELDS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_CUSTOM_FIELDS]
+        }`
+    ),
+
+    [PageMap.MONITOR_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_DELETE]
+        }`
+    ),
+
     [PageMap.MONITOR_VIEW_INCIDENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/incidents`
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_INCIDENTS]
+        }`
     ),
 
     [PageMap.MONITOR_VIEW_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/settings`
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_SETTINGS]
+        }`
     ),
 
     [PageMap.MONITOR_VIEW_PROBES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/probes`
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_PROBES]
+        }`
     ),
 
     [PageMap.MONITOR_VIEW_CRITERIA]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/criteria`
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_CRITERIA]
+        }`
     ),
 
     [PageMap.INCIDENTS]: new Route(
@@ -228,42 +326,6 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 
-    [PageMap.MONITORS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors`
-    ),
-
-    [PageMap.MONITORS_INOPERATIONAL]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/inoperational`
-    ),
-
-    [PageMap.MONITORS_DISABLED]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/disabled`
-    ),
-
-    [PageMap.MONITOR_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}`
-    ),
-
-    [PageMap.MONITOR_VIEW_INTERVAL]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/interval`
-    ),
-
-    [PageMap.MONITOR_VIEW_OWNERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/owners`
-    ),
-
-    [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/status-timeline`
-    ),
-
-    [PageMap.MONITOR_VIEW_CUSTOM_FIELDS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/custom-fields`
-    ),
-
-    [PageMap.MONITOR_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/delete`
-    ),
-
     [PageMap.AUTOMATION_SCRIPTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
@@ -316,6 +378,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/error-tracker/`
     ),
 
+    [PageMap.TELEMETRY_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/*`
+    ),
+
     [PageMap.TELEMETRY]: new Route(
         `/dashboard/${RouteParams.ProjectID}/telemetry/services`
     ),
@@ -325,31 +391,43 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.TELEMETRY_SERVICES_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW]
+        }`
     ),
 
     [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_DELETE]
+        }`
     ),
 
     //TELEMETRY_SERVICE_VIEW_LOGS
     [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/logs`
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_LOGS]
+        }`
     ),
 
     //TELEMETRY_SERVICE_VIEW_TRACES
     [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/traces`
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_TRACES]
+        }`
     ),
 
     // Metrics
     [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/metrics`
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_METRICS]
+        }`
     ),
 
     // Dashboard
     [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${RouteParams.ModelID}/dashboards`
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]
+        }`
     ),
 
     // User Settings Routes
@@ -494,40 +572,59 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     // workflows.
+    [PageMap.WORKFLOWS_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/*`
+    ),
     [PageMap.WORKFLOWS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/workflows`
     ),
 
     [PageMap.WORKFLOWS_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/logs`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOWS_LOGS]
+        }`
     ),
 
     [PageMap.WORKFLOWS_VARIABLES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/variables`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOWS_VARIABLES]
+        }`
     ),
 
     [PageMap.WORKFLOW_VARIABLES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/variables`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOW_VARIABLES]
+        }`
     ),
 
     [PageMap.WORKFLOW_BUILDER]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/builder`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOW_BUILDER]
+        }`
     ),
 
     [PageMap.WORKFLOW_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOW_VIEW]
+        }`
     ),
 
     [PageMap.WORKFLOW_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/logs`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOW_LOGS]
+        }`
     ),
 
     [PageMap.WORKFLOW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOW_DELETE]
+        }`
     ),
 
     [PageMap.WORKFLOW_VIEW_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/settings`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${
+            WorkflowRoutePath[PageMap.WORKFLOW_VIEW_SETTINGS]
+        }`
     ),
 
     /// custom fields settings.
