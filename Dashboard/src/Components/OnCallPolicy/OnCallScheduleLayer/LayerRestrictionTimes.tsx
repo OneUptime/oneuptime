@@ -12,7 +12,7 @@ export interface ComponentProps {
     onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
 }
 
-const LayerStartsAt: FunctionComponent<ComponentProps> = (
+const LayerReestrictionTimes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
@@ -33,7 +33,7 @@ const LayerStartsAt: FunctionComponent<ComponentProps> = (
                         return (
                             <RestrictionTimesFieldElement
                                 {...props}
-                                restrictionTimes={value.restrictionTimes as RestrictionTimes}
+                                initialValue={value.restrictionTimes as RestrictionTimes}
                             />
                         );
                     }
@@ -50,4 +50,4 @@ const LayerStartsAt: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default LayerStartsAt;
+export default LayerReestrictionTimes;

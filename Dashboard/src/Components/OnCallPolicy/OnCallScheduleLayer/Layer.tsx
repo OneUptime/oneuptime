@@ -6,6 +6,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import LayerBasicInfo from './LayerBasicInfo';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import LayerStartsAt from './LayerStartTime';
+import LayerReestrictionTimes from './LayerRestrictionTimes';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -40,7 +41,9 @@ const Layer: FunctionComponent<ComponentProps> = (
 
             <HorizontalRule />
 
-            
+            <LayerReestrictionTimes layer={props.layer} onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
+                props.onLayerChange(layer);
+            }} />
 
         </Card>
     );
