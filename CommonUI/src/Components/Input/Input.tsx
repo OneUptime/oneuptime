@@ -11,7 +11,14 @@ import React, {
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 
-export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';
+export enum InputType {
+    TEXT = 'text',
+    NUMBER = 'number',
+    DATE = 'date',
+    DATETIME_LOCAL = 'datetime-local',
+    URL = 'url',
+    TIME = 'time',
+}
 
 export interface ComponentProps {
     initialValue?: undefined | string;
@@ -59,10 +66,10 @@ const Input: FunctionComponent<ComponentProps> = (
     const ref: any = useRef<any>(null);
 
     useEffect(() => {
-        if (props.type === 'date' || props.type === 'datetime-local') {
+        if (props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL || props.type === 'time') {
             if (value && (value as unknown) instanceof Date) {
                 let dateString: string = '';
-                if (props.type === 'datetime-local') {
+                if (props.type === InputType.DATETIME_LOCAL) {
                     dateString = OneUptimeDate.toDateTimeLocalString(
                         value as any
                     );
@@ -74,7 +81,7 @@ const Input: FunctionComponent<ComponentProps> = (
                 // " - " is for InBetween dates.
                 const date: Date = OneUptimeDate.fromString(value);
                 let dateString: string = '';
-                if (props.type === 'datetime-local') {
+                if (props.type === InputType.DATETIME_LOCAL) {
                     dateString = OneUptimeDate.toDateTimeLocalString(date);
                 } else {
                     dateString = OneUptimeDate.asDateForDatabaseQuery(date);
@@ -133,8 +140,8 @@ const Input: FunctionComponent<ComponentProps> = (
                         const value: string = e.target.value;
 
                         if (
-                            (props.type === 'date' ||
-                                props.type === 'datetime-local') &&
+                            (props.type === InputType.DATE ||
+                                props.type === InputType.DATETIME_LOCAL || props.type === InputType.TIME) &&
                             value
                         ) {
                             const date: Date = OneUptimeDate.fromString(value);

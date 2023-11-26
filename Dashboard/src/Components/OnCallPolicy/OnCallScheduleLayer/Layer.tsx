@@ -11,6 +11,7 @@ export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
     onDeleteLayer: () => void;
     onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
+    isDeleteButtonLoading: boolean;
 }
 
 const Layer: FunctionComponent<ComponentProps> = (
@@ -23,6 +24,7 @@ const Layer: FunctionComponent<ComponentProps> = (
                 onClick: props.onDeleteLayer,
                 icon: IconProp.Trash,
                 buttonStyle: ButtonStyleType.NORMAL,
+                isLoading: props.isDeleteButtonLoading
             }
         ]}>
 

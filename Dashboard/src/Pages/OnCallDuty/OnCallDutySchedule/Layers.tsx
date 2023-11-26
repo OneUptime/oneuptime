@@ -6,9 +6,10 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
+import Layers from '../../../Components/OnCallPolicy/OnCallScheduleLayer/Layers';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 
 const OnCallScheduleDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -55,15 +56,7 @@ const OnCallScheduleDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={OnCallDutySchedule}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.ON_CALL_DUTY] as Route
-                    );
-                }}
-            />
+            <Layers onCallDutyPolicyScheduleId={modelId} projectId={ProjectUtil.getCurrentProjectId()!} />
         </ModelPage>
     );
 };
