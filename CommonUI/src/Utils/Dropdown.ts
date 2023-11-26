@@ -13,6 +13,16 @@ export default class DropdownUtil {
         });
     }
 
+
+    public static getDropdownOptionFromEnumForValue(
+        obj: Object, 
+        value: string
+    ): DropdownOption | undefined {
+        const options = DropdownUtil.getDropdownOptionsFromEnum(obj);
+        const option = options.find((option: DropdownOption) => option.value === value);
+        return option; 
+    }
+
     public static getDropdownOptionsFromEntityArray<
         TBaseModel extends BaseModel
     >(data: {

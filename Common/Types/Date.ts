@@ -558,4 +558,34 @@ export default class OneUptimeDate {
             OneUptimeDate.getEndOfDay(formattedDate)
         );
     }
+
+    public static getDateWithCustomTime(data: {hours: number, minutes: number, seconds: number}): Date {
+
+        const hour: number = data.hours;
+        const minutes: number = data.minutes;
+        const seconds: number = data.seconds;
+
+        //validate the hour
+        if (hour < 0 || hour > 23) {
+            throw new BadDataException('Invalid hour');
+        }
+
+        //validate the minutes
+        if (minutes < 0 || minutes > 59) {
+            throw new BadDataException('Invalid minutes');
+        }
+
+        //validate the seconds
+        if (seconds < 0 || seconds > 59) {
+            throw new BadDataException('Invalid seconds');
+        }
+
+        const date: Date = OneUptimeDate.getCurrentDate();
+       
+        date.setHours(hour);
+        date.setMinutes(minutes);
+        date.setSeconds(seconds);
+
+        return date;
+    }
 }

@@ -1,5 +1,6 @@
 import DatabaseProperty from '../Database/DatabaseProperty';
-import Dictionary from '../Dictionary';
+import OneUptimeDate from '../Date';
+import DayOfWeek from '../Day/DayOfWeek';
 import BadDataException from '../Exception/BadDataException';
 import { JSONObject, ObjectType } from '../JSON';
 import JSONFunctions from '../JSONFunctions';
@@ -11,10 +12,18 @@ export enum RestrictionType {
     None = 'None',
 }
 
+
+export interface WeeklyResctriction {
+    startDay: DayOfWeek;
+    endDay: DayOfWeek;
+    startTime: Date;
+    endTime: Date;
+}
+
 export interface RestrictionTimesData extends JSONObject {
     restictionType: RestrictionType;
     dayRestrictionTimes: StartAndEndTime | null;
-    weeklyRestrictionTime: Dictionary<StartAndEndTime>;
+    weeklyRestrictionTimes: Array<WeeklyResctriction>;
 }
 
 export default class RestrictionTimes extends DatabaseProperty {
@@ -38,14 +47,14 @@ export default class RestrictionTimes extends DatabaseProperty {
         this.data.dayRestrictionTimes = v;
     }
 
-    // weeklyRestrictionTime
+    // weeklyRestrictionTimes
 
-    public get weeklyRestrictionTime(): Dictionary<StartAndEndTime> {
-        return this.data.weeklyRestrictionTime;
+    public get weeklyRestrictionTimes(): Array<WeeklyResctriction> {
+        return this.data.weeklyRestrictionTimes;
     }
 
-    public set weeklyRestrictionTime(v: Dictionary<StartAndEndTime>) {
-        this.data.weeklyRestrictionTime = v;
+    public set weeklyRestrictionTimes(v: Array<WeeklyResctriction>) {
+        this.data.weeklyRestrictionTimes = v;
     }
 
     public constructor() {
@@ -58,7 +67,7 @@ export default class RestrictionTimes extends DatabaseProperty {
         return {
             restictionType: RestrictionType.None,
             dayRestrictionTimes: null,
-            weeklyRestrictionTime: {},
+            weeklyRestrictionTimes: [],
         };
     }
 
@@ -72,7 +81,7 @@ export default class RestrictionTimes extends DatabaseProperty {
             value: {
                 restictionType: this.restictionType,
                 dayRestrictionTimes: this.dayRestrictionTimes,
-                weeklyRestrictionTime: this.weeklyRestrictionTime,
+                weeklyRestrictionTimes: this.weeklyRestrictionTimes,
             },
         });
     }
@@ -102,12 +111,58 @@ export default class RestrictionTimes extends DatabaseProperty {
             'dayRestrictionTimes'
         ] as StartAndEndTime | null;
 
-        const weeklyRestrictionTime: Dictionary<StartAndEndTime> =
-            (data['weeklyRestrictionTime'] as Dictionary<StartAndEndTime>) ||
+        const weeklyRestrictionTimes: Array<WeeklyResctriction> =
+            (data['weeklyRestrictionTimes'] as Array<WeeklyResctriction>) ||
             {};
 
-        restrictionTimes.weeklyRestrictionTime = weeklyRestrictionTime;
+        restrictionTimes.weeklyRestrictionTimes = weeklyRestrictionTimes;
 
         return restrictionTimes;
+    }
+
+    public removeAllRestrictions(): void {
+        this.restictionType = RestrictionType.None;
+        this.dayRestrictionTimes = null;
+        this.weeklyRestrictionTimes = [];
+    }
+
+    public addDefaultDailyRestriction(): void {
+        this.restictionType = RestrictionType.Daily;
+        this.dayRestrictionTimes = {
+            startTime: OneUptimeDate.getDateWithCustomTime({
+                hours: 0,
+                minutes: 0,
+                seconds: 0,
+            }),
+            endTime: OneUptimeDate.getDateWithCustomTime({
+                hours: 1,
+                minutes: 0,
+                seconds: 0,
+            }),
+        }
+        this.weeklyRestrictionTimes = [];
+    }
+
+    public addDefaultWeeklyRestriction(): void {
+        this.restictionType = RestrictionType.Weekly;
+        this.dayRestrictionTimes = null; 
+        this.weeklyRestrictionTimes = [RestrictionTimes.getDefaultWeeklyRestrictionTIme()];
+    }
+
+    public static getDefaultWeeklyRestrictionTIme(): WeeklyResctriction {
+        return {
+            startDay: DayOfWeek.Sunday,
+            endDay: DayOfWeek.Monday,
+            startTime: OneUptimeDate.getDateWithCustomTime({
+                hours: 0,
+                minutes: 0,
+                seconds: 0,
+            }),
+            endTime: OneUptimeDate.getDateWithCustomTime({
+                hours: 1,
+                minutes: 0,
+                seconds: 0,
+            }),
+        };
     }
 }
