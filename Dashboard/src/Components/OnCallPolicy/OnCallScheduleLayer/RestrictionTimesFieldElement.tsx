@@ -2,7 +2,10 @@ import RestrictionTimes from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
-    restrictionTimes: RestrictionTimes;
+    error?: string | undefined;
+    onChange?: ((value: RestrictionTimes) => void) | undefined;
+    onBlur?: () => void;
+    initialValue?: RestrictionTimes | undefined;
 }
 
 const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (

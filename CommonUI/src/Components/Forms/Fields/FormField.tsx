@@ -13,7 +13,7 @@ import CodeType from 'Common/Types/Code/CodeType';
 import FilePicker from '../../FilePicker/FilePicker';
 import MimeType from 'Common/Types/File/MimeType';
 import FileModel from 'Common/Models/FileModel';
-import RadioButtons from '../../RadioButtons/RadioButtons';
+import RadioButtons from '../../RadioButtons/GroupRadioButtons';
 import Field, { FormFieldStyleType } from '../Types/Field';
 import FieldLabelElement from '../Fields/FieldLabel';
 import FormValues from '../Types/FormValues';

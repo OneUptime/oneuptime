@@ -6,7 +6,7 @@ import { DropdownOption } from '../../Dropdown/Dropdown';
 import BaseModel from 'Common/Models/BaseModel';
 import MimeType from 'Common/Types/File/MimeType';
 import FormValues from './FormValues';
-import { RadioButton } from '../../RadioButtons/RadioButtons';
+import { RadioButton } from '../../RadioButtons/GroupRadioButtons';
 import { ReactElement } from 'react';
 
 export enum FormFieldStyleType {
