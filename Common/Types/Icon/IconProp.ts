@@ -11,6 +11,7 @@ enum IconProp {
     Criteria = 'Criteria',
     Notification = 'Notification',
     CursorArrowRays = 'CursorArrowRays',
+    ArrowUpDown = 'ArrowUpDown',
     Cube = 'Cube',
     Squares = 'Squares',
     RectangleStack = 'RectangleStack',
