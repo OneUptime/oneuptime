@@ -23,6 +23,7 @@ export interface ComponentProps {
     isError: boolean;
     singularLabel: string;
     pluralLabel: string;
+    dataTestId?: string;
 }
 
 const Pagination: FunctionComponent<ComponentProps> = (
@@ -66,7 +67,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
 
     return (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4">
+        <div
+            className="flex items-center justify-between border-t border-gray-200 bg-white px-4"
+            data-testid={props.dataTestId}
+        >
             <div>
                 <p className="text-sm text-gray-500">
                     {!props.isLoading && (
@@ -90,6 +94,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 <nav className="inline-flex -space-x-px rounded-md shadow-sm">
                     <div className="my-2">
                         <Button
+                            dataTestId="show-pagination-modal-button"
                             className="mx-2 my-2"
                             buttonSize={ButtonSize.ExtraSmall}
                             icon={IconProp.AdjustmentHorizontal}
@@ -122,6 +127,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                             <span className="page-link">Previous</span>
                         </li>
                         <li
+                            data-testid="current-page-link"
                             className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
                                 isCurrentPageButtonDisabled ? 'bg-gray-100' : ''
                             }`}
@@ -154,6 +160,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
             {showPaginationModel && (
                 <BasicFormModal<PaginationNavigationItem>
+                    data-testid="pagination-modal"
                     title={'Navigate to Page'}
                     onClose={() => {
                         setShowPaginationModel(false);
