@@ -314,7 +314,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                         // remove all restrictions
                         tempRestrictionTimes.removeAllRestrictions();
                         // add weekly restriction
-                        tempRestrictionTimes.addDefaultprops.weeklyRestriction();
+                        tempRestrictionTimes.addDefaultWeeklyRestriction();
                         updateRestrictionTimes(tempRestrictionTimes);
                     }
                 }}
