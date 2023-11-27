@@ -67,8 +67,9 @@ const Layers: FunctionComponent<ComponentProps> = (
             onCallPolicyScheduleLayer.name = newLayerName;
 
             // count the description and generate a unique description for this layer.
-            const newLayerDescription: string = `Layer ${layers.length + 1
-                } description.`;
+            const newLayerDescription: string = `Layer ${
+                layers.length + 1
+            } description.`;
             onCallPolicyScheduleLayer.description = newLayerDescription;
             onCallPolicyScheduleLayer.order = layers.length + 1;
             onCallPolicyScheduleLayer.restrictionTimes =
@@ -142,17 +143,19 @@ const Layers: FunctionComponent<ComponentProps> = (
     };
 
     const addLayerButton: Function = (): ReactElement => {
-        return (<div className='-ml-3 mt-5'>
-            <Button
-                title="Add New Layer"
-                isLoading={isAddbuttonLoading}
-                onClick={() => {
-                    addLayer();
-                }}
-                icon={IconProp.Add}
-            />
-        </div>)
-    }
+        return (
+            <div className="-ml-3 mt-5">
+                <Button
+                    title="Add New Layer"
+                    isLoading={isAddbuttonLoading}
+                    onClick={() => {
+                        addLayer();
+                    }}
+                    icon={IconProp.Add}
+                />
+            </div>
+        );
+    };
 
     const fetchLayers: Function = async () => {
         setIsLoading(true);
@@ -244,7 +247,16 @@ const Layers: FunctionComponent<ComponentProps> = (
             </div>
 
             {layers.length === 0 && (
-                <EmptyState footer={addLayerButton()} showSolidBackground={false} id="no-layers" title={"No Layers in this On Call Schedule"} description={"No layers in this on-call schedule. Please add one."} icon={IconProp.SquareStack} />
+                <EmptyState
+                    footer={addLayerButton()}
+                    showSolidBackground={false}
+                    id="no-layers"
+                    title={'No Layers in this On Call Schedule'}
+                    description={
+                        'No layers in this on-call schedule. Please add one.'
+                    }
+                    icon={IconProp.SquareStack}
+                />
             )}
 
             {layers.length > 0 && addLayerButton()}

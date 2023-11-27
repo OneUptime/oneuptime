@@ -20,10 +20,12 @@ const Layer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className='mb-10 '>
+        <div className="mb-10 ">
             <Card
                 title={`Layer ${props.layer.order?.toString() || ''}`}
-                description={'On Call Schedule Layer. Layers on top have priority.'}
+                description={
+                    'On Call Schedule Layer. Layers on top have priority.'
+                }
                 buttons={[
                     {
                         title: 'Delete Layer',
@@ -34,10 +36,12 @@ const Layer: FunctionComponent<ComponentProps> = (
                     },
                 ]}
             >
-                <div className='bg-gray-50 -ml-6 -mr-6 pl-6 pr-6 pt-6 -mb-6 pb-6'>
+                <div className="bg-gray-50 -ml-6 -mr-6 pl-6 pr-6 pt-6 -mb-6 pb-6">
                     <LayerBasicInfo
                         layer={props.layer}
-                        onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
+                        onLayerChange={(
+                            layer: OnCallDutyPolicyScheduleLayer
+                        ) => {
                             props.onLayerChange(layer);
                         }}
                     />
@@ -50,7 +54,9 @@ const Layer: FunctionComponent<ComponentProps> = (
 
                     <LayerStartsAt
                         layer={props.layer}
-                        onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
+                        onLayerChange={(
+                            layer: OnCallDutyPolicyScheduleLayer
+                        ) => {
                             props.onLayerChange(layer);
                         }}
                     />
@@ -59,14 +65,14 @@ const Layer: FunctionComponent<ComponentProps> = (
 
                     <LayerReestrictionTimes
                         layer={props.layer}
-                        onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
+                        onLayerChange={(
+                            layer: OnCallDutyPolicyScheduleLayer
+                        ) => {
                             props.onLayerChange(layer);
                         }}
                     />
                 </div>
-                <div>
-                    {/** Layer Preview */}
-                </div>
+                <div>{/** Layer Preview */}</div>
             </Card>
         </div>
     );

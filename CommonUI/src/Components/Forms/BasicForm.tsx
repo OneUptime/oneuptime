@@ -65,7 +65,7 @@ export interface BaseComponentProps<T extends Object> {
 
 export interface ComponentProps<T extends Object>
     extends BaseComponentProps<T> {
-    onSubmit: (values: FormValues<T>, onSubmitSuccessful: ()=> void) => void;
+    onSubmit: (values: FormValues<T>, onSubmitSuccessful: () => void) => void;
     footer: ReactElement;
 }
 
@@ -76,8 +76,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     ): ReactElement => {
         const isSubmitting: MutableRefObject<boolean> = useRef(false);
 
-        const [didSomethingChange, setDidSomethingChange] = useState<boolean>(false);
-
+        const [didSomethingChange, setDidSomethingChange] =
+            useState<boolean>(false);
 
         const [isLoading, setIsLoading] = useState<boolean | undefined>(
             props.isLoading
@@ -389,7 +389,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 UiAnalytics.capture('FORM SUBMIT: ' + props.name);
 
-                props.onSubmit(values, ()=>{
+                props.onSubmit(values, () => {
                     setDidSomethingChange(false);
                 });
             } else if (formSteps && formSteps.length > 0) {
@@ -485,13 +485,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             return <ErrorMessage error={formError} />;
         }
 
+        let showSubmitButton: boolean = !props.hideSubmitButton;
 
-        let showSubmitButton:boolean = !props.hideSubmitButton;
-
-        if(props.showSubmitButtonOnlyIfSomethingChanged && didSomethingChange) {
+        if (
+            props.showSubmitButtonOnlyIfSomethingChanged &&
+            didSomethingChange
+        ) {
             showSubmitButton = true;
         }
-
 
         return (
             <div className="row">

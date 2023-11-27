@@ -27,7 +27,6 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
 
     const [groupName] = useState<string>(ObjectID.generate().toString());
 
-
     useEffect(() => {
         if (props.initialValue) {
             setValue(props.initialValue);
@@ -56,8 +55,8 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                 <div className="space-y-4">
                     {props.options.map(
                         (radioButton: BasicRadioButtonOption, i: number) => {
-
-                            const checked: boolean =  value === radioButton.value;
+                            const checked: boolean =
+                                value === radioButton.value;
 
                             return (
                                 <div key={i}>
@@ -65,9 +64,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                                         <input
                                             type="radio"
                                             radioGroup={groupName}
-                                            defaultChecked={
-                                                checked
-                                            }
+                                            defaultChecked={checked}
                                             onClick={() => {
                                                 handleChange(radioButton.value);
                                             }}

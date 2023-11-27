@@ -82,9 +82,6 @@ export default class Rotation extends DatabaseProperty {
         let rotationIntervalCount: PositiveNumber = new PositiveNumber(1);
 
         if (json && json['rotationIntervalCount']) {
-
-            console.log(json['rotationIntervalCount']);
-
             rotationIntervalCount = PositiveNumber.fromJSON(
                 json['rotationIntervalCount']
             );
@@ -112,9 +109,7 @@ export default class Rotation extends DatabaseProperty {
         return null;
     }
 
-    protected static override fromDatabase(
-        value: JSONObject
-    ): Rotation | null {
+    protected static override fromDatabase(value: JSONObject): Rotation | null {
         if (value) {
             return Rotation.fromJSON(value);
         }
