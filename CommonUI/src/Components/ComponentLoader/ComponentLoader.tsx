@@ -3,7 +3,7 @@ import CompactLoader from './CompactLoader';
 
 const ComponentLoader: () => JSX.Element = (): ReactElement => {
     return (
-        <div className="my-16">
+        <div className="my-16" data-testid="component-loader">
             <CompactLoader />
         </div>
     );
