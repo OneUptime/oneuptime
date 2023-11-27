@@ -53,6 +53,8 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                         name: true,
                         email: true,
                         _id: true,
+                        profilePictureId: true, 
+                        
                     },
                     _id: true,
                 }}
