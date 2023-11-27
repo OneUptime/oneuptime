@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import Input from '../Input/Input';
+import Input, { InputType } from '../Input/Input';
 import Button, { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Dropdown from '../Dropdown/Dropdown';
@@ -122,7 +122,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                             searchText: value,
                                                         });
                                                     }}
-                                                    type={'datetime-local'}
+                                                    type={InputType.DATETIME_LOCAL}
                                                 />
                                             </div>
                                             <div className="w-1/2">
@@ -139,7 +139,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                             searchText: value,
                                                         });
                                                     }}
-                                                    type={'datetime-local'}
+                                                    type={InputType.DATETIME_LOCAL}
                                                 />
                                             </div>
                                         </div>
