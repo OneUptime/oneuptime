@@ -122,7 +122,9 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                             searchText: value,
                                                         });
                                                     }}
-                                                    type={InputType.DATETIME_LOCAL}
+                                                    type={
+                                                        InputType.DATETIME_LOCAL
+                                                    }
                                                 />
                                             </div>
                                             <div className="w-1/2">
@@ -139,7 +141,9 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                             searchText: value,
                                                         });
                                                     }}
-                                                    type={InputType.DATETIME_LOCAL}
+                                                    type={
+                                                        InputType.DATETIME_LOCAL
+                                                    }
                                                 />
                                             </div>
                                         </div>
