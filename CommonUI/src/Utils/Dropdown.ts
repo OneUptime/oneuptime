@@ -17,7 +17,7 @@ export default class DropdownUtil {
         obj: Object,
         value: string
     ): DropdownOption | undefined {
-        const options = DropdownUtil.getDropdownOptionsFromEnum(obj);
+        const options: Array<DropdownOption> = DropdownUtil.getDropdownOptionsFromEnum(obj);
         const option = options.find((option: DropdownOption) => {
             return option.value === value;
         });

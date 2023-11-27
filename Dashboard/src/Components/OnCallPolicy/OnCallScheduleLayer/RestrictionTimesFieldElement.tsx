@@ -345,7 +345,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <BasicRadioButtons
-                onChange={(value: RestrictionType) => {
+                onChange={(value: string) => {
+
+
                     let tempRestrictionTimes = restrictionTimes;
 
                     if (!tempRestrictionTimes) {
@@ -388,6 +390,15 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     },
                 ]}
             />
+
+            {props.error && (
+                <p
+                    data-testid="error-message"
+                    className="mt-1 text-sm text-red-400"
+                >
+                    {props.error}
+                </p>
+            )}
         </div>
     );
 };

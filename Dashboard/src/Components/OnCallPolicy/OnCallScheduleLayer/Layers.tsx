@@ -4,7 +4,7 @@ import Layer from './Layer';
 import Button from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
 import ObjectID from 'Common/Types/ObjectID';
 import RestrictionTimes from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
@@ -15,6 +15,8 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -53,18 +55,18 @@ const Layers: FunctionComponent<ComponentProps> = (
         setIsAddButtonLoading(true);
 
         try {
-            const onCallPolicyScheduleLayer =
+            const onCallPolicyScheduleLayer: OnCallDutyPolicyScheduleLayer =
                 new OnCallDutyPolicyScheduleLayer();
             onCallPolicyScheduleLayer.onCallDutyPolicyScheduleId =
                 props.onCallDutyPolicyScheduleId;
             onCallPolicyScheduleLayer.projectId = props.projectId;
 
             // count the layers and generate a unique name for this layer.
-            const newLayerName = `Layer ${layers.length + 1}`;
+            const newLayerName: string = `Layer ${layers.length + 1}`;
             onCallPolicyScheduleLayer.name = newLayerName;
 
             // count the description and generate a unique description for this layer.
-            const newLayerDescription = `Layer ${
+            const newLayerDescription: string = `Layer ${
                 layers.length + 1
             } description.`;
             onCallPolicyScheduleLayer.description = newLayerDescription;
@@ -74,7 +76,7 @@ const Layers: FunctionComponent<ComponentProps> = (
             onCallPolicyScheduleLayer.rotation = Rotation.getDefault();
             onCallPolicyScheduleLayer.startsAt = OneUptimeDate.getCurrentDate();
 
-            const newLayer =
+            const newLayer: HTTPResponse<OnCallDutyPolicyScheduleLayer | OnCallDutyPolicyScheduleLayer[] | JSONObject | JSONArray> =
                 await ModelAPI.create<OnCallDutyPolicyScheduleLayer>(
                     onCallPolicyScheduleLayer,
                     OnCallDutyPolicyScheduleLayer,
@@ -117,7 +119,7 @@ const Layers: FunctionComponent<ComponentProps> = (
 
             // remove this layer from layers array and set it.
 
-            const newLayers = layers.filter(
+            const newLayers: Array<OnCallDutyPolicyScheduleLayer> = layers.filter(
                 (layer: OnCallDutyPolicyScheduleLayer) => {
                     return layer.id?.toString() !== item.id?.toString();
                 }
@@ -140,7 +142,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         setIsLoading(true);
 
         try {
-            const layers =
+            const layers: ListResult<OnCallDutyPolicyScheduleLayer> =
                 await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>(
                     OnCallDutyPolicyScheduleLayer,
                     {
@@ -184,9 +186,10 @@ const Layers: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <div>
-                {layers.map((layer: OnCallDutyPolicyScheduleLayer) => {
+                {layers.map((layer: OnCallDutyPolicyScheduleLayer, i: number) => {
                     return (
                         <Layer
+                            key={i}
                             isDeleteButtonLoading={Boolean(
                                 isDeletetingLayerId.find((id: ObjectID) => {
                                     return (
@@ -202,7 +205,7 @@ const Layers: FunctionComponent<ComponentProps> = (
                                 layer: OnCallDutyPolicyScheduleLayer
                             ) => {
                                 // update this layer in layers array and set it.
-                                const newLayers = layers.map(
+                                const newLayers: Array<OnCallDutyPolicyScheduleLayer> = layers.map(
                                     (item: OnCallDutyPolicyScheduleLayer) => {
                                         if (item.id === layer.id) {
                                             return layer;
