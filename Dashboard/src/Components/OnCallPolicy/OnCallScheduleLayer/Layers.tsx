@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import Layer from './Layer';
-import Button from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -17,6 +17,7 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -66,9 +67,8 @@ const Layers: FunctionComponent<ComponentProps> = (
             onCallPolicyScheduleLayer.name = newLayerName;
 
             // count the description and generate a unique description for this layer.
-            const newLayerDescription: string = `Layer ${
-                layers.length + 1
-            } description.`;
+            const newLayerDescription: string = `Layer ${layers.length + 1
+                } description.`;
             onCallPolicyScheduleLayer.description = newLayerDescription;
             onCallPolicyScheduleLayer.order = layers.length + 1;
             onCallPolicyScheduleLayer.restrictionTimes =
@@ -140,6 +140,19 @@ const Layers: FunctionComponent<ComponentProps> = (
             })
         );
     };
+
+    const addLayerButton: Function = (): ReactElement => {
+        return (<div className='-ml-3 mt-5'>
+            <Button
+                title="Add New Layer"
+                isLoading={isAddbuttonLoading}
+                onClick={() => {
+                    addLayer();
+                }}
+                icon={IconProp.Add}
+            />
+        </div>)
+    }
 
     const fetchLayers: Function = async () => {
         setIsLoading(true);
@@ -231,19 +244,10 @@ const Layers: FunctionComponent<ComponentProps> = (
             </div>
 
             {layers.length === 0 && (
-                <ErrorMessage error="No layers in this schedule. Please add a layer." />
+                <EmptyState footer={addLayerButton()} showSolidBackground={false} id="no-layers" title={"No Layers in this On Call Schedule"} description={"No layers in this on-call schedule. Please add one."} icon={IconProp.SquareStack} />
             )}
 
-            <div>
-                <Button
-                    title="Add New Layer"
-                    isLoading={isAddbuttonLoading}
-                    onClick={() => {
-                        addLayer();
-                    }}
-                    icon={IconProp.Add}
-                />
-            </div>
+            {layers.length > 0 && addLayerButton()}
 
             {showCannotDeleteOnlyLayerError ? (
                 <ConfirmModal
@@ -253,6 +257,7 @@ const Layers: FunctionComponent<ComponentProps> = (
                     }
                     isLoading={false}
                     submitButtonText={'Close'}
+                    submitButtonType={ButtonStyleType.NORMAL}
                     onSubmit={() => {
                         return setShowCannotDeleteOnlyLayerError(false);
                     }}

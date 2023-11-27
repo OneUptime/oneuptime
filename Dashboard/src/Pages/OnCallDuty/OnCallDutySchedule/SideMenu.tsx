@@ -41,7 +41,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             { modelId: props.modelId }
                         ),
                     }}
-                    icon={IconProp.Layers}
+                    icon={IconProp.SquareStack}
                 />
             </SideMenuSection>
 

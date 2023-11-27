@@ -18,7 +18,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     titleField: string;
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
@@ -28,7 +28,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     fetchRequestOptions?: RequestOptions | undefined;
     noItemsMessage: string;
     headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
-    onSelectChange: (list: Array<TBaseModel>) => void;
+    onSelectChange?: ((list: Array<TBaseModel>) => void) | undefined;
+    refreshToggle?: boolean | undefined;
+    footer?: ReactElement | undefined;
 }
 
 const ModelList: <TBaseModel extends BaseModel>(
@@ -36,180 +38,186 @@ const ModelList: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);
-    const [modelList, setModalList] = useState<Array<TBaseModel>>([]);
-    const [error, setError] = useState<string>('');
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [searchedList, setSearchedList] = useState<Array<TBaseModel>>([]);
-    const [searchText, setSearchText] = useState<string>('');
+        const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);
+        const [modelList, setModalList] = useState<Array<TBaseModel>>([]);
+        const [error, setError] = useState<string>('');
+        const [isLoading, setIsLoading] = useState<boolean>(false);
+        const [searchedList, setSearchedList] = useState<Array<TBaseModel>>([]);
+        const [searchText, setSearchText] = useState<string>('');
 
-    useEffect(() => {
-        props.onSelectChange(selectedList);
-    }, [selectedList]);
+        useEffect(() => {
+            props.onSelectChange && props.onSelectChange(selectedList);
+        }, [selectedList]);
 
-    useEffect(() => {
-        fetchItems().catch();
-    }, []);
+        useEffect(() => {
+            fetchItems().catch();
+        }, [props.refreshToggle]);
 
-    useEffect(() => {
-        if (!props.isSearchEnabled) {
-            setSearchedList([...modelList]);
-        }
-    }, [props.isSearchEnabled, modelList]);
+        useEffect(() => {
+            fetchItems().catch();
+        }, []);
 
-    const fetchItems: Function = async () => {
-        setError('');
-        setIsLoading(true);
+        useEffect(() => {
+            if (!props.isSearchEnabled) {
+                setSearchedList([...modelList]);
+            }
+        }, [props.isSearchEnabled, modelList]);
 
-        try {
-            let listResult: ListResult<TBaseModel> = {
-                data: [],
-                count: 0,
-                skip: 0,
-                limit: 0,
-            };
+        const fetchItems: Function = async () => {
+            setError('');
+            setIsLoading(true);
 
-            if (props.overrideFetchApiUrl) {
-                const result: HTTPResponse<JSONArray> = (await API.post(
-                    props.overrideFetchApiUrl,
-                    {},
-                    {}
-                )) as HTTPResponse<JSONArray>;
-
-                listResult = {
-                    data: BaseModel.fromJSONArray(
-                        result.data as JSONArray,
-                        props.modelType
-                    ),
-                    count: (result.data as JSONArray).length as number,
+            try {
+                let listResult: ListResult<TBaseModel> = {
+                    data: [],
+                    count: 0,
                     skip: 0,
-                    limit: LIMIT_PER_PROJECT,
+                    limit: 0,
                 };
-            } else {
-                listResult = await ModelAPI.getList<TBaseModel>(
-                    props.modelType,
-                    {
-                        ...props.query,
-                    },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    props.select,
-                    {},
 
-                    props.fetchRequestOptions
-                );
+                if (props.overrideFetchApiUrl) {
+                    const result: HTTPResponse<JSONArray> = (await API.post(
+                        props.overrideFetchApiUrl,
+                        {},
+                        {}
+                    )) as HTTPResponse<JSONArray>;
+
+                    listResult = {
+                        data: BaseModel.fromJSONArray(
+                            result.data as JSONArray,
+                            props.modelType
+                        ),
+                        count: (result.data as JSONArray).length as number,
+                        skip: 0,
+                        limit: LIMIT_PER_PROJECT,
+                    };
+                } else {
+                    listResult = await ModelAPI.getList<TBaseModel>(
+                        props.modelType,
+                        {
+                            ...props.query,
+                        },
+                        LIMIT_PER_PROJECT,
+                        0,
+                        props.select,
+                        {},
+
+                        props.fetchRequestOptions
+                    );
+                }
+
+                setModalList(listResult.data);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
             }
 
-            setModalList(listResult.data);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+            setIsLoading(false);
+        };
 
-        setIsLoading(false);
-    };
+        useEffect(() => {
+            if (!searchText) {
+                setSearchedList([...modelList]);
+            } else {
+                // search
 
-    useEffect(() => {
-        if (!searchText) {
-            setSearchedList([...modelList]);
-        } else {
-            // search
-
-            setSearchedList(
-                [...modelList].filter((model: TBaseModel): boolean => {
-                    const includedInSearch: boolean = (
-                        model.getValue(props.titleField) as string
-                    )
-                        .toLowerCase()
-                        .includes(searchText);
-
-                    if (!includedInSearch && props.descriptionField) {
-                        return (
-                            model.getValue(props.descriptionField) as string
+                setSearchedList(
+                    [...modelList].filter((model: TBaseModel): boolean => {
+                        const includedInSearch: boolean = (
+                            model.getValue(props.titleField) as string
                         )
                             .toLowerCase()
                             .includes(searchText);
-                    }
 
-                    return includedInSearch;
-                })
-            );
-        }
-    }, [modelList, searchText]);
+                        if (!includedInSearch && props.descriptionField) {
+                            return (
+                                model.getValue(props.descriptionField) as string
+                            )
+                                .toLowerCase()
+                                .includes(searchText);
+                        }
 
-    return (
-        <div>
+                        return includedInSearch;
+                    })
+                );
+            }
+        }, [modelList, searchText]);
+
+        return (
             <div>
-                {!isLoading && !error && props.isSearchEnabled && (
-                    <div className="p-2">
-                        <Input
-                            placeholder="Search..."
-                            onChange={(value: string) => {
-                                setSearchText(value);
+                <div>
+                    {!isLoading && !error && props.isSearchEnabled && (
+                        <div className="p-2">
+                            <Input
+                                placeholder="Search..."
+                                onChange={(value: string) => {
+                                    setSearchText(value);
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+                <div className="max-h-96 mb-5 overflow-y-auto p-2">
+                    {error ? <ErrorMessage error={error} /> : <></>}
+                    {isLoading ? <ComponentLoader /> : <></>}
+
+                    {!isLoading && !error && searchedList.length === 0 ? (
+                        <ErrorMessage
+                            error={
+                                searchText
+                                    ? 'No items match your search'
+                                    : props.noItemsMessage || 'No items found.'
+                            }
+                        />
+                    ) : (
+                        <></>
+                    )}
+
+                    {!error && !isLoading && (
+                        <StaticModelList<TBaseModel>
+                            list={searchedList}
+                            headerField={props.headerField}
+                            descriptionField={props.descriptionField}
+                            titleField={props.titleField}
+                            selectedItems={selectedList}
+                            onClick={(model: TBaseModel) => {
+                                if (props.selectMultiple) {
+                                    // if added to the list, then remove or add to list
+                                    const isSelected: boolean =
+                                        selectedList.filter(
+                                            (selectedItem: TBaseModel) => {
+                                                return (
+                                                    selectedItem._id?.toString() ===
+                                                    model._id?.toString()
+                                                );
+                                            }
+                                        ).length > 0;
+                                    if (isSelected) {
+                                        // remove the item.
+                                        setSelectedList(
+                                            selectedList.filter((i: TBaseModel) => {
+                                                return (
+                                                    i._id?.toString() !==
+                                                    model._id?.toString()
+                                                );
+                                            })
+                                        );
+                                    } else {
+                                        setSelectedList([
+                                            ...selectedList,
+                                            { ...model },
+                                        ]);
+                                    }
+                                } else {
+                                    setSelectedList([{ ...model }]);
+                                }
                             }}
                         />
-                    </div>
-                )}
-            </div>
-            <div className="max-h-96 mb-5 overflow-y-auto p-2">
-                {error ? <ErrorMessage error={error} /> : <></>}
-                {isLoading ? <ComponentLoader /> : <></>}
+                    )}
+                    {props.footer}
+                </div>
 
-                {!isLoading && !error && searchedList.length === 0 ? (
-                    <ErrorMessage
-                        error={
-                            searchText
-                                ? 'No items match your search'
-                                : props.noItemsMessage || 'No items found.'
-                        }
-                    />
-                ) : (
-                    <></>
-                )}
-
-                {!error && !isLoading && (
-                    <StaticModelList<TBaseModel>
-                        list={searchedList}
-                        headerField={props.headerField}
-                        descriptionField={props.descriptionField}
-                        titleField={props.titleField}
-                        selectedItems={selectedList}
-                        onClick={(model: TBaseModel) => {
-                            if (props.selectMultiple) {
-                                // if added to the list, then remove or add to list
-                                const isSelected: boolean =
-                                    selectedList.filter(
-                                        (selectedItem: TBaseModel) => {
-                                            return (
-                                                selectedItem._id?.toString() ===
-                                                model._id?.toString()
-                                            );
-                                        }
-                                    ).length > 0;
-                                if (isSelected) {
-                                    // remove the item.
-                                    setSelectedList(
-                                        selectedList.filter((i: TBaseModel) => {
-                                            return (
-                                                i._id?.toString() !==
-                                                model._id?.toString()
-                                            );
-                                        })
-                                    );
-                                } else {
-                                    setSelectedList([
-                                        ...selectedList,
-                                        { ...model },
-                                    ]);
-                                }
-                            } else {
-                                setSelectedList([{ ...model }]);
-                            }
-                        }}
-                    />
-                )}
             </div>
-        </div>
-    );
-};
+        );
+    };
 
 export default ModelList;

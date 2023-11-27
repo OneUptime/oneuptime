@@ -1,3 +1,4 @@
+import ObjectID from 'Common/Types/ObjectID';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -23,6 +24,9 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [value, setValue] = useState<string>('');
+
+    const [groupName] = useState<string>(ObjectID.generate().toString());
+
 
     useEffect(() => {
         if (props.initialValue) {
@@ -52,13 +56,17 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                 <div className="space-y-4">
                     {props.options.map(
                         (radioButton: BasicRadioButtonOption, i: number) => {
+
+                            const checked: boolean =  value === radioButton.value;
+
                             return (
                                 <div key={i}>
                                     <div className="flex items-center">
                                         <input
                                             type="radio"
+                                            radioGroup={groupName}
                                             defaultChecked={
-                                                value === radioButton.value
+                                                checked
                                             }
                                             onClick={() => {
                                                 handleChange(radioButton.value);
@@ -74,7 +82,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                                             </span>
                                         </label>
                                     </div>
-                                    {radioButton.children}
+                                    {checked && radioButton.children}
                                 </div>
                             );
                         }

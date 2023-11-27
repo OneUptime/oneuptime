@@ -1,3 +1,4 @@
+import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import EventInterval from '../Events/EventInterval';
 import BadDataException from '../Exception/BadDataException';
@@ -52,7 +53,7 @@ export default class Rotation extends DatabaseProperty {
             _type: ObjectType.Rotation,
             value: {
                 rotationInterval: this.rotationInterval,
-                rotationIntervalCount: this.rotationIntervalCount,
+                rotationIntervalCount: this.rotationIntervalCount.toJSON(),
             },
         });
     }
@@ -81,6 +82,9 @@ export default class Rotation extends DatabaseProperty {
         let rotationIntervalCount: PositiveNumber = new PositiveNumber(1);
 
         if (json && json['rotationIntervalCount']) {
+
+            console.log(json['rotationIntervalCount']);
+
             rotationIntervalCount = PositiveNumber.fromJSON(
                 json['rotationIntervalCount']
             );
@@ -94,5 +98,27 @@ export default class Rotation extends DatabaseProperty {
         };
 
         return rotation;
+    }
+
+    protected static override toDatabase(
+        value: Rotation | FindOperator<Rotation>
+    ): JSONObject | null {
+        if (value && value instanceof Rotation) {
+            return (value as Rotation).toJSON();
+        } else if (value) {
+            return JSONFunctions.serialize(value as any);
+        }
+
+        return null;
+    }
+
+    protected static override fromDatabase(
+        value: JSONObject
+    ): Rotation | null {
+        if (value) {
+            return Rotation.fromJSON(value);
+        }
+
+        return null;
     }
 }
