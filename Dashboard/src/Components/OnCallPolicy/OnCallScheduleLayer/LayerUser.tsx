@@ -83,9 +83,6 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                     }}
                     formProps={{
                         name: 'Add user to layer',
-                        saveRequestOptions: {
-                            isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request
-                        },
                         modelType: OnCallDutyPolicyScheduleLayerUser,
                         id: 'add-user-to-layer',
                         fields: [

@@ -31,7 +31,7 @@ const LayerBasicInfo: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Description',
                     fieldType: FormFieldSchemaType.LongText,
-                    required: true,
+                    required: false,
                 },
             ]}
             onSuccess={(item: OnCallDutyPolicyScheduleLayer) => {

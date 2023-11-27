@@ -227,7 +227,7 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         type: TableColumnType.ShortText,
         canReadOnRelationQuery: true,
         title: 'Name',
-        description: 'Any friendly name of this object',
+        description: 'Friendly name for this layer',
     })
     @Column({
         nullable: false,
@@ -261,7 +261,7 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         type: TableColumnType.LongText,
         title: 'Description',
         description:
-            'Friendly description of this custom field that will help you remember',
+            'Description for this layer. This is optional and can be left blank.',
     })
     @Column({
         nullable: true,
