@@ -56,7 +56,10 @@ const OnCallScheduleDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <Layers onCallDutyPolicyScheduleId={modelId} projectId={ProjectUtil.getCurrentProjectId()!} />
+            <Layers
+                onCallDutyPolicyScheduleId={modelId}
+                projectId={ProjectUtil.getCurrentProjectId()!}
+            />
         </ModelPage>
     );
 };

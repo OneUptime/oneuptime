@@ -559,8 +559,11 @@ export default class OneUptimeDate {
         );
     }
 
-    public static getDateWithCustomTime(data: {hours: number, minutes: number, seconds: number}): Date {
-
+    public static getDateWithCustomTime(data: {
+        hours: number;
+        minutes: number;
+        seconds: number;
+    }): Date {
         const hour: number = data.hours;
         const minutes: number = data.minutes;
         const seconds: number = data.seconds;
@@ -581,7 +584,7 @@ export default class OneUptimeDate {
         }
 
         const date: Date = OneUptimeDate.getCurrentDate();
-       
+
         date.setHours(hour);
         date.setMinutes(minutes);
         date.setSeconds(seconds);

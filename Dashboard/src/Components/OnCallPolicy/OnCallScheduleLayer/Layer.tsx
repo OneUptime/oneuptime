@@ -19,32 +19,43 @@ const Layer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <Card title={`Layer ${props.layer.order?.toString() || ''}`} description={"On Call Schedule Layer. Layers on top have priority."} buttons={[
-            {
-                title: 'Delete',
-                onClick: props.onDeleteLayer,
-                icon: IconProp.Trash,
-                buttonStyle: ButtonStyleType.NORMAL,
-                isLoading: props.isDeleteButtonLoading
-            }
-        ]}>
-
-            <LayerBasicInfo layer={props.layer} onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
-                props.onLayerChange(layer);
-            }} />
+        <Card
+            title={`Layer ${props.layer.order?.toString() || ''}`}
+            description={'On Call Schedule Layer. Layers on top have priority.'}
+            buttons={[
+                {
+                    title: 'Delete',
+                    onClick: props.onDeleteLayer,
+                    icon: IconProp.Trash,
+                    buttonStyle: ButtonStyleType.NORMAL,
+                    isLoading: props.isDeleteButtonLoading,
+                },
+            ]}
+        >
+            <LayerBasicInfo
+                layer={props.layer}
+                onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
+                    props.onLayerChange(layer);
+                }}
+            />
 
             <HorizontalRule />
 
-            <LayerStartsAt layer={props.layer} onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
-                props.onLayerChange(layer);
-            }} />
+            <LayerStartsAt
+                layer={props.layer}
+                onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
+                    props.onLayerChange(layer);
+                }}
+            />
 
             <HorizontalRule />
 
-            <LayerReestrictionTimes layer={props.layer} onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
-                props.onLayerChange(layer);
-            }} />
-
+            <LayerReestrictionTimes
+                layer={props.layer}
+                onLayerChange={(layer: OnCallDutyPolicyScheduleLayer) => {
+                    props.onLayerChange(layer);
+                }}
+            />
         </Card>
     );
 };

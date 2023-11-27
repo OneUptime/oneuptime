@@ -28,16 +28,20 @@ const LayerReestrictionTimes: FunctionComponent<ComponentProps> = (
                     title: 'Restriction Times',
                     fieldType: FormFieldSchemaType.CustomComponent,
                     required: true,
-                    getCustomElement: (value: FormValues<OnCallDutyPolicyScheduleLayer>,
-                        props: CustomElementProps) => {
+                    getCustomElement: (
+                        value: FormValues<OnCallDutyPolicyScheduleLayer>,
+                        props: CustomElementProps
+                    ) => {
                         return (
                             <RestrictionTimesFieldElement
                                 {...props}
-                                initialValue={value.restrictionTimes as RestrictionTimes}
+                                initialValue={
+                                    value.restrictionTimes as RestrictionTimes
+                                }
                             />
                         );
-                    }
-                }
+                    },
+                },
             ]}
             onSuccess={(item: OnCallDutyPolicyScheduleLayer) => {
                 props.onLayerChange(item);

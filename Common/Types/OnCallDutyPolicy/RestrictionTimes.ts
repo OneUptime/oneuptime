@@ -12,7 +12,6 @@ export enum RestrictionType {
     None = 'None',
 }
 
-
 export interface WeeklyResctriction {
     startDay: DayOfWeek;
     endDay: DayOfWeek;
@@ -112,8 +111,7 @@ export default class RestrictionTimes extends DatabaseProperty {
         ] as StartAndEndTime | null;
 
         const weeklyRestrictionTimes: Array<WeeklyResctriction> =
-            (data['weeklyRestrictionTimes'] as Array<WeeklyResctriction>) ||
-            {};
+            (data['weeklyRestrictionTimes'] as Array<WeeklyResctriction>) || {};
 
         restrictionTimes.weeklyRestrictionTimes = weeklyRestrictionTimes;
 
@@ -139,14 +137,16 @@ export default class RestrictionTimes extends DatabaseProperty {
                 minutes: 0,
                 seconds: 0,
             }),
-        }
+        };
         this.weeklyRestrictionTimes = [];
     }
 
     public addDefaultWeeklyRestriction(): void {
         this.restictionType = RestrictionType.Weekly;
-        this.dayRestrictionTimes = null; 
-        this.weeklyRestrictionTimes = [RestrictionTimes.getDefaultWeeklyRestrictionTIme()];
+        this.dayRestrictionTimes = null;
+        this.weeklyRestrictionTimes = [
+            RestrictionTimes.getDefaultWeeklyRestrictionTIme(),
+        ];
     }
 
     public static getDefaultWeeklyRestrictionTIme(): WeeklyResctriction {

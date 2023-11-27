@@ -66,7 +66,11 @@ const Input: FunctionComponent<ComponentProps> = (
     const ref: any = useRef<any>(null);
 
     useEffect(() => {
-        if (props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL || props.type === 'time') {
+        if (
+            props.type === InputType.DATE ||
+            props.type === InputType.DATETIME_LOCAL ||
+            props.type === 'time'
+        ) {
             if (value && (value as unknown) instanceof Date) {
                 let dateString: string = '';
                 if (props.type === InputType.DATETIME_LOCAL) {
@@ -141,7 +145,8 @@ const Input: FunctionComponent<ComponentProps> = (
 
                         if (
                             (props.type === InputType.DATE ||
-                                props.type === InputType.DATETIME_LOCAL || props.type === InputType.TIME) &&
+                                props.type === InputType.DATETIME_LOCAL ||
+                                props.type === InputType.TIME) &&
                             value
                         ) {
                             const date: Date = OneUptimeDate.fromString(value);

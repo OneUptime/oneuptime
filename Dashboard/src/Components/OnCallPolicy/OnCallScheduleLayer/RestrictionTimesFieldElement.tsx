@@ -1,4 +1,6 @@
-import RestrictionTimes, { WeeklyResctriction } from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
+import RestrictionTimes, {
+    WeeklyResctriction,
+} from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import BasicRadioButtons from 'CommonUI/src/Components/RadioButtons/BasicRadioButtons';
 import { RestrictionType } from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
@@ -21,279 +23,329 @@ export interface ComponentProps {
 const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const [restrictionTimes, setRestrictionTimes] = useState<
+        RestrictionTimes | undefined
+    >(props.initialValue);
 
+    const getDailyRestriction = (): ReactElement => {
+        // show start time to end time input fields
 
-    const [restrictionTimes, setRestrictionTimes] = useState<RestrictionTimes | undefined>(props.initialValue);
+        return (
+            <div className="flex">
+                <div>
+                    <FieldLabelElement title="From:" />
+                    <Input
+                        type={InputType.TIME}
+                        initialValue={restrictionTimes?.dayRestrictionTimes?.startTime.toString()}
+                        onChange={(value: any) => {
+                            let date = OneUptimeDate.getCurrentDate();
 
+                            if (value instanceof Date) {
+                                date = value;
+                            }
 
-    const getDailyRestriction = (
+                            if (typeof value === Typeof.String) {
+                                date = OneUptimeDate.fromString(value);
+                            }
 
-    ): ReactElement => {
+                            let tempRestrictionTimes = restrictionTimes;
 
-        // show start time to end time input fields 
+                            if (!tempRestrictionTimes) {
+                                tempRestrictionTimes = new RestrictionTimes();
+                            }
 
-        return (<div className='flex'>
+                            if (!tempRestrictionTimes.dayRestrictionTimes) {
+                                tempRestrictionTimes.dayRestrictionTimes = {
+                                    startTime: date,
+                                    endTime: date,
+                                };
+                            }
+
+                            tempRestrictionTimes.dayRestrictionTimes.startTime =
+                                date;
+
+                            updateRestrictionTimes(tempRestrictionTimes);
+                        }}
+                    />
+                </div>
+                <div>
+                    <FieldLabelElement title="To:" />
+                    <Input
+                        type={InputType.TIME}
+                        initialValue={restrictionTimes?.dayRestrictionTimes?.endTime.toString()}
+                        onChange={(value: any) => {
+                            let date = OneUptimeDate.getCurrentDate();
+
+                            if (value instanceof Date) {
+                                date = value;
+                            }
+
+                            if (typeof value === Typeof.String) {
+                                date = OneUptimeDate.fromString(value);
+                            }
+
+                            let tempRestrictionTimes = restrictionTimes;
+
+                            if (!tempRestrictionTimes) {
+                                tempRestrictionTimes = new RestrictionTimes();
+                            }
+
+                            if (!tempRestrictionTimes.dayRestrictionTimes) {
+                                tempRestrictionTimes.dayRestrictionTimes = {
+                                    startTime: date,
+                                    endTime: date,
+                                };
+                            }
+
+                            tempRestrictionTimes.dayRestrictionTimes.endTime =
+                                date;
+
+                            updateRestrictionTimes(tempRestrictionTimes);
+                        }}
+                    />
+                </div>
+            </div>
+        );
+    };
+
+    const getWeeklyTimeRestrictions = (): ReactElement => {
+        return (
             <div>
-                <FieldLabelElement
-                    title="From:"
-                />
-                <Input type={InputType.TIME} initialValue={
-                    restrictionTimes?.dayRestrictionTimes?.startTime.toString()
-                } onChange={(value: any) => {
+                <div>
+                    {/** LIST */}
 
-                    let date = OneUptimeDate.getCurrentDate();
+                    {restrictionTimes?.weeklyRestrictionTimes?.map(
+                        (weeklyRestriction: WeeklyResctriction, i: number) => {
+                            return (
+                                <div key={i} className="flex">
+                                    <div>
+                                        {getWeeklyTimeRestriction({
+                                            weeklyRestriction,
+                                            onChange: (
+                                                value: WeeklyResctriction
+                                            ) => {
+                                                let tempRestrictionTimes =
+                                                    restrictionTimes;
 
-                    if (value instanceof Date) {
-                        date = value;
-                    }
+                                                if (!tempRestrictionTimes) {
+                                                    tempRestrictionTimes =
+                                                        new RestrictionTimes();
+                                                }
 
-                    if (typeof value === Typeof.String) {
-                        date = OneUptimeDate.fromString(value);
-                    }
+                                                if (
+                                                    !tempRestrictionTimes.weeklyRestrictionTimes
+                                                ) {
+                                                    tempRestrictionTimes.weeklyRestrictionTimes =
+                                                        [];
+                                                }
 
-                    let tempRestrictionTimes = restrictionTimes;
+                                                tempRestrictionTimes.weeklyRestrictionTimes[
+                                                    i
+                                                ] = value;
 
-                    if (!tempRestrictionTimes) {
-                        tempRestrictionTimes = new RestrictionTimes();
-                    }
+                                                updateRestrictionTimes(
+                                                    tempRestrictionTimes
+                                                );
+                                            },
+                                            onDelete: () => {
+                                                let tempRestrictionTimes =
+                                                    restrictionTimes;
 
-                    if (!tempRestrictionTimes.dayRestrictionTimes) {
-                        tempRestrictionTimes.dayRestrictionTimes = {
-                            startTime: date,
-                            endTime: date,
+                                                if (!tempRestrictionTimes) {
+                                                    tempRestrictionTimes =
+                                                        new RestrictionTimes();
+                                                }
+
+                                                if (
+                                                    !tempRestrictionTimes.weeklyRestrictionTimes
+                                                ) {
+                                                    tempRestrictionTimes.weeklyRestrictionTimes =
+                                                        [];
+                                                }
+
+                                                tempRestrictionTimes.weeklyRestrictionTimes.splice(
+                                                    i,
+                                                    1
+                                                );
+
+                                                updateRestrictionTimes(
+                                                    tempRestrictionTimes
+                                                );
+                                            },
+                                        })}
+                                    </div>
+                                    <div>
+                                        {/** show delete button */}
+                                        <Button
+                                            title="Delete"
+                                            onClick={() => {
+                                                let tempRestrictionTimes =
+                                                    restrictionTimes;
+
+                                                if (!tempRestrictionTimes) {
+                                                    tempRestrictionTimes =
+                                                        new RestrictionTimes();
+                                                }
+
+                                                if (
+                                                    !tempRestrictionTimes.weeklyRestrictionTimes
+                                                ) {
+                                                    tempRestrictionTimes.weeklyRestrictionTimes =
+                                                        [];
+                                                }
+
+                                                tempRestrictionTimes.weeklyRestrictionTimes.splice(
+                                                    i,
+                                                    1
+                                                );
+
+                                                updateRestrictionTimes(
+                                                    tempRestrictionTimes
+                                                );
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            );
                         }
-                    }
+                    )}
+                </div>
 
-                    tempRestrictionTimes.dayRestrictionTimes.startTime = date;
+                <div>
+                    {/** show add button */}
+                    <Button
+                        title="Add"
+                        onClick={() => {
+                            let tempRestrictionTimes = restrictionTimes;
 
-                    updateRestrictionTimes(tempRestrictionTimes);
+                            if (!tempRestrictionTimes) {
+                                tempRestrictionTimes = new RestrictionTimes();
+                            }
 
-                }} />
+                            if (!tempRestrictionTimes.weeklyRestrictionTimes) {
+                                tempRestrictionTimes.weeklyRestrictionTimes =
+                                    [];
+                            }
+
+                            tempRestrictionTimes.weeklyRestrictionTimes.push(
+                                RestrictionTimes.getDefaultWeeklyRestrictionTIme()
+                            );
+
+                            updateRestrictionTimes(tempRestrictionTimes);
+                        }}
+                    />
+                </div>
             </div>
-            <div>
-                <FieldLabelElement
-                    title="To:"
-                />
-                <Input type={InputType.TIME} initialValue={
-                    restrictionTimes?.dayRestrictionTimes?.endTime.toString()
-                } onChange={(value: any) => {
+        );
+    };
 
-                    let date = OneUptimeDate.getCurrentDate();
+    const getWeeklyTimeRestriction = (props: {
+        weeklyRestriction: WeeklyResctriction;
+        onChange: (value: WeeklyResctriction) => void;
+        onDelete: () => void;
+    }): ReactElement => {
+        // show start time to end time input fields
 
-                    if (value instanceof Date) {
-                        date = value;
-                    }
+        return (
+            <div className="flex">
+                <div>
+                    <FieldLabelElement title="From:" />
+                    <Dropdown
+                        options={DropdownUtil.getDropdownOptionsFromEnum(
+                            DayOfWeek
+                        )}
+                        initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
+                            DayOfWeek,
+                            props.weeklyRestriction.startDay
+                        )}
+                        onChange={(value: any) => {
+                            props.weeklyRestriction.startDay = value;
+                            props.onChange(props.weeklyRestriction);
+                        }}
+                    />
+                    <Input
+                        type={InputType.TIME}
+                        initialValue={props.weeklyRestriction?.startTime.toString()}
+                        onChange={(value: any) => {
+                            let date = OneUptimeDate.getCurrentDate();
 
-                    if (typeof value === Typeof.String) {
-                        date = OneUptimeDate.fromString(value);
-                    }
+                            if (value instanceof Date) {
+                                date = value;
+                            }
 
-                    let tempRestrictionTimes = restrictionTimes;
+                            if (typeof value === Typeof.String) {
+                                date = OneUptimeDate.fromString(value);
+                            }
 
-                    if (!tempRestrictionTimes) {
-                        tempRestrictionTimes = new RestrictionTimes();
-                    }
+                            props.weeklyRestriction.startTime = date;
 
-                    if (!tempRestrictionTimes.dayRestrictionTimes) {
-                        tempRestrictionTimes.dayRestrictionTimes = {
-                            startTime: date,
-                            endTime: date,
-                        }
-                    }
+                            props.onChange(props.weeklyRestriction);
+                        }}
+                    />
+                </div>
+                <div>
+                    <FieldLabelElement title="To:" />
+                    <Dropdown
+                        options={DropdownUtil.getDropdownOptionsFromEnum(
+                            DayOfWeek
+                        )}
+                        initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
+                            DayOfWeek,
+                            props.weeklyRestriction.endDay
+                        )}
+                        onChange={(value: any) => {
+                            props.weeklyRestriction.endDay = value;
+                            props.onChange(props.weeklyRestriction);
+                        }}
+                    />
+                    <Input
+                        type={InputType.TIME}
+                        initialValue={props.weeklyRestriction?.endTime.toString()}
+                        onChange={(value: any) => {
+                            let date = OneUptimeDate.getCurrentDate();
 
-                    tempRestrictionTimes.dayRestrictionTimes.endTime = date;
+                            if (value instanceof Date) {
+                                date = value;
+                            }
 
-                    updateRestrictionTimes(tempRestrictionTimes);
+                            if (typeof value === Typeof.String) {
+                                date = OneUptimeDate.fromString(value);
+                            }
 
-                }} />
+                            props.weeklyRestriction.endTime = date;
+
+                            props.onChange(props.weeklyRestriction);
+                        }}
+                    />
+                </div>
+                <div>
+                    {/* Dellete Button */}
+                    <Button
+                        title="Delete"
+                        onClick={() => {
+                            props.onDelete();
+                        }}
+                    />
+                </div>
             </div>
-        </div>)
-    }
+        );
+    };
 
-    const getWeeklyTimeRestrictions = (
-
-    ): ReactElement => {
-
-
-
-        return (<div>
-
-            <div>
-                {/** LIST */}
-
-                {restrictionTimes?.weeklyRestrictionTimes?.map((weeklyRestriction: WeeklyResctriction, i: number) => {
-
-                    return (<div key={i} className='flex'>
-                        <div>
-                            {getWeeklyTimeRestriction({ weeklyRestriction, onChange: (value: WeeklyResctriction) => {
-
-                                let tempRestrictionTimes = restrictionTimes;
-
-                                if (!tempRestrictionTimes) {
-                                    tempRestrictionTimes = new RestrictionTimes();
-                                }
-
-                                if (!tempRestrictionTimes.weeklyRestrictionTimes) {
-                                    tempRestrictionTimes.weeklyRestrictionTimes = [];
-                                }
-
-                                tempRestrictionTimes.weeklyRestrictionTimes[i] = value;
-
-                                updateRestrictionTimes(tempRestrictionTimes);
-
-                            }, onDelete: () => {
-
-                                let tempRestrictionTimes = restrictionTimes;
-
-                                if (!tempRestrictionTimes) {
-                                    tempRestrictionTimes = new RestrictionTimes();
-                                }
-
-                                if (!tempRestrictionTimes.weeklyRestrictionTimes) {
-                                    tempRestrictionTimes.weeklyRestrictionTimes = [];
-                                }
-
-                                tempRestrictionTimes.weeklyRestrictionTimes.splice(i, 1);
-
-                                updateRestrictionTimes(tempRestrictionTimes);
-
-                            }})}
-                        </div>
-                        <div>
-                            {/** show delete button */}
-                            <Button title='Delete' onClick={() => {
-
-                                let tempRestrictionTimes = restrictionTimes;
-
-                                if (!tempRestrictionTimes) {
-                                    tempRestrictionTimes = new RestrictionTimes();
-                                }
-
-                                if (!tempRestrictionTimes.weeklyRestrictionTimes) {
-                                    tempRestrictionTimes.weeklyRestrictionTimes = [];
-                                }
-
-                                tempRestrictionTimes.weeklyRestrictionTimes.splice(i, 1);
-
-                                updateRestrictionTimes(tempRestrictionTimes);
-
-                            }} />
-                        </div>
-                    </div>)
-                })}
-            </div>
-
-            <div>
-                {/** show add button */}
-                <Button title='Add' onClick={() => {
-
-                    let tempRestrictionTimes = restrictionTimes;
-
-                    if (!tempRestrictionTimes) {
-                        tempRestrictionTimes = new RestrictionTimes();
-                    }
-
-                    if (!tempRestrictionTimes.weeklyRestrictionTimes) {
-                        tempRestrictionTimes.weeklyRestrictionTimes = [];
-                    }
-
-                    tempRestrictionTimes.weeklyRestrictionTimes.push(RestrictionTimes.getDefaultWeeklyRestrictionTIme());
-
-                    updateRestrictionTimes(tempRestrictionTimes);
-                }} />
-            </div>
-        </div>)
-    }
-
-
-    const getWeeklyTimeRestriction = (
-        props: {
-            weeklyRestriction: WeeklyResctriction,
-            onChange: (value: WeeklyResctriction) => void,
-            onDelete: () => void,
-        }
-    ): ReactElement => {
-
-        // show start time to end time input fields 
-
-        return (<div className='flex'>
-            <div>
-                <FieldLabelElement
-                    title="From:"
-                />
-                <Dropdown options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)} initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(DayOfWeek, props.weeklyRestriction.startDay)} onChange={(value: any) => {
-                    props.weeklyRestriction.startDay = value;
-                    props.onChange(props.weeklyRestriction);
-                }} />
-                <Input type={InputType.TIME} initialValue={
-                    props.weeklyRestriction?.startTime.toString()
-                } onChange={(value: any) => {
-
-                    let date = OneUptimeDate.getCurrentDate();
-
-                    if (value instanceof Date) {
-                        date = value;
-                    }
-
-                    if (typeof value === Typeof.String) {
-                        date = OneUptimeDate.fromString(value);
-                    }
-
-                    props.weeklyRestriction.startTime = date;
-
-                    props.onChange(props.weeklyRestriction);
-
-                }} />
-            </div>
-            <div>
-                <FieldLabelElement
-                    title="To:"
-                />
-                <Dropdown options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)} initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(DayOfWeek, props.weeklyRestriction.endDay)} onChange={(value: any) => {
-                    props.weeklyRestriction.endDay = value;
-                    props.onChange(props.weeklyRestriction);
-                }} />
-                <Input type={InputType.TIME} initialValue={
-                    props.weeklyRestriction?.endTime.toString()
-                } onChange={(value: any) => {
-
-                    let date = OneUptimeDate.getCurrentDate();
-
-                    if (value instanceof Date) {
-                        date = value;
-                    }
-
-                    if (typeof value === Typeof.String) {
-                        date = OneUptimeDate.fromString(value);
-                    }
-
-                    props.weeklyRestriction.endTime = date;
-
-                    props.onChange(props.weeklyRestriction);
-
-                }} />
-            </div>
-            <div>
-                {/* Dellete Button */}
-                <Button title='Delete' onClick={() => {
-                    props.onDelete();
-                }} />
-            </div>
-        </div>)
-    }
-
-    const updateRestrictionTimes = (restrictionTimes: RestrictionTimes): void => {
-        setRestrictionTimes(RestrictionTimes.fromJSON(restrictionTimes.toJSON()));
+    const updateRestrictionTimes = (
+        restrictionTimes: RestrictionTimes
+    ): void => {
+        setRestrictionTimes(
+            RestrictionTimes.fromJSON(restrictionTimes.toJSON())
+        );
         if (props.onChange) {
             props.onChange(restrictionTimes);
         }
-    }
+    };
 
     return (
         <div>
             <BasicRadioButtons
                 onChange={(value: RestrictionType) => {
-
                     let tempRestrictionTimes = restrictionTimes;
 
                     if (!tempRestrictionTimes) {
@@ -334,10 +386,10 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                         value: RestrictionType.Weekly,
                         children: getWeeklyTimeRestrictions(),
                     },
-                ]} />
+                ]}
+            />
         </div>
     );
 };
 
 export default RestrictionTimesFieldElement;
-

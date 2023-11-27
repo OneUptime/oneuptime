@@ -24,7 +24,7 @@ const LayerStartsAt: FunctionComponent<ComponentProps> = (
                     title: 'Starts At',
                     fieldType: FormFieldSchemaType.DateTime,
                     required: true,
-                }
+                },
             ]}
             onSuccess={(item: OnCallDutyPolicyScheduleLayer) => {
                 props.onLayerChange(item);

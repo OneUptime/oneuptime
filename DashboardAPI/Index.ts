@@ -482,13 +482,15 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<
         OnCallDutyPolicyScheduleLayer,
         OnCallDutyPolicyScheduleLayerServiceType
-    >(OnCallDutyPolicyScheduleLayer, OnCallDutyPolicyScheduleLayerService).getRouter()
+    >(
+        OnCallDutyPolicyScheduleLayer,
+        OnCallDutyPolicyScheduleLayerService
+    ).getRouter()
 );
 
 app.use(

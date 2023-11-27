@@ -132,7 +132,7 @@ import TelemetryServiceService from './TelemetryServiceService';
 
 import OnCallDutyPolicyScheduleService from './OnCallDutyPolicyScheduleService';
 import OnCallDutyPolicyScheduleLayerUserService from './OnCallDutyPolicyScheduleLayerUserService';
-import OnCallDutyPolicyScheduleLayerService from './OnCallDutyPolicyScheduleLayerService'; 
+import OnCallDutyPolicyScheduleLayerService from './OnCallDutyPolicyScheduleLayerService';
 
 const services: Array<BaseService> = [
     PromoCodeService,
