@@ -76,12 +76,16 @@ const Layers: FunctionComponent<ComponentProps> = (
             onCallPolicyScheduleLayer.rotation = Rotation.getDefault();
             onCallPolicyScheduleLayer.startsAt = OneUptimeDate.getCurrentDate();
 
-            const newLayer: HTTPResponse<OnCallDutyPolicyScheduleLayer | OnCallDutyPolicyScheduleLayer[] | JSONObject | JSONArray> =
-                await ModelAPI.create<OnCallDutyPolicyScheduleLayer>(
-                    onCallPolicyScheduleLayer,
-                    OnCallDutyPolicyScheduleLayer,
-                    {}
-                );
+            const newLayer: HTTPResponse<
+                | OnCallDutyPolicyScheduleLayer
+                | OnCallDutyPolicyScheduleLayer[]
+                | JSONObject
+                | JSONArray
+            > = await ModelAPI.create<OnCallDutyPolicyScheduleLayer>(
+                onCallPolicyScheduleLayer,
+                OnCallDutyPolicyScheduleLayer,
+                {}
+            );
 
             // add this layer to layers array and set it.
             setLayers([
@@ -119,11 +123,10 @@ const Layers: FunctionComponent<ComponentProps> = (
 
             // remove this layer from layers array and set it.
 
-            const newLayers: Array<OnCallDutyPolicyScheduleLayer> = layers.filter(
-                (layer: OnCallDutyPolicyScheduleLayer) => {
+            const newLayers: Array<OnCallDutyPolicyScheduleLayer> =
+                layers.filter((layer: OnCallDutyPolicyScheduleLayer) => {
                     return layer.id?.toString() !== item.id?.toString();
-                }
-            );
+                });
 
             setLayers(newLayers);
         } catch (err) {
@@ -186,39 +189,45 @@ const Layers: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <div>
-                {layers.map((layer: OnCallDutyPolicyScheduleLayer, i: number) => {
-                    return (
-                        <Layer
-                            key={i}
-                            isDeleteButtonLoading={Boolean(
-                                isDeletetingLayerId.find((id: ObjectID) => {
-                                    return (
-                                        id.toString() === layer.id?.toString()
-                                    );
-                                })
-                            )}
-                            layer={layer}
-                            onDeleteLayer={() => {
-                                deleteLayer(layer);
-                            }}
-                            onLayerChange={(
-                                layer: OnCallDutyPolicyScheduleLayer
-                            ) => {
-                                // update this layer in layers array and set it.
-                                const newLayers: Array<OnCallDutyPolicyScheduleLayer> = layers.map(
-                                    (item: OnCallDutyPolicyScheduleLayer) => {
-                                        if (item.id === layer.id) {
-                                            return layer;
-                                        }
-                                        return item;
-                                    }
-                                );
+                {layers.map(
+                    (layer: OnCallDutyPolicyScheduleLayer, i: number) => {
+                        return (
+                            <Layer
+                                key={i}
+                                isDeleteButtonLoading={Boolean(
+                                    isDeletetingLayerId.find((id: ObjectID) => {
+                                        return (
+                                            id.toString() ===
+                                            layer.id?.toString()
+                                        );
+                                    })
+                                )}
+                                layer={layer}
+                                onDeleteLayer={() => {
+                                    deleteLayer(layer);
+                                }}
+                                onLayerChange={(
+                                    layer: OnCallDutyPolicyScheduleLayer
+                                ) => {
+                                    // update this layer in layers array and set it.
+                                    const newLayers: Array<OnCallDutyPolicyScheduleLayer> =
+                                        layers.map(
+                                            (
+                                                item: OnCallDutyPolicyScheduleLayer
+                                            ) => {
+                                                if (item.id === layer.id) {
+                                                    return layer;
+                                                }
+                                                return item;
+                                            }
+                                        );
 
-                                setLayers(newLayers);
-                            }}
-                        />
-                    );
-                })}
+                                    setLayers(newLayers);
+                                }}
+                            />
+                        );
+                    }
+                )}
             </div>
 
             {layers.length === 0 && (

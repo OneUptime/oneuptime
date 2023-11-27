@@ -5,7 +5,7 @@ import React, {
     useState,
 } from 'react';
 
-export interface BasicRadioButton {
+export interface BasicRadioButtonOption {
     title: string;
     description?: string | undefined;
     value: string;
@@ -15,7 +15,7 @@ export interface BasicRadioButton {
 export interface ComponentProps {
     onChange: (value: string) => void;
     initialValue?: string | undefined;
-    options: Array<BasicRadioButton>;
+    options: Array<BasicRadioButtonOption>;
     error?: string | undefined;
 }
 
@@ -51,7 +51,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                 <legend className="sr-only">Notification method</legend>
                 <div className="space-y-4">
                     {props.options.map(
-                        (radioButton: BasicRadioButton, i: number) => {
+                        (radioButton: BasicRadioButtonOption, i: number) => {
                             return (
                                 <div key={i}>
                                     <div className="flex items-center">
