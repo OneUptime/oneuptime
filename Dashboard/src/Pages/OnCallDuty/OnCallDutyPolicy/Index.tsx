@@ -36,16 +36,16 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'On-Call Policy',
+                    title: 'On-Call Duty',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route,
+                        RouteMap[PageMap.ON_CALL_DUTY] as Route,
                         { modelId }
                     ),
                 },
                 {
                     title: 'View On-Call Policy',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
+                        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
                         { modelId }
                     ),
                 },

@@ -6,7 +6,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import DashboardNavigation from '../../Utils/Navigation';

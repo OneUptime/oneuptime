@@ -272,6 +272,22 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
 
+    [PageMap.ON_CALL_DUTY_SCHEDULES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules`
+    ),
+
+    [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules/${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules/${RouteParams.ModelID}/layers`
+    ),
+
     [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),

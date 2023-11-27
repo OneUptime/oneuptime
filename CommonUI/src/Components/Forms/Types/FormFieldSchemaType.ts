@@ -8,6 +8,7 @@ enum FormFieldSchemaType {
     Number = 'Number',
     Password = 'Password',
     Text = 'Text',
+    Time = 'Time',
     Email = 'Email',
     PositiveNumber = 'PositiveNumber',
     Date = 'Date',

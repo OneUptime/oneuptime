@@ -1302,11 +1302,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                     true;
             }
 
+            const selectColumns: Select<TBaseModel> = {
+                _id: true,
+            };
+
+            if (this.getModel().getTenantColumn()) {
+                (selectColumns as any)[
+                    this.getModel().getTenantColumn()!.toString()
+                ] = true;
+            }
+
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeUpdateBy.query,
                 skip: updateBy.skip.toNumber(),
                 limit: updateBy.limit.toNumber(),
-                select: {},
+                select: selectColumns,
                 props: { ...beforeUpdateBy.props, ignoreHooks: true },
             });
 

@@ -7,7 +7,7 @@ import React, {
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import Dictionary from 'Common/Types/Dictionary';
-import Input from '../Input/Input';
+import Input, { InputType } from '../Input/Input';
 import FieldType from '../Types/FieldType';
 import Search from 'Common/Types/Database/Search';
 import OneUptimeDate from 'Common/Types/Date';
@@ -335,8 +335,8 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                             FieldType.Date ||
                                                         column.type ===
                                                             FieldType.DateTime
-                                                            ? 'date'
-                                                            : 'text'
+                                                            ? InputType.DATE
+                                                            : InputType.TEXT
                                                     }
                                                 />
                                             )}

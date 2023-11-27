@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import { ChromePicker, ColorResult } from 'react-color';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import Input from '../../Input/Input';
+import Input, { InputType } from '../../Input/Input';
 import Icon from '../../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 
@@ -79,7 +79,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                     placeholder={props.placeholder}
                     value={color || props.value}
                     readOnly={true}
-                    type="text"
+                    type={InputType.TEXT}
                     tabIndex={props.tabIndex}
                     onChange={(value: string) => {
                         if (!value) {

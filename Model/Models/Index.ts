@@ -132,6 +132,11 @@ import MonitorGroupOwnerUser from './MonitorGroupOwnerUser';
 import MonitorGroupResource from './MonitorGroupResource';
 import TelemetryService from './TelemetryService';
 
+// On call duty policy schedule
+import OnCallDutyPolicySchedule from './OnCallDutyPolicySchedule';
+import OnCallDutyPolicyScheduleLayer from './OnCallDutyPolicyScheduleLayer';
+import OnCallDutyPolicyScheduleLayerUser from './OnCallDutyPolicyScheduleLayerUser';
+
 export default [
     User,
     Probe,
@@ -250,4 +255,8 @@ export default [
     MonitorGroupResource,
 
     TelemetryService,
+
+    OnCallDutyPolicySchedule,
+    OnCallDutyPolicyScheduleLayer,
+    OnCallDutyPolicyScheduleLayerUser,
 ];
