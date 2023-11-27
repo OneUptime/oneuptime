@@ -26,6 +26,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     overrideFetchApiUrl?: URL | undefined;
     select: Select<TBaseModel>;
     fetchRequestOptions?: RequestOptions | undefined;
+    customElement?: ((item: TBaseModel) => ReactElement) | undefined;
     noItemsMessage: string;
     headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
     onSelectChange?: ((list: Array<TBaseModel>) => void) | undefined;

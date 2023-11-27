@@ -44,14 +44,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <label className="text-base font-semibold text-gray-900">
-                Notifications
-            </label>
-            <p className="text-sm text-gray-500">
-                How do you prefer to receive notifications?
-            </p>
             <fieldset className="mt-4">
-                <legend className="sr-only">Notification method</legend>
                 <div className="space-y-4">
                     {props.options.map(
                         (radioButton: BasicRadioButtonOption, i: number) => {

@@ -8,6 +8,7 @@ import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicySche
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ProjectUser from '../../../Utils/ProjectUser';
+import UserElement from '../../User/User';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -21,7 +22,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
     const getAddUserButton: Function = (): ReactElement => {
         return (
-            <div className="flex w-full justify-center">
+            <div className="flex w-full justify-center mt-5">
                 <Button
                     title="Add User"
                     onClick={() => {
@@ -36,14 +37,17 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         <div>
             <ModelList<OnCallDutyPolicyScheduleLayerUser>
                 modelType={OnCallDutyPolicyScheduleLayerUser}
-                titleField="user.name"
+                titleField=""
                 query={{
                     onCallDutyPolicyScheduleId:
                         props.layer.onCallDutyPolicyScheduleId,
                     projectId: props.layer.projectId,
                     onCallDutyPolicyScheduleLayerId: props.layer.id,
                 }}
-                descriptionField="user.email"
+                customElement={(item: OnCallDutyPolicyScheduleLayerUser) => {
+                    return <UserElement user={item.user} />;
+                }}
+                descriptionField=""
                 select={{
                     user: {
                         name: true,

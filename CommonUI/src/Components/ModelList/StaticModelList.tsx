@@ -9,6 +9,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     selectedItems: Array<TBaseModel>;
     onClick: (item: TBaseModel) => void;
     titleField: string;
+    customElement?: ((item: TBaseModel) => ReactElement) | undefined;
 }
 
 const StaticModelList: <TBaseModel extends BaseModel>(
@@ -41,7 +42,7 @@ const StaticModelList: <TBaseModel extends BaseModel>(
                                 isSelected ? 'ring ring-indigo-500' : ''
                             }`}
                         >
-                            <div className="min-w-0 flex-1">
+                            {!props.customElement && <div className="min-w-0 flex-1">
                                 <div className="focus:outline-none">
                                     {props.headerField &&
                                         typeof props.headerField ===
@@ -76,7 +77,9 @@ const StaticModelList: <TBaseModel extends BaseModel>(
                                         </p>
                                     )}
                                 </div>
-                            </div>
+                            </div>}
+
+                            {props.customElement && props.customElement(model)}
                         </div>
                     );
                 })}
