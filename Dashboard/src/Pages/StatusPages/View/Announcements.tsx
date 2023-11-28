@@ -14,7 +14,6 @@ import StatusPage from 'Model/Models/StatusPage';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import OneUptimeDate from 'Common/Types/Date';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -123,9 +122,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showAnnouncementAt: true,
                         },
                         title: 'Start Showing Announcement At',
-                        description:
-                            'This is in your local timezone - ' +
-                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
@@ -135,9 +131,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             endAnnouncementAt: true,
                         },
                         title: 'End Showing Announcement At',
-                        description:
-                            'This is in your local timezone - ' +
-                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',

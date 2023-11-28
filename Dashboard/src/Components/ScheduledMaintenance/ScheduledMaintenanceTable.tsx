@@ -17,7 +17,6 @@ import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../StatusPage/StatusPagesLabel';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import DashboardNavigation from '../../Utils/Navigation';
-import OneUptimeDate from 'Common/Types/Date';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../Utils/ProjectUser';
 import BaseModel from 'Common/Models/BaseModel';
@@ -107,9 +106,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Event Starts At',
                     stepId: 'event-time',
-                    description:
-                        'This is in your local timezone - ' +
-                        OneUptimeDate.getCurrentTimezoneString(),
                     fieldType: FormFieldSchemaType.DateTime,
                     required: true,
                     placeholder: 'Pick Date and Time',
@@ -120,9 +116,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Ends At',
                     stepId: 'event-time',
-                    description:
-                        'This is in your local timezone - ' +
-                        OneUptimeDate.getCurrentTimezoneString(),
                     fieldType: FormFieldSchemaType.DateTime,
                     required: true,
                     placeholder: 'Pick Date and Time',

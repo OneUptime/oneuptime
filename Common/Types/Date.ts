@@ -90,6 +90,11 @@ export default class OneUptimeDate {
         return moment(date).add(minutes, 'minutes').toDate();
     }
 
+    public static addRemoveDays(date: Date, days: number): Date {
+        date = this.fromString(date);
+        return moment(date).add(days, 'days').toDate();
+    }
+
     public static addRemoveSeconds(date: Date, seconds: number): Date {
         date = this.fromString(date);
         return moment(date).add(seconds, 'seconds').toDate();

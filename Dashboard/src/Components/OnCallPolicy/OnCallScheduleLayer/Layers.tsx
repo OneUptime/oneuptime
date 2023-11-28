@@ -8,7 +8,6 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
 import ObjectID from 'Common/Types/ObjectID';
 import RestrictionTimes from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
-import Rotation from 'Common/Types/OnCallDutyPolicy/Rotation';
 import OneUptimeDate from 'Common/Types/Date';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -18,6 +17,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import Recurring from 'Common/Types/Events/Recurring';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -66,6 +66,8 @@ const Layers: FunctionComponent<ComponentProps> = (
             const newLayerName: string = `Layer ${layers.length + 1}`;
             onCallPolicyScheduleLayer.name = newLayerName;
 
+            onCallPolicyScheduleLayer.handOffTime = OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), 1);
+
             // count the description and generate a unique description for this layer.
             const newLayerDescription: string = `Layer ${
                 layers.length + 1
@@ -74,7 +76,7 @@ const Layers: FunctionComponent<ComponentProps> = (
             onCallPolicyScheduleLayer.order = layers.length + 1;
             onCallPolicyScheduleLayer.restrictionTimes =
                 RestrictionTimes.getDefault();
-            onCallPolicyScheduleLayer.rotation = Rotation.getDefault();
+            onCallPolicyScheduleLayer.rotation = Recurring.getDefault();
             onCallPolicyScheduleLayer.startsAt = OneUptimeDate.getCurrentDate();
 
             const newLayer: HTTPResponse<

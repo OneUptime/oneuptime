@@ -8,6 +8,7 @@ import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRul
 import LayerStartsAt from './LayerStartTime';
 import LayerReestrictionTimes from './LayerRestrictionTimes';
 import LayerUser from './LayerUser';
+import LayerRotation from './LayerRotation';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -60,6 +61,14 @@ const Layer: FunctionComponent<ComponentProps> = (
                             props.onLayerChange(layer);
                         }}
                     />
+
+                    <HorizontalRule />
+
+                    <LayerRotation layer={props.layer} onLayerChange={(
+                        layer: OnCallDutyPolicyScheduleLayer
+                    ) => {
+                        props.onLayerChange(layer);
+                    }} />
 
                     <HorizontalRule />
 

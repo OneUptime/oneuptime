@@ -20,7 +20,7 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import BaseModel from 'Common/Models/BaseModel';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import OnCallDutyPolicySchedule from './OnCallDutyPolicySchedule';
-import Rotation from 'Common/Types/OnCallDutyPolicy/Rotation';
+import Recurring from 'Common/Types/Events/Recurring';
 import RestrictionTimes from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
 
 @EnableDocumentation()
@@ -459,7 +459,7 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         title: 'Rotation',
         type: TableColumnType.JSON,
         required: true,
-        description: 'User rotation interval',
+        description: 'How often would you like to hand off the duty to the next user in this layer?',
     })
     @ColumnAccessControl({
         create: [
@@ -484,10 +484,42 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     @Column({
         nullable: false,
         type: ColumnType.JSON,
-        default: Rotation.getDefault(),
-        transformer: Rotation.getDatabaseTransformer(),
+        default: Recurring.getDefault(),
+        transformer: Recurring.getDatabaseTransformer(),
     })
-    public rotation?: Rotation = undefined;
+    public rotation?: Recurring = undefined;
+
+    @TableColumn({
+        title: 'Hand Off Time',
+        type: TableColumnType.Date,
+        required: true,
+        description: 'Hand off time. When would you like to hand off the duty to the next user in this layer?',
+    })
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateOnCallDutyPolicyScheduleLayer,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadOnCallDutyPolicyScheduleLayer,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditOnCallDutyPolicyScheduleLayer,
+        ],
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.Date,
+    })
+    public handOffTime?: Date = undefined;
 
     @TableColumn({
         title: 'Restriction Times',
