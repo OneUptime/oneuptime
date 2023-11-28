@@ -493,7 +493,7 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         title: 'Restriction Times',
         type: TableColumnType.JSON,
         required: true,
-        description: 'Restriction times for this layer',
+        description: 'Restrict this layer to these times',
     })
     @ColumnAccessControl({
         create: [

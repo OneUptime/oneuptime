@@ -36,6 +36,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <ModelList<OnCallDutyPolicyScheduleLayerUser>
+                id="user-list"
                 modelType={OnCallDutyPolicyScheduleLayerUser}
                 titleField=""
                 query={{
@@ -58,6 +59,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                     },
                     _id: true,
                 }}
+                isDeleteable={true}
                 refreshToggle={reloadList}
                 noItemsMessage="No users added to this layer. Please add users to this layer."
                 footer={getAddUserButton()}

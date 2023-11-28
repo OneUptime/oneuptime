@@ -13,10 +13,13 @@ import Input from '../Input/Input';
 import StaticModelList from '../ModelList/StaticModelList';
 import API from '../../Utils/API/API';
 import URL from 'Common/Types/API/URL';
-import { JSONArray } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+    id: string;
     query?: Query<TBaseModel>;
     modelType: { new (): TBaseModel };
     titleField: string;
@@ -32,6 +35,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onSelectChange?: ((list: Array<TBaseModel>) => void) | undefined;
     refreshToggle?: boolean | undefined;
     footer?: ReactElement | undefined;
+    isDeleteable?: boolean | undefined;
+    enableDragAndDrop?: boolean | undefined;
+    dragDropIdField?: string | undefined;
+    dragDropIndexField?: string | undefined;
 }
 
 const ModelList: <TBaseModel extends BaseModel>(
@@ -69,6 +76,19 @@ const ModelList: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
+
+
+            const select: Select<TBaseModel> = {
+                ...props.select,
+            };
+
+            if (
+                props.dragDropIdField &&
+                !Object.keys(select).includes(props.dragDropIdField)
+            ) {
+                (select as JSONObject)[props.dragDropIdField] = true;
+            }
+
             let listResult: ListResult<TBaseModel> = {
                 data: [],
                 count: 0,
@@ -143,6 +163,28 @@ const ModelList: <TBaseModel extends BaseModel>(
         }
     }, [modelList, searchText]);
 
+    const deleteItem: Function = async (item: TBaseModel) => {
+        if (!item.id) {
+            throw new BadDataException('item.id cannot be null');
+        }
+
+        setIsLoading(true);
+
+        try {
+            await ModelAPI.deleteItem<TBaseModel>(
+                props.modelType,
+                item.id,
+            );
+
+    
+            await fetchItems();
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+    };
+
     return (
         <div>
             <div>
@@ -175,10 +217,35 @@ const ModelList: <TBaseModel extends BaseModel>(
 
                 {!error && !isLoading && (
                     <StaticModelList<TBaseModel>
+                        enableDragAndDrop={props.enableDragAndDrop}
+                        dragDropIdField={props.dragDropIdField}
+                        dragDropIndexField={props.dragDropIndexField}
                         list={searchedList}
                         headerField={props.headerField}
                         descriptionField={props.descriptionField}
+                        dragAndDropScope={`${props.id}-dnd`}
+                        customElement={props.customElement}
+                        onDragDrop={async (id: string, newOrder: number) => {
+                            if (!props.dragDropIndexField) {
+                                return;
+                            }
+        
+                            setIsLoading(true);
+        
+                            await ModelAPI.updateById(
+                                props.modelType,
+                                new ObjectID(id),
+                                {
+                                    [props.dragDropIndexField]: newOrder,
+                                }
+                            );
+        
+                            fetchItems();
+                        }}
                         titleField={props.titleField}
+                        onDelete={props.isDeleteable ? async (item: TBaseModel) => { 
+                            deleteItem(item);
+                        } : undefined}
                         selectedItems={selectedList}
                         onClick={(model: TBaseModel) => {
                             if (props.selectMultiple) {

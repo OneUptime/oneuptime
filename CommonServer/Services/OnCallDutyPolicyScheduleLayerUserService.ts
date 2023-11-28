@@ -22,6 +22,28 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('onCallDutyPolicyScheduleLayerId is required');
         }
 
+        const userId: ObjectID | undefined | null = createBy.data.userId || createBy.data.user?.id;
+
+        if(!userId){
+            throw new BadDataException('userId is required');
+        }
+
+        /// check if this user is already in this layer.
+
+        const count = await this.countBy({
+            query: {
+                onCallDutyPolicyScheduleLayerId: createBy.data.onCallDutyPolicyScheduleLayerId!,
+                userId: userId
+            },
+            props: {
+                isRoot: true
+            }
+        });
+
+        if(count.toNumber() > 0){
+            throw new BadDataException('This user is already in this layer');
+        }
+
         if(!createBy.data.order){
             // count number of users in this layer. 
 
