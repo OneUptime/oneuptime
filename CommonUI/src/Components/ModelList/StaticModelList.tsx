@@ -33,58 +33,62 @@ const StaticModelList: <TBaseModel extends BaseModel>(
                 onClick={() => {
                     props.onClick(model);
                 }}
+                {...provided?.draggableProps} ref={provided?.innerRef}
                 className={`cursor-pointer mt-2 mb-2 flex justify-between items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-pink-500 focus-within:ring-offset-2 hover:border-gray-400 ${isSelected ? 'ring ring-indigo-500' : ''
                     }`}
             >
-                {props.enableDragAndDrop && (
-                    <td
-                        className="ml-5 w-10"
-                        {...provided?.dragHandleProps}
-                    >
-                        <Icon
-                            icon={IconProp.ArrowUpDown}
-                            className="ml-6 h-5 w-5 text-gray-500 hover:text-indigo-800 m-auto cursor-ns-resize"
-                        />
-                    </td>
-                )}
-                {!props.customElement && <div className="min-w-0 flex-1">
-                    <div className="focus:outline-none">
-                        {props.headerField &&
-                            typeof props.headerField ===
-                            Typeof.String && (
-                                <p className="text-sm font-medium text-gray-300">
+                <div className='flex'>
+                    {props.enableDragAndDrop && (
+                        <div
+                            className="mr-5 mt-2 -ml-5 w-10"
+                            {...provided?.dragHandleProps}
+                        >
+                            <Icon
+                                icon={IconProp.ArrowUpDown}
+                                className="ml-6 h-5 w-5 text-gray-500 hover:text-indigo-800 m-auto cursor-ns-resize"
+                            />
+                        </div>
+                    )}
+                    {!props.customElement && <div className="min-w-0 flex-1">
+                        <div className="focus:outline-none">
+                            {props.headerField &&
+                                typeof props.headerField ===
+                                Typeof.String && (
+                                    <p className="text-sm font-medium text-gray-300">
+                                        {
+                                            model.getValue(
+                                                props.headerField as string
+                                            ) as string
+                                        }
+                                    </p>
+                                )}
+
+                            {props.headerField &&
+                                typeof props.headerField ===
+                                'function' &&
+                                props.headerField(model)}
+                            <p className="text-sm font-medium text-gray-900">
+                                {
+                                    model.getValue(
+                                        props.titleField
+                                    ) as string
+                                }
+                            </p>
+                            {props.descriptionField && (
+                                <p className="truncate text-sm text-gray-500">
                                     {
                                         model.getValue(
-                                            props.headerField as string
+                                            props.descriptionField
                                         ) as string
                                     }
                                 </p>
                             )}
+                        </div>
+                    </div>}
 
-                        {props.headerField &&
-                            typeof props.headerField ===
-                            'function' &&
-                            props.headerField(model)}
-                        <p className="text-sm font-medium text-gray-900">
-                            {
-                                model.getValue(
-                                    props.titleField
-                                ) as string
-                            }
-                        </p>
-                        {props.descriptionField && (
-                            <p className="truncate text-sm text-gray-500">
-                                {
-                                    model.getValue(
-                                        props.descriptionField
-                                    ) as string
-                                }
-                            </p>
-                        )}
-                    </div>
-                </div>}
+                    {props.customElement && props.customElement(model)}
 
-                {props.customElement && props.customElement(model)}
+                </div>
 
                 {props.onDelete && <div>
                     <Button icon={IconProp.Trash} buttonStyle={ButtonStyleType.OUTLINE} title='Delete' onClick={() => {

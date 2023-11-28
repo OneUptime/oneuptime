@@ -89,6 +89,13 @@ const ModelList: <TBaseModel extends BaseModel>(
                 (select as JSONObject)[props.dragDropIdField] = true;
             }
 
+            if (
+                props.dragDropIndexField &&
+                !Object.keys(select).includes(props.dragDropIndexField)
+            ) {
+                (select as JSONObject)[props.dragDropIndexField] = true;
+            }
+
             let listResult: ListResult<TBaseModel> = {
                 data: [],
                 count: 0,

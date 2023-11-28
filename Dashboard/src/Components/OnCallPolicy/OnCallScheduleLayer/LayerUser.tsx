@@ -59,10 +59,13 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                     },
                     _id: true,
                 }}
+                enableDragAndDrop={true}
                 isDeleteable={true}
                 refreshToggle={reloadList}
                 noItemsMessage="No users added to this layer. Please add users to this layer."
                 footer={getAddUserButton()}
+                dragDropIdField='_id'
+                dragDropIndexField='order'
             />
 
             {showAddUserModal && (
