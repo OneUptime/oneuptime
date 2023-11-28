@@ -9,6 +9,7 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ProjectUser from '../../../Utils/ProjectUser';
 import UserElement from '../../User/User';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -45,6 +46,8 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                     projectId: props.layer.projectId,
                     onCallDutyPolicyScheduleLayerId: props.layer.id,
                 }}
+                sortBy="order"
+                sortOrder={SortOrder.Ascending}
                 customElement={(item: OnCallDutyPolicyScheduleLayerUser) => {
                     return <UserElement user={item.user} />;
                 }}

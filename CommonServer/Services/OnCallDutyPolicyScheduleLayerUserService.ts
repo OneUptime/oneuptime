@@ -2,13 +2,14 @@ import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
-import { OnCreate, OnDelete } from '../Types/Database/Hooks';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import ObjectID from 'Common/Types/ObjectID';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DeleteBy from '../Types/Database/DeleteBy';
+import UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -26,22 +27,6 @@ export class Service extends DatabaseService<Model> {
 
         if(!userId){
             throw new BadDataException('userId is required');
-        }
-
-        /// check if this user is already in this layer.
-
-        const count = await this.countBy({
-            query: {
-                onCallDutyPolicyScheduleLayerId: createBy.data.onCallDutyPolicyScheduleLayerId!,
-                userId: userId
-            },
-            props: {
-                isRoot: true
-            }
-        });
-
-        if(count.toNumber() > 0){
-            throw new BadDataException('This user is already in this layer');
         }
 
         if(!createBy.data.order){
@@ -97,6 +82,128 @@ export class Service extends DatabaseService<Model> {
             deleteBy: deleteBy,
             carryForward: null,
         };
+    }
+
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        if (!deleteBy.query._id && !deleteBy.props.isRoot) {
+            throw new BadDataException(
+                '_id should be present when deleting status page resource. Please try the delete with objectId'
+            );
+        }
+
+        let resource: Model | null = null;
+
+        if (!deleteBy.props.isRoot) {
+            resource = await this.findOneBy({
+                query: deleteBy.query,
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    order: true,
+                    onCallDutyPolicyScheduleLayerId: true,
+                },
+            });
+        }
+
+        return {
+            deleteBy,
+            carryForward: resource,
+        };
+    }
+
+
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<OnUpdate<Model>> {
+        if (
+            updateBy.data.order &&
+            !updateBy.props.isRoot &&
+            updateBy.query._id
+        ) {
+            const resource: Model | null = await this.findOneBy({
+                query: {
+                    _id: updateBy.query._id!,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    order: true,
+                    onCallDutyPolicyScheduleLayerId: true,
+                    _id: true,
+                },
+            });
+
+            const currentOrder: number = resource?.order as number;
+            const newOrder: number = updateBy.data.order as number;
+
+            const resources: Array<Model> = await this.findBy({
+                query: {
+                    onCallDutyPolicyScheduleLayerId: resource?.onCallDutyPolicyScheduleLayerId as ObjectID,
+                },
+
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    order: true,
+                    onCallDutyPolicyScheduleLayerId: true,
+                    _id: true,
+                },
+            });
+
+            if (currentOrder > newOrder) {
+                // moving up.
+
+                for (const resource of resources) {
+                    if (
+                        resource.order! >= newOrder &&
+                        resource.order! < currentOrder
+                    ) {
+                        // increment order.
+                        await this.updateOneBy({
+                            query: {
+                                _id: resource._id!,
+                            },
+                            data: {
+                                order: resource.order! + 1,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+                    }
+                }
+            }
+
+            if (newOrder > currentOrder) {
+                // moving down.
+
+                for (const resource of resources) {
+                    if (resource.order! <= newOrder) {
+                        // increment order.
+                        await this.updateOneBy({
+                            query: {
+                                _id: resource._id!,
+                            },
+                            data: {
+                                order: resource.order! - 1,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+                    }
+                }
+            }
+        }
+
+        return { updateBy, carryForward: null };
     }
 
 

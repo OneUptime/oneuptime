@@ -17,6 +17,7 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     id: string;
@@ -39,6 +40,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     enableDragAndDrop?: boolean | undefined;
     dragDropIdField?: string | undefined;
     dragDropIndexField?: string | undefined;
+    sortBy?: string | undefined;
+    sortOrder?: SortOrder | undefined;
 }
 
 const ModelList: <TBaseModel extends BaseModel>(
@@ -127,8 +130,12 @@ const ModelList: <TBaseModel extends BaseModel>(
                     },
                     LIMIT_PER_PROJECT,
                     0,
-                    props.select,
-                    {},
+                    select,
+                    props.sortBy
+                        ? {
+                              [props.sortBy as any]: props.sortOrder,
+                          }
+                        : {},
 
                     props.fetchRequestOptions
                 );
