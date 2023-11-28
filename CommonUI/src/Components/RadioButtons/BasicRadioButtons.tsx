@@ -18,14 +18,16 @@ export interface ComponentProps {
     initialValue?: string | undefined;
     options: Array<BasicRadioButtonOption>;
     error?: string | undefined;
+    id?: string | undefined;
 }
 
 const BasicRadioButton: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [value, setValue] = useState<string>('');
 
-    const [groupName] = useState<string>(ObjectID.generate().toString());
+    const [id] = useState<string>(props.id || ObjectID.generate().toString());
+
+    const [value, setValue] = useState<string>('');
 
     useEffect(() => {
         if (props.initialValue) {
@@ -44,7 +46,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <fieldset className="mt-4">
+            <fieldset id={id} className="mt-4">
                 <div className="space-y-4">
                     {props.options.map(
                         (radioButton: BasicRadioButtonOption, i: number) => {
@@ -56,7 +58,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                                     <div className="flex items-center">
                                         <input
                                             type="radio"
-                                            radioGroup={groupName}
+                                            name={id}
                                             defaultChecked={checked}
                                             onClick={() => {
                                                 handleChange(radioButton.value);

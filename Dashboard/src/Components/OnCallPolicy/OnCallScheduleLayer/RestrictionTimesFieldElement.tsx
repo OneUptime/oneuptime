@@ -30,7 +30,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         // show start time to end time input fields
 
         return (
-            <div className="flex">
+            <div className="flex space-x-3">
                 <div>
                     <FieldLabelElement title="From:" />
                     <Input
