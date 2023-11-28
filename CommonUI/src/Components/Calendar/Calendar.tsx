@@ -1,9 +1,9 @@
-import "react-big-calendar/lib/css/react-big-calendar.css"
-import { Calendar, momentLocalizer } from "react-big-calendar"
-import React, { FunctionComponent, ReactElement } from "react"
-import moment from 'moment'
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { Calendar, momentLocalizer, DateLocalizer } from 'react-big-calendar';
+import React, { FunctionComponent, ReactElement } from 'react';
+import moment from 'moment';
 
-const localizer = momentLocalizer(moment)
+const localizer: DateLocalizer = momentLocalizer(moment);
 
 export interface ComponentProps {
     id?: string | undefined;
@@ -14,7 +14,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div id={props.id}>
-            <Calendar 
+            <Calendar
                 events={[]}
                 startAccessor="start"
                 endAccessor="end"

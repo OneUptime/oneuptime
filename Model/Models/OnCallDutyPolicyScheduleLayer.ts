@@ -459,7 +459,8 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         title: 'Rotation',
         type: TableColumnType.JSON,
         required: true,
-        description: 'How often would you like to hand off the duty to the next user in this layer?',
+        description:
+            'How often would you like to hand off the duty to the next user in this layer?',
     })
     @ColumnAccessControl({
         create: [
@@ -493,7 +494,8 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         title: 'Hand Off Time',
         type: TableColumnType.Date,
         required: true,
-        description: 'Hand off time. When would you like to hand off the duty to the next user in this layer?',
+        description:
+            'Hand off time. When would you like to hand off the duty to the next user in this layer?',
     })
     @ColumnAccessControl({
         create: [

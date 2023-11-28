@@ -34,9 +34,7 @@ const LayerRotation: FunctionComponent<ComponentProps> = (
                         return (
                             <RecurringFieldElement
                                 {...props}
-                                initialValue={
-                                    value.rotation as Recurring
-                                }
+                                initialValue={value.rotation as Recurring}
                             />
                         );
                     },

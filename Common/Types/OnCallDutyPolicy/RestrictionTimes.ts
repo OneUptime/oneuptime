@@ -86,7 +86,9 @@ export default class RestrictionTimes extends DatabaseProperty {
         });
     }
 
-    public static override fromJSON(json: JSONObject | RestrictionTimes): RestrictionTimes {
+    public static override fromJSON(
+        json: JSONObject | RestrictionTimes
+    ): RestrictionTimes {
         if (json instanceof RestrictionTimes) {
             return json;
         }

@@ -57,8 +57,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                         name: true,
                         email: true,
                         _id: true,
-                        profilePictureId: true, 
-                        
+                        profilePictureId: true,
                     },
                     _id: true,
                 }}
@@ -67,8 +66,8 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                 refreshToggle={reloadList}
                 noItemsMessage="No users added to this layer. Please add users to this layer."
                 footer={getAddUserButton()}
-                dragDropIdField='_id'
-                dragDropIndexField='order'
+                dragDropIdField="_id"
+                dragDropIndexField="order"
             />
 
             {showAddUserModal && (

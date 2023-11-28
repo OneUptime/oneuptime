@@ -66,7 +66,10 @@ const Layers: FunctionComponent<ComponentProps> = (
             const newLayerName: string = `Layer ${layers.length + 1}`;
             onCallPolicyScheduleLayer.name = newLayerName;
 
-            onCallPolicyScheduleLayer.handOffTime = OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), 1);
+            onCallPolicyScheduleLayer.handOffTime = OneUptimeDate.addRemoveDays(
+                OneUptimeDate.getCurrentDate(),
+                1
+            );
 
             // count the description and generate a unique description for this layer.
             const newLayerDescription: string = `Layer ${

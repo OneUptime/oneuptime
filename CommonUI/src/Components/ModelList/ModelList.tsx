@@ -79,8 +79,6 @@ const ModelList: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-
-
             const select: Select<TBaseModel> = {
                 ...props.select,
             };
@@ -185,12 +183,8 @@ const ModelList: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            await ModelAPI.deleteItem<TBaseModel>(
-                props.modelType,
-                item.id,
-            );
+            await ModelAPI.deleteItem<TBaseModel>(props.modelType, item.id);
 
-    
             await fetchItems();
         } catch (err) {
             setError(API.getFriendlyMessage(err));
@@ -243,9 +237,9 @@ const ModelList: <TBaseModel extends BaseModel>(
                             if (!props.dragDropIndexField) {
                                 return;
                             }
-        
+
                             setIsLoading(true);
-        
+
                             await ModelAPI.updateById(
                                 props.modelType,
                                 new ObjectID(id),
@@ -253,13 +247,17 @@ const ModelList: <TBaseModel extends BaseModel>(
                                     [props.dragDropIndexField]: newOrder,
                                 }
                             );
-        
+
                             fetchItems();
                         }}
                         titleField={props.titleField}
-                        onDelete={props.isDeleteable ? async (item: TBaseModel) => { 
-                            deleteItem(item);
-                        } : undefined}
+                        onDelete={
+                            props.isDeleteable
+                                ? async (item: TBaseModel) => {
+                                      deleteItem(item);
+                                  }
+                                : undefined
+                        }
                         selectedItems={selectedList}
                         onClick={(model: TBaseModel) => {
                             if (props.selectMultiple) {

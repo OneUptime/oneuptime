@@ -82,9 +82,7 @@ export default class Recurring extends DatabaseProperty {
         let intervalCount: PositiveNumber = new PositiveNumber(1);
 
         if (json && json['intervalCount']) {
-            intervalCount = PositiveNumber.fromJSON(
-                json['intervalCount']
-            );
+            intervalCount = PositiveNumber.fromJSON(json['intervalCount']);
         }
 
         const rotation: Recurring = new Recurring();
@@ -109,7 +107,9 @@ export default class Recurring extends DatabaseProperty {
         return null;
     }
 
-    protected static override fromDatabase(value: JSONObject): Recurring | null {
+    protected static override fromDatabase(
+        value: JSONObject
+    ): Recurring | null {
         if (value) {
             return Recurring.fromJSON(value);
         }

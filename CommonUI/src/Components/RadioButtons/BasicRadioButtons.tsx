@@ -24,7 +24,6 @@ export interface ComponentProps {
 const BasicRadioButton: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [id] = useState<string>(props.id || ObjectID.generate().toString());
 
     const [value, setValue] = useState<string>('');

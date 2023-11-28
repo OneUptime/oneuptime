@@ -64,11 +64,14 @@ const Layer: FunctionComponent<ComponentProps> = (
 
                     <HorizontalRule />
 
-                    <LayerRotation layer={props.layer} onLayerChange={(
-                        layer: OnCallDutyPolicyScheduleLayer
-                    ) => {
-                        props.onLayerChange(layer);
-                    }} />
+                    <LayerRotation
+                        layer={props.layer}
+                        onLayerChange={(
+                            layer: OnCallDutyPolicyScheduleLayer
+                        ) => {
+                            props.onLayerChange(layer);
+                        }}
+                    />
 
                     <HorizontalRule />
 

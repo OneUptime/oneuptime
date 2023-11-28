@@ -95,12 +95,17 @@ const FormField: <T extends Object>(
 
         let fieldDescription: string | undefined = props.field.description;
 
-        if(props.field.fieldType === FormFieldSchemaType.DateTime || props.field.fieldType === FormFieldSchemaType.Time) {
-            if(!fieldDescription){
-                fieldDescription = ''
+        if (
+            props.field.fieldType === FormFieldSchemaType.DateTime ||
+            props.field.fieldType === FormFieldSchemaType.Time
+        ) {
+            if (!fieldDescription) {
+                fieldDescription = '';
             }
 
-            fieldDescription += ' This is in your local timezone - '+OneUptimeDate.getCurrentTimezoneString();
+            fieldDescription +=
+                ' This is in your local timezone - ' +
+                OneUptimeDate.getCurrentTimezoneString();
         }
 
         return (
