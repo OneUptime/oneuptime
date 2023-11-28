@@ -42,6 +42,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     dragDropIndexField?: string | undefined;
     sortBy?: string | undefined;
     sortOrder?: SortOrder | undefined;
+    onListLoaded?: ((list: Array<TBaseModel>) => void) | undefined;
 }
 
 const ModelList: <TBaseModel extends BaseModel>(
@@ -139,6 +140,7 @@ const ModelList: <TBaseModel extends BaseModel>(
                 );
             }
 
+            props.onListLoaded && props.onListLoaded(listResult.data);
             setModalList(listResult.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));

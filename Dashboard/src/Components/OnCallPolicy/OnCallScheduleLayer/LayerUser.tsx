@@ -13,6 +13,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
+    onUpdateUsers: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void; 
 }
 
 const LayerUser: FunctionComponent<ComponentProps> = (
@@ -50,6 +51,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                 sortOrder={SortOrder.Ascending}
                 customElement={(item: OnCallDutyPolicyScheduleLayerUser) => {
                     return <UserElement user={item.user} />;
+                }}
+                onListLoaded={(list: OnCallDutyPolicyScheduleLayerUser[]) => {
+                    props.onUpdateUsers(list);
                 }}
                 descriptionField=""
                 select={{

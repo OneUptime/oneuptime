@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
@@ -9,6 +9,8 @@ import LayerStartsAt from './LayerStartTime';
 import LayerReestrictionTimes from './LayerRestrictionTimes';
 import LayerUser from './LayerUser';
 import LayerRotation from './LayerRotation';
+import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
+import LayerPreview from './LayerPreview';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -20,6 +22,9 @@ export interface ComponentProps {
 const Layer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const [layerUsers, setLayerUsers] = useState<Array<OnCallDutyPolicyScheduleLayerUser>>([]);
+
     return (
         <div className="mb-10 ">
             <Card
@@ -49,7 +54,9 @@ const Layer: FunctionComponent<ComponentProps> = (
 
                     <HorizontalRule />
 
-                    <LayerUser layer={props.layer} />
+                    <LayerUser onUpdateUsers={(list: Array<OnCallDutyPolicyScheduleLayerUser>) => {
+                        setLayerUsers(list);
+                    }} layer={props.layer} />
 
                     <HorizontalRule />
 
@@ -83,8 +90,11 @@ const Layer: FunctionComponent<ComponentProps> = (
                             props.onLayerChange(layer);
                         }}
                     />
+
+                    <HorizontalRule />
+
+                    <LayerPreview layer={props.layer} layerUsers={layerUsers} />
                 </div>
-                <div>{/** Layer Preview */}</div>
             </Card>
         </div>
     );
