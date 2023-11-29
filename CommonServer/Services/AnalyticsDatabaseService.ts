@@ -45,7 +45,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
 import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
 import CountBy from '../Types/AnalyticsDatabase/CountBy';
-import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
 import Realtime from '../Utils/Realtime';
 import { ModelEventType } from 'Common/Utils/Realtime';
 import { SQL, Statement } from '../Utils/AnalyticsDatabase/Statement';
@@ -354,24 +353,6 @@ export default class AnalyticsDatabaseService<
             DELETE WHERE TRUE `.append(whereStatement);
         /* eslint-enable prettier/prettier */
 
-        if (deleteBy.limit) {
-            statement.append(SQL`
-            LIMIT ${{
-                value: Number(deleteBy.limit),
-                type: TableColumnType.Number,
-            }}
-            `);
-        }
-
-        if (deleteBy.skip) {
-            statement.append(SQL`
-            OFFSET ${{
-                value: Number(deleteBy.skip),
-                type: TableColumnType.Number,
-            }}
-            `);
-        }
-
         logger.info(`${this.model.tableName} Delete Statement`);
         logger.info(statement);
 
@@ -391,14 +372,6 @@ export default class AnalyticsDatabaseService<
             return documents[0];
         }
         return null;
-    }
-
-    public async deleteOneBy(deleteBy: DeleteOneBy<TBaseModel>): Promise<void> {
-        return await this._deleteBy({
-            ...deleteBy,
-            limit: 1,
-            skip: 0,
-        });
     }
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {

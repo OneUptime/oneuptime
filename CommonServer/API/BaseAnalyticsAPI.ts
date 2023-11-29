@@ -333,7 +333,7 @@ export default class BaseAnalyticsAPI<
         await this.onBeforeDelete(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        await this.service.deleteOneBy({
+        await this.service.deleteBy({
             query: {
                 _id: objectId.toString(),
             },

@@ -254,44 +254,6 @@ describe('AnalyticsDatabaseService', () => {
                     p1: '<table-name>',
                 });
             });
-
-            test('optionally adds LIMIT', () => {
-                const statement: Statement = service.toDeleteStatement({
-                    query: '<query>' as {},
-                    props: '<props>' as {},
-                    limit: 123,
-                });
-
-                expect(statement.query).toBe(
-                    'ALTER TABLE {p0:Identifier}.{p1:Identifier}\n' +
-                        'DELETE WHERE TRUE <where-statement>\n' +
-                        'LIMIT {p2:Int32}'
-                );
-                expect(statement.query_params).toStrictEqual({
-                    p0: 'oneuptime',
-                    p1: '<table-name>',
-                    p2: 123,
-                });
-            });
-
-            test('optionally adds OFFSET', () => {
-                const statement: Statement = service.toDeleteStatement({
-                    query: '<query>' as {},
-                    props: '<props>' as {},
-                    skip: 123,
-                });
-
-                expect(statement.query).toBe(
-                    'ALTER TABLE {p0:Identifier}.{p1:Identifier}\n' +
-                        'DELETE WHERE TRUE <where-statement>\n' +
-                        'OFFSET {p2:Int32}'
-                );
-                expect(statement.query_params).toStrictEqual({
-                    p0: 'oneuptime',
-                    p1: '<table-name>',
-                    p2: 123,
-                });
-            });
         });
     });
 });
