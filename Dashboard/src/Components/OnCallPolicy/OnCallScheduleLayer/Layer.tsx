@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
@@ -22,9 +22,9 @@ export interface ComponentProps {
 const Layer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [layerUsers, setLayerUsers] = useState<
-        Array<OnCallDutyPolicyScheduleLayerUser>
-    >([]);
+    // const [layerUsers, setLayerUsers] = useState<
+    //     Array<OnCallDutyPolicyScheduleLayerUser>
+    // >([]);
 
     return (
         <div className="mb-10 ">
@@ -57,9 +57,9 @@ const Layer: FunctionComponent<ComponentProps> = (
 
                     <LayerUser
                         onUpdateUsers={(
-                            list: Array<OnCallDutyPolicyScheduleLayerUser>
+                            _list: Array<OnCallDutyPolicyScheduleLayerUser>
                         ) => {
-                            setLayerUsers(list);
+                            // setLayerUsers(list);
                         }}
                         layer={props.layer}
                     />
@@ -99,7 +99,7 @@ const Layer: FunctionComponent<ComponentProps> = (
 
                     <HorizontalRule />
 
-                    <LayerPreview layer={props.layer} layerUsers={layerUsers} />
+                    <LayerPreview />
                 </div>
             </Card>
         </div>
