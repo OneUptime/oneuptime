@@ -4,6 +4,8 @@ import { JSONObject, ObjectType } from './JSON';
 import PositiveNumber from './PositiveNumber';
 import moment from 'moment-timezone';
 
+export const Moment = moment;
+
 export default class OneUptimeDate {
     public static getCurrentDate(): Date {
         return moment().toDate();
