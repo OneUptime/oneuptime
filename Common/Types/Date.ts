@@ -23,6 +23,17 @@ export default class OneUptimeDate {
         return moment();
     }
 
+    public static keepTimeButMoveDay(keepTimeFor: Date, moveDayTo: Date){
+        keepTimeFor = this.fromString(keepTimeFor);
+        moveDayTo = this.fromString(moveDayTo);
+        return moment(moveDayTo).set({
+            hour: keepTimeFor.getHours(),
+            minute: keepTimeFor.getMinutes(),
+            second: keepTimeFor.getSeconds(),
+            millisecond: keepTimeFor.getMilliseconds()
+        }).toDate();
+    }
+
     public static getOneMinAgo(): Date {
         return this.getSomeMinutesAgo(new PositiveNumber(1));
     }
@@ -41,6 +52,8 @@ export default class OneUptimeDate {
         const Seconds_from_T1_to_T2: number = dif / 1000;
         return Math.abs(Seconds_from_T1_to_T2);
     }
+
+    
 
     public static getSomeMinutesAgo(minutes: PositiveNumber | number): Date {
         if (!(minutes instanceof PositiveNumber)) {
@@ -87,6 +100,48 @@ export default class OneUptimeDate {
         };
     }
 
+    public static areOnTheSameDay(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2, 'day');
+    }
+
+    public static areOnTheSameMonth(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2, 'month');
+    }
+
+    public static areOnTheSameYear(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2, 'year');
+    }
+
+    public static areOnTheSameHour(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2, 'hour');
+    }
+
+    public static areOnTheSameMinute(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2, 'minute');
+    }
+
+    public static areOnTheSameSecond(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2, 'second');
+    }
+
+    public static areOnTheSameWeek(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2, 'week');
+    }
+
     public static addRemoveMinutes(date: Date, minutes: number): Date {
         date = this.fromString(date);
         return moment(date).add(minutes, 'minutes').toDate();
@@ -95,6 +150,26 @@ export default class OneUptimeDate {
     public static addRemoveDays(date: Date, days: number): Date {
         date = this.fromString(date);
         return moment(date).add(days, 'days').toDate();
+    }
+
+    public static addRemoveHours(date: Date, hours: number): Date {
+        date = this.fromString(date);
+        return moment(date).add(hours, 'hours').toDate();
+    }
+
+    public static addRemoveYears(date: Date, years: number): Date {
+        date = this.fromString(date);
+        return moment(date).add(years, 'years').toDate();
+    }
+
+    public static addRemoveMonths(date: Date, months: number): Date {
+        date = this.fromString(date);
+        return moment(date).add(months, 'months').toDate();
+    }
+
+    public static addRemoveWeeks(date: Date, weeks: number): Date {
+        date = this.fromString(date);
+        return moment(date).add(weeks, 'weeks').toDate();
     }
 
     public static addRemoveSeconds(date: Date, seconds: number): Date {
@@ -364,6 +439,18 @@ export default class OneUptimeDate {
         date = this.fromString(date);
         startDate = this.fromString(startDate);
         return moment(date).isAfter(startDate);
+    }
+
+    public static isOnOrAfter(date: Date, startDate: Date): boolean {
+        date = this.fromString(date);
+        startDate = this.fromString(startDate);
+        return moment(date).isSameOrAfter(startDate);
+    }
+
+    public static isOnOrBefore(date: Date, endDate: Date): boolean {
+        date = this.fromString(date);
+        endDate = this.fromString(endDate);
+        return moment(date).isSameOrBefore(endDate);
     }
 
     public static isEqualBySeconds(date: Date, startDate: Date): boolean {

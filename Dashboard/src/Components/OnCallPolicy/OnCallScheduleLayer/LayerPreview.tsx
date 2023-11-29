@@ -3,6 +3,7 @@ import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicySche
 import React, { FunctionComponent, ReactElement } from 'react';
 import Calendar from 'CommonUI/src/Components/Calendar/Calendar';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
+import OneUptimeDate from 'Common/Types/Date';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -19,7 +20,7 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
             <FieldLabelElement
                 required={true}
                 title="Layer Preview"
-                description="Here is a preview of who is on call and when."
+                description={"Here is a preview of who is on call and when. This is based on your local timezone - "+OneUptimeDate.getCurrentTimezoneString()}
             />
             <Calendar
                 events={[
