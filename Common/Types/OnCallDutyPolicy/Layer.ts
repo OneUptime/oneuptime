@@ -5,6 +5,7 @@ import RestrictionTimes, { RestrictionType } from './RestrictionTimes';
 import OneUptimeDate from '../Date';
 import EventInterval from '../Events/EventInterval';
 import StartAndEndTime from '../Time/StartAndEndTime';
+import DayOfWeek from '../Day/DayOfWeek';
 
 export default class LayerUtil {
     public static getEvents(data: {
@@ -232,10 +233,19 @@ export default class LayerUtil {
                         startTime: restrictionStartTime,
                         endTime: restrictionEndTime,
                     });
-                    reachedTheEndOfTheCurrentEvent = true;
+                    
+                    currentStartTime = restrictionEndTime;
+
+                    // add day to restriction start and end times. 
+
+                    restrictionStartTime = OneUptimeDate.addRemoveDays(restrictionStartTime, 1);
+                    restrictionEndTime = OneUptimeDate.addRemoveDays(restrictionEndTime, 1);
+
                 }
 
             }
+
+            return trimmedStartAndEndTimes;
         }
 
 
@@ -245,6 +255,8 @@ export default class LayerUtil {
 
             // if there are no weekly restriction times, we dont have any restrictions and we can return the event start and end times
 
+            const trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
+
             if (!weeklyRestrictionTimes || weeklyRestrictionTimes.length === 0) {
                 return [{
                     startTime: data.eventStartTime,
@@ -252,8 +264,11 @@ export default class LayerUtil {
                 }];
             }
 
-           
+            // const eventStartTime: Date = data.eventStartTime;
+            // const eventStartDayOfWeek: DayOfWeek = OneUptimeDate.getDayOfWeek(eventStartTime);
 
+
+            return trimmedStartAndEndTimes;
         }
 
         return [];
