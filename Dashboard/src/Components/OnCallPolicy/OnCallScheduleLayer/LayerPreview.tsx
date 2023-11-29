@@ -1,18 +1,19 @@
-// import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
-// import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
+import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
+import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Calendar from 'CommonUI/src/Components/Calendar/Calendar';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 
 export interface ComponentProps {
-    // layer: OnCallDutyPolicyScheduleLayer;
-    // layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>;
+    layer: OnCallDutyPolicyScheduleLayer;
+    layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>;
     id?: string | undefined;
 }
 
 const LayerPreview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
     return (
         <div id={props.id}>
             <FieldLabelElement
