@@ -13,6 +13,8 @@ import CommonModel, {
     RecordValue,
     Record,
 } from 'Common/AnalyticsModels/CommonModel';
+import { SQL, Statement } from './Statement';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
@@ -28,18 +30,28 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         this.database = data.database;
     }
 
-    public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): string {
-        let statement: string = `ALTER TABLE ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        UPDATE ${this.toSetStatement(updateBy.data)}
-        ${
-            Object.keys(updateBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
-        } ${this.toWhereStatement(updateBy.query)}
-        `;
+    public toUpdateStatement(updateBy: UpdateBy<TBaseModel>): Statement {
+        const setStatement: Statement = this.toSetStatement(updateBy.data);
+        const whereStatement: Statement = this.toWhereStatement(updateBy.query);
 
+        /* eslint-disable prettier/prettier */
+        const statement: Statement = SQL`
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
+                this.model.tableName
+            }
+            UPDATE `.append(setStatement).append(SQL`
+            WHERE TRUE `).append(whereStatement);
+        /* eslint-enable prettier/prettier */
+
+        // TODO is this right? the ClickHouse docco doesn't mention LIMIT on ALTER UPDATE
+        // https://clickhouse.com/docs/en/sql-reference/statements/alter/update
         if (updateBy.limit) {
-            statement += ` LIMIT ${updateBy.limit}`;
+            statement.append(SQL`
+            LIMIT ${{
+                value: Number(updateBy.limit),
+                type: TableColumnType.Number,
+            }}
+            `);
         }
 
         logger.info(`${this.model.tableName} Update Statement`);
@@ -274,26 +286,45 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return value;
     }
 
-    public toSetStatement(data: TBaseModel): string {
-        let setStatement: string = '';
+    public toSetStatement(data: TBaseModel): Statement {
+        const setStatement: Statement = new Statement();
 
+        let first: boolean = true;
         for (const column of data.getTableColumns()) {
-            if (data.getColumnValue(column.key) !== undefined) {
-                setStatement += `${column.key} = ${this.sanitizeValue(
-                    data.getColumnValue(column.key),
-                    column
-                )}, `;
+            const value: RecordValue | undefined = data.getColumnValue(
+                column.key
+            );
+            if (value !== undefined) {
+                if (first) {
+                    first = false;
+                } else {
+                    setStatement.append(SQL`, `);
+                }
+
+                // special case - ClickHouse does not support using query
+                // parameters for column names in the SET statement so we
+                // have to trust the column names here.
+                const keyStatement: string = column.key;
+
+                setStatement.append(keyStatement).append(
+                    SQL` = ${{
+                        value,
+                        type: column.type,
+                    }}`
+                );
             }
         }
-
-        setStatement = setStatement.substring(0, setStatement.length - 2); // remove last comma.
 
         return setStatement;
     }
 
-    public toWhereStatement(query: Query<TBaseModel>): string {
-        let whereStatement: string = '';
+    /**
+     * Conditions to append to "WHERE TRUE"
+     */
+    public toWhereStatement(query: Query<TBaseModel>): Statement {
+        const whereStatement: Statement = new Statement();
 
+        let first: boolean = true;
         for (const key in query) {
             const value: any = query[key];
             const tableColumn: AnalyticsTableColumn | null =
@@ -303,48 +334,55 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 throw new BadDataException(`Unknown column: ${key}`);
             }
 
-            whereStatement += ` ${key} = ${this.sanitizeValue(
-                value,
-                tableColumn
-            )} AND`;
+            if (first) {
+                first = false;
+            } else {
+                whereStatement.append(SQL` `);
+            }
+            whereStatement.append(
+                SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
+            );
         }
-
-        // remove last AND.
-        whereStatement = whereStatement.substring(0, whereStatement.length - 4);
 
         return whereStatement;
     }
 
-    public toSortStatemennt(sort: Sort<TBaseModel>): string {
-        let sortStatement: string = '';
+    public toSortStatement(sort: Sort<TBaseModel>): Statement {
+        const sortStatement: Statement = new Statement();
 
         for (const key in sort) {
-            const value: any = sort[key];
-            sortStatement += `${key} ${value}`;
+            const value: SortOrder = sort[key]!;
+            sortStatement.append(SQL`${key} `).append(
+                {
+                    [SortOrder.Ascending]: SQL`ASC`,
+                    [SortOrder.Descending]: SQL`DESC`,
+                }[value]
+            );
         }
 
         return sortStatement;
     }
 
     public toSelectStatement(select: Select<TBaseModel>): {
-        statement: string;
+        statement: Statement;
         columns: Array<string>;
     } {
-        let selectStatement: string = '';
+        const selectStatement: Statement = new Statement();
         const columns: Array<string> = [];
 
+        let first: boolean = true;
         for (const key in select) {
             const value: any = select[key];
             if (value) {
                 columns.push(key);
-                selectStatement += `${key}, `;
+                if (first) {
+                    first = false;
+                } else {
+                    selectStatement.append(SQL`, `);
+                }
+                selectStatement.append(SQL`${key}`);
             }
         }
-
-        selectStatement = selectStatement.substring(
-            0,
-            selectStatement.length - 2
-        ); // remove last comma.
 
         return {
             columns: columns,
@@ -355,110 +393,120 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public toColumnsCreateStatement(
         tableColumns: Array<AnalyticsTableColumn>,
         isNestedModel: boolean = false
-    ): string {
-        let columns: string = '';
+    ): Statement {
+        const columns: Statement = new Statement();
 
-        tableColumns.forEach((column: AnalyticsTableColumn) => {
-            let requiredText: string = `${
-                column.required ? 'NOT NULL' : ' NULL'
-            }`;
+        // indent so combines nicely with toTableCreateStatement()
+        const indent: Statement = SQL`                `;
 
-            let nestedModelColumns: string = '';
+        for (let i: number = 0; i < tableColumns.length; i++) {
+            const column: AnalyticsTableColumn = tableColumns[i]!;
+
+            if (i !== 0) {
+                columns.append(SQL`,\n`);
+            }
+            if (isNestedModel) {
+                columns.append(SQL`    `);
+            }
+
+            let requiredStatement: Statement | null = column.required
+                ? SQL`NOT NULL`
+                : SQL`NULL`;
+
+            let nestedModelColumns: Statement | null = null;
 
             if (column.type === TableColumnType.NestedModel) {
-                nestedModelColumns = `(
-                    ${this.toColumnsCreateStatement(
-                        column.nestedModel!.tableColumns,
-                        true
-                    )}
-                )`;
+                nestedModelColumns = SQL`(\n`
+                    .append(
+                        this.toColumnsCreateStatement(
+                            column.nestedModel!.tableColumns,
+                            true
+                        )
+                    )
+                    .append(SQL`\n`)
+                    .append(indent)
+                    .append(SQL`)`);
 
-                requiredText = '';
+                requiredStatement = null;
             }
 
             if (isNestedModel) {
-                requiredText = '';
+                requiredStatement = null;
             }
 
             if (
                 column.type === TableColumnType.ArrayNumber ||
                 column.type === TableColumnType.ArrayText
             ) {
-                requiredText = '';
+                requiredStatement = null;
             }
 
-            columns += `${column.key} ${this.toColumnType(
-                column.type
-            )} ${nestedModelColumns} ${requiredText},\n`;
-        });
+            // special case - ClickHouse does not support using an a query parameter
+            // to specify the column name when creating the table
+            const keyStatement: string = column.key;
 
-        return columns.substring(0, columns.length - 2); // remove last comma.
+            columns
+                .append(indent)
+                .append(keyStatement)
+                .append(SQL` `)
+                .append(this.toColumnType(column.type));
+            if (nestedModelColumns) {
+                columns.append(SQL` `).append(nestedModelColumns);
+            }
+            if (requiredStatement) {
+                columns.append(SQL` `).append(requiredStatement);
+            }
+        }
+
+        return columns;
     }
 
-    public toColumnType(type: TableColumnType): string {
-        if (type === TableColumnType.Text) {
-            return 'String';
-        }
-
-        if (type === TableColumnType.ObjectID) {
-            return 'String';
-        }
-
-        if (type === TableColumnType.Boolean) {
-            return 'Bool';
-        }
-
-        if (type === TableColumnType.Number) {
-            return 'Int32';
-        }
-
-        if (type === TableColumnType.Decimal) {
-            return 'Double';
-        }
-
-        if (type === TableColumnType.Date) {
-            return 'DateTime';
-        }
-
-        if (type === TableColumnType.JSON) {
-            return 'JSON';
-        }
-
-        if (type === TableColumnType.NestedModel) {
-            return 'Nested';
-        }
-
-        if (type === TableColumnType.ArrayNumber) {
-            return 'Array(Int32)';
-        }
-
-        if (type === TableColumnType.ArrayText) {
-            return 'Array(String)';
-        }
-
-        if (type === TableColumnType.LongNumber) {
-            return 'Int128';
-        }
-
-        throw new BadDataException('Unknown column type: ' + type);
+    public toColumnType(type: TableColumnType): Statement {
+        return {
+            [TableColumnType.Text]: SQL`String`,
+            [TableColumnType.ObjectID]: SQL`String`,
+            [TableColumnType.Boolean]: SQL`Bool`,
+            [TableColumnType.Number]: SQL`Int32`,
+            [TableColumnType.Decimal]: SQL`Double`,
+            [TableColumnType.Date]: SQL`DateTime`,
+            [TableColumnType.JSON]: SQL`JSON`,
+            [TableColumnType.NestedModel]: SQL`Nested`,
+            [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
+            [TableColumnType.ArrayText]: SQL`Array(String)`,
+            [TableColumnType.LongNumber]: SQL`Int128`,
+        }[type];
     }
 
-    public toTableCreateStatement(): string {
-        const statement: string = `CREATE TABLE IF NOT EXISTS ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ( 
-            ${this.toColumnsCreateStatement(this.model.tableColumns)} 
-        )
-        ENGINE = ${this.model.tableEngine}
-        PRIMARY KEY (
-            ${this.model.primaryKeys
-                .map((key: string) => {
-                    return key;
-                })
-                .join(', ')}
-        )
-        `;
+    public toTableCreateStatement(): Statement {
+        const databaseName: string =
+            this.database.getDatasourceOptions().database!;
+        const columnsStatement: Statement = this.toColumnsCreateStatement(
+            this.model.tableColumns
+        );
+
+        // special case - ClickHouse does not support using a query parameter
+        // to specify the table engine
+        const tableEngineStatement: string = this.model.tableEngine;
+
+        /* eslint-disable prettier/prettier */
+        const statement: Statement = SQL`
+            CREATE TABLE IF NOT EXISTS ${databaseName}.${this.model.tableName}
+            (\n`
+                .append(columnsStatement).append(SQL`
+            )
+            ENGINE = `).append(tableEngineStatement).append(SQL`
+            PRIMARY KEY (`);
+
+        for (let i: number = 0; i < this.model.primaryKeys.length; i++) {
+            const key: string = this.model.primaryKeys[i]!;
+            if (i !== 0) {
+                statement.append(SQL`, `);
+            }
+            statement.append(SQL`${key}`);
+        }
+
+        statement.append(SQL`)`);
+        /* eslint-enable prettier/prettier */
 
         logger.info(`${this.model.tableName} Table Create Statement`);
         logger.info(statement);
