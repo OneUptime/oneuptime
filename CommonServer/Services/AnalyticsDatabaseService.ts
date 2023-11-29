@@ -46,7 +46,6 @@ import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
 import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
 import CountBy from '../Types/AnalyticsDatabase/CountBy';
 import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
-import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
 import Realtime from '../Utils/Realtime';
 import { ModelEventType } from 'Common/Utils/Realtime';
 import { SQL, Statement } from '../Utils/AnalyticsDatabase/Statement';
@@ -449,15 +448,6 @@ export default class AnalyticsDatabaseService<
             },
             select: findOneById.select || {},
             props: findOneById.props,
-        });
-    }
-
-    public async updateOneBy(
-        updateOneBy: UpdateOneBy<TBaseModel>
-    ): Promise<void> {
-        return await this._updateBy({
-            ...updateOneBy,
-            limit: 1,
         });
     }
 

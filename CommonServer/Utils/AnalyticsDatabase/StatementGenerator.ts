@@ -43,17 +43,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             WHERE TRUE `).append(whereStatement);
         /* eslint-enable prettier/prettier */
 
-        // TODO is this right? the ClickHouse docco doesn't mention LIMIT on ALTER UPDATE
-        // https://clickhouse.com/docs/en/sql-reference/statements/alter/update
-        if (updateBy.limit) {
-            statement.append(SQL`
-            LIMIT ${{
-                value: Number(updateBy.limit),
-                type: TableColumnType.Number,
-            }}
-            `);
-        }
-
         logger.info(`${this.model.tableName} Update Statement`);
         logger.info(statement);
 

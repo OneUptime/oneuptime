@@ -108,23 +108,6 @@ describe('StatementGenerator', () => {
             `);
             /* eslint-enable prettier/prettier */
         });
-
-        test('optionally adds a LIMIT', () => {
-            updateBy.limit = 123;
-            const statement: Statement = generator.toUpdateStatement(updateBy);
-
-            /* eslint-disable prettier/prettier */
-            expectStatement(statement, SQL`
-                ALTER TABLE ${'oneuptime'}.${'<table-name>'}
-                UPDATE <set-statement>
-                WHERE TRUE <where-statement>
-                LIMIT ${{
-                    value: 123,
-                    type: TableColumnType.Number,
-                }}
-            `);
-            /* eslint-enable prettier/prettier */
-        });
     });
 
     describe('toSetStatement', () => {

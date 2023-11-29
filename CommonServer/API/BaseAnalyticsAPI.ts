@@ -362,7 +362,7 @@ export default class BaseAnalyticsAPI<
         delete (item as any)['createdAt'];
         delete (item as any)['updatedAt'];
 
-        await this.service.updateOneBy({
+        await this.service.updateBy({
             query: {
                 _id: objectIdString,
             },
