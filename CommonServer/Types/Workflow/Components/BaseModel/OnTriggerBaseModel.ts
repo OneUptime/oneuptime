@@ -78,7 +78,7 @@ export default class OnTriggerBaseModel<
     ): Promise<RunReturnType> {
         const data: JSONObject = args['data'] as JSONObject;
 
-        const miscData: JSONObject = data?.['miscData'] as JSONObject || {};
+        const miscData: JSONObject = (data?.['miscData'] as JSONObject) || {};
 
         const successPort: Port | undefined = this.getMetadata().outPorts.find(
             (p: Port) => {

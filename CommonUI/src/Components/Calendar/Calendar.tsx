@@ -20,20 +20,17 @@ export enum DefaultCalendarView {
     Agenda = 'agenda',
 }
 
-
 const CalendarElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const { defaultDate } = useMemo(
-        () => ({
+    const { defaultDate } = useMemo(() => {
+        return {
             defaultDate: OneUptimeDate.getCurrentDate(),
-        }),
-        []
-    )
+        };
+    }, []);
 
     return (
-        <div id={props.id} className='mt-5 h-[42rem]'>
+        <div id={props.id} className="mt-5 h-[42rem]">
             <Calendar
                 defaultDate={defaultDate}
                 events={props.events}

@@ -13,7 +13,9 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
-    onUpdateUsers: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void; 
+    onUpdateUsers: (
+        layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>
+    ) => void;
 }
 
 const LayerUser: FunctionComponent<ComponentProps> = (

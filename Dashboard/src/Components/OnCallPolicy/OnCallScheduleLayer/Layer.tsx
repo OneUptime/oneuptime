@@ -22,8 +22,9 @@ export interface ComponentProps {
 const Layer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [layerUsers, setLayerUsers] = useState<Array<OnCallDutyPolicyScheduleLayerUser>>([]);
+    const [layerUsers, setLayerUsers] = useState<
+        Array<OnCallDutyPolicyScheduleLayerUser>
+    >([]);
 
     return (
         <div className="mb-10 ">
@@ -54,9 +55,14 @@ const Layer: FunctionComponent<ComponentProps> = (
 
                     <HorizontalRule />
 
-                    <LayerUser onUpdateUsers={(list: Array<OnCallDutyPolicyScheduleLayerUser>) => {
-                        setLayerUsers(list);
-                    }} layer={props.layer} />
+                    <LayerUser
+                        onUpdateUsers={(
+                            list: Array<OnCallDutyPolicyScheduleLayerUser>
+                        ) => {
+                            setLayerUsers(list);
+                        }}
+                        layer={props.layer}
+                    />
 
                     <HorizontalRule />
 

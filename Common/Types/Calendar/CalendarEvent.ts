@@ -1,4 +1,4 @@
-import { JSONObject } from "../JSON";
+import { JSONObject } from '../JSON';
 
 export default interface CalendarEvent extends JSONObject {
     id: number;
