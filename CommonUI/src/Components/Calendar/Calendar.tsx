@@ -10,6 +10,14 @@ const localizer: DateLocalizer = momentLocalizer(moment);
 export interface ComponentProps {
     id?: string | undefined;
     events: Array<CalendarEvent>;
+    defaultCalendarView?: DefaultCalendarView;
+}
+
+export enum DefaultCalendarView {
+    Month = 'month',
+    Week = 'week',
+    Day = 'day',
+    Agenda = 'agenda',
 }
 
 
@@ -31,6 +39,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 events={props.events}
                 localizer={localizer}
                 showMultiDayTimes
+                defaultView={props.defaultCalendarView || 'week'}
             />
         </div>
     );
