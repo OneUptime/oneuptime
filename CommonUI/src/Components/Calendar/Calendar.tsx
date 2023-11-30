@@ -4,6 +4,7 @@ import React, { FunctionComponent, ReactElement, useMemo } from 'react';
 import moment from 'moment-timezone';
 import OneUptimeDate from 'Common/Types/Date';
 import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
+import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
 
 const localizer: DateLocalizer = momentLocalizer(moment);
 
@@ -11,6 +12,7 @@ export interface ComponentProps {
     id?: string | undefined;
     events: Array<CalendarEvent>;
     defaultCalendarView?: DefaultCalendarView;
+    onRangeChange: (startAndEndTime: StartAndEndTime) => void;
 }
 
 export enum DefaultCalendarView {
@@ -37,6 +39,17 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 localizer={localizer}
                 showMultiDayTimes
                 defaultView={props.defaultCalendarView || 'week'}
+                onRangeChange={(range:  Date[] | { start: Date; end: Date; })=> {
+
+                    if(Array.isArray(range)) {
+                        return;
+                    }
+
+                    props.onRangeChange({
+                        startTime: range.start,
+                        endTime: range.end,
+                    });
+                }}
             />
         </div>
     );

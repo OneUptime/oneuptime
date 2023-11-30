@@ -16,6 +16,121 @@ export default class OneUptimeDate {
         return moment(date).fromNow();
     }
 
+    public static getDaysBetweenTwoDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
+        return moment(endDate).diff(moment(startDate), 'days');
+    }
+
+    public static getDaysBetweenTwoDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getDaysBetweenTwoDates(startDate, endDate) + 1;
+    }
+
+
+    public static getHoursBetweenTwoDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
+        return moment(endDate).diff(moment(startDate), 'hours');
+    }
+
+    public static getHoursBetweenTwoDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getHoursBetweenTwoDates(startDate, endDate) + 1;
+    }
+
+    public static getMinutesBetweenTwoDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
+        return moment(endDate).diff(moment(startDate), 'minutes');
+    }
+
+    public static getMinutesBetweenTwoDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getMinutesBetweenTwoDates(startDate, endDate) + 1;
+    }
+
+    public static getSecondsBetweenTwoDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
+        return moment(endDate).diff(moment(startDate), 'seconds');
+    }
+
+    public static getSecondsBetweenTwoDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getSecondsBetweenTwoDates(startDate, endDate) + 1;
+    }
+
+    public static getWeeksBetweenTwoDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
+        return moment(endDate).diff(moment(startDate), 'weeks');
+    }
+
+    public static getWeeksBetweenTwoDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getWeeksBetweenTwoDates(startDate, endDate) + 1;
+    }
+
+    public static getMonthsBetweenTwoDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
+        return moment(endDate).diff(moment(startDate), 'months');
+    }
+
+    public static getMonthsBetweenTwoDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getMonthsBetweenTwoDates(startDate, endDate) + 1;
+    }
+
+    public static getYearsBetweenTwoDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        startDate = this.fromString(startDate);
+        endDate = this.fromString(endDate);
+        return moment(endDate).diff(moment(startDate), 'years');
+    }
+
+    public static getYearsBetweenTwoDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getYearsBetweenTwoDates(startDate, endDate) + 1;
+    }
+    
+
+
     public static toString(date: Date): string {
         return date.toISOString();
     }
