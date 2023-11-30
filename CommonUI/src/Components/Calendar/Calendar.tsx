@@ -5,6 +5,8 @@ import moment from 'moment-timezone';
 import OneUptimeDate from 'Common/Types/Date';
 import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
 import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
+import Color from 'Common/Types/Color';
+import { Blue } from 'Common/Types/BrandColors';
 
 const localizer: DateLocalizer = momentLocalizer(moment);
 
@@ -31,6 +33,24 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
+    const eventStyleGetter = (event: CalendarEvent) => {
+        var backgroundColor = event.color?.toString() || Blue.toString();
+        var style = {
+            backgroundColor: backgroundColor,
+            borderRadius: '0px',
+            opacity: 0.8,
+            color: event.textColor?.toString() || Color.shouldUseDarkText(new Color(backgroundColor))
+                ? '#000000'
+                : '#ffffff',
+            border: '0px',
+            display: 'block'
+        };
+        return {
+            style: style
+        };
+    };
+
+
     return (
         <div id={props.id} className="mt-5 h-[42rem]">
             <Calendar
@@ -39,6 +59,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 localizer={localizer}
                 showMultiDayTimes
                 defaultView={props.defaultCalendarView || 'day'}
+                eventPropGetter={eventStyleGetter}
                 onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
                     if (Array.isArray(range)) {
                         return;

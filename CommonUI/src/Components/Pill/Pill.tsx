@@ -20,7 +20,6 @@ export interface ComponentProps {
 const Pill: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const rgb: RGB = Color.colorToRgb(props.color || Black);
 
     if (props.isMinimal) {
         return (
@@ -52,7 +51,7 @@ const Pill: FunctionComponent<ComponentProps> = (
 
                 color:
                     props.style?.color ||
-                    rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186
+                        Color.shouldUseDarkText(props.color || Black)
                         ? '#000000'
                         : '#ffffff',
                 backgroundColor:

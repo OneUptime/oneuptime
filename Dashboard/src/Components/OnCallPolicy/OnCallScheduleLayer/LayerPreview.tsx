@@ -7,6 +7,10 @@ import OneUptimeDate from 'Common/Types/Date';
 import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
 import LayerUtil from 'Common/Types/OnCallDutyPolicy/Layer';
 import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
+import { ColorList } from 'Common/Types/BrandColors';
+import HashCode from 'Common/Types/HashCode';
+import User from 'Model/Models/User';
+import Color from 'Common/Types/Color';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -31,8 +35,13 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
         calendarStartTime: Date,
         calendarEndTime: Date
     ): Array<CalendarEvent> => {
-        return LayerUtil.getEvents({
-            users: props.layerUsers,
+
+        const users: Array<User> = props.layerUsers.map((layerUser: OnCallDutyPolicyScheduleLayerUser)=>{
+            return layerUser.user!;
+        });
+
+        const events: Array<CalendarEvent> =  LayerUtil.getEvents({
+            users: users,
             startDateTimeOfLayer: props.layer.startsAt!,
             calendarEndDate: calendarEndTime,
             calendarStartDate: calendarStartTime,
@@ -40,6 +49,29 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
             rotation: props.layer.rotation!,
             restrictionTimes: props.layer.restrictionTimes!,
         });
+
+        // Assign colors to each user based on id. Hash the id and mod it by the length of the color list.
+
+        const colorListLength = ColorList.length;
+
+        events.forEach((event: CalendarEvent)=>{
+
+            const userId: string = event.title; 
+
+            const user: User | undefined = users.find((user: User)=>{
+                return user.id?.toString() === userId;
+            });
+
+            if(!user){
+                return;
+            }
+
+            event.color = (ColorList[HashCode.fromString(userId) % colorListLength] as Color).toString();
+
+            event.title = user.name?.toString() || user.email?.toString() || 'Unknown User';
+        });
+
+        return events;
     };
 
     return (
