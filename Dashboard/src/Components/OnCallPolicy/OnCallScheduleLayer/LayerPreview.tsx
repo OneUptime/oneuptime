@@ -1,6 +1,6 @@
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import Calendar from 'CommonUI/src/Components/Calendar/Calendar';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import OneUptimeDate from 'Common/Types/Date';
@@ -21,6 +21,12 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
     const [startTime, setStartTime] = useState<Date>(OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate()));
     const [endTime, setEndTime] = useState<Date>(OneUptimeDate.getEndOfDay(OneUptimeDate.getCurrentDate()));
 
+    const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>([]);
+
+    useEffect(()=>{
+        setCalendarEvents(getCalendarEvents(startTime, endTime));
+    }, [props.layer, props.layerUsers, startTime, endTime])
+
     const getCalendarEvents: Function = (
         calendarStartTime: Date,
         calendarEndTime: Date
@@ -32,7 +38,7 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
             calendarStartDate: calendarStartTime,
             handOffTime: props.layer.handOffTime!,
             rotation: props.layer.rotation!,
-            restrictionTImes: props.layer.restrictionTimes!,
+            restrictionTimes: props.layer.restrictionTimes!,
         });
     };
 
@@ -47,10 +53,7 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
                 }
             />
             <Calendar
-                events={getCalendarEvents(
-                    startTime,
-                    endTime
-                )}
+                events={calendarEvents}
                 onRangeChange={(startEndTime: StartAndEndTime)=>{
                     setStartTime(startEndTime.startTime);
                     setEndTime(startEndTime.endTime);

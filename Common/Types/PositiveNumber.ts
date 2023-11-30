@@ -48,7 +48,7 @@ export default class PositiveNumber {
     public toJSON(): JSONObject {
         return {
             _type: ObjectType.PositiveNumber,
-            value: (this as PositiveNumber).toString(),
+            value: (this as PositiveNumber).toNumber(),
         };
     }
 

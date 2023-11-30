@@ -15,7 +15,7 @@ export default class LayerUtil {
         startDateTimeOfLayer: Date;
         calendarStartDate: Date;
         calendarEndDate: Date;
-        restrictionTImes: RestrictionTimes;
+        restrictionTimes: RestrictionTimes;
         handOffTime: Date;
         rotation: Recurring;
     }): Array<CalendarEvent> {
@@ -24,6 +24,8 @@ export default class LayerUtil {
         if(!LayerUtil.isDataValid(data)){
             return [];
         }
+
+        data = LayerUtil.sanitizeData(data);
 
         let start: Date = data.calendarStartDate;
         const end: Date = data.calendarEndDate;
@@ -111,7 +113,7 @@ export default class LayerUtil {
                     LayerUtil.trimStartAndEndTimesBasedOnRestrictionTimes({
                         eventStartTime: currentEventStartTime,
                         eventEndTime: handOffTime,
-                        restrictionTimes: data.restrictionTImes,
+                        restrictionTimes: data.restrictionTimes,
                     });
 
                 // update start time to handoff time
@@ -146,7 +148,7 @@ export default class LayerUtil {
                 LayerUtil.trimStartAndEndTimesBasedOnRestrictionTimes({
                     eventStartTime: currentEventStartTime,
                     eventEndTime: currentEventEndTime,
-                    restrictionTimes: data.restrictionTImes,
+                    restrictionTimes: data.restrictionTimes,
                 });
 
             events = [
@@ -179,6 +181,18 @@ export default class LayerUtil {
         }
 
         return events;
+    }
+    
+    private static sanitizeData(data: { users: Array<UserModel>; startDateTimeOfLayer: Date; calendarStartDate: Date; calendarEndDate: Date; restrictionTimes: RestrictionTimes; handOffTime: Date; rotation: Recurring; }): { users: Array<UserModel>; startDateTimeOfLayer: Date; calendarStartDate: Date; calendarEndDate: Date; restrictionTimes: RestrictionTimes; handOffTime: Date; rotation: Recurring; } {
+        if(!(data.restrictionTimes instanceof RestrictionTimes)){
+            data.restrictionTimes = RestrictionTimes.fromJSON(data.restrictionTimes);
+        }
+
+        if(!(data.rotation instanceof Recurring)){
+            data.rotation = Recurring.fromJSON(data.rotation);
+        }
+
+        return data;
     }
 
 
