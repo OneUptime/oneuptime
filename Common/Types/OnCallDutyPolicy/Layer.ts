@@ -115,7 +115,7 @@ export default class LayerUtil {
 
         const numberOfIntervalsBetweenStartAndHandoffTime: number = Math.floor(
             intervalBetweenStartTimeAndHandoffTime /
-                rotation.intervalCount.toNumber()
+            rotation.intervalCount.toNumber()
         );
 
         currentUserIndex = LayerUtil.incrementUserIndex(
@@ -248,6 +248,8 @@ export default class LayerUtil {
         return events;
     }
 
+
+
     public static trimStartAndEndTimesBasedOnRestrictionTimes(data: {
         eventStartTime: Date;
         eventEndTime: Date;
@@ -265,178 +267,194 @@ export default class LayerUtil {
         }
 
         if (restrictionTimes.restictionType === RestrictionType.Daily) {
-            const dayRestrictionTimes: StartAndEndTime | null =
-                restrictionTimes.dayRestrictionTimes;
-
-            // if there are no day restriction times, we dont have any restrictions and we can return the event start and end times
-
-            if (!dayRestrictionTimes) {
-                return [
-                    {
-                        startTime: data.eventStartTime,
-                        endTime: data.eventEndTime,
-                    },
-                ];
-            }
-
-            //
-
-            let restrictionStartTime: Date = dayRestrictionTimes.startTime;
-            let restrictionEndTime: Date = dayRestrictionTimes.endTime;
-
-            let currentStartTime: Date = data.eventStartTime;
-            const currentEndTime: Date = data.eventEndTime;
-
-            const trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
-
-            let reachedTheEndOfTheCurrentEvent: boolean = false;
-
-            while (!reachedTheEndOfTheCurrentEvent) {
-                // if current end time is equalto or before than the current start time, we need to return the current event and exit the loop
-
-                if (OneUptimeDate.isBefore(currentEndTime, currentStartTime)) {
-                    reachedTheEndOfTheCurrentEvent = true;
-                }
-
-                // before this we need to make sure restrciton times are moved to the day of the event.
-                restrictionStartTime = OneUptimeDate.keepTimeButMoveDay(
-                    restrictionStartTime,
-                    data.eventStartTime
-                );
-                restrictionEndTime = OneUptimeDate.keepTimeButMoveDay(
-                    restrictionEndTime,
-                    data.eventStartTime
-                );
-
-                // if the restriction end time is before the restriction start time, we need to add one day to the restriction end time
-                if (
-                    OneUptimeDate.isAfter(
-                        restrictionStartTime,
-                        restrictionEndTime
-                    )
-                ) {
-                    restrictionEndTime = OneUptimeDate.addRemoveDays(
-                        restrictionEndTime,
-                        1
-                    );
-                }
-
-                // 1 - if the current event falls within the restriction times, we need to return the current event.
-
-                if (
-                    OneUptimeDate.isOnOrAfter(
-                        currentStartTime,
-                        restrictionStartTime
-                    ) &&
-                    OneUptimeDate.isOnOrAfter(
-                        restrictionEndTime,
-                        currentEndTime
-                    )
-                ) {
-                    trimmedStartAndEndTimes.push({
-                        startTime: currentStartTime,
-                        endTime: currentEndTime,
-                    });
-                    reachedTheEndOfTheCurrentEvent = true;
-                }
-
-                // 2 - Start Restriction: If the current event starts after the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the current event and end time of the restriction
-
-                if (
-                    OneUptimeDate.isOnOrAfter(
-                        currentStartTime,
-                        restrictionStartTime
-                    ) &&
-                    OneUptimeDate.isOnOrAfter(
-                        currentEndTime,
-                        restrictionEndTime
-                    )
-                ) {
-                    trimmedStartAndEndTimes.push({
-                        startTime: currentStartTime,
-                        endTime: restrictionEndTime,
-                    });
-                    reachedTheEndOfTheCurrentEvent = true;
-                }
-
-                // 3 - End Restriction - If the current event starts before the restriction start time and ends before the restriction end time, we need to return the current event with the start time of the restriction and end time of the current event.
-
-                if (
-                    OneUptimeDate.isBefore(
-                        currentStartTime,
-                        restrictionStartTime
-                    ) &&
-                    OneUptimeDate.isBefore(currentEndTime, restrictionEndTime)
-                ) {
-                    trimmedStartAndEndTimes.push({
-                        startTime: restrictionStartTime,
-                        endTime: currentEndTime,
-                    });
-                    reachedTheEndOfTheCurrentEvent = true;
-                }
-
-                // 4 - If the current event starts before the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the restriction and end time of the restriction.
-
-                if (
-                    OneUptimeDate.isBefore(
-                        currentStartTime,
-                        restrictionStartTime
-                    ) &&
-                    OneUptimeDate.isOnOrAfter(
-                        currentEndTime,
-                        restrictionEndTime
-                    )
-                ) {
-                    trimmedStartAndEndTimes.push({
-                        startTime: restrictionStartTime,
-                        endTime: restrictionEndTime,
-                    });
-
-                    currentStartTime = restrictionEndTime;
-
-                    // add day to restriction start and end times.
-
-                    restrictionStartTime = OneUptimeDate.addRemoveDays(
-                        restrictionStartTime,
-                        1
-                    );
-                    restrictionEndTime = OneUptimeDate.addRemoveDays(
-                        restrictionEndTime,
-                        1
-                    );
-                }
-            }
-
-            return trimmedStartAndEndTimes;
+            return LayerUtil.getEventsByDailyRestriction(data);
         }
 
         if (restrictionTimes.restictionType === RestrictionType.Weekly) {
-            const weeklyRestrictionTimes: Array<WeeklyResctriction> =
-                restrictionTimes.weeklyRestrictionTimes;
-
-            // if there are no weekly restriction times, we dont have any restrictions and we can return the event start and end times
-
-            const trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
-
-            if (
-                !weeklyRestrictionTimes ||
-                weeklyRestrictionTimes.length === 0
-            ) {
-                return [
-                    {
-                        startTime: data.eventStartTime,
-                        endTime: data.eventEndTime,
-                    },
-                ];
-            }
-
-            // const eventStartTime: Date = data.eventStartTime;
-            // const eventStartDayOfWeek: DayOfWeek = OneUptimeDate.getDayOfWeek(eventStartTime);
-
-            return trimmedStartAndEndTimes;
+            return LayerUtil.getEventsByWeeklyRestriction(data);
         }
 
         return [];
+    }
+
+    public static getEventsByWeeklyRestriction(data: {
+        eventStartTime: Date;
+        eventEndTime: Date;
+        restrictionTimes: RestrictionTimes;
+    }): Array<StartAndEndTime> {
+        const weeklyRestrictionTimes: Array<WeeklyResctriction> =
+            data.restrictionTimes.weeklyRestrictionTimes;
+
+        // if there are no weekly restriction times, we dont have any restrictions and we can return the event start and end times
+
+        const trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
+
+        if (
+            !weeklyRestrictionTimes ||
+            weeklyRestrictionTimes.length === 0
+        ) {
+            return [
+                {
+                    startTime: data.eventStartTime,
+                    endTime: data.eventEndTime,
+                },
+            ];
+        }
+
+        // const eventStartTime: Date = data.eventStartTime;
+        // const eventStartDayOfWeek: DayOfWeek = OneUptimeDate.getDayOfWeek(eventStartTime);
+
+        return trimmedStartAndEndTimes;
+    }
+
+    public static getEventsByDailyRestriction(data: {
+        eventStartTime: Date;
+        eventEndTime: Date;
+        restrictionTimes: RestrictionTimes;
+    }): Array<StartAndEndTime> {
+        const dayRestrictionTimes: StartAndEndTime | null =
+            data.restrictionTimes.dayRestrictionTimes;
+
+        // if there are no day restriction times, we dont have any restrictions and we can return the event start and end times
+
+        if (!dayRestrictionTimes) {
+            return [
+                {
+                    startTime: data.eventStartTime,
+                    endTime: data.eventEndTime,
+                },
+            ];
+        }
+
+        //
+
+        let restrictionStartTime: Date = dayRestrictionTimes.startTime;
+        let restrictionEndTime: Date = dayRestrictionTimes.endTime;
+
+        let currentStartTime: Date = data.eventStartTime;
+        const currentEndTime: Date = data.eventEndTime;
+
+        const trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
+
+        let reachedTheEndOfTheCurrentEvent: boolean = false;
+
+        while (!reachedTheEndOfTheCurrentEvent) {
+            // if current end time is equalto or before than the current start time, we need to return the current event and exit the loop
+
+            if (OneUptimeDate.isBefore(currentEndTime, currentStartTime)) {
+                reachedTheEndOfTheCurrentEvent = true;
+            }
+
+            // before this we need to make sure restrciton times are moved to the day of the event.
+            restrictionStartTime = OneUptimeDate.keepTimeButMoveDay(
+                restrictionStartTime,
+                data.eventStartTime
+            );
+            restrictionEndTime = OneUptimeDate.keepTimeButMoveDay(
+                restrictionEndTime,
+                data.eventStartTime
+            );
+
+            // if the restriction end time is before the restriction start time, we need to add one day to the restriction end time
+            if (
+                OneUptimeDate.isAfter(
+                    restrictionStartTime,
+                    restrictionEndTime
+                )
+            ) {
+                restrictionEndTime = OneUptimeDate.addRemoveDays(
+                    restrictionEndTime,
+                    1
+                );
+            }
+
+            // 1 - if the current event falls within the restriction times, we need to return the current event.
+
+            if (
+                OneUptimeDate.isOnOrAfter(
+                    currentStartTime,
+                    restrictionStartTime
+                ) &&
+                OneUptimeDate.isOnOrAfter(
+                    restrictionEndTime,
+                    currentEndTime
+                )
+            ) {
+                trimmedStartAndEndTimes.push({
+                    startTime: currentStartTime,
+                    endTime: currentEndTime,
+                });
+                reachedTheEndOfTheCurrentEvent = true;
+            }
+
+            // 2 - Start Restriction: If the current event starts after the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the current event and end time of the restriction
+
+            if (
+                OneUptimeDate.isOnOrAfter(
+                    currentStartTime,
+                    restrictionStartTime
+                ) &&
+                OneUptimeDate.isOnOrAfter(
+                    currentEndTime,
+                    restrictionEndTime
+                )
+            ) {
+                trimmedStartAndEndTimes.push({
+                    startTime: currentStartTime,
+                    endTime: restrictionEndTime,
+                });
+                reachedTheEndOfTheCurrentEvent = true;
+            }
+
+            // 3 - End Restriction - If the current event starts before the restriction start time and ends before the restriction end time, we need to return the current event with the start time of the restriction and end time of the current event.
+
+            if (
+                OneUptimeDate.isBefore(
+                    currentStartTime,
+                    restrictionStartTime
+                ) &&
+                OneUptimeDate.isBefore(currentEndTime, restrictionEndTime)
+            ) {
+                trimmedStartAndEndTimes.push({
+                    startTime: restrictionStartTime,
+                    endTime: currentEndTime,
+                });
+                reachedTheEndOfTheCurrentEvent = true;
+            }
+
+            // 4 - If the current event starts before the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the restriction and end time of the restriction.
+
+            if (
+                OneUptimeDate.isBefore(
+                    currentStartTime,
+                    restrictionStartTime
+                ) &&
+                OneUptimeDate.isOnOrAfter(
+                    currentEndTime,
+                    restrictionEndTime
+                )
+            ) {
+                trimmedStartAndEndTimes.push({
+                    startTime: restrictionStartTime,
+                    endTime: restrictionEndTime,
+                });
+
+                currentStartTime = restrictionEndTime;
+
+                // add day to restriction start and end times.
+
+                restrictionStartTime = OneUptimeDate.addRemoveDays(
+                    restrictionStartTime,
+                    1
+                );
+                restrictionEndTime = OneUptimeDate.addRemoveDays(
+                    restrictionEndTime,
+                    1
+                );
+            }
+        }
+
+        return trimmedStartAndEndTimes;
     }
 
     // helper functions.
