@@ -68,7 +68,7 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
 
             event.color = (ColorList[HashCode.fromString(userId) % colorListLength] as Color).toString();
 
-            event.title = user.name?.toString() || user.email?.toString() || 'Unknown User';
+            event.title = `${(user.name?.toString() || '')+' '+'('+(user.email?.toString() || '')+')'}`;
         });
 
         return events;
