@@ -21,27 +21,6 @@ export default class LayerUtil {
         rotation: Recurring;
     }): Array<CalendarEvent> {
 
-
-        // helper funcitons. 
-
-        const incrementUserIndex = (currentIndex: number, incrementBy?: number): number => {
-            // update the current user index
-
-            if (!incrementBy) {
-                incrementBy = 1;
-            }
-
-            currentIndex = currentIndex + incrementBy;
-
-            // if the current user index is greater than the length of the users array, we need to reset the current user index to 0
-            if (currentUserIndex >= data.users.length) {
-                // then modulo the current user index by the length of the users array
-                currentIndex = currentIndex % data.users.length; // so this rotates the users. 
-            }
-
-            return currentIndex;
-        };
-
         let events: Array<CalendarEvent> = [];
 
         let start: Date = data.calendarStartDate;
@@ -52,11 +31,6 @@ export default class LayerUtil {
             return [];
         }
 
-        // start time of the layer is after the start time of the calendar, so we need to update the start time of the calendar
-        if (OneUptimeDate.isAfter(data.startDateTimeOfLayer, start)) {
-            start = data.startDateTimeOfLayer;
-        }
-
         // end time of the layer is before the end time of the calendar, so, we dont have any events and we can return empty array
         if (OneUptimeDate.isAfter(data.startDateTimeOfLayer, end)) {
             return [];
@@ -65,6 +39,11 @@ export default class LayerUtil {
         // if users are empty, we dont have any events and we can return empty array
         if (data.users.length === 0) {
             return [];
+        }
+
+        // start time of the layer is after the start time of the calendar, so we need to update the start time of the calendar
+        if (OneUptimeDate.isAfter(data.startDateTimeOfLayer, start)) {
+            start = data.startDateTimeOfLayer;
         }
 
         // split events by rotation.
@@ -79,8 +58,6 @@ export default class LayerUtil {
             return [];
         }
 
-
-
         // Looop vars
         let currentUserIndex: number = 0;
         let currentEventStartTime: Date = start;
@@ -93,31 +70,26 @@ export default class LayerUtil {
 
         if (rotation.intervalType === EventInterval.Day) {
             // calculate the number of days between the start time of the layer and the handoff time.
-
             intervalBetweenStartTimeAndHandoffTime = OneUptimeDate.getDaysBetweenTwoDates(data.startDateTimeOfLayer, handOffTime);
         }
 
         if (rotation.intervalType === EventInterval.Hour) {
             // calculate the number of hours between the start time of the layer and the handoff time.
-
             intervalBetweenStartTimeAndHandoffTime = OneUptimeDate.getHoursBetweenTwoDates(data.startDateTimeOfLayer, handOffTime);
         }
 
         if (rotation.intervalType === EventInterval.Week) {
             // calculate the number of weeks between the start time of the layer and the handoff time.
-
             intervalBetweenStartTimeAndHandoffTime = OneUptimeDate.getWeeksBetweenTwoDates(data.startDateTimeOfLayer, handOffTime);
         }
 
         if (rotation.intervalType === EventInterval.Month) {
             // calculate the number of months between the start time of the layer and the handoff time.
-
             intervalBetweenStartTimeAndHandoffTime = OneUptimeDate.getMonthsBetweenTwoDates(data.startDateTimeOfLayer, handOffTime);
         }
 
         if (rotation.intervalType === EventInterval.Year) {
             // calculate the number of years between the start time of the layer and the handoff time.
-
             intervalBetweenStartTimeAndHandoffTime = OneUptimeDate.getYearsBetweenTwoDates(data.startDateTimeOfLayer, handOffTime);
         }
 
@@ -125,7 +97,7 @@ export default class LayerUtil {
 
         const numberOfIntervalsBetweenStartAndHandoffTime: number = Math.floor(intervalBetweenStartTimeAndHandoffTime / rotation.intervalCount.toNumber());
 
-        incrementUserIndex(currentUserIndex, numberOfIntervalsBetweenStartAndHandoffTime);
+        currentUserIndex = LayerUtil.incrementUserIndex(currentUserIndex, data.users.length, numberOfIntervalsBetweenStartAndHandoffTime);
 
         handOffTime = OneUptimeDate.keepTimeButMoveDay(handOffTime, currentEventStartTime);
 
@@ -136,29 +108,6 @@ export default class LayerUtil {
         }
 
         let currentEventEndTime: Date = OneUptimeDate.getCurrentDate(); // temporary set to current time to avoid typescript error
-
-        const getCalendarEventsFromStartAndEndDates: Function = (trimmedStartAndEndTimes: Array<StartAndEndTime>): Array<CalendarEvent> => {
-
-            const events: Array<CalendarEvent> = [];
-
-            const userId: string =
-                data.users[currentUserIndex]?.id?.toString() || '';
-
-            for (const trimmedStartAndEndTime of trimmedStartAndEndTimes) {
-                const event: CalendarEvent = {
-                    id: 0,
-                    title: userId, // This will be changed to username in the UI or will bve kept the same if used on the server.
-                    allDay: false,
-                    start: trimmedStartAndEndTime.startTime,
-                    end: trimmedStartAndEndTime.endTime,
-                };
-
-                events.push(event);
-            }
-
-            return events;
-        }
-
 
 
         while (!hasReachedTheEndOfTheCalendar) {
@@ -218,10 +167,10 @@ export default class LayerUtil {
                 currentEventStartTime = handOffTime;
 
                 // update user index
-                currentUserIndex = incrementUserIndex(currentUserIndex);
+                currentUserIndex = LayerUtil.incrementUserIndex(currentUserIndex, data.users.length);
 
                 // add events to the array
-                events = [...events, ...getCalendarEventsFromStartAndEndDates(trimmedStartAndEndTimes)];
+                events = [...events, ...LayerUtil.getCalendarEventsFromStartAndEndDates(trimmedStartAndEndTimes, data.users, currentUserIndex)];
             }
 
 
@@ -240,27 +189,14 @@ export default class LayerUtil {
                     restrictionTimes: data.restrictionTImes,
                 });
 
-            const userId: string =
-                data.users[currentUserIndex]?.id?.toString() || '';
-
-            for (const trimmedStartAndEndTime of trimmedStartAndEndTimes) {
-                const event: CalendarEvent = {
-                    id: 0,
-                    title: userId, // This will be changed to username in the UI or will bve kept the same if used on the server.
-                    allDay: false,
-                    start: trimmedStartAndEndTime.startTime,
-                    end: trimmedStartAndEndTime.endTime,
-                };
-
-                events.push(event);
-            }
+            events = [...events, ...LayerUtil.getCalendarEventsFromStartAndEndDates(trimmedStartAndEndTimes, data.users, currentUserIndex)];
 
             // update the current event start time
 
             currentEventStartTime = currentEventEndTime;
 
             // update the current user index
-            currentUserIndex = incrementUserIndex(currentUserIndex);
+            currentUserIndex = LayerUtil.incrementUserIndex(currentUserIndex, data.users.length);
         }
 
         // increment ids of all the events and return them, to make sure they are unique
@@ -464,5 +400,50 @@ export default class LayerUtil {
         }
 
         return [];
+    }
+
+
+
+    // helper functions. 
+
+    private static incrementUserIndex(currentIndex: number, userArrayLength: number, incrementBy?: number): number {
+        // update the current user index
+
+        if (!incrementBy) {
+            incrementBy = 1;
+        }
+
+        currentIndex = currentIndex + incrementBy;
+
+        // if the current user index is greater than the length of the users array, we need to reset the current user index to 0
+        if (currentIndex >= userArrayLength) {
+            // then modulo the current user index by the length of the users array
+            currentIndex = currentIndex % userArrayLength; // so this rotates the users. 
+        }
+
+        return currentIndex;
+    };
+
+
+    private static getCalendarEventsFromStartAndEndDates(trimmedStartAndEndTimes: Array<StartAndEndTime>, users: Array<UserModel>, currentUserIndex: number): Array<CalendarEvent> {
+
+        const events: Array<CalendarEvent> = [];
+
+        const userId: string =
+            users[currentUserIndex]?.id?.toString() || '';
+
+        for (const trimmedStartAndEndTime of trimmedStartAndEndTimes) {
+            const event: CalendarEvent = {
+                id: 0,
+                title: userId, // This will be changed to username in the UI or will bve kept the same if used on the server.
+                allDay: false,
+                start: trimmedStartAndEndTime.startTime,
+                end: trimmedStartAndEndTime.endTime,
+            };
+
+            events.push(event);
+        }
+
+        return events;
     }
 }
