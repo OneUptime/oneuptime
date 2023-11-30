@@ -8,6 +8,7 @@ import RestrictionTimes, {
 import OneUptimeDate from '../Date';
 import EventInterval from '../Events/EventInterval';
 import StartAndEndTime from '../Time/StartAndEndTime';
+import Typeof from '../Typeof';
 
 export default class LayerUtil {
     public static getEvents(data: {
@@ -190,6 +191,22 @@ export default class LayerUtil {
 
         if(!(data.rotation instanceof Recurring)){
             data.rotation = Recurring.fromJSON(data.rotation);
+        }
+
+        if(typeof data.startDateTimeOfLayer === Typeof.String){
+            data.startDateTimeOfLayer = OneUptimeDate.fromString(data.startDateTimeOfLayer);
+        }
+
+        if(typeof data.calendarStartDate === Typeof.String){
+            data.calendarStartDate = OneUptimeDate.fromString(data.calendarStartDate);
+        }
+
+        if(typeof data.calendarEndDate === Typeof.String){
+            data.calendarEndDate = OneUptimeDate.fromString(data.calendarEndDate);
+        }
+
+        if(typeof data.handOffTime === Typeof.String){
+            data.handOffTime = OneUptimeDate.fromString(data.handOffTime);
         }
 
         return data;
