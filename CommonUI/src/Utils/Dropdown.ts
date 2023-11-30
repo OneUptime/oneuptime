@@ -14,11 +14,11 @@ export default class DropdownUtil {
     }
 
     public static getDropdownOptionFromEnumForValue(
-        obj: Object,
+        enumObject: Object,
         value: string
     ): DropdownOption | undefined {
         const options: Array<DropdownOption> =
-            DropdownUtil.getDropdownOptionsFromEnum(obj);
+            DropdownUtil.getDropdownOptionsFromEnum(enumObject);
         const option: DropdownOption | undefined = options.find(
             (option: DropdownOption) => {
                 return option.value === value;

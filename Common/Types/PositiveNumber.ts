@@ -45,6 +45,13 @@ export default class PositiveNumber {
         return this.positiveNumber;
     }
 
+    public toJSON(): JSONObject {
+        return {
+            _type: ObjectType.PositiveNumber,
+            value: (this as PositiveNumber).toString(),
+        };
+    }
+
     public static fromJSON(json: JSONValue): PositiveNumber {
         if (json instanceof PositiveNumber) {
             return json;

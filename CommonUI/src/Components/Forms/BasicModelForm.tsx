@@ -15,7 +15,10 @@ import { FormStep } from './Types/FormStep';
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
-    onSubmit: (values: FormValues<TBaseModel>) => void;
+    onSubmit: (
+        values: FormValues<TBaseModel>,
+        onSubmitSuccessful: () => void
+    ) => void;
     onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
     onValidate?:
         | undefined

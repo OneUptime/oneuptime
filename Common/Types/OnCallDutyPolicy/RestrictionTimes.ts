@@ -1,3 +1,4 @@
+import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import OneUptimeDate from '../Date';
 import DayOfWeek from '../Day/DayOfWeek';
@@ -85,7 +86,9 @@ export default class RestrictionTimes extends DatabaseProperty {
         });
     }
 
-    public static override fromJSON(json: JSONObject): RestrictionTimes {
+    public static override fromJSON(
+        json: JSONObject | RestrictionTimes
+    ): RestrictionTimes {
         if (json instanceof RestrictionTimes) {
             return json;
         }
@@ -164,5 +167,27 @@ export default class RestrictionTimes extends DatabaseProperty {
                 seconds: 0,
             }),
         };
+    }
+
+    protected static override toDatabase(
+        value: RestrictionTimes | FindOperator<RestrictionTimes>
+    ): JSONObject | null {
+        if (value && value instanceof RestrictionTimes) {
+            return (value as RestrictionTimes).toJSON();
+        } else if (value) {
+            return JSONFunctions.serialize(value as any);
+        }
+
+        return null;
+    }
+
+    protected static override fromDatabase(
+        value: JSONObject
+    ): RestrictionTimes | null {
+        if (value) {
+            return RestrictionTimes.fromJSON(value);
+        }
+
+        return null;
     }
 }

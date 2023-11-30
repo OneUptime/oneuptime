@@ -32,7 +32,7 @@ export enum ObjectType {
     EqualToOrNull = 'EqualToOrNull',
     MonitorSteps = 'MonitorSteps',
     MonitorStep = 'MonitorStep',
-    Rotation = 'Rotation',
+    Recurring = 'Recurring',
     RestrictionTimes = 'RestrictionTimes',
     MonitorCriteria = 'MonitorCriteria',
     PositiveNumber = 'PositiveNumber',

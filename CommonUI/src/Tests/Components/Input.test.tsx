@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, screen, cleanup } from '@testing-library/react';
-import Input, { ComponentProps } from '../../Components/Input/Input';
+import Input, { ComponentProps, InputType } from '../../Components/Input/Input';
 import '@testing-library/jest-dom/extend-expect';
 
 describe('Input', () => {
@@ -25,7 +25,7 @@ describe('Input', () => {
             value: 'value',
             readOnly: true,
             disabled: true,
-            type: 'text',
+            type: InputType.TEXT,
             onFocus: () => {},
             onBlur: () => {},
             dataTestId: 'testid',
@@ -190,7 +190,7 @@ describe('Input', () => {
 
         render(
             <Input
-                type="datetime-local"
+                type={InputType.DATETIME_LOCAL}
                 value={dateTime}
                 dataTestId={dataTestId}
             />
@@ -205,7 +205,9 @@ describe('Input', () => {
         const date: string = '2023-04-22T00:00:00';
         const dataTestId: string = 'testid';
 
-        render(<Input type="date" value={date} dataTestId={dataTestId} />);
+        render(
+            <Input type={InputType.DATE} value={date} dataTestId={dataTestId} />
+        );
 
         expect(screen.getByTestId<HTMLInputElement>(dataTestId).value).toBe(
             '2023-04-22'

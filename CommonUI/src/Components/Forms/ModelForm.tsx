@@ -432,10 +432,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return result;
     };
 
-    const onSubmit: (values: FormValues<JSONObject>) => Promise<void> = async (
-        values: FormValues<JSONObject>
+    const onSubmit: (
+        values: FormValues<JSONObject>,
+        onSubmitSuccessful: () => void
+    ) => Promise<void> = async (
+        values: FormValues<JSONObject>,
+        onSubmitSuccessful: () => void
     ): Promise<void> => {
         // Ping an API here.
+
         setError('');
         setLoading(true);
         if (props.onLoadingChange) {
@@ -550,6 +555,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
                     miscData
                 );
             }
+
+            onSubmitSuccessful();
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }

@@ -1,3 +1,4 @@
+import ObjectID from 'Common/Types/ObjectID';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -17,11 +18,14 @@ export interface ComponentProps {
     initialValue?: string | undefined;
     options: Array<BasicRadioButtonOption>;
     error?: string | undefined;
+    id?: string | undefined;
 }
 
 const BasicRadioButton: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const [id] = useState<string>(props.id || ObjectID.generate().toString());
+
     const [value, setValue] = useState<string>('');
 
     useEffect(() => {
@@ -41,25 +45,20 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <label className="text-base font-semibold text-gray-900">
-                Notifications
-            </label>
-            <p className="text-sm text-gray-500">
-                How do you prefer to receive notifications?
-            </p>
-            <fieldset className="mt-4">
-                <legend className="sr-only">Notification method</legend>
+            <fieldset id={id} className="mt-4">
                 <div className="space-y-4">
                     {props.options.map(
                         (radioButton: BasicRadioButtonOption, i: number) => {
+                            const checked: boolean =
+                                value === radioButton.value;
+
                             return (
                                 <div key={i}>
                                     <div className="flex items-center">
                                         <input
                                             type="radio"
-                                            defaultChecked={
-                                                value === radioButton.value
-                                            }
+                                            name={id}
+                                            defaultChecked={checked}
                                             onClick={() => {
                                                 handleChange(radioButton.value);
                                             }}
@@ -74,7 +73,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                                             </span>
                                         </label>
                                     </div>
-                                    {radioButton.children}
+                                    {checked && radioButton.children}
                                 </div>
                             );
                         }

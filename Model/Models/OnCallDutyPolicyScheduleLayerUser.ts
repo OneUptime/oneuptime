@@ -446,7 +446,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
         type: TableColumnType.Entity,
         modelType: User,
         title: 'User',
-        description: 'User who belongs to this team.',
+        description: 'User who belongs to this layer.',
     })
     @ManyToOne(
         (_type: string) => {

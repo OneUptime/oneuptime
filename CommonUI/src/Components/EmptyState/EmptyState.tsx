@@ -9,6 +9,7 @@ export interface ComponentProps {
     footer?: ReactElement | undefined;
     id: string;
     iconClassName?: string;
+    showSolidBackground?: boolean | undefined;
 }
 
 const EmptyState: FunctionComponent<ComponentProps> = (
@@ -16,7 +17,12 @@ const EmptyState: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div id={props.id} className="flex mt-52 mb-52">
+            <div
+                id={props.id}
+                className={`flex pt-52 pb-52 ${
+                    props.showSolidBackground ? 'bg-white rounded shadow' : ''
+                }`}
+            >
                 <div className="m-auto text-center">
                     {props.icon && (
                         <Icon

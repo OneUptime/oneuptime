@@ -27,7 +27,6 @@ import Label from 'Model/Models/Label';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
-import OneUptimeDate from 'Common/Types/Date';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -113,9 +112,6 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         },
                         stepId: 'event-info',
                         title: 'Event Starts At',
-                        description:
-                            'This is in your local timezone - ' +
-                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
@@ -126,9 +122,6 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Ends At',
                         stepId: 'event-info',
-                        description:
-                            'This is in your local timezone - ' +
-                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',

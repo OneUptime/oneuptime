@@ -3,10 +3,10 @@
     "version": "0.1.0",
     "private": false,
     "dependencies": {
-        "@headlessui/react": "^1.7.7",
+        "@headlessui/react": "^1.7.17",
         "@heroicons/react": "^2.0.13",
         "@stripe/react-stripe-js": "^1.15.0",
-        "@stripe/stripe-js": "^1.44.1",
+        "@stripe/stripe-js": "^1.54.2",
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
@@ -15,10 +15,10 @@
         "react-dnd": "^16.0.1",
         "react-dnd-html5-backend": "^16.0.1",
         "react-dom": "^18.1.0",
-        "react-icons": "^4.4.0",
+        "react-icons": "^4.11.0",
         "react-router": "^6.19.0",
         "react-router-dom": "^6.18.0",
-        "reactflow": "^11.5.3",
+        "reactflow": "^11.9.4",
         "stripe": "^11.0.0",
         
         "use-async-effect": "^2.2.6"

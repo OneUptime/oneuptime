@@ -45,10 +45,10 @@ import OneUptimeDate from 'Common/Types/Date';
 import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
 import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
 import CountBy from '../Types/AnalyticsDatabase/CountBy';
-import DeleteOneBy from '../Types/AnalyticsDatabase/DeleteOneBy';
-import UpdateOneBy from '../Types/AnalyticsDatabase/UpdateOneBy';
 import Realtime from '../Utils/Realtime';
 import { ModelEventType } from 'Common/Utils/Realtime';
+import { SQL, Statement } from '../Utils/AnalyticsDatabase/Statement';
+import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
@@ -94,7 +94,7 @@ export default class AnalyticsDatabaseService<
 
             countBy.query = checkReadPermissionType.query;
 
-            const countStatement: string = this.toCountStatement(countBy);
+            const countStatement: Statement = this.toCountStatement(countBy);
 
             const dbResult: ExecResult<Stream> = await this.execute(
                 countStatement
@@ -170,8 +170,10 @@ export default class AnalyticsDatabaseService<
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            const findStatement: { statement: string; columns: Array<string> } =
-                this.toFindStatement(onBeforeFind);
+            const findStatement: {
+                statement: Statement;
+                columns: Array<string>;
+            } = this.toFindStatement(onBeforeFind);
 
             const dbResult: ExecResult<Stream> = await this.execute(
                 findStatement.statement
@@ -192,8 +194,6 @@ export default class AnalyticsDatabaseService<
                     jsonItems,
                     this.modelType
                 );
-
-            items = this.sanitizeFindByItems(items, onBeforeFind);
 
             if (!findBy.props.ignoreHooks) {
                 items = await (
@@ -234,18 +234,6 @@ export default class AnalyticsDatabaseService<
         return jsonItems;
     }
 
-    private sanitizeFindByItems(
-        items: Array<TBaseModel>,
-        findBy: FindBy<TBaseModel>
-    ): Array<TBaseModel> {
-        // if there's no select then there's nothing to do.
-        if (!findBy.select) {
-            return items;
-        }
-
-        return items;
-    }
-
     protected async onBeforeDelete(
         deleteBy: DeleteBy<TBaseModel>
     ): Promise<OnDelete<TBaseModel>> {
@@ -267,29 +255,40 @@ export default class AnalyticsDatabaseService<
         return Promise.resolve({ findBy, carryForward: null });
     }
 
-    public toCountStatement(countBy: CountBy<TBaseModel>): string {
+    public toCountStatement(countBy: CountBy<TBaseModel>): Statement {
         if (!this.database) {
             this.useDefaultDatabase();
         }
 
-        let statement: string = `SELECT count() FROM ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ${
-            Object.keys(countBy.query).length > 0 ? 'WHERE' : ''
-        } ${this.statementGenerator.toWhereStatement(countBy.query)}
-        `;
+        const databaseName: string =
+            this.database.getDatasourceOptions().database!;
+        const whereStatement: Statement =
+            this.statementGenerator.toWhereStatement(countBy.query);
+
+        /* eslint-disable prettier/prettier */
+        const statement: Statement = SQL`
+            SELECT
+                count()
+            FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `.append(whereStatement);
+        /* eslint-enable prettier/prettier */
 
         if (countBy.limit) {
-            statement += `
-            LIMIT ${countBy.limit.toString()}
-            `;
+            statement.append(SQL`
+            LIMIT ${{
+                value: Number(countBy.limit),
+                type: TableColumnType.Number,
+            }}
+            `);
         }
 
         if (countBy.skip) {
-            statement += `
-            OFFSET ${countBy.skip.toString()}
-            `;
+            statement.append(SQL`
+            OFFSET ${{
+                value: Number(countBy.skip),
+                type: TableColumnType.Number,
+            }}
+            `);
         }
         logger.info(`${this.model.tableName} Count Statement`);
         logger.info(statement);
@@ -298,26 +297,39 @@ export default class AnalyticsDatabaseService<
     }
 
     public toFindStatement(findBy: FindBy<TBaseModel>): {
-        statement: string;
+        statement: Statement;
         columns: Array<string>;
     } {
         if (!this.database) {
             this.useDefaultDatabase();
         }
 
-        const select: { statement: string; columns: Array<string> } =
+        const databaseName: string =
+            this.database.getDatasourceOptions().database!;
+        const select: { statement: Statement; columns: Array<string> } =
             this.statementGenerator.toSelectStatement(findBy.select!);
 
-        const statement: string = `SELECT ${select.statement} FROM ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-        ${
-            Object.keys(findBy.query).length > 0 ? 'WHERE' : ''
-        } ${this.statementGenerator.toWhereStatement(findBy.query)}
-        ORDER BY ${this.statementGenerator.toSortStatemennt(findBy.sort!)}
-        LIMIT ${findBy.limit.toString()}
-        OFFSET ${findBy.skip.toString()}
-        `;
+        const whereStatement: Statement =
+            this.statementGenerator.toWhereStatement(findBy.query);
+        const sortStatement: Statement =
+            this.statementGenerator.toSortStatement(findBy.sort!);
+
+        /* eslint-disable prettier/prettier */
+        const statement: Statement = SQL`
+            SELECT `.append(select.statement).append(SQL`
+            FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `).append(whereStatement).append(SQL`
+            ORDER BY `).append(sortStatement).append(SQL`
+            LIMIT ${{
+                value: Number(findBy.limit),
+                type: TableColumnType.Number,
+            }}
+            OFFSET ${{
+                value: Number(findBy.skip),
+                type: TableColumnType.Number,
+            }}
+        `);
+        /* eslint-enable prettier/prettier */
 
         logger.info(`${this.model.tableName} Find Statement`);
         logger.info(statement);
@@ -325,30 +337,21 @@ export default class AnalyticsDatabaseService<
         return { statement, columns: select.columns };
     }
 
-    public toDeleteStatement(deleteBy: DeleteBy<TBaseModel>): string {
+    public toDeleteStatement(deleteBy: DeleteBy<TBaseModel>): Statement {
         if (!this.database) {
             this.useDefaultDatabase();
         }
 
-        let statement: string = `ALTER TABLE ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
-            DELETE ${
-                Object.keys(deleteBy.query).length > 0 ? 'WHERE' : 'WHERE 1=1'
-            } ${this.statementGenerator.toWhereStatement(deleteBy.query)}
-        `;
+        const databaseName: string =
+            this.database.getDatasourceOptions().database!;
+        const whereStatement: Statement =
+            this.statementGenerator.toWhereStatement(deleteBy.query);
 
-        if (deleteBy.limit) {
-            statement += `
-            LIMIT ${deleteBy.limit.toString()}
-            `;
-        }
-
-        if (deleteBy.skip) {
-            statement += `
-            OFFSET ${deleteBy.skip.toString()}
-            `;
-        }
+        /* eslint-disable prettier/prettier */
+        const statement: Statement = SQL`
+            ALTER TABLE ${databaseName}.${this.model.tableName}
+            DELETE WHERE TRUE `.append(whereStatement);
+        /* eslint-enable prettier/prettier */
 
         logger.info(`${this.model.tableName} Delete Statement`);
         logger.info(statement);
@@ -369,14 +372,6 @@ export default class AnalyticsDatabaseService<
             return documents[0];
         }
         return null;
-    }
-
-    public async deleteOneBy(deleteBy: DeleteOneBy<TBaseModel>): Promise<void> {
-        return await this._deleteBy({
-            ...deleteBy,
-            limit: 1,
-            skip: 0,
-        });
     }
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
@@ -426,15 +421,6 @@ export default class AnalyticsDatabaseService<
             },
             select: findOneById.select || {},
             props: findOneById.props,
-        });
-    }
-
-    public async updateOneBy(
-        updateOneBy: UpdateOneBy<TBaseModel>
-    ): Promise<void> {
-        return await this._updateBy({
-            ...updateOneBy,
-            limit: 1,
         });
     }
 
@@ -496,14 +482,20 @@ export default class AnalyticsDatabaseService<
         this.databaseClient = this.database.getDataSource() as ClickhouseClient;
     }
 
-    public async execute(query: string): Promise<ExecResult<Stream>> {
+    public async execute(
+        statement: Statement | string
+    ): Promise<ExecResult<Stream>> {
         if (!this.databaseClient) {
             this.useDefaultDatabase();
         }
 
-        return await this.databaseClient.exec({
-            query: query,
-        });
+        return await this.databaseClient.exec(
+            statement instanceof Statement
+                ? statement
+                : {
+                      query: statement, // TODO remove and only accept Statements
+                  }
+        );
     }
 
     protected async onUpdateSuccess(

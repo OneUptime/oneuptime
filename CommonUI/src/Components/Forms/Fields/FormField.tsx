@@ -20,6 +20,7 @@ import FormValues from '../Types/FormValues';
 import { JSONValue } from 'Common/Types/JSON';
 import IDGenerator from '../../ObjectID/IDGenerator';
 import ObjectID from 'Common/Types/ObjectID';
+import OneUptimeDate from 'Common/Types/Date';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -92,11 +93,26 @@ const FormField: <T extends Object>(
             codeType = CodeType.JavaScript;
         }
 
+        let fieldDescription: string | undefined = props.field.description;
+
+        if (
+            props.field.fieldType === FormFieldSchemaType.DateTime ||
+            props.field.fieldType === FormFieldSchemaType.Time
+        ) {
+            if (!fieldDescription) {
+                fieldDescription = '';
+            }
+
+            fieldDescription +=
+                ' This is in your local timezone - ' +
+                OneUptimeDate.getCurrentTimezoneString();
+        }
+
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
                 <FieldLabelElement
                     title={props.field.title || ''}
-                    description={props.field.description}
+                    description={fieldDescription}
                     sideLink={props.field.sideLink}
                     required={props.field.required}
                     isHeading={

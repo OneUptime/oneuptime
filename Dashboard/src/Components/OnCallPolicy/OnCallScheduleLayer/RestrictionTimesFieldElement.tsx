@@ -11,7 +11,8 @@ import Typeof from 'Common/Types/Typeof';
 import Dropdown from 'CommonUI/src/Components/Dropdown/Dropdown';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import DayOfWeek from 'Common/Types/Day/DayOfWeek';
-import Button from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     error?: string | undefined;
@@ -24,13 +25,17 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [restrictionTimes, setRestrictionTimes] = useState<
         RestrictionTimes | undefined
-    >(props.initialValue);
+    >(
+        props.initialValue
+            ? RestrictionTimes.fromJSON(props.initialValue)
+            : undefined
+    );
 
     const getDailyRestriction: Function = (): ReactElement => {
         // show start time to end time input fields
 
         return (
-            <div className="flex">
+            <div className="flex space-x-3">
                 <div>
                     <FieldLabelElement title="From:" />
                     <Input
@@ -114,7 +119,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     const getWeeklyTimeRestrictions: Function = (): ReactElement => {
         return (
             <div>
-                <div>
+                <div className="ml-8">
                     {/** LIST */}
 
                     {restrictionTimes?.weeklyRestrictionTimes?.map(
@@ -179,48 +184,18 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                                             },
                                         })}
                                     </div>
-                                    <div>
-                                        {/** show delete button */}
-                                        <Button
-                                            title="Delete"
-                                            onClick={() => {
-                                                let tempRestrictionTimes:
-                                                    | RestrictionTimes
-                                                    | undefined = restrictionTimes;
-
-                                                if (!tempRestrictionTimes) {
-                                                    tempRestrictionTimes =
-                                                        new RestrictionTimes();
-                                                }
-
-                                                if (
-                                                    !tempRestrictionTimes.weeklyRestrictionTimes
-                                                ) {
-                                                    tempRestrictionTimes.weeklyRestrictionTimes =
-                                                        [];
-                                                }
-
-                                                tempRestrictionTimes.weeklyRestrictionTimes.splice(
-                                                    i,
-                                                    1
-                                                );
-
-                                                updateRestrictionTimes(
-                                                    tempRestrictionTimes
-                                                );
-                                            }}
-                                        />
-                                    </div>
                                 </div>
                             );
                         }
                     )}
                 </div>
 
-                <div>
+                <div className="ml-5 mt-3">
                     {/** show add button */}
                     <Button
-                        title="Add"
+                        title="Add Restriction Time"
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        icon={IconProp.Add}
                         onClick={() => {
                             let tempRestrictionTimes:
                                 | RestrictionTimes
@@ -255,81 +230,97 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         // show start time to end time input fields
 
         return (
-            <div className="flex">
+            <div className="flex space-x-3 mt-2">
                 <div>
                     <FieldLabelElement title="From:" />
-                    <Dropdown
-                        options={DropdownUtil.getDropdownOptionsFromEnum(
-                            DayOfWeek
-                        )}
-                        initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
-                            DayOfWeek,
-                            params.weeklyRestriction.startDay
-                        )}
-                        onChange={(value: any) => {
-                            params.weeklyRestriction.startDay = value;
-                            params.onChange(params.weeklyRestriction);
-                        }}
-                    />
-                    <Input
-                        type={InputType.TIME}
-                        initialValue={params.weeklyRestriction?.startTime.toString()}
-                        onChange={(value: any) => {
-                            let date: Date = OneUptimeDate.getCurrentDate();
+                    <div className="space-x-3 flex">
+                        <div>
+                            <Dropdown
+                                options={DropdownUtil.getDropdownOptionsFromEnum(
+                                    DayOfWeek
+                                )}
+                                initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
+                                    DayOfWeek,
+                                    params.weeklyRestriction.startDay
+                                )}
+                                onChange={(value: any) => {
+                                    params.weeklyRestriction.startDay = value;
+                                    params.onChange(params.weeklyRestriction);
+                                }}
+                            />
+                        </div>
+                        <div>
+                            <Input
+                                type={InputType.TIME}
+                                initialValue={params.weeklyRestriction?.startTime.toString()}
+                                onChange={(value: any) => {
+                                    let date: Date =
+                                        OneUptimeDate.getCurrentDate();
 
-                            if (value instanceof Date) {
-                                date = value;
-                            }
+                                    if (value instanceof Date) {
+                                        date = value;
+                                    }
 
-                            if (typeof value === Typeof.String) {
-                                date = OneUptimeDate.fromString(value);
-                            }
+                                    if (typeof value === Typeof.String) {
+                                        date = OneUptimeDate.fromString(value);
+                                    }
 
-                            params.weeklyRestriction.startTime = date;
+                                    params.weeklyRestriction.startTime = date;
 
-                            params.onChange(params.weeklyRestriction);
-                        }}
-                    />
+                                    params.onChange(params.weeklyRestriction);
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
-                <div>
+                <div className="ml-5">
                     <FieldLabelElement title="To:" />
-                    <Dropdown
-                        options={DropdownUtil.getDropdownOptionsFromEnum(
-                            DayOfWeek
-                        )}
-                        initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
-                            DayOfWeek,
-                            params.weeklyRestriction.endDay
-                        )}
-                        onChange={(value: any) => {
-                            params.weeklyRestriction.endDay = value;
-                            params.onChange(params.weeklyRestriction);
-                        }}
-                    />
-                    <Input
-                        type={InputType.TIME}
-                        initialValue={params.weeklyRestriction?.endTime.toString()}
-                        onChange={(value: any) => {
-                            let date: Date = OneUptimeDate.getCurrentDate();
+                    <div className="space-x-3 flex">
+                        <div>
+                            <Dropdown
+                                options={DropdownUtil.getDropdownOptionsFromEnum(
+                                    DayOfWeek
+                                )}
+                                initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
+                                    DayOfWeek,
+                                    params.weeklyRestriction.endDay
+                                )}
+                                onChange={(value: any) => {
+                                    params.weeklyRestriction.endDay = value;
+                                    params.onChange(params.weeklyRestriction);
+                                }}
+                            />
+                        </div>
+                        <div>
+                            <Input
+                                type={InputType.TIME}
+                                initialValue={params.weeklyRestriction?.endTime.toString()}
+                                onChange={(value: any) => {
+                                    let date: Date =
+                                        OneUptimeDate.getCurrentDate();
 
-                            if (value instanceof Date) {
-                                date = value;
-                            }
+                                    if (value instanceof Date) {
+                                        date = value;
+                                    }
 
-                            if (typeof value === Typeof.String) {
-                                date = OneUptimeDate.fromString(value);
-                            }
+                                    if (typeof value === Typeof.String) {
+                                        date = OneUptimeDate.fromString(value);
+                                    }
 
-                            params.weeklyRestriction.endTime = date;
+                                    params.weeklyRestriction.endTime = date;
 
-                            params.onChange(params.weeklyRestriction);
-                        }}
-                    />
+                                    params.onChange(params.weeklyRestriction);
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
-                <div>
+                <div className="mt-8">
                     {/* Dellete Button */}
                     <Button
                         title="Delete"
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        icon={IconProp.Trash}
                         onClick={() => {
                             params.onDelete();
                         }}

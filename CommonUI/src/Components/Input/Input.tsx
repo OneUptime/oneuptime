@@ -194,6 +194,7 @@ const Input: FunctionComponent<ComponentProps> = (
                     </div>
                 )}
             </div>
+
             {props.error && (
                 <p
                     data-testid="error-message"
