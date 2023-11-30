@@ -8,6 +8,9 @@ import StartAndEndTime from '../Time/StartAndEndTime';
 import DayOfWeek from '../Day/DayOfWeek';
 
 export default class LayerUtil {
+
+    // TODO: Add support for hand off time. 
+
     public static getEvents(data: {
         users: Array<UserModel>;
         startDateTimeOfLayer: Date;
@@ -21,10 +24,10 @@ export default class LayerUtil {
 
         const events: Array<CalendarEvent> = [];
 
-
-
         let start: Date = data.calendarStartDate;
         let end: Date = data.calendarEndDate;
+
+        // TODO: Calculate user Index based on the hand off time.
 
 
         // start time of the layer is after the start time of the calendar, so we need to update the start time of the calendar
@@ -50,7 +53,6 @@ export default class LayerUtil {
         let hasReachedTheEndOfTheCalendar: boolean = false;
 
         const handOffTime: Date = data.handOffTime;
-
 
         // Looop vars 
         let currentEventStartTime: Date = start;
