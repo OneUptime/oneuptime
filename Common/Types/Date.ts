@@ -24,15 +24,17 @@ export default class OneUptimeDate {
         return moment();
     }
 
-    public static keepTimeButMoveDay(keepTimeFor: Date, moveDayTo: Date) {
+    public static keepTimeButMoveDay(keepTimeFor: Date, moveDayTo: Date): Date {
         keepTimeFor = this.fromString(keepTimeFor);
         moveDayTo = this.fromString(moveDayTo);
-        return moment(moveDayTo).set({
-            hour: keepTimeFor.getHours(),
-            minute: keepTimeFor.getMinutes(),
-            second: keepTimeFor.getSeconds(),
-            millisecond: keepTimeFor.getMilliseconds()
-        }).toDate();
+        return moment(moveDayTo)
+            .set({
+                hour: keepTimeFor.getHours(),
+                minute: keepTimeFor.getMinutes(),
+                second: keepTimeFor.getSeconds(),
+                millisecond: keepTimeFor.getMilliseconds(),
+            })
+            .toDate();
     }
 
     public static getOneMinAgo(): Date {
@@ -54,8 +56,6 @@ export default class OneUptimeDate {
         return Math.abs(Seconds_from_T1_to_T2);
     }
 
-
-
     public static getSomeMinutesAgo(minutes: PositiveNumber | number): Date {
         if (!(minutes instanceof PositiveNumber)) {
             minutes = new PositiveNumber(minutes);
@@ -74,8 +74,8 @@ export default class OneUptimeDate {
     public static toDateTimeLocalString(date: Date): string {
         date = this.fromString(date);
         const ten: Function = (i: number): string => {
-            return (i < 10 ? '0' : '') + i;
-        },
+                return (i < 10 ? '0' : '') + i;
+            },
             YYYY: number = date.getFullYear(),
             MM: number = ten(date.getMonth() + 1),
             DD: number = ten(date.getDate()),
@@ -455,20 +455,15 @@ export default class OneUptimeDate {
             return DayOfWeek.Monday;
         } else if (dayOfWeek === 2) {
             return DayOfWeek.Tuesday;
-        }
-        else if (dayOfWeek === 3) {
+        } else if (dayOfWeek === 3) {
             return DayOfWeek.Wednesday;
-        }
-        else if (dayOfWeek === 4) {
+        } else if (dayOfWeek === 4) {
             return DayOfWeek.Thursday;
-        }
-        else if (dayOfWeek === 5) {
+        } else if (dayOfWeek === 5) {
             return DayOfWeek.Friday;
-        }
-        else if (dayOfWeek === 6) {
+        } else if (dayOfWeek === 6) {
             return DayOfWeek.Saturday;
-        }
-        else if (dayOfWeek === 7) {
+        } else if (dayOfWeek === 7) {
             return DayOfWeek.Sunday;
         }
 
@@ -555,28 +550,28 @@ export default class OneUptimeDate {
 
         timezoneDates.push(
             moment(date).tz('UTC').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'GMT')
+                ' ' +
+                (onlyShowDate ? '' : 'GMT')
         );
         timezoneDates.push(
             moment(date).tz('America/New_York').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'EST')
+                ' ' +
+                (onlyShowDate ? '' : 'EST')
         );
         timezoneDates.push(
             moment(date).tz('America/Los_Angeles').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'PST')
+                ' ' +
+                (onlyShowDate ? '' : 'PST')
         );
         timezoneDates.push(
             moment(date).tz('Asia/Kolkata').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'IST')
+                ' ' +
+                (onlyShowDate ? '' : 'IST')
         );
         timezoneDates.push(
             moment(date).tz('Australia/Sydney').format(formatstring) +
-            ' ' +
-            (onlyShowDate ? '' : 'AEST')
+                ' ' +
+                (onlyShowDate ? '' : 'AEST')
         );
 
         return timezoneDates;

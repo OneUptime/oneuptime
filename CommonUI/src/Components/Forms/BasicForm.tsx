@@ -65,7 +65,7 @@ export interface BaseComponentProps<T extends Object> {
 
 export interface ComponentProps<T extends Object>
     extends BaseComponentProps<T> {
-    onSubmit: (values: FormValues<T>, onSubmitSuccessful: () => void) => void;
+    onSubmit: (values: FormValues<T>, onSubmitSuccessful?: () => void) => void;
     footer: ReactElement;
 }
 
