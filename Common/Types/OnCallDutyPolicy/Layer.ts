@@ -21,23 +21,12 @@ export default class LayerUtil {
     }): Array<CalendarEvent> {
         let events: Array<CalendarEvent> = [];
 
+        if(!LayerUtil.isDataValid(data)){
+            return [];
+        }
+
         let start: Date = data.calendarStartDate;
         const end: Date = data.calendarEndDate;
-
-        // if calendar end time is before the start time then return an empty array.
-        if (OneUptimeDate.isBefore(end, start)) {
-            return [];
-        }
-
-        // end time of the layer is before the end time of the calendar, so, we dont have any events and we can return empty array
-        if (OneUptimeDate.isAfter(data.startDateTimeOfLayer, end)) {
-            return [];
-        }
-
-        // if users are empty, we dont have any events and we can return empty array
-        if (data.users.length === 0) {
-            return [];
-        }
 
         // start time of the layer is after the start time of the calendar, so we need to update the start time of the calendar
         if (OneUptimeDate.isAfter(data.startDateTimeOfLayer, start)) {
@@ -64,77 +53,23 @@ export default class LayerUtil {
 
         // before we do this, we need to update the user index.
 
-        let intervalBetweenStartTimeAndHandoffTime: number = 0;
-
-        if (rotation.intervalType === EventInterval.Day) {
-            // calculate the number of days between the start time of the layer and the handoff time.
-            intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getDaysBetweenTwoDates(
-                    data.startDateTimeOfLayer,
-                    handOffTime
-                );
-        }
-
-        if (rotation.intervalType === EventInterval.Hour) {
-            // calculate the number of hours between the start time of the layer and the handoff time.
-            intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getHoursBetweenTwoDates(
-                    data.startDateTimeOfLayer,
-                    handOffTime
-                );
-        }
-
-        if (rotation.intervalType === EventInterval.Week) {
-            // calculate the number of weeks between the start time of the layer and the handoff time.
-            intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getWeeksBetweenTwoDates(
-                    data.startDateTimeOfLayer,
-                    handOffTime
-                );
-        }
-
-        if (rotation.intervalType === EventInterval.Month) {
-            // calculate the number of months between the start time of the layer and the handoff time.
-            intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getMonthsBetweenTwoDates(
-                    data.startDateTimeOfLayer,
-                    handOffTime
-                );
-        }
-
-        if (rotation.intervalType === EventInterval.Year) {
-            // calculate the number of years between the start time of the layer and the handoff time.
-            intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getYearsBetweenTwoDates(
-                    data.startDateTimeOfLayer,
-                    handOffTime
-                );
-        }
-
-        // now divide the interval between start time and handoff time by the interval count.
-
-        const numberOfIntervalsBetweenStartAndHandoffTime: number = Math.floor(
-            intervalBetweenStartTimeAndHandoffTime /
-            rotation.intervalCount.toNumber()
-        );
-
-        currentUserIndex = LayerUtil.incrementUserIndex(
-            currentUserIndex,
-            data.users.length,
-            numberOfIntervalsBetweenStartAndHandoffTime
-        );
-
-        handOffTime = OneUptimeDate.keepTimeButMoveDay(
+        currentUserIndex = LayerUtil.getCurrentUserIndexBasedOnHandoffTime({
+            rotation,
             handOffTime,
-            currentEventStartTime
-        );
+            currentUserIndex,
+            startDateTimeOfLayer: data.startDateTimeOfLayer,
+            users: data.users,
+        });
 
-        // if the handoff time is before the current start time, we need to add one day to the handoff time
+        // update handoff time to the same day as current start time
 
-        if (OneUptimeDate.isBefore(handOffTime, currentEventStartTime)) {
-            handOffTime = OneUptimeDate.addRemoveDays(handOffTime, 1);
-        }
+        handOffTime = LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
+            handOffTime,
+            currentEventStartTime,
+            rotation: data.rotation,
+        });
 
+    
         let currentEventEndTime: Date = OneUptimeDate.getCurrentDate(); // temporary set to current time to avoid typescript error
 
         while (!hasReachedTheEndOfTheCalendar) {
@@ -169,8 +104,6 @@ export default class LayerUtil {
                     hoursToAdd
                 );
             }
-
-            // take handofff time into account.
 
             // if current event end time is after the handoff time, then we need to get events and update the user index.
             if (OneUptimeDate.isAfter(currentEventEndTime, handOffTime)) {
@@ -246,6 +179,237 @@ export default class LayerUtil {
         }
 
         return events;
+    }
+
+
+    private static isDataValid(data: {
+        calendarStartDate: Date;
+        calendarEndDate: Date;
+        startDateTimeOfLayer: Date;
+        users: Array<UserModel>;
+    }): boolean{
+        // if calendar end time is before the start time then return an empty array.
+        if (OneUptimeDate.isBefore(data.calendarEndDate, data.calendarStartDate)) {
+            return false;
+        }
+
+        // end time of the layer is before the end time of the calendar, so, we dont have any events and we can return empty array
+        if (OneUptimeDate.isAfter(data.startDateTimeOfLayer, data.calendarEndDate)) {
+            return false;
+        }
+
+        // if users are empty, we dont have any events and we can return empty array
+        if (data.users.length === 0) {
+            return false;
+        }
+
+        return true; 
+    }
+
+
+    private static moveHandsOffTimeAfterCurrentEventStartTime(data: {
+        handOffTime: Date;
+        currentEventStartTime: Date;
+        rotation: Recurring;
+    }): Date {
+
+        let handOffTime: Date = data.handOffTime;
+
+        let intervalBetweenStartTimeAndHandoffTime: number = 0;
+        const rotationInterval = data.rotation.intervalCount.toNumber();
+
+        if(data.rotation.intervalType === EventInterval.Day){
+
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getDaysBetweenTwoDates(
+                    data.currentEventStartTime,
+                    handOffTime
+                );
+
+                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
+                }
+
+                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+
+                handOffTime = OneUptimeDate.addRemoveDays(
+                    handOffTime,
+                    intervalBetweenStartTimeAndHandoffTime
+                );
+
+                return handOffTime; 
+
+        }
+
+        if(data.rotation.intervalType === EventInterval.Hour){
+
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getHoursBetweenTwoDates(
+                    data.currentEventStartTime,
+                    handOffTime
+                );
+
+                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
+                }
+
+                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+
+                handOffTime = OneUptimeDate.addRemoveHours(
+                    handOffTime,
+                    intervalBetweenStartTimeAndHandoffTime
+                );
+
+                return handOffTime; 
+
+        }
+
+        if(data.rotation.intervalType === EventInterval.Week){
+
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getWeeksBetweenTwoDates(
+                    data.currentEventStartTime,
+                    handOffTime
+                );
+
+                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
+                }
+
+                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+
+                handOffTime = OneUptimeDate.addRemoveWeeks(
+                    handOffTime,
+                    intervalBetweenStartTimeAndHandoffTime
+                );
+
+                return handOffTime; 
+
+        }
+
+        if(data.rotation.intervalType === EventInterval.Month){
+
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getMonthsBetweenTwoDates(
+                    data.currentEventStartTime,
+                    handOffTime
+                );
+
+                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
+                }
+
+                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+
+                handOffTime = OneUptimeDate.addRemoveMonths(
+                    handOffTime,
+                    intervalBetweenStartTimeAndHandoffTime
+                );
+
+                return handOffTime; 
+
+        }
+
+
+        if(data.rotation.intervalType === EventInterval.Year){
+
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getYearsBetweenTwoDates(
+                    data.currentEventStartTime,
+                    handOffTime
+                );
+
+                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
+                }
+
+                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+
+                handOffTime = OneUptimeDate.addRemoveYears(
+                    handOffTime,
+                    intervalBetweenStartTimeAndHandoffTime
+                );
+
+                return handOffTime; 
+
+        }
+
+    
+        return handOffTime;
+    }
+
+
+    private static getCurrentUserIndexBasedOnHandoffTime(data: {
+        rotation: Recurring;
+        handOffTime: Date;
+        currentUserIndex: number;
+        startDateTimeOfLayer: Date;
+        users: Array<UserModel>;
+    }): number {
+        let intervalBetweenStartTimeAndHandoffTime: number = 0;
+        let rotation: Recurring = data.rotation;
+        let handOffTime: Date = data.handOffTime;
+        let currentUserIndex: number = data.currentUserIndex;
+
+        if (rotation.intervalType === EventInterval.Day) {
+            // calculate the number of days between the start time of the layer and the handoff time.
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getDaysBetweenTwoDates(
+                    data.startDateTimeOfLayer,
+                    handOffTime
+                );
+        }
+
+        if (rotation.intervalType === EventInterval.Hour) {
+            // calculate the number of hours between the start time of the layer and the handoff time.
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getHoursBetweenTwoDates(
+                    data.startDateTimeOfLayer,
+                    handOffTime
+                );
+        }
+
+        if (rotation.intervalType === EventInterval.Week) {
+            // calculate the number of weeks between the start time of the layer and the handoff time.
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getWeeksBetweenTwoDates(
+                    data.startDateTimeOfLayer,
+                    handOffTime
+                );
+        }
+
+        if (rotation.intervalType === EventInterval.Month) {
+            // calculate the number of months between the start time of the layer and the handoff time.
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getMonthsBetweenTwoDates(
+                    data.startDateTimeOfLayer,
+                    handOffTime
+                );
+        }
+
+        if (rotation.intervalType === EventInterval.Year) {
+            // calculate the number of years between the start time of the layer and the handoff time.
+            intervalBetweenStartTimeAndHandoffTime =
+                OneUptimeDate.getYearsBetweenTwoDates(
+                    data.startDateTimeOfLayer,
+                    handOffTime
+                );
+        }
+
+        // now divide the interval between start time and handoff time by the interval count.
+
+        const numberOfIntervalsBetweenStartAndHandoffTime: number = Math.floor(
+            intervalBetweenStartTimeAndHandoffTime /
+            rotation.intervalCount.toNumber()
+        );
+
+        currentUserIndex = LayerUtil.incrementUserIndex(
+            currentUserIndex,
+            data.users.length,
+            numberOfIntervalsBetweenStartAndHandoffTime
+        );
+
+        return currentUserIndex;
     }
 
 
