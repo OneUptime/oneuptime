@@ -39,9 +39,8 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 localizer={localizer}
                 showMultiDayTimes
                 defaultView={props.defaultCalendarView || 'week'}
-                onRangeChange={(range:  Date[] | { start: Date; end: Date; })=> {
-
-                    if(Array.isArray(range)) {
+                onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
+                    if (Array.isArray(range)) {
                         return;
                     }
 

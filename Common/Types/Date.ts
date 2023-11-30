@@ -32,7 +32,6 @@ export default class OneUptimeDate {
         return this.getDaysBetweenTwoDates(startDate, endDate) + 1;
     }
 
-
     public static getHoursBetweenTwoDates(
         startDate: Date,
         endDate: Date
@@ -128,8 +127,6 @@ export default class OneUptimeDate {
     ): number {
         return this.getYearsBetweenTwoDates(startDate, endDate) + 1;
     }
-    
-
 
     public static toString(date: Date): string {
         return date.toISOString();
