@@ -1,4 +1,4 @@
-import Color, { RGB } from 'Common/Types/Color';
+import Color from 'Common/Types/Color';
 import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 import { Black } from 'Common/Types/BrandColors';
 
