@@ -1,5 +1,5 @@
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { Calendar, momentLocalizer, DateLocalizer, View } from 'react-big-calendar';
+import { Calendar, momentLocalizer, DateLocalizer } from 'react-big-calendar';
 import React, { FunctionComponent, ReactElement, useMemo } from 'react';
 import moment from 'moment-timezone';
 import OneUptimeDate from 'Common/Types/Date';
