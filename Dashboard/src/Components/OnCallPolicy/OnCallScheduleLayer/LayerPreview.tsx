@@ -66,7 +66,9 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
                 return;
             }
 
-            event.color = (EventColorList[HashCode.fromString(userId) % colorListLength] as Color).toString();
+            const colorIndex: number = HashCode.fromString(userId) % colorListLength;
+
+            event.color = (EventColorList[colorIndex] as Color).toString();
 
             event.title = `${(user.name?.toString() || '')+' '+'('+(user.email?.toString() || '')+')'}`;
         });

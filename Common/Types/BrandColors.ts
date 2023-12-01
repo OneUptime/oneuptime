@@ -32,5 +32,5 @@ export const EventColorList: Color[] = [
     Color.fromString('#65a30d'),
     Color.fromString('#8e24aa'),
 
-    Color.fromString('#616161'),
+    Color.fromString('#616161')
 ];

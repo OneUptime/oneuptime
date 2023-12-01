@@ -394,7 +394,7 @@ export default class LayerUtil {
         if (rotation.intervalType === EventInterval.Day) {
             // calculate the number of days between the start time of the layer and the handoff time.
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getDaysBetweenTwoDates(
+                OneUptimeDate.getDaysBetweenTwoDatesInclusive(
                     data.startDateTimeOfLayer,
                     handOffTime
                 );
@@ -403,7 +403,7 @@ export default class LayerUtil {
         if (rotation.intervalType === EventInterval.Hour) {
             // calculate the number of hours between the start time of the layer and the handoff time.
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getHoursBetweenTwoDates(
+                OneUptimeDate.getHoursBetweenTwoDatesInclusive(
                     data.startDateTimeOfLayer,
                     handOffTime
                 );
@@ -412,7 +412,7 @@ export default class LayerUtil {
         if (rotation.intervalType === EventInterval.Week) {
             // calculate the number of weeks between the start time of the layer and the handoff time.
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getWeeksBetweenTwoDates(
+                OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
                     data.startDateTimeOfLayer,
                     handOffTime
                 );
@@ -421,7 +421,7 @@ export default class LayerUtil {
         if (rotation.intervalType === EventInterval.Month) {
             // calculate the number of months between the start time of the layer and the handoff time.
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getMonthsBetweenTwoDates(
+                OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
                     data.startDateTimeOfLayer,
                     handOffTime
                 );
@@ -430,7 +430,7 @@ export default class LayerUtil {
         if (rotation.intervalType === EventInterval.Year) {
             // calculate the number of years between the start time of the layer and the handoff time.
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getYearsBetweenTwoDates(
+                OneUptimeDate.getYearsBetweenTwoDatesInclusive(
                     data.startDateTimeOfLayer,
                     handOffTime
                 );
@@ -441,7 +441,11 @@ export default class LayerUtil {
         const numberOfIntervalsBetweenStartAndHandoffTime: number = Math.floor(
             intervalBetweenStartTimeAndHandoffTime /
             rotation.intervalCount.toNumber()
-        );
+        ) - 1;
+        
+        if(numberOfIntervalsBetweenStartAndHandoffTime < 0){
+            return currentUserIndex;
+        }
 
         currentUserIndex = LayerUtil.incrementUserIndex(
             currentUserIndex,
@@ -670,7 +674,7 @@ export default class LayerUtil {
     ): number {
         // update the current user index
 
-        if (!incrementBy) {
+        if (incrementBy === undefined) {
             incrementBy = 1;
         }
 
