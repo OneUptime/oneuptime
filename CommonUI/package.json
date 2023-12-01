@@ -37,7 +37,7 @@
         "lodash": "^4.17.21",
         "Model": "file:../Model",
         "moment-timezone": "^0.5.43",
-        "npm": "^8.18.0",
+        "npm": "^10.2.2",
         "prismjs": "^1.29.0",
         "prop-types": "^15.8.1",
         "react": "^18.2.0",
