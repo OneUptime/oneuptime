@@ -62,6 +62,7 @@ export default class LayerUtil {
             currentUserIndex,
             startDateTimeOfLayer: data.startDateTimeOfLayer,
             users: data.users,
+            currentEventStartTime,
         });
 
         // update handoff time to the same day as current start time
@@ -385,11 +386,19 @@ export default class LayerUtil {
         currentUserIndex: number;
         startDateTimeOfLayer: Date;
         users: Array<UserModel>;
+        currentEventStartTime: Date;
     }): number {
         let intervalBetweenStartTimeAndHandoffTime: number = 0;
         let rotation: Recurring = data.rotation;
         let handOffTime: Date = data.handOffTime;
         let currentUserIndex: number = data.currentUserIndex;
+
+        // if handoff time is ahead of the current event start time, then we dont need to move and we can return it as is.
+
+        if(OneUptimeDate.isAfter(handOffTime, data.currentEventStartTime)){
+            return currentUserIndex;
+        }
+
 
         if (rotation.intervalType === EventInterval.Day) {
             // calculate the number of days between the start time of the layer and the handoff time.
