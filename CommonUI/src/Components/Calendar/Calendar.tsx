@@ -1,5 +1,5 @@
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { Calendar, momentLocalizer, DateLocalizer } from 'react-big-calendar';
+import { Calendar, momentLocalizer, DateLocalizer, View } from 'react-big-calendar';
 import React, { FunctionComponent, ReactElement, useMemo } from 'react';
 import moment from 'moment-timezone';
 import OneUptimeDate from 'Common/Types/Date';
@@ -61,8 +61,20 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 defaultView={props.defaultCalendarView || 'day'}
                 eventPropGetter={eventStyleGetter}
                 onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
+
                     if (Array.isArray(range)) {
-                        return;
+
+                        if(range.length === 1){ // this is day.
+                            return props.onRangeChange({
+                                startTime: range[0] as Date,
+                                endTime: OneUptimeDate.getEndOfDay(range[range.length - 1] as Date),
+                            });
+                        }
+
+                        return props.onRangeChange({
+                            startTime: range[0] as Date,
+                            endTime: range[range.length - 1] as Date,
+                        });
                     }
 
                     props.onRangeChange({

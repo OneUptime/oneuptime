@@ -244,6 +244,12 @@ export default class LayerUtil {
         rotation: Recurring;
     }): Date {
 
+        // if handoff time is ahead of the current event start time, then we dont need to move and we can return it as is.
+
+        if(OneUptimeDate.isAfter(data.handOffTime, data.currentEventStartTime)){
+            return data.handOffTime;
+        }
+
         let handOffTime: Date = data.handOffTime;
 
         let intervalBetweenStartTimeAndHandoffTime: number = 0;
@@ -252,9 +258,9 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Day){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getDaysBetweenTwoDates(
-                    data.currentEventStartTime,
-                    handOffTime
+                OneUptimeDate.getDaysBetweenTwoDatesInclusive(
+                    handOffTime,
+                    data.currentEventStartTime
                 );
 
                 if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
@@ -275,9 +281,9 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Hour){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getHoursBetweenTwoDates(
-                    data.currentEventStartTime,
-                    handOffTime
+                OneUptimeDate.getHoursBetweenTwoDatesInclusive(
+                    handOffTime,
+                    data.currentEventStartTime
                 );
 
                 if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
@@ -298,11 +304,12 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Week){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getWeeksBetweenTwoDates(
-                    data.currentEventStartTime,
-                    handOffTime
+                OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
+                    handOffTime,
+                    data.currentEventStartTime
                 );
 
+    
                 if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
                        intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
                 }
@@ -321,9 +328,10 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Month){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getMonthsBetweenTwoDates(
-                    data.currentEventStartTime,
-                    handOffTime
+                OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
+                    handOffTime,
+                    data.currentEventStartTime
+                    
                 );
 
                 if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
@@ -345,9 +353,10 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Year){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getYearsBetweenTwoDates(
-                    data.currentEventStartTime,
-                    handOffTime
+                OneUptimeDate.getYearsBetweenTwoDatesInclusive(
+                    handOffTime,
+                    data.currentEventStartTime
+                    
                 );
 
                 if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){

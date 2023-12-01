@@ -18,24 +18,19 @@ export const Moroon: Color = Color.fromString('#b70400');
 export const Blue: Color = Color.fromString('#3686be');
 
 
-export const ColorList: Color[] = [
-    Color.fromString('#e11d48'),
-    Color.fromString('#f97316'),
-    Color.fromString('#475569'),
-    Color.fromString('#52525b'),
-    Color.fromString('#dc2626'),
-    Color.fromString('#ea580c'),
-    Color.fromString('#d97706'),
-    Color.fromString('#ca8a04'),
+export const EventColorList: Color[] = [
+    Color.fromString('#d50000'),
+    Color.fromString('#e67c73'),
+    Color.fromString('#f4511e'),
+    Color.fromString('#f6bf26'),
+    Color.fromString('#33b679'),
+    Color.fromString('#0b8043'),
+
+    Color.fromString('#039be5'),
+    Color.fromString('#3f51b5'),
+
     Color.fromString('#65a30d'),
-    Color.fromString('#16a34a'),
-    Color.fromString('#059669'),
-    Color.fromString('#0891b2'),
-    Color.fromString('#0d9488'),
-    Color.fromString('#0284c7'),
-    Color.fromString('#0284c7'),
-    Color.fromString('#4f46e5'),
-    Color.fromString('#7c3aed'),
-    Color.fromString('#9333ea'),
-    Color.fromString('#be185d')
+    Color.fromString('#8e24aa'),
+
+    Color.fromString('#616161'),
 ];
