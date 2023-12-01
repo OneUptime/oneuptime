@@ -19,7 +19,7 @@
     "@greenlock/manager": "^3.1.0",
     "@root/greenlock": "^4.0.5",
     "@types/markdown-it": "^12.2.3",
-    "@types/node-cron": "^3.0.10",
+    "@types/node-cron": "^3.0.11",
     "acme-http-01-standalone": "^3.0.5",
     "axios": "^1.6.2",
     "Common": "file:../Common",
