@@ -28,7 +28,7 @@
     "greenlock-store-fs": "^3.2.2",
     "markdown-it": "^13.0.2",
     "Model": "file:../Model",
-    "node-cron": "^3.0.2"
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@types/jest": "^27.5.0",
