@@ -18,7 +18,7 @@
   "dependencies": {
     "@types/jsrsasign": "^10.5.12",
     "@types/saml2-js": "^3.0.1",
-    "@types/xml-crypto": "^1.4.2",
+    "@types/xml-crypto": "^1.4.5",
     "@types/xml2js": "^0.4.11",
     "@types/xmldom": "^0.1.34",
     "Common": "file:../Common",
