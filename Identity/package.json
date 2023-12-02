@@ -24,7 +24,7 @@
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.8",
-    "jsrsasign": "^10.6.1",
+    "jsrsasign": "^10.8.6",
     "Model": "file:../Model",
     "saml2-js": "^4.0.2",
     "ts-node": "^10.9.1",
