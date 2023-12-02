@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/jsrsasign": "^10.5.5",
+    "@types/jsrsasign": "^10.5.12",
     "@types/saml2-js": "^3.0.1",
     "@types/xml-crypto": "^1.4.2",
     "@types/xml2js": "^0.4.11",
