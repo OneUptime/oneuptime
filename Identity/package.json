@@ -20,7 +20,7 @@
     "@types/saml2-js": "^3.0.1",
     "@types/xml-crypto": "^1.4.2",
     "@types/xml2js": "^0.4.11",
-    "@types/xmldom": "^0.1.31",
+    "@types/xmldom": "^0.1.34",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.8",
