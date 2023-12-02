@@ -76,67 +76,33 @@ export default class LayerUtil {
     
         let currentEventEndTime: Date = OneUptimeDate.getCurrentDate(); // temporary set to current time to avoid typescript error
 
+        // check if calendar end is before the handoff time. if it is, then we need to return the event with the current user index as no handoff is needed.
+
+        if (OneUptimeDate.isBefore(end, handOffTime)) {
+            const trimmedStartAndEndTimes: Array<StartAndEndTime> =
+                LayerUtil.trimStartAndEndTimesBasedOnRestrictionTimes({
+                    eventStartTime: currentEventStartTime,
+                    eventEndTime: end,
+                    restrictionTimes: data.restrictionTimes,
+                });
+
+            events = [
+                ...events,
+                ...LayerUtil.getCalendarEventsFromStartAndEndDates(
+                    trimmedStartAndEndTimes,
+                    data.users,
+                    currentUserIndex
+                ),
+            ];
+
+            return events;
+        }
+        
+        
         while (!hasReachedTheEndOfTheCalendar) {
-            if (rotation.intervalType === EventInterval.Day) {
-                const daysToAdd: number = rotation.intervalCount.toNumber();
-                currentEventEndTime = OneUptimeDate.addRemoveDays(
-                    currentEventStartTime,
-                    daysToAdd
-                );
-            } else if (rotation.intervalType === EventInterval.Week) {
-                const weeksToAdd: number = rotation.intervalCount.toNumber();
-                currentEventEndTime = OneUptimeDate.addRemoveWeeks(
-                    currentEventStartTime,
-                    weeksToAdd
-                );
-            } else if (rotation.intervalType === EventInterval.Month) {
-                const monthsToAdd: number = rotation.intervalCount.toNumber();
-                currentEventEndTime = OneUptimeDate.addRemoveMonths(
-                    currentEventStartTime,
-                    monthsToAdd
-                );
-            } else if (rotation.intervalType === EventInterval.Year) {
-                const yearsToAdd: number = rotation.intervalCount.toNumber();
-                currentEventEndTime = OneUptimeDate.addRemoveYears(
-                    currentEventStartTime,
-                    yearsToAdd
-                );
-            } else if (rotation.intervalType === EventInterval.Hour) {
-                const hoursToAdd: number = rotation.intervalCount.toNumber();
-                currentEventEndTime = OneUptimeDate.addRemoveHours(
-                    currentEventStartTime,
-                    hoursToAdd
-                );
-            }
 
-            // if current event end time is after the handoff time, then we need to get events and update the user index.
-            if (OneUptimeDate.isAfter(currentEventEndTime, handOffTime)) {
-                const trimmedStartAndEndTimes: Array<StartAndEndTime> =
-                    LayerUtil.trimStartAndEndTimesBasedOnRestrictionTimes({
-                        eventStartTime: currentEventStartTime,
-                        eventEndTime: handOffTime,
-                        restrictionTimes: data.restrictionTimes,
-                    });
 
-                // update start time to handoff time
-                currentEventStartTime = handOffTime;
-
-                // add events to the array
-                events = [
-                    ...events,
-                    ...LayerUtil.getCalendarEventsFromStartAndEndDates(
-                        trimmedStartAndEndTimes,
-                        data.users,
-                        currentUserIndex
-                    ),
-                ];
-
-                // update user index
-                currentUserIndex = LayerUtil.incrementUserIndex(
-                    currentUserIndex,
-                    data.users.length
-                );
-            }
+            currentEventEndTime = handOffTime; 
 
             // check calendar end time. if the end time of the event is after the end time of the calendar, we need to update the end time of the event
             if (OneUptimeDate.isAfter(currentEventEndTime, end)) {
@@ -164,7 +130,15 @@ export default class LayerUtil {
 
             // update the current event start time
 
-            currentEventStartTime = currentEventEndTime;
+            currentEventStartTime = OneUptimeDate.addRemoveSeconds(currentEventEndTime,1);
+
+            // update the handoff time
+
+            handOffTime = LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
+                handOffTime,
+                currentEventStartTime,
+                rotation: data.rotation,
+            });
 
             // update the current user index
             currentUserIndex = LayerUtil.incrementUserIndex(
@@ -454,7 +428,7 @@ export default class LayerUtil {
 
         // now divide the interval between start time and handoff time by the interval count.
 
-        let numberOfIntervalsBetweenStartAndHandoffTime: number = Math.floor(
+        let numberOfIntervalsBetweenStartAndHandoffTime: number = Math.ceil(
             intervalBetweenStartTimeAndHandoffTime /
             rotation.intervalCount.toNumber()
         );
