@@ -63,17 +63,9 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
 
                     if (Array.isArray(range)) {
-
-                        if(range.length === 1){ // this is day.
-                            return props.onRangeChange({
-                                startTime: range[0] as Date,
-                                endTime: OneUptimeDate.getEndOfDay(range[range.length - 1] as Date),
-                            });
-                        }
-
                         return props.onRangeChange({
                             startTime: range[0] as Date,
-                            endTime: range[range.length - 1] as Date,
+                            endTime: OneUptimeDate.getEndOfDay(range[range.length - 1] as Date),
                         });
                     }
 
