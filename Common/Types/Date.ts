@@ -143,9 +143,7 @@ export default class OneUptimeDate {
             return '';
         }
 
-        if(typeof date === 'string') {
-            date = this.fromString(date);
-        }
+        date = this.fromString(date);
 
         return date.toISOString();
     }
