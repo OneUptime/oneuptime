@@ -5,7 +5,7 @@
     "dependencies": {
         "@headlessui/react": "^1.7.17",
         "@heroicons/react": "^2.0.13",
-        "@stripe/react-stripe-js": "^1.15.0",
+        "@stripe/react-stripe-js": "^1.16.5",
         "@stripe/stripe-js": "^1.54.2",
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
