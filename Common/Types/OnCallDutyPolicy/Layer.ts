@@ -233,12 +233,15 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Day){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getDaysBetweenTwoDates(
+                OneUptimeDate.getDaysBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
 
-                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+
+                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
+                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
                        intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
                 }
 
@@ -256,12 +259,14 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Hour){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getHoursBetweenTwoDates(
+                OneUptimeDate.getHoursBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
 
-                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
+                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
                        intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
                 }
 
@@ -279,13 +284,15 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Week){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getWeeksBetweenTwoDates(
+                OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
 
     
-                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
+                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
                        intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
                 }
 
@@ -303,13 +310,15 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Month){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getMonthsBetweenTwoDates(
+                OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                     
                 );
 
-                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
+                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
                        intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
                 }
 
@@ -328,13 +337,15 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Year){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getYearsBetweenTwoDates(
+                OneUptimeDate.getYearsBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                     
                 );
 
-                if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
+                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
+                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
                        intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
                 }
 
