@@ -4,7 +4,7 @@
     "private": false,
     "dependencies": {
         "@headlessui/react": "^1.7.17",
-        "@heroicons/react": "^2.0.13",
+        "@heroicons/react": "^2.0.18",
         "@stripe/react-stripe-js": "^1.15.0",
         "@stripe/stripe-js": "^1.54.2",
         "Common": "file:../Common",
