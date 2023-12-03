@@ -10,16 +10,32 @@ import EventInterval from '../Events/EventInterval';
 import StartAndEndTime from '../Time/StartAndEndTime';
 import Typeof from '../Typeof';
 
+
+export interface LayerProps {
+    users: Array<UserModel>;
+    startDateTimeOfLayer: Date;
+    restrictionTimes: RestrictionTimes;
+    handOffTime: Date;
+    rotation: Recurring;
+}
+
+export interface EventProps extends LayerProps {
+    calendarStartDate: Date;
+    calendarEndDate: Date;
+}
+
+export interface MultiLayerProps {
+    layers: Array<LayerProps>;
+    calendarStartDate: Date;
+    calendarEndDate: Date;
+}
+
+export interface PriorityCalendarEvents extends CalendarEvent {
+    priority: number;
+}
+
 export default class LayerUtil {
-    public static getEvents(data: {
-        users: Array<UserModel>;
-        startDateTimeOfLayer: Date;
-        calendarStartDate: Date;
-        calendarEndDate: Date;
-        restrictionTimes: RestrictionTimes;
-        handOffTime: Date;
-        rotation: Recurring;
-    }): Array<CalendarEvent> {
+    public static getEvents(data: EventProps): Array<CalendarEvent> {
         let events: Array<CalendarEvent> = [];
 
         if(!LayerUtil.isDataValid(data)){
@@ -172,7 +188,7 @@ export default class LayerUtil {
         return events;
     }
     
-    private static sanitizeData(data: { users: Array<UserModel>; startDateTimeOfLayer: Date; calendarStartDate: Date; calendarEndDate: Date; restrictionTimes: RestrictionTimes; handOffTime: Date; rotation: Recurring; }): { users: Array<UserModel>; startDateTimeOfLayer: Date; calendarStartDate: Date; calendarEndDate: Date; restrictionTimes: RestrictionTimes; handOffTime: Date; rotation: Recurring; } {
+    private static sanitizeData(data: EventProps): EventProps {
         if(!(data.restrictionTimes instanceof RestrictionTimes)){
             data.restrictionTimes = RestrictionTimes.fromJSON(data.restrictionTimes);
         }
@@ -201,12 +217,7 @@ export default class LayerUtil {
     }
 
 
-    private static isDataValid(data: {
-        calendarStartDate: Date;
-        calendarEndDate: Date;
-        startDateTimeOfLayer: Date;
-        users: Array<UserModel>;
-    }): boolean{
+    private static isDataValid(data: EventProps): boolean{
         // if calendar end time is before the start time then return an empty array.
         if (OneUptimeDate.isBefore(data.calendarEndDate, data.calendarStartDate)) {
             return false;
@@ -732,5 +743,113 @@ export default class LayerUtil {
         }
 
         return events;
+    }
+
+
+    public static getMultiLayerEvents(data: MultiLayerProps): Array<CalendarEvent> {
+        let events: Array<PriorityCalendarEvents> = [];
+        let layerPriority: number = 1;
+
+        for (const layer of data.layers) {
+            const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents({
+                users: layer.users,
+                startDateTimeOfLayer: layer.startDateTimeOfLayer,
+                restrictionTimes: layer.restrictionTimes,
+                handOffTime: layer.handOffTime,
+                rotation: layer.rotation,
+                calendarStartDate: data.calendarStartDate,
+                calendarEndDate: data.calendarEndDate,
+                
+            });
+            
+            // add priority to each event
+
+            for(const layerEvent of layerEvents){
+                const priorityEvent: PriorityCalendarEvents = {
+                    ...layerEvent,
+                    priority: layerPriority
+                }
+
+                events.push(priorityEvent);
+            }
+        }
+
+        // now remove the overlapping events
+
+        const nonOverlappingEvents: Array<CalendarEvent> = LayerUtil.removeOverlappingEvents(events);
+
+
+        return nonOverlappingEvents;
+    }
+
+    public static removeOverlappingEvents(events: PriorityCalendarEvents[]): CalendarEvent[] {
+        // now remove overlapping events by priority and trim them by priority. Lower priority number will be kept and higher priority number will be trimmed.
+        // so if there are two events with the same start and end time, we will keep the one with the lower priority number and remove the one with the higher priority number.
+        // if there are overlapping events, we will trim the one with the higher priority number.
+
+        // sort the events by priority
+
+        // now remove the overlapping events
+
+        const finalEvents: PriorityCalendarEvents[] = [];
+
+        // sort events by start time
+
+        events.sort((a,b) => {
+            if(OneUptimeDate.isBefore(a.start, b.start)){
+                return -1;
+            }
+
+            if(OneUptimeDate.isAfter(a.start, b.start)){
+                return 1;
+            }
+
+            return 0;
+        });
+
+
+
+        for(const event of events){
+           
+            // trim the trimmed events by the current event based on priority
+
+            for(const finalEvent of finalEvents){
+                // check if this final event overlaps with the current event
+
+                if(OneUptimeDate.isOverlapping(finalEvent.start, finalEvent.end, event.start, event.end)){
+                    
+                    // if the current event has a higher priority than the final event, we need to trim the final event
+
+                    if(event.priority > finalEvent.priority){
+                        // trim the final event based on the current event
+                        // end time of the final event  will be the start time of the current event - 1 second
+                        finalEvent.end = OneUptimeDate.addRemoveSeconds(event.start, -1);
+
+                    }else{
+                        // trim the current event based on the final event
+                        // start time of the current event will be the end time of the final event + 1 second
+                        event.start = OneUptimeDate.addRemoveSeconds(finalEvent.end, 1);
+                    }
+
+                }
+            }
+
+            finalEvents.push(event);
+
+        }
+
+        // convert PriorityCalendarEvents to CalendarEvents
+
+        const calendarEvents: CalendarEvent[] = [];
+
+        for(const event of finalEvents){
+            const calendarEvent: CalendarEvent = {
+                ...event,
+            }
+
+            calendarEvents.push(calendarEvent);
+        }
+
+        return calendarEvents;
     }
 }
