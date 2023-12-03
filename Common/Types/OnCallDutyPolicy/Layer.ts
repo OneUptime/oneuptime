@@ -233,7 +233,7 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Day){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getDaysBetweenTwoDatesInclusive(
+                OneUptimeDate.getDaysBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -259,7 +259,7 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Hour){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getHoursBetweenTwoDatesInclusive(
+                OneUptimeDate.getHoursBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -284,7 +284,7 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Week){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
+                OneUptimeDate.getWeeksBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -310,7 +310,7 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Month){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
+                OneUptimeDate.getMonthsBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                     
@@ -337,7 +337,7 @@ export default class LayerUtil {
         if(data.rotation.intervalType === EventInterval.Year){
 
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getYearsBetweenTwoDatesInclusive(
+                OneUptimeDate.getYearsBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                     
