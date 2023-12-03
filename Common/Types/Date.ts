@@ -25,6 +25,12 @@ export default class OneUptimeDate {
         return moment(date).format('HH:mm');
     }
 
+    public static isSame(date1: Date, date2: Date): boolean {
+        date1 = this.fromString(date1);
+        date2 = this.fromString(date2);
+        return moment(date1).isSame(date2);
+    }
+
     public static getDaysBetweenTwoDates(
         startDate: Date,
         endDate: Date

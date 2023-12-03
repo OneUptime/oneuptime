@@ -104,6 +104,19 @@ export default class LayerUtil {
 
             currentEventEndTime = handOffTime; 
 
+            // if current event start time and end time is the same then increase current event start time by 1 second.
+
+            if(OneUptimeDate.isSame(currentEventStartTime, currentEventEndTime)){
+                currentEventStartTime = OneUptimeDate.addRemoveSeconds(currentEventEndTime,1);
+                handOffTime = LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
+                    handOffTime,
+                    currentEventStartTime,
+                    rotation: data.rotation,
+                });
+
+                continue; 
+            }
+
             // check calendar end time. if the end time of the event is after the end time of the calendar, we need to update the end time of the event
             if (OneUptimeDate.isAfter(currentEventEndTime, end)) {
                 currentEventEndTime = end;
