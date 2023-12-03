@@ -40,7 +40,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement title="From:" />
                     <Input
                         type={InputType.TIME}
-                        initialValue={restrictionTimes?.dayRestrictionTimes?.startTime.toString()}
+                        initialValue={OneUptimeDate.toString(restrictionTimes?.dayRestrictionTimes?.startTime)}
                         onChange={(value: any) => {
                             let date: Date = OneUptimeDate.getCurrentDate();
 
@@ -78,7 +78,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement title="To:" />
                     <Input
                         type={InputType.TIME}
-                        initialValue={restrictionTimes?.dayRestrictionTimes?.endTime.toString()}
+                        initialValue={OneUptimeDate.toString(restrictionTimes?.dayRestrictionTimes?.endTime)}
                         onChange={(value: any) => {
                             let date: Date = OneUptimeDate.getCurrentDate();
 
@@ -252,7 +252,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                         <div>
                             <Input
                                 type={InputType.TIME}
-                                initialValue={params.weeklyRestriction?.startTime.toString()}
+                                initialValue={OneUptimeDate.toString(params.weeklyRestriction?.startTime)}
                                 onChange={(value: any) => {
                                     let date: Date =
                                         OneUptimeDate.getCurrentDate();
@@ -294,7 +294,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                         <div>
                             <Input
                                 type={InputType.TIME}
-                                initialValue={params.weeklyRestriction?.endTime.toString()}
+                                initialValue={OneUptimeDate.toString(params.weeklyRestriction?.endTime)}
                                 onChange={(value: any) => {
                                     let date: Date =
                                         OneUptimeDate.getCurrentDate();

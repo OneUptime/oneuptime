@@ -16,6 +16,15 @@ export default class OneUptimeDate {
         return moment(date).fromNow();
     }
 
+    public static toTimeString(date: Date  |string): string {
+
+        if (typeof date === 'string') {
+            date = this.fromString(date);
+        }
+
+        return moment(date).format('HH:mm');
+    }
+
     public static getDaysBetweenTwoDates(
         startDate: Date,
         endDate: Date
@@ -128,7 +137,16 @@ export default class OneUptimeDate {
         return this.getYearsBetweenTwoDates(startDate, endDate) + 1;
     }
 
-    public static toString(date: Date): string {
+    public static toString(date: Date | undefined): string {
+
+        if (!date) {
+            return '';
+        }
+
+        if(typeof date === 'string') {
+            date = this.fromString(date);
+        }
+
         return date.toISOString();
     }
 

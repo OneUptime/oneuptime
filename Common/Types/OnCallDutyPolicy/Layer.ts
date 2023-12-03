@@ -637,7 +637,7 @@ export default class LayerUtil {
                     endTime: restrictionEndTime,
                 });
 
-                currentStartTime = restrictionEndTime;
+                currentStartTime = OneUptimeDate.addRemoveSeconds(restrictionEndTime, 1);
 
                 // add day to restriction start and end times.
 
