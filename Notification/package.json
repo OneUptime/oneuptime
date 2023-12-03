@@ -23,9 +23,9 @@
         "handlebars": "^4.7.7",
         "Model": "file:../Model",
         "nodemailer": "^6.9.7",
-        "nodemailer-express-handlebars": "^5.0.0",
+        "nodemailer-express-handlebars": "^6.1.0",
         "ts-node": "^10.9.1",
-        "twilio": "^4.19.0"
+        "twilio": "^4.19.3"
     },
     "devDependencies": {
         "nodemon": "^2.0.20"

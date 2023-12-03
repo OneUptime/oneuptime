@@ -14,6 +14,7 @@
     "transformIgnorePatterns": [
         "/node_modules/(?!Common).+\\.js$"
     ],
+    "setupFilesAfterEnv": ["<rootDir>/setupTest.js"],
     "testEnvironment": "jsdom",
     "collectCoverage": false,
     "coverageReporters": ["text", "lcov"],
@@ -30,6 +31,7 @@
     "moduleNameMapper": {
         "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js",
         "\\.(css|less)$": "identity-obj-proxy",
-        "uuid":"<rootDir>/node_modules/jest-runtime/build/index.js"
+        "uuid":"<rootDir>/node_modules/jest-runtime/build/index.js",
+        "react-markdown": "<rootDir>/node_modules/react-markdown/react-markdown.min.js"
     }
 }

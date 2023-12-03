@@ -42,8 +42,9 @@ const ModelListModal: <TBaseModel extends BaseModel>(
                 props.onSave(selectedList);
             }}
         >
-            <ModelList
+            <ModelList<TBaseModel>
                 {...props}
+                id="model-list-modal"
                 onSelectChange={(list: Array<TBaseModel>) => {
                     setSelectedList([...list]);
                 }}

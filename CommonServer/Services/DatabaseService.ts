@@ -60,6 +60,7 @@ import {
     OnFind,
     OnUpdate,
 } from '../Types/Database/Hooks';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private postgresDatabase!: PostgresDatabase;
@@ -551,7 +552,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     public async onTrigger(
         id: ObjectID,
         projectId: ObjectID,
-        triggerType: DatabaseTriggerType
+        triggerType: DatabaseTriggerType,
+        miscData?: JSONObject | undefined // miscData is used for passing data to workflow.
     ): Promise<void> {
         if (this.getModel().enableWorkflowOn) {
             API.post(
@@ -567,6 +569,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 {
                     data: {
                         _id: id.toString(),
+                        miscData: miscData,
                     },
                 },
                 {
@@ -1302,11 +1305,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                     true;
             }
 
+            const selectColumns: Select<TBaseModel> = {
+                _id: true,
+            };
+
+            if (this.getModel().getTenantColumn()) {
+                (selectColumns as any)[
+                    this.getModel().getTenantColumn()!.toString()
+                ] = true;
+            }
+
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeUpdateBy.query,
                 skip: updateBy.skip.toNumber(),
                 limit: updateBy.limit.toNumber(),
-                select: {},
+                select: selectColumns,
                 props: { ...beforeUpdateBy.props, ignoreHooks: true },
             });
 
@@ -1330,7 +1343,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                     }
 
                     if (tenantId) {
-                        await this.onTrigger(item.id!, tenantId, 'on-update');
+                        await this.onTrigger(item.id!, tenantId, 'on-update', {
+                            updatedFields: JSONFunctions.serialize(
+                                data as JSONObject
+                            ),
+                        });
                     }
                 }
             }

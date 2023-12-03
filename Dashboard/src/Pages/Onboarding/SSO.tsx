@@ -29,6 +29,7 @@ const SSO: FunctionComponent<PageComponentProps> = (
                             <div className="mt-6 -ml-6 -mr-6 border-t border-gray-200">
                                 <div className="ml-6 mr-6  pt-6">
                                     <ModelList<ProjectSSO>
+                                        id="sso-list"
                                         overrideFetchApiUrl={URL.fromString(
                                             DASHBOARD_API_URL.toString()
                                         )

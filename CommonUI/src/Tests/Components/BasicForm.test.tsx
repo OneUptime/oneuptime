@@ -64,6 +64,7 @@ describe('BasicForm test', () => {
 
     test('Should accept values and submit if valid', async () => {
         const handleSubmit: Function = jest.fn();
+        const onSubmitSuccessful: Function = jest.fn();
         render(
             <BasicForm
                 fields={fields}
@@ -72,25 +73,30 @@ describe('BasicForm test', () => {
                     email: '',
                     password: '',
                 }}
-                onSubmit={handleSubmit}
+                onSubmit={(values: FormValues<any>) => {
+                    handleSubmit(values, onSubmitSuccessful);
+                }}
                 submitButtonText="Login"
             />
         );
         const user: UserEvent = userEvent.setup();
-        await user.type(screen.getByTestId('email'), 'humed@gmail.com');
+        await user.type(screen.getByTestId('email'), 'test@sample.com');
         await user.type(screen.getByTestId('password'), '12345678');
 
         const loginButton: HTMLButtonElement = screen.getByTestId('Login');
         await user.click(loginButton);
 
         await waitFor(() => {
-            expect(handleSubmit).toHaveBeenCalledWith({
-                email: 'humed@gmail.com',
-                password: {
-                    _value: '12345678',
-                    isHashed: false,
+            expect(handleSubmit).toHaveBeenCalledWith(
+                {
+                    email: 'test@sample.com',
+                    password: {
+                        _value: '12345678',
+                        isHashed: false,
+                    },
                 },
-            });
+                onSubmitSuccessful
+            );
         });
     });
 

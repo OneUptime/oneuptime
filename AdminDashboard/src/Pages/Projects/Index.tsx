@@ -17,7 +17,7 @@ import User from 'Model/Models/User';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import Field from 'CommonUI/src/Components/Forms/Types/Field';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import AdminModelAPI from '../../Utils/ModelAPI';
 

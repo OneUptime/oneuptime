@@ -1,4 +1,4 @@
-import Select from 'react-select';
+import Select, { ControlProps, GroupBase, OptionProps } from 'react-select';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -125,6 +125,29 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 value={value}
                 onFocus={() => {
                     props.onFocus && props.onFocus();
+                }}
+                classNames={{
+                    control: (
+                        state: ControlProps<any, boolean, GroupBase<any>>
+                    ): string => {
+                        return state.isFocused
+                            ? '!border-indigo-500'
+                            : 'border-grey-300';
+                    },
+                    option: (
+                        state: OptionProps<any, boolean, GroupBase<any>>
+                    ): string => {
+                        if (state.isDisabled) {
+                            return 'bg-gray-100';
+                        }
+                        if (state.isSelected) {
+                            return '!bg-indigo-500';
+                        }
+                        if (state.isFocused) {
+                            return '!bg-indigo-100';
+                        }
+                        return '';
+                    },
                 }}
                 isClearable={true}
                 isSearchable={true}

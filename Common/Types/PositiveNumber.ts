@@ -1,4 +1,5 @@
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, JSONValue, ObjectType } from './JSON';
 import Typeof from './Typeof';
 
 export default class PositiveNumber {
@@ -42,5 +43,37 @@ export default class PositiveNumber {
 
     public toNumber(): number {
         return this.positiveNumber;
+    }
+
+    public toJSON(): JSONObject {
+        return {
+            _type: ObjectType.PositiveNumber,
+            value: (this as PositiveNumber).toString(),
+        };
+    }
+
+    public static fromJSON(json: JSONValue): PositiveNumber {
+        if (json instanceof PositiveNumber) {
+            return json;
+        }
+
+        if (typeof json === Typeof.Number) {
+            return new PositiveNumber(json as number);
+        }
+
+        if (typeof json === Typeof.String) {
+            return new PositiveNumber(json as string);
+        }
+
+        if (
+            !json ||
+            (json as JSONObject)['_type'] !== ObjectType.PositiveNumber
+        ) {
+            throw new BadDataException('Invalid PositiveNumber');
+        }
+
+        return new PositiveNumber(
+            (json as JSONObject)['value'] as number | string
+        );
     }
 }

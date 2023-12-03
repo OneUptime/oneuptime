@@ -13,10 +13,14 @@ import Input from '../Input/Input';
 import StaticModelList from '../ModelList/StaticModelList';
 import API from '../../Utils/API/API';
 import URL from 'Common/Types/API/URL';
-import { JSONArray } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+    id: string;
     query?: Query<TBaseModel>;
     modelType: { new (): TBaseModel };
     titleField: string;
@@ -26,9 +30,19 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     overrideFetchApiUrl?: URL | undefined;
     select: Select<TBaseModel>;
     fetchRequestOptions?: RequestOptions | undefined;
+    customElement?: ((item: TBaseModel) => ReactElement) | undefined;
     noItemsMessage: string;
     headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
-    onSelectChange: (list: Array<TBaseModel>) => void;
+    onSelectChange?: ((list: Array<TBaseModel>) => void) | undefined;
+    refreshToggle?: boolean | undefined;
+    footer?: ReactElement | undefined;
+    isDeleteable?: boolean | undefined;
+    enableDragAndDrop?: boolean | undefined;
+    dragDropIdField?: string | undefined;
+    dragDropIndexField?: string | undefined;
+    sortBy?: string | undefined;
+    sortOrder?: SortOrder | undefined;
+    onListLoaded?: ((list: Array<TBaseModel>) => void) | undefined;
 }
 
 const ModelList: <TBaseModel extends BaseModel>(
@@ -44,8 +58,12 @@ const ModelList: <TBaseModel extends BaseModel>(
     const [searchText, setSearchText] = useState<string>('');
 
     useEffect(() => {
-        props.onSelectChange(selectedList);
+        props.onSelectChange && props.onSelectChange(selectedList);
     }, [selectedList]);
+
+    useEffect(() => {
+        fetchItems().catch();
+    }, [props.refreshToggle]);
 
     useEffect(() => {
         fetchItems().catch();
@@ -62,6 +80,24 @@ const ModelList: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
+            const select: Select<TBaseModel> = {
+                ...props.select,
+            };
+
+            if (
+                props.dragDropIdField &&
+                !Object.keys(select).includes(props.dragDropIdField)
+            ) {
+                (select as JSONObject)[props.dragDropIdField] = true;
+            }
+
+            if (
+                props.dragDropIndexField &&
+                !Object.keys(select).includes(props.dragDropIndexField)
+            ) {
+                (select as JSONObject)[props.dragDropIndexField] = true;
+            }
+
             let listResult: ListResult<TBaseModel> = {
                 data: [],
                 count: 0,
@@ -93,13 +129,18 @@ const ModelList: <TBaseModel extends BaseModel>(
                     },
                     LIMIT_PER_PROJECT,
                     0,
-                    props.select,
-                    {},
+                    select,
+                    props.sortBy
+                        ? {
+                              [props.sortBy as any]: props.sortOrder,
+                          }
+                        : {},
 
                     props.fetchRequestOptions
                 );
             }
 
+            props.onListLoaded && props.onListLoaded(listResult.data);
             setModalList(listResult.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
@@ -136,6 +177,24 @@ const ModelList: <TBaseModel extends BaseModel>(
         }
     }, [modelList, searchText]);
 
+    const deleteItem: Function = async (item: TBaseModel) => {
+        if (!item.id) {
+            throw new BadDataException('item.id cannot be null');
+        }
+
+        setIsLoading(true);
+
+        try {
+            await ModelAPI.deleteItem<TBaseModel>(props.modelType, item.id);
+
+            await fetchItems();
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+    };
+
     return (
         <div>
             <div>
@@ -168,10 +227,39 @@ const ModelList: <TBaseModel extends BaseModel>(
 
                 {!error && !isLoading && (
                     <StaticModelList<TBaseModel>
+                        enableDragAndDrop={props.enableDragAndDrop}
+                        dragDropIdField={props.dragDropIdField}
+                        dragDropIndexField={props.dragDropIndexField}
                         list={searchedList}
                         headerField={props.headerField}
                         descriptionField={props.descriptionField}
+                        dragAndDropScope={`${props.id}-dnd`}
+                        customElement={props.customElement}
+                        onDragDrop={async (id: string, newOrder: number) => {
+                            if (!props.dragDropIndexField) {
+                                return;
+                            }
+
+                            setIsLoading(true);
+
+                            await ModelAPI.updateById(
+                                props.modelType,
+                                new ObjectID(id),
+                                {
+                                    [props.dragDropIndexField]: newOrder,
+                                }
+                            );
+
+                            fetchItems();
+                        }}
                         titleField={props.titleField}
+                        onDelete={
+                            props.isDeleteable
+                                ? async (item: TBaseModel) => {
+                                      deleteItem(item);
+                                  }
+                                : undefined
+                        }
                         selectedItems={selectedList}
                         onClick={(model: TBaseModel) => {
                             if (props.selectMultiple) {
@@ -207,6 +295,7 @@ const ModelList: <TBaseModel extends BaseModel>(
                         }}
                     />
                 )}
+                {props.footer}
             </div>
         </div>
     );

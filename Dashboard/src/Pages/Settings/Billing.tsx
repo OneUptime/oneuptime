@@ -8,7 +8,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
-import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Project from 'Model/Models/Project';
 import React, {

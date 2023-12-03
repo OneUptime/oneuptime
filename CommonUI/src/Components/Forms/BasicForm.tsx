@@ -60,11 +60,12 @@ export interface BaseComponentProps<T extends Object> {
     onFormStepChange?: undefined | ((stepId: string) => void);
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
+    showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
 }
 
 export interface ComponentProps<T extends Object>
     extends BaseComponentProps<T> {
-    onSubmit: (values: FormValues<T>) => void;
+    onSubmit: (values: FormValues<T>, onSubmitSuccessful?: () => void) => void;
     footer: ReactElement;
 }
 
@@ -74,6 +75,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         ref: Ref<any>
     ): ReactElement => {
         const isSubmitting: MutableRefObject<boolean> = useRef(false);
+
+        const [didSomethingChange, setDidSomethingChange] =
+            useState<boolean>(false);
 
         const [isLoading, setIsLoading] = useState<boolean | undefined>(
             props.isLoading
@@ -198,6 +202,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         };
 
         useEffect(() => {
+            setDidSomethingChange(true);
             validate(currentValue);
         }, [currentValue]);
 
@@ -384,7 +389,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 UiAnalytics.capture('FORM SUBMIT: ' + props.name);
 
-                props.onSubmit(values);
+                props.onSubmit(values, () => {
+                    setDidSomethingChange(false);
+                });
             } else if (formSteps && formSteps.length > 0) {
                 const steps: Array<FormStep<T>> = formSteps;
 
@@ -476,6 +483,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         if (formError) {
             return <ErrorMessage error={formError} />;
+        }
+
+        let showSubmitButton: boolean = !props.hideSubmitButton;
+
+        if (
+            props.showSubmitButtonOnlyIfSomethingChanged &&
+            didSomethingChange
+        ) {
+            showSubmitButton = true;
         }
 
         return (
@@ -615,7 +631,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 </div>
 
                                 <div className="flex w-full justify-end">
-                                    {!props.hideSubmitButton && (
+                                    {showSubmitButton && (
                                         <div
                                             className="mt-3"
                                             style={{

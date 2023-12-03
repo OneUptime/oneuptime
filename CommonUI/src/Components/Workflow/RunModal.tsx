@@ -78,6 +78,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
                                             ComponentInputType.Select ||
                                         args.type ===
                                             ComponentInputType.StringDictionary) &&
+                                    component.returnValues &&
                                     component.returnValues[args.id] &&
                                     typeof component.returnValues[args.id] ===
                                         'string'

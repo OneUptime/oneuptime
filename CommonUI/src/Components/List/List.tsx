@@ -78,7 +78,7 @@ const List: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div>
+        <div data-testid="list-container">
             <DragDropContext
                 onDragEnd={(result: DropResult) => {
                     result.destination?.index &&
@@ -102,6 +102,7 @@ const List: FunctionComponent<ComponentProps> = (
                         onNavigateToPage={props.onNavigateToPage}
                         isLoading={props.isLoading}
                         isError={Boolean(props.error)}
+                        dataTestId="list-pagination"
                     />
                 </div>
             )}
