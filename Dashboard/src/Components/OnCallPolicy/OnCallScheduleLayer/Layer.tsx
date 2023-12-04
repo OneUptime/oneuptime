@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
@@ -18,7 +23,9 @@ export interface ComponentProps {
     onDeleteLayer: () => void;
     onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
     isDeleteButtonLoading: boolean;
-    onLayerUsersUpdateOrLoaded: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+    onLayerUsersUpdateOrLoaded: (
+        layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>
+    ) => void;
 }
 
 const Layer: FunctionComponent<ComponentProps> = (
@@ -28,10 +35,9 @@ const Layer: FunctionComponent<ComponentProps> = (
         Array<OnCallDutyPolicyScheduleLayerUser>
     >([]);
 
-
     useEffect(() => {
         props.onLayerUsersUpdateOrLoaded(layerUsers);
-    }, [layerUsers]);    
+    }, [layerUsers]);
 
     const [layer, setLayer] = useState<OnCallDutyPolicyScheduleLayer>(
         props.layer

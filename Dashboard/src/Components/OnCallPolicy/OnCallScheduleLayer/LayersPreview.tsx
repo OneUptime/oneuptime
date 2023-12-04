@@ -46,26 +46,29 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         calendarStartTime: Date,
         calendarEndTime: Date
     ): Array<CalendarEvent> => {
-
         const layerProps: Array<LayerProps> = [];
 
         const users: Array<User> = [];
 
-        for(const key in props.allLayerUsers) {
-            const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> = props.allLayerUsers[key] || [];
+        for (const key in props.allLayerUsers) {
+            const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+                props.allLayerUsers[key] || [];
 
-            for(const layerUser of layerUsers) {
+            for (const layerUser of layerUsers) {
                 users.push(layerUser.user!);
             }
         }
 
         for (const layer of props.layers) {
-            const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> = props.allLayerUsers[layer.id?.toString() || ''] || [];
+            const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+                props.allLayerUsers[layer.id?.toString() || ''] || [];
 
             layerProps.push({
-                users: layerUsers.map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-                    return layerUser.user!;
-                }),
+                users: layerUsers.map(
+                    (layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+                        return layerUser.user!;
+                    }
+                ),
                 startDateTimeOfLayer: layer.startsAt!,
                 handOffTime: layer.handOffTime!,
                 rotation: layer.rotation!,
@@ -77,7 +80,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             calendarEndDate: calendarEndTime,
             calendarStartDate: calendarStartTime,
             layers: layerProps,
-        })
+        });
 
         // Assign colors to each user based on id. Hash the id and mod it by the length of the color list.
 
@@ -101,12 +104,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
                 (EventColorList[colorIndex] as Color)?.toString() ||
                 Blue.toString();
 
-            event.title = `${(user.name?.toString() || '') +
+            event.title = `${
+                (user.name?.toString() || '') +
                 ' ' +
                 '(' +
                 (user.email?.toString() || '') +
                 ')'
-                }`;
+            }`;
         });
 
         return events;

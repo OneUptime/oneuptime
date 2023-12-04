@@ -38,7 +38,9 @@ const Layers: FunctionComponent<ComponentProps> = (
         Array<OnCallDutyPolicyScheduleLayer>
     >([]);
 
-    const [layerUsers, setLayerUsers] = React.useState<Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>>({});
+    const [layerUsers, setLayerUsers] = React.useState<
+        Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>
+    >({});
 
     const [isAddbuttonLoading, setIsAddButtonLoading] =
         React.useState<boolean>(false);
@@ -79,8 +81,9 @@ const Layers: FunctionComponent<ComponentProps> = (
             );
 
             // count the description and generate a unique description for this layer.
-            const newLayerDescription: string = `Layer ${layers.length + 1
-                } description.`;
+            const newLayerDescription: string = `Layer ${
+                layers.length + 1
+            } description.`;
             onCallPolicyScheduleLayer.description = newLayerDescription;
             onCallPolicyScheduleLayer.order = layers.length + 1;
             onCallPolicyScheduleLayer.restrictionTimes =
@@ -234,10 +237,12 @@ const Layers: FunctionComponent<ComponentProps> = (
                                 onDeleteLayer={() => {
                                     deleteLayer(layer);
                                 }}
-                                onLayerUsersUpdateOrLoaded={(users: Array<OnCallDutyPolicyScheduleLayerUser>) => {
+                                onLayerUsersUpdateOrLoaded={(
+                                    users: Array<OnCallDutyPolicyScheduleLayerUser>
+                                ) => {
                                     setLayerUsers({
                                         ...layerUsers,
-                                        [layer.id?.toString() || '']: users
+                                        [layer.id?.toString() || '']: users,
                                     });
                                 }}
                                 onLayerChange={(
@@ -297,15 +302,18 @@ const Layers: FunctionComponent<ComponentProps> = (
             )}
 
             {layers.length > 0 && <HorizontalRule />}
-            
-            {layers.length > 0 && <Card
-                title={`Final Schedule Preview`}
-                description={
-                    'Here is the final preview of who is on call and when. This is based on your local timezone - ' + OneUptimeDate.getCurrentTimezoneString()
-                }
-            >
-                <LayersPreview layers={layers} allLayerUsers={layerUsers} />
-            </Card>}
+
+            {layers.length > 0 && (
+                <Card
+                    title={`Final Schedule Preview`}
+                    description={
+                        'Here is the final preview of who is on call and when. This is based on your local timezone - ' +
+                        OneUptimeDate.getCurrentTimezoneString()
+                    }
+                >
+                    <LayersPreview layers={layers} allLayerUsers={layerUsers} />
+                </Card>
+            )}
         </div>
     );
 };
