@@ -216,7 +216,8 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
         type: TableColumnType.Entity,
         modelType: OnCallDutyPolicySchedule,
         title: 'On Call Policy Schedule',
-        description: 'Relation to On Call Policy Schedule who is in this escalation rule.',
+        description:
+            'Relation to On Call Policy Schedule who is in this escalation rule.',
     })
     @ManyToOne(
         (_type: string) => {
@@ -250,7 +251,8 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
     @TableColumn({
         type: TableColumnType.ObjectID,
         title: 'On Call Duty Policy Schedule ID',
-        description: 'ID of the on call schedule which is in this escalation rule.',
+        description:
+            'ID of the on call schedule which is in this escalation rule.',
     })
     @Column({
         type: ColumnType.ObjectID,

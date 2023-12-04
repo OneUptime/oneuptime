@@ -405,7 +405,6 @@ enum Permission {
     CanDeleteProjectOnCallDutyPolicyEscalationRuleOnCallSchedule = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleOnCallSchedule',
     CanReadProjectOnCallDutyPolicyEscalationRuleOnCallSchedule = 'CanReadProjectOnCallDutyPolicyEscalationRuleOnCallSchedule',
 
-
     CanCreateProjectOnCallDutyPolicyEscalationRuleTeam = 'CanCreateProjectOnCallDutyPolicyEscalationRuleTeam',
     CanEditProjectOnCallDutyPolicyEscalationRuleTeam = 'CanEditProjectOnCallDutyPolicyEscalationRuleTeam',
     CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam',
@@ -1692,7 +1691,6 @@ export class PermissionHelper {
                 isAccessControlPermission: true,
             },
 
-
             {
                 permission:
                     Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleOnCallSchedule,
@@ -1729,7 +1727,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
-
 
             {
                 permission:

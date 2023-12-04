@@ -379,6 +379,11 @@ import OnCallDutyPolicyEscalationRuleTeamService, {
     Service as OnCallDutyPolicyEscalationRuleTeamServiceType,
 } from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleTeamService';
 
+import OnCallDutyPolicyEscalationRuleOnCallSchedule from 'Model/Models/OnCallDutyPolicyEscalationRuleOnCallSchedule';
+import OnCallDutyPolicyEscalationRuleOnCallScheduleService, {
+    Service as OnCallDutyPolicyEscalationRuleOnCallScheduleServiceType,
+} from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleOnCallScheduleService';
+
 import OnCallDutyPolicyEscalationRuleUser from 'Model/Models/OnCallDutyPolicyEscalationRuleUser';
 import OnCallDutyPolicyEscalationRuleUserService, {
     Service as OnCallDutyPolicyEscalationRuleUserServiceType,
@@ -1042,6 +1047,17 @@ app.use(
     >(
         OnCallDutyPolicyEscalationRuleTeam,
         OnCallDutyPolicyEscalationRuleTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        OnCallDutyPolicyEscalationRuleOnCallSchedule,
+        OnCallDutyPolicyEscalationRuleOnCallScheduleServiceType
+    >(
+        OnCallDutyPolicyEscalationRuleOnCallSchedule,
+        OnCallDutyPolicyEscalationRuleOnCallScheduleService
     ).getRouter()
 );
 
