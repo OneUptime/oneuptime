@@ -15,16 +15,6 @@ import OngoingScheduledEvents from './Pages/Home/OngoingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 
-import Incidents from './Pages/Incidents/Incidents';
-import IncidentView from './Pages/Incidents/View/Index';
-import IncidentViewDelete from './Pages/Incidents/View/Delete';
-import IncidentViewStateTimeline from './Pages/Incidents/View/StateTimeline';
-import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
-import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
-import UnresolvedIncidents from './Pages/Incidents/Unresolved';
-import IncidentViewCustomFields from './Pages/Incidents/View/CustomFields';
-import IncidentViewOwner from './Pages/Incidents/View/Owners';
-
 import ScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents';
 import ScheduledMaintenanceEventView from './Pages/ScheduledMaintenanceEvents/View/Index';
 import ScheduledMaintenanceEventViewDelete from './Pages/ScheduledMaintenanceEvents/View/Delete';
@@ -141,6 +131,7 @@ import TelemetryRoutes from './Routes/TelemetryRoutes';
 import MonitorsRoutes from './Routes/MonitorsRoutes';
 import WorkflowRoutes from './Routes/WorkflowRoutes';
 import StatusPagesRoutes from './Routes/StatusPagesRoutes';
+import IncidentsRoutes from './Routes/IncidentsRoutes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -404,153 +395,9 @@ const App: () => JSX.Element = () => {
                 />
 
                 {/* Incidents */}
-
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENTS]?.toString() || ''}
-                    element={
-                        <Incidents
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.UNRESOLVED_INCIDENTS]?.toString() || ''
-                    }
-                    element={
-                        <UnresolvedIncidents
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.INCIDENT_VIEW]?.toString() || ''}
-                    element={
-                        <IncidentView
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.INCIDENT_VIEW_DELETE]?.toString() || ''
-                    }
-                    element={
-                        <IncidentViewDelete
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.INCIDENT_VIEW_STATE_TIMELINE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <IncidentViewStateTimeline
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.INCIDENT_INTERNAL_NOTE]?.toString() ||
-                        ''
-                    }
-                    element={
-                        <IncidentInternalNote
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.INCIDENT_INTERNAL_NOTE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <IncidentViewCustomFields
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.INCIDENT_VIEW_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <OnCallDutyPolicyViewCustomFields
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.INCIDENT_PUBLIC_NOTE]?.toString() || ''
-                    }
-                    element={
-                        <IncidentPublicNote
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[PageMap.INCIDENT_VIEW_OWNERS]?.toString() || ''
-                    }
-                    element={
-                        <IncidentViewOwner
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route
-                            }
-                        />
-                    }
+                    path={RouteMap[PageMap.INCIDENTS_ROOT]?.toString() || ''}
+                    element={<IncidentsRoutes {...commonPageProps} />}
                 />
 
                 {/* Scheduled Events */}
@@ -1435,6 +1282,25 @@ const App: () => JSX.Element = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <OnCallDutyPolicyViewCustomFields
+                            {...commonPageProps}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />

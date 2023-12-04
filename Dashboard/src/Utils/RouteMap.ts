@@ -68,6 +68,17 @@ export const StatusPagesRoutePath: Dictionary<string> = {
     [PageMap.STATUS_PAGE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
+export const IncidentsRoutePath: Dictionary<string> = {
+    [PageMap.UNRESOLVED_INCIDENTS]: 'unresolved',
+    [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
+    [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+    [PageMap.INCIDENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+    [PageMap.INCIDENT_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
+    [PageMap.INCIDENT_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
+};
+
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -165,12 +176,18 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
+    [PageMap.INCIDENTS_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/*`
+    ),
+
     [PageMap.INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents`
     ),
 
     [PageMap.UNRESOLVED_INCIDENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/unresolved`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENTS]
+        }`
     ),
 
     [PageMap.USER_PROFILE_OVERVIEW]: new Route(
@@ -188,31 +205,45 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.PROJECT_INVITATIONS]: new Route(`/dashboard/project-invitations`),
 
     [PageMap.INCIDENT_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.INCIDENT_VIEW]
+        }`
     ),
 
     [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.INCIDENT_VIEW_STATE_TIMELINE]
+        }`
     ),
 
     [PageMap.INCIDENT_VIEW_OWNERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/owners`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.INCIDENT_VIEW_OWNERS]
+        }`
     ),
 
     [PageMap.INCIDENT_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.INCIDENT_VIEW_DELETE]
+        }`
     ),
 
     [PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/custom-fields`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]
+        }`
     ),
 
     [PageMap.INCIDENT_INTERNAL_NOTE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/internal-notes`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.INCIDENT_INTERNAL_NOTE]
+        }`
     ),
 
     [PageMap.INCIDENT_PUBLIC_NOTE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
+        `/dashboard/${RouteParams.ProjectID}/incidents/${
+            IncidentsRoutePath[PageMap.INCIDENT_PUBLIC_NOTE]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_EVENTS]: new Route(
