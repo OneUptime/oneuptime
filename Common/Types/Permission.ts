@@ -400,6 +400,12 @@ enum Permission {
     CanReadProjectOnCallDutyPolicyEscalationRuleUser = 'CanReadProjectOnCallDutyPolicyEscalationRuleUser',
 
     // Resource Permissions (Team Permission)
+    CanCreateProjectOnCallDutyPolicyEscalationRuleOnCallSchedule = 'CanCreateProjectOnCallDutyPolicyEscalationRuleOnCallSchedule',
+    CanEditProjectOnCallDutyPolicyEscalationRuleOnCallSchedule = 'CanEditProjectOnCallDutyPolicyEscalationRuleOnCallSchedule',
+    CanDeleteProjectOnCallDutyPolicyEscalationRuleOnCallSchedule = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleOnCallSchedule',
+    CanReadProjectOnCallDutyPolicyEscalationRuleOnCallSchedule = 'CanReadProjectOnCallDutyPolicyEscalationRuleOnCallSchedule',
+
+
     CanCreateProjectOnCallDutyPolicyEscalationRuleTeam = 'CanCreateProjectOnCallDutyPolicyEscalationRuleTeam',
     CanEditProjectOnCallDutyPolicyEscalationRuleTeam = 'CanEditProjectOnCallDutyPolicyEscalationRuleTeam',
     CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam',
@@ -1685,6 +1691,45 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
+
+
+            {
+                permission:
+                    Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleOnCallSchedule,
+                title: 'Can Create On-Call Duty Policy Escalation Rule Schedule',
+                description:
+                    'This permission can create teams in on-call duty escalation rule schedule this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission:
+                    Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleOnCallSchedule,
+                title: 'Can Delete On-Call Duty Policy Escalation Rule Schedule',
+                description:
+                    'This permission can delete teams in on-call duty escalation rule schedule of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission:
+                    Permission.CanEditProjectOnCallDutyPolicyEscalationRuleOnCallSchedule,
+                title: 'Can Edit On-Call Duty Policy Escalation Rule Schedule',
+                description:
+                    'This permission can edit teams in on-call duty escalation rule schedule of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission:
+                    Permission.CanReadProjectOnCallDutyPolicyEscalationRuleOnCallSchedule,
+                title: 'Can Read On-Call Duty Policy Escalation Rule Schedule',
+                description:
+                    'This permission can read teams in on-call duty escalation rule schedule of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+
 
             {
                 permission:
