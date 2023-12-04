@@ -21,6 +21,8 @@ import Recurring from 'Common/Types/Events/Recurring';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Dictionary from 'Common/Types/Dictionary';
 import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
+import LayersPreview from './LayersPreview';
+import Card from 'CommonUI/src/Components/Card/Card';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -77,9 +79,8 @@ const Layers: FunctionComponent<ComponentProps> = (
             );
 
             // count the description and generate a unique description for this layer.
-            const newLayerDescription: string = `Layer ${
-                layers.length + 1
-            } description.`;
+            const newLayerDescription: string = `Layer ${layers.length + 1
+                } description.`;
             onCallPolicyScheduleLayer.description = newLayerDescription;
             onCallPolicyScheduleLayer.order = layers.length + 1;
             onCallPolicyScheduleLayer.restrictionTimes =
@@ -295,9 +296,16 @@ const Layers: FunctionComponent<ComponentProps> = (
                 <></>
             )}
 
-            <HorizontalRule />
-
-
+            {layers.length > 0 && <HorizontalRule />}
+            
+            {layers.length > 0 && <Card
+                title={`Final Schedule Preview`}
+                description={
+                    'Here is the final preview of who is on call and when. This is based on your local timezone - ' + OneUptimeDate.getCurrentTimezoneString()
+                }
+            >
+                <LayersPreview layers={layers} allLayerUsers={layerUsers} />
+            </Card>}
         </div>
     );
 };
