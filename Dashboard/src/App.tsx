@@ -15,16 +15,6 @@ import OngoingScheduledEvents from './Pages/Home/OngoingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 
-import ScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents';
-import ScheduledMaintenanceEventView from './Pages/ScheduledMaintenanceEvents/View/Index';
-import ScheduledMaintenanceEventViewDelete from './Pages/ScheduledMaintenanceEvents/View/Delete';
-import ScheduledMaintenanceEventViewOwner from './Pages/ScheduledMaintenanceEvents/View/Owners';
-import ScheduledMaintenanceEventViewStateTimeline from './Pages/ScheduledMaintenanceEvents/View/StateTimeline';
-import ScheduledMaintenanceEventInternalNote from './Pages/ScheduledMaintenanceEvents/View/InternalNote';
-import ScheduledMaintenanceEventPublicNote from './Pages/ScheduledMaintenanceEvents/View/PublicNote';
-import OngoingScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/Ongoing';
-import ScheduledMaintenanceEventsViewCustomFields from './Pages/ScheduledMaintenanceEvents/View/CustomFields';
-
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
@@ -132,6 +122,7 @@ import MonitorsRoutes from './Routes/MonitorsRoutes';
 import WorkflowRoutes from './Routes/WorkflowRoutes';
 import StatusPagesRoutes from './Routes/StatusPagesRoutes';
 import IncidentsRoutes from './Routes/IncidentsRoutes';
+import ScheduledMaintenanceEventsRoutes from './Routes/ScheduleMaintenaceEventsRoutes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -405,163 +396,12 @@ const App: () => JSX.Element = () => {
                 <PageRoute
                     path={
                         RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                            PageMap.SCHEDULED_MAINTENANCE_EVENTS_ROOT
                         ]?.toString() || ''
                     }
                     element={
-                        <ScheduledMaintenanceEvents
+                        <ScheduledMaintenanceEventsRoutes
                             {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <OngoingScheduledMaintenanceEvents
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_VIEW
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <ScheduledMaintenanceEventView
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <ScheduledMaintenanceEventsViewCustomFields
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <ScheduledMaintenanceEventViewDelete
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <ScheduledMaintenanceEventViewOwner
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <ScheduledMaintenanceEventViewStateTimeline
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <ScheduledMaintenanceEventInternalNote
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <ScheduledMaintenanceEventPublicNote
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
-                                ] as Route
-                            }
                         />
                     }
                 />

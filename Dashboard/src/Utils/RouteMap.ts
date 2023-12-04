@@ -79,6 +79,16 @@ export const IncidentsRoutePath: Dictionary<string> = {
     [PageMap.INCIDENT_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
 };
 
+export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
+    [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+};
+
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -246,6 +256,10 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
+    [PageMap.SCHEDULED_MAINTENANCE_EVENTS_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/*`
+    ),
+
     [PageMap.SCHEDULED_MAINTENANCE_EVENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events`
     ),
@@ -255,31 +269,59 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.SCHEDULED_MAINTENANCE_VIEW
+            ]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/owners`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
+            ]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/state-timeline`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+            ]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+            ]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/internal-notes`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+            ]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/custom-fields`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+            ]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/public-notes`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+            ]
+        }`
     ),
 
     [PageMap.STATUS_PAGES_ROOT]: new Route(
