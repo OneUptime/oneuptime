@@ -16,6 +16,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { RunOptions, RunReturnType } from '../../ComponentCode';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Select from '../../../Database/Select';
+import logger from '../../../../Utils/Logger';
 
 export default class OnTriggerBaseModel<
     TBaseModel extends BaseModel
@@ -164,20 +165,70 @@ export default class OnTriggerBaseModel<
             skip: 0,
             select: {
                 _id: true,
+                triggerArguments: true,
             },
         });
 
         const promises: Array<Promise<void>> = [];
 
+        const requestData: JSONObject = req.body.data;
+
         for (const workflow of workflows) {
             /// Run Graph.
 
-            /// Find the object and send data.
+            if (
+                this.type === 'on-update' &&
+                workflow.triggerArguments?.['listen-on']
+            ) {
+                let listenOn: JSONObject = workflow.triggerArguments?.[
+                    'listen-on'
+                ] as JSONObject;
+                const miscData: JSONObject =
+                    (requestData?.['miscData'] as JSONObject) || {};
+
+                if (
+                    listenOn &&
+                    Object.keys(listenOn).length > 0 &&
+                    miscData &&
+                    Object.keys(miscData).length > 0
+                ) {
+                    try {
+                        if (typeof listenOn === 'string') {
+                            listenOn = JSON.parse(listenOn);
+                        }
+                    } catch (err) {
+                        logger.error(err);
+                        continue;
+                    }
+
+                    const updatedFields: JSONObject = miscData[
+                        'updatedFields'
+                    ] as JSONObject;
+
+                    if (
+                        updatedFields &&
+                        Object.keys(updatedFields).length > 0
+                    ) {
+                        let isUpdated: boolean = false;
+
+                        for (const key in listenOn) {
+                            if (updatedFields[key]) {
+                                isUpdated = true;
+                                break;
+                            }
+                        }
+
+                        if (!isUpdated) {
+                            continue;
+                        }
+                    }
+                }
+            }
 
             const executeWorkflow: ExecuteWorkflowType = {
                 workflowId: workflow.id!,
                 returnValues: {
-                    data: req.body.data,
+                    data: requestData,
                 },
             };
 
