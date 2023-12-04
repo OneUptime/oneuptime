@@ -84,6 +84,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     const { getRootProps, getInputProps } = useDropzone({
         accept: acceptTypes,
         multiple: props.isMultiFilePicker,
+        noClick: true,
         onDrop: async (acceptedFiles: Array<File>) => {
             setIsLoading(true);
             try {
