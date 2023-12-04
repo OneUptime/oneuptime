@@ -4,6 +4,9 @@ import React, { FunctionComponent, ReactElement, useMemo } from 'react';
 import moment from 'moment-timezone';
 import OneUptimeDate from 'Common/Types/Date';
 import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
+import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
+import Color from 'Common/Types/Color';
+import { Blue } from 'Common/Types/BrandColors';
 
 const localizer: DateLocalizer = momentLocalizer(moment);
 
@@ -11,6 +14,7 @@ export interface ComponentProps {
     id?: string | undefined;
     events: Array<CalendarEvent>;
     defaultCalendarView?: DefaultCalendarView;
+    onRangeChange: (startAndEndTime: StartAndEndTime) => void;
 }
 
 export enum DefaultCalendarView {
@@ -29,6 +33,24 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
+    const eventStyleGetter = (event: CalendarEvent) => {
+        var backgroundColor = event.color?.toString() || Blue.toString();
+        var style = {
+            backgroundColor: backgroundColor,
+            borderRadius: '0px',
+            opacity: 0.8,
+            color: event.textColor?.toString() || Color.shouldUseDarkText(new Color(backgroundColor))
+                ? '#000000'
+                : '#ffffff',
+            border: '0px',
+            display: 'block'
+        };
+        return {
+            style: style
+        };
+    };
+
+
     return (
         <div id={props.id} className="mt-5 h-[42rem]">
             <Calendar
@@ -36,7 +58,22 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 events={props.events}
                 localizer={localizer}
                 showMultiDayTimes
-                defaultView={props.defaultCalendarView || 'week'}
+                defaultView={props.defaultCalendarView || 'day'}
+                eventPropGetter={eventStyleGetter}
+                onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
+
+                    if (Array.isArray(range)) {
+                        return props.onRangeChange({
+                            startTime: range[0] as Date,
+                            endTime: OneUptimeDate.getEndOfDay(range[range.length - 1] as Date),
+                        });
+                    }
+
+                    props.onRangeChange({
+                        startTime: range.start,
+                        endTime: range.end,
+                    });
+                }}
             />
         </div>
     );

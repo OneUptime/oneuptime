@@ -14,9 +14,6 @@ entries:
     - name: clickhouse
       repository: https://charts.bitnami.com/bitnami
       version: 4.0.2
-    - name: minio
-      repository: https://charts.bitnami.com/bitnami
-      version: 12.8.9
     description: OneUptime Helm chart for Kubernetes
     digest: c327e9cac0bdca9bee838333d05f7db958a51174269a6226bf112837c5e0ac5e
     icon: https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/public/img/OneUptimePNG/1.png

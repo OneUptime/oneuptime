@@ -88,4 +88,18 @@ export default class Color extends DatabaseProperty {
                 this._componentToHex(rgb.blue)
         );
     }
+
+    public static fromString(color: string): Color {
+        return new Color(color);
+    }
+
+    public static shouldUseDarkText(color: Color): boolean {
+        const rgb: RGB = Color.colorToRgb(color);
+
+        if(rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186){
+            return true;
+        }else{
+            return false;
+        }
+    }
 }

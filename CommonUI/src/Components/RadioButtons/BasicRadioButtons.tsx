@@ -58,7 +58,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                                         <input
                                             type="radio"
                                             name={id}
-                                            defaultChecked={checked}
+                                            checked={checked}
                                             onClick={() => {
                                                 handleChange(radioButton.value);
                                             }}

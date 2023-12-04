@@ -43,7 +43,4 @@ dependencies:
 - name: clickhouse
   version: "4.0.2"
   repository: "https://charts.bitnami.com/bitnami"
-- name: minio
-  version: "12.8.9"
-  repository: "https://charts.bitnami.com/bitnami"
 
