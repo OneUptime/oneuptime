@@ -36,7 +36,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     icon={IconProp.Call}
                 />
             </SideMenuSection>
-            {/* <SideMenuSection title="Schedules">
+            <SideMenuSection title="Schedules">
                 <SideMenuItem
                     link={{
                         title: 'On-Call Schedules',
@@ -46,7 +46,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     }}
                     icon={IconProp.Calendar}
                 />
-            </SideMenuSection> */}
+            </SideMenuSection>
             <SideMenuSection title="More">
                 <SideMenuItem
                     link={{

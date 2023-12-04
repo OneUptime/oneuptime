@@ -18,6 +18,9 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import Recurring from 'Common/Types/Events/Recurring';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import Dictionary from 'Common/Types/Dictionary';
+import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -32,6 +35,8 @@ const Layers: FunctionComponent<ComponentProps> = (
     const [layers, setLayers] = React.useState<
         Array<OnCallDutyPolicyScheduleLayer>
     >([]);
+
+    const [layerUsers, setLayerUsers] = React.useState<Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>>({});
 
     const [isAddbuttonLoading, setIsAddButtonLoading] =
         React.useState<boolean>(false);
@@ -228,6 +233,12 @@ const Layers: FunctionComponent<ComponentProps> = (
                                 onDeleteLayer={() => {
                                     deleteLayer(layer);
                                 }}
+                                onLayerUsersUpdateOrLoaded={(users: Array<OnCallDutyPolicyScheduleLayerUser>) => {
+                                    setLayerUsers({
+                                        ...layerUsers,
+                                        [layer.id?.toString() || '']: users
+                                    });
+                                }}
                                 onLayerChange={(
                                     layer: OnCallDutyPolicyScheduleLayer
                                 ) => {
@@ -283,6 +294,10 @@ const Layers: FunctionComponent<ComponentProps> = (
             ) : (
                 <></>
             )}
+
+            <HorizontalRule />
+
+
         </div>
     );
 };
