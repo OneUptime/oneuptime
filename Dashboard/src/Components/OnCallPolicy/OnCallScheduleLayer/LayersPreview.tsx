@@ -21,6 +21,7 @@ import Dictionary from 'Common/Types/Dictionary';
 export interface ComponentProps {
     layers: Array<OnCallDutyPolicyScheduleLayer>;
     allLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
+    showFieldLabel?: boolean;
     id?: string | undefined;
 }
 
@@ -118,14 +119,14 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
     return (
         <div id={props.id}>
-            <FieldLabelElement
+            {props.showFieldLabel && <FieldLabelElement
                 required={true}
                 title="Layer Preview"
                 description={
                     'Here is a preview of who is on call and when. This is based on your local timezone - ' +
                     OneUptimeDate.getCurrentTimezoneString()
                 }
-            />
+            />}
             <Calendar
                 events={calendarEvents}
                 onRangeChange={(startEndTime: StartAndEndTime) => {

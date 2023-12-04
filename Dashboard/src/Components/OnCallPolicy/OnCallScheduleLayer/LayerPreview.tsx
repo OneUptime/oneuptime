@@ -15,6 +15,7 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
     return (
         <LayersPreview
             layers={[props.layer]}
+            showFieldLabel={true}
             allLayerUsers={{
                 [props.layer.id?.toString() || '']: props.layerUsers,
             }}
