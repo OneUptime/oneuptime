@@ -41,6 +41,33 @@ export const TelemetryRouthPath: Dictionary<string> = {
     [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `${RouteParams.ModelID}/dashboards`,
 };
 
+export const StatusPagesRoutePath: Dictionary<string> = {
+    [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.STATUS_PAGE_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
+    [PageMap.STATUS_PAGE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+    [PageMap.STATUS_PAGE_VIEW_GROUPS]: `${RouteParams.ModelID}/groups`,
+    [PageMap.STATUS_PAGE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+    [PageMap.STATUS_PAGE_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
+    [PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]: `${RouteParams.ModelID}/custom-smtp`,
+    [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: `${RouteParams.ModelID}/email-subscribers`,
+    [PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]: `${RouteParams.ModelID}/sms-subscribers`,
+    [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: `${RouteParams.ModelID}/webhook-subscribers`,
+    [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: `${RouteParams.ModelID}/header-style`,
+    [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: `${RouteParams.ModelID}/footer-style`,
+    [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
+    [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: `${RouteParams.ModelID}/navbar-style`,
+    [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: `${RouteParams.ModelID}/announcements`,
+    [PageMap.STATUS_PAGE_VIEW_EMBEDDED]: `${RouteParams.ModelID}/embedded`,
+    [PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]: `${RouteParams.ModelID}/subscriber-settings`,
+    [PageMap.STATUS_PAGE_VIEW_SSO]: `${RouteParams.ModelID}/sso`,
+    [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: `${RouteParams.ModelID}/custom-code`,
+    [PageMap.STATUS_PAGE_VIEW_RESOURCES]: `${RouteParams.ModelID}/resources`,
+    [PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]: `${RouteParams.ModelID}/advanced-options`,
+    [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
+    [PageMap.STATUS_PAGE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+};
+
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -224,104 +251,158 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/public-notes`
     ),
 
+    [PageMap.STATUS_PAGES_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/*`
+    ),
+
     [PageMap.STATUS_PAGES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages`
     ),
 
     [PageMap.STATUS_PAGE_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_BRANDING]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/branding`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_BRANDING]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_OWNERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/owners`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_OWNERS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_GROUPS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/groups`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_GROUPS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_DELETE]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-fields`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_DOMAINS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/domains`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_DOMAINS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-smtp`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/email-subscribers`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/sms-subscribers`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/webhook-subscribers`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/header-style`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/footer-style`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/private-users`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/navbar-style`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/announcements`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_EMBEDDED]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/embedded`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_EMBEDDED]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/subscriber-settings`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_SSO]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/sso`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SSO]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-code`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_RESOURCES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/resources`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_RESOURCES]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/advanced-options`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/authentication-settings`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[
+                PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+            ]
+        }`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/settings`
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SETTINGS]
+        }`
     ),
 
     [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
