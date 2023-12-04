@@ -1,5 +1,10 @@
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { Calendar, momentLocalizer, DateLocalizer } from 'react-big-calendar';
+import {
+    Calendar,
+    momentLocalizer,
+    DateLocalizer,
+    EventPropGetter,
+} from 'react-big-calendar';
 import React, { FunctionComponent, ReactElement, useMemo } from 'react';
 import moment from 'moment-timezone';
 import OneUptimeDate from 'Common/Types/Date';
@@ -7,7 +12,6 @@ import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
 import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
 import Color from 'Common/Types/Color';
 import { Blue } from 'Common/Types/BrandColors';
-import { JSONObject } from 'Common/Types/JSON';
 
 const localizer: DateLocalizer = momentLocalizer(moment);
 
@@ -34,10 +38,12 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
-    const eventStyleGetter: Function = (event: CalendarEvent): JSONObject => {
+    const eventStyleGetter: EventPropGetter<any> = (
+        event: CalendarEvent
+    ): { className?: string | undefined; style?: React.CSSProperties } => {
         const backgroundColor: string =
             event.color?.toString() || Blue.toString();
-        const style: JSONObject = {
+        const style: React.CSSProperties = {
             backgroundColor: backgroundColor,
             borderRadius: '0px',
             opacity: 0.8,
@@ -49,6 +55,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
             border: '0px',
             display: 'block',
         };
+
         return {
             style: style,
         };
