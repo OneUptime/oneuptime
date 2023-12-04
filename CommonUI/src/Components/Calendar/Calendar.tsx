@@ -7,6 +7,7 @@ import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
 import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
 import Color from 'Common/Types/Color';
 import { Blue } from 'Common/Types/BrandColors';
+import { JSONObject } from 'Common/Types/JSON';
 
 const localizer: DateLocalizer = momentLocalizer(moment);
 
@@ -33,23 +34,25 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
-    const eventStyleGetter = (event: CalendarEvent) => {
-        var backgroundColor = event.color?.toString() || Blue.toString();
-        var style = {
+    const eventStyleGetter: Function = (event: CalendarEvent): JSONObject => {
+        const backgroundColor: string =
+            event.color?.toString() || Blue.toString();
+        const style: JSONObject = {
             backgroundColor: backgroundColor,
             borderRadius: '0px',
             opacity: 0.8,
-            color: event.textColor?.toString() || Color.shouldUseDarkText(new Color(backgroundColor))
-                ? '#000000'
-                : '#ffffff',
+            color:
+                event.textColor?.toString() ||
+                Color.shouldUseDarkText(new Color(backgroundColor))
+                    ? '#000000'
+                    : '#ffffff',
             border: '0px',
-            display: 'block'
+            display: 'block',
         };
         return {
-            style: style
+            style: style,
         };
     };
-
 
     return (
         <div id={props.id} className="mt-5 h-[42rem]">
@@ -61,11 +64,12 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
                 defaultView={props.defaultCalendarView || 'day'}
                 eventPropGetter={eventStyleGetter}
                 onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
-
                     if (Array.isArray(range)) {
                         return props.onRangeChange({
                             startTime: range[0] as Date,
-                            endTime: OneUptimeDate.getEndOfDay(range[range.length - 1] as Date),
+                            endTime: OneUptimeDate.getEndOfDay(
+                                range[range.length - 1] as Date
+                            ),
                         });
                     }
 

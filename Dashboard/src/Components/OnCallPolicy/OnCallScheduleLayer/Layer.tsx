@@ -27,15 +27,21 @@ const Layer: FunctionComponent<ComponentProps> = (
         Array<OnCallDutyPolicyScheduleLayerUser>
     >([]);
 
-    const [layer, setLayer] = useState<OnCallDutyPolicyScheduleLayer>(props.layer);
+    const [layer, setLayer] = useState<OnCallDutyPolicyScheduleLayer>(
+        props.layer
+    );
 
-    const updateLayer = (updatedLayer: OnCallDutyPolicyScheduleLayer) => {
-
-        updatedLayer = BaseModel.fromJSON(BaseModel.toJSON(updatedLayer, OnCallDutyPolicyScheduleLayer), OnCallDutyPolicyScheduleLayer) as OnCallDutyPolicyScheduleLayer;
+    const updateLayer: Function = (
+        updatedLayer: OnCallDutyPolicyScheduleLayer
+    ): void => {
+        updatedLayer = BaseModel.fromJSON(
+            BaseModel.toJSON(updatedLayer, OnCallDutyPolicyScheduleLayer),
+            OnCallDutyPolicyScheduleLayer
+        ) as OnCallDutyPolicyScheduleLayer;
 
         setLayer(updatedLayer);
         props.onLayerChange(updatedLayer);
-    }
+    };
 
     return (
         <div className="mb-10 ">
@@ -60,10 +66,9 @@ const Layer: FunctionComponent<ComponentProps> = (
                         onLayerChange={(
                             updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-
                             layer.name = updatedLayer.name!;
                             layer.description = updatedLayer.description!;
-                            
+
                             updateLayer(layer);
                         }}
                     />
@@ -86,7 +91,6 @@ const Layer: FunctionComponent<ComponentProps> = (
                         onLayerChange={(
                             updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-
                             layer.startsAt = updatedLayer.startsAt!;
 
                             updateLayer(layer);
@@ -100,7 +104,6 @@ const Layer: FunctionComponent<ComponentProps> = (
                         onLayerChange={(
                             updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-
                             layer.rotation = updatedLayer.rotation!;
                             layer.handOffTime = updatedLayer.handOffTime!;
 
@@ -115,8 +118,8 @@ const Layer: FunctionComponent<ComponentProps> = (
                         onLayerChange={(
                             updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-
-                            layer.restrictionTimes = updatedLayer.restrictionTimes!;
+                            layer.restrictionTimes =
+                                updatedLayer.restrictionTimes!;
 
                             updateLayer(layer);
                         }}

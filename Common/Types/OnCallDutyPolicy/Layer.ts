@@ -10,7 +10,6 @@ import EventInterval from '../Events/EventInterval';
 import StartAndEndTime from '../Time/StartAndEndTime';
 import Typeof from '../Typeof';
 
-
 export interface LayerProps {
     users: Array<UserModel>;
     startDateTimeOfLayer: Date;
@@ -38,7 +37,7 @@ export default class LayerUtil {
     public static getEvents(data: EventProps): Array<CalendarEvent> {
         let events: Array<CalendarEvent> = [];
 
-        if(!LayerUtil.isDataValid(data)){
+        if (!LayerUtil.isDataValid(data)) {
             return [];
         }
 
@@ -89,7 +88,6 @@ export default class LayerUtil {
             rotation: data.rotation,
         });
 
-    
         let currentEventEndTime: Date = OneUptimeDate.getCurrentDate(); // temporary set to current time to avoid typescript error
 
         // check if calendar end is before the handoff time. if it is, then we need to return the event with the current user index as no handoff is needed.
@@ -113,24 +111,27 @@ export default class LayerUtil {
 
             return events;
         }
-        
-        
+
         while (!hasReachedTheEndOfTheCalendar) {
-
-
-            currentEventEndTime = handOffTime; 
+            currentEventEndTime = handOffTime;
 
             // if current event start time and end time is the same then increase current event start time by 1 second.
 
-            if(OneUptimeDate.isSame(currentEventStartTime, currentEventEndTime)){
-                currentEventStartTime = OneUptimeDate.addRemoveSeconds(currentEventEndTime,1);
-                handOffTime = LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
-                    handOffTime,
-                    currentEventStartTime,
-                    rotation: data.rotation,
-                });
+            if (
+                OneUptimeDate.isSame(currentEventStartTime, currentEventEndTime)
+            ) {
+                currentEventStartTime = OneUptimeDate.addRemoveSeconds(
+                    currentEventEndTime,
+                    1
+                );
+                handOffTime =
+                    LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
+                        handOffTime,
+                        currentEventStartTime,
+                        rotation: data.rotation,
+                    });
 
-                continue; 
+                continue;
             }
 
             // check calendar end time. if the end time of the event is after the end time of the calendar, we need to update the end time of the event
@@ -159,7 +160,10 @@ export default class LayerUtil {
 
             // update the current event start time
 
-            currentEventStartTime = OneUptimeDate.addRemoveSeconds(currentEventEndTime,1);
+            currentEventStartTime = OneUptimeDate.addRemoveSeconds(
+                currentEventEndTime,
+                1
+            );
 
             // update the handoff time
 
@@ -187,44 +191,58 @@ export default class LayerUtil {
 
         return events;
     }
-    
+
     private static sanitizeData(data: EventProps): EventProps {
-        if(!(data.restrictionTimes instanceof RestrictionTimes)){
-            data.restrictionTimes = RestrictionTimes.fromJSON(data.restrictionTimes);
+        if (!(data.restrictionTimes instanceof RestrictionTimes)) {
+            data.restrictionTimes = RestrictionTimes.fromJSON(
+                data.restrictionTimes
+            );
         }
 
-        if(!(data.rotation instanceof Recurring)){
+        if (!(data.rotation instanceof Recurring)) {
             data.rotation = Recurring.fromJSON(data.rotation);
         }
 
-        if(typeof data.startDateTimeOfLayer === Typeof.String){
-            data.startDateTimeOfLayer = OneUptimeDate.fromString(data.startDateTimeOfLayer);
+        if (typeof data.startDateTimeOfLayer === Typeof.String) {
+            data.startDateTimeOfLayer = OneUptimeDate.fromString(
+                data.startDateTimeOfLayer
+            );
         }
 
-        if(typeof data.calendarStartDate === Typeof.String){
-            data.calendarStartDate = OneUptimeDate.fromString(data.calendarStartDate);
+        if (typeof data.calendarStartDate === Typeof.String) {
+            data.calendarStartDate = OneUptimeDate.fromString(
+                data.calendarStartDate
+            );
         }
 
-        if(typeof data.calendarEndDate === Typeof.String){
-            data.calendarEndDate = OneUptimeDate.fromString(data.calendarEndDate);
+        if (typeof data.calendarEndDate === Typeof.String) {
+            data.calendarEndDate = OneUptimeDate.fromString(
+                data.calendarEndDate
+            );
         }
 
-        if(typeof data.handOffTime === Typeof.String){
+        if (typeof data.handOffTime === Typeof.String) {
             data.handOffTime = OneUptimeDate.fromString(data.handOffTime);
         }
 
         return data;
     }
 
-
-    private static isDataValid(data: EventProps): boolean{
+    private static isDataValid(data: EventProps): boolean {
         // if calendar end time is before the start time then return an empty array.
-        if (OneUptimeDate.isBefore(data.calendarEndDate, data.calendarStartDate)) {
+        if (
+            OneUptimeDate.isBefore(data.calendarEndDate, data.calendarStartDate)
+        ) {
             return false;
         }
 
         // end time of the layer is before the end time of the calendar, so, we dont have any events and we can return empty array
-        if (OneUptimeDate.isAfter(data.startDateTimeOfLayer, data.calendarEndDate)) {
+        if (
+            OneUptimeDate.isAfter(
+                data.startDateTimeOfLayer,
+                data.calendarEndDate
+            )
+        ) {
             return false;
         }
 
@@ -233,161 +251,159 @@ export default class LayerUtil {
             return false;
         }
 
-        return true; 
+        return true;
     }
-
 
     private static moveHandsOffTimeAfterCurrentEventStartTime(data: {
         handOffTime: Date;
         currentEventStartTime: Date;
         rotation: Recurring;
     }): Date {
-
         // if handoff time is ahead of the current event start time, then we dont need to move and we can return it as is.
 
-        if(OneUptimeDate.isAfter(data.handOffTime, data.currentEventStartTime)){
+        if (
+            OneUptimeDate.isAfter(data.handOffTime, data.currentEventStartTime)
+        ) {
             return data.handOffTime;
         }
 
         let handOffTime: Date = data.handOffTime;
 
         let intervalBetweenStartTimeAndHandoffTime: number = 0;
-        const rotationInterval = data.rotation.intervalCount.toNumber();
+        const rotationInterval: number = data.rotation.intervalCount.toNumber();
 
-        if(data.rotation.intervalType === EventInterval.Day){
-
+        if (data.rotation.intervalType === EventInterval.Day) {
             intervalBetweenStartTimeAndHandoffTime =
                 OneUptimeDate.getDaysBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                 );
 
+            if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
+                intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+            } else if (
+                intervalBetweenStartTimeAndHandoffTime % rotationInterval !==
+                0
+            ) {
+                intervalBetweenStartTimeAndHandoffTime += rotationInterval;
+            }
 
-                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
-                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
-                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
-                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
-                }
+            // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
-                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+            handOffTime = OneUptimeDate.addRemoveDays(
+                handOffTime,
+                intervalBetweenStartTimeAndHandoffTime
+            );
 
-                handOffTime = OneUptimeDate.addRemoveDays(
-                    handOffTime,
-                    intervalBetweenStartTimeAndHandoffTime
-                );
-
-                return handOffTime; 
-
+            return handOffTime;
         }
 
-        if(data.rotation.intervalType === EventInterval.Hour){
-
+        if (data.rotation.intervalType === EventInterval.Hour) {
             intervalBetweenStartTimeAndHandoffTime =
                 OneUptimeDate.getHoursBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                 );
 
-                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
-                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
-                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
-                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
-                }
+            if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
+                intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+            } else if (
+                intervalBetweenStartTimeAndHandoffTime % rotationInterval !==
+                0
+            ) {
+                intervalBetweenStartTimeAndHandoffTime += rotationInterval;
+            }
 
-                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+            // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
-                handOffTime = OneUptimeDate.addRemoveHours(
-                    handOffTime,
-                    intervalBetweenStartTimeAndHandoffTime
-                );
+            handOffTime = OneUptimeDate.addRemoveHours(
+                handOffTime,
+                intervalBetweenStartTimeAndHandoffTime
+            );
 
-                return handOffTime; 
-
+            return handOffTime;
         }
 
-        if(data.rotation.intervalType === EventInterval.Week){
-
+        if (data.rotation.intervalType === EventInterval.Week) {
             intervalBetweenStartTimeAndHandoffTime =
                 OneUptimeDate.getWeeksBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
                 );
 
-    
-                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
-                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
-                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
-                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
-                }
+            if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
+                intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+            } else if (
+                intervalBetweenStartTimeAndHandoffTime % rotationInterval !==
+                0
+            ) {
+                intervalBetweenStartTimeAndHandoffTime += rotationInterval;
+            }
 
-                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+            // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
-                handOffTime = OneUptimeDate.addRemoveWeeks(
-                    handOffTime,
-                    intervalBetweenStartTimeAndHandoffTime
-                );
+            handOffTime = OneUptimeDate.addRemoveWeeks(
+                handOffTime,
+                intervalBetweenStartTimeAndHandoffTime
+            );
 
-                return handOffTime; 
-
+            return handOffTime;
         }
 
-        if(data.rotation.intervalType === EventInterval.Month){
-
+        if (data.rotation.intervalType === EventInterval.Month) {
             intervalBetweenStartTimeAndHandoffTime =
                 OneUptimeDate.getMonthsBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
-                    
                 );
 
-                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
-                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
-                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
-                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
-                }
+            if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
+                intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+            } else if (
+                intervalBetweenStartTimeAndHandoffTime % rotationInterval !==
+                0
+            ) {
+                intervalBetweenStartTimeAndHandoffTime += rotationInterval;
+            }
 
-                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+            // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
-                handOffTime = OneUptimeDate.addRemoveMonths(
-                    handOffTime,
-                    intervalBetweenStartTimeAndHandoffTime
-                );
+            handOffTime = OneUptimeDate.addRemoveMonths(
+                handOffTime,
+                intervalBetweenStartTimeAndHandoffTime
+            );
 
-                return handOffTime; 
-
+            return handOffTime;
         }
 
-
-        if(data.rotation.intervalType === EventInterval.Year){
-
+        if (data.rotation.intervalType === EventInterval.Year) {
             intervalBetweenStartTimeAndHandoffTime =
                 OneUptimeDate.getYearsBetweenTwoDates(
                     handOffTime,
                     data.currentEventStartTime
-                    
                 );
 
-                if(intervalBetweenStartTimeAndHandoffTime < rotationInterval){
-                    intervalBetweenStartTimeAndHandoffTime = rotationInterval;
-                }else if(intervalBetweenStartTimeAndHandoffTime % rotationInterval !== 0){
-                       intervalBetweenStartTimeAndHandoffTime += rotationInterval;  
-                }
+            if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
+                intervalBetweenStartTimeAndHandoffTime = rotationInterval;
+            } else if (
+                intervalBetweenStartTimeAndHandoffTime % rotationInterval !==
+                0
+            ) {
+                intervalBetweenStartTimeAndHandoffTime += rotationInterval;
+            }
 
-                // add intervalBetweenStartTimeAndHandoffTime to handoff time
+            // add intervalBetweenStartTimeAndHandoffTime to handoff time
 
-                handOffTime = OneUptimeDate.addRemoveYears(
-                    handOffTime,
-                    intervalBetweenStartTimeAndHandoffTime
-                );
+            handOffTime = OneUptimeDate.addRemoveYears(
+                handOffTime,
+                intervalBetweenStartTimeAndHandoffTime
+            );
 
-                return handOffTime; 
-
+            return handOffTime;
         }
 
-    
         return handOffTime;
     }
-
 
     private static getCurrentUserIndexBasedOnHandoffTime(data: {
         rotation: Recurring;
@@ -398,13 +414,18 @@ export default class LayerUtil {
         currentEventStartTime: Date;
     }): number {
         let intervalBetweenStartTimeAndHandoffTime: number = 0;
-        let rotation: Recurring = data.rotation;
-        let handOffTime: Date = data.handOffTime;
+        const rotation: Recurring = data.rotation;
+        const handOffTime: Date = data.handOffTime;
         let currentUserIndex: number = data.currentUserIndex;
 
         // if current event start time if before the start time of the layer then return current Index
 
-        if (OneUptimeDate.isBefore(data.currentEventStartTime, data.startDateTimeOfLayer)) {
+        if (
+            OneUptimeDate.isBefore(
+                data.currentEventStartTime,
+                data.startDateTimeOfLayer
+            )
+        ) {
             return currentUserIndex;
         }
 
@@ -414,14 +435,12 @@ export default class LayerUtil {
             return currentUserIndex;
         }
 
-
         if (rotation.intervalType === EventInterval.Day) {
             // calculate the number of days between the start time of the layer and the handoff time.
             intervalBetweenStartTimeAndHandoffTime =
                 OneUptimeDate.getDaysBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
-                    
                 );
         }
 
@@ -438,7 +457,7 @@ export default class LayerUtil {
             // calculate the number of weeks between the start time of the layer and the handoff time.
             intervalBetweenStartTimeAndHandoffTime =
                 OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
-                    handOffTime, 
+                    handOffTime,
                     data.currentEventStartTime
                 );
         }
@@ -465,11 +484,12 @@ export default class LayerUtil {
 
         let numberOfIntervalsBetweenStartAndHandoffTime: number = Math.ceil(
             intervalBetweenStartTimeAndHandoffTime /
-            rotation.intervalCount.toNumber()
+                rotation.intervalCount.toNumber()
         );
-        
-        if(numberOfIntervalsBetweenStartAndHandoffTime < 0){
-            numberOfIntervalsBetweenStartAndHandoffTime = numberOfIntervalsBetweenStartAndHandoffTime * -1;
+
+        if (numberOfIntervalsBetweenStartAndHandoffTime < 0) {
+            numberOfIntervalsBetweenStartAndHandoffTime =
+                numberOfIntervalsBetweenStartAndHandoffTime * -1;
         }
 
         currentUserIndex = LayerUtil.incrementUserIndex(
@@ -480,8 +500,6 @@ export default class LayerUtil {
 
         return currentUserIndex;
     }
-
-
 
     public static trimStartAndEndTimesBasedOnRestrictionTimes(data: {
         eventStartTime: Date;
@@ -522,10 +540,7 @@ export default class LayerUtil {
 
         const trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
 
-        if (
-            !weeklyRestrictionTimes ||
-            weeklyRestrictionTimes.length === 0
-        ) {
+        if (!weeklyRestrictionTimes || weeklyRestrictionTimes.length === 0) {
             return [
                 {
                     startTime: data.eventStartTime,
@@ -588,7 +603,6 @@ export default class LayerUtil {
                 data.eventStartTime
             );
 
-
             // if current event start time is after the restriction end time then we need to return empty array as there is no event.
 
             if (OneUptimeDate.isAfter(currentStartTime, restrictionEndTime)) {
@@ -597,10 +611,7 @@ export default class LayerUtil {
 
             // if the restriction end time is before the restriction start time, we need to add one day to the restriction end time
             if (
-                OneUptimeDate.isAfter(
-                    restrictionStartTime,
-                    restrictionEndTime
-                )
+                OneUptimeDate.isAfter(restrictionStartTime, restrictionEndTime)
             ) {
                 restrictionEndTime = OneUptimeDate.addRemoveDays(
                     restrictionEndTime,
@@ -615,10 +626,7 @@ export default class LayerUtil {
                     currentStartTime,
                     restrictionStartTime
                 ) &&
-                OneUptimeDate.isOnOrAfter(
-                    restrictionEndTime,
-                    currentEndTime
-                )
+                OneUptimeDate.isOnOrAfter(restrictionEndTime, currentEndTime)
             ) {
                 trimmedStartAndEndTimes.push({
                     startTime: currentStartTime,
@@ -634,10 +642,7 @@ export default class LayerUtil {
                     currentStartTime,
                     restrictionStartTime
                 ) &&
-                OneUptimeDate.isOnOrAfter(
-                    currentEndTime,
-                    restrictionEndTime
-                )
+                OneUptimeDate.isOnOrAfter(currentEndTime, restrictionEndTime)
             ) {
                 trimmedStartAndEndTimes.push({
                     startTime: currentStartTime,
@@ -669,17 +674,17 @@ export default class LayerUtil {
                     currentStartTime,
                     restrictionStartTime
                 ) &&
-                OneUptimeDate.isOnOrAfter(
-                    currentEndTime,
-                    restrictionEndTime
-                )
+                OneUptimeDate.isOnOrAfter(currentEndTime, restrictionEndTime)
             ) {
                 trimmedStartAndEndTimes.push({
                     startTime: restrictionStartTime,
                     endTime: restrictionEndTime,
                 });
 
-                currentStartTime = OneUptimeDate.addRemoveSeconds(restrictionEndTime, 1);
+                currentStartTime = OneUptimeDate.addRemoveSeconds(
+                    restrictionEndTime,
+                    1
+                );
 
                 // add day to restriction start and end times.
 
@@ -745,10 +750,11 @@ export default class LayerUtil {
         return events;
     }
 
-
-    public static getMultiLayerEvents(data: MultiLayerProps): Array<CalendarEvent> {
-        let events: Array<PriorityCalendarEvents> = [];
-        let layerPriority: number = 1;
+    public static getMultiLayerEvents(
+        data: MultiLayerProps
+    ): Array<CalendarEvent> {
+        const events: Array<PriorityCalendarEvents> = [];
+        const layerPriority: number = 1;
 
         for (const layer of data.layers) {
             const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents({
@@ -759,16 +765,15 @@ export default class LayerUtil {
                 rotation: layer.rotation,
                 calendarStartDate: data.calendarStartDate,
                 calendarEndDate: data.calendarEndDate,
-                
             });
-            
+
             // add priority to each event
 
-            for(const layerEvent of layerEvents){
+            for (const layerEvent of layerEvents) {
                 const priorityEvent: PriorityCalendarEvents = {
                     ...layerEvent,
-                    priority: layerPriority
-                }
+                    priority: layerPriority,
+                };
 
                 events.push(priorityEvent);
             }
@@ -776,13 +781,15 @@ export default class LayerUtil {
 
         // now remove the overlapping events
 
-        const nonOverlappingEvents: Array<CalendarEvent> = LayerUtil.removeOverlappingEvents(events);
-
+        const nonOverlappingEvents: Array<CalendarEvent> =
+            LayerUtil.removeOverlappingEvents(events);
 
         return nonOverlappingEvents;
     }
 
-    public static removeOverlappingEvents(events: PriorityCalendarEvents[]): CalendarEvent[] {
+    public static removeOverlappingEvents(
+        events: PriorityCalendarEvents[]
+    ): CalendarEvent[] {
         // now remove overlapping events by priority and trim them by priority. Lower priority number will be kept and higher priority number will be trimmed.
         // so if there are two events with the same start and end time, we will keep the one with the lower priority number and remove the one with the higher priority number.
         // if there are overlapping events, we will trim the one with the higher priority number.
@@ -795,57 +802,63 @@ export default class LayerUtil {
 
         // sort events by start time
 
-        events.sort((a,b) => {
-            if(OneUptimeDate.isBefore(a.start, b.start)){
+        events.sort((a: CalendarEvent, b: CalendarEvent) => {
+            if (OneUptimeDate.isBefore(a.start, b.start)) {
                 return -1;
             }
 
-            if(OneUptimeDate.isAfter(a.start, b.start)){
+            if (OneUptimeDate.isAfter(a.start, b.start)) {
                 return 1;
             }
 
             return 0;
         });
 
-
-
-        for(const event of events){
-           
+        for (const event of events) {
             // trim the trimmed events by the current event based on priority
 
-            for(const finalEvent of finalEvents){
+            for (const finalEvent of finalEvents) {
                 // check if this final event overlaps with the current event
 
-                if(OneUptimeDate.isOverlapping(finalEvent.start, finalEvent.end, event.start, event.end)){
-                    
+                if (
+                    OneUptimeDate.isOverlapping(
+                        finalEvent.start,
+                        finalEvent.end,
+                        event.start,
+                        event.end
+                    )
+                ) {
                     // if the current event has a higher priority than the final event, we need to trim the final event
 
-                    if(event.priority > finalEvent.priority){
+                    if (event.priority > finalEvent.priority) {
                         // trim the final event based on the current event
                         // end time of the final event  will be the start time of the current event - 1 second
-                        finalEvent.end = OneUptimeDate.addRemoveSeconds(event.start, -1);
-
-                    }else{
+                        finalEvent.end = OneUptimeDate.addRemoveSeconds(
+                            event.start,
+                            -1
+                        );
+                    } else {
                         // trim the current event based on the final event
                         // start time of the current event will be the end time of the final event + 1 second
-                        event.start = OneUptimeDate.addRemoveSeconds(finalEvent.end, 1);
+                        event.start = OneUptimeDate.addRemoveSeconds(
+                            finalEvent.end,
+                            1
+                        );
                     }
-
                 }
             }
 
             finalEvents.push(event);
-
         }
 
         // convert PriorityCalendarEvents to CalendarEvents
 
         const calendarEvents: CalendarEvent[] = [];
 
-        for(const event of finalEvents){
+        for (const event of finalEvents) {
             const calendarEvent: CalendarEvent = {
                 ...event,
-            }
+            };
 
             calendarEvents.push(calendarEvent);
         }

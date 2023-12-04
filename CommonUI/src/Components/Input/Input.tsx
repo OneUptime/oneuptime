@@ -73,19 +73,18 @@ const Input: FunctionComponent<ComponentProps> = (
             props.type === InputType.TIME
         ) {
             if (value && (value as unknown) instanceof Date) {
-
                 let dateString: string = '';
                 try {
                     if (props.type === InputType.DATETIME_LOCAL) {
                         dateString = OneUptimeDate.toDateTimeLocalString(
                             value as any
                         );
-                    } else if(props.type === InputType.TIME){
+                    } else if (props.type === InputType.TIME) {
                         // get time from date
                         dateString = OneUptimeDate.toTimeString(value as any);
-                    }
-                    else {
-                        dateString = OneUptimeDate.asDateForDatabaseQuery(value);
+                    } else {
+                        dateString =
+                            OneUptimeDate.asDateForDatabaseQuery(value);
                     }
                 } catch (e: any) {
                     Logger.error(e);
@@ -96,17 +95,17 @@ const Input: FunctionComponent<ComponentProps> = (
                 const date: Date = OneUptimeDate.fromString(value);
                 let dateString: string = '';
                 try {
-                if (props.type === InputType.DATETIME_LOCAL) {
-                    dateString = OneUptimeDate.toDateTimeLocalString(date);
-                } else if(props.type === InputType.TIME){
-                    // get time from date
-                    dateString = OneUptimeDate.toTimeString(value as any);
-                }  else {
-                    dateString = OneUptimeDate.asDateForDatabaseQuery(date);
+                    if (props.type === InputType.DATETIME_LOCAL) {
+                        dateString = OneUptimeDate.toDateTimeLocalString(date);
+                    } else if (props.type === InputType.TIME) {
+                        // get time from date
+                        dateString = OneUptimeDate.toTimeString(value as any);
+                    } else {
+                        dateString = OneUptimeDate.asDateForDatabaseQuery(date);
+                    }
+                } catch (err: any) {
+                    Logger.error(err);
                 }
-            }catch(err: any){
-                Logger.error(err);
-            }
                 setDisplayValue(dateString);
             } else if (!value || (value.includes && !value.includes(' - '))) {
                 setDisplayValue('');
@@ -166,14 +165,17 @@ const Input: FunctionComponent<ComponentProps> = (
                                 props.type === InputType.TIME) &&
                             value
                         ) {
-
-                            if(props.type === InputType.TIME){
+                            if (props.type === InputType.TIME) {
                                 // conver value like "16:00" to date with local timezone
                                 value = OneUptimeDate.getDateWithCustomTime({
-                                    hours: parseInt(value.split(':')[0]?.toString() || '0'),
-                                    minutes: parseInt(value.split(':')[1]?.toString() || '0'),
+                                    hours: parseInt(
+                                        value.split(':')[0]?.toString() || '0'
+                                    ),
+                                    minutes: parseInt(
+                                        value.split(':')[1]?.toString() || '0'
+                                    ),
                                     seconds: 0,
-                                })
+                                });
                             }
 
                             const date: Date = OneUptimeDate.fromString(value);
@@ -194,11 +196,11 @@ const Input: FunctionComponent<ComponentProps> = (
                     onKeyDown={
                         props.onEnterPress
                             ? (event: any) => {
-                                if (event.key === 'Enter') {
-                                    props.onEnterPress &&
-                                        props.onEnterPress();
-                                }
-                            }
+                                  if (event.key === 'Enter') {
+                                      props.onEnterPress &&
+                                          props.onEnterPress();
+                                  }
+                              }
                             : undefined
                     }
                     readOnly={props.readOnly || props.disabled || false}

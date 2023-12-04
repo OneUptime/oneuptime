@@ -1,6 +1,11 @@
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import Calendar from 'CommonUI/src/Components/Calendar/Calendar';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import OneUptimeDate from 'Common/Types/Date';
@@ -21,26 +26,32 @@ export interface ComponentProps {
 const LayerPreview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const [startTime, setStartTime] = useState<Date>(
+        OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate())
+    );
+    const [endTime, setEndTime] = useState<Date>(
+        OneUptimeDate.getEndOfDay(OneUptimeDate.getCurrentDate())
+    );
 
-    const [startTime, setStartTime] = useState<Date>(OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate()));
-    const [endTime, setEndTime] = useState<Date>(OneUptimeDate.getEndOfDay(OneUptimeDate.getCurrentDate()));
+    const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>(
+        []
+    );
 
-    const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>([]);
-
-    useEffect(()=>{
+    useEffect(() => {
         setCalendarEvents(getCalendarEvents(startTime, endTime));
-    }, [props.layer, props.layerUsers, startTime, endTime])
+    }, [props.layer, props.layerUsers, startTime, endTime]);
 
     const getCalendarEvents: Function = (
         calendarStartTime: Date,
         calendarEndTime: Date
     ): Array<CalendarEvent> => {
+        const users: Array<User> = props.layerUsers.map(
+            (layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+                return layerUser.user!;
+            }
+        );
 
-        const users: Array<User> = props.layerUsers.map((layerUser: OnCallDutyPolicyScheduleLayerUser)=>{
-            return layerUser.user!;
-        });
-
-        const events: Array<CalendarEvent> =  LayerUtil.getEvents({
+        const events: Array<CalendarEvent> = LayerUtil.getEvents({
             users: users,
             startDateTimeOfLayer: props.layer.startsAt!,
             calendarEndDate: calendarEndTime,
@@ -52,25 +63,33 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
 
         // Assign colors to each user based on id. Hash the id and mod it by the length of the color list.
 
-        const colorListLength = EventColorList.length;
+        const colorListLength: number = EventColorList.length;
 
-        events.forEach((event: CalendarEvent)=>{
+        events.forEach((event: CalendarEvent) => {
+            const userId: string = event.title;
 
-            const userId: string = event.title; 
-
-            const user: User | undefined = users.find((user: User)=>{
+            const user: User | undefined = users.find((user: User) => {
                 return user.id?.toString() === userId;
             });
 
-            if(!user){
+            if (!user) {
                 return;
             }
 
-            const colorIndex: number = HashCode.fromString(userId) % colorListLength;
+            const colorIndex: number =
+                HashCode.fromString(userId) % colorListLength;
 
-            event.color = (EventColorList[colorIndex] as Color)?.toString() || Blue.toString();
+            event.color =
+                (EventColorList[colorIndex] as Color)?.toString() ||
+                Blue.toString();
 
-            event.title = `${(user.name?.toString() || '')+' '+'('+(user.email?.toString() || '')+')'}`;
+            event.title = `${
+                (user.name?.toString() || '') +
+                ' ' +
+                '(' +
+                (user.email?.toString() || '') +
+                ')'
+            }`;
         });
 
         return events;
@@ -88,7 +107,7 @@ const LayerPreview: FunctionComponent<ComponentProps> = (
             />
             <Calendar
                 events={calendarEvents}
-                onRangeChange={(startEndTime: StartAndEndTime)=>{
+                onRangeChange={(startEndTime: StartAndEndTime) => {
                     setStartTime(startEndTime.startTime);
                     setEndTime(startEndTime.endTime);
                 }}

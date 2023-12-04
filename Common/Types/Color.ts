@@ -96,10 +96,9 @@ export default class Color extends DatabaseProperty {
     public static shouldUseDarkText(color: Color): boolean {
         const rgb: RGB = Color.colorToRgb(color);
 
-        if(rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186){
+        if (rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186) {
             return true;
-        }else{
-            return false;
         }
+        return false;
     }
 }

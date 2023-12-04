@@ -20,7 +20,6 @@ export interface ComponentProps {
 const Pill: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     if (props.isMinimal) {
         return (
             <span className="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
@@ -51,7 +50,7 @@ const Pill: FunctionComponent<ComponentProps> = (
 
                 color:
                     props.style?.color ||
-                        Color.shouldUseDarkText(props.color || Black)
+                    Color.shouldUseDarkText(props.color || Black)
                         ? '#000000'
                         : '#ffffff',
                 backgroundColor:

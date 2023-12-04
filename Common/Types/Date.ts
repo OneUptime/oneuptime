@@ -8,13 +8,20 @@ import moment from 'moment-timezone';
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
-    
-    public static isOverlapping(start: Date, end: Date, start1: Date, end1: Date): unknown {
+    public static isOverlapping(
+        start: Date,
+        end: Date,
+        start1: Date,
+        end1: Date
+    ): unknown {
         start = this.fromString(start);
         end = this.fromString(end);
         start1 = this.fromString(start1);
         end1 = this.fromString(end1);
-        return moment(start).isBetween(start1, end1) || moment(end).isBetween(start1, end1);
+        return (
+            moment(start).isBetween(start1, end1) ||
+            moment(end).isBetween(start1, end1)
+        );
     }
 
     public static getCurrentDate(): Date {
@@ -25,8 +32,7 @@ export default class OneUptimeDate {
         return moment(date).fromNow();
     }
 
-    public static toTimeString(date: Date  |string): string {
-
+    public static toTimeString(date: Date | string): string {
         if (typeof date === 'string') {
             date = this.fromString(date);
         }
@@ -153,7 +159,6 @@ export default class OneUptimeDate {
     }
 
     public static toString(date: Date | undefined): string {
-
         if (!date) {
             return '';
         }
