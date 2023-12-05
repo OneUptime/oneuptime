@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import OnCallDutyPolicyEscalationRuleOnCallSchedule from 'Model/Models/OnCallDutyPolicyEscalationRuleOnCallSchedule';
+import OnCallDutyPolicyEscalationRuleSchedule from 'Model/Models/OnCallDutyPolicyEscalationRuleSchedule';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import useAsyncEffect from 'use-async-effect';
 import API from 'CommonUI/src/Utils/API/API';
@@ -29,9 +29,9 @@ const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
         try {
             setIsLoading(true);
 
-            const onCallSchedules: ListResult<OnCallDutyPolicyEscalationRuleOnCallSchedule> =
+            const onCallSchedules: ListResult<OnCallDutyPolicyEscalationRuleSchedule> =
                 await ModelAPI.getList(
-                    OnCallDutyPolicyEscalationRuleOnCallSchedule,
+                    OnCallDutyPolicyEscalationRuleSchedule,
                     {
                         onCallDutyPolicyEscalationRuleId:
                             props.escalationRuleId,
@@ -49,7 +49,7 @@ const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
             const schedules: Array<OnCallDutyPolicySchedule> =
                 onCallSchedules.data.map(
                     (
-                        onCallUser: OnCallDutyPolicyEscalationRuleOnCallSchedule
+                        onCallUser: OnCallDutyPolicyEscalationRuleSchedule
                     ) => {
                         return onCallUser.onCallDutyPolicySchedule!;
                     }

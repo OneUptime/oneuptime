@@ -28,8 +28,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import OnCallDutyPolicyEscalationRuleSchedule from 'Model/Models/OnCallDutyPolicyEscalationRuleOnCallSchedule';
-import OnCallDutyPolicyEscalationRuleOnCallScheduleService from './OnCallDutyPolicyEscalationRuleOnCallScheduleService';
+import OnCallDutyPolicyEscalationRuleSchedule from 'Model/Models/OnCallDutyPolicyEscalationRuleSchedule';
+import OnCallDutyPolicyEscalationRuleScheduleService from './OnCallDutyPolicyEscalationRuleScheduleService';
 
 export class Service extends DatabaseService<Model> {
     public async startRuleExecution(
@@ -372,7 +372,7 @@ export class Service extends DatabaseService<Model> {
         scheduleInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
         scheduleInRule.onCallDutyPolicyScheduleId = onCallScheduleId;
 
-        await OnCallDutyPolicyEscalationRuleOnCallScheduleService.create({
+        await OnCallDutyPolicyEscalationRuleScheduleService.create({
             data: scheduleInRule,
             props,
         });

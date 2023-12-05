@@ -133,6 +133,7 @@ import TelemetryServiceService from './TelemetryServiceService';
 import OnCallDutyPolicyScheduleService from './OnCallDutyPolicyScheduleService';
 import OnCallDutyPolicyScheduleLayerUserService from './OnCallDutyPolicyScheduleLayerUserService';
 import OnCallDutyPolicyScheduleLayerService from './OnCallDutyPolicyScheduleLayerService';
+import OnCallDutyPolicyEscalationRuleScheduleService from './OnCallDutyPolicyEscalationRuleScheduleService';
 
 const services: Array<BaseService> = [
     PromoCodeService,
@@ -255,6 +256,7 @@ const services: Array<BaseService> = [
     OnCallDutyPolicyScheduleService,
     OnCallDutyPolicyScheduleLayerUserService,
     OnCallDutyPolicyScheduleLayerService,
+    OnCallDutyPolicyEscalationRuleScheduleService
 ];
 
 export const AnalyticsServices: Array<

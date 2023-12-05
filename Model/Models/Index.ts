@@ -136,6 +136,7 @@ import TelemetryService from './TelemetryService';
 import OnCallDutyPolicySchedule from './OnCallDutyPolicySchedule';
 import OnCallDutyPolicyScheduleLayer from './OnCallDutyPolicyScheduleLayer';
 import OnCallDutyPolicyScheduleLayerUser from './OnCallDutyPolicyScheduleLayerUser';
+import OnCallDutyPolicyEscalationRuleSchedule from './OnCallDutyPolicyEscalationRuleSchedule';
 
 export default [
     User,
@@ -259,4 +260,6 @@ export default [
     OnCallDutyPolicySchedule,
     OnCallDutyPolicyScheduleLayer,
     OnCallDutyPolicyScheduleLayerUser,
+
+    OnCallDutyPolicyEscalationRuleSchedule
 ];
