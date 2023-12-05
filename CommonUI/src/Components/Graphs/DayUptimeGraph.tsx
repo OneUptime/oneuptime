@@ -1,7 +1,7 @@
 import { Green } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import OneUptimeDate from 'Common/Types/Date';
-import { Dictionary } from 'lodash';
+import Dictionary from 'Common/Types/Dictionary';
 import React, {
     FunctionComponent,
     ReactElement,

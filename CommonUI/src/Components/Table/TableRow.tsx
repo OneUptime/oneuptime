@@ -8,7 +8,7 @@ import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';
-import _ from 'lodash';
+import get from 'lodash/get';
 import ConfirmModal from '../Modal/ConfirmModal';
 import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
 
@@ -131,7 +131,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 />
                                             )
                                         ) : (
-                                            _.get(
+                                            get(
                                                 props.item,
                                                 column.key,
                                                 ''
