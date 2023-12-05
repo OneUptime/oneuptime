@@ -143,6 +143,14 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
     [PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]: `execution-logs/${RouteParams.ModelID}`,
 };
 
+export const MonitorGroupRoutePath: Dictionary<string> = {
+    [PageMap.MONITOR_GROUP_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.MONITOR_GROUP_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+    [PageMap.MONITOR_GROUP_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+    [PageMap.MONITOR_GROUP_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.MONITOR_GROUP_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
+};
+
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -978,28 +986,42 @@ const RouteMap: Dictionary<Route> = {
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),
 
+    [PageMap.MONITOR_GROUPS_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/*`
+    ),
+
     [PageMap.MONITOR_GROUPS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitor-groups`
     ),
 
     [PageMap.MONITOR_GROUP_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+            MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW]
+        }`
     ),
 
     [PageMap.MONITOR_GROUP_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+            MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_DELETE]
+        }`
     ),
 
     [PageMap.MONITOR_GROUP_VIEW_MONITORS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/monitors`
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+            MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_MONITORS]
+        }`
     ),
 
     [PageMap.MONITOR_GROUP_VIEW_OWNERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/owners`
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+            MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_OWNERS]
+        }`
     ),
 
     [PageMap.MONITOR_GROUP_VIEW_INCIDENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${RouteParams.ModelID}/incidents`
+        `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+            MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_INCIDENTS]
+        }`
     ),
 };
 

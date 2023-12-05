@@ -35,14 +35,6 @@ import UserProfileOverview from './Pages/Global/UserProfile/Index';
 import UserProfilePicture from './Pages/Global/UserProfile/Picture';
 import UserProfilePassword from './Pages/Global/UserProfile/Password';
 
-// Monitor Groups.
-import MonitorGroups from './Pages/MonitorGroup/MonitorGroups';
-import MonitorGroupView from './Pages/MonitorGroup/View/Index';
-import MonitorGroupViewDelete from './Pages/MonitorGroup/View/Delete';
-import MonitorGroupViewMonitors from './Pages/MonitorGroup/View/Monitors';
-import MonitorGroupViewIncidents from './Pages/MonitorGroup/View/Incidents';
-import MonitorGroupViewOwners from './Pages/MonitorGroup/View/Owners';
-
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -74,6 +66,7 @@ import IncidentsRoutes from './Routes/IncidentsRoutes';
 import ScheduledMaintenanceEventsRoutes from './Routes/ScheduleMaintenaceEventsRoutes';
 import SettingsRoutes from './Routes/SettingsRoutes';
 import OnCallDutyRoutes from './Routes/OnCallDutyRoutes';
+import MonitorGroupRoutes from './Routes/MonitorGroupRoutes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -591,101 +584,10 @@ const App: () => JSX.Element = () => {
                 {/** Monitor Groups */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.MONITOR_GROUPS]?.toString() || ''}
-                    element={
-                        <MonitorGroups
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_GROUPS] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
                     path={
-                        RouteMap[PageMap.MONITOR_GROUP_VIEW]?.toString() || ''
+                        RouteMap[PageMap.MONITOR_GROUPS_ROOT]?.toString() || ''
                     }
-                    element={
-                        <MonitorGroupView
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.MONITOR_GROUP_VIEW_DELETE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <MonitorGroupViewDelete
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_DELETE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.MONITOR_GROUP_VIEW_MONITORS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <MonitorGroupViewMonitors
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_MONITORS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.MONITOR_GROUP_VIEW_INCIDENTS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <MonitorGroupViewIncidents
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_INCIDENTS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.MONITOR_GROUP_VIEW_OWNERS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <MonitorGroupViewOwners
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_OWNERS
-                                ] as Route
-                            }
-                        />
-                    }
+                    element={<MonitorGroupRoutes {...commonPageProps} />}
                 />
 
                 {/* 👇️ only match this when no other routes match */}
