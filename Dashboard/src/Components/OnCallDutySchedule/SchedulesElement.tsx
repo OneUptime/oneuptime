@@ -23,7 +23,9 @@ const OnCallDutySchedulesElement: FunctionComponent<ComponentProps> = (
                             schedule={schedule}
                             onNavigateComplete={props.onNavigateComplete}
                         />
-                        {i !== props.schedules.length - 1 && <span>,&nbsp;</span>}
+                        {i !== props.schedules.length - 1 && (
+                            <span>,&nbsp;</span>
+                        )}
                     </span>
                 );
             })}

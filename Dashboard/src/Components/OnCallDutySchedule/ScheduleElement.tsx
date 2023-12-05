@@ -13,7 +13,8 @@ const OnCallDutyScheduleElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     if (
         props.schedule._id &&
-        (props.schedule.projectId || (props.schedule.project && props.schedule.project._id))
+        (props.schedule.projectId ||
+            (props.schedule.project && props.schedule.project._id))
     ) {
         const projectId: string | undefined = props.schedule.projectId
             ? props.schedule.projectId.toString()

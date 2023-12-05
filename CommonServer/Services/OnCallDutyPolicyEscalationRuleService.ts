@@ -98,7 +98,7 @@ export class Service extends DatabaseService<Model> {
 
         if (
             UserNotificationEventType.IncidentCreated ===
-            options.userNotificationEventType &&
+                options.userNotificationEventType &&
             !options.triggeredByIncidentId
         ) {
             throw new BadDataException(
@@ -277,20 +277,20 @@ export class Service extends DatabaseService<Model> {
         if (
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps['teams'] ||
-                onCreate.createBy.miscDataProps['users'] || 
+                onCreate.createBy.miscDataProps['users'] ||
                 onCreate.createBy.miscDataProps['onCallSchedules'])
-                
         ) {
             await this.addUsersTeamsAndSchedules(
                 createdItem.projectId,
                 createdItem.id,
                 createdItem.onCallDutyPolicyId!,
                 (onCreate.createBy.miscDataProps['users'] as Array<ObjectID>) ||
-                [],
+                    [],
                 (onCreate.createBy.miscDataProps['teams'] as Array<ObjectID>) ||
-                [],
-                (onCreate.createBy.miscDataProps['onCallSchedules'] as Array<ObjectID>) ||
-                [],
+                    [],
+                (onCreate.createBy.miscDataProps[
+                    'onCallSchedules'
+                ] as Array<ObjectID>) || [],
                 onCreate.createBy.props
             );
         }
@@ -357,7 +357,6 @@ export class Service extends DatabaseService<Model> {
             props,
         });
     }
-
 
     public async addOnCallSchedules(
         projectId: ObjectID,

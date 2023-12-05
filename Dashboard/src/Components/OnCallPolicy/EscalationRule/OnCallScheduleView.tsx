@@ -17,7 +17,9 @@ export interface ComponentProps {
 const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [schedules, setSchedules] = useState<Array<OnCallDutyPolicySchedule>>([]);
+    const [schedules, setSchedules] = useState<Array<OnCallDutyPolicySchedule>>(
+        []
+    );
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -44,11 +46,14 @@ const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
                     {}
                 );
 
-            const schedules: Array<OnCallDutyPolicySchedule> = onCallSchedules.data.map(
-                (onCallUser: OnCallDutyPolicyEscalationRuleOnCallSchedule) => {
-                    return onCallUser.onCallDutyPolicySchedule!;
-                }
-            );
+            const schedules: Array<OnCallDutyPolicySchedule> =
+                onCallSchedules.data.map(
+                    (
+                        onCallUser: OnCallDutyPolicyEscalationRuleOnCallSchedule
+                    ) => {
+                        return onCallUser.onCallDutyPolicySchedule!;
+                    }
+                );
 
             setSchedules(schedules);
         } catch (err) {
