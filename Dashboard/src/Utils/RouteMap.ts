@@ -127,6 +127,22 @@ export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_PROBES]: 'probes',
 };
 
+export const OnCallDutyRoutePath: Dictionary<string> = {
+    [PageMap.ON_CALL_DUTY_SCHEDULES]: 'schedules',
+    [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW]: `schedules/${RouteParams.ModelID}`,
+    [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]: `schedules/${RouteParams.ModelID}/delete`,
+    [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: `schedules/${RouteParams.ModelID}/layers`,
+    [PageMap.ON_CALL_DUTY_POLICIES]: 'policies',
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: `policies/${RouteParams.ModelID}/delete`,
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: `policies/${RouteParams.ModelID}/execution-logs`,
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: `policies/${RouteParams.ModelID}/custom-fields`,
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: `policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`,
+    [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: `policies/${RouteParams.ModelID}/escalation`,
+    [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: 'execution-logs',
+    [PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]: `execution-logs/${RouteParams.ModelID}`,
+};
+
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -522,24 +538,36 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
 
+    [PageMap.ON_CALL_DUTY_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/*`
+    ),
+
     [PageMap.ON_CALL_DUTY]: new Route(
         `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`
     ),
 
     [PageMap.ON_CALL_DUTY_SCHEDULES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULES]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/schedules/${RouteParams.ModelID}/layers`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
@@ -547,35 +575,53 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/execution-logs`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_EXECUTION_LOGS]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/execution-logs/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/custom-fields`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[
+                PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+            ]
+        }`
     ),
 
     [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies/${RouteParams.ModelID}/escalations`
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]
+        }`
     ),
 
     [PageMap.REPORTS]: new Route(
