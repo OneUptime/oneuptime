@@ -43,7 +43,7 @@ module.exports = {
                 }
             }
         }),
-        process.env.analyze === 'true' && new BundleAnalyzerPlugin(),
+        process.env.analyze === 'true' ? new BundleAnalyzerPlugin() : () => {},
     ],
     module: {
         rules: [

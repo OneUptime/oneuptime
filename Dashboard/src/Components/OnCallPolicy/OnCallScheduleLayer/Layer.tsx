@@ -11,6 +11,7 @@ import LayerUser from './LayerUser';
 import LayerRotation from './LayerRotation';
 import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
 import LayerPreview from './LayerPreview';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -25,6 +26,22 @@ const Layer: FunctionComponent<ComponentProps> = (
     const [layerUsers, setLayerUsers] = useState<
         Array<OnCallDutyPolicyScheduleLayerUser>
     >([]);
+
+    const [layer, setLayer] = useState<OnCallDutyPolicyScheduleLayer>(
+        props.layer
+    );
+
+    const updateLayer: Function = (
+        updatedLayer: OnCallDutyPolicyScheduleLayer
+    ): void => {
+        updatedLayer = BaseModel.fromJSON(
+            BaseModel.toJSON(updatedLayer, OnCallDutyPolicyScheduleLayer),
+            OnCallDutyPolicyScheduleLayer
+        ) as OnCallDutyPolicyScheduleLayer;
+
+        setLayer(updatedLayer);
+        props.onLayerChange(updatedLayer);
+    };
 
     return (
         <div className="mb-10 ">
@@ -45,11 +62,14 @@ const Layer: FunctionComponent<ComponentProps> = (
             >
                 <div className="bg-gray-50 -ml-6 -mr-6 pl-6 pr-6 pt-6 -mb-6 pb-6">
                     <LayerBasicInfo
-                        layer={props.layer}
+                        layer={layer}
                         onLayerChange={(
-                            layer: OnCallDutyPolicyScheduleLayer
+                            updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-                            props.onLayerChange(layer);
+                            layer.name = updatedLayer.name!;
+                            layer.description = updatedLayer.description!;
+
+                            updateLayer(layer);
                         }}
                     />
 
@@ -61,45 +81,53 @@ const Layer: FunctionComponent<ComponentProps> = (
                         ) => {
                             setLayerUsers(list);
                         }}
-                        layer={props.layer}
+                        layer={layer}
                     />
 
                     <HorizontalRule />
 
                     <LayerStartsAt
-                        layer={props.layer}
+                        layer={layer}
                         onLayerChange={(
-                            layer: OnCallDutyPolicyScheduleLayer
+                            updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-                            props.onLayerChange(layer);
+                            layer.startsAt = updatedLayer.startsAt!;
+
+                            updateLayer(layer);
                         }}
                     />
 
                     <HorizontalRule />
 
                     <LayerRotation
-                        layer={props.layer}
+                        layer={layer}
                         onLayerChange={(
-                            layer: OnCallDutyPolicyScheduleLayer
+                            updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-                            props.onLayerChange(layer);
+                            layer.rotation = updatedLayer.rotation!;
+                            layer.handOffTime = updatedLayer.handOffTime!;
+
+                            updateLayer(layer);
                         }}
                     />
 
                     <HorizontalRule />
 
                     <LayerReestrictionTimes
-                        layer={props.layer}
+                        layer={layer}
                         onLayerChange={(
-                            layer: OnCallDutyPolicyScheduleLayer
+                            updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
-                            props.onLayerChange(layer);
+                            layer.restrictionTimes =
+                                updatedLayer.restrictionTimes!;
+
+                            updateLayer(layer);
                         }}
                     />
 
                     <HorizontalRule />
 
-                    <LayerPreview layer={props.layer} layerUsers={layerUsers} />
+                    <LayerPreview layer={layer} layerUsers={layerUsers} />
                 </div>
             </Card>
         </div>

@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { Logger } from '../../Utils/Logger';
 
 export enum InputType {
     TEXT = 'text',
@@ -69,26 +70,41 @@ const Input: FunctionComponent<ComponentProps> = (
         if (
             props.type === InputType.DATE ||
             props.type === InputType.DATETIME_LOCAL ||
-            props.type === 'time'
+            props.type === InputType.TIME
         ) {
             if (value && (value as unknown) instanceof Date) {
                 let dateString: string = '';
-                if (props.type === InputType.DATETIME_LOCAL) {
-                    dateString = OneUptimeDate.toDateTimeLocalString(
-                        value as any
-                    );
-                } else {
-                    dateString = OneUptimeDate.asDateForDatabaseQuery(value);
+                try {
+                    if (props.type === InputType.DATETIME_LOCAL) {
+                        dateString = OneUptimeDate.toDateTimeLocalString(
+                            value as any
+                        );
+                    } else if (props.type === InputType.TIME) {
+                        // get time from date
+                        dateString = OneUptimeDate.toTimeString(value as any);
+                    } else {
+                        dateString =
+                            OneUptimeDate.asDateForDatabaseQuery(value);
+                    }
+                } catch (e: any) {
+                    Logger.error(e);
                 }
                 setDisplayValue(dateString);
             } else if (value && value.includes && !value.includes(' - ')) {
                 // " - " is for InBetween dates.
                 const date: Date = OneUptimeDate.fromString(value);
                 let dateString: string = '';
-                if (props.type === InputType.DATETIME_LOCAL) {
-                    dateString = OneUptimeDate.toDateTimeLocalString(date);
-                } else {
-                    dateString = OneUptimeDate.asDateForDatabaseQuery(date);
+                try {
+                    if (props.type === InputType.DATETIME_LOCAL) {
+                        dateString = OneUptimeDate.toDateTimeLocalString(date);
+                    } else if (props.type === InputType.TIME) {
+                        // get time from date
+                        dateString = OneUptimeDate.toTimeString(value as any);
+                    } else {
+                        dateString = OneUptimeDate.asDateForDatabaseQuery(date);
+                    }
+                } catch (err: any) {
+                    Logger.error(err);
                 }
                 setDisplayValue(dateString);
             } else if (!value || (value.includes && !value.includes(' - '))) {
@@ -141,7 +157,7 @@ const Input: FunctionComponent<ComponentProps> = (
                     onClick={props.onClick}
                     data-testid={props.dataTestId}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        const value: string = e.target.value;
+                        let value: string | Date = e.target.value;
 
                         if (
                             (props.type === InputType.DATE ||
@@ -149,6 +165,19 @@ const Input: FunctionComponent<ComponentProps> = (
                                 props.type === InputType.TIME) &&
                             value
                         ) {
+                            if (props.type === InputType.TIME) {
+                                // conver value like "16:00" to date with local timezone
+                                value = OneUptimeDate.getDateWithCustomTime({
+                                    hours: parseInt(
+                                        value.split(':')[0]?.toString() || '0'
+                                    ),
+                                    minutes: parseInt(
+                                        value.split(':')[1]?.toString() || '0'
+                                    ),
+                                    seconds: 0,
+                                });
+                            }
+
                             const date: Date = OneUptimeDate.fromString(value);
                             const dateString: string =
                                 OneUptimeDate.toString(date);

@@ -550,8 +550,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
             const miscData: JSONObject | undefined = result.miscData;
 
             if (props.onSuccess) {
+                // we do props.formType === FormType.Create ? result.data: tBaseModel because update API does not return the updated model.
                 props.onSuccess(
-                    BaseModel.fromJSONObject(result.data, props.modelType),
+                    BaseModel.fromJSONObject(
+                        props.formType === FormType.Create
+                            ? result.data
+                            : tBaseModel,
+                        props.modelType
+                    ),
                     miscData
                 );
             }

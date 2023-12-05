@@ -2,7 +2,12 @@ import RestrictionTimes, {
     WeeklyResctriction,
     RestrictionType,
 } from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import BasicRadioButtons from 'CommonUI/src/Components/RadioButtons/BasicRadioButtons';
 import FieldLabelElement from 'CommonUI/src/Components/Detail/FieldLabel';
 import Input, { InputType } from 'CommonUI/src/Components/Input/Input';
@@ -17,7 +22,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 export interface ComponentProps {
     error?: string | undefined;
     onChange?: ((value: RestrictionTimes) => void) | undefined;
-    initialValue?: RestrictionTimes | undefined;
+    value?: RestrictionTimes | undefined;
 }
 
 const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
@@ -25,11 +30,15 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [restrictionTimes, setRestrictionTimes] = useState<
         RestrictionTimes | undefined
-    >(
-        props.initialValue
-            ? RestrictionTimes.fromJSON(props.initialValue)
-            : undefined
-    );
+    >(props.value ? RestrictionTimes.fromJSON(props.value) : undefined);
+
+    useEffect(() => {
+        if (props.value) {
+            setRestrictionTimes(RestrictionTimes.fromJSON(props.value));
+        } else {
+            setRestrictionTimes(undefined);
+        }
+    }, [props.value]);
 
     const getDailyRestriction: Function = (): ReactElement => {
         // show start time to end time input fields
@@ -40,7 +49,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement title="From:" />
                     <Input
                         type={InputType.TIME}
-                        initialValue={restrictionTimes?.dayRestrictionTimes?.startTime.toString()}
+                        value={OneUptimeDate.toString(
+                            restrictionTimes?.dayRestrictionTimes?.startTime
+                        )}
                         onChange={(value: any) => {
                             let date: Date = OneUptimeDate.getCurrentDate();
 
@@ -78,7 +89,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement title="To:" />
                     <Input
                         type={InputType.TIME}
-                        initialValue={restrictionTimes?.dayRestrictionTimes?.endTime.toString()}
+                        value={OneUptimeDate.toString(
+                            restrictionTimes?.dayRestrictionTimes?.endTime
+                        )}
                         onChange={(value: any) => {
                             let date: Date = OneUptimeDate.getCurrentDate();
 
@@ -239,7 +252,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                                 options={DropdownUtil.getDropdownOptionsFromEnum(
                                     DayOfWeek
                                 )}
-                                initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
+                                value={DropdownUtil.getDropdownOptionFromEnumForValue(
                                     DayOfWeek,
                                     params.weeklyRestriction.startDay
                                 )}
@@ -252,7 +265,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                         <div>
                             <Input
                                 type={InputType.TIME}
-                                initialValue={params.weeklyRestriction?.startTime.toString()}
+                                value={OneUptimeDate.toString(
+                                    params.weeklyRestriction?.startTime
+                                )}
                                 onChange={(value: any) => {
                                     let date: Date =
                                         OneUptimeDate.getCurrentDate();
@@ -281,7 +296,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                                 options={DropdownUtil.getDropdownOptionsFromEnum(
                                     DayOfWeek
                                 )}
-                                initialValue={DropdownUtil.getDropdownOptionFromEnumForValue(
+                                value={DropdownUtil.getDropdownOptionFromEnumForValue(
                                     DayOfWeek,
                                     params.weeklyRestriction.endDay
                                 )}
@@ -294,7 +309,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                         <div>
                             <Input
                                 type={InputType.TIME}
-                                initialValue={params.weeklyRestriction?.endTime.toString()}
+                                value={OneUptimeDate.toString(
+                                    params.weeklyRestriction?.endTime
+                                )}
                                 onChange={(value: any) => {
                                     let date: Date =
                                         OneUptimeDate.getCurrentDate();

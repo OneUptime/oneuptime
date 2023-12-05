@@ -434,6 +434,14 @@ export default class BaseModelComponent {
                 arguments: [
                     {
                         type: ComponentInputType.Select,
+                        name: 'Listen on',
+                        description: `Workflow only executes when an upate happens to these fields on ${model.singularName}. If you leave this blank then the workflow will fire on any field that's updated on ${model.singularName}.`,
+                        required: false,
+                        id: 'listen-on',
+                        placeholder: 'Example: {"columnName": true, ...}',
+                    },
+                    {
+                        type: ComponentInputType.Select,
                         name: 'Select Fields',
                         description: `Select on ${model.singularName}`,
                         required: true,

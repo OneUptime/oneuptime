@@ -1,4 +1,4 @@
-import Color, { RGB } from 'Common/Types/Color';
+import Color from 'Common/Types/Color';
 import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 import { Black } from 'Common/Types/BrandColors';
 
@@ -20,8 +20,6 @@ export interface ComponentProps {
 const Pill: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const rgb: RGB = Color.colorToRgb(props.color || Black);
-
     if (props.isMinimal) {
         return (
             <span className="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
@@ -52,7 +50,7 @@ const Pill: FunctionComponent<ComponentProps> = (
 
                 color:
                     props.style?.color ||
-                    rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186
+                    Color.shouldUseDarkText(props.color || Black)
                         ? '#000000'
                         : '#ffffff',
                 backgroundColor:

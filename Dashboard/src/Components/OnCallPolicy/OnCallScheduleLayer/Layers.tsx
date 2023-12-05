@@ -185,6 +185,7 @@ const Layers: FunctionComponent<ComponentProps> = (
                         rotation: true,
                         onCallDutyPolicyScheduleId: true,
                         projectId: true,
+                        handOffTime: true,
                     },
                     {
                         order: SortOrder.Ascending,

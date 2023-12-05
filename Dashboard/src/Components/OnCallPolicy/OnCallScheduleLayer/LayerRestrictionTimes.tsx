@@ -35,7 +35,7 @@ const LayerReestrictionTimes: FunctionComponent<ComponentProps> = (
                         return (
                             <RestrictionTimesFieldElement
                                 {...props}
-                                initialValue={
+                                value={
                                     value.restrictionTimes as RestrictionTimes
                                 }
                             />

@@ -18,10 +18,10 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
     },
     "dependencies": {
-        "@types/body-parser": "^1.19.4",
+        "@types/body-parser": "^1.19.5",
         "@types/cli-table": "^0.3.3",
         "@types/compression": "^1.7.5",
-        "@types/ejs": "^3.1.4",
+        "@types/ejs": "^3.1.5",
         "@types/minify": "^8.0.0",
         "@types/try-to-catch": "^3.0.3",
         "axios": "^1.6.2",
@@ -34,7 +34,7 @@
         "express": "^4.18.1",
         "Model": "file:../Model",
         "ts-node": "^10.9.1",
-        "xmlbuilder2": "^3.0.2"
+        "xmlbuilder2": "^3.1.1"
     },
     "resolutions": {},
     "devDependencies": {
