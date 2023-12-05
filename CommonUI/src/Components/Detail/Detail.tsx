@@ -5,7 +5,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
-import _, { Dictionary } from 'lodash';
+import get from 'lodash/get';
 import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
@@ -18,6 +18,7 @@ import DictionaryOfStringsViewer from '../Dictionary/DictionaryOfStingsViewer';
 import { DropdownOption } from '../Dropdown/Dropdown';
 import FieldLabelElement from './FieldLabel';
 import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
+import Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -96,8 +97,8 @@ const Detail: (props: ComponentProps) => ReactElement = (
 
         let data: string | ReactElement = '';
 
-        if (_.get(props.item, fieldKey)) {
-            data = (_.get(props.item, fieldKey, '') as any) || '';
+        if (get(props.item, fieldKey)) {
+            data = (get(props.item, fieldKey, '') as any) || '';
         }
 
         if (field.fieldType === FieldType.Date) {
