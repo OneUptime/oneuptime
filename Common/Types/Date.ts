@@ -19,22 +19,20 @@ export default class OneUptimeDate {
         start1 = this.fromString(start1);
         end1 = this.fromString(end1);
 
-        let isOverlapping: boolean =  (
+        let isOverlapping: boolean =
             moment(start).isBetween(start1, end1) ||
-            moment(end).isBetween(start1, end1) || 
+            moment(end).isBetween(start1, end1) ||
             moment(start).isSame(start1) ||
-            moment(end).isSame(end1)
-        );
+            moment(end).isSame(end1);
 
-        if(!isOverlapping){
+        if (!isOverlapping) {
             // check if the start1 and end1 are in between start and end
 
-            isOverlapping =  (
+            isOverlapping =
                 moment(start1).isBetween(start, end) ||
-                moment(end1).isBetween(start, end) || 
+                moment(end1).isBetween(start, end) ||
                 moment(start1).isSame(start) ||
-                moment(end1).isSame(end)
-            );
+                moment(end1).isSame(end);
         }
 
         return isOverlapping;

@@ -256,7 +256,7 @@ const services: Array<BaseService> = [
     OnCallDutyPolicyScheduleService,
     OnCallDutyPolicyScheduleLayerUserService,
     OnCallDutyPolicyScheduleLayerService,
-    OnCallDutyPolicyEscalationRuleScheduleService
+    OnCallDutyPolicyEscalationRuleScheduleService,
 ];
 
 export const AnalyticsServices: Array<

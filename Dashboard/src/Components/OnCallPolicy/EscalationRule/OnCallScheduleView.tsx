@@ -48,9 +48,7 @@ const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
 
             const schedules: Array<OnCallDutyPolicySchedule> =
                 onCallSchedules.data.map(
-                    (
-                        onCallUser: OnCallDutyPolicyEscalationRuleSchedule
-                    ) => {
+                    (onCallUser: OnCallDutyPolicyEscalationRuleSchedule) => {
                         return onCallUser.onCallDutyPolicySchedule!;
                     }
                 );

@@ -261,5 +261,5 @@ export default [
     OnCallDutyPolicyScheduleLayer,
     OnCallDutyPolicyScheduleLayerUser,
 
-    OnCallDutyPolicyEscalationRuleSchedule
+    OnCallDutyPolicyEscalationRuleSchedule,
 ];

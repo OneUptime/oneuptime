@@ -605,7 +605,7 @@ export default class LayerUtil {
 
             // if the event is ourside the restriction times, we need to return the trimmed array
 
-            if(OneUptimeDate.isAfter(restrictionStartTime, currentEndTime)) {
+            if (OneUptimeDate.isAfter(restrictionStartTime, currentEndTime)) {
                 return trimmedStartAndEndTimes;
             }
 
@@ -664,7 +664,7 @@ export default class LayerUtil {
                     currentStartTime,
                     restrictionStartTime
                 ) &&
-                OneUptimeDate.isBefore(currentEndTime, restrictionEndTime) && 
+                OneUptimeDate.isBefore(currentEndTime, restrictionEndTime) &&
                 OneUptimeDate.isAfter(currentEndTime, restrictionStartTime)
             ) {
                 trimmedStartAndEndTimes.push({
@@ -854,10 +854,7 @@ export default class LayerUtil {
                         // final event was originally ending after the current event, so we need to add the trimmed event to the final events array
 
                         if (
-                            OneUptimeDate.isAfter(
-                                tempFinalEventEnd,
-                                event.end
-                            )
+                            OneUptimeDate.isAfter(tempFinalEventEnd, event.end)
                         ) {
                             // add the trimmed event to the final events array
 
@@ -921,7 +918,6 @@ export default class LayerUtil {
         let id: number = 1;
 
         for (const event of finalEvents) {
-
             const calendarEvent: CalendarEvent = {
                 ...event,
                 id: id,

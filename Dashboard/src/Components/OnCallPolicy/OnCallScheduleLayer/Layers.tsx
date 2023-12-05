@@ -243,7 +243,9 @@ const Layers: FunctionComponent<ComponentProps> = (
                                 ) => {
                                     setLayerUsers({
                                         ...layerUsers,
-                                        [layer.id?.toString() || '']: [...users],
+                                        [layer.id?.toString() || '']: [
+                                            ...users,
+                                        ],
                                     });
                                 }}
                                 onLayerChange={(
@@ -255,11 +257,25 @@ const Layers: FunctionComponent<ComponentProps> = (
                                             (
                                                 item: OnCallDutyPolicyScheduleLayer
                                             ) => {
-
-                                                if (item.id?.toString() === layer.id?.toString()) {
-                                                    return BaseModel.fromJSON(BaseModel.toJSON(layer, OnCallDutyPolicyScheduleLayer), OnCallDutyPolicyScheduleLayer) as OnCallDutyPolicyScheduleLayer;
+                                                if (
+                                                    item.id?.toString() ===
+                                                    layer.id?.toString()
+                                                ) {
+                                                    return BaseModel.fromJSON(
+                                                        BaseModel.toJSON(
+                                                            layer,
+                                                            OnCallDutyPolicyScheduleLayer
+                                                        ),
+                                                        OnCallDutyPolicyScheduleLayer
+                                                    ) as OnCallDutyPolicyScheduleLayer;
                                                 }
-                                                return BaseModel.fromJSON(BaseModel.toJSON(item, OnCallDutyPolicyScheduleLayer), OnCallDutyPolicyScheduleLayer) as OnCallDutyPolicyScheduleLayer;
+                                                return BaseModel.fromJSON(
+                                                    BaseModel.toJSON(
+                                                        item,
+                                                        OnCallDutyPolicyScheduleLayer
+                                                    ),
+                                                    OnCallDutyPolicyScheduleLayer
+                                                ) as OnCallDutyPolicyScheduleLayer;
                                             }
                                         );
 
