@@ -485,7 +485,7 @@ export default class LayerUtil {
 
         let numberOfIntervalsBetweenStartAndHandoffTime: number = Math.ceil(
             intervalBetweenStartTimeAndHandoffTime /
-                rotation.intervalCount.toNumber()
+            rotation.intervalCount.toNumber()
         );
 
         if (numberOfIntervalsBetweenStartAndHandoffTime < 0) {
@@ -522,6 +522,19 @@ export default class LayerUtil {
             restrictionTimes.restictionType === RestrictionType.Daily &&
             restrictionTimes.dayRestrictionTimes
         ) {
+
+            // before this we need to make sure restrciton times are moved to the day of the event.
+            restrictionTimes.dayRestrictionTimes.startTime = OneUptimeDate.keepTimeButMoveDay(
+                restrictionTimes.dayRestrictionTimes.startTime,
+                data.eventStartTime
+            );
+
+            restrictionTimes.dayRestrictionTimes.endTime = OneUptimeDate.keepTimeButMoveDay(
+                restrictionTimes.dayRestrictionTimes.endTime,
+                data.eventStartTime
+            );
+
+
             return LayerUtil.getEventsByDailyRestriction({
                 eventStartTime: data.eventStartTime,
                 eventEndTime: data.eventEndTime,
@@ -567,8 +580,8 @@ export default class LayerUtil {
         for (const restrictionStartAndEndTime of restrictionStartAndEndTimes) {
             const trimmedStartAndEndTimesForRestriction: Array<StartAndEndTime> =
                 LayerUtil.getEventsByDailyRestriction({
-                    eventStartTime: restrictionStartAndEndTime.startTime,
-                    eventEndTime: restrictionStartAndEndTime.endTime,
+                    eventStartTime: data.eventStartTime,
+                    eventEndTime: data.eventEndTime,
                     restrictionStartAndEndTime: restrictionStartAndEndTime,
                     props: {
                         intervalType: EventInterval.Week,
@@ -676,15 +689,7 @@ export default class LayerUtil {
                 reachedTheEndOfTheCurrentEvent = true;
             }
 
-            // before this we need to make sure restrciton times are moved to the day of the event.
-            restrictionStartTime = OneUptimeDate.keepTimeButMoveDay(
-                restrictionStartTime,
-                data.eventStartTime
-            );
-            restrictionEndTime = OneUptimeDate.keepTimeButMoveDay(
-                restrictionEndTime,
-                data.eventStartTime
-            );
+
 
             // if the event is ourside the restriction times, we need to return the trimmed array
 
@@ -704,7 +709,7 @@ export default class LayerUtil {
             ) {
                 restrictionEndTime = OneUptimeDate.addRemoveDays(
                     restrictionEndTime,
-                    1
+                    data.props.intervalType === EventInterval.Day ? 1 : 7 // daily or weekly
                 );
             }
 
