@@ -167,7 +167,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         overrideField: {
-                            onCallDutySchedule: true,
+                            onCallSchedules: true,
                         },
                         forceShow: true,
                         title: 'On Call Duty Schedules',
@@ -182,7 +182,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         },
                         required: false,
                         placeholder: 'Select On Call Duty Schedules',
-                        overrideFieldKey: 'onCallDutySchedule',
+                        overrideFieldKey: 'onCallSchedules',
                     },
                     {
                         overrideField: {
