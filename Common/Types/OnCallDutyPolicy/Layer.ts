@@ -274,7 +274,7 @@ export default class LayerUtil {
 
         if (data.rotation.intervalType === EventInterval.Day) {
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getDaysBetweenTwoDates(
+                OneUptimeDate.getDaysBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -300,7 +300,7 @@ export default class LayerUtil {
 
         if (data.rotation.intervalType === EventInterval.Hour) {
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getHoursBetweenTwoDates(
+                OneUptimeDate.getHoursBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -326,7 +326,7 @@ export default class LayerUtil {
 
         if (data.rotation.intervalType === EventInterval.Week) {
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getWeeksBetweenTwoDates(
+                OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -352,7 +352,7 @@ export default class LayerUtil {
 
         if (data.rotation.intervalType === EventInterval.Month) {
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getMonthsBetweenTwoDates(
+                OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -378,7 +378,7 @@ export default class LayerUtil {
 
         if (data.rotation.intervalType === EventInterval.Year) {
             intervalBetweenStartTimeAndHandoffTime =
-                OneUptimeDate.getYearsBetweenTwoDates(
+                OneUptimeDate.getYearsBetweenTwoDatesInclusive(
                     handOffTime,
                     data.currentEventStartTime
                 );
@@ -603,10 +603,16 @@ export default class LayerUtil {
                 data.eventStartTime
             );
 
+            // if the event is ourside the restriction times, we need to return the trimmed array
+
+            if(OneUptimeDate.isAfter(restrictionStartTime, currentEndTime)) {
+                return trimmedStartAndEndTimes;
+            }
+
             // if current event start time is after the restriction end time then we need to return empty array as there is no event.
 
             if (OneUptimeDate.isAfter(currentStartTime, restrictionEndTime)) {
-                return [];
+                return trimmedStartAndEndTimes;
             }
 
             // if the restriction end time is before the restriction start time, we need to add one day to the restriction end time
@@ -658,7 +664,8 @@ export default class LayerUtil {
                     currentStartTime,
                     restrictionStartTime
                 ) &&
-                OneUptimeDate.isBefore(currentEndTime, restrictionEndTime)
+                OneUptimeDate.isBefore(currentEndTime, restrictionEndTime) && 
+                OneUptimeDate.isAfter(currentEndTime, restrictionStartTime)
             ) {
                 trimmedStartAndEndTimes.push({
                     startTime: restrictionStartTime,
