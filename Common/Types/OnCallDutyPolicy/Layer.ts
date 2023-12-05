@@ -485,7 +485,7 @@ export default class LayerUtil {
 
         let numberOfIntervalsBetweenStartAndHandoffTime: number = Math.ceil(
             intervalBetweenStartTimeAndHandoffTime /
-            rotation.intervalCount.toNumber()
+                rotation.intervalCount.toNumber()
         );
 
         if (numberOfIntervalsBetweenStartAndHandoffTime < 0) {
@@ -522,18 +522,18 @@ export default class LayerUtil {
             restrictionTimes.restictionType === RestrictionType.Daily &&
             restrictionTimes.dayRestrictionTimes
         ) {
-
             // before this we need to make sure restrciton times are moved to the day of the event.
-            restrictionTimes.dayRestrictionTimes.startTime = OneUptimeDate.keepTimeButMoveDay(
-                restrictionTimes.dayRestrictionTimes.startTime,
-                data.eventStartTime
-            );
+            restrictionTimes.dayRestrictionTimes.startTime =
+                OneUptimeDate.keepTimeButMoveDay(
+                    restrictionTimes.dayRestrictionTimes.startTime,
+                    data.eventStartTime
+                );
 
-            restrictionTimes.dayRestrictionTimes.endTime = OneUptimeDate.keepTimeButMoveDay(
-                restrictionTimes.dayRestrictionTimes.endTime,
-                data.eventStartTime
-            );
-
+            restrictionTimes.dayRestrictionTimes.endTime =
+                OneUptimeDate.keepTimeButMoveDay(
+                    restrictionTimes.dayRestrictionTimes.endTime,
+                    data.eventStartTime
+                );
 
             return LayerUtil.getEventsByDailyRestriction({
                 eventStartTime: data.eventStartTime,
@@ -688,8 +688,6 @@ export default class LayerUtil {
             if (OneUptimeDate.isBefore(currentEndTime, currentStartTime)) {
                 reachedTheEndOfTheCurrentEvent = true;
             }
-
-
 
             // if the event is ourside the restriction times, we need to return the trimmed array
 
