@@ -20,7 +20,9 @@ export default class OneUptimeDate {
         end1 = this.fromString(end1);
         return (
             moment(start).isBetween(start1, end1) ||
-            moment(end).isBetween(start1, end1)
+            moment(end).isBetween(start1, end1) || 
+            moment(start).isSame(start1) ||
+            moment(end).isSame(end1)
         );
     }
 

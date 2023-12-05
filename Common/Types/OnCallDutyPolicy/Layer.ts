@@ -761,7 +761,7 @@ export default class LayerUtil {
         data: MultiLayerProps
     ): Array<CalendarEvent> {
         const events: Array<PriorityCalendarEvents> = [];
-        const layerPriority: number = 1;
+        let layerPriority: number = 1;
 
         for (const layer of data.layers) {
             const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents({
@@ -784,6 +784,9 @@ export default class LayerUtil {
 
                 events.push(priorityEvent);
             }
+
+            // increment layer priority
+            layerPriority++;
         }
 
         // now remove the overlapping events
@@ -837,7 +840,7 @@ export default class LayerUtil {
                 ) {
                     // if the current event has a higher priority than the final event, we need to trim the final event
 
-                    if (event.priority > finalEvent.priority) {
+                    if (event.priority < finalEvent.priority) {
                         // trim the final event based on the current event
                         // end time of the final event  will be the start time of the current event - 1 second
                         finalEvent.end = OneUptimeDate.addRemoveSeconds(
