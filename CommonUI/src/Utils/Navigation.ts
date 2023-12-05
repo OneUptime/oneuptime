@@ -4,7 +4,7 @@ import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
 import ObjectID from 'Common/Types/ObjectID';
-import { Dictionary } from 'lodash';
+import Dictionary from 'Common/Types/Dictionary';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;

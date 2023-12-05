@@ -2,6 +2,7 @@ const path = require("path");
 const webpack = require("webpack");
 const dotenv = require('dotenv');
 const express = require('express');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 const readEnvFile = (pathToFile) => {
 
@@ -41,6 +42,7 @@ module.exports = {
                 }
             }
         }),
+        process.env.analyze === 'true' ? new BundleAnalyzerPlugin() : () => { }
     ],
     module: {
         rules: [

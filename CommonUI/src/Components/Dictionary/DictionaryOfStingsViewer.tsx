@@ -1,4 +1,4 @@
-import { Dictionary } from 'lodash';
+import Dictionary from 'Common/Types/Dictionary';
 import React, {
     FunctionComponent,
     ReactElement,
