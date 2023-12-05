@@ -1,5 +1,5 @@
 import InBetween from './Database/InBetween';
-import DayOfWeek from './Day/DayOfWeek';
+import DayOfWeek, { DayOfWeekUtil } from './Day/DayOfWeek';
 import BadDataException from './Exception/BadDataException';
 import { JSONObject, ObjectType } from './JSON';
 import PositiveNumber from './PositiveNumber';
@@ -8,6 +8,39 @@ import moment from 'moment-timezone';
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
+    public static moveDateToTheDayOfWeek(
+        date: Date,
+        moveToWeek: Date,
+        dayOfWeek: DayOfWeek
+    ): Date {
+        // date will be moved to the week of "moveToWeek" and then to the day of week "dayOfWeek"
+
+        date = this.fromString(date);
+        date = this.keepTimeButMoveDay(date, moveToWeek);
+
+        // now move the date to the day of week
+
+        const dateDayOfWeek: DayOfWeek = this.getDayOfWeek(date);
+
+        if (dateDayOfWeek === dayOfWeek) {
+            return date;
+        }
+
+        const numberOfDayOfWeek: number =
+            DayOfWeekUtil.getNumberOfDayOfWeek(dayOfWeek);
+
+        const dateDayOfWeekNumber: number =
+            DayOfWeekUtil.getNumberOfDayOfWeek(dateDayOfWeek);
+
+        const difference: number = numberOfDayOfWeek - dateDayOfWeekNumber;
+
+        if (difference === 0) {
+            return date;
+        }
+
+        return this.addRemoveDays(date, difference);
+    }
+
     public static isOverlapping(
         start: Date,
         end: Date,

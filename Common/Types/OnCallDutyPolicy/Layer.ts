@@ -9,6 +9,7 @@ import OneUptimeDate from '../Date';
 import EventInterval from '../Events/EventInterval';
 import StartAndEndTime from '../Time/StartAndEndTime';
 import Typeof from '../Typeof';
+import DayOfWeek from '../Day/DayOfWeek';
 
 export interface LayerProps {
     users: Array<UserModel>;
@@ -517,8 +518,19 @@ export default class LayerUtil {
             ];
         }
 
-        if (restrictionTimes.restictionType === RestrictionType.Daily) {
-            return LayerUtil.getEventsByDailyRestriction(data);
+        if (
+            restrictionTimes.restictionType === RestrictionType.Daily &&
+            restrictionTimes.dayRestrictionTimes
+        ) {
+            return LayerUtil.getEventsByDailyRestriction({
+                eventStartTime: data.eventStartTime,
+                eventEndTime: data.eventEndTime,
+                restrictionStartAndEndTime:
+                    restrictionTimes.dayRestrictionTimes,
+                props: {
+                    intervalType: EventInterval.Day,
+                },
+            });
         }
 
         if (restrictionTimes.restictionType === RestrictionType.Weekly) {
@@ -538,7 +550,7 @@ export default class LayerUtil {
 
         // if there are no weekly restriction times, we dont have any restrictions and we can return the event start and end times
 
-        const trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
+        let trimmedStartAndEndTimes: Array<StartAndEndTime> = [];
 
         if (!weeklyRestrictionTimes || weeklyRestrictionTimes.length === 0) {
             return [
@@ -549,19 +561,90 @@ export default class LayerUtil {
             ];
         }
 
-        // const eventStartTime: Date = data.eventStartTime;
-        // const eventStartDayOfWeek: DayOfWeek = OneUptimeDate.getDayOfWeek(eventStartTime);
+        const restrictionStartAndEndTimes: Array<StartAndEndTime> =
+            LayerUtil.getWeeklyRestrictionTimesForWeek(data);
+
+        for (const restrictionStartAndEndTime of restrictionStartAndEndTimes) {
+            const trimmedStartAndEndTimesForRestriction: Array<StartAndEndTime> =
+                LayerUtil.getEventsByDailyRestriction({
+                    eventStartTime: restrictionStartAndEndTime.startTime,
+                    eventEndTime: restrictionStartAndEndTime.endTime,
+                    restrictionStartAndEndTime: restrictionStartAndEndTime,
+                    props: {
+                        intervalType: EventInterval.Week,
+                    },
+                });
+
+            trimmedStartAndEndTimes = [
+                ...trimmedStartAndEndTimes,
+                ...trimmedStartAndEndTimesForRestriction,
+            ];
+        }
 
         return trimmedStartAndEndTimes;
+    }
+
+    public static getWeeklyRestrictionTimesForWeek(data: {
+        eventStartTime: Date;
+        eventEndTime: Date;
+        restrictionTimes: RestrictionTimes;
+    }): Array<StartAndEndTime> {
+        const weeklyRestrictionTimes: Array<WeeklyResctriction> =
+            data.restrictionTimes.weeklyRestrictionTimes;
+
+        const eventStartTime: Date = data.eventStartTime;
+
+        const startAndEndTimesOfWeeklyRestrictions: Array<StartAndEndTime> = [];
+
+        for (const weeklyRestriction of weeklyRestrictionTimes) {
+            // move all of these to the week of the event start time
+
+            const startDayOfWeek: DayOfWeek = weeklyRestriction.startDay;
+            const endDayOfWeek: DayOfWeek = weeklyRestriction.endDay;
+
+            let startTime: Date = weeklyRestriction.startTime;
+            let endTime: Date = weeklyRestriction.endTime;
+
+            // move start and end times to the week of the event start time
+
+            startTime = OneUptimeDate.moveDateToTheDayOfWeek(
+                startTime,
+                eventStartTime,
+                startDayOfWeek
+            );
+            endTime = OneUptimeDate.moveDateToTheDayOfWeek(
+                endTime,
+                eventStartTime,
+                endDayOfWeek
+            );
+
+            // now we have true start and end times of the weekly restriction
+
+            // if start time is after end time, we need to add one week to the end time
+
+            if (OneUptimeDate.isAfter(startTime, endTime)) {
+                endTime = OneUptimeDate.addRemoveWeeks(endTime, 1);
+            }
+
+            startAndEndTimesOfWeeklyRestrictions.push({
+                startTime,
+                endTime,
+            });
+        }
+
+        return startAndEndTimesOfWeeklyRestrictions;
     }
 
     public static getEventsByDailyRestriction(data: {
         eventStartTime: Date;
         eventEndTime: Date;
-        restrictionTimes: RestrictionTimes;
+        restrictionStartAndEndTime: StartAndEndTime;
+        props: {
+            intervalType: EventInterval;
+        };
     }): Array<StartAndEndTime> {
         const dayRestrictionTimes: StartAndEndTime | null =
-            data.restrictionTimes.dayRestrictionTimes;
+            data.restrictionStartAndEndTime;
 
         // if there are no day restriction times, we dont have any restrictions and we can return the event start and end times
 
@@ -697,11 +780,11 @@ export default class LayerUtil {
 
                 restrictionStartTime = OneUptimeDate.addRemoveDays(
                     restrictionStartTime,
-                    1
+                    data.props.intervalType === EventInterval.Day ? 1 : 7 // daily or weekly
                 );
                 restrictionEndTime = OneUptimeDate.addRemoveDays(
                     restrictionEndTime,
-                    1
+                    data.props.intervalType === EventInterval.Day ? 1 : 7 // daily or weekly
                 );
             }
         }
