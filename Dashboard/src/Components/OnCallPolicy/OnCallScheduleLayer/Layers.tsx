@@ -23,6 +23,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
 import LayersPreview from './LayersPreview';
 import Card from 'CommonUI/src/Components/Card/Card';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -254,14 +255,15 @@ const Layers: FunctionComponent<ComponentProps> = (
                                             (
                                                 item: OnCallDutyPolicyScheduleLayer
                                             ) => {
-                                                if (item.id === layer.id) {
-                                                    return layer;
+
+                                                if (item.id?.toString() === layer.id?.toString()) {
+                                                    return BaseModel.fromJSON(BaseModel.toJSON(layer, OnCallDutyPolicyScheduleLayer), OnCallDutyPolicyScheduleLayer) as OnCallDutyPolicyScheduleLayer;
                                                 }
-                                                return item;
+                                                return BaseModel.fromJSON(BaseModel.toJSON(item, OnCallDutyPolicyScheduleLayer), OnCallDutyPolicyScheduleLayer) as OnCallDutyPolicyScheduleLayer;
                                             }
                                         );
 
-                                    setLayers(newLayers);
+                                    setLayers([...newLayers]);
                                 }}
                             />
                         );

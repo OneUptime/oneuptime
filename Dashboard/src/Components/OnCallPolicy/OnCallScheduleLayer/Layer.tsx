@@ -104,7 +104,6 @@ const Layer: FunctionComponent<ComponentProps> = (
                             updatedLayer: OnCallDutyPolicyScheduleLayer
                         ) => {
                             layer.startsAt = updatedLayer.startsAt!;
-
                             updateLayer(layer);
                         }}
                     />
