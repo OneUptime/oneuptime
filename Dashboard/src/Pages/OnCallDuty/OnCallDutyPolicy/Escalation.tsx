@@ -24,6 +24,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import TeamView from '../../../Components/OnCallPolicy/EscalationRule/TeamView';
 import UserView from '../../../Components/OnCallPolicy/EscalationRule/UserView';
 import OnCallDutyPolicySchedule from 'Model/Models/OnCallDutyPolicySchedule';
+import OnCallDutyScheduleView from '../../../Components/OnCallPolicy/EscalationRule/OnCallScheduleView';
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -257,6 +258,24 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <TeamView
+                                    escalationRuleId={
+                                        new ObjectID(item['_id'] as string)
+                                    }
+                                />
+                            );
+                        },
+                    },
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'On Call Schedules',
+                        description:
+                            'On call schedules which will be executed when incident is triggered.',
+                        type: FieldType.Element,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <OnCallDutyScheduleView
                                     escalationRuleId={
                                         new ObjectID(item['_id'] as string)
                                     }
