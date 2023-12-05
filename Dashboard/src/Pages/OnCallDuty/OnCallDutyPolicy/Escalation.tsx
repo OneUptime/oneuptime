@@ -23,6 +23,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import { JSONObject } from 'Common/Types/JSON';
 import TeamView from '../../../Components/OnCallPolicy/EscalationRule/TeamView';
 import UserView from '../../../Components/OnCallPolicy/EscalationRule/UserView';
+import OnCallDutyPolicySchedule from 'Model/Models/OnCallDutyPolicySchedule';
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -162,6 +163,25 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         required: false,
                         placeholder: 'Select Teams',
                         overrideFieldKey: 'teams',
+                    },
+                    {
+                        overrideField: {
+                            onCallDutySchedule: true,
+                        },
+                        forceShow: true,
+                        title: 'On Call Duty Schedules',
+                        stepId: 'notification',
+                        description:
+                            'Select which on-call duty schedules will be notified when incident is triggered.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: OnCallDutyPolicySchedule,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Select On Call Duty Schedules',
+                        overrideFieldKey: 'onCallDutySchedule',
                     },
                     {
                         overrideField: {

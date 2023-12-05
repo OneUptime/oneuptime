@@ -28,6 +28,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import OnCallDutyPolicyEscalationRuleSchedule from 'Model/Models/OnCallDutyPolicyEscalationRuleOnCallSchedule';
+import OnCallDutyPolicyEscalationRuleOnCallScheduleService from './OnCallDutyPolicyEscalationRuleOnCallScheduleService';
 
 export class Service extends DatabaseService<Model> {
     public async startRuleExecution(
@@ -96,7 +98,7 @@ export class Service extends DatabaseService<Model> {
 
         if (
             UserNotificationEventType.IncidentCreated ===
-                options.userNotificationEventType &&
+            options.userNotificationEventType &&
             !options.triggeredByIncidentId
         ) {
             throw new BadDataException(
@@ -275,16 +277,20 @@ export class Service extends DatabaseService<Model> {
         if (
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps['teams'] ||
-                onCreate.createBy.miscDataProps['users'])
+                onCreate.createBy.miscDataProps['users'] || 
+                onCreate.createBy.miscDataProps['onCallSchedules'])
+                
         ) {
-            await this.addUsersAndTeams(
+            await this.addUsersTeamsAndSchedules(
                 createdItem.projectId,
                 createdItem.id,
                 createdItem.onCallDutyPolicyId!,
                 (onCreate.createBy.miscDataProps['users'] as Array<ObjectID>) ||
-                    [],
+                [],
                 (onCreate.createBy.miscDataProps['teams'] as Array<ObjectID>) ||
-                    [],
+                [],
+                (onCreate.createBy.miscDataProps['onCallSchedules'] as Array<ObjectID>) ||
+                [],
                 onCreate.createBy.props
             );
         }
@@ -292,12 +298,13 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    public async addUsersAndTeams(
+    public async addUsersTeamsAndSchedules(
         projectId: ObjectID,
         escalationRuleId: ObjectID,
         onCallDutyPolicyId: ObjectID,
         usersIds: Array<ObjectID>,
         teamIds: Array<ObjectID>,
+        onCallScheduleIds: Array<ObjectID>,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
         for (const userId of usersIds) {
@@ -319,6 +326,16 @@ export class Service extends DatabaseService<Model> {
                 props
             );
         }
+
+        for (const scheduleId of onCallScheduleIds) {
+            await this.addOnCallSchedules(
+                projectId,
+                escalationRuleId,
+                onCallDutyPolicyId,
+                scheduleId,
+                props
+            );
+        }
     }
 
     public async addTeam(
@@ -337,6 +354,27 @@ export class Service extends DatabaseService<Model> {
 
         await OnCallDutyPolicyEscalationRuleTeamService.create({
             data: teamInRule,
+            props,
+        });
+    }
+
+
+    public async addOnCallSchedules(
+        projectId: ObjectID,
+        escalationRuleId: ObjectID,
+        onCallDutyPolicyId: ObjectID,
+        onCallScheduleId: ObjectID,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        const scheduleInRule: OnCallDutyPolicyEscalationRuleSchedule =
+            new OnCallDutyPolicyEscalationRuleSchedule();
+        scheduleInRule.projectId = projectId;
+        scheduleInRule.onCallDutyPolicyId = onCallDutyPolicyId;
+        scheduleInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
+        scheduleInRule.onCallDutyPolicyScheduleId = onCallScheduleId;
+
+        await OnCallDutyPolicyEscalationRuleOnCallScheduleService.create({
+            data: scheduleInRule,
             props,
         });
     }
