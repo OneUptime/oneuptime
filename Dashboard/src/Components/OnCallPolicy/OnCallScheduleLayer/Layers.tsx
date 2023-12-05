@@ -243,7 +243,7 @@ const Layers: FunctionComponent<ComponentProps> = (
                                 ) => {
                                     setLayerUsers({
                                         ...layerUsers,
-                                        [layer.id?.toString() || '']: users,
+                                        [layer.id?.toString() || '']: [...users],
                                     });
                                 }}
                                 onLayerChange={(

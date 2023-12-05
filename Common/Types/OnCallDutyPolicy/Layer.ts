@@ -885,6 +885,34 @@ export default class LayerUtil {
             }
 
             finalEvents.push(event);
+
+            // sort by start times
+
+            finalEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
+                if (OneUptimeDate.isBefore(a.start, b.start)) {
+                    return -1;
+                }
+
+                if (OneUptimeDate.isAfter(a.start, b.start)) {
+                    return 1;
+                }
+
+                return 0;
+            });
+
+            // if an event starts and end at the same time, we need to remove it
+
+            finalEvents.forEach((finalEvent: CalendarEvent, index: number) => {
+                if (OneUptimeDate.isSame(finalEvent.start, finalEvent.end)) {
+                    finalEvents.splice(index, 1);
+                }
+
+                // if any event ends before it starts, we need to remove it
+
+                if (OneUptimeDate.isBefore(finalEvent.end, finalEvent.start)) {
+                    finalEvents.splice(index, 1);
+                }
+            });
         }
 
         // convert PriorityCalendarEvents to CalendarEvents
