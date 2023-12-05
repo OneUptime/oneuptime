@@ -6,7 +6,7 @@ import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
 import get from 'lodash/get';
-import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
+import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import FileModel from 'Common/Models/FileModel';

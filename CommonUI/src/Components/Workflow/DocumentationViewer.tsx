@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import API from '../../Utils/API/API';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
+import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { HOST, HOME_URL, HTTP_PROTOCOL } from '../../Config';
