@@ -151,6 +151,15 @@ export const MonitorGroupRoutePath: Dictionary<string> = {
     [PageMap.MONITOR_GROUP_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
 };
 
+export const UserSettingsRoutePath: Dictionary<string> = {
+    [PageMap.USER_SETTINGS]: 'notification-methods',
+    [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: 'notification-settings',
+    [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: 'notification-methods',
+    [PageMap.USER_SETTINGS_ON_CALL_RULES]: 'on-call-rules',
+    [PageMap.USER_SETTINGS_ON_CALL_LOGS]: 'on-call-logs',
+    [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
+};
+
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -693,28 +702,44 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     // User Settings Routes
+    [PageMap.USER_SETTINGS_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/user-settings/*`
+    ),
+
     [PageMap.USER_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/user-settings/notification-methods`
+        `/dashboard/${RouteParams.ProjectID}/user-settings/${
+            UserSettingsRoutePath[PageMap.USER_SETTINGS]
+        }`
     ),
 
     [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/user-settings/notification-settings`
+        `/dashboard/${RouteParams.ProjectID}/user-settings/${
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]
+        }`
     ),
 
     [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/notification-methods`
+        `/dashboard/${RouteParams.ProjectID}/user-settings/${
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_NOTIFICATION_METHODS]
+        }`
     ),
 
     [PageMap.USER_SETTINGS_ON_CALL_RULES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/on-call-rules`
+        `/dashboard/${RouteParams.ProjectID}/user-settings/${
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_RULES]
+        }`
     ),
 
     [PageMap.USER_SETTINGS_ON_CALL_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/on-call-logs`
+        `/dashboard/${RouteParams.ProjectID}/user-settings/${
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_LOGS]
+        }`
     ),
 
     [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/on-call-logs/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/user-settings/${
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]
+        }`
     ),
 
     // Settings Routes

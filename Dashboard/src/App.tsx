@@ -49,11 +49,6 @@ import API from 'CommonUI/src/Utils/API/API';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import PageComponentProps from './Pages/PageComponentProps';
 
-import UserSettingsNotificationMethods from './Pages/UserSettings/NotificationMethods';
-import UserSettingsNotificationRules from './Pages/UserSettings/OnCallRules';
-import UserSettingsNotificationLogs from './Pages/UserSettings/OnCallLogs';
-import UserSettingsNotificationLogsTimeline from './Pages/UserSettings/OnCallLogsTimeline';
-import UserSettingsNotiifcationSetting from './Pages/UserSettings/NotificationSettings';
 import URL from 'Common/Types/API/URL';
 
 //Routes
@@ -67,6 +62,7 @@ import ScheduledMaintenanceEventsRoutes from './Routes/ScheduleMaintenaceEventsR
 import SettingsRoutes from './Routes/SettingsRoutes';
 import OnCallDutyRoutes from './Routes/OnCallDutyRoutes';
 import MonitorGroupRoutes from './Routes/MonitorGroupRoutes';
+import UserSettingsRoutes from './Routes/UserSettingsRoutes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -482,103 +478,10 @@ const App: () => JSX.Element = () => {
                 {/* User Settings */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.USER_SETTINGS]?.toString() || ''}
-                    element={
-                        <UserSettingsNotificationMethods
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
-                        />
-                    }
-                />
-
-                <PageRoute
                     path={
-                        RouteMap[
-                            PageMap.USER_SETTINGS_ON_CALL_LOGS
-                        ]?.toString() || ''
+                        RouteMap[PageMap.USER_SETTINGS_ROOT]?.toString() || ''
                     }
-                    element={
-                        <UserSettingsNotificationLogs
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_LOGS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <UserSettingsNotificationLogsTimeline
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <UserSettingsNotiifcationSetting
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_METHODS
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <UserSettingsNotificationMethods
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_METHODS
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.USER_SETTINGS_ON_CALL_RULES
-                        ]?.toString() || ''
-                    }
-                    element={
-                        <UserSettingsNotificationRules
-                            {...commonPageProps}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_RULES
-                                ] as Route
-                            }
-                        />
-                    }
+                    element={<UserSettingsRoutes {...commonPageProps} />}
                 />
 
                 {/** Monitor Groups */}
