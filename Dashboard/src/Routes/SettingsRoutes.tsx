@@ -1,44 +1,164 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    LazyExoticComponent,
+    lazy,
+    Suspense,
+} from 'react';
 import { Routes, Route as PageRoute } from 'react-router';
 import Route from 'Common/Types/API/Route';
 import RouteMap, { SettingsRoutePath } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import ComponentProps from '../Pages/PageComponentProps';
+import Loader from '../Components/Loader/Loader';
 
 // Pages
-import ProjectSettings from '../Pages/Settings/ProjectSettings';
-import SettingsApiKeys from '../Pages/Settings/APIKeys';
-import SettingsApiKeyView from '../Pages/Settings/APIKeyView';
-import SettingLabels from '../Pages/Settings/Labels';
-import SettingProbes from '../Pages/Settings/Probes';
-import SettingCustomSMTP from '../Pages/Settings/CustomSMTP';
-import SettingFeatureFlags from '../Pages/Settings/FeatureFlags';
-import SettingsTeams from '../Pages/Settings/Teams';
-import SettingsTeamView from '../Pages/Settings/TeamView';
-import SettingsMonitors from '../Pages/Settings/MonitorStatus';
-import SettingsIncidents from '../Pages/Settings/IncidentState';
-import SettingsScheduledMaintenanceState from '../Pages/Settings/ScheduledMaintenanceState';
-import SettingsDomains from '../Pages/Settings/Domains';
-import SettingsIncidentSeverity from '../Pages/Settings/IncidentSeverity';
-import SettingsBilling from '../Pages/Settings/Billing';
-import SettingsSSO from '../Pages/Settings/SSO';
-import SettingsSmsLog from '../Pages/Settings/SmsLog';
-import SettingsCallLog from '../Pages/Settings/CallLog';
-import SettingsEmailLog from '../Pages/Settings/EmailLog';
-import SettingsCallSms from '../Pages/Settings/CallSms';
-import SettingsInvoices from '../Pages/Settings/Invoices';
-import MonitorCustomFields from '../Pages/Settings/MonitorCustomFields';
-import StatusPageCustomFields from '../Pages/Settings/StatusPageCustomFields';
-import IncidentCustomFields from '../Pages/Settings/IncidentCustomFields';
-import OnCallDutyPolicyCustomFields from '../Pages/Settings/OnCallDutyPolicyCustomFields';
-import ScheduledMaintenanceCustomFields from '../Pages/Settings/ScheduledMaintenanceCusomFields';
-import IncidentTemplates from '../Pages/Settings/IncidentTemplates';
-import IncidentTemplatesView from '../Pages/Settings/IncidentTemplatesView';
-import IncidentNoteTemplates from '../Pages/Settings/IncidentNoteTemplates';
-import IncidentNoteTemplateView from '../Pages/Settings/IncidentNoteTemplateView';
+const ProjectSettings: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/ProjectSettings');
+    });
+const SettingsApiKeys: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/APIKeys');
+    });
+const SettingsApiKeyView: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/APIKeyView');
+});
+const SettingLabels: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/Labels');
+    });
+const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/Probes');
+    });
+const SettingCustomSMTP: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/CustomSMTP');
+});
+const SettingFeatureFlags: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/FeatureFlags');
+});
+const SettingsTeams: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/Teams');
+    });
+const SettingsTeamView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/TeamView');
+    });
+const SettingsMonitors: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/MonitorStatus');
+    });
+const SettingsIncidents: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/IncidentState');
+});
+const SettingsScheduledMaintenanceState: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/ScheduledMaintenanceState');
+});
+const SettingsDomains: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/Domains');
+    });
+const SettingsIncidentSeverity: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/IncidentSeverity');
+});
+const SettingsBilling: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/Billing');
+    });
+const SettingsSSO: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/SSO');
+    });
+const SettingsSmsLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/SmsLog');
+    });
+const SettingsCallLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/CallLog');
+    });
+const SettingsEmailLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/EmailLog');
+    });
+const SettingsCallSms: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/CallSms');
+    });
+const SettingsInvoices: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+    lazy(() => {
+        return import('../Pages/Settings/Invoices');
+    });
+const MonitorCustomFields: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/MonitorCustomFields');
+});
+const StatusPageCustomFields: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/StatusPageCustomFields');
+});
+const IncidentCustomFields: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/IncidentCustomFields');
+});
+const OnCallDutyPolicyCustomFields: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/OnCallDutyPolicyCustomFields');
+});
+const ScheduledMaintenanceCustomFields: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/ScheduledMaintenanceCusomFields');
+});
+const IncidentTemplates: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/IncidentTemplates');
+});
+const IncidentTemplatesView: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/IncidentTemplatesView');
+});
+const IncidentNoteTemplates: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/IncidentNoteTemplates');
+});
+const IncidentNoteTemplateView: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/IncidentNoteTemplateView');
+});
 
-import ScheduledMaintenanceNoteTemplates from '../Pages/Settings/ScheduledMaintenanceNoteTemplates';
-import ScheduledMaintenanceNoteTemplateView from '../Pages/Settings/ScheduledMaintenanceNoteTemplateView';
+const ScheduledMaintenanceNoteTemplates: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/ScheduledMaintenanceNoteTemplates');
+});
+const ScheduledMaintenanceNoteTemplateView: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/ScheduledMaintenanceNoteTemplateView');
+});
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
@@ -48,20 +168,26 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS] || ''}
                 element={
-                    <ProjectSettings
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <ProjectSettings
+                            {...props}
+                            pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_SMS_LOGS] || ''}
                 element={
-                    <SettingsSmsLog
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsSmsLog
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -70,14 +196,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES] || ''
                 }
                 element={
-                    <IncidentTemplates
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_INCIDENT_TEMPLATES
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <IncidentTemplates
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENT_TEMPLATES
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -88,26 +216,32 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <IncidentTemplatesView
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <IncidentTemplatesView
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_FEATURE_FLAGS] || ''}
                 element={
-                    <SettingFeatureFlags
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingFeatureFlags
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_FEATURE_FLAGS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -118,14 +252,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <IncidentNoteTemplates
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <IncidentNoteTemplates
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -136,14 +272,17 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <IncidentNoteTemplateView
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <IncidentNoteTemplateView
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -154,15 +293,17 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <ScheduledMaintenanceNoteTemplates
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap
-                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <ScheduledMaintenanceNoteTemplates
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -174,73 +315,91 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <ScheduledMaintenanceNoteTemplateView
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap
-                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <ScheduledMaintenanceNoteTemplateView
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_CALL_LOGS] || ''}
                 element={
-                    <SettingsCallLog
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsCallLog
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_EMAIL_LOGS] || ''}
                 element={
-                    <SettingsEmailLog
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsEmailLog
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_CALL_SMS] || ''}
                 element={
-                    <SettingsCallSms
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_CALL_SMS] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsCallSms
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_MONITORS_STATUS] || ''}
                 element={
-                    <SettingsMonitors
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsMonitors
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_MONITORS_STATUS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_STATE] || ''}
                 element={
-                    <SettingsIncidents
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsIncidents
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -251,24 +410,28 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <SettingsScheduledMaintenanceState
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsScheduledMaintenanceState
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_SSO] || ''}
                 element={
-                    <SettingsSSO
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsSSO
+                            {...props}
+                            pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
+                        />
+                    </Suspense>
                 }
             />
 
@@ -277,58 +440,72 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_SEVERITY] || ''
                 }
                 element={
-                    <SettingsIncidentSeverity
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_INCIDENTS_SEVERITY
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsIncidentSeverity
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_DOMAINS] || ''}
                 element={
-                    <SettingsDomains
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_DOMAINS] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsDomains
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_DOMAINS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_CUSTOM_SMTP] || ''}
                 element={
-                    <SettingCustomSMTP
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingCustomSMTP
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_APIKEYS] || ''}
                 element={
-                    <SettingsApiKeys
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_APIKEYS] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsApiKeys
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_APIKEY_VIEW] || ''}
                 element={
-                    <SettingsApiKeyView
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsApiKeyView
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -338,14 +515,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ''
                 }
                 element={
-                    <MonitorCustomFields
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <MonitorCustomFields
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -356,14 +535,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <StatusPageCustomFields
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <StatusPageCustomFields
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -374,15 +555,17 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <ScheduledMaintenanceCustomFields
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap
-                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <ScheduledMaintenanceCustomFields
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -393,14 +576,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <IncidentCustomFields
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <IncidentCustomFields
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -411,25 +596,31 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     ] || ''
                 }
                 element={
-                    <OnCallDutyPolicyCustomFields
-                        {...props}
-                        pageRoute={
-                            RouteMap[
-                                PageMap
-                                    .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
-                            ] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <OnCallDutyPolicyCustomFields
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_BILLING] || ''}
                 element={
-                    <SettingsBilling
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_BILLING] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsBilling
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_BILLING] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
@@ -438,54 +629,72 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     SettingsRoutePath[PageMap.SETTINGS_BILLING_INVOICES] || ''
                 }
                 element={
-                    <SettingsInvoices
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsInvoices
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_BILLING_INVOICES
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_LABELS] || ''}
                 element={
-                    <SettingLabels
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingLabels
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_LABELS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_PROBES] || ''}
                 element={
-                    <SettingProbes
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_PROBES] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingProbes
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_PROBES] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_TEAMS] || ''}
                 element={
-                    <SettingsTeams
-                        {...props}
-                        pageRoute={RouteMap[PageMap.SETTINGS_TEAMS] as Route}
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsTeams
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
 
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW] || ''}
                 element={
-                    <SettingsTeamView
-                        {...props}
-                        pageRoute={
-                            RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
-                        }
-                    />
+                    <Suspense fallback={Loader}>
+                        <SettingsTeamView
+                            {...props}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                            }
+                        />
+                    </Suspense>
                 }
             />
         </Routes>
