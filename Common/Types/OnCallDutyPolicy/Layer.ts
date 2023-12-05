@@ -843,10 +843,36 @@ export default class LayerUtil {
                     if (event.priority < finalEvent.priority) {
                         // trim the final event based on the current event
                         // end time of the final event  will be the start time of the current event - 1 second
+
+                        const tempFinalEventEnd: Date = finalEvent.end;
+
                         finalEvent.end = OneUptimeDate.addRemoveSeconds(
                             event.start,
                             -1
                         );
+
+                        // final event was originally ending after the current event, so we need to add the trimmed event to the final events array
+
+                        if (
+                            OneUptimeDate.isAfter(
+                                tempFinalEventEnd,
+                                event.end
+                            )
+                        ) {
+                            // add the trimmed event to the final events array
+
+                            const trimmedEvent: PriorityCalendarEvents = {
+                                ...finalEvent,
+                                priority: finalEvent.priority,
+                                start: OneUptimeDate.addRemoveSeconds(
+                                    event.end,
+                                    1
+                                ),
+                                end: tempFinalEventEnd,
+                            };
+
+                            finalEvents.push(trimmedEvent);
+                        }
                     } else {
                         // trim the current event based on the final event
                         // start time of the current event will be the end time of the final event + 1 second
@@ -864,13 +890,17 @@ export default class LayerUtil {
         // convert PriorityCalendarEvents to CalendarEvents
 
         const calendarEvents: CalendarEvent[] = [];
+        let id: number = 1;
 
         for (const event of finalEvents) {
+
             const calendarEvent: CalendarEvent = {
                 ...event,
+                id: id,
             };
 
             calendarEvents.push(calendarEvent);
+            id++;
         }
 
         return calendarEvents;
