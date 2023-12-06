@@ -6,7 +6,7 @@ import MonitorStatusTimelne from 'Model/Models/MonitorStatusTimeline';
 import Icon from 'CommonUI/src/Components/Icon/Icon';
 import Tooltip from 'CommonUI/src/Components/Tooltip/Tooltip';
 import IconProp from 'Common/Types/Icon/IconProp';
-import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 

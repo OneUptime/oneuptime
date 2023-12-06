@@ -9,7 +9,7 @@ import Pill from '../Pill/Pill';
 import BaseModel from 'Common/Models/BaseModel';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
+import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
 
 export enum TimelineItemType {
     StateChange = 'StateChange',

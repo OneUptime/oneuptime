@@ -31,7 +31,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                     <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
                         <div className="pointer-events-auto w-screen max-w-2xl">
                             <div className="flex h-full flex-col bg-white shadow-xl">
-                                <div className="flex-shink-0 flex flex-col bg-gray-50 px-4 py-6 sm:px-6">
+                                <div className="flex-shrink-0 flex flex-col bg-gray-50 px-4 py-6 sm:px-6">
                                     <div className="flex items-start justify-between space-x-3">
                                         <div className="space-y-1">
                                             <h2

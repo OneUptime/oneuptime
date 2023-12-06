@@ -6,7 +6,7 @@ import React, {
 } from 'react';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
+import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
 
 export interface ComponentProps {
     title?: string | undefined;
