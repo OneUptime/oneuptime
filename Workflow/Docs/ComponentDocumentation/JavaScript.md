@@ -1,4 +1,4 @@
-This trigger lets you run custom JavaScrip[t in your workflow. 
+This trigger lets you run custom JavaScript in your workflow. 
 
 ```
 
