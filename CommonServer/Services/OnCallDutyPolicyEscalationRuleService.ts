@@ -30,6 +30,7 @@ import { IsBillingEnabled } from '../EnvironmentConfig';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import OnCallDutyPolicyEscalationRuleSchedule from 'Model/Models/OnCallDutyPolicyEscalationRuleSchedule';
 import OnCallDutyPolicyEscalationRuleScheduleService from './OnCallDutyPolicyEscalationRuleScheduleService';
+import OnCallDutyPolicyScheduleService from './OnCallDutyPolicyScheduleService';
 
 export class Service extends DatabaseService<Model> {
     public async startRuleExecution(
@@ -136,11 +137,30 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
+
+        const schedulesInRule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
+            await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
+                query: {
+                    onCallDutyPolicyEscalationRuleId: ruleId,
+                },
+                props: {
+                    isRoot: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                select: {
+                    onCallDutyPolicyScheduleId: true,
+                },
+            });
+
+        
+
         // get unique users and notify all the users.
 
         const startUserNotificationRuleExecution: Function = async (
             userId: ObjectID,
-            teamId: ObjectID | undefined
+            teamId: ObjectID | null,
+            scheduleId: ObjectID | null
         ): Promise<void> => {
             // no users in this rule. Skipping.
             let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
@@ -149,6 +169,10 @@ export class Service extends DatabaseService<Model> {
             log.alertSentToUserId = userId;
             if (teamId) {
                 log.userBelongsToTeamId = teamId;
+            }
+
+            if (scheduleId) {
+                log.onCallDutyScheduleId = scheduleId;
             }
 
             log = await OnCallDutyPolicyExecutionLogTimelineService.create({
@@ -169,9 +193,10 @@ export class Service extends DatabaseService<Model> {
                         options.onCallPolicyExecutionLogId,
                     onCallPolicyId: options.onCallPolicyId,
                     onCallPolicyEscalationRuleId: ruleId,
-                    userBelongsToTeamId: teamId,
+                    userBelongsToTeamId: teamId || undefined,
                     onCallDutyPolicyExecutionLogTimelineId: log.id!,
                     projectId: options.projectId,
+                    onCallScheduleId: scheduleId || undefined,
                 }
             );
         };
@@ -191,7 +216,8 @@ export class Service extends DatabaseService<Model> {
                     uniqueUserIds.push(user.id!);
                     await startUserNotificationRuleExecution(
                         user.id!,
-                        teamInRule.teamId!
+                        teamInRule.teamId!,
+                        null
                     );
                 } else {
                     // no users in this rule. Skipping.
@@ -222,7 +248,8 @@ export class Service extends DatabaseService<Model> {
                 uniqueUserIds.push(userRule.userId!);
                 await startUserNotificationRuleExecution(
                     userRule.userId!,
-                    undefined
+                    null,
+                    null
                 );
             } else {
                 // no users in this rule. Skipping.
@@ -240,6 +267,70 @@ export class Service extends DatabaseService<Model> {
                 });
             }
         }
+
+
+        for (const scheduleRule of schedulesInRule) {
+
+            // get layers and users in this schedule and find a user to notify.
+
+
+            const userIdInSchedule: ObjectID | null =
+                await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(scheduleRule.onCallDutyPolicyScheduleId!);
+
+            if(!userIdInSchedule) {
+
+                // no user active in this schedule. Skipping.
+
+                const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
+
+                log.statusMessage =
+                    'Skipped because no active users are found in this schedule.';
+
+                log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
+
+                log.onCallDutyScheduleId = scheduleRule.onCallDutyPolicyScheduleId!;
+
+                await OnCallDutyPolicyExecutionLogTimelineService.create({
+                    data: log,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                continue;
+            }
+
+
+
+            if (
+                !uniqueUserIds.find((userId: ObjectID) => {
+                    return userIdInSchedule?.toString() === userId.toString();
+                })
+            ) {
+                uniqueUserIds.push(userIdInSchedule);
+                await startUserNotificationRuleExecution(
+                    userIdInSchedule,
+                    null, 
+                    scheduleRule.onCallDutyPolicyScheduleId!
+                );
+            } else {
+                // no users in this rule. Skipping.
+                const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
+                log.statusMessage =
+                    'Skipped because notification sent to this user already.';
+                log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
+                log.alertSentToUserId = userIdInSchedule;
+                log.onCallDutyScheduleId = scheduleRule.onCallDutyPolicyScheduleId!;
+
+                await OnCallDutyPolicyExecutionLogTimelineService.create({
+                    data: log,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+        }
+
 
         if (uniqueUserIds.length === 0) {
             // no users in this rule. Skipping.

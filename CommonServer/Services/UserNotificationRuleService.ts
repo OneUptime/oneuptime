@@ -547,6 +547,7 @@ export class Service extends DatabaseService<Model> {
             onCallPolicyEscalationRuleId?: ObjectID | undefined;
             userBelongsToTeamId?: ObjectID | undefined;
             onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+            onCallScheduleId?: ObjectID | undefined;
         }
     ): Promise<void> {
         // add user notification log.
@@ -583,6 +584,10 @@ export class Service extends DatabaseService<Model> {
 
         if (options.userBelongsToTeamId) {
             userOnCallLog.userBelongsToTeamId = options.userBelongsToTeamId;
+        }
+
+        if (options.onCallScheduleId) {
+            userOnCallLog.onCallDutyScheduleId = options.onCallScheduleId;
         }
 
         userOnCallLog.status = UserNotificationExecutionStatus.Scheduled;

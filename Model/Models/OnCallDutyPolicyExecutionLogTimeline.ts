@@ -25,6 +25,7 @@ import UserNotificationEventType from 'Common/Types/UserNotification/UserNotific
 import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import OnCallDutyPolicySchedule from './OnCallDutyPolicySchedule';
 
 @TableBillingAccessControl({
     create: PlanSelect.Growth,
@@ -478,6 +479,62 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userBelongsToTeamId?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyScheduleId',
+        type: TableColumnType.Entity,
+        modelType: Team,
+        title: 'User Belongs To Schedule',
+        description:
+            'Which schedule did the user belong to when the alert was sent?',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Team;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyScheduleId' })
+    public onCallDutySchedule?: OnCallDutyPolicySchedule = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'User Belongs To Schedule ID',
+        description:
+            'Which schedule ID did the user belong to when the alert was sent?',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyScheduleId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],

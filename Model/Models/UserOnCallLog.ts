@@ -27,6 +27,7 @@ import OnCallDutyPolicyExecutionLogTimeline from './OnCallDutyPolicyExecutionLog
 import { JSONObject } from 'Common/Types/JSON';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import OnCallDutyPolicySchedule from './OnCallDutyPolicySchedule';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -653,4 +654,49 @@ export default class UserOnCallLog extends BaseModel {
         unique: false,
     })
     public executedNotificationRules?: JSONObject = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'onCallDutyScheduleId',
+        type: TableColumnType.Entity,
+        modelType: Team,
+        title: 'On Call Schedule',
+        description:
+            'Which schedule did the user belong to when the alert was sent?',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Team;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'onCallDutyScheduleId' })
+    public onCallDutySchedule?: OnCallDutyPolicySchedule = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'On Call Schedule ID',
+        description:
+            'Which schedule ID did the user belong to when the alert was sent?',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public onCallDutyScheduleId?: ObjectID = undefined;
 }
