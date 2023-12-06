@@ -493,14 +493,14 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'onCallDutyScheduleId',
         type: TableColumnType.Entity,
-        modelType: Team,
+        modelType: OnCallDutyPolicySchedule,
         title: 'User Belongs To Schedule',
         description:
             'Which schedule did the user belong to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
-            return Team;
+            return OnCallDutyPolicySchedule;
         },
         {
             eager: false,

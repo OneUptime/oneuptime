@@ -663,14 +663,14 @@ export default class UserOnCallLog extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'onCallDutyScheduleId',
         type: TableColumnType.Entity,
-        modelType: Team,
+        modelType: OnCallDutyPolicySchedule,
         title: 'On Call Schedule',
         description:
             'Which schedule did the user belong to when the alert was sent?',
     })
     @ManyToOne(
         (_type: string) => {
-            return Team;
+            return OnCallDutyPolicySchedule;
         },
         {
             eager: false,
