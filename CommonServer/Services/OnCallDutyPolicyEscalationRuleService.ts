@@ -137,7 +137,6 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-
         const schedulesInRule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
             await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
                 query: {
@@ -152,8 +151,6 @@ export class Service extends DatabaseService<Model> {
                     onCallDutyPolicyScheduleId: true,
                 },
             });
-
-        
 
         // get unique users and notify all the users.
 
@@ -268,17 +265,15 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
-
         for (const scheduleRule of schedulesInRule) {
-
             // get layers and users in this schedule and find a user to notify.
 
-
             const userIdInSchedule: ObjectID | null =
-                await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(scheduleRule.onCallDutyPolicyScheduleId!);
+                await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
+                    scheduleRule.onCallDutyPolicyScheduleId!
+                );
 
-            if(!userIdInSchedule) {
-
+            if (!userIdInSchedule) {
                 // no user active in this schedule. Skipping.
 
                 const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
@@ -288,7 +283,8 @@ export class Service extends DatabaseService<Model> {
 
                 log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
 
-                log.onCallDutyScheduleId = scheduleRule.onCallDutyPolicyScheduleId!;
+                log.onCallDutyScheduleId =
+                    scheduleRule.onCallDutyPolicyScheduleId!;
 
                 await OnCallDutyPolicyExecutionLogTimelineService.create({
                     data: log,
@@ -300,8 +296,6 @@ export class Service extends DatabaseService<Model> {
                 continue;
             }
 
-
-
             if (
                 !uniqueUserIds.find((userId: ObjectID) => {
                     return userIdInSchedule?.toString() === userId.toString();
@@ -310,7 +304,7 @@ export class Service extends DatabaseService<Model> {
                 uniqueUserIds.push(userIdInSchedule);
                 await startUserNotificationRuleExecution(
                     userIdInSchedule,
-                    null, 
+                    null,
                     scheduleRule.onCallDutyPolicyScheduleId!
                 );
             } else {
@@ -320,7 +314,8 @@ export class Service extends DatabaseService<Model> {
                     'Skipped because notification sent to this user already.';
                 log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
                 log.alertSentToUserId = userIdInSchedule;
-                log.onCallDutyScheduleId = scheduleRule.onCallDutyPolicyScheduleId!;
+                log.onCallDutyScheduleId =
+                    scheduleRule.onCallDutyPolicyScheduleId!;
 
                 await OnCallDutyPolicyExecutionLogTimelineService.create({
                     data: log,
@@ -330,7 +325,6 @@ export class Service extends DatabaseService<Model> {
                 });
             }
         }
-
 
         if (uniqueUserIds.length === 0) {
             // no users in this rule. Skipping.

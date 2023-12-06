@@ -480,7 +480,6 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     })
     public userBelongsToTeamId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
