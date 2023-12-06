@@ -1,4 +1,3 @@
-import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import RunCron from '../../Utils/Cron';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
@@ -13,7 +12,7 @@ import logger from 'CommonServer/Utils/Logger';
 RunCron(
     'OnCallDutyPolicyExecutionLog:ExecutePendingExecutions',
     {
-        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_MINUTE,
+        schedule: EVERY_MINUTE,
         runOnStartup: false,
     },
     async () => {
