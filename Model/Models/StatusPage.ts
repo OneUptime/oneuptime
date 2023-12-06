@@ -831,7 +831,7 @@ export default class StatusPage extends BaseModel {
         type: TableColumnType.JavaScript,
         title: 'JavaScript',
         description:
-            'Status Page Custom JavaScript. Thsi runs when the status page is loaded.',
+            'Status Page Custom JavaScript. This runs when the status page is loaded.',
     })
     @Column({
         nullable: true,
