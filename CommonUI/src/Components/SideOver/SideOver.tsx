@@ -64,7 +64,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-1 h-full overflow-y-scroll w-fit">
+                                <div className="h-full overflow-y-scroll">
                                     <div className="space-y-6 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:py-0 p-5">
                                         {props.children}
                                     </div>
