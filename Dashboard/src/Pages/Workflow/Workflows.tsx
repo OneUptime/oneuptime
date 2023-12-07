@@ -22,6 +22,8 @@ import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import OneUptimeDate from 'Common/Types/Date';
 import InBetween from 'Common/Types/Database/InBetween';
 import BaseModel from 'Common/Models/BaseModel';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import URL from 'Common/Types/API/URL';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -50,6 +52,13 @@ const Workflows: FunctionComponent<PageComponentProps> = (
             sideMenu={<WorkflowSideMenu />}
         >
             <>
+                <Banner
+                    openInNewTab={true}
+                    title="Need a demo of workflows?"
+                    description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
+                    link={URL.fromString('https://youtu.be/z-b7_KQcUDY')}
+                />
+
                 {plan &&
                     (plan === PlanSelect.Growth ||
                         plan === PlanSelect.Scale) && (

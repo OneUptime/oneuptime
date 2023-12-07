@@ -14,6 +14,8 @@ import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import URL from 'Common/Types/API/URL';
 
 const StatusPages: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -36,6 +38,12 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                 },
             ]}
         >
+            <Banner
+                openInNewTab={true}
+                title="Need a demo of status pages?"
+                description="Watch this video which will help you build status page for your company in under 12 minutes."
+                link={URL.fromString('https://youtu.be/F6BNipy5VCk')}
+            />
             <ModelTable<StatusPage>
                 modelType={StatusPage}
                 id="status-page-table"

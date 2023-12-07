@@ -15,6 +15,8 @@ import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardSideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import URL from 'Common/Types/API/URL';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -44,6 +46,13 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
+            <Banner
+                openInNewTab={true}
+                title="Learn how on-call policy works"
+                description="Watch this video to learn how to build effective on-call policies for your team."
+                link={URL.fromString('https://youtu.be/HzhKmCryYdc')}
+            />
+
             <ModelTable<OnCallDutyPolicy>
                 modelType={OnCallDutyPolicy}
                 id="on-call-duty-table"
