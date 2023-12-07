@@ -65,6 +65,7 @@
         "sass-loader": "^12.6.0",
         "ts-loader": "^9.3.0",
         "ts-node": "^10.9.1",
+        "typescript-remove-decorators-transformer": "^1.0.1",
         "webpack": "^5.76.0",
         "webpack-bundle-analyzer": "^4.10.1",
         "webpack-cli": "^4.9.2",
