@@ -47,8 +47,7 @@
         document.getElementById('cookie').style.display = 'block';
     }
 
-    // Check the user's choice on page load
-    window.onload = function () {
+    function checkCookies () {
         var cookiesAccepted = localStorage.getItem('cookiesAccepted');
         if (cookiesAccepted === 'true') {
             hideBanner();
@@ -58,6 +57,9 @@
             showBanner();
         }
     };
+
+    // Check the user's choice on page load
+    window.onload = checkCookies;
 
 
 </script>
