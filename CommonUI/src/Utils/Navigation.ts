@@ -115,6 +115,37 @@ abstract class Navigation {
         return window.location.pathname.includes(text);
     }
 
+    public static isStartWith(route: Route): boolean {
+        const current: Route = this.getCurrentRoute();
+        const routeItems: Array<string> = route.toString().split('/');
+        let anotherRouteItems: Array<string> = current.toString().split('/');
+
+        if (routeItems.length > anotherRouteItems.length) {
+            return false;
+        }
+
+        anotherRouteItems = anotherRouteItems.splice(0, routeItems.length);
+
+        let start: number = 0;
+        let startsWith: boolean = true;
+        for (const item of anotherRouteItems) {
+            if (routeItems[start]?.startsWith(':') && item) {
+                start++;
+                continue;
+            }
+
+            if (routeItems[start]?.toString() !== item.toString()) {
+                startsWith = false;
+                break;
+            }
+
+            start++;
+        }
+        console.log(route, current, startsWith);
+
+        return startsWith;
+    }
+
     public static isOnThisPage(route: Route | URL): boolean {
         if (route instanceof Route) {
             const current: Route = this.getCurrentRoute();
