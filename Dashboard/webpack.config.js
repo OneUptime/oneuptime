@@ -3,7 +3,6 @@ const webpack = require("webpack");
 const dotenv = require('dotenv');
 const express = require('express');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-const removeDecoratorsTransformer = require('typescript-remove-decorators-transformer').default;
 
 const readEnvFile = (pathToFile) => {
 
@@ -51,25 +50,6 @@ module.exports = {
             {
                 test: /\.(ts|tsx)$/,
                 loader: 'ts-loader',
-                options: {
-                    getCustomTransformers: () => ({
-                        before: [
-                            removeDecoratorsTransformer([
-                            'Entity',
-                            'Column',
-                            'Index',
-                            'ManyToOne',
-                            'JoinColumn',
-                            'ManyToMany',
-                            'JoinTable',
-                            'PrimaryGeneratedColumn',
-                            'CreateDateColumn',
-                            'UpdateDateColumn',
-                            'DeleteDateColumn',
-                            'VersionColumn',
-                        ])]
-                    }),
-                },
             },
             {
                 test: /\.s[ac]ss$/i,
