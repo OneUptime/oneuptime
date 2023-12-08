@@ -11,6 +11,8 @@ export interface ComponentProps {
     title: string;
     icon?: undefined | IconProp;
     route?: undefined | Route;
+    activeRoute?: undefined | Route;
+    exact?: boolean;
     children?: undefined | ReactElement | Array<ReactElement>;
     isRenderedOnMobile?: boolean;
     onMouseOver?: (() => void) | undefined;
@@ -22,8 +24,12 @@ export interface ComponentProps {
 const NavBarItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const activeRoute: Route | undefined = props.activeRoute || props.route;
     const isActive: boolean = Boolean(
-        props.route && Navigation.isOnThisPage(props.route)
+        activeRoute &&
+            (props.exact
+                ? Navigation.isOnThisPage(activeRoute)
+                : Navigation.isStartWith(activeRoute))
     );
 
     let classNames: string =

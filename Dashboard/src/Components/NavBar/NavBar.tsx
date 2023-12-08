@@ -60,6 +60,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             <NavBarItem
                 title="Home"
                 icon={IconProp.Home}
+                activeRoute={RouteMap[PageMap.HOME]}
                 route={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.HOME] as Route
                 )}
@@ -67,6 +68,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             <NavBarItem
                 title="Monitors"
+                activeRoute={RouteMap[PageMap.MONITORS]}
                 route={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.MONITORS] as Route
                 )}
@@ -75,6 +77,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             <NavBarItem
                 title="Incidents"
+                activeRoute={RouteMap[PageMap.INCIDENTS]}
                 route={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.INCIDENTS] as Route
                 )}
@@ -83,6 +86,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             <NavBarItem
                 title="Scheduled Maintenance"
+                activeRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS]}
                 route={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
                 )}
@@ -91,6 +95,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             <NavBarItem
                 title="Status Pages"
+                activeRoute={RouteMap[PageMap.STATUS_PAGES]}
                 icon={IconProp.CheckCircle}
                 route={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.STATUS_PAGES] as Route
