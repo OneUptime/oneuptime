@@ -141,8 +141,6 @@ abstract class Navigation {
 
             start++;
         }
-        console.log(route, current, startsWith);
-
         return startsWith;
     }
 
