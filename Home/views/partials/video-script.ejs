@@ -24,7 +24,17 @@
 
 
 <script>
+
+    let isVideoModalOpen = false;
+
     function playVideo(videoId) {
+
+        if (isVideoModalOpen) {
+            return;
+        }
+
+        isVideoModalOpen = true;
+
         var videoUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=1";
         document.getElementById('videoPlayer').src = videoUrl;
         document.getElementById('videoContainer').classList.remove('hidden');
@@ -32,6 +42,9 @@
         var veil = document.getElementById("video-veil");
 
         veil.onclick = function () {
+
+            isVideoModalOpen = false;
+
             document.getElementById('videoContainer').classList.add('hidden');
             document.getElementById('videoPlayer').src = "";
         }
