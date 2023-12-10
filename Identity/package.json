@@ -29,7 +29,7 @@
     "saml2-js": "^4.0.2",
     "ts-node": "^10.9.1",
     "xml-crypto": "^3.2.0",
-    "xml2js": "^0.5.0",
+    "xml2js": "^0.6.2",
     "xmldom": "^0.6.0"
   },
   "devDependencies": {
