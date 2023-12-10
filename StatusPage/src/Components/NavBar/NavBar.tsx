@@ -26,6 +26,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 id="overview-nav-bar-item"
                 title="Overview"
                 icon={IconProp.CheckCircle}
+                exact={true}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -37,6 +38,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 id="incidents-nav-bar-item"
                 title="Incidents"
                 icon={IconProp.Alert}
+                exact={true}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
@@ -48,6 +50,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 id="announcements-nav-bar-item"
                 title="Announcements"
                 icon={IconProp.Announcement}
+                exact={true}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
@@ -59,6 +62,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 id="scheduled-events-nav-bar-item"
                 title="Scheduled Events"
                 icon={IconProp.Clock}
+                exact={true}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[
@@ -73,6 +77,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     id="subscribe-nav-bar-item"
                     title="Subscribe"
                     icon={IconProp.Email}
+                    exact={true}
                     route={RouteUtil.populateRouteParams(
                         props.isPreview
                             ? (RouteMap[
@@ -90,6 +95,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     id="logout-nav-bar-item"
                     title="Logout"
                     icon={IconProp.Logout}
+                    exact={true}
                     route={RouteUtil.populateRouteParams(
                         props.isPreview
                             ? (RouteMap[PageMap.PREVIEW_LOGOUT] as Route)
