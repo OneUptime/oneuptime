@@ -272,7 +272,8 @@ export default class QueryHelper {
         if (hasValue) {
             queryText += ')';
         } else {
-            queryText = '';
+            queryText =
+                "(COLUMN_NAME_ALIAS IS NULL OR COLUMN_NAME_ALIAS = '{}')";
         }
 
         return Raw((alias: string) => {
