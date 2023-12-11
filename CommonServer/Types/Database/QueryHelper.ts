@@ -4,6 +4,7 @@ import Text from 'Common/Types/Text';
 import Typeof from 'Common/Types/Typeof';
 import Dictionary from 'Common/Types/Dictionary';
 import BaseModel from 'Common/Models/BaseModel';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class QueryHelper {
     public static findWithSameText(text: string | number): FindOperator<any> {
@@ -238,6 +239,60 @@ export default class QueryHelper {
                 [rid2]: endValue,
             }
         );
+    }
+
+    public static queryJson(value: JSONObject): FindOperator<any> {
+        // seed random text
+        const values: JSONObject = {};
+
+        let queryText: string = '';
+
+        const hasValue: boolean = Object.keys(value).length > 0;
+
+        if (typeof value === Typeof.String) {
+            value = JSON.parse(value.toString());
+        }
+
+        for (const key in value) {
+            const temp: string = Text.generateRandomText(10);
+
+            values[temp] = value[key];
+
+            if (!queryText) {
+                queryText = `(COLUMN_NAME_ALIAS->>'${key}' = :${
+                    temp as string
+                }`;
+            } else {
+                queryText += ` AND COLUMN_NAME_ALIAS->>'${key}' = :${
+                    temp as string
+                }`;
+            }
+        }
+
+        if (hasValue) {
+            queryText += ')';
+        } else {
+            queryText = '';
+        }
+
+        return Raw((alias: string) => {
+            // alias is table name + column name like tableName.columnName
+            // we need to convert this to "tableName"."columnName"
+
+            alias = alias
+                .split('.')
+                .map((item: string) => {
+                    return `"${item}"`;
+                })
+                .join('.');
+
+            queryText = Text.replaceAll(
+                queryText,
+                'COLUMN_NAME_ALIAS',
+                `${alias}`
+            );
+            return queryText;
+        }, values);
     }
 
     public static lessThan(value: number | Date): FindOperator<any> {

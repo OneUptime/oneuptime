@@ -106,4 +106,12 @@ export default class Text {
             word.substring(index + replacement.length)
         );
     }
+
+    public static replaceAll(
+        sentence: string,
+        search: string,
+        replaceBy: string
+    ): string {
+        return sentence.split(search).join(replaceBy);
+    }
 }

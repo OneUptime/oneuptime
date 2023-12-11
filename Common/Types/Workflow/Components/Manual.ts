@@ -31,7 +31,7 @@ const components: Array<ComponentMetadata> = [
                 title: 'Execute',
                 description:
                     'Connect other components to this port if you want them to be executed.',
-                id: 'execute',
+                id: 'success',
             },
         ],
     },
