@@ -36,7 +36,7 @@ export const dataSourceOptions: DataSourceOptions = {
               cert: DatabaseSslCert,
           }
         : false,
-    logging: 'all',
+    // logging: 'all',
     // synchronize: Env === AppEnvironment.Development,
     synchronize: true,
 };
