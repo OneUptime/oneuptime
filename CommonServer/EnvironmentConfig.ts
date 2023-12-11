@@ -79,12 +79,6 @@ export const WorkerHostname: Hostname = Hostname.fromString(
     }`
 );
 
-export const LinkShortenerHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_LINK_SHORTENER_HOSTNAME' || 'localhost']}:${
-        process.env['LINK_SHORTENER_PORT'] || 80
-    }`
-);
-
 export const WorkflowHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_WORKFLOW_HOSTNAME'] || 'localhost'}:${
         process.env['WORKFLOW_PORT'] || 80

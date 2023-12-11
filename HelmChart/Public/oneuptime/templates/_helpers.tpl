@@ -60,8 +60,6 @@
   value: {{ $.Values.port.apiReference | squote }}
 - name: WORKFLOW_PORT
   value: {{ $.Values.port.workflow | squote }}
-- name: LINK_SHORTENER_PORT
-  value: {{ $.Values.port.linkShortener | squote }}
 - name: ALERT_PORT
   value: {{ $.Values.port.alert | squote }}
 - name: INGESTOR_PORT

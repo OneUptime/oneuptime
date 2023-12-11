@@ -134,7 +134,6 @@ port:
   dashboardApi: 3002
   apiReference: 1445
   workflow: 3099
-  linkShortener: 3521
   alert: 3088
   ingestor: 3400
   testServer: 3800
