@@ -2,15 +2,15 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
-} from 'CommonServer/Utils/Express';
-import Response from 'CommonServer/Utils/Response';
+} from '../Utils/Express';
+import Response from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import ShortLinkService from 'CommonServer/Services/ShortLinkService';
+import ShortLinkService from '../Services/ShortLinkService';
 import ShortLink from 'Model/Models/ShortLink';
 
 const router: ExpressRouter = Express.getRouter();
 
-router.get('/:id', async (req: ExpressRequest, res: ExpressResponse) => {
+router.get('/link-shortner/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     if (!req.params['id']) {
         return Response.sendErrorResponse(
             req,

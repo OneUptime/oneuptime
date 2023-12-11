@@ -311,6 +311,7 @@ import UserCallAPI from 'CommonServer/API/UserCallAPI';
 // Import API
 import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
+import LinkShortnerAPI from 'CommonServer/API/LinkShortenerAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
 import MonitorGroupAPI from 'CommonServer/API/MonitorGroupAPI';
 
@@ -430,6 +431,9 @@ import Realtime from 'CommonServer/Utils/Realtime';
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
+
+
+
 
 //attach api's
 app.use(
@@ -939,6 +943,7 @@ app.use(
     ).getRouter()
 );
 
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new LinkShortnerAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorGroupAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
