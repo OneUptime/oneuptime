@@ -29,8 +29,6 @@
   value: {{ $.Release.Name }}-dashboard-api.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
   value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_LINK_SHORTENER_HOSTNAME
-  value: {{ $.Release.Name }}-link-shortener.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME

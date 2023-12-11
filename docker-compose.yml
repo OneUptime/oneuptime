@@ -71,14 +71,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: dashboard-api
-       
-
-
-    link-shortener:
-        image:  oneuptime/link-shortener:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: link-shortener
         
 
     workflow:
