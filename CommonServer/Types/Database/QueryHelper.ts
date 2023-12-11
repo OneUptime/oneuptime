@@ -247,11 +247,11 @@ export default class QueryHelper {
 
         let queryText: string = '';
 
-        const hasValue: boolean = Object.keys(value).length > 0;
-
         if (typeof value === Typeof.String) {
             value = JSON.parse(value.toString());
         }
+
+        const hasValue: boolean = value && Object.keys(value).length > 0;
 
         for (const key in value) {
             const temp: string = Text.generateRandomText(10);

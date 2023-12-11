@@ -311,6 +311,7 @@ import UserCallAPI from 'CommonServer/API/UserCallAPI';
 // Import API
 import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
+import ShortLinkAPI from 'CommonServer/API/ShortLinkAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
 import MonitorGroupAPI from 'CommonServer/API/MonitorGroupAPI';
 
@@ -939,6 +940,7 @@ app.use(
     ).getRouter()
 );
 
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorGroupAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());

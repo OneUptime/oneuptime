@@ -416,6 +416,7 @@ export default class ModelPermission {
                 ) as FindOperator<any> as any;
             } else if (
                 query[key] &&
+                tableColumnMetadata &&
                 tableColumnMetadata.type === TableColumnType.JSON
             ) {
                 query[key] = QueryHelper.queryJson(
