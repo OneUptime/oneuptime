@@ -43,10 +43,6 @@
         "use-async-effect": "^2.2.6"
     },
     "devDependencies": {
-        "@types/react-beautiful-dnd": "^13.1.2",
-        "@types/react-big-calendar": "^1.8.5",
-        "@types/react-color": "^3.0.6",
-        "@types/react-toggle": "^4.0.3",
         "@faker-js/faker": "^7.3.0",
         "@testing-library/jest-dom": "^5.16.5",
         "@testing-library/react": "^13.3.0",
@@ -54,8 +50,13 @@
         "@types/jest": "^28.1.4",
         "@types/node": "^17.0.45",
         "@types/react": "^18.2.38",
+        "@types/react-beautiful-dnd": "^13.1.2",
+        "@types/react-big-calendar": "^1.8.5",
+        "@types/react-color": "^3.0.6",
         "@types/react-test-renderer": "^18.0.0",
+        "@types/react-toggle": "^4.0.3",
         "jest": "^28.1.1",
+        "jest-environment-jsdom": "^29.7.0",
         "react-test-renderer": "^18.2.0",
         "ts-jest": "^28.0.5"
     }
