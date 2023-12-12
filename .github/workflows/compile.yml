@@ -23,7 +23,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd Accounts && npm install && npm run compile
+      - run: cd Accounts && npm install && npm run compile && npm run dep-check
 
   compile-api-reference:
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd ApiReference && npm install && npm run compile
+      - run: cd ApiReference && npm install && npm run compile && npm run dep-check
 
   compile-common-server:
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
           node-version: 18.3.0
       - run: cd Common && npm install
       - run: cd Model && npm install
-      - run: cd CommonServer && npm install && npm run compile
+      - run: cd CommonServer && npm install && npm run compile && npm run dep-check
 
   compile-common-ui:
     runs-on: ubuntu-latest
@@ -63,7 +63,7 @@ jobs:
           node-version: 18.3.0
       - run: cd Common && npm install
       - run: cd Model && npm install
-      - run: cd CommonUI && npm install --force && npm run compile
+      - run: cd CommonUI && npm install --force && npm run compile && npm run dep-check
 
   compile-common:
     runs-on: ubuntu-latest
@@ -75,7 +75,7 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd Model && npm install && npm run compile
+      - run: cd Model && npm install && npm run compile && npm run dep-check
 
   compile-dashboard-api:
     runs-on: ubuntu-latest
@@ -90,7 +90,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd DashboardAPI && npm install && npm run compile
+      - run: cd DashboardAPI && npm install && npm run compile && npm run dep-check
   
 
   compile-admin-dashboard:
@@ -106,7 +106,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd AdminDashboard && npm install && npm run compile
+      - run: cd AdminDashboard && npm install && npm run compile && npm run dep-check
 
   compile-dashboard:
     runs-on: ubuntu-latest
@@ -121,7 +121,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd Dashboard && npm install && npm run compile
+      - run: cd Dashboard && npm install && npm run compile && npm run dep-check
 
   compile-file:
     runs-on: ubuntu-latest
@@ -135,7 +135,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd File && npm install && npm run compile
+      - run: cd File && npm install && npm run compile && npm run dep-check
 
   compile-home:
     runs-on: ubuntu-latest
@@ -149,7 +149,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd Home && npm install && npm run compile
+      - run: cd Home && npm install && npm run compile && npm run dep-check
 
   compile-identity:
     runs-on: ubuntu-latest
@@ -163,7 +163,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd Identity && npm install && npm run compile
+      - run: cd Identity && npm install && npm run compile && npm run dep-check
 
 
   compile-notification:
@@ -178,7 +178,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd Notification && npm install && npm run compile
+      - run: cd Notification && npm install && npm run compile && npm run dep-check
 
   compile-model:
     runs-on: ubuntu-latest
@@ -191,7 +191,7 @@ jobs:
           node-version: 18.3.0
       - run: cd Common && npm install
       - run: cd Model && npm install
-      - run: cd Model && npm install && npm run compile
+      - run: cd Model && npm install && npm run compile && npm run dep-check
 
   compile-probe:
     runs-on: ubuntu-latest
@@ -205,7 +205,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd Probe && npm install && npm run compile
+      - run: cd Probe && npm install && npm run compile && npm run dep-check
 
   compile-ingestor:
     runs-on: ubuntu-latest
@@ -219,7 +219,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd Ingestor && npm install && npm run compile
+      - run: cd Ingestor && npm install && npm run compile && npm run dep-check
   
 
   compile-status-page:
@@ -235,7 +235,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd StatusPage && npm install && npm run compile
+      - run: cd StatusPage && npm install && npm run compile && npm run dep-check
 
   compile-workers:
     runs-on: ubuntu-latest
@@ -250,7 +250,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd Workers && npm install && npm run compile
+      - run: cd Workers && npm install && npm run compile && npm run dep-check
 
   compile-workflow:
     runs-on: ubuntu-latest
@@ -264,7 +264,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd Workflow && npm install && npm run compile
+      - run: cd Workflow && npm install && npm run compile && npm run dep-check
 
   compile-test-server:
     runs-on: ubuntu-latest
@@ -278,4 +278,4 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd TestServer && npm install && npm run compile
+      - run: cd TestServer && npm install && npm run compile && npm run dep-check
