@@ -15,7 +15,7 @@
         "audit": "npm audit --audit-level=low",
         "light-house": "node lighthouse.js --web",
         "light-house-mobile": "node lighthouse.js --mobile",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
+        "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
     },
     "dependencies": {
         "@types/body-parser": "^1.19.5",

@@ -62,7 +62,8 @@
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
         "prepare": "husky install",
         "backup": "bash backup.sh",
-        "update": "npm run prerun && export $(grep -v '^#' config.env | xargs) && docker compose pull && npm run start"
+        "update": "npm run prerun && export $(grep -v '^#' config.env | xargs) && docker compose pull && npm run start",
+        "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
     },
     "repository": {
         "type": "git",

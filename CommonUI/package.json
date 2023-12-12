@@ -7,7 +7,8 @@
         "test": "jest --detectOpenHandles",
         "coverage": "jest --detectOpenHandles --coverage",
         "compile": "tsc",
-        "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install"
+        "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
+        "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
     },
     "author": "",
     "license": "MIT",

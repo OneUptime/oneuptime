@@ -9,7 +9,7 @@
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "dev": "npx nodemon",
         "audit": "npm audit --audit-level=low",
-        "dep-check": "depcheck ./ --skip-missing=true",
+        "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
         "test": "jest --detectOpenHandles",
         "coverage": "jest --detectOpenHandles --coverage"
     },
