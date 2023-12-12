@@ -2,26 +2,7 @@
     "name": "dashboard",
     "version": "0.1.0",
     "private": false,
-    "dependencies": {
-        "@headlessui/react": "^1.7.7",
-        "@heroicons/react": "^2.0.13",
-        "@stripe/react-stripe-js": "^1.15.0",
-        "@stripe/stripe-js": "^1.44.1",
-        "Common": "file:../Common",
-        "CommonServer": "file:../CommonServer",
-        "CommonUI": "file:../CommonUI",
-        "Model": "file:../Model",
-        "react": "^18.2.0",
-        "react-dnd": "^16.0.1",
-        "react-dnd-html5-backend": "^16.0.1",
-        "react-dom": "^18.1.0",
-        "react-icons": "^4.4.0",
-        "react-router": "^6.19.0",
-        "react-router-dom": "^6.3.0",
-        "reactflow": "^11.5.3",
-        "stripe": "^11.0.0",
-        "use-async-effect": "^2.2.6"
-    },
+    
     "scripts": {
         "dev": "npx nodemon",
         "build": "webpack build --mode=production",
@@ -47,18 +28,28 @@
             "last 1 safari version"
         ]
     },
+    "dependencies": {
+        "@stripe/react-stripe-js": "^1.15.0",
+        "@stripe/stripe-js": "^1.44.1",
+        "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
+        "CommonUI": "file:../CommonUI",
+        "Model": "file:../Model",
+        "react": "^18.2.0",
+        "react-dom": "^18.1.0",
+        "react-router": "^6.19.0",
+        "react-router-dom": "^6.3.0",
+        "reactflow": "^11.5.3",
+        "stripe": "^11.0.0",
+        "use-async-effect": "^2.2.6"
+    },
     "devDependencies": {
-        "@testing-library/jest-dom": "^5.16.4",
-        "@testing-library/react": "^13.2.0",
-        "@testing-library/user-event": "^13.5.0",
-        "@types/jest": "^27.5.1",
         "@types/node": "^16.11.35",
         "@types/react": "^18.2.38",
         "@types/react-dom": "^18.0.4",
         "@types/react-router-dom": "^5.3.3",
         "cross-env": "^7.0.3",
         "css-loader": "^6.7.1",
-        "customize-cra": "^1.0.0",
         "nodemon": "^2.0.20",
         "react-app-rewired": "^2.2.1",
         "sass": "^1.51.0",
@@ -66,8 +57,6 @@
         "ts-loader": "^9.3.0",
         "ts-node": "^10.9.1",
         "webpack": "^5.76.0",
-        "webpack-bundle-analyzer": "^4.10.1",
-        "webpack-cli": "^4.9.2",
-        "webpack-dev-server": "^4.9.0"
+        "webpack-bundle-analyzer": "^4.10.1"
     }
 }
