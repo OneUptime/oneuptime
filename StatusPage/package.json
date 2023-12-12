@@ -30,6 +30,7 @@
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "CommonUI": "file:../CommonUI",
+    "dotenv": "^16.3.1",
     "Model": "file:../Model",
     "react": "^18.2.0",
     "react-dom": "^18.1.0",
