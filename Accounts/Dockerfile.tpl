@@ -80,7 +80,7 @@ CMD [ "npm", "run", "dev" ]
 # Copy app source
 COPY ./Accounts /usr/src/app
 # Bundle app source
-RUN npm i -g webpack-cli
+RUN npm i webpack-cli
 RUN npm run build
 #Run the app
 CMD [ "npm", "start" ]
