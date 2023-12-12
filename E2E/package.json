@@ -1,0 +1,21 @@
+{
+  "name": "tests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
+    "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
+    "compile": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.31.2"
+  }
+}
