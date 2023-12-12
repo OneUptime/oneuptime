@@ -34,6 +34,7 @@
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "dotenv": "^16.3.1",
+        "file-loader": "^6.2.0",
         "Model": "file:../Model",
         "react": "^18.2.0",
         "react-dom": "^18.1.0",
@@ -41,6 +42,7 @@
         "react-router-dom": "^6.3.0",
         "reactflow": "^11.5.3",
         "stripe": "^11.0.0",
+        "style-loader": "^3.3.3",
         "use-async-effect": "^2.2.6"
     },
     "devDependencies": {
@@ -49,12 +51,12 @@
         "@types/react-dom": "^18.0.4",
         "@types/react-router-dom": "^5.3.3",
         "cross-env": "^7.0.3",
-        "css-loader": "^6.7.1",
+        "css-loader": "^6.8.1",
         "nodemon": "^2.0.20",
         "react-app-rewired": "^2.2.1",
         "sass": "^1.51.0",
         "sass-loader": "^12.6.0",
-        "ts-loader": "^9.3.0",
+        "ts-loader": "^9.5.1",
         "ts-node": "^10.9.1",
         "webpack": "^5.76.0",
         "webpack-bundle-analyzer": "^4.10.1"

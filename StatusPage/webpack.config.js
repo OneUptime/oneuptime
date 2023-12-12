@@ -1,3 +1,8 @@
+require('ts-loader');
+require('file-loader');
+require('style-loader');
+require('css-loader');
+require('sass-loader');
 const path = require("path");
 const webpack = require("webpack");
 const dotenv = require('dotenv');
