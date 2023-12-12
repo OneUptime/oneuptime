@@ -40,11 +40,7 @@
         "@types/react": "^18.2.38",
         "@types/react-dom": "^18.0.4",
         "@types/react-router-dom": "^5.3.3",
-        "css-loader": "^6.7.1",
         "nodemon": "^2.0.20",
-        "sass": "^1.51.0",
-        "sass-loader": "^12.6.0",
-        "ts-loader": "^9.3.0",
         "ts-node": "^10.9.1",
         "webpack": "^5.76.0"
     }
