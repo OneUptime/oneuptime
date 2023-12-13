@@ -78,6 +78,17 @@ export default class WebsiteMonitor {
                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
             );
 
+            // if response time is greater than 10 seconds then give it one more try
+
+            if (
+                responseTimeInMS.toNumber() > 10000 &&
+                options.currentRetryCount < (options.retry || 5)
+            ) {
+                options.currentRetryCount++;
+                await Sleep.sleep(1000);
+                return await this.ping(url, options);
+            }
+
             const probeWebsiteResponse: ProbeWebsiteResponse = {
                 url: url,
                 requestHeaders: {},

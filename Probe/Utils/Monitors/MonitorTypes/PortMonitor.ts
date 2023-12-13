@@ -206,6 +206,17 @@ export default class PortMonitor {
             const responseTimeInMS: PositiveNumber =
                 (await promiseResult) as PositiveNumber;
 
+            // if response time is greater than 10 seconds then give it one more try
+
+            if (
+                responseTimeInMS.toNumber() > 10000 &&
+                pingOptions.currentRetryCount < (pingOptions.retry || 5)
+            ) {
+                pingOptions.currentRetryCount++;
+                await Sleep.sleep(1000);
+                return await this.ping(host, port, pingOptions);
+            }
+
             return {
                 isOnline: true,
                 responseTimeInMS: responseTimeInMS,

@@ -81,11 +81,25 @@ export default class PingMonitor {
                 );
             }
 
+            const responseTime: PositiveNumber | undefined = res.time
+                ? new PositiveNumber(Math.ceil(res.time as any))
+                : undefined;
+
+            // if response time is greater than 10 seconds then give it one more try
+
+            if (
+                responseTime?.toNumber() &&
+                responseTime.toNumber() > 10000 &&
+                pingOptions.currentRetryCount < (pingOptions.retry || 5)
+            ) {
+                pingOptions.currentRetryCount++;
+                await Sleep.sleep(1000);
+                return await this.ping(host, pingOptions);
+            }
+
             return {
                 isOnline: res.alive,
-                responseTimeInMS: res.time
-                    ? new PositiveNumber(Math.ceil(res.time as any))
-                    : undefined,
+                responseTimeInMS: responseTime,
                 failureCause: '',
             };
         } catch (err: unknown) {
