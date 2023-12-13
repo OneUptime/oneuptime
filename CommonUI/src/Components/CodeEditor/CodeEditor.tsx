@@ -160,7 +160,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     showFoldingControls: 'mouseover',
                     smoothScrolling: false,
                     suggestOnTriggerCharacters: true,
-                    wordBasedSuggestions: false,
+                    wordBasedSuggestions: 'off',
                     wordSeparators: '~!@#$%^&*()-=+[{]}|;:\'",.<>/?',
                     wordWrap: props.type === CodeType.Markdown ? 'on' : 'off',
                     wordWrapBreakAfterCharacters: '\t})]?|&,;',
