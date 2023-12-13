@@ -196,7 +196,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Criteria',
+                    title: 'Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route,
                         { modelId }
