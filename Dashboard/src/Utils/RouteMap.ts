@@ -1100,6 +1100,24 @@ export class RouteUtil {
 
         return tempRoute;
     }
+
+    public static getRoutes(): Array<{ path: string }> {
+        return Object.values(RouteMap).map((route: Route) => {
+            return {
+                path: route.toString(),
+            };
+        });
+    }
+
+    public static getRouteString(key: string): string {
+        return RouteMap[key]?.toString() || '';
+    }
+
+    public static getLastPathForKey(key: string): string {
+        const routePath: string = RouteMap[key]?.toString() || '';
+        const paths: string[] = routePath.split('/');
+        return paths[paths.length - 1] || '';
+    }
 }
 
 export default RouteMap;

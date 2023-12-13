@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -18,7 +18,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import Monitor from 'Model/Models/Monitor';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
@@ -36,43 +35,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
     const [rootCause, setRootCause] = useState<string>('');
 
     return (
-        <ModelPage
-            title="Monitor"
-            modelType={Monitor}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITORS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Monitor',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Status Timeline',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <DisabledWarning monitorId={modelId} />
             <ModelTable<MonitorStatusTimeline>
                 modelType={MonitorStatusTimeline}
@@ -248,7 +211,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
-        </ModelPage>
+        </Fragment>
     );
 };
 
