@@ -21,24 +21,23 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewStatusPage
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SUBSCRIBE_EMAIL
-                              ] as Route)
+                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                            ] as Route)
                             : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route)
                     ),
                 }}
                 icon={IconProp.Email}
             />
-            {/* <SideMenuItem
-            link={{
+            <SideMenuItem
+                link={{
                     title: 'SMS',
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewStatusPage ? RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route : RouteMap[PageMap.SUBSCRIBE_SMS] as Route
                     ),
                 }}
                 icon={IconProp.SMS}
-                
             />
-            <SideMenuItem
+            {/* <SideMenuItem
                 link={{
                     title: 'Webhooks',
                     to: RouteUtil.populateRouteParams(

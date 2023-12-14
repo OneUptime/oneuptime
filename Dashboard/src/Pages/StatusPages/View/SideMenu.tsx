@@ -97,7 +97,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Email}
                 />
-                {/* <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'SMS Subscribers',
                         to: RouteUtil.populateRouteParams(
@@ -107,10 +107,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                              {modelId: props.modelId}
                     ),
                     }}
-                    icon={IconProp.SendMessage}
+                    icon={IconProp.SMS}
                 />
 
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'Webhook Subscribers',
                         to: RouteUtil.populateRouteParams(

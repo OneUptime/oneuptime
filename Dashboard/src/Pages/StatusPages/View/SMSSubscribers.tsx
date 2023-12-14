@@ -7,12 +7,15 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import NotNull from 'Common/Types/Database/NotNull';
+import { JSONObject } from 'Common/Types/JSON';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import { Green, Red } from 'Common/Types/BrandColors';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import StatusPage from 'Model/Models/StatusPage';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
@@ -65,9 +68,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 id="table-subscriber"
                 name="Status Page > SMS Subscribers"
                 isDeleteable={true}
+                showViewIdButton={true}
                 isCreateable={true}
                 isEditable={false}
                 isViewable={false}
+                selectMoreFields={{
+                    subscriberPhone: true,
+                }}
                 query={{
                     statusPageId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
@@ -95,11 +102,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             subscriberPhone: true,
                         },
-                        title: 'Phone Number',
-                        description: 'Phone number to send SMS to.',
+                        title: 'Phone Number for SMS Updates',
+                        description:
+                            'Status page updates will be sent to this phone number.',
                         fieldType: FormFieldSchemaType.Phone,
                         required: true,
-                        placeholder: 'Phone Number',
+                        placeholder: 'Enter Phone Number',
                     },
                 ]}
                 showRefreshButton={true}
@@ -110,9 +118,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             subscriberPhone: true,
                         },
                         title: 'Phone Number',
-                        type: FieldType.Text,
+                        type: FieldType.Phone,
                     },
-
+                    {
+                        field: {
+                            isUnsubscribed: true,
+                        },
+                        title: 'Status',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['isUnsubscribed']) {
+                                return (
+                                    <Pill color={Red} text={'Unsubscribed'} />
+                                );
+                            }
+                            return <Pill color={Green} text={'Subscribed'} />;
+                        },
+                    },
                     {
                         field: {
                             createdAt: true,

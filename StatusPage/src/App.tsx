@@ -17,8 +17,8 @@ import AnnouncementList from './Pages/Announcement/List';
 import AnnouncementDetail from './Pages/Announcement/Detail';
 import ScheduledEventList from './Pages/ScheduledEvent/List';
 import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
-import Subscribe from './Pages/Subscribe/EmailSubscribe';
-
+import EmailSubscribe from './Pages/Subscribe/EmailSubscribe';
+import SMSSubscribe from './Pages/Subscribe/SmsSubscribe';
 // Accounts.
 import Login from './Pages/Accounts/Login';
 import Sso from './Pages/Accounts/SSO';
@@ -233,7 +233,7 @@ const App: () => JSX.Element = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_EVENT_DETAIL
+                                PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -351,13 +351,32 @@ const App: () => JSX.Element = () => {
                         ''
                     }
                     element={
-                        <Subscribe
+                        <EmailSubscribe
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                ] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <SMSSubscribe
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            pageRoute={
+                                RouteMap[
+                                PageMap.PREVIEW_SUBSCRIBE_SMS
                                 ] as Route
                             }
                         />
@@ -387,7 +406,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -407,7 +426,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                         />
@@ -426,7 +445,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_INCIDENT_DETAIL
+                                PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -463,7 +482,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -483,7 +502,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                         />
