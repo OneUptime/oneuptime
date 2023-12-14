@@ -318,13 +318,31 @@ const App: () => JSX.Element = () => {
                 <PageRoute
                     path={RouteMap[PageMap.SUBSCRIBE_EMAIL]?.toString() || ''}
                     element={
-                        <Subscribe
+                        <EmailSubscribe
                             pageRoute={
                                 RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route
                             }
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SUBSCRIBE_SMS]?.toString() || ''}
+                    element={
+                        <SMSSubscribe
+                            pageRoute={
+                                RouteMap[PageMap.SUBSCRIBE_SMS] as Route
+                            }
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
                         />
                     }
                 />
@@ -360,6 +378,8 @@ const App: () => JSX.Element = () => {
                                 PageMap.PREVIEW_SUBSCRIBE_EMAIL
                                 ] as Route
                             }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
                         />
                     }
                 />
@@ -379,6 +399,8 @@ const App: () => JSX.Element = () => {
                                 PageMap.PREVIEW_SUBSCRIBE_SMS
                                 ] as Route
                             }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
                         />
                     }
                 />

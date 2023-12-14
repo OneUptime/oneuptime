@@ -8,6 +8,8 @@ import PageMap from '../../Utils/PageMap';
 
 export interface ComponentProps {
     isPreviewStatusPage: boolean;
+    enableEmailSubscribers: boolean;
+    enableSMSSubscribers: boolean;
 }
 
 const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
@@ -15,7 +17,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <SideMenu>
-            <SideMenuItem
+            {props.enableEmailSubscribers ? <SideMenuItem
                 link={{
                     title: 'Email',
                     to: RouteUtil.populateRouteParams(
@@ -27,8 +29,8 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                     ),
                 }}
                 icon={IconProp.Email}
-            />
-            <SideMenuItem
+            /> : <></>}
+            {props.enableSMSSubscribers ? <SideMenuItem
                 link={{
                     title: 'SMS',
                     to: RouteUtil.populateRouteParams(
@@ -36,7 +38,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                     ),
                 }}
                 icon={IconProp.SMS}
-            />
+            /> : <></>}
             {/* <SideMenuItem
                 link={{
                     title: 'Webhooks',

@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import DatabaseService from './DatabaseService';
-import { OnCreate } from '../Types/Database/Hooks';
+import { OnCreate, OnUpdate } from '../Types/Database/Hooks';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -25,6 +25,8 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import CookieUtil from '../Utils/Cookie';
+import UpdateBy from '../Types/Database/UpdateBy';
+import ProjectService from './ProjectService';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -330,6 +332,43 @@ export class Service extends DatabaseService<StatusPage> {
         }
 
         return statusPageURL;
+    }
+
+
+    protected override async onBeforeUpdate(updateBy: UpdateBy<StatusPage>): Promise<OnUpdate<StatusPage>> {
+        // is enabling SMS subscribers. 
+
+        if(updateBy.data.enableSmsSubscribers){
+
+            const statusPagesToBeUpdated: Array<StatusPage> = await this.findBy({
+                query: updateBy.query,
+                select: {
+                    _id: true,
+                    projectId: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+            });
+
+            for(const statusPage of statusPagesToBeUpdated){
+                const isSMSEnabled = await ProjectService.isSMSNotificationsEnabled(statusPage.projectId!);
+
+                if (!isSMSEnabled) {
+                    throw new BadDataException(
+                        'SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.'
+                    );
+                }
+            }
+        
+        }
+
+        return {
+            carryForward: null, 
+            updateBy: updateBy
+        }
     }
 }
 export default new Service();

@@ -1,5 +1,4 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
@@ -17,9 +16,10 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import SubscribePageProps from './SubscribePageProps';
 
-const SubscribePage: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+const SubscribePage: FunctionComponent<SubscribePageProps> = (
+    props: SubscribePageProps
 ): ReactElement => {
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
@@ -55,10 +55,12 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={
                 <SubscribeSideMenu
-                    isPreviewStatusPage={Boolean(
-                        StatusPageUtil.isPreviewPage()
-                    )}
-                />
+                isPreviewStatusPage={Boolean(
+                    StatusPageUtil.isPreviewPage()
+                )}
+                enableEmailSubscribers={props.enableEmailSubscribers}
+                enableSMSSubscribers={props.enableSMSSubscribers}
+            />
             }
         >
             <div className="justify-center">

@@ -17,6 +17,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import ProjectService from './ProjectService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -30,8 +31,17 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('Status Page ID is required.');
         }
 
+        if (!data.data.projectId) {
+            throw new BadDataException('Project ID is required.');
+        }
+
+
+        const projectId: ObjectID = data.data.projectId;
+
+        let subscriber: Model | null = null;
+
         if (data.data.subscriberEmail) {
-            const subscriber: Model | null = await this.findOneBy({
+            subscriber = await this.findOneBy({
                 query: {
                     statusPageId: data.data.statusPageId,
                     subscriberEmail: data.data.subscriberEmail,
@@ -44,26 +54,54 @@ export class Service extends DatabaseService<Model> {
                     isRoot: true,
                     ignoreHooks: true,
                 },
-            });
+            });  
+        }
 
-            if (subscriber && !subscriber.isUnsubscribed) {
+        if (data.data.subscriberPhone) {
+
+            // check if this project has SMS enabled.
+
+            const isSMSEnabled = await ProjectService.isSMSNotificationsEnabled(projectId);
+
+            if (!isSMSEnabled) {
                 throw new BadDataException(
-                    'You are already subscribed to this status page.'
+                    'SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.'
                 );
             }
 
-            // if the user is unsubscribed, delete this record and it'll create a new one.
-            if (subscriber) {
-                await this.deleteOneBy({
-                    query: {
-                        _id: subscriber?._id as string,
-                    },
-                    props: {
-                        ignoreHooks: true,
-                        isRoot: true,
-                    },
-                });
-            }
+            subscriber = await this.findOneBy({
+                query: {
+                    statusPageId: data.data.statusPageId,
+                    subscriberPhone: data.data.subscriberPhone,
+                },
+                select: {
+                    _id: true,
+                    isUnsubscribed: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });  
+        }
+
+        if (subscriber && !subscriber.isUnsubscribed) {
+            throw new BadDataException(
+                'You are already subscribed to this status page.'
+            );
+        }
+
+        // if the user is unsubscribed, delete this record and it'll create a new one.
+        if (subscriber) {
+            await this.deleteOneBy({
+                query: {
+                    _id: subscriber?._id as string,
+                },
+                props: {
+                    ignoreHooks: true,
+                    isRoot: true,
+                },
+            });
         }
 
         const statuspage: StatusPage | null =
@@ -128,12 +166,12 @@ export class Service extends DatabaseService<Model> {
                         statusPageName: statusPageName,
                         logoUrl: onCreate.carryForward.logoFileId
                             ? new URL(httpProtocol, host)
-                                  .addRoute(FileRoute)
-                                  .addRoute(
-                                      '/image/' +
-                                          onCreate.carryForward.logoFileId
-                                  )
-                                  .toString()
+                                .addRoute(FileRoute)
+                                .addRoute(
+                                    '/image/' +
+                                    onCreate.carryForward.logoFileId
+                                )
+                                .toString()
                             : '',
                         statusPageUrl: statusPageURL,
                         isPublicStatusPage: onCreate.carryForward
@@ -143,7 +181,7 @@ export class Service extends DatabaseService<Model> {
                         unsubscribeUrl: new URL(httpProtocol, host)
                             .addRoute(
                                 '/api/status-page-subscriber/unsubscribe/' +
-                                    createdItem._id.toString()
+                                createdItem._id.toString()
                             )
                             .toString(),
                     },
