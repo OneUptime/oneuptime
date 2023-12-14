@@ -66,7 +66,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 formFields={[
                     {
                         field: {
-                            enableSubscribers: true,
+                            enableEmailSubscribers: true,
                         },
                         title: 'Enable Subscribers',
                         fieldType: FormFieldSchemaType.Toggle,
@@ -82,7 +82,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                enableSubscribers: true,
+                                enableEmailSubscribers: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Enable Subscribers',

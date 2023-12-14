@@ -236,7 +236,7 @@ export default class StatusPageAPI extends BaseAPI<
                         hidePoweredByOneUptimeBranding: true,
                         headerHTML: true,
                         footerHTML: true,
-                        enableSubscribers: true,
+                        enableEmailSubscribers: true,
                         isPublicStatusPage: true,
                         requireSsoForLogin: true,
                         coverImageFile: {
@@ -1091,7 +1091,7 @@ export default class StatusPageAPI extends BaseAPI<
                             select: {
                                 _id: true,
                                 projectId: true,
-                                enableSubscribers: true,
+                                enableEmailSubscribers: true,
                             },
                             props: {
                                 isRoot: true,
@@ -1102,7 +1102,7 @@ export default class StatusPageAPI extends BaseAPI<
                         throw new BadDataException('Status Page not found');
                     }
 
-                    if (!statusPage.enableSubscribers) {
+                    if (!statusPage.enableEmailSubscribers) {
                         throw new BadDataException(
                             'Subscribers not enabled for this status page.'
                         );

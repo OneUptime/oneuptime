@@ -985,7 +985,7 @@ export default class StatusPage extends BaseModel {
         type: ColumnType.Boolean,
         default: true,
     })
-    public enableSubscribers?: boolean = undefined;
+    public enableEmailSubscribers?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [

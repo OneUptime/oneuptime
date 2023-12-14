@@ -10,7 +10,7 @@ export interface ComponentProps {
     show: boolean;
     isPreview: boolean;
     isPrivateStatusPage: boolean;
-    enableSubscribers: boolean;
+    enableEmailSubscribers: boolean;
 }
 
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
@@ -72,7 +72,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 )}
             ></NavBarItem>
 
-            {props.enableSubscribers ? (
+            {props.enableEmailSubscribers ? (
                 <NavBarItem
                     id="subscribe-nav-bar-item"
                     title="Subscribe"
