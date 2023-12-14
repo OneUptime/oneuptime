@@ -24,9 +24,11 @@ import Markdown from 'CommonServer/Types/Markdown';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import SmsService from 'CommonServer/Services/SmsService';
+import SMS from 'Common/Types/SMS/SMS';
 
 RunCron(
-    'Incident:SendEmailToSubscribers',
+    'Incident:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all scheduled events of all the projects.
@@ -176,6 +178,13 @@ RunCron(
 
                 // Send email to Email subscribers.
 
+                const resourcesAffectedString: string =
+                    statusPageToResources[statuspage._id!]
+                        ?.map((r: StatusPageResource) => {
+                            return r.displayName;
+                        })
+                        .join(', ') || 'None'
+
                 for (const subscriber of subscribers) {
                     if (!subscriber._id) {
                         continue;
@@ -194,23 +203,19 @@ RunCron(
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
                                         ? new URL(httpProtocol, host)
-                                              .addRoute(FileRoute)
-                                              .addRoute(
-                                                  '/image/' +
-                                                      statuspage.logoFileId
-                                              )
-                                              .toString()
+                                            .addRoute(FileRoute)
+                                            .addRoute(
+                                                '/image/' +
+                                                statuspage.logoFileId
+                                            )
+                                            .toString()
                                         : '',
                                     isPublicStatusPage:
                                         statuspage.isPublicStatusPage
                                             ? 'true'
                                             : 'false',
                                     resourcesAffected:
-                                        statusPageToResources[statuspage._id!]
-                                            ?.map((r: StatusPageResource) => {
-                                                return r.displayName;
-                                            })
-                                            .join(', ') || 'None',
+                                        resourcesAffectedString,
                                     incidentSeverity:
                                         incident.incidentSeverity?.name ||
                                         ' - ',
@@ -221,7 +226,7 @@ RunCron(
                                     unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
+                                            subscriber._id.toString()
                                         )
                                         .toString(),
                                 },
@@ -236,6 +241,32 @@ RunCron(
                             }
                         ).catch((err: Error) => {
                             logger.error(err);
+                        });
+                    }
+
+                    if (subscriber.subscriberPhone) {
+
+                        const sms: SMS = {
+                            message: `
+                            ${statusPageName} - New Incident
+                            Title: ${incident.title || ''}
+                            Severity: ${incident.incidentSeverity?.name || ' - '}
+                            Resources Affected: ${resourcesAffectedString}
+                            Click here for more info: ${statusPageURL}
+    
+                            To unsubscribe, please click here: ${new URL(httpProtocol, host)
+                                    .addRoute(
+                                        '/api/status-page-subscriber/unsubscribe/' +
+                                        subscriber._id.toString()
+                                    )
+                                    .toString()}
+                            `,
+                            to: subscriber.subscriberPhone,
+                        }
+
+                        // send sms here.
+                        SmsService.sendSms(sms, {
+                            projectId: statuspage.projectId,
                         });
                     }
                 }

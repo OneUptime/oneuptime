@@ -7,6 +7,7 @@ import DataMigrationBase from './DataMigrationBase';
 import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotificationRule';
 import MigrateDefaultUserNotificationSetting from './MigrateDefaultUserSettingNotification';
 import MigrateToMeteredSubscription from './MigrateToMeteredSubscription';
+import MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage from './MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage';
 import UpdateActiveMonitorCountToBillingProvider from './UpdateActiveMonitorCountToBillingProvider';
 import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
 
@@ -23,6 +24,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddDefaultGlobalConfig(),
     new UpdateGlobalConfigFromEnv(),
     new AddPostedAtToPublicNotes(),
+    new MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage(),
 ];
 
 export default DataMigrations;

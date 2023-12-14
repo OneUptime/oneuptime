@@ -14,7 +14,7 @@ import './Jobs/PaymentProvider/PopulatePlanNameInProject';
 import './Jobs/Announcement/SendEmailToSubscribers';
 
 // Incidents
-import './Jobs/Incident/SendEmailToSubscribers';
+import './Jobs/Incident/SendNotificationToSubscribers';
 import './Jobs/IncidentStateTimeline/SendEmailToSubscribers';
 
 // Incident Notes

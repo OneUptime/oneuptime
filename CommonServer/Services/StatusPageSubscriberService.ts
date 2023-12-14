@@ -59,9 +59,8 @@ export class Service extends DatabaseService<Model> {
         if (data.data.subscriberPhone) {
             // check if this project has SMS enabled.
 
-            const isSMSEnabled: boolean = await ProjectService.isSMSNotificationsEnabled(
-                projectId
-            );
+            const isSMSEnabled: boolean =
+                await ProjectService.isSMSNotificationsEnabled(projectId);
 
             if (!isSMSEnabled) {
                 throw new BadDataException(
