@@ -104,8 +104,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                             ] as Route,
-                             {modelId: props.modelId}
-                    ),
+                            { modelId: props.modelId }
+                        ),
                     }}
                     icon={IconProp.SMS}
                 />

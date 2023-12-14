@@ -35,7 +35,6 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('Project ID is required.');
         }
 
-
         const projectId: ObjectID = data.data.projectId;
 
         let subscriber: Model | null = null;
@@ -54,14 +53,15 @@ export class Service extends DatabaseService<Model> {
                     isRoot: true,
                     ignoreHooks: true,
                 },
-            });  
+            });
         }
 
         if (data.data.subscriberPhone) {
-
             // check if this project has SMS enabled.
 
-            const isSMSEnabled = await ProjectService.isSMSNotificationsEnabled(projectId);
+            const isSMSEnabled: boolean = await ProjectService.isSMSNotificationsEnabled(
+                projectId
+            );
 
             if (!isSMSEnabled) {
                 throw new BadDataException(
@@ -82,7 +82,7 @@ export class Service extends DatabaseService<Model> {
                     isRoot: true,
                     ignoreHooks: true,
                 },
-            });  
+            });
         }
 
         if (subscriber && !subscriber.isUnsubscribed) {
@@ -166,12 +166,12 @@ export class Service extends DatabaseService<Model> {
                         statusPageName: statusPageName,
                         logoUrl: onCreate.carryForward.logoFileId
                             ? new URL(httpProtocol, host)
-                                .addRoute(FileRoute)
-                                .addRoute(
-                                    '/image/' +
-                                    onCreate.carryForward.logoFileId
-                                )
-                                .toString()
+                                  .addRoute(FileRoute)
+                                  .addRoute(
+                                      '/image/' +
+                                          onCreate.carryForward.logoFileId
+                                  )
+                                  .toString()
                             : '',
                         statusPageUrl: statusPageURL,
                         isPublicStatusPage: onCreate.carryForward
@@ -181,7 +181,7 @@ export class Service extends DatabaseService<Model> {
                         unsubscribeUrl: new URL(httpProtocol, host)
                             .addRoute(
                                 '/api/status-page-subscriber/unsubscribe/' +
-                                createdItem._id.toString()
+                                    createdItem._id.toString()
                             )
                             .toString(),
                     },

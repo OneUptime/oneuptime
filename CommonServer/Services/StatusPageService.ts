@@ -334,27 +334,32 @@ export class Service extends DatabaseService<StatusPage> {
         return statusPageURL;
     }
 
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<StatusPage>
+    ): Promise<OnUpdate<StatusPage>> {
+        // is enabling SMS subscribers.
 
-    protected override async onBeforeUpdate(updateBy: UpdateBy<StatusPage>): Promise<OnUpdate<StatusPage>> {
-        // is enabling SMS subscribers. 
+        if (updateBy.data.enableSmsSubscribers) {
+            const statusPagesToBeUpdated: Array<StatusPage> = await this.findBy(
+                {
+                    query: updateBy.query,
+                    select: {
+                        _id: true,
+                        projectId: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                }
+            );
 
-        if(updateBy.data.enableSmsSubscribers){
-
-            const statusPagesToBeUpdated: Array<StatusPage> = await this.findBy({
-                query: updateBy.query,
-                select: {
-                    _id: true,
-                    projectId: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-            });
-
-            for(const statusPage of statusPagesToBeUpdated){
-                const isSMSEnabled = await ProjectService.isSMSNotificationsEnabled(statusPage.projectId!);
+            for (const statusPage of statusPagesToBeUpdated) {
+                const isSMSEnabled: boolean =
+                    await ProjectService.isSMSNotificationsEnabled(
+                        statusPage.projectId!
+                    );
 
                 if (!isSMSEnabled) {
                     throw new BadDataException(
@@ -362,13 +367,12 @@ export class Service extends DatabaseService<StatusPage> {
                     );
                 }
             }
-        
         }
 
         return {
-            carryForward: null, 
-            updateBy: updateBy
-        }
+            carryForward: null,
+            updateBy: updateBy,
+        };
     }
 }
 export default new Service();

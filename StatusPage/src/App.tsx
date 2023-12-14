@@ -43,8 +43,10 @@ const App: () => JSX.Element = () => {
     Navigation.setParams(useParams());
 
     const [isPreview, setIsPreview] = useState<boolean>(false);
-    const [enableEmailSubscribers, setenableEmailSubscribers] = useState<boolean>(true);
-    const [enableSMSSubscribers, setenableSMSSubscribers] = useState<boolean>(false);
+    const [enableEmailSubscribers, setenableEmailSubscribers] =
+        useState<boolean>(true);
+    const [enableSMSSubscribers, setenableSMSSubscribers] =
+        useState<boolean>(false);
     const [statusPageName, setStatusPageName] = useState<string>('');
     const [statusPageLogoFileId, setStatusPageLogoFileId] =
         useState<string>('');
@@ -233,7 +235,7 @@ const App: () => JSX.Element = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_EVENT_DETAIL
+                                    PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -335,9 +337,7 @@ const App: () => JSX.Element = () => {
                     path={RouteMap[PageMap.SUBSCRIBE_SMS]?.toString() || ''}
                     element={
                         <SMSSubscribe
-                            pageRoute={
-                                RouteMap[PageMap.SUBSCRIBE_SMS] as Route
-                            }
+                            pageRoute={RouteMap[PageMap.SUBSCRIBE_SMS] as Route}
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
@@ -375,7 +375,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                    PageMap.PREVIEW_SUBSCRIBE_EMAIL
                                 ] as Route
                             }
                             enableEmailSubscribers={enableEmailSubscribers}
@@ -395,9 +395,7 @@ const App: () => JSX.Element = () => {
                                 onPageLoadComplete();
                             }}
                             pageRoute={
-                                RouteMap[
-                                PageMap.PREVIEW_SUBSCRIBE_SMS
-                                ] as Route
+                                RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route
                             }
                             enableEmailSubscribers={enableEmailSubscribers}
                             enableSMSSubscribers={enableSMSSubscribers}
@@ -428,7 +426,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -448,7 +446,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                         />
@@ -467,7 +465,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_INCIDENT_DETAIL
+                                    PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -504,7 +502,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -524,7 +522,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                         />

@@ -607,7 +607,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 (resource: StatusPageResource) => {
                                     return (
                                         resource.monitorGroupId?.toString() ===
-                                        monitorGroupId.toString() &&
+                                            monitorGroupId.toString() &&
                                         (resource.showStatusHistoryChart ||
                                             resource.showUptimePercent)
                                     );
@@ -1105,13 +1105,19 @@ export default class StatusPageAPI extends BaseAPI<
                         throw new BadDataException('Status Page not found');
                     }
 
-                    if (req.body.data['subscriberEmail'] && !statusPage.enableEmailSubscribers) {
+                    if (
+                        req.body.data['subscriberEmail'] &&
+                        !statusPage.enableEmailSubscribers
+                    ) {
                         throw new BadDataException(
                             'Email subscribers not enabled for this status page.'
                         );
                     }
 
-                    if (req.body.data['subscriberPhone'] && !statusPage.enableSmsSubscribers) {
+                    if (
+                        req.body.data['subscriberPhone'] &&
+                        !statusPage.enableSmsSubscribers
+                    ) {
                         throw new BadDataException(
                             'SMS subscribers not enabled for this status page.'
                         );
@@ -1128,17 +1134,21 @@ export default class StatusPageAPI extends BaseAPI<
                         );
                     }
 
+                    const email: Email | undefined = req.body.data[
+                        'subscriberEmail'
+                    ]
+                        ? new Email(req.body.data['subscriberEmail'] as string)
+                        : undefined;
 
-
-                    const email: Email | undefined = req.body.data['subscriberEmail'] ? new Email(
-                        req.body.data['subscriberEmail'] as string
-                    ) : undefined;
-
-                    const phone: Phone | undefined = req.body.data['subscriberPhone'] ? new Phone(req.body.data['subscriberPhone'] as string) : undefined;
+                    const phone: Phone | undefined = req.body.data[
+                        'subscriberPhone'
+                    ]
+                        ? new Phone(req.body.data['subscriberPhone'] as string)
+                        : undefined;
 
                     const statusPageSubscriber: StatusPageSubscriber =
                         new StatusPageSubscriber();
-                        
+
                     if (email) {
                         statusPageSubscriber.subscriberEmail = email;
                     }

@@ -955,8 +955,7 @@ export default class StatusPage extends BaseModel {
     })
     public showScheduledEventLabelsOnStatusPage?: boolean = undefined;
 
-
-    // This column is Deprectaed. 
+    // This column is Deprectaed.
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -989,7 +988,6 @@ export default class StatusPage extends BaseModel {
     })
     public enableSubscribers?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -1021,7 +1019,6 @@ export default class StatusPage extends BaseModel {
         default: true,
     })
     public enableEmailSubscribers?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [

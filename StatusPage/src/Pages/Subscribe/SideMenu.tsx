@@ -17,28 +17,40 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <SideMenu>
-            {props.enableEmailSubscribers ? <SideMenuItem
-                link={{
-                    title: 'Email',
-                    to: RouteUtil.populateRouteParams(
-                        props.isPreviewStatusPage
-                            ? (RouteMap[
-                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
-                            ] as Route)
-                            : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route)
-                    ),
-                }}
-                icon={IconProp.Email}
-            /> : <></>}
-            {props.enableSMSSubscribers ? <SideMenuItem
-                link={{
-                    title: 'SMS',
-                    to: RouteUtil.populateRouteParams(
-                        props.isPreviewStatusPage ? RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route : RouteMap[PageMap.SUBSCRIBE_SMS] as Route
-                    ),
-                }}
-                icon={IconProp.SMS}
-            /> : <></>}
+            {props.enableEmailSubscribers ? (
+                <SideMenuItem
+                    link={{
+                        title: 'Email',
+                        to: RouteUtil.populateRouteParams(
+                            props.isPreviewStatusPage
+                                ? (RouteMap[
+                                      PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                  ] as Route)
+                                : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route)
+                        ),
+                    }}
+                    icon={IconProp.Email}
+                />
+            ) : (
+                <></>
+            )}
+            {props.enableSMSSubscribers ? (
+                <SideMenuItem
+                    link={{
+                        title: 'SMS',
+                        to: RouteUtil.populateRouteParams(
+                            props.isPreviewStatusPage
+                                ? (RouteMap[
+                                      PageMap.PREVIEW_SUBSCRIBE_SMS
+                                  ] as Route)
+                                : (RouteMap[PageMap.SUBSCRIBE_SMS] as Route)
+                        ),
+                    }}
+                    icon={IconProp.SMS}
+                />
+            ) : (
+                <></>
+            )}
             {/* <SideMenuItem
                 link={{
                     title: 'Webhooks',

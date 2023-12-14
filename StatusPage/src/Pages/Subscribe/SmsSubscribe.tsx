@@ -55,12 +55,12 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             ]}
             sideMenu={
                 <SubscribeSideMenu
-                isPreviewStatusPage={Boolean(
-                    StatusPageUtil.isPreviewPage()
-                )}
-                enableEmailSubscribers={props.enableEmailSubscribers}
-                enableSMSSubscribers={props.enableSMSSubscribers}
-            />
+                    isPreviewStatusPage={Boolean(
+                        StatusPageUtil.isPreviewPage()
+                    )}
+                    enableEmailSubscribers={props.enableEmailSubscribers}
+                    enableSMSSubscribers={props.enableSMSSubscribers}
+                />
             }
         >
             <div className="justify-center">
@@ -93,8 +93,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                             fieldType:
                                                 FormFieldSchemaType.Phone,
                                             required: true,
-                                            placeholder:
-                                                '+1-234-567-8901',
+                                            placeholder: '+1-234-567-8901',
                                         },
                                     ]}
                                     apiUrl={URL.fromString(

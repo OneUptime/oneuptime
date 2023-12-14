@@ -1143,8 +1143,9 @@ export class Service extends DatabaseService<Model> {
         });
     }
 
-
-    public async isSMSNotificationsEnabled(projectId: ObjectID): Promise<boolean> {
+    public async isSMSNotificationsEnabled(
+        projectId: ObjectID
+    ): Promise<boolean> {
         const project: Model | null = await this.findOneById({
             id: projectId,
             select: {
@@ -1159,7 +1160,7 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('Project not found');
         }
 
-        return !!project.enableSmsNotifications;
+        return Boolean(project.enableSmsNotifications);
     }
 }
 export default new Service();

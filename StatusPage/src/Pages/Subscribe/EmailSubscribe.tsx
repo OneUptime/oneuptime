@@ -18,8 +18,6 @@ import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import SubscribePageProps from './SubscribePageProps';
 
-
-
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps
 ): ReactElement => {
