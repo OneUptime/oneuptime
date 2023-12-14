@@ -11,26 +11,25 @@ export default class MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage e
     public override async migrate(): Promise<void> {
         // get all the users with email isVerified true.
 
-        const tempStatusPage = new StatusPage();
+        const tempStatusPage: StatusPage = new StatusPage();
 
-        if(!tempStatusPage.getTableColumnMetadata("enableSubscribers")){
+        if (!tempStatusPage.getTableColumnMetadata('enableSubscribers')) {
             // this column does not exist, so we can skip this migration.
-            return; 
+            return;
         }
 
-        const statusPages: Array<StatusPage> =
-            await StatusPageService.findBy({
-                query: {},
-                select: {
-                    _id: true,
-                    enableSubscribers: true,
-                },
-                skip: 0,
-                limit: LIMIT_MAX,
-                props: {
-                    isRoot: true,
-                },
-            });
+        const statusPages: Array<StatusPage> = await StatusPageService.findBy({
+            query: {},
+            select: {
+                _id: true,
+                enableSubscribers: true,
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+            props: {
+                isRoot: true,
+            },
+        });
 
         for (const statusPage of statusPages) {
             await StatusPageService.updateOneById({
@@ -43,7 +42,6 @@ export default class MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage e
                 },
             });
         }
-
     }
 
     public override async rollback(): Promise<void> {

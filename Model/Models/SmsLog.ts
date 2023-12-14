@@ -180,7 +180,7 @@ export default class SmsLog extends BaseModel {
     })
     @Column({
         nullable: true,
-        type: ColumnType.VeryLongText
+        type: ColumnType.VeryLongText,
     })
     public smsText?: string = undefined;
 

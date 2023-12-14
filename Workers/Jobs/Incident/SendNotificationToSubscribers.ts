@@ -31,7 +31,6 @@ RunCron(
     'Incident:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-
         // get all scheduled events of all the projects.
         const incidents: Array<Incident> = await IncidentService.findBy({
             query: {
@@ -184,7 +183,7 @@ RunCron(
                         ?.map((r: StatusPageResource) => {
                             return r.displayName;
                         })
-                        .join(', ') || 'None'
+                        .join(', ') || 'None';
 
                 for (const subscriber of subscribers) {
                     if (!subscriber._id) {
@@ -204,19 +203,18 @@ RunCron(
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
                                         ? new URL(httpProtocol, host)
-                                            .addRoute(FileRoute)
-                                            .addRoute(
-                                                '/image/' +
-                                                statuspage.logoFileId
-                                            )
-                                            .toString()
+                                              .addRoute(FileRoute)
+                                              .addRoute(
+                                                  '/image/' +
+                                                      statuspage.logoFileId
+                                              )
+                                              .toString()
                                         : '',
                                     isPublicStatusPage:
                                         statuspage.isPublicStatusPage
                                             ? 'true'
                                             : 'false',
-                                    resourcesAffected:
-                                        resourcesAffectedString,
+                                    resourcesAffected: resourcesAffectedString,
                                     incidentSeverity:
                                         incident.incidentSeverity?.name ||
                                         ' - ',
@@ -227,7 +225,7 @@ RunCron(
                                     unsubscribeUrl: new URL(httpProtocol, host)
                                         .addRoute(
                                             '/api/status-page-subscriber/unsubscribe/' +
-                                            subscriber._id.toString()
+                                                subscriber._id.toString()
                                         )
                                         .toString(),
                                 },
@@ -246,32 +244,38 @@ RunCron(
                     }
 
                     if (subscriber.subscriberPhone) {
-
                         const sms: SMS = {
                             message: `
                             ${statusPageName} - New Incident \n\n
 
                             Title: ${incident.title || ''} \n\n
 
-                            Severity: ${incident.incidentSeverity?.name || ' - '} \n\n
+                            Severity: ${
+                                incident.incidentSeverity?.name || ' - '
+                            } \n\n
 
                             Resources Affected: ${resourcesAffectedString} \n\n
 
                             Click here for more info: ${statusPageURL} \n\n
     
-                            To unsubscribe, please click here: ${new URL(httpProtocol, host)
-                                    .addRoute(
-                                        '/api/status-page-subscriber/unsubscribe/' +
+                            To unsubscribe, please click here: ${new URL(
+                                httpProtocol,
+                                host
+                            )
+                                .addRoute(
+                                    '/api/status-page-subscriber/unsubscribe/' +
                                         subscriber._id.toString()
-                                    )
-                                    .toString()}
+                                )
+                                .toString()}
                             `,
                             to: subscriber.subscriberPhone,
-                        }
+                        };
 
                         // send sms here.
                         SmsService.sendSms(sms, {
                             projectId: statuspage.projectId,
+                        }).catch((err: Error) => {
+                            logger.error(err);
                         });
                     }
                 }

@@ -32,10 +32,8 @@ export default class SmsService {
             userOnCallLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
-
-        
         // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
-        let smsSegments: number = Math.ceil(message.length / 160);
+        const smsSegments: number = Math.ceil(message.length / 160);
 
         let smsCost: number = 0;
 
