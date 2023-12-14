@@ -955,6 +955,8 @@ export default class StatusPage extends BaseModel {
     })
     public showScheduledEventLabelsOnStatusPage?: boolean = undefined;
 
+
+    // This column is Deprectaed. 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -985,7 +987,73 @@ export default class StatusPage extends BaseModel {
         type: ColumnType.Boolean,
         default: true,
     })
+    public enableSubscribers?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable Email Subscribers',
+        description: 'Can email subscribers subscribe to this Status Page?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
     public enableEmailSubscribers?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable SMS Subscribers',
+        description: 'Can SMS subscribers subscribe to this Status Page?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public enableSmsSubscribers?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [

@@ -44,6 +44,7 @@ const App: () => JSX.Element = () => {
 
     const [isPreview, setIsPreview] = useState<boolean>(false);
     const [enableEmailSubscribers, setenableEmailSubscribers] = useState<boolean>(true);
+    const [enableSMSSubscribers, setenableSMSSubscribers] = useState<boolean>(false);
     const [statusPageName, setStatusPageName] = useState<string>('');
     const [statusPageLogoFileId, setStatusPageLogoFileId] =
         useState<string>('');
@@ -71,6 +72,7 @@ const App: () => JSX.Element = () => {
     return (
         <MasterPage
             isPreview={isPreview}
+            enableSMSSubscribers={enableSMSSubscribers}
             enableEmailSubscribers={enableEmailSubscribers}
             isPrivateStatusPage={isPrivateStatusPage}
             onLoadComplete={(masterpage: JSONObject) => {
@@ -117,6 +119,13 @@ const App: () => JSX.Element = () => {
                         'statusPage.enableEmailSubscribers'
                     ) as boolean;
 
+                const enableSMSSubscribers: boolean =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.enableSmsSubscribers'
+                    ) as boolean;
+
+                setenableSMSSubscribers(enableSMSSubscribers);
                 setenableEmailSubscribers(enableEmailSubscribers);
 
                 StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);

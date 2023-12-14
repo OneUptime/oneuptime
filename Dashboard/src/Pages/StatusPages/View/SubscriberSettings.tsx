@@ -68,11 +68,21 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             enableEmailSubscribers: true,
                         },
-                        title: 'Enable Subscribers',
+                        title: 'Enable Email Subscribers',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                         placeholder:
-                            'Can subscribers subscribe to this status page?',
+                            'Can email subscribers subscribe to this status page?',
+                    },
+                    {
+                        field: {
+                            enableSmsSubscribers: true,
+                        },
+                        title: 'Enable SMS Subscribers',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                        placeholder:
+                            'Can SMS subscribers subscribe to this status page?',
                     },
                 ]}
                 modelDetailProps={{
@@ -85,7 +95,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 enableEmailSubscribers: true,
                             },
                             fieldType: FieldType.Boolean,
-                            title: 'Enable Subscribers',
+                            title: 'Enable Email Subscribers',
+                        },
+                        {
+                            field: {
+                                enableSmsSubscribers: true,
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Enable SMS Subscribers',
                         },
                     ],
                     modelId: modelId,

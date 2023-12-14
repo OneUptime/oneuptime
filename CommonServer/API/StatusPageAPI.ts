@@ -71,6 +71,7 @@ import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from '../Services/ScheduledMaintenanceStateService';
 import BaseModel from 'Common/Models/BaseModel';
 import CommonAPI from './CommonAPI';
+import Phone from 'Common/Types/Phone';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -237,6 +238,7 @@ export default class StatusPageAPI extends BaseAPI<
                         headerHTML: true,
                         footerHTML: true,
                         enableEmailSubscribers: true,
+                        enableSmsSubscribers: true,
                         isPublicStatusPage: true,
                         requireSsoForLogin: true,
                         coverImageFile: {
@@ -605,7 +607,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 (resource: StatusPageResource) => {
                                     return (
                                         resource.monitorGroupId?.toString() ===
-                                            monitorGroupId.toString() &&
+                                        monitorGroupId.toString() &&
                                         (resource.showStatusHistoryChart ||
                                             resource.showUptimePercent)
                                     );
@@ -1092,6 +1094,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 _id: true,
                                 projectId: true,
                                 enableEmailSubscribers: true,
+                                enableSmsSubscribers: true,
                             },
                             props: {
                                 isRoot: true,
@@ -1102,19 +1105,48 @@ export default class StatusPageAPI extends BaseAPI<
                         throw new BadDataException('Status Page not found');
                     }
 
-                    if (!statusPage.enableEmailSubscribers) {
+                    if (req.body.data['subscriberEmail'] && !statusPage.enableEmailSubscribers) {
                         throw new BadDataException(
-                            'Subscribers not enabled for this status page.'
+                            'Email subscribers not enabled for this status page.'
                         );
                     }
 
-                    const email: Email = new Email(
+                    if (req.body.data['subscriberPhone'] && !statusPage.enableSmsSubscribers) {
+                        throw new BadDataException(
+                            'SMS subscribers not enabled for this status page.'
+                        );
+                    }
+
+                    // if no email or phone, throw error.
+
+                    if (
+                        !req.body.data['subscriberEmail'] &&
+                        !req.body.data['subscriberPhone']
+                    ) {
+                        throw new BadDataException(
+                            'Email or phone is required to subscribe to this status page.'
+                        );
+                    }
+
+
+
+                    const email: Email | undefined = req.body.data['subscriberEmail'] ? new Email(
                         req.body.data['subscriberEmail'] as string
-                    );
+                    ) : undefined;
+
+                    const phone: Phone | undefined = req.body.data['subscriberPhone'] ? new Phone(req.body.data['subscriberPhone'] as string) : undefined;
 
                     const statusPageSubscriber: StatusPageSubscriber =
                         new StatusPageSubscriber();
-                    statusPageSubscriber.subscriberEmail = email;
+                        
+                    if (email) {
+                        statusPageSubscriber.subscriberEmail = email;
+                    }
+
+                    if (phone) {
+                        statusPageSubscriber.subscriberPhone = phone;
+                    }
+
                     statusPageSubscriber.statusPageId = objectId;
                     statusPageSubscriber.projectId = statusPage.projectId!;
 
