@@ -3,6 +3,7 @@ import StatusPageSubscriberService from 'CommonServer/Services/StatusPageSubscri
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import IncidentService from 'CommonServer/Services/IncidentService';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import { FileRoute } from 'Common/ServiceRoute';
@@ -10,33 +11,31 @@ import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
+import Incident from 'Model/Models/Incident';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import StatusPageResourceService from 'CommonServer/Services/StatusPageResourceService';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
-import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import Markdown from 'CommonServer/Types/Markdown';
+import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import SMS from 'Common/Types/SMS/SMS';
+import SmsService from 'CommonServer/Services/SmsService';
 
 RunCron(
-    'ScheduledMaintenance:SendEmailToSubscribers',
+    'IncidentStateTimeline:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-        // get all scheduled events of all the projects.
-        const scheduledEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
+        const incidentStateTimelines: Array<IncidentStateTimeline> =
+            await IncidentStateTimelineService.findBy({
                 query: {
-                    isStatusPageSubscribersNotifiedOnEventScheduled: false,
+                    isStatusPageSubscribersNotified: false,
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),
@@ -48,26 +47,22 @@ RunCron(
                 skip: 0,
                 select: {
                     _id: true,
-                    title: true,
-                    description: true,
-                    startsAt: true,
-                    monitors: {
-                        _id: true,
+                    incidentId: true,
+                    incidentStateId: true,
+                    incidentState: {
+                        name: true,
                     },
                 },
             });
 
-        for (const event of scheduledEvents) {
-            if (!event.monitors || event.monitors.length === 0) {
-                continue;
-            }
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-            // update the flag.
-
-            await ScheduledMaintenanceService.updateOneById({
-                id: event.id!,
+        for (const incidentStateTimeline of incidentStateTimelines) {
+            await IncidentStateTimelineService.updateOneById({
+                id: incidentStateTimeline.id!,
                 data: {
-                    isStatusPageSubscribersNotifiedOnEventScheduled: true,
+                    isStatusPageSubscribersNotified: true,
                 },
                 props: {
                     isRoot: true,
@@ -75,13 +70,54 @@ RunCron(
                 },
             });
 
+            if (
+                !incidentStateTimeline.incidentId ||
+                !incidentStateTimeline.incidentStateId
+            ) {
+                continue;
+            }
+
+            if (!incidentStateTimeline.incidentState?.name) {
+                continue;
+            }
+
+            // get all scheduled events of all the projects.
+            const incident: Incident | null = await IncidentService.findOneById(
+                {
+                    id: incidentStateTimeline.incidentId!,
+                    props: {
+                        isRoot: true,
+                    },
+
+                    select: {
+                        _id: true,
+                        title: true,
+                        description: true,
+                        monitors: {
+                            _id: true,
+                        },
+                        incidentSeverity: {
+                            name: true,
+                        },
+                    },
+                }
+            );
+
+            if (!incident) {
+                continue;
+            }
+
+            if (!incident.monitors || incident.monitors.length === 0) {
+                continue;
+            }
+
             // get status page resources from monitors.
 
             const statusPageResources: Array<StatusPageResource> =
                 await StatusPageResourceService.findBy({
                     query: {
                         monitorId: QueryHelper.in(
-                            event.monitors
+                            incident.monitors
                                 .filter((m: Monitor) => {
                                     return m._id;
                                 })
@@ -174,7 +210,6 @@ RunCron(
 
                 const statusPageURL: string =
                     await StatusPageService.getStatusPageURL(statuspage.id);
-
                 const statusPageName: string =
                     statuspage.pageTitle || statuspage.name || 'Status Page';
 
@@ -185,6 +220,37 @@ RunCron(
                         continue;
                     }
 
+                    const unsubscribeUrl: string = new URL(httpProtocol, host)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                subscriber._id.toString()
+                        )
+                        .toString();
+
+                    if (subscriber.subscriberPhone) {
+                        const sms: SMS = {
+                            message: `
+                            ${statusPageName} - ${
+                                incident.title || ''
+                            } state changed to ${
+                                incidentStateTimeline.incidentState.name
+                            }
+
+                            To view this incident, visit ${statusPageURL}
+
+                            To unsubscribe from this status page, visit ${unsubscribeUrl}
+                            `,
+                            to: subscriber.subscriberPhone,
+                        };
+
+                        // send sms here.
+                        SmsService.sendSms(sms, {
+                            projectId: statuspage.projectId,
+                        }).catch((err: Error) => {
+                            logger.error(err);
+                        });
+                    }
+
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
@@ -192,7 +258,7 @@ RunCron(
                             {
                                 toEmail: subscriber.subscriberEmail,
                                 templateType:
-                                    EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                                    EmailTemplateType.SubscriberIncidentStateChanged,
                                 vars: {
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
@@ -215,31 +281,29 @@ RunCron(
                                                 return r.displayName;
                                             })
                                             .join(', ') || 'None',
-                                    scheduledAt:
-                                        OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-                                            event.startsAt!
-                                        ),
-                                    eventTitle: event.title || '',
-                                    eventDescription: Markdown.convertToHTML(
-                                        event.description || ''
-                                    ),
-                                    unsubscribeUrl: new URL(httpProtocol, host)
-                                        .addRoute(
-                                            '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
-                                        )
-                                        .toString(),
+                                    incidentSeverity:
+                                        incident.incidentSeverity?.name ||
+                                        ' - ',
+                                    incidentTitle: incident.title || '',
+                                    incidentDescription:
+                                        incident.description || '',
+
+                                    incidentState:
+                                        incidentStateTimeline.incidentState
+                                            .name,
+                                    unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
                                     statusPageName +
-                                    ` - 'New Scheduled Maintenance`,
+                                    ' - Incident state changed to ' +
+                                    incidentStateTimeline.incidentState.name,
                             },
                             {
                                 mailServer:
-                                    ProjectSmtpConfigService.toEmailServer(
+                                    ProjectSMTPConfigService.toEmailServer(
                                         statuspage.smtpConfig
                                     ),
-                                projectId: statuspage.projectId!,
+                                projectId: statuspage.projectId,
                             }
                         ).catch((err: Error) => {
                             logger.error(err);

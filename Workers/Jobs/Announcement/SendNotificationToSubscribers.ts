@@ -19,9 +19,11 @@ import Markdown from 'CommonServer/Types/Markdown';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import SMS from 'Common/Types/SMS/SMS';
+import SmsService from 'CommonServer/Services/SmsService';
 
 RunCron(
-    'Announcement:SendEmailToSubscribers',
+    'Announcement:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all scheduled events of all the projects.
@@ -130,6 +132,35 @@ RunCron(
                         continue;
                     }
 
+                    const unsubscribeUrl: string = new URL(httpProtocol, host)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                subscriber._id.toString()
+                        )
+                        .toString();
+
+                    if (subscriber.subscriberPhone) {
+                        const sms: SMS = {
+                            message: `
+                            ${statusPageName} - New Announcement
+
+                            ${announcement.title || ''}
+
+                            To view this announcement, visit ${statusPageURL}
+
+                            To unsubscribe from this status page, visit ${unsubscribeUrl}
+                            `,
+                            to: subscriber.subscriberPhone,
+                        };
+
+                        // send sms here.
+                        SmsService.sendSms(sms, {
+                            projectId: statuspage.projectId,
+                        }).catch((err: Error) => {
+                            logger.error(err);
+                        });
+                    }
+
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
@@ -159,12 +190,7 @@ RunCron(
                                         Markdown.convertToHTML(
                                             announcement.description || ''
                                         ),
-                                    unsubscribeUrl: new URL(httpProtocol, host)
-                                        .addRoute(
-                                            '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
-                                        )
-                                        .toString(),
+                                    unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject: statusPageName + ' - New Announcement',
                             },

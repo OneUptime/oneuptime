@@ -19,27 +19,26 @@ import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
-import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
-import Markdown from 'CommonServer/Types/Markdown';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import Protocol from 'Common/Types/API/Protocol';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import ScheduledMaintenanceStateTimelineService from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import SMS from 'Common/Types/SMS/SMS';
+import SmsService from 'CommonServer/Services/SmsService';
 
 RunCron(
-    'ScheduledMaintenancePublicNote:SendEmailToSubscribers',
+    'ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        // get all incident notes of all the projects
-
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        const publicNotes: Array<ScheduledMaintenancePublicNote> =
-            await ScheduledMaintenancePublicNoteService.findBy({
+        const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+            await ScheduledMaintenanceStateTimelineService.findBy({
                 query: {
-                    isStatusPageSubscribersNotifiedOnNoteCreated: false,
+                    isStatusPageSubscribersNotified: false,
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),
@@ -51,19 +50,45 @@ RunCron(
                 skip: 0,
                 select: {
                     _id: true,
-                    note: true,
                     scheduledMaintenanceId: true,
+                    scheduledMaintenanceStateId: true,
+                    scheduledMaintenanceState: {
+                        name: true,
+                    },
                 },
             });
 
-        for (const publicNote of publicNotes) {
+        for (const scheduledEventStateTimeline of scheduledEventStateTimelines) {
+            await ScheduledMaintenanceStateTimelineService.updateOneById({
+                id: scheduledEventStateTimeline.id!,
+                data: {
+                    isStatusPageSubscribersNotified: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+
+            if (
+                !scheduledEventStateTimeline.scheduledMaintenanceId ||
+                !scheduledEventStateTimeline.scheduledMaintenanceStateId
+            ) {
+                continue;
+            }
+
+            if (!scheduledEventStateTimeline.scheduledMaintenanceState?.name) {
+                continue;
+            }
+
             // get all scheduled events of all the projects.
             const event: ScheduledMaintenance | null =
                 await ScheduledMaintenanceService.findOneById({
-                    id: publicNote.scheduledMaintenanceId!,
+                    id: scheduledEventStateTimeline.scheduledMaintenanceId!,
                     props: {
                         isRoot: true,
                     },
+
                     select: {
                         _id: true,
                         title: true,
@@ -82,17 +107,6 @@ RunCron(
             if (!event.monitors || event.monitors.length === 0) {
                 continue;
             }
-
-            await ScheduledMaintenancePublicNoteService.updateOneById({
-                id: publicNote.id!,
-                data: {
-                    isStatusPageSubscribersNotifiedOnNoteCreated: true,
-                },
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
 
             // get status page resources from monitors.
 
@@ -204,6 +218,38 @@ RunCron(
                         continue;
                     }
 
+                    const unsubscribeUrl: string = new URL(httpProtocol, host)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                subscriber._id.toString()
+                        )
+                        .toString();
+
+                    if (subscriber.subscriberPhone) {
+                        const sms: SMS = {
+                            message: `
+                                    ${statusPageName} - Scheduled maintenance event - ${
+                                event.title || ''
+                            } - state changed to ${
+                                scheduledEventStateTimeline
+                                    .scheduledMaintenanceState?.name
+                            }
+                                    
+                                    To view this note, visit ${statusPageURL}
+        
+                                    To unsubscribe from this status page, visit ${unsubscribeUrl}
+                                    `,
+                            to: subscriber.subscriberPhone,
+                        };
+
+                        // send sms here.
+                        SmsService.sendSms(sms, {
+                            projectId: statuspage.projectId,
+                        }).catch((err: Error) => {
+                            logger.error(err);
+                        });
+                    }
+
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
@@ -211,11 +257,8 @@ RunCron(
                             {
                                 toEmail: subscriber.subscriberEmail,
                                 templateType:
-                                    EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
+                                    EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
                                 vars: {
-                                    note: Markdown.convertToHTML(
-                                        publicNote.note!
-                                    ),
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
@@ -238,29 +281,29 @@ RunCron(
                                             })
                                             .join(', ') || 'None',
 
+                                    eventState:
+                                        scheduledEventStateTimeline
+                                            .scheduledMaintenanceState?.name ||
+                                        '',
+
                                     scheduledAt:
                                         OneUptimeDate.getDateAsFormattedString(
                                             event.startsAt!
                                         ),
                                     eventTitle: event.title || '',
                                     eventDescription: event.description || '',
-                                    unsubscribeUrl: new URL(httpProtocol, host)
-                                        .addRoute(
-                                            '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
-                                        )
-                                        .toString(),
+                                    unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
                                     statusPageName +
-                                    ` - New note has been posted to maintenance event`,
+                                    ` - Scheduled maintenance state changed to ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}`,
                             },
                             {
                                 mailServer:
                                     ProjectSmtpConfigService.toEmailServer(
                                         statuspage.smtpConfig
                                     ),
-                                projectId: statuspage.projectId!,
+                                projectId: statuspage.projectId,
                             }
                         ).catch((err: Error) => {
                             logger.error(err);

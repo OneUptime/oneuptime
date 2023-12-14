@@ -20,23 +20,25 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import ScheduledMaintenanceStateTimelineService from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
+import Markdown from 'CommonServer/Types/Markdown';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import SmsService from 'CommonServer/Services/SmsService';
+import SMS from 'Common/Types/SMS/SMS';
 
 RunCron(
-    'ScheduledMaintenanceStateTimeline:SendEmailToSubscribers',
+    'ScheduledMaintenance:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-            await ScheduledMaintenanceStateTimelineService.findBy({
+        // get all scheduled events of all the projects.
+        const scheduledEvents: Array<ScheduledMaintenance> =
+            await ScheduledMaintenanceService.findBy({
                 query: {
-                    isStatusPageSubscribersNotified: false,
+                    isStatusPageSubscribersNotifiedOnEventScheduled: false,
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),
@@ -48,63 +50,32 @@ RunCron(
                 skip: 0,
                 select: {
                     _id: true,
-                    scheduledMaintenanceId: true,
-                    scheduledMaintenanceStateId: true,
-                    scheduledMaintenanceState: {
-                        name: true,
+                    title: true,
+                    description: true,
+                    startsAt: true,
+                    monitors: {
+                        _id: true,
                     },
                 },
             });
 
-        for (const scheduledEventStateTimeline of scheduledEventStateTimelines) {
-            await ScheduledMaintenanceStateTimelineService.updateOneById({
-                id: scheduledEventStateTimeline.id!,
+        for (const event of scheduledEvents) {
+            if (!event.monitors || event.monitors.length === 0) {
+                continue;
+            }
+
+            // update the flag.
+
+            await ScheduledMaintenanceService.updateOneById({
+                id: event.id!,
                 data: {
-                    isStatusPageSubscribersNotified: true,
+                    isStatusPageSubscribersNotifiedOnEventScheduled: true,
                 },
                 props: {
                     isRoot: true,
                     ignoreHooks: true,
                 },
             });
-
-            if (
-                !scheduledEventStateTimeline.scheduledMaintenanceId ||
-                !scheduledEventStateTimeline.scheduledMaintenanceStateId
-            ) {
-                continue;
-            }
-
-            if (!scheduledEventStateTimeline.scheduledMaintenanceState?.name) {
-                continue;
-            }
-
-            // get all scheduled events of all the projects.
-            const event: ScheduledMaintenance | null =
-                await ScheduledMaintenanceService.findOneById({
-                    id: scheduledEventStateTimeline.scheduledMaintenanceId!,
-                    props: {
-                        isRoot: true,
-                    },
-
-                    select: {
-                        _id: true,
-                        title: true,
-                        description: true,
-                        startsAt: true,
-                        monitors: {
-                            _id: true,
-                        },
-                    },
-                });
-
-            if (!event) {
-                continue;
-            }
-
-            if (!event.monitors || event.monitors.length === 0) {
-                continue;
-            }
 
             // get status page resources from monitors.
 
@@ -211,9 +182,47 @@ RunCron(
 
                 // Send email to Email subscribers.
 
+                const resourcesAffected: string =
+                    statusPageToResources[statuspage._id!]
+                        ?.map((r: StatusPageResource) => {
+                            return r.displayName;
+                        })
+                        .join(', ') || 'None';
+
                 for (const subscriber of subscribers) {
                     if (!subscriber._id) {
                         continue;
+                    }
+
+                    const unsubscribeUrl: string = new URL(httpProtocol, host)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                subscriber._id.toString()
+                        )
+                        .toString();
+
+                    if (subscriber.subscriberPhone) {
+                        const sms: SMS = {
+                            message: `
+                            ${statusPageName} - New Scheduled Maintenance
+
+                            ${event.title || ''}
+
+                            Resources Affected: ${resourcesAffected}
+
+                            To view this event, visit ${statusPageURL}
+
+                            To unsubscribe from this status page, visit ${unsubscribeUrl}
+                            `,
+                            to: subscriber.subscriberPhone,
+                        };
+
+                        // send sms here.
+                        SmsService.sendSms(sms, {
+                            projectId: statuspage.projectId,
+                        }).catch((err: Error) => {
+                            logger.error(err);
+                        });
                     }
 
                     if (subscriber.subscriberEmail) {
@@ -223,7 +232,7 @@ RunCron(
                             {
                                 toEmail: subscriber.subscriberEmail,
                                 templateType:
-                                    EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
+                                    EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
                                 vars: {
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
@@ -240,41 +249,27 @@ RunCron(
                                         statuspage.isPublicStatusPage
                                             ? 'true'
                                             : 'false',
-                                    resourcesAffected:
-                                        statusPageToResources[statuspage._id!]
-                                            ?.map((r: StatusPageResource) => {
-                                                return r.displayName;
-                                            })
-                                            .join(', ') || 'None',
-
-                                    eventState:
-                                        scheduledEventStateTimeline
-                                            .scheduledMaintenanceState?.name ||
-                                        '',
-
+                                    resourcesAffected: resourcesAffected,
                                     scheduledAt:
-                                        OneUptimeDate.getDateAsFormattedString(
+                                        OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
                                             event.startsAt!
                                         ),
                                     eventTitle: event.title || '',
-                                    eventDescription: event.description || '',
-                                    unsubscribeUrl: new URL(httpProtocol, host)
-                                        .addRoute(
-                                            '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
-                                        )
-                                        .toString(),
+                                    eventDescription: Markdown.convertToHTML(
+                                        event.description || ''
+                                    ),
+                                    unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
                                     statusPageName +
-                                    ` - Scheduled maintenance state changed to ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}`,
+                                    ` - 'New Scheduled Maintenance`,
                             },
                             {
                                 mailServer:
                                     ProjectSmtpConfigService.toEmailServer(
                                         statuspage.smtpConfig
                                     ),
-                                projectId: statuspage.projectId,
+                                projectId: statuspage.projectId!,
                             }
                         ).catch((err: Error) => {
                             logger.error(err);

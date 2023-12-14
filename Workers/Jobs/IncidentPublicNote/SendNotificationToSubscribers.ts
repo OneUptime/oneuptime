@@ -26,9 +26,11 @@ import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigSer
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import SmsService from 'CommonServer/Services/SmsService';
+import SMS from 'Common/Types/SMS/SMS';
 
 RunCron(
-    'IncidentPublicNote:SendEmailToSubscribers',
+    'IncidentPublicNote:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         // get all incident notes of all the projects
@@ -210,6 +212,35 @@ RunCron(
                         continue;
                     }
 
+                    const unsubscribeUrl: string = new URL(httpProtocol, host)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                subscriber._id.toString()
+                        )
+                        .toString();
+
+                    if (subscriber.subscriberPhone) {
+                        const sms: SMS = {
+                            message: `
+                            ${statusPageName} - New note has been added to an incident.
+
+                            Incident Title: ${incident.title || ' - '}
+
+                            To view this note, visit ${statusPageURL}
+
+                            To unsubscribe from this status page, visit ${unsubscribeUrl}
+                            `,
+                            to: subscriber.subscriberPhone,
+                        };
+
+                        // send sms here.
+                        SmsService.sendSms(sms, {
+                            projectId: statuspage.projectId,
+                        }).catch((err: Error) => {
+                            logger.error(err);
+                        });
+                    }
+
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
@@ -249,12 +280,7 @@ RunCron(
                                     incidentTitle: incident.title || '',
                                     incidentDescription:
                                         incident.description || '',
-                                    unsubscribeUrl: new URL(httpProtocol, host)
-                                        .addRoute(
-                                            '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
-                                        )
-                                        .toString(),
+                                    unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
                                     statusPageName +

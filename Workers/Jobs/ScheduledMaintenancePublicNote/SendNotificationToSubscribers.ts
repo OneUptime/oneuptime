@@ -3,7 +3,6 @@ import StatusPageSubscriberService from 'CommonServer/Services/StatusPageSubscri
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import IncidentService from 'CommonServer/Services/IncidentService';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import { FileRoute } from 'Common/ServiceRoute';
@@ -11,29 +10,38 @@ import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
-import Incident from 'Model/Models/Incident';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import StatusPageResourceService from 'CommonServer/Services/StatusPageResourceService';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
-import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
-import Hostname from 'Common/Types/API/Hostname';
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
+import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
+import Markdown from 'CommonServer/Types/Markdown';
+import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import Protocol from 'Common/Types/API/Protocol';
+import Hostname from 'Common/Types/API/Hostname';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import SMS from 'Common/Types/SMS/SMS';
+import SmsService from 'CommonServer/Services/SmsService';
 
 RunCron(
-    'IncidentStateTimeline:SendEmailToSubscribers',
+    'ScheduledMaintenancePublicNote:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        const incidentStateTimelines: Array<IncidentStateTimeline> =
-            await IncidentStateTimelineService.findBy({
+        // get all incident notes of all the projects
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        const publicNotes: Array<ScheduledMaintenancePublicNote> =
+            await ScheduledMaintenancePublicNoteService.findBy({
                 query: {
-                    isStatusPageSubscribersNotified: false,
+                    isStatusPageSubscribersNotifiedOnNoteCreated: false,
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),
@@ -45,22 +53,42 @@ RunCron(
                 skip: 0,
                 select: {
                     _id: true,
-                    incidentId: true,
-                    incidentStateId: true,
-                    incidentState: {
-                        name: true,
-                    },
+                    note: true,
+                    scheduledMaintenanceId: true,
                 },
             });
 
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+        for (const publicNote of publicNotes) {
+            // get all scheduled events of all the projects.
+            const event: ScheduledMaintenance | null =
+                await ScheduledMaintenanceService.findOneById({
+                    id: publicNote.scheduledMaintenanceId!,
+                    props: {
+                        isRoot: true,
+                    },
+                    select: {
+                        _id: true,
+                        title: true,
+                        description: true,
+                        startsAt: true,
+                        monitors: {
+                            _id: true,
+                        },
+                    },
+                });
 
-        for (const incidentStateTimeline of incidentStateTimelines) {
-            await IncidentStateTimelineService.updateOneById({
-                id: incidentStateTimeline.id!,
+            if (!event) {
+                continue;
+            }
+
+            if (!event.monitors || event.monitors.length === 0) {
+                continue;
+            }
+
+            await ScheduledMaintenancePublicNoteService.updateOneById({
+                id: publicNote.id!,
                 data: {
-                    isStatusPageSubscribersNotified: true,
+                    isStatusPageSubscribersNotifiedOnNoteCreated: true,
                 },
                 props: {
                     isRoot: true,
@@ -68,54 +96,13 @@ RunCron(
                 },
             });
 
-            if (
-                !incidentStateTimeline.incidentId ||
-                !incidentStateTimeline.incidentStateId
-            ) {
-                continue;
-            }
-
-            if (!incidentStateTimeline.incidentState?.name) {
-                continue;
-            }
-
-            // get all scheduled events of all the projects.
-            const incident: Incident | null = await IncidentService.findOneById(
-                {
-                    id: incidentStateTimeline.incidentId!,
-                    props: {
-                        isRoot: true,
-                    },
-
-                    select: {
-                        _id: true,
-                        title: true,
-                        description: true,
-                        monitors: {
-                            _id: true,
-                        },
-                        incidentSeverity: {
-                            name: true,
-                        },
-                    },
-                }
-            );
-
-            if (!incident) {
-                continue;
-            }
-
-            if (!incident.monitors || incident.monitors.length === 0) {
-                continue;
-            }
-
             // get status page resources from monitors.
 
             const statusPageResources: Array<StatusPageResource> =
                 await StatusPageResourceService.findBy({
                     query: {
                         monitorId: QueryHelper.in(
-                            incident.monitors
+                            event.monitors
                                 .filter((m: Monitor) => {
                                     return m._id;
                                 })
@@ -208,6 +195,7 @@ RunCron(
 
                 const statusPageURL: string =
                     await StatusPageService.getStatusPageURL(statuspage.id);
+
                 const statusPageName: string =
                     statuspage.pageTitle || statuspage.name || 'Status Page';
 
@@ -218,6 +206,35 @@ RunCron(
                         continue;
                     }
 
+                    const unsubscribeUrl: string = new URL(httpProtocol, host)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                subscriber._id.toString()
+                        )
+                        .toString();
+
+                    if (subscriber.subscriberPhone) {
+                        const sms: SMS = {
+                            message: `
+                                    ${statusPageName} - New note has been posted to maintenance event.
+
+                                    ${event.title || ''}
+                                    
+                                    To view this note, visit ${statusPageURL}
+        
+                                    To unsubscribe from this status page, visit ${unsubscribeUrl}
+                                    `,
+                            to: subscriber.subscriberPhone,
+                        };
+
+                        // send sms here.
+                        SmsService.sendSms(sms, {
+                            projectId: statuspage.projectId,
+                        }).catch((err: Error) => {
+                            logger.error(err);
+                        });
+                    }
+
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
@@ -225,8 +242,11 @@ RunCron(
                             {
                                 toEmail: subscriber.subscriberEmail,
                                 templateType:
-                                    EmailTemplateType.SubscriberIncidentStateChanged,
+                                    EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
                                 vars: {
+                                    note: Markdown.convertToHTML(
+                                        publicNote.note!
+                                    ),
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,
                                     logoUrl: statuspage.logoFileId
@@ -248,34 +268,25 @@ RunCron(
                                                 return r.displayName;
                                             })
                                             .join(', ') || 'None',
-                                    incidentSeverity:
-                                        incident.incidentSeverity?.name ||
-                                        ' - ',
-                                    incidentTitle: incident.title || '',
-                                    incidentDescription:
-                                        incident.description || '',
 
-                                    incidentState:
-                                        incidentStateTimeline.incidentState
-                                            .name,
-                                    unsubscribeUrl: new URL(httpProtocol, host)
-                                        .addRoute(
-                                            '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
-                                        )
-                                        .toString(),
+                                    scheduledAt:
+                                        OneUptimeDate.getDateAsFormattedString(
+                                            event.startsAt!
+                                        ),
+                                    eventTitle: event.title || '',
+                                    eventDescription: event.description || '',
+                                    unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
                                     statusPageName +
-                                    ' - Incident state changed to ' +
-                                    incidentStateTimeline.incidentState.name,
+                                    ` - New note has been posted to maintenance event`,
                             },
                             {
                                 mailServer:
-                                    ProjectSMTPConfigService.toEmailServer(
+                                    ProjectSmtpConfigService.toEmailServer(
                                         statuspage.smtpConfig
                                     ),
-                                projectId: statuspage.projectId,
+                                projectId: statuspage.projectId!,
                             }
                         ).catch((err: Error) => {
                             logger.error(err);

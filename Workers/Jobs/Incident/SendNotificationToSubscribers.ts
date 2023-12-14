@@ -190,6 +190,13 @@ RunCron(
                         continue;
                     }
 
+                    const unsubscribeUrl: string = new URL(httpProtocol, host)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                subscriber._id.toString()
+                        )
+                        .toString();
+
                     if (subscriber.subscriberEmail) {
                         // send email here.
 
@@ -222,12 +229,7 @@ RunCron(
                                     incidentDescription: Markdown.convertToHTML(
                                         incident.description || ''
                                     ),
-                                    unsubscribeUrl: new URL(httpProtocol, host)
-                                        .addRoute(
-                                            '/api/status-page-subscriber/unsubscribe/' +
-                                                subscriber._id.toString()
-                                        )
-                                        .toString(),
+                                    unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject: statusPageName + ' - New Incident',
                             },
@@ -246,27 +248,19 @@ RunCron(
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {
                             message: `
-                            ${statusPageName} - New Incident \n\n
+                            ${statusPageName} - New Incident
 
-                            Title: ${incident.title || ''} \n\n
+                            Title: ${incident.title || ''}
 
                             Severity: ${
                                 incident.incidentSeverity?.name || ' - '
-                            } \n\n
+                            } 
 
-                            Resources Affected: ${resourcesAffectedString} \n\n
+                            Resources Affected: ${resourcesAffectedString} 
 
-                            Click here for more info: ${statusPageURL} \n\n
-    
-                            To unsubscribe, please click here: ${new URL(
-                                httpProtocol,
-                                host
-                            )
-                                .addRoute(
-                                    '/api/status-page-subscriber/unsubscribe/' +
-                                        subscriber._id.toString()
-                                )
-                                .toString()}
+                            To view this incident, visit ${statusPageURL}
+
+                            To unsubscribe from this status page, visit ${unsubscribeUrl}
                             `,
                             to: subscriber.subscriberPhone,
                         };
