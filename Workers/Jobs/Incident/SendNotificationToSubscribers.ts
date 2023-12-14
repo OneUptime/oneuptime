@@ -31,6 +31,7 @@ RunCron(
     'Incident:SendNotificationToSubscribers',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
+
         // get all scheduled events of all the projects.
         const incidents: Array<Incident> = await IncidentService.findBy({
             query: {
@@ -248,11 +249,15 @@ RunCron(
 
                         const sms: SMS = {
                             message: `
-                            ${statusPageName} - New Incident
-                            Title: ${incident.title || ''}
-                            Severity: ${incident.incidentSeverity?.name || ' - '}
-                            Resources Affected: ${resourcesAffectedString}
-                            Click here for more info: ${statusPageURL}
+                            ${statusPageName} - New Incident \n\n
+
+                            Title: ${incident.title || ''} \n\n
+
+                            Severity: ${incident.incidentSeverity?.name || ' - '} \n\n
+
+                            Resources Affected: ${resourcesAffectedString} \n\n
+
+                            Click here for more info: ${statusPageURL} \n\n
     
                             To unsubscribe, please click here: ${new URL(httpProtocol, host)
                                     .addRoute(

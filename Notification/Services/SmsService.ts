@@ -32,6 +32,11 @@ export default class SmsService {
             userOnCallLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
+
+        
+        // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
+        let smsSegments: number = Math.ceil(message.length / 160);
+
         let smsCost: number = 0;
 
         if (IsBillingEnabled) {
@@ -40,6 +45,10 @@ export default class SmsService {
             if (isHighRiskPhoneNumber(to)) {
                 smsCost = SMSHighRiskCostInCents / 100;
             }
+        }
+
+        if (smsSegments > 1) {
+            smsCost = smsCost * smsSegments;
         }
 
         const twilioConfig: TwilioConfig | null = await getTwilioConfig();

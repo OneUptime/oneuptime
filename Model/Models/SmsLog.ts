@@ -172,16 +172,15 @@ export default class SmsLog extends BaseModel {
         update: [],
     })
     @TableColumn({
-        required: true,
-        type: TableColumnType.LongText,
+        required: false,
+        type: TableColumnType.VeryLongText,
         title: 'SMS Text',
         description: 'Text content of the message',
         canReadOnRelationQuery: false,
     })
     @Column({
-        nullable: false,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+        nullable: true,
+        type: ColumnType.VeryLongText
     })
     public smsText?: string = undefined;
 
