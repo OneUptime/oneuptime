@@ -2,9 +2,12 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import { CategoryCheckboxOption, CheckboxCategory, CategoryCheckboxValue } from './CategoryCheckboxTypes';
 import Category from './Category';
 
-export interface CategoryCheckboxProps {
+export interface CategoryCheckboxOptionsAndCategories {
     categories: Array<CheckboxCategory>;
     options: Array<CategoryCheckboxOption>;
+}
+
+export interface CategoryCheckboxProps extends CategoryCheckboxOptionsAndCategories {
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue>;
     error?: string | undefined;

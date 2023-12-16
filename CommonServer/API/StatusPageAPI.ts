@@ -434,9 +434,11 @@ export default class StatusPageAPI extends BaseAPI<
                         select: {
                             _id: true,
                             displayName: true,
+                            order: true,
                             statusPageGroup: {
                                 _id: true,
                                 name: true,
+                                order: true,
                             },
                         },
                         limit: LIMIT_PER_PROJECT,

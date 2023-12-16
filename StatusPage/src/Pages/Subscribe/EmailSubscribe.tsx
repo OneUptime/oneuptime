@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import Page from '../../Components/Page/Page';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
@@ -16,7 +16,10 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import SubscribePageProps from './SubscribePageProps';
+import SubscriberUtils, {SubscribePageProps} from './SubscribePageUtils';
+import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/CategoryCheckbox/Index';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps
@@ -24,6 +27,34 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
     const id: ObjectID = LocalStorage.getItem('statusPageId') as ObjectID;
+
+    const [categoryCheckboxOptionsAndCategories, setCategoryCheckboxOptionsAndCategories] = useState<CategoryCheckboxOptionsAndCategories>({
+        categories: [],
+        options: []
+    });
+    const [isLaoding, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | undefined>(undefined);
+    
+    const fetchCheckboxOptionsAndCategories = async () => {
+        try{
+            setIsLoading(true);
+
+            const result: CategoryCheckboxOptionsAndCategories = await SubscriberUtils.getCategoryCheckboxPropsBasedOnResources(id); 
+
+            setCategoryCheckboxOptionsAndCategories(result);
+        }catch(err){
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+    }
+
+    useEffect(() => {
+        fetchCheckboxOptionsAndCategories().catch((error: Error) => {
+            setError(error.message);
+        });
+    }, []);
+
     if (!id) {
         throw new BadDataException('Status Page ID is required');
     }
@@ -63,7 +94,12 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                 />
             }
         >
-            <div className="justify-center">
+
+            {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
+
+            {error ? <ErrorMessage error={error} /> : <></>}
+
+            {!isLaoding && !error ? <div className="justify-center">
                 <div>
                     {isSuccess && (
                         <p className="text-center text-gray-400 mb-20 mt-20">
@@ -95,6 +131,16 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                             required: true,
                                             placeholder:
                                                 'subscriber@company.com',
+                                        },
+                                        {
+                                            field: {
+                                                statusPageResources: true,
+                                            },
+                                            title: 'Select Resources to Subscribe',
+                                            fieldType:
+                                                FormFieldSchemaType.CategoryCheckbox,
+                                            required: true,
+                                            categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
                                         },
                                     ]}
                                     apiUrl={URL.fromString(
@@ -134,7 +180,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                         <></>
                     )}
                 </div>
-            </div>
+            </div> : <></>}
         </Page>
     );
 };
