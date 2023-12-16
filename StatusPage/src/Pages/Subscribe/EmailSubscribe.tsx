@@ -30,7 +30,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
     const [categoryCheckboxOptionsAndCategories, setCategoryCheckboxOptionsAndCategories] = useState<CategoryCheckboxOptionsAndCategories>({
         categories: [],
-        options: []
+        options: [],
     });
     const [isLaoding, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>(undefined);

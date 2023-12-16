@@ -425,7 +425,7 @@ export default class StatusPageGroup extends BaseModel {
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         title: 'Expanded by Default',
-        description: 'IS this group expanded by default',
+        description: 'Is this group expanded by default on Status Page?',
     })
     @Column({
         type: ColumnType.Boolean,

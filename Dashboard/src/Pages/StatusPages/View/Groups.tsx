@@ -116,7 +116,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             isExpandedByDefault: true,
                         },
-                        title: 'Is this group expanded by default on the status page?',
+                        title: 'Expand on Status Page by Default',
                         fieldType: FormFieldSchemaType.Toggle,
                         required: false,
                     },
