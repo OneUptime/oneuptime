@@ -46,7 +46,9 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
                 <div className="flex h-6 items-center">
                     <input
                         checked={value}
-                        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                        onChange={(
+                            event: React.ChangeEvent<HTMLInputElement>
+                        ) => {
                             setValue(event.target.checked);
                         }}
                         autoFocus={props.autoFocus}

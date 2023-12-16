@@ -46,22 +46,23 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     const [isLaoding, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>(undefined);
 
-    const fetchCheckboxOptionsAndCategories: Function = async (): Promise<void> => {
-        try {
-            setIsLoading(true);
+    const fetchCheckboxOptionsAndCategories: Function =
+        async (): Promise<void> => {
+            try {
+                setIsLoading(true);
 
-            const result: CategoryCheckboxOptionsAndCategories =
-                await SubscriberUtils.getCategoryCheckboxPropsBasedOnResources(
-                    id
-                );
+                const result: CategoryCheckboxOptionsAndCategories =
+                    await SubscriberUtils.getCategoryCheckboxPropsBasedOnResources(
+                        id
+                    );
 
-            setCategoryCheckboxOptionsAndCategories(result);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+                setCategoryCheckboxOptionsAndCategories(result);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-        setIsLoading(false);
-    };
+            setIsLoading(false);
+        };
 
     useEffect(() => {
         fetchCheckboxOptionsAndCategories().catch((error: Error) => {

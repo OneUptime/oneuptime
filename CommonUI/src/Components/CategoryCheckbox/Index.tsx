@@ -34,7 +34,9 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         );
     }
 
-    const getCategory: Function = (category?: CheckboxCategory): ReactElement => {
+    const getCategory: Function = (
+        category?: CheckboxCategory
+    ): ReactElement => {
         return (
             <Category
                 initialValue={props.initialValue}
