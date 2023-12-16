@@ -1161,6 +1161,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 projectId: true,
                                 enableEmailSubscribers: true,
                                 enableSmsSubscribers: true,
+                                allowSubscribersToChooseResources: true,
                             },
                             props: {
                                 isRoot: true,
@@ -1223,8 +1224,16 @@ export default class StatusPageAPI extends BaseAPI<
                         statusPageSubscriber.subscriberPhone = phone;
                     }
 
+                    if(req.body.data['statusPageResources'] && !statusPage.allowSubscribersToChooseResources){
+                        throw new BadDataException('Subscribers are not allowed to choose resources for this status page.'); 
+                    }
+
                     statusPageSubscriber.statusPageId = objectId;
                     statusPageSubscriber.projectId = statusPage.projectId!;
+
+                    if(req.body.data['statusPageResources']){
+                        statusPageSubscriber.statusPageResources = req.body.data['statusPageResources'] as Array<StatusPageResource>;
+                    }
 
                     await StatusPageSubscriberService.create({
                         data: statusPageSubscriber,
