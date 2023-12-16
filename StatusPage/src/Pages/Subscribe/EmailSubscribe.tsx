@@ -137,6 +137,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                                 statusPageResources: true,
                                             },
                                             title: 'Select Resources to Subscribe',
+                                            description: 'Please select the resources you want to subscribe to.',
                                             fieldType:
                                                 FormFieldSchemaType.CategoryCheckbox,
                                             required: true,

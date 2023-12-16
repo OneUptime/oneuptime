@@ -6,7 +6,7 @@ import CheckBoxList from './CheckboxList';
 export type CategoryCheckboxValue = string | number | boolean;
 
 export interface CategoryProps {
-    category: CheckboxCategory;
+    category?: CheckboxCategory | undefined;
     options: Array<CategoryCheckboxOption>;
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue>;
@@ -37,7 +37,7 @@ const Category: FunctionComponent<CategoryProps> = (
 
     return (
         <div>
-            <div>
+            {props.category && <div>
                 <CheckboxElement title={props.category.title} initialValue={isCategoryChecked} onChange={(isChecked) => {
                     if (isChecked) {
                         // add all of the options to the currentValues array
@@ -59,8 +59,8 @@ const Category: FunctionComponent<CategoryProps> = (
                         props.onChange(newValues);
                     }
                 }} />
-            </div>
-            <div className="ml-3">
+            </div>}
+            <div className={`${props.category ? "ml-3" : ""}`}>
                 <CheckBoxList options={props.options} onChange={(newValues: Array<CategoryCheckboxValue>) => {
                     setCurrentValues(newValues);
                     props.onChange(newValues);

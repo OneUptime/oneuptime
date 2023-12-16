@@ -2,6 +2,8 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import { CategoryCheckboxOption } from './CategoryCheckboxTypes';
 import CheckboxElement from '../Checkbox/Checkbox';
 
+
+
 export type CategoryCheckboxValue = string | number | boolean;
 
 export interface CategoryProps {
