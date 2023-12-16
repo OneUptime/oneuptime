@@ -8,6 +8,7 @@ import MimeType from 'Common/Types/File/MimeType';
 import FormValues from './FormValues';
 import { RadioButton } from '../../RadioButtons/GroupRadioButtons';
 import { ReactElement } from 'react';
+import { CategoryCheckboxOption, CheckboxCategory } from '../../CategoryCheckbox/CategoryCheckboxTypes';
 
 export enum FormFieldStyleType {
     Default = 'Default',
@@ -28,6 +29,12 @@ export interface CustomElementProps {
     onBlur?: () => void;
     initialValue?: any;
     placeholder?: string | undefined;
+}
+
+
+export interface CategoryCheckboxProps {
+    categories: Array<CheckboxCategory>;
+    options: Array<CategoryCheckboxOption>;
 }
 
 export default interface Field<TEntity> {
@@ -75,4 +82,5 @@ export default interface Field<TEntity> {
         values: FormValues<TEntity>,
         props: CustomElementProps
     ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
+    categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
 }

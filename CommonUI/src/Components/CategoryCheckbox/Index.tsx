@@ -2,15 +2,16 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import { CategoryCheckboxOption, CheckboxCategory, CategoryCheckboxValue } from './CategoryCheckboxTypes';
 import Category from './Category';
 
-export interface ComponentProps {
+export interface CategoryCheckboxProps {
     categories: Array<CheckboxCategory>;
     options: Array<CategoryCheckboxOption>;
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue>;
+    error?: string | undefined;
 }
 
-const LabelElement: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
+    props: CategoryCheckboxProps
 ): ReactElement => {
 
     const [currentValues, setCurrentValues] = React.useState<Array<CategoryCheckboxValue>>(props.initialValue || []);
@@ -43,8 +44,16 @@ const LabelElement: FunctionComponent<ComponentProps> = (
 
                 }} />)
             })}
+            {props.error && (
+                <p
+                    data-testid="error-message"
+                    className="mt-1 text-sm text-red-400"
+                >
+                    {props.error}
+                </p>
+            )}
         </div>
     );
 };
 
-export default LabelElement;
+export default CategoryCheckbox;
