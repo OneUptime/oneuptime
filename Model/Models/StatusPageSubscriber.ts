@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -23,6 +23,7 @@ import Phone from 'Common/Types/Phone';
 import URL from 'Common/Types/API/URL';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import StatusPageResource from './StatusPageResource';
 
 @EnableDocumentation()
 @EnableWorkflow({
@@ -425,4 +426,55 @@ export default class StatusPageSubscriber extends BaseModel {
         default: false,
     })
     public isUnsubscribed?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateStatusPageSubscriber,
+            Permission.Public,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageSubscriber,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageSubscriber,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: StatusPageResource,
+        title: 'Subscribed to Resources',
+        description:
+            'Relation to Status Page Resources where this subscriber is subscribed to',
+    })
+    @ManyToMany(
+        () => {
+            return StatusPageResource;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'StatusPageSubscriberStatusPageResource',
+        inverseJoinColumn: {
+            name: 'statusPageResourceId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'statusPageSubscriberId',
+            referencedColumnName: '_id',
+        },
+    })
+    public statusPageResources?: Array<StatusPageResource> = undefined;
+
+
 }
