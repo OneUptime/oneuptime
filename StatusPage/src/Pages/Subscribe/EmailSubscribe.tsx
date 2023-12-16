@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import Page from '../../Components/Page/Page';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import ModelForm, { FormType, ModelField } from 'CommonUI/src/Components/Forms/ModelForm';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
@@ -61,6 +61,34 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
+    const fields: Array<ModelField<StatusPageSubscriber>> = [
+        {
+            field: {
+                subscriberEmail: true,
+            },
+            title: 'Your Email',
+            fieldType:
+                FormFieldSchemaType.Email,
+            required: true,
+            placeholder:
+                'subscriber@company.com',
+        },
+    ];
+
+    if(props.allowSubscribersToChooseResources){
+        fields.push({
+            field: {
+                statusPageResources: true,
+            },
+            title: 'Select Resources to Subscribe',
+            description: 'Please select the resources you want to subscribe to.',
+            fieldType:
+                FormFieldSchemaType.CategoryCheckbox,
+            required: true,
+            categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
+        });
+    }
+
     return (
         <Page
             title={'Subscribe'}
@@ -120,30 +148,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                     modelType={StatusPageSubscriber}
                                     id="email-form"
                                     name="Status Page > Email Subscribe"
-                                    fields={[
-                                        {
-                                            field: {
-                                                subscriberEmail: true,
-                                            },
-                                            title: 'Your Email',
-                                            fieldType:
-                                                FormFieldSchemaType.Email,
-                                            required: true,
-                                            placeholder:
-                                                'subscriber@company.com',
-                                        },
-                                        {
-                                            field: {
-                                                statusPageResources: true,
-                                            },
-                                            title: 'Select Resources to Subscribe',
-                                            description: 'Please select the resources you want to subscribe to.',
-                                            fieldType:
-                                                FormFieldSchemaType.CategoryCheckbox,
-                                            required: true,
-                                            categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-                                        },
-                                    ]}
+                                    fields={fields}
                                     apiUrl={URL.fromString(
                                         STATUS_PAGE_API_URL.toString()
                                     ).addRoute(`/subscribe/${id.toString()}`)}

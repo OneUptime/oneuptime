@@ -58,6 +58,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
 
     return (
         <div>
+            {getCategory(undefined)}
             {props.categories.map((category: CheckboxCategory, i: number) => {
                 return (<div key={i}>
                     {getCategory(category)}
