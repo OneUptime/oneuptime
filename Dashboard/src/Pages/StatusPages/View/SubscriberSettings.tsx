@@ -48,7 +48,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Subscriber Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -108,6 +108,43 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Branding > Subscriber > Advanced"
+                cardProps={{
+                    title: 'Advanced Subscriber Settings',
+                    description: 'Advanced subscriber settings for this status page.',
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            allowSubscribersToChooseResources: true,
+                        },
+                        title: 'Allow Subscribers to Choose Resources',
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                        placeholder:
+                            'Can subscribers choose which resources they want to subscribe to?',
+                    }
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                allowSubscribersToChooseResources: true,
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Allow Subscribers to Choose Resources',
+                        }
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
         </ModelPage>
     );
 };

@@ -12,6 +12,7 @@ import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/Ca
 export interface SubscribePageProps extends PageComponentProps {
     enableEmailSubscribers: boolean;
     enableSMSSubscribers: boolean;
+    allowSubscribersToChooseResources: boolean;
 }
 
 export default class SubscriberUtils {

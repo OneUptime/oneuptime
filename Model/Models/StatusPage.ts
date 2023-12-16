@@ -1020,6 +1020,39 @@ export default class StatusPage extends BaseModel {
     })
     public enableEmailSubscribers?: boolean = undefined;
 
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Allow Subscribers to Choose Resources',
+        description: 'Can subscribers choose which resources to subscribe to?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public allowSubscribersToChooseResources?: boolean = undefined;
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
