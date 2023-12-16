@@ -16,17 +16,31 @@ export interface CategoryProps {
     isLastCategory: boolean;
 }
 
+enum CategoryCheckboxValueState {
+    Checked,
+    Unchecked,
+    Indeterminate,
+}
+
 const Category: FunctionComponent<CategoryProps> = (
     props: CategoryProps
 ): ReactElement => {
     const [currentValues, setCurrentValues] = React.useState<
         Array<CategoryCheckboxValue>
     >(props.initialValue || []);
-    const [isCategoryChecked, setIsCategoryChecked] =
-        React.useState<boolean>(false);
+
+    const [categoryCheckboxState, setCategoryCheckboxState] = React.useState<CategoryCheckboxValueState>(CategoryCheckboxValueState.Unchecked);
 
     useEffect(() => {
         // check if all of the options are checked. and if so, check the category
+        
+        const noOptionsChecked: boolean = currentValues.length === 0;
+
+        if(noOptionsChecked) {
+            setCategoryCheckboxState(CategoryCheckboxValueState.Unchecked);
+            return;
+        }
+        
         const allOptionsChecked: boolean = props.options.every(
             (option: CategoryCheckboxOption) => {
                 return currentValues.includes(option.value);
@@ -34,9 +48,9 @@ const Category: FunctionComponent<CategoryProps> = (
         );
 
         if (allOptionsChecked) {
-            setIsCategoryChecked(true);
+            setCategoryCheckboxState(CategoryCheckboxValueState.Checked);
         } else {
-            setIsCategoryChecked(false);
+            setCategoryCheckboxState(CategoryCheckboxValueState.Indeterminate);
         }
 
         props.onChange(currentValues);
@@ -48,14 +62,27 @@ const Category: FunctionComponent<CategoryProps> = (
                 <div>
                     <CheckboxElement
                         title={props.category.title}
-                        initialValue={isCategoryChecked}
-                        onChange={(isChecked: boolean) => {
+                        value={categoryCheckboxState === CategoryCheckboxValueState.Checked}
+                        isIndeterminate={categoryCheckboxState === CategoryCheckboxValueState.Indeterminate}
+                        onChange={(isChecked: boolean, isIndeterminate?: boolean | undefined) => {
+
+                            if(isIndeterminate && !isChecked) {
+                                return;
+                            }
+
                             if (isChecked) {
                                 // add all of the options to the currentValues array
                                 const newValues: Array<CategoryCheckboxValue> =
                                     [...currentValues];
                                 props.options.forEach(
                                     (option: CategoryCheckboxOption) => {
+
+                                        // please make sure that the option.value is not already in the array
+
+                                        if (newValues.includes(option.value)) {
+                                            return;
+                                        }
+
                                         newValues.push(option.value);
                                     }
                                 );
@@ -67,17 +94,21 @@ const Category: FunctionComponent<CategoryProps> = (
                                     [...currentValues];
                                 props.options.forEach(
                                     (option: CategoryCheckboxOption) => {
-                                        const index: number =
-                                            newValues.findIndex(
-                                                (
-                                                    value: CategoryCheckboxValue
-                                                ) => {
-                                                    return (
-                                                        value === option.value
-                                                    );
-                                                }
-                                            );
-                                        newValues.splice(index, 1);
+
+                                        while (newValues.includes(option.value)) {
+                                            const index: number =
+                                                newValues.findIndex(
+                                                    (
+                                                        value: CategoryCheckboxValue
+                                                    ) => {
+                                                        return (
+                                                            value === option.value
+                                                        );
+                                                    }
+                                                );
+                                            newValues.splice(index, 1);
+                                        }
+
                                     }
                                 );
                                 setCurrentValues(newValues);
@@ -90,6 +121,7 @@ const Category: FunctionComponent<CategoryProps> = (
             <div className={`${props.category ? 'ml-7' : ''}`}>
                 <CheckBoxList
                     options={props.options}
+                    initialValue={currentValues}
                     onChange={(newValues: Array<CategoryCheckboxValue>) => {
                         setCurrentValues(newValues);
                         props.onChange(newValues);

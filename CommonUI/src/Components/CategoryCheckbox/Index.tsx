@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import {
     CategoryCheckboxOption,
     CheckboxCategory,
@@ -26,6 +26,32 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         Array<CategoryCheckboxValue>
     >(props.initialValue || []);
 
+    useEffect(() => {
+        // whenevent currentValue changes, make sure all the values are unique. 
+
+        const doesHaveDuplicates: boolean = currentValues.some(
+            (value: CategoryCheckboxValue, index: number) => {
+                return currentValues.indexOf(value) !== index;
+            }
+        );
+
+        if(!doesHaveDuplicates) {
+            return;
+        }
+
+
+        const tempCurrentValues: Array<CategoryCheckboxValue> = [];
+
+        currentValues.forEach((value: CategoryCheckboxValue) => {
+            if (!tempCurrentValues.includes(value)) {
+                tempCurrentValues.push(value);
+            }
+        });
+
+        setCurrentValues(tempCurrentValues);
+
+    }, [currentValues]  );
+
     if (props.options.length === 0) {
         return (
             <div>
@@ -40,7 +66,19 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     ): ReactElement => {
         return (
             <Category
-                initialValue={props.initialValue}
+                initialValue={currentValues.filter((value: CategoryCheckboxValue) => {
+                    // only return this option if it belongs to this category
+
+                    const option: CategoryCheckboxOption | undefined =
+                        props.options.find((option: CategoryCheckboxOption) => {
+                            return (
+                                option.value === value &&
+                                (option.categoryId || '') === (category?.id || '')
+                            );
+                        });
+
+                    return Boolean(option);
+                })}
                 category={category}
                 options={props.options.filter(
                     (option: CategoryCheckboxOption) => {

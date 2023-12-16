@@ -5,7 +5,7 @@ export interface CategoryProps {
     title: string;
     description?: string | undefined;
     initialValue?: undefined | boolean;
-    onChange?: undefined | ((value: boolean) => void);
+    onChange?: undefined | ((value: boolean, interminate?: boolean) => void);
     value?: boolean | undefined;
     readOnly?: boolean | undefined;
     disabled?: boolean | undefined;
@@ -17,14 +17,23 @@ export interface CategoryProps {
     outerDivClassName?: string | undefined;
     autoFocus?: boolean | undefined;
     className?: string | undefined;
+    isIndeterminate?: boolean | undefined;
 }
 
 const CheckboxElement: FunctionComponent<CategoryProps> = (
     props: CategoryProps
 ): ReactElement => {
+
     const [value, setValue] = React.useState<boolean>(
         props.initialValue || false
     );
+
+    // ref this checkbox. 
+    const checkboxRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+       checkboxRef.current!.indeterminate = props.isIndeterminate || false;
+    }, [props.isIndeterminate]);
 
     React.useEffect(() => {
         setValue(props.value || false);
@@ -32,7 +41,7 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
 
     React.useEffect(() => {
         if (props.onChange) {
-            props.onChange(value);
+            props.onChange(value, props.isIndeterminate);
         }
     }, [value]);
 
@@ -49,8 +58,10 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
                         onChange={(
                             event: React.ChangeEvent<HTMLInputElement>
                         ) => {
+                            
                             setValue(event.target.checked);
                         }}
+                        ref={checkboxRef}
                         autoFocus={props.autoFocus}
                         tabIndex={props.tabIndex}
                         readOnly={props.readOnly}

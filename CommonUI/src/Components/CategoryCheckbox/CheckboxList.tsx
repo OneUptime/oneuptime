@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import { CategoryCheckboxOption } from './CategoryCheckboxTypes';
 import CheckboxElement from '../Checkbox/Checkbox';
 
@@ -19,6 +19,11 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
         Array<CategoryCheckboxValue>
     >(props.initialValue || []);
 
+    useEffect(() => {
+        setCurrentValues(props.initialValue || []);
+    }
+        , [props.initialValue]);
+
     return (
         <div>
             {props.options.map((option: CategoryCheckboxOption, i: number) => {
@@ -26,8 +31,8 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
                     <CheckboxElement
                         key={i}
                         title={option.label}
-                        initialValue={Boolean(
-                            props.initialValue?.find(
+                        value={Boolean(
+                            currentValues?.find(
                                 (value: CategoryCheckboxValue) => {
                                     return value === option.value;
                                 }
@@ -41,6 +46,11 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
                                 // add the option.value to the currentValues array
                                 const newValues: Array<CategoryCheckboxValue> =
                                     [...currentValues];
+
+                                if (newValues.includes(option.value)) {
+                                    return;
+                                }
+
                                 newValues.push(option.value);
                                 setCurrentValues(newValues);
                                 props.onChange(newValues);
@@ -49,14 +59,21 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
                                     props.onUnchecked(option.value);
 
                                 // remove the option.value from the currentValues array
+
+
+
                                 const newValues: Array<CategoryCheckboxValue> =
                                     [...currentValues];
-                                const index: number = newValues.findIndex(
-                                    (value: CategoryCheckboxValue) => {
-                                        return value === option.value;
-                                    }
-                                );
-                                newValues.splice(index, 1);
+
+                                while (newValues.includes(option.value)) {
+                                    const index: number = newValues.findIndex(
+                                        (value: CategoryCheckboxValue) => {
+                                            return value === option.value;
+                                        }
+                                    );
+                                    newValues.splice(index, 1);
+                                }
+
                                 setCurrentValues(newValues);
                                 props.onChange(newValues);
                             }
