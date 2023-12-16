@@ -1050,6 +1050,11 @@ export default class StatusPage extends BaseModel {
         type: ColumnType.Boolean,
         default: false,
     })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
+    })
     public allowSubscribersToChooseResources?: boolean = undefined;
 
     @ColumnAccessControl({
@@ -1081,6 +1086,11 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Boolean,
         default: false,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
     })
     public enableSmsSubscribers?: boolean = undefined;
 
