@@ -394,6 +394,72 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
 
+        
+        // Get all status page resources for subscriber to subscribe to.
+        this.router.post(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/resources/:statusPageId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+               
+
+                try {
+                    const objectId: ObjectID = new ObjectID(
+                        req.params['statusPageId'] as string
+                    );
+
+                    if (
+                        !(await this.service.hasReadAccess(
+                            objectId,
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            ),
+                            req
+                        ))
+                    ) {
+                        throw new NotAuthenticatedException(
+                            'You are not authenticated to access this status page'
+                        );
+                    }
+
+                    const resources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
+                        query: {
+                            statusPageId: objectId,
+                        },
+                        select: {
+                            _id: true,
+                            displayName: true,
+                            statusPageGroup: {
+                                _id: true,
+                                name: true,
+                            },
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+
+                    return Response.sendEntityArrayResponse(
+                        req,
+                        res,
+                        resources,
+                        new PositiveNumber(resources.length),
+                        StatusPageResource
+                    );
+
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
         this.router.post(
             `${new this.entityType()
                 .getCrudApiPath()
