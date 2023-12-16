@@ -12,7 +12,7 @@ export interface CategoryProps {
     initialValue?: undefined | Array<CategoryCheckboxValue>;
 }
 
-const LabelElement: FunctionComponent<CategoryProps> = (
+const Category: FunctionComponent<CategoryProps> = (
     props: CategoryProps
 ): ReactElement => {
     const [currentValues, setCurrentValues] = React.useState<Array<CategoryCheckboxValue>>(props.initialValue || []);
@@ -70,4 +70,4 @@ const LabelElement: FunctionComponent<CategoryProps> = (
     );
 };
 
-export default LabelElement;
+export default Category;
