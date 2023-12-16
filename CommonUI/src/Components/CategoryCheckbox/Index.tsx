@@ -35,7 +35,8 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     }
 
     const getCategory: Function = (
-        category?: CheckboxCategory
+        category?: CheckboxCategory,
+        isLastCategory: boolean = false
     ): ReactElement => {
         return (
             <Category
@@ -46,6 +47,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                         return option.categoryId === category?.id;
                     }
                 )}
+                isLastCategory={isLastCategory}
                 onChange={(value: Array<CategoryCheckboxValue>) => {
                     // remove any value from currentValue that belongs to this category.
 
@@ -66,6 +68,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                             tempCurrentValues.splice(index, 1);
                         }
                     });
+                   
 
                     // add the new values to currentValue
                     value.forEach((value: CategoryCheckboxValue) => {
@@ -82,9 +85,9 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
 
     return (
         <div>
-            {getCategory(undefined)}
+            {getCategory(undefined, props.categories.length === 0)}
             {props.categories.map((category: CheckboxCategory, i: number) => {
-                return <div key={i}>{getCategory(category)}</div>;
+                return <div key={i}>{getCategory(category, i === props.categories.length - 1)}</div>;
             })}
             {props.error && (
                 <p

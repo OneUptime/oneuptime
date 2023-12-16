@@ -5,6 +5,7 @@ import {
 } from './CategoryCheckboxTypes';
 import CheckboxElement from '../Checkbox/Checkbox';
 import CheckBoxList from './CheckboxList';
+import HorizontalRule from '../HorizontalRule/HorizontalRule';
 
 export type CategoryCheckboxValue = string | number | boolean;
 
@@ -13,6 +14,7 @@ export interface CategoryProps {
     options: Array<CategoryCheckboxOption>;
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue>;
+    isLastCategory: boolean;
 }
 
 const Category: FunctionComponent<CategoryProps> = (
@@ -86,7 +88,7 @@ const Category: FunctionComponent<CategoryProps> = (
                     />
                 </div>
             )}
-            <div className={`${props.category ? 'ml-3' : ''}`}>
+            <div className={`${props.category ? 'ml-7' : ''}`}>
                 <CheckBoxList
                     options={props.options}
                     onChange={(newValues: Array<CategoryCheckboxValue>) => {
@@ -95,6 +97,8 @@ const Category: FunctionComponent<CategoryProps> = (
                     }}
                 />
             </div>
+
+            {!props.isLastCategory ? <div className="-mb-3 -mt-3"><HorizontalRule /></div> : <></>}
         </div>
     );
 };
