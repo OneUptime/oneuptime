@@ -47,6 +47,15 @@ export default class SubscriberUtils {
         // add categories.
 
         resourceGroups.forEach((group: StatusPageGroup) => {
+
+            //before we add make sure it doesn't already exist.
+
+            if (categories.find((category: CheckboxCategory) => {
+                return category.id === group._id;
+            })) {
+                return;
+            }
+
             categories.push({
                 id: group._id!,
                 title: group.name!,

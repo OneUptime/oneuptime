@@ -44,7 +44,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                 category={category}
                 options={props.options.filter(
                     (option: CategoryCheckboxOption) => {
-                        return option.categoryId === category?.id;
+                        return (option.categoryId || '') === (category?.id || '');
                     }
                 )}
                 isLastCategory={isLastCategory}
@@ -60,7 +60,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                             (value: CategoryCheckboxValue) => {
                                 return (
                                     value === option.value &&
-                                    option.categoryId === category?.id
+                                    (option.categoryId || '') === (category?.id || '')
                                 );
                             }
                         );

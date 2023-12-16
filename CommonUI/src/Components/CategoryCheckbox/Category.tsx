@@ -5,7 +5,6 @@ import {
 } from './CategoryCheckboxTypes';
 import CheckboxElement from '../Checkbox/Checkbox';
 import CheckBoxList from './CheckboxList';
-import HorizontalRule from '../HorizontalRule/HorizontalRule';
 
 export type CategoryCheckboxValue = string | number | boolean;
 
@@ -98,7 +97,7 @@ const Category: FunctionComponent<CategoryProps> = (
                 />
             </div>
 
-            {!props.isLastCategory ? <div className="-mb-3 -mt-3"><HorizontalRule /></div> : <></>}
+            {!props.isLastCategory ? <div className="mt-3 mb-3"></div> : <></>}
         </div>
     );
 };
