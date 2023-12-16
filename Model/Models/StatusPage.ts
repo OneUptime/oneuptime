@@ -1049,7 +1049,7 @@ export default class StatusPage extends BaseModel {
     })
     @Column({
         type: ColumnType.Boolean,
-        default: true,
+        default: false,
     })
     public allowSubscribersToChooseResources?: boolean = undefined;
 

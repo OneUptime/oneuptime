@@ -139,6 +139,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Allow Subscribers to Choose Resources',
+                            description: 'Can subscribers choose which resources they want to subscribe to?',
                         }
                     ],
                     modelId: modelId,
