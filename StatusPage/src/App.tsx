@@ -45,7 +45,10 @@ const App: () => JSX.Element = () => {
     const [isPreview, setIsPreview] = useState<boolean>(false);
     const [enableEmailSubscribers, setenableEmailSubscribers] =
         useState<boolean>(true);
-    const [allowSubscribersToChooseResources, setAllowSubscribersToChooseResources] = useState<boolean>(false);
+    const [
+        allowSubscribersToChooseResources,
+        setAllowSubscribersToChooseResources,
+    ] = useState<boolean>(false);
     const [enableSMSSubscribers, setenableSMSSubscribers] =
         useState<boolean>(false);
     const [statusPageName, setStatusPageName] = useState<string>('');
@@ -134,7 +137,9 @@ const App: () => JSX.Element = () => {
                         'statusPage.allowSubscribersToChooseResources'
                     ) as boolean;
 
-                setAllowSubscribersToChooseResources(allowSubscribersToChooseResources);
+                setAllowSubscribersToChooseResources(
+                    allowSubscribersToChooseResources
+                );
 
                 setenableSMSSubscribers(enableSMSSubscribers);
                 setenableEmailSubscribers(enableEmailSubscribers);
@@ -167,8 +172,6 @@ const App: () => JSX.Element = () => {
                         'hasEnabledSSO'
                     ) as boolean
                 );
-
-
 
                 setForceSSO(
                     JSONFunctions.getJSONValueInPath(
@@ -246,7 +249,7 @@ const App: () => JSX.Element = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_EVENT_DETAIL
+                                    PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -335,7 +338,9 @@ const App: () => JSX.Element = () => {
                             pageRoute={
                                 RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route
                             }
-                            allowSubscribersToChooseResources={allowSubscribersToChooseResources}
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
@@ -353,7 +358,9 @@ const App: () => JSX.Element = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                            allowSubscribersToChooseResources={allowSubscribersToChooseResources}
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
                             enableEmailSubscribers={enableEmailSubscribers}
                             enableSMSSubscribers={enableSMSSubscribers}
                         />
@@ -388,10 +395,12 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                    PageMap.PREVIEW_SUBSCRIBE_EMAIL
                                 ] as Route
                             }
-                            allowSubscribersToChooseResources={allowSubscribersToChooseResources}
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
                             enableEmailSubscribers={enableEmailSubscribers}
                             enableSMSSubscribers={enableSMSSubscribers}
                         />
@@ -411,7 +420,9 @@ const App: () => JSX.Element = () => {
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route
                             }
-                            allowSubscribersToChooseResources={allowSubscribersToChooseResources}
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
                             enableEmailSubscribers={enableEmailSubscribers}
                             enableSMSSubscribers={enableSMSSubscribers}
                         />
@@ -441,7 +452,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -461,7 +472,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                         />
@@ -480,7 +491,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_INCIDENT_DETAIL
+                                    PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -517,7 +528,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -537,7 +548,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                         />

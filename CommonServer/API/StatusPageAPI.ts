@@ -395,7 +395,6 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
 
-        
         // Get all status page resources for subscriber to subscribe to.
         this.router.post(
             `${new this.entityType()
@@ -407,8 +406,6 @@ export default class StatusPageAPI extends BaseAPI<
                 res: ExpressResponse,
                 next: NextFunction
             ) => {
-               
-
                 try {
                     const objectId: ObjectID = new ObjectID(
                         req.params['statusPageId'] as string
@@ -428,26 +425,27 @@ export default class StatusPageAPI extends BaseAPI<
                         );
                     }
 
-                    const resources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
-                        query: {
-                            statusPageId: objectId,
-                        },
-                        select: {
-                            _id: true,
-                            displayName: true,
-                            order: true,
-                            statusPageGroup: {
-                                _id: true,
-                                name: true,
-                                order: true,
+                    const resources: Array<StatusPageResource> =
+                        await StatusPageResourceService.findBy({
+                            query: {
+                                statusPageId: objectId,
                             },
-                        },
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                            select: {
+                                _id: true,
+                                displayName: true,
+                                order: true,
+                                statusPageGroup: {
+                                    _id: true,
+                                    name: true,
+                                    order: true,
+                                },
+                            },
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     return Response.sendEntityArrayResponse(
                         req,
@@ -456,7 +454,6 @@ export default class StatusPageAPI extends BaseAPI<
                         new PositiveNumber(resources.length),
                         StatusPageResource
                     );
-
                 } catch (err) {
                     next(err);
                 }

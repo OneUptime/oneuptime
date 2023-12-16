@@ -1,5 +1,9 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { CategoryCheckboxOption, CheckboxCategory, CategoryCheckboxValue } from './CategoryCheckboxTypes';
+import {
+    CategoryCheckboxOption,
+    CheckboxCategory,
+    CategoryCheckboxValue,
+} from './CategoryCheckboxTypes';
 import Category from './Category';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
@@ -8,7 +12,8 @@ export interface CategoryCheckboxOptionsAndCategories {
     options: Array<CategoryCheckboxOption>;
 }
 
-export interface CategoryCheckboxProps extends CategoryCheckboxOptionsAndCategories {
+export interface CategoryCheckboxProps
+    extends CategoryCheckboxOptionsAndCategories {
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue>;
     error?: string | undefined;
@@ -17,52 +22,67 @@ export interface CategoryCheckboxProps extends CategoryCheckboxOptionsAndCategor
 const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     props: CategoryCheckboxProps
 ): ReactElement => {
-
-    const [currentValues, setCurrentValues] = React.useState<Array<CategoryCheckboxValue>>(props.initialValue || []);
+    const [currentValues, setCurrentValues] = React.useState<
+        Array<CategoryCheckboxValue>
+    >(props.initialValue || []);
 
     if (props.options.length === 0) {
-        return <div>
-            <ErrorMessage error="No options found." />
-        </div>;
+        return (
+            <div>
+                <ErrorMessage error="No options found." />
+            </div>
+        );
     }
 
-    const getCategory = (category?: CheckboxCategory): ReactElement => {
-
-
-            return (<Category initialValue={props.initialValue} category={category} options={props.options.filter((option: CategoryCheckboxOption) => {
-                return option.categoryId === category?.id;
-            })} onChange={(value: Array<CategoryCheckboxValue>) => {
-                // remove any value from currentValue that belongs to this category. 
-
-                const tempCurrentValues: Array<CategoryCheckboxValue> = [...currentValues];
-
-                props.options.forEach((option: CategoryCheckboxOption) => {
-                    const index: number = tempCurrentValues.findIndex((value: CategoryCheckboxValue) => value === option.value && option.categoryId === category?.id);
-                    if (index > -1) {
-                        tempCurrentValues.splice(index, 1);
+    const getCategory: Function = (category?: CheckboxCategory): ReactElement => {
+        return (
+            <Category
+                initialValue={props.initialValue}
+                category={category}
+                options={props.options.filter(
+                    (option: CategoryCheckboxOption) => {
+                        return option.categoryId === category?.id;
                     }
-                });
+                )}
+                onChange={(value: Array<CategoryCheckboxValue>) => {
+                    // remove any value from currentValue that belongs to this category.
 
-                // add the new values to currentValue
-                value.forEach((value: CategoryCheckboxValue) => {
-                    tempCurrentValues.push(value);
-                });
+                    const tempCurrentValues: Array<CategoryCheckboxValue> = [
+                        ...currentValues,
+                    ];
 
-                setCurrentValues(tempCurrentValues);
+                    props.options.forEach((option: CategoryCheckboxOption) => {
+                        const index: number = tempCurrentValues.findIndex(
+                            (value: CategoryCheckboxValue) => {
+                                return (
+                                    value === option.value &&
+                                    option.categoryId === category?.id
+                                );
+                            }
+                        );
+                        if (index > -1) {
+                            tempCurrentValues.splice(index, 1);
+                        }
+                    });
 
-                props.onChange(tempCurrentValues);
+                    // add the new values to currentValue
+                    value.forEach((value: CategoryCheckboxValue) => {
+                        tempCurrentValues.push(value);
+                    });
 
-            }} />);
-       
-    }
+                    setCurrentValues(tempCurrentValues);
+
+                    props.onChange(tempCurrentValues);
+                }}
+            />
+        );
+    };
 
     return (
         <div>
             {getCategory(undefined)}
             {props.categories.map((category: CheckboxCategory, i: number) => {
-                return (<div key={i}>
-                    {getCategory(category)}
-                </div>)
+                return <div key={i}>{getCategory(category)}</div>;
             })}
             {props.error && (
                 <p

@@ -1,6 +1,14 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import Page from '../../Components/Page/Page';
-import ModelForm, { FormType, ModelField } from 'CommonUI/src/Components/Forms/ModelForm';
+import ModelForm, {
+    FormType,
+    ModelField,
+} from 'CommonUI/src/Components/Forms/ModelForm';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
@@ -16,7 +24,7 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import SubscriberUtils, {SubscribePageProps} from './SubscribePageUtils';
+import SubscriberUtils, { SubscribePageProps } from './SubscribePageUtils';
 import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/CategoryCheckbox/Index';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -28,26 +36,32 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
     const id: ObjectID = LocalStorage.getItem('statusPageId') as ObjectID;
 
-    const [categoryCheckboxOptionsAndCategories, setCategoryCheckboxOptionsAndCategories] = useState<CategoryCheckboxOptionsAndCategories>({
+    const [
+        categoryCheckboxOptionsAndCategories,
+        setCategoryCheckboxOptionsAndCategories,
+    ] = useState<CategoryCheckboxOptionsAndCategories>({
         categories: [],
         options: [],
     });
     const [isLaoding, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>(undefined);
-    
-    const fetchCheckboxOptionsAndCategories = async () => {
-        try{
+
+    const fetchCheckboxOptionsAndCategories: Function = async (): Promise<void> => {
+        try {
             setIsLoading(true);
 
-            const result: CategoryCheckboxOptionsAndCategories = await SubscriberUtils.getCategoryCheckboxPropsBasedOnResources(id); 
+            const result: CategoryCheckboxOptionsAndCategories =
+                await SubscriberUtils.getCategoryCheckboxPropsBasedOnResources(
+                    id
+                );
 
             setCategoryCheckboxOptionsAndCategories(result);
-        }catch(err){
+        } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
-    }
+    };
 
     useEffect(() => {
         fetchCheckboxOptionsAndCategories().catch((error: Error) => {
@@ -67,23 +81,21 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                 subscriberEmail: true,
             },
             title: 'Your Email',
-            fieldType:
-                FormFieldSchemaType.Email,
+            fieldType: FormFieldSchemaType.Email,
             required: true,
-            placeholder:
-                'subscriber@company.com',
+            placeholder: 'subscriber@company.com',
         },
     ];
 
-    if(props.allowSubscribersToChooseResources){
+    if (props.allowSubscribersToChooseResources) {
         fields.push({
             field: {
                 statusPageResources: true,
             },
             title: 'Select Resources to Subscribe',
-            description: 'Please select the resources you want to subscribe to.',
-            fieldType:
-                FormFieldSchemaType.CategoryCheckbox,
+            description:
+                'Please select the resources you want to subscribe to.',
+            fieldType: FormFieldSchemaType.CategoryCheckbox,
             required: true,
             categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
         });
@@ -122,71 +134,76 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                 />
             }
         >
-
             {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
 
             {error ? <ErrorMessage error={error} /> : <></>}
 
-            {!isLaoding && !error ? <div className="justify-center">
-                <div>
-                    {isSuccess && (
-                        <p className="text-center text-gray-400 mb-20 mt-20">
-                            {' '}
-                            You have been subscribed successfully.
-                        </p>
-                    )}
+            {!isLaoding && !error ? (
+                <div className="justify-center">
+                    <div>
+                        {isSuccess && (
+                            <p className="text-center text-gray-400 mb-20 mt-20">
+                                {' '}
+                                You have been subscribed successfully.
+                            </p>
+                        )}
 
-                    {!isSuccess ? (
-                        <div className="-mr-4">
-                            <Card
-                                title="Subscribe by Email"
-                                description={
-                                    'All of our updates will be sent to this email address.'
-                                }
-                            >
-                                <ModelForm<StatusPageSubscriber>
-                                    modelType={StatusPageSubscriber}
-                                    id="email-form"
-                                    name="Status Page > Email Subscribe"
-                                    fields={fields}
-                                    apiUrl={URL.fromString(
-                                        STATUS_PAGE_API_URL.toString()
-                                    ).addRoute(`/subscribe/${id.toString()}`)}
-                                    requestHeaders={API.getDefaultHeaders(
-                                        StatusPageUtil.getStatusPageId()!
-                                    )}
-                                    formType={FormType.Create}
-                                    submitButtonText={'Subscribe'}
-                                    onBeforeCreate={async (
-                                        item: StatusPageSubscriber
-                                    ) => {
-                                        const id: ObjectID =
-                                            LocalStorage.getItem(
-                                                'statusPageId'
-                                            ) as ObjectID;
-                                        if (!id) {
-                                            throw new BadDataException(
-                                                'Status Page ID is required'
-                                            );
-                                        }
+                        {!isSuccess ? (
+                            <div className="-mr-4">
+                                <Card
+                                    title="Subscribe by Email"
+                                    description={
+                                        'All of our updates will be sent to this email address.'
+                                    }
+                                >
+                                    <ModelForm<StatusPageSubscriber>
+                                        modelType={StatusPageSubscriber}
+                                        id="email-form"
+                                        name="Status Page > Email Subscribe"
+                                        fields={fields}
+                                        apiUrl={URL.fromString(
+                                            STATUS_PAGE_API_URL.toString()
+                                        ).addRoute(
+                                            `/subscribe/${id.toString()}`
+                                        )}
+                                        requestHeaders={API.getDefaultHeaders(
+                                            StatusPageUtil.getStatusPageId()!
+                                        )}
+                                        formType={FormType.Create}
+                                        submitButtonText={'Subscribe'}
+                                        onBeforeCreate={async (
+                                            item: StatusPageSubscriber
+                                        ) => {
+                                            const id: ObjectID =
+                                                LocalStorage.getItem(
+                                                    'statusPageId'
+                                                ) as ObjectID;
+                                            if (!id) {
+                                                throw new BadDataException(
+                                                    'Status Page ID is required'
+                                                );
+                                            }
 
-                                        item.statusPageId = id;
-                                        return item;
-                                    }}
-                                    onSuccess={(
-                                        _value: StatusPagePrivateUser
-                                    ) => {
-                                        setIsSuccess(true);
-                                    }}
-                                    maxPrimaryButtonWidth={true}
-                                />
-                            </Card>
-                        </div>
-                    ) : (
-                        <></>
-                    )}
+                                            item.statusPageId = id;
+                                            return item;
+                                        }}
+                                        onSuccess={(
+                                            _value: StatusPagePrivateUser
+                                        ) => {
+                                            setIsSuccess(true);
+                                        }}
+                                        maxPrimaryButtonWidth={true}
+                                    />
+                                </Card>
+                            </div>
+                        ) : (
+                            <></>
+                        )}
+                    </div>
                 </div>
-            </div> : <></>}
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

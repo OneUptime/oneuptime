@@ -1020,7 +1020,6 @@ export default class StatusPage extends BaseModel {
     })
     public enableEmailSubscribers?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

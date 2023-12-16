@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -427,7 +435,6 @@ export default class StatusPageSubscriber extends BaseModel {
     })
     public isUnsubscribed?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -475,6 +482,4 @@ export default class StatusPageSubscriber extends BaseModel {
         },
     })
     public statusPageResources?: Array<StatusPageResource> = undefined;
-
-
 }

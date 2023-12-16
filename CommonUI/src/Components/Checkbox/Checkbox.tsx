@@ -5,7 +5,6 @@ export interface CategoryProps {
     title: string;
     description?: string | undefined;
     initialValue?: undefined | boolean;
-    onClick?: undefined | (() => void);
     onChange?: undefined | ((value: boolean) => void);
     value?: boolean | undefined;
     readOnly?: boolean | undefined;
@@ -23,8 +22,9 @@ export interface CategoryProps {
 const CheckboxElement: FunctionComponent<CategoryProps> = (
     props: CategoryProps
 ): ReactElement => {
-
-    const [value, setValue] = React.useState<boolean>(props.initialValue || false);
+    const [value, setValue] = React.useState<boolean>(
+        props.initialValue || false
+    );
 
     React.useEffect(() => {
         setValue(props.value || false);
@@ -38,15 +38,41 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
 
     return (
         <div>
-            <div className={`relative flex items-start ${props.outerDivClassName || ''}`}>
+            <div
+                className={`relative flex items-start ${
+                    props.outerDivClassName || ''
+                }`}
+            >
                 <div className="flex h-6 items-center">
-                    <input checked={value} onChange={(event) => {
-                        setValue(event.target.checked);
-                    }} autoFocus={props.autoFocus} tabIndex={props.tabIndex} readOnly={props.readOnly} disabled={props.disabled} onFocus={props.onFocus} onBlur={props.onBlur} data-testid={props.dataTestId} aria-describedby="comments-description" name="comments" type="checkbox" className={`h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 ${props.className || ''}`} />
+                    <input
+                        checked={value}
+                        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                            setValue(event.target.checked);
+                        }}
+                        autoFocus={props.autoFocus}
+                        tabIndex={props.tabIndex}
+                        readOnly={props.readOnly}
+                        disabled={props.disabled}
+                        onFocus={props.onFocus}
+                        onBlur={props.onBlur}
+                        data-testid={props.dataTestId}
+                        aria-describedby="comments-description"
+                        name="comments"
+                        type="checkbox"
+                        className={`h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
+                            props.className || ''
+                        }`}
+                    />
                 </div>
                 <div className="ml-3 text-sm leading-6">
-                    <label className="font-medium text-gray-900">{props.title}</label>
-                    {props.description && <span className="text-gray-500">{props.description}</span>}
+                    <label className="font-medium text-gray-900">
+                        {props.title}
+                    </label>
+                    {props.description && (
+                        <span className="text-gray-500">
+                            {props.description}
+                        </span>
+                    )}
                 </div>
             </div>
             {props.error && (

@@ -48,7 +48,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Subscriber Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -113,7 +113,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 name="Status Page > Branding > Subscriber > Advanced"
                 cardProps={{
                     title: 'Advanced Subscriber Settings',
-                    description: 'Advanced subscriber settings for this status page.',
+                    description:
+                        'Advanced subscriber settings for this status page.',
                 }}
                 isEditable={true}
                 formFields={[
@@ -126,7 +127,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         required: false,
                         placeholder:
                             'Can subscribers choose which resources they want to subscribe to?',
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -139,13 +140,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Allow Subscribers to Choose Resources',
-                            description: 'Can subscribers choose which resources they want to subscribe to?',
-                        }
+                            description:
+                                'Can subscribers choose which resources they want to subscribe to?',
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-
         </ModelPage>
     );
 };
