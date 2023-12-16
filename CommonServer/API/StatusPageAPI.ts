@@ -240,6 +240,7 @@ export default class StatusPageAPI extends BaseAPI<
                         enableEmailSubscribers: true,
                         enableSmsSubscribers: true,
                         isPublicStatusPage: true,
+                        allowSubscribersToChooseResources: true,
                         requireSsoForLogin: true,
                         coverImageFile: {
                             file: true,
