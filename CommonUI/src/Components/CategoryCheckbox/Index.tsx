@@ -27,7 +27,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     >(props.initialValue || []);
 
     useEffect(() => {
-        // whenevent currentValue changes, make sure all the values are unique. 
+        // whenevent currentValue changes, make sure all the values are unique.
 
         const doesHaveDuplicates: boolean = currentValues.some(
             (value: CategoryCheckboxValue, index: number) => {
@@ -35,10 +35,9 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
             }
         );
 
-        if(!doesHaveDuplicates) {
+        if (!doesHaveDuplicates) {
             return;
         }
-
 
         const tempCurrentValues: Array<CategoryCheckboxValue> = [];
 
@@ -49,8 +48,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         });
 
         setCurrentValues(tempCurrentValues);
-
-    }, [currentValues]  );
+    }, [currentValues]);
 
     if (props.options.length === 0) {
         return (
@@ -66,23 +64,30 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     ): ReactElement => {
         return (
             <Category
-                initialValue={currentValues.filter((value: CategoryCheckboxValue) => {
-                    // only return this option if it belongs to this category
+                initialValue={currentValues.filter(
+                    (value: CategoryCheckboxValue) => {
+                        // only return this option if it belongs to this category
 
-                    const option: CategoryCheckboxOption | undefined =
-                        props.options.find((option: CategoryCheckboxOption) => {
-                            return (
-                                option.value === value &&
-                                (option.categoryId || '') === (category?.id || '')
+                        const option: CategoryCheckboxOption | undefined =
+                            props.options.find(
+                                (option: CategoryCheckboxOption) => {
+                                    return (
+                                        option.value === value &&
+                                        (option.categoryId || '') ===
+                                            (category?.id || '')
+                                    );
+                                }
                             );
-                        });
 
-                    return Boolean(option);
-                })}
+                        return Boolean(option);
+                    }
+                )}
                 category={category}
                 options={props.options.filter(
                     (option: CategoryCheckboxOption) => {
-                        return (option.categoryId || '') === (category?.id || '');
+                        return (
+                            (option.categoryId || '') === (category?.id || '')
+                        );
                     }
                 )}
                 isLastCategory={isLastCategory}
@@ -98,7 +103,8 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                             (value: CategoryCheckboxValue) => {
                                 return (
                                     value === option.value &&
-                                    (option.categoryId || '') === (category?.id || '')
+                                    (option.categoryId || '') ===
+                                        (category?.id || '')
                                 );
                             }
                         );
@@ -106,7 +112,6 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                             tempCurrentValues.splice(index, 1);
                         }
                     });
-                   
 
                     // add the new values to currentValue
                     value.forEach((value: CategoryCheckboxValue) => {
@@ -125,7 +130,14 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         <div>
             {getCategory(undefined, props.categories.length === 0)}
             {props.categories.map((category: CheckboxCategory, i: number) => {
-                return <div key={i}>{getCategory(category, i === props.categories.length - 1)}</div>;
+                return (
+                    <div key={i}>
+                        {getCategory(
+                            category,
+                            i === props.categories.length - 1
+                        )}
+                    </div>
+                );
             })}
             {props.error && (
                 <p

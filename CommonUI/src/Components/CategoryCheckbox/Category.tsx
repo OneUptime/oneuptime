@@ -29,18 +29,21 @@ const Category: FunctionComponent<CategoryProps> = (
         Array<CategoryCheckboxValue>
     >(props.initialValue || []);
 
-    const [categoryCheckboxState, setCategoryCheckboxState] = React.useState<CategoryCheckboxValueState>(CategoryCheckboxValueState.Unchecked);
+    const [categoryCheckboxState, setCategoryCheckboxState] =
+        React.useState<CategoryCheckboxValueState>(
+            CategoryCheckboxValueState.Unchecked
+        );
 
     useEffect(() => {
         // check if all of the options are checked. and if so, check the category
-        
+
         const noOptionsChecked: boolean = currentValues.length === 0;
 
-        if(noOptionsChecked) {
+        if (noOptionsChecked) {
             setCategoryCheckboxState(CategoryCheckboxValueState.Unchecked);
             return;
         }
-        
+
         const allOptionsChecked: boolean = props.options.every(
             (option: CategoryCheckboxOption) => {
                 return currentValues.includes(option.value);
@@ -62,11 +65,19 @@ const Category: FunctionComponent<CategoryProps> = (
                 <div>
                     <CheckboxElement
                         title={props.category.title}
-                        value={categoryCheckboxState === CategoryCheckboxValueState.Checked}
-                        isIndeterminate={categoryCheckboxState === CategoryCheckboxValueState.Indeterminate}
-                        onChange={(isChecked: boolean, isIndeterminate?: boolean | undefined) => {
-
-                            if(isIndeterminate && !isChecked) {
+                        value={
+                            categoryCheckboxState ===
+                            CategoryCheckboxValueState.Checked
+                        }
+                        isIndeterminate={
+                            categoryCheckboxState ===
+                            CategoryCheckboxValueState.Indeterminate
+                        }
+                        onChange={(
+                            isChecked: boolean,
+                            isIndeterminate?: boolean | undefined
+                        ) => {
+                            if (isIndeterminate && !isChecked) {
                                 return;
                             }
 
@@ -76,7 +87,6 @@ const Category: FunctionComponent<CategoryProps> = (
                                     [...currentValues];
                                 props.options.forEach(
                                     (option: CategoryCheckboxOption) => {
-
                                         // please make sure that the option.value is not already in the array
 
                                         if (newValues.includes(option.value)) {
@@ -94,21 +104,22 @@ const Category: FunctionComponent<CategoryProps> = (
                                     [...currentValues];
                                 props.options.forEach(
                                     (option: CategoryCheckboxOption) => {
-
-                                        while (newValues.includes(option.value)) {
+                                        while (
+                                            newValues.includes(option.value)
+                                        ) {
                                             const index: number =
                                                 newValues.findIndex(
                                                     (
                                                         value: CategoryCheckboxValue
                                                     ) => {
                                                         return (
-                                                            value === option.value
+                                                            value ===
+                                                            option.value
                                                         );
                                                     }
                                                 );
                                             newValues.splice(index, 1);
                                         }
-
                                     }
                                 );
                                 setCurrentValues(newValues);

@@ -21,8 +21,7 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
 
     useEffect(() => {
         setCurrentValues(props.initialValue || []);
-    }
-        , [props.initialValue]);
+    }, [props.initialValue]);
 
     return (
         <div>
@@ -59,8 +58,6 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
                                     props.onUnchecked(option.value);
 
                                 // remove the option.value from the currentValues array
-
-
 
                                 const newValues: Array<CategoryCheckboxValue> =
                                     [...currentValues];

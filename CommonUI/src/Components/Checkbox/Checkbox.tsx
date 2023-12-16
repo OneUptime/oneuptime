@@ -23,16 +23,15 @@ export interface CategoryProps {
 const CheckboxElement: FunctionComponent<CategoryProps> = (
     props: CategoryProps
 ): ReactElement => {
-
     const [value, setValue] = React.useState<boolean>(
         props.initialValue || false
     );
 
-    // ref this checkbox. 
-    const checkboxRef = React.useRef<HTMLInputElement>(null);
+    // ref this checkbox.
+    const checkboxRef: React.RefObject<HTMLInputElement> = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
-       checkboxRef.current!.indeterminate = props.isIndeterminate || false;
+        checkboxRef.current!.indeterminate = props.isIndeterminate || false;
     }, [props.isIndeterminate]);
 
     React.useEffect(() => {
@@ -58,7 +57,6 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
                         onChange={(
                             event: React.ChangeEvent<HTMLInputElement>
                         ) => {
-                            
                             setValue(event.target.checked);
                         }}
                         ref={checkboxRef}
