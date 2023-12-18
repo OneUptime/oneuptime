@@ -94,7 +94,6 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     ];
 
     if (props.allowSubscribersToChooseResources) {
-
         fields.push({
             field: {
                 isSubscribedToAllResources: true,
@@ -104,7 +103,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                 'Select this option if you want to subscribe to all resources.',
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
-            defaultValue: true
+            defaultValue: true,
         });
 
         fields.push({
@@ -119,7 +118,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
             showIf: (model: FormValues<StatusPageSubscriber>) => {
                 return !model || !model.isSubscribedToAllResources;
-            }
+            },
         });
     }
 

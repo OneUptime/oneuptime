@@ -112,7 +112,7 @@ export class Service extends DatabaseService<Model> {
                     name: true,
                     isPublicStatusPage: true,
                     logoFileId: true,
-                    allowSubscribersToChooseResources: true
+                    allowSubscribersToChooseResources: true,
                 },
                 props: {
                     isRoot: true,
@@ -120,14 +120,14 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-
         if (statuspage && !statuspage.allowSubscribersToChooseResources) {
             data.data.isSubscribedToAllResources = true;
-        }else{
-            if(!data.data.statusPageResources || data.data.statusPageResources.length === 0){
-                if(!data.data.isSubscribedToAllResources){
-                    throw new BadDataException('Select resources to subscribe to.');
-                }
+        } else if (
+            !data.data.statusPageResources ||
+            data.data.statusPageResources.length === 0
+        ) {
+            if (!data.data.isSubscribedToAllResources) {
+                throw new BadDataException('Select resources to subscribe to.');
             }
         }
 
@@ -177,12 +177,12 @@ export class Service extends DatabaseService<Model> {
                         statusPageName: statusPageName,
                         logoUrl: onCreate.carryForward.logoFileId
                             ? new URL(httpProtocol, host)
-                                .addRoute(FileRoute)
-                                .addRoute(
-                                    '/image/' +
-                                    onCreate.carryForward.logoFileId
-                                )
-                                .toString()
+                                  .addRoute(FileRoute)
+                                  .addRoute(
+                                      '/image/' +
+                                          onCreate.carryForward.logoFileId
+                                  )
+                                  .toString()
                             : '',
                         statusPageUrl: statusPageURL,
                         isPublicStatusPage: onCreate.carryForward
@@ -192,7 +192,7 @@ export class Service extends DatabaseService<Model> {
                         unsubscribeUrl: new URL(httpProtocol, host)
                             .addRoute(
                                 '/api/status-page-subscriber/unsubscribe/' +
-                                createdItem._id.toString()
+                                    createdItem._id.toString()
                             )
                             .toString(),
                     },

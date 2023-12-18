@@ -23,14 +23,14 @@ export interface CategoryCheckboxProps
 const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     props: CategoryCheckboxProps
 ): ReactElement => {
-
-    const sanitizeInitialValues = (value?: Array<CategoryCheckboxValue | BaseModel>): Array<CategoryCheckboxValue> => {
-
+    const sanitizeInitialValues: Function = (
+        value?: Array<CategoryCheckboxValue | BaseModel>
+    ): Array<CategoryCheckboxValue> => {
         if (!value) {
             return [];
         }
 
-        return value.map((value) => {
+        return value.map((value: CategoryCheckboxValue | BaseModel) => {
             if (value instanceof BaseModel) {
                 return value._id as string;
             }
@@ -38,14 +38,16 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         });
     };
 
-    
     const [currentValues, setCurrentValues] = React.useState<
         Array<CategoryCheckboxValue>
     >(sanitizeInitialValues(props.initialValue));
 
-
-    const [categories] = React.useState<Array<CheckboxCategory>>([...props.categories] || []);
-    const [options] = React.useState<Array<CategoryCheckboxOption>>([...props.options] || []);
+    const [categories] = React.useState<Array<CheckboxCategory>>(
+        [...props.categories] || []
+    );
+    const [options] = React.useState<Array<CategoryCheckboxOption>>(
+        [...props.options] || []
+    );
 
     useEffect(() => {
         // whenevent currentValue changes, make sure all the values are unique.
@@ -90,27 +92,21 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                         // only return this option if it belongs to this category
 
                         const option: CategoryCheckboxOption | undefined =
-                            options.find(
-                                (option: CategoryCheckboxOption) => {
-                                    return (
-                                        option.value === value &&
-                                        (option.categoryId || '') ===
-                                            (category?.id || '')
-                                    );
-                                }
-                            );
+                            options.find((option: CategoryCheckboxOption) => {
+                                return (
+                                    option.value === value &&
+                                    (option.categoryId || '') ===
+                                        (category?.id || '')
+                                );
+                            });
 
                         return Boolean(option);
                     }
                 )}
                 category={category}
-                options={options.filter(
-                    (option: CategoryCheckboxOption) => {
-                        return (
-                            (option.categoryId || '') === (category?.id || '')
-                        );
-                    }
-                )}
+                options={options.filter((option: CategoryCheckboxOption) => {
+                    return (option.categoryId || '') === (category?.id || '');
+                })}
                 isLastCategory={isLastCategory}
                 onChange={(value: Array<CategoryCheckboxValue>) => {
                     // remove any value from currentValue that belongs to this category.
@@ -153,10 +149,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
             {categories.map((category: CheckboxCategory, i: number) => {
                 return (
                     <div key={i}>
-                        {getCategory(
-                            category,
-                            i === categories.length - 1
-                        )}
+                        {getCategory(category, i === categories.length - 1)}
                     </div>
                 );
             })}

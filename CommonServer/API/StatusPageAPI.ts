@@ -1239,8 +1239,10 @@ export default class StatusPageAPI extends BaseAPI<
                         req.body.data['isSubscribedToAllResources']
                     );
 
-
-                    if (req.body.data['statusPageResources'] && req.body.data['statusPageResources'].length > 0) {
+                    if (
+                        req.body.data['statusPageResources'] &&
+                        req.body.data['statusPageResources'].length > 0
+                    ) {
                         statusPageSubscriber.statusPageResources = req.body
                             .data[
                             'statusPageResources'

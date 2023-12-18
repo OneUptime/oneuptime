@@ -106,8 +106,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     >([]);
 
     useEffect(() => {
-
-        if(isLoading){
+        if (isLoading) {
             return; // don't do anything if loading
         }
 
@@ -122,7 +121,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 required: true,
                 placeholder: 'subscriber@company.com',
             },
-            
+
             {
                 field: {
                     isUnsubscribed: true,
@@ -131,21 +130,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 description: 'Unsubscribe this email from the status page.',
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
-            }
+            },
         ];
 
         if (allowSubscribersToChooseResources) {
-
             formFields.push({
                 field: {
                     isSubscribedToAllResources: true,
                 },
                 title: 'Subscribe to All Resources',
-                description:
-                    'Send notifications for all resources.',
+                description: 'Send notifications for all resources.',
                 fieldType: FormFieldSchemaType.Checkbox,
                 required: false,
-                defaultValue: true
+                defaultValue: true,
             });
 
             formFields.push({
@@ -160,7 +157,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
                 showIf: (model: FormValues<StatusPageSubscriber>) => {
                     return !model || !model.isSubscribedToAllResources;
-                }
+                },
             });
         }
 

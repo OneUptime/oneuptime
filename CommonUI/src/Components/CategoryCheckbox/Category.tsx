@@ -55,9 +55,7 @@ const Category: FunctionComponent<CategoryProps> = (
         } else {
             setCategoryCheckboxState(CategoryCheckboxValueState.Indeterminate);
         }
-
     }, [currentValues]);
-
 
     return (
         <div>

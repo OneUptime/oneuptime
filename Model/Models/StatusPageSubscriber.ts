@@ -451,7 +451,6 @@ export default class StatusPageSubscriber extends BaseModel {
     })
     public isUnsubscribed?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -477,7 +476,8 @@ export default class StatusPageSubscriber extends BaseModel {
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         title: 'Is Subscribed to All Resources',
-        description: 'Is Subscriber Subscribed to All Resources on this status page?',
+        description:
+            'Is Subscriber Subscribed to All Resources on this status page?',
     })
     @Column({
         type: ColumnType.Boolean,

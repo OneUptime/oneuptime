@@ -535,7 +535,8 @@ const FormField: <T extends Object>(
                                     ? (props.currentValues as any)[
                                           props.fieldName
                                       ]
-                                    : (props.field.defaultValue as boolean) || false
+                                    : (props.field.defaultValue as boolean) ||
+                                      false
                             }
                         />
                     )}
@@ -564,7 +565,7 @@ const FormField: <T extends Object>(
                             }}
                             initialValue={
                                 props.currentValues &&
-                                (props.currentValues as any)[props.fieldName] 
+                                (props.currentValues as any)[props.fieldName]
                                     ? (props.currentValues as any)[
                                           props.fieldName
                                       ]
