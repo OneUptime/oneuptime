@@ -36,6 +36,7 @@ import ObjectID from 'Common/Types/ObjectID';
 // Logout.
 import Logout from './Pages/Accounts/Logout';
 import StatusPageUtil from './Utils/StatusPage';
+import Unsubscribe from './Pages/Subscribe/Unsubscribe';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -249,7 +250,7 @@ const App: () => JSX.Element = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_EVENT_DETAIL
+                                PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -367,6 +368,24 @@ const App: () => JSX.Element = () => {
                     }
                 />
 
+
+                <PageRoute
+                    path={RouteMap[PageMap.UNSUBSCRIBE]?.toString() || ''}
+                    element={
+                        <Unsubscribe
+                            pageRoute={RouteMap[PageMap.UNSUBSCRIBE] as Route}
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
+                        />
+                    }
+                />
+
                 {/* Preview */}
 
                 <PageRoute
@@ -395,7 +414,31 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                ] as Route
+                            }
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.PREVIEW_UNSUBSCRIBE]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <Unsubscribe
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            pageRoute={
+                                RouteMap[
+                                PageMap.PREVIEW_UNSUBSCRIBE
                                 ] as Route
                             }
                             allowSubscribersToChooseResources={
@@ -452,7 +495,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -472,7 +515,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                         />
@@ -491,7 +534,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_INCIDENT_DETAIL
+                                PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -528,7 +571,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -548,7 +591,7 @@ const App: () => JSX.Element = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                         />
