@@ -81,7 +81,7 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
                         {props.title}
                     </label>
                     {props.description && (
-                        <span className="text-gray-500">
+                        <span className="text-gray-500 ml-3">
                             {props.description}
                         </span>
                     )}

@@ -118,7 +118,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             required: true,
             categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
             showIf: (model: FormValues<StatusPageSubscriber>) => {
-                return !model.isSubscribedToAllResources;
+                return !model || !model.isSubscribedToAllResources;
             }
         });
     }
