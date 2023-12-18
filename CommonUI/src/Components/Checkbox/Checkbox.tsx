@@ -39,12 +39,6 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
         setValue(props.value || false);
     }, [props.value]);
 
-    React.useEffect(() => {
-        if (props.onChange) {
-            props.onChange(value, props.isIndeterminate);
-        }
-    }, [value]);
-
     return (
         <div>
             <div
@@ -59,6 +53,11 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
                             event: React.ChangeEvent<HTMLInputElement>
                         ) => {
                             setValue(event.target.checked);
+
+                            if (props.onChange) {
+                                props.onChange(event.target.checked, props.isIndeterminate);
+                            }
+                            
                         }}
                         ref={checkboxRef}
                         autoFocus={props.autoFocus}
