@@ -10,11 +10,10 @@ import URL from 'Common/Types/API/URL';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import { CategoryCheckboxOptionsAndCategories } from '../Components/CategoryCheckbox/Index';
 
-
-
 export default class StatusPageUtil {
     public static async getCategoryCheckboxPropsBasedOnResources(
-        statusPageId: ObjectID, overrideRequestUrl?: URL
+        statusPageId: ObjectID,
+        overrideRequestUrl?: URL
     ): Promise<CategoryCheckboxOptionsAndCategories> {
         const categories: Array<CheckboxCategory> = [];
         const options: Array<CategoryCheckboxOption> = [];
@@ -82,9 +81,9 @@ export default class StatusPageUtil {
     }
 
     public static async getResources(
-        statusPageId: ObjectID, overrideRequestUrl?: URL
+        statusPageId: ObjectID,
+        overrideRequestUrl?: URL
     ): Promise<Array<StatusPageResource>> {
-
         const resources: ListResult<StatusPageResource> =
             await ModelAPI.getList<StatusPageResource>(
                 StatusPageResource,
@@ -104,12 +103,13 @@ export default class StatusPageUtil {
                     },
                 },
                 {},
-                overrideRequestUrl ? {
-                    overrideRequestUrl: overrideRequestUrl,
-                } : undefined
+                overrideRequestUrl
+                    ? {
+                          overrideRequestUrl: overrideRequestUrl,
+                      }
+                    : undefined
             );
 
         return resources.data;
-
     }
 }

@@ -28,7 +28,8 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
     );
 
     // ref this checkbox.
-    const checkboxRef: React.RefObject<HTMLInputElement> = React.useRef<HTMLInputElement>(null);
+    const checkboxRef: React.RefObject<HTMLInputElement> =
+        React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
         checkboxRef.current!.indeterminate = props.isIndeterminate || false;

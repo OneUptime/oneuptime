@@ -1,4 +1,4 @@
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from '../PageComponentProps';
 
 export interface SubscribePageProps extends PageComponentProps {
     enableEmailSubscribers: boolean;

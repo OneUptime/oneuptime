@@ -1,6 +1,11 @@
 import Route from 'Common/Types/API/Route';
 import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -27,14 +32,16 @@ import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/Ca
 import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 
-
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-    const [allowSubscribersToChooseResources, setAllowSubscribersToChooseResources] = React.useState<boolean>(false);
-    const [isEmailSubscribersEnabled, setIsEmailSubscribersEnabled] = React.useState<boolean>(false);
+    const [
+        allowSubscribersToChooseResources,
+        setAllowSubscribersToChooseResources,
+    ] = React.useState<boolean>(false);
+    const [isEmailSubscribersEnabled, setIsEmailSubscribersEnabled] =
+        React.useState<boolean>(false);
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string>('');
     const [
@@ -45,7 +52,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         options: [],
     });
 
-
     const fetchCheckboxOptionsAndCategories: Function =
         async (): Promise<void> => {
             const result: CategoryCheckboxOptionsAndCategories =
@@ -54,22 +60,25 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 );
 
             setCategoryCheckboxOptionsAndCategories(result);
-
         };
 
-
-    const fetchStatusPage = async () => {
+    const fetchStatusPage: Function = async (): Promise<void> => {
         try {
-
             setIsLoading(true);
 
-            const statusPage: StatusPage | null = await ModelAPI.getItem(StatusPage, modelId, {
-                allowSubscribersToChooseResources: true,
-                enableEmailSubscribers: true
-            });
+            const statusPage: StatusPage | null = await ModelAPI.getItem(
+                StatusPage,
+                modelId,
+                {
+                    allowSubscribersToChooseResources: true,
+                    enableEmailSubscribers: true,
+                }
+            );
 
             if (statusPage && statusPage.allowSubscribersToChooseResources) {
-                setAllowSubscribersToChooseResources(statusPage.allowSubscribersToChooseResources);
+                setAllowSubscribersToChooseResources(
+                    statusPage.allowSubscribersToChooseResources
+                );
                 await fetchCheckboxOptionsAndCategories();
             }
 
@@ -79,7 +88,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
             setIsLoading(false);
         } catch (err) {
-            setError(API.getFriendlyMessage(err))
+            setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
@@ -87,12 +96,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
     useEffect(() => {
         fetchStatusPage().catch((err: Error) => {
-            setError(API.getFriendlyMessage(err))
+            setError(API.getFriendlyMessage(err));
         });
-    }, []); 
+    }, []);
 
-    const [formFields, setFormFields] = React.useState<Array<ModelField<StatusPageSubscriber>>>([]);
-
+    const [formFields, setFormFields] = React.useState<
+        Array<ModelField<StatusPageSubscriber>>
+    >([]);
 
     useEffect(() => {
         const formFields: Array<ModelField<StatusPageSubscriber>> = [
@@ -101,15 +111,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     subscriberEmail: true,
                 },
                 title: 'Email',
-                description:
-                    'Status page updates will be sent to this email.',
+                description: 'Status page updates will be sent to this email.',
                 fieldType: FormFieldSchemaType.Email,
                 required: true,
                 placeholder: 'subscriber@company.com',
             },
         ];
-    
-    
+
         if (allowSubscribersToChooseResources) {
             formFields.push({
                 field: {
@@ -126,8 +134,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
         setFormFields(formFields);
     }, [isLoading, categoryCheckboxOptionsAndCategories]);
-
-    
 
     return (
         <ModelPage
@@ -161,7 +167,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Email Subscribers',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                         ] as Route,
                         { modelId }
                     ),
@@ -169,84 +175,109 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
             {isLoading ? <PageLoader isVisible={true} /> : <></>}
 
             {error ? <ErrorMessage error={error} /> : <></>}
 
-            {!error && !isLoading ? <>
+            {!error && !isLoading ? (
+                <>
+                    {!isEmailSubscribersEnabled && (
+                        <Alert
+                            type={AlertType.DANGER}
+                            title="Email subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
+                        />
+                    )}
+                    <ModelTable<StatusPageSubscriber>
+                        modelType={StatusPageSubscriber}
+                        id="table-subscriber"
+                        name="Status Page > Email Subscribers"
+                        isDeleteable={true}
+                        showViewIdButton={true}
+                        isCreateable={true}
+                        isEditable={false}
+                        isViewable={false}
+                        selectMoreFields={{
+                            subscriberPhone: true,
+                        }}
+                        query={{
+                            statusPageId: modelId,
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                            subscriberEmail: new NotNull(),
+                        }}
+                        onBeforeCreate={(
+                            item: StatusPageSubscriber
+                        ): Promise<StatusPageSubscriber> => {
+                            if (
+                                !props.currentProject ||
+                                !props.currentProject._id
+                            ) {
+                                throw new BadDataException(
+                                    'Project ID cannot be null'
+                                );
+                            }
 
-                {!isEmailSubscribersEnabled && <Alert type={AlertType.DANGER} title='Email subscribers are not enabled for this status page. Please enable it in Subscriber Settings' />}
-                <ModelTable<StatusPageSubscriber>
-                    modelType={StatusPageSubscriber}
-                    id="table-subscriber"
-                    name="Status Page > Email Subscribers"
-                    isDeleteable={true}
-                    showViewIdButton={true}
-                    isCreateable={true}
-                    isEditable={false}
-                    isViewable={false}
-                    selectMoreFields={{
-                        subscriberPhone: true,
-                    }}
-                    query={{
-                        statusPageId: modelId,
-                        projectId: DashboardNavigation.getProjectId()?.toString(),
-                        subscriberEmail: new NotNull(),
-                    }}
-                    onBeforeCreate={(
-                        item: StatusPageSubscriber
-                    ): Promise<StatusPageSubscriber> => {
-                        if (!props.currentProject || !props.currentProject._id) {
-                            throw new BadDataException('Project ID cannot be null');
-                        }
-
-                        item.statusPageId = modelId;
-                        item.projectId = new ObjectID(props.currentProject._id);
-                        return Promise.resolve(item);
-                    }}
-                    cardProps={{
-                        title: 'Email Subscribers',
-                        description:
-                            'Here are the list of subscribers who have subscribed to the status page.',
-                    }}
-                    noItemsMessage={'No subscribers found.'}
-                    formFields={formFields}
-                    showRefreshButton={true}
-                    viewPageRoute={Navigation.getCurrentRoute()}
-                    columns={[
-                        {
-                            field: {
-                                subscriberEmail: true,
+                            item.statusPageId = modelId;
+                            item.projectId = new ObjectID(
+                                props.currentProject._id
+                            );
+                            return Promise.resolve(item);
+                        }}
+                        cardProps={{
+                            title: 'Email Subscribers',
+                            description:
+                                'Here are the list of subscribers who have subscribed to the status page.',
+                        }}
+                        noItemsMessage={'No subscribers found.'}
+                        formFields={formFields}
+                        showRefreshButton={true}
+                        viewPageRoute={Navigation.getCurrentRoute()}
+                        columns={[
+                            {
+                                field: {
+                                    subscriberEmail: true,
+                                },
+                                title: 'Email',
+                                type: FieldType.Email,
                             },
-                            title: 'Email',
-                            type: FieldType.Email,
-                        },
-                        {
-                            field: {
-                                isUnsubscribed: true,
-                            },
-                            title: 'Status',
-                            type: FieldType.Text,
-                            getElement: (item: JSONObject): ReactElement => {
-                                if (item['isUnsubscribed']) {
+                            {
+                                field: {
+                                    isUnsubscribed: true,
+                                },
+                                title: 'Status',
+                                type: FieldType.Text,
+                                getElement: (
+                                    item: JSONObject
+                                ): ReactElement => {
+                                    if (item['isUnsubscribed']) {
+                                        return (
+                                            <Pill
+                                                color={Red}
+                                                text={'Unsubscribed'}
+                                            />
+                                        );
+                                    }
                                     return (
-                                        <Pill color={Red} text={'Unsubscribed'} />
+                                        <Pill
+                                            color={Green}
+                                            text={'Subscribed'}
+                                        />
                                     );
-                                }
-                                return <Pill color={Green} text={'Subscribed'} />;
+                                },
                             },
-                        },
-                        {
-                            field: {
-                                createdAt: true,
+                            {
+                                field: {
+                                    createdAt: true,
+                                },
+                                title: 'Subscribed At',
+                                type: FieldType.DateTime,
                             },
-                            title: 'Subscribed At',
-                            type: FieldType.DateTime,
-                        },
-                    ]}
-                />
-            </> : <></>}
+                        ]}
+                    />
+                </>
+            ) : (
+                <></>
+            )}
         </ModelPage>
     );
 };

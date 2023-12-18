@@ -54,9 +54,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
                 const result: CategoryCheckboxOptionsAndCategories =
                     await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(
-                        id, URL.fromString(
-                            STATUS_PAGE_API_URL.toString()
-                        ).addRoute(`/resources/${id.toString()}`)
+                        id,
+                        URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                            `/resources/${id.toString()}`
+                        )
                     );
 
                 setCategoryCheckboxOptionsAndCategories(result);

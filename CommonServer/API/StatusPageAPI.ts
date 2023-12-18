@@ -1224,20 +1224,29 @@ export default class StatusPageAPI extends BaseAPI<
                         statusPageSubscriber.subscriberPhone = phone;
                     }
 
-                    if(req.body.data['statusPageResources'] && !statusPage.allowSubscribersToChooseResources){
-                        throw new BadDataException('Subscribers are not allowed to choose resources for this status page.'); 
+                    if (
+                        req.body.data['statusPageResources'] &&
+                        !statusPage.allowSubscribersToChooseResources
+                    ) {
+                        throw new BadDataException(
+                            'Subscribers are not allowed to choose resources for this status page.'
+                        );
                     }
 
                     statusPageSubscriber.statusPageId = objectId;
                     statusPageSubscriber.projectId = statusPage.projectId!;
 
-
-                    if(req.body.data['statusPageResources'].length === 0){
-                        throw new BadDataException('At least one resource is required to subscribe to this status page.');
+                    if (req.body.data['statusPageResources'].length === 0) {
+                        throw new BadDataException(
+                            'At least one resource is required to subscribe to this status page.'
+                        );
                     }
 
-                    if(req.body.data['statusPageResources']){
-                        statusPageSubscriber.statusPageResources = req.body.data['statusPageResources'] as Array<StatusPageResource>;
+                    if (req.body.data['statusPageResources']) {
+                        statusPageSubscriber.statusPageResources = req.body
+                            .data[
+                            'statusPageResources'
+                        ] as Array<StatusPageResource>;
                     }
 
                     await StatusPageSubscriberService.create({
