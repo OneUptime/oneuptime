@@ -31,6 +31,7 @@ import { ModelField } from 'CommonUI/src/Components/Forms/ModelForm';
 import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/CategoryCheckbox/Index';
 import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -121,6 +122,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 required: true,
                 placeholder: 'subscriber@company.com',
             },
+            
             {
                 field: {
                     isUnsubscribed: true,
@@ -133,6 +135,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         ];
 
         if (allowSubscribersToChooseResources) {
+
+            formFields.push({
+                field: {
+                    isSubscribedToAllResources: true,
+                },
+                title: 'Subscribe to All Resources',
+                description:
+                    'Send notifications for all resources.',
+                fieldType: FormFieldSchemaType.Checkbox,
+                required: false,
+                defaultValue: true
+            });
+
             formFields.push({
                 field: {
                     statusPageResources: true,
@@ -141,8 +156,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 description:
                     'Please select the resources you want to subscribe to.',
                 fieldType: FormFieldSchemaType.CategoryCheckbox,
-                required: true,
+                required: false,
                 categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
+                showIf: (model: FormValues<StatusPageSubscriber>) => {
+                    return !model || !model.isSubscribedToAllResources;
+                }
             });
         }
 

@@ -36,6 +36,11 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
     }, [props.isIndeterminate]);
 
     React.useEffect(() => {
+
+        if(props.value === undefined) {
+            return;
+        }
+
         setValue(props.value || false);
     }, [props.value]);
 
@@ -80,9 +85,9 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
                         {props.title}
                     </label>
                     {props.description && (
-                        <span className="text-gray-500 ml-3">
+                        <div className="text-gray-500">
                             {props.description}
-                        </span>
+                        </div>
                     )}
                 </div>
             </div>
