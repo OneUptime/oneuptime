@@ -24,10 +24,11 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import SubscriberUtils, { SubscribePageProps } from './SubscribePageUtils';
+import { SubscribePageProps } from './SubscribePageUtils';
 import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/CategoryCheckbox/Index';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps
@@ -52,8 +53,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                 setIsLoading(true);
 
                 const result: CategoryCheckboxOptionsAndCategories =
-                    await SubscriberUtils.getCategoryCheckboxPropsBasedOnResources(
-                        id
+                    await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(
+                        id, URL.fromString(
+                            STATUS_PAGE_API_URL.toString()
+                        ).addRoute(`/resources/${id.toString()}`)
                     );
 
                 setCategoryCheckboxOptionsAndCategories(result);
