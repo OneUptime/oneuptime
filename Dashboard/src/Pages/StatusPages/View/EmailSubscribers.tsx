@@ -116,6 +116,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 required: true,
                 placeholder: 'subscriber@company.com',
             },
+            {
+                field: {
+                    isUnsubscribed: true,
+                },
+                title: 'Unsubscribe',
+                description: 'Unsubscribe this email from the status page.',
+                fieldType: FormFieldSchemaType.Toggle,
+                required: false,
+            }
         ];
 
         if (allowSubscribersToChooseResources) {
@@ -194,7 +203,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         isDeleteable={true}
                         showViewIdButton={true}
                         isCreateable={true}
-                        isEditable={false}
+                        isEditable={true}
                         isViewable={false}
                         selectMoreFields={{
                             subscriberPhone: true,

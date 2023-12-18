@@ -419,9 +419,25 @@ export default class StatusPageSubscriber extends BaseModel {
     public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        update: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateStatusPageSubscriber,
+            Permission.Public,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageSubscriber,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageSubscriber,
+        ],
     })
     @TableColumn({
         isDefaultValueColumn: true,

@@ -90,8 +90,8 @@ export default class StatusPageUtil {
                 {
                     statusPageId: statusPageId,
                 },
-                0,
                 LIMIT_PER_PROJECT,
+                0,
                 {
                     _id: true,
                     displayName: true,
