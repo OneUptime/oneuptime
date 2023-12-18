@@ -29,6 +29,7 @@ import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/Ca
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps
@@ -93,6 +94,19 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     ];
 
     if (props.allowSubscribersToChooseResources) {
+
+        fields.push({
+            field: {
+                isSubscribedToAllResources: true,
+            },
+            title: 'Subscribe to All Resources',
+            description:
+                'Select this option if you want to subscribe to all resources.',
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            defaultValue: true
+        });
+
         fields.push({
             field: {
                 statusPageResources: true,
@@ -103,6 +117,9 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             fieldType: FormFieldSchemaType.CategoryCheckbox,
             required: true,
             categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
+            showIf: (model: FormValues<StatusPageSubscriber>) => {
+                return !model.isSubscribedToAllResources;
+            }
         });
     }
 
