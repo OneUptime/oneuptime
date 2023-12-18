@@ -105,6 +105,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     >([]);
 
     useEffect(() => {
+
+        if(isLoading){
+            return; // don't do anything if loading
+        }
+
         const formFields: Array<ModelField<StatusPageSubscriber>> = [
             {
                 field: {
@@ -142,7 +147,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         }
 
         setFormFields(formFields);
-    }, [isLoading, categoryCheckboxOptionsAndCategories]);
+    }, [isLoading]);
 
     return (
         <ModelPage

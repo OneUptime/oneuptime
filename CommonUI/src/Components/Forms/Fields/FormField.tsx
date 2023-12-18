@@ -565,17 +565,11 @@ const FormField: <T extends Object>(
                             }}
                             initialValue={
                                 props.currentValues &&
-                                (props.currentValues as any)[props.fieldName] &&
-                                ((props.currentValues as any)[
-                                    props.fieldName
-                                ] === true ||
-                                    (props.currentValues as any)[
-                                        props.fieldName
-                                    ] === false)
+                                (props.currentValues as any)[props.fieldName] 
                                     ? (props.currentValues as any)[
                                           props.fieldName
                                       ]
-                                    : false
+                                    : []
                             }
                         />
                     )}

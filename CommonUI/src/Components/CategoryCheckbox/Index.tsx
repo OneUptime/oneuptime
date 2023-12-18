@@ -6,6 +6,7 @@ import {
 } from './CategoryCheckboxTypes';
 import Category from './Category';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface CategoryCheckboxOptionsAndCategories {
     categories: Array<CheckboxCategory>;
@@ -15,16 +16,36 @@ export interface CategoryCheckboxOptionsAndCategories {
 export interface CategoryCheckboxProps
     extends CategoryCheckboxOptionsAndCategories {
     onChange: (value: Array<CategoryCheckboxValue>) => void;
-    initialValue?: undefined | Array<CategoryCheckboxValue>;
+    initialValue?: undefined | Array<CategoryCheckboxValue | BaseModel>;
     error?: string | undefined;
 }
 
 const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     props: CategoryCheckboxProps
 ): ReactElement => {
+
+    const sanitizeInitialValues = (value?: Array<CategoryCheckboxValue | BaseModel>): Array<CategoryCheckboxValue> => {
+
+        if (!value) {
+            return [];
+        }
+
+        return value.map((value) => {
+            if (value instanceof BaseModel) {
+                return value._id as string;
+            }
+            return value;
+        });
+    };
+
+    
     const [currentValues, setCurrentValues] = React.useState<
         Array<CategoryCheckboxValue>
-    >(props.initialValue || []);
+    >(sanitizeInitialValues(props.initialValue));
+
+
+    const [categories] = React.useState<Array<CheckboxCategory>>([...props.categories] || []);
+    const [options] = React.useState<Array<CategoryCheckboxOption>>([...props.options] || []);
 
     useEffect(() => {
         // whenevent currentValue changes, make sure all the values are unique.
@@ -50,7 +71,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         setCurrentValues(tempCurrentValues);
     }, [currentValues]);
 
-    if (props.options.length === 0) {
+    if (options.length === 0) {
         return (
             <div>
                 <ErrorMessage error="No options found." />
@@ -69,7 +90,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                         // only return this option if it belongs to this category
 
                         const option: CategoryCheckboxOption | undefined =
-                            props.options.find(
+                            options.find(
                                 (option: CategoryCheckboxOption) => {
                                     return (
                                         option.value === value &&
@@ -83,7 +104,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                     }
                 )}
                 category={category}
-                options={props.options.filter(
+                options={options.filter(
                     (option: CategoryCheckboxOption) => {
                         return (
                             (option.categoryId || '') === (category?.id || '')
@@ -98,7 +119,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                         ...currentValues,
                     ];
 
-                    props.options.forEach((option: CategoryCheckboxOption) => {
+                    options.forEach((option: CategoryCheckboxOption) => {
                         const index: number = tempCurrentValues.findIndex(
                             (value: CategoryCheckboxValue) => {
                                 return (
@@ -128,13 +149,13 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
 
     return (
         <div>
-            {getCategory(undefined, props.categories.length === 0)}
-            {props.categories.map((category: CheckboxCategory, i: number) => {
+            {getCategory(undefined, categories.length === 0)}
+            {categories.map((category: CheckboxCategory, i: number) => {
                 return (
                     <div key={i}>
                         {getCategory(
                             category,
-                            i === props.categories.length - 1
+                            i === categories.length - 1
                         )}
                     </div>
                 );
