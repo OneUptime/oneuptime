@@ -1235,14 +1235,12 @@ export default class StatusPageAPI extends BaseAPI<
 
                     statusPageSubscriber.statusPageId = objectId;
                     statusPageSubscriber.projectId = statusPage.projectId!;
+                    statusPageSubscriber.isSubscribedToAllResources = Boolean(
+                        req.body.data['isSubscribedToAllResources']
+                    );
 
-                    if (req.body.data['statusPageResources'].length === 0) {
-                        throw new BadDataException(
-                            'At least one resource is required to subscribe to this status page.'
-                        );
-                    }
 
-                    if (req.body.data['statusPageResources']) {
+                    if (req.body.data['statusPageResources'] && req.body.data['statusPageResources'].length > 0) {
                         statusPageSubscriber.statusPageResources = req.body
                             .data[
                             'statusPageResources'

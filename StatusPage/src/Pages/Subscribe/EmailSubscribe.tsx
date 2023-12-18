@@ -115,7 +115,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             description:
                 'Please select the resources you want to subscribe to.',
             fieldType: FormFieldSchemaType.CategoryCheckbox,
-            required: true,
+            required: false,
             categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
             showIf: (model: FormValues<StatusPageSubscriber>) => {
                 return !model || !model.isSubscribedToAllResources;
