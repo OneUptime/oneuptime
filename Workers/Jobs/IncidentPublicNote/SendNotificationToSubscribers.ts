@@ -212,12 +212,7 @@ RunCron(
                         continue;
                     }
 
-                    const unsubscribeUrl: string = new URL(httpProtocol, host)
-                        .addRoute(
-                            '/api/status-page-subscriber/unsubscribe/' +
-                                subscriber._id.toString()
-                        )
-                        .toString();
+                    const unsubscribeUrl: string = StatusPageSubscriberService.getUnsubscribeLink(URL.fromString(statusPageURL), subscriber.id!).toString();;
 
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {
