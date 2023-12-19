@@ -69,7 +69,7 @@ RUN npm install
 #   - 3003:  accounts
 EXPOSE 3003
 
-
+RUN npm i -D webpack-cli
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 RUN mkdir /usr/src/app/dev-env
@@ -80,7 +80,7 @@ CMD [ "npm", "run", "dev" ]
 # Copy app source
 COPY ./Accounts /usr/src/app
 # Bundle app source
-RUN npm i webpack-cli
+
 RUN npm run build
 #Run the app
 CMD [ "npm", "start" ]

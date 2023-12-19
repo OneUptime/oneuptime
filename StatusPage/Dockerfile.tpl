@@ -68,6 +68,8 @@ EXPOSE 3105
 # API
 EXPOSE 3106
 
+RUN npm i -D webpack-cli
+
 {{ if eq .Env.ENVIRONMENT "development" }}
 RUN mkdir /usr/src/app/dev-env
 RUN touch /usr/src/app/dev-env/.env
@@ -77,7 +79,6 @@ CMD [ "npm", "run", "dev" ]
 # Copy app source
 COPY ./StatusPage /usr/src/app
 # Bundle app source
-RUN npm i webpack-cli
 RUN npm run build
 #Run the app
 CMD [ "npm", "start" ]

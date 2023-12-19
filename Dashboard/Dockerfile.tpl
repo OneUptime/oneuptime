@@ -66,6 +66,8 @@ RUN npm install
 #   - 3009:  Dashboard
 EXPOSE 3009
 
+RUN npm i -D webpack-cli
+
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 RUN mkdir /usr/src/app/dev-env
@@ -75,7 +77,6 @@ CMD [ "npm", "run", "dev" ]
 # Copy app source
 COPY ./Dashboard /usr/src/app
 # Bundle app source
-RUN npm i webpack-cli
 RUN npm run build
 #Run the app
 CMD [ "npm", "start" ]
