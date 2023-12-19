@@ -17,7 +17,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SUBSCRIBE_EMAIL]: new Route(`/subscribe/email`),
     [PageMap.SUBSCRIBE_SMS]: new Route(`/subscribe/sms`),
     [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
-    [PageMap.UNSUBSCRIBE]: new Route(`/unsubscribe/:id`),
+    [PageMap.UPDATE_SUBSCRIPTION]: new Route(`/update-subscription/:id`),
 
     [PageMap.LOGIN]: new Route(`/login`),
     [PageMap.SSO]: new Route(`/sso`),
@@ -82,8 +82,8 @@ const RouteMap: Dictionary<Route> = {
         `/status-page/${RouteParams.StatusPageId}/logout`
     ),
 
-    [PageMap.PREVIEW_UNSUBSCRIBE]: new Route(
-        `/status-page/${RouteParams.StatusPageId}/unsubscribe/:id`
+    [PageMap.PREVIEW_UPDATE_SUBSCRIPTION]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/update-subscription/:id`
     ),
 };
 

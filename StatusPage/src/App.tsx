@@ -36,7 +36,7 @@ import ObjectID from 'Common/Types/ObjectID';
 // Logout.
 import Logout from './Pages/Accounts/Logout';
 import StatusPageUtil from './Utils/StatusPage';
-import Unsubscribe from './Pages/Subscribe/Unsubscribe';
+import UpdateSubscription from './Pages/Subscribe/UpdateSubscription';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -370,10 +370,10 @@ const App: () => JSX.Element = () => {
 
 
                 <PageRoute
-                    path={RouteMap[PageMap.UNSUBSCRIBE]?.toString() || ''}
+                    path={RouteMap[PageMap.UPDATE_SUBSCRIPTION]?.toString() || ''}
                     element={
-                        <Unsubscribe
-                            pageRoute={RouteMap[PageMap.UNSUBSCRIBE] as Route}
+                        <UpdateSubscription
+                            pageRoute={RouteMap[PageMap.UPDATE_SUBSCRIPTION] as Route}
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
@@ -428,17 +428,17 @@ const App: () => JSX.Element = () => {
 
                 <PageRoute
                     path={
-                        RouteMap[PageMap.PREVIEW_UNSUBSCRIBE]?.toString() ||
+                        RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION]?.toString() ||
                         ''
                     }
                     element={
-                        <Unsubscribe
+                        <UpdateSubscription
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_UNSUBSCRIBE
+                                PageMap.PREVIEW_UPDATE_SUBSCRIPTION
                                 ] as Route
                             }
                             allowSubscribersToChooseResources={
