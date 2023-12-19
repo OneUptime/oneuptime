@@ -59,14 +59,14 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const loadGraph: () => Promise<void> = async (): Promise<void> => {
         try {
             setIsLoading(true);
-            const workflow: WorkflowModel | null = await ModelAPI.getItem(
-                WorkflowModel,
-                modelId,
-                {
+            const workflow: WorkflowModel | null = await ModelAPI.getItem({
+                modelType: WorkflowModel,
+                id: modelId,
+                select: {
                     graph: true,
                 },
-                {}
-            );
+                requestOptions: {}
+            });
 
             if (workflow) {
                 const allComponents: {
@@ -119,7 +119,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             if (!componentMetdata) {
                                 throw new BadDataException(
                                     'Component Metadata not found for node ' +
-                                        nodes[i]?.data.metadataId
+                                    nodes[i]?.data.metadataId
                                 );
                             }
 
@@ -134,9 +134,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             !nodes.find((node: Node) => {
                                 return (
                                     node.data.nodeType ===
-                                        NodeType.PlaceholderNode ||
+                                    NodeType.PlaceholderNode ||
                                     node.data.componentType ===
-                                        ComponentType.Trigger
+                                    ComponentType.Trigger
                                 );
                             })
                         ) {
@@ -234,9 +234,10 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         }
                     }
 
-                    await ModelAPI.updateById(WorkflowModel, modelId, {
+                    await ModelAPI.updateById({
+                        modelType: WorkflowModel, id: modelId, data: {
                         graph,
-                    });
+                    }});
 
                     setSaveStatus('Changes Saved.');
                 } catch (err) {

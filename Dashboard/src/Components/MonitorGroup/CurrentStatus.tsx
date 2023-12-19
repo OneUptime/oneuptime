@@ -31,13 +31,13 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
         try {
             const currentStatus: MonitorStatus | null =
-                await ModelAPI.post<MonitorStatus>(
-                    MonitorStatus,
-                    URL.fromString(DASHBOARD_API_URL.toString())
+                await ModelAPI.post<MonitorStatus>({
+                    modelType: MonitorStatus,
+                    apiUrl: URL.fromString(DASHBOARD_API_URL.toString())
                         .addRoute(new MonitorGroup().getCrudApiPath()!)
                         .addRoute('/current-status/')
                         .addRoute(`/${props.monitorGroupId.toString()}`)
-                );
+                });
 
             setCurrentGroupStatus(currentStatus);
         } catch (err) {
@@ -48,7 +48,7 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
     };
 
     useEffect(() => {
-        loadCurrentStatus().catch(() => {});
+        loadCurrentStatus().catch(() => { });
     }, []);
 
     if (isLoading) {

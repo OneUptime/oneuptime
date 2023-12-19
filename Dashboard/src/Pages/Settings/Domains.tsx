@@ -199,20 +199,19 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             setIsVerificationLoading(true);
                             setError('');
                             // verify domain.
-                            await ModelAPI.updateById(
-                                Domain,
-                                new ObjectID(
+                            await ModelAPI.updateById({
+                                modelType: Domain,
+                                id: new ObjectID(
                                     currentVerificationDomain['_id']
                                         ? currentVerificationDomain[
-                                              '_id'
-                                          ].toString()
+                                            '_id'
+                                        ].toString()
                                         : ''
                                 ),
-                                {
+                                data: {
                                     isVerified: true,
-                                },
-                                undefined
-                            );
+                                }
+                            });
                             setIsVerificationLoading(false);
                             setShowVerificationModal(false);
                             setRefreshToggle(!refreshToggle);

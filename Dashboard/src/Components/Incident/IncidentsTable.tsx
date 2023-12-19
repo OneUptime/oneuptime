@@ -66,7 +66,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             //fetch incident template
 
             const incidentTemplate: IncidentTemplate | null =
-                await ModelAPI.getItem<IncidentTemplate>(IncidentTemplate, id, {
+                await ModelAPI.getItem<IncidentTemplate>({
+                    modelType: IncidentTemplate, id: id, select: {
                     title: true,
                     description: true,
                     incidentSeverityId: true,
@@ -74,37 +75,37 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     onCallDutyPolicies: true,
                     labels: true,
                     changeMonitorStatusToId: true,
-                });
+                }});
 
             const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
-                await ModelAPI.getList<IncidentTemplateOwnerTeam>(
-                    IncidentTemplateOwnerTeam,
-                    {
+                await ModelAPI.getList<IncidentTemplateOwnerTeam>({
+                    modelType:IncidentTemplateOwnerTeam,
+                    query: {
                         incidentTemplate: id,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         _id: true,
                         teamId: true,
                     },
-                    {}
-                );
+                    sort: {}
+        });
 
             const usersListResult: ListResult<IncidentTemplateOwnerUser> =
-                await ModelAPI.getList<IncidentTemplateOwnerUser>(
-                    IncidentTemplateOwnerUser,
-                    {
+                await ModelAPI.getList<IncidentTemplateOwnerUser>({
+                    modelType: IncidentTemplateOwnerUser,
+                    query: {
                         incidentTemplate: id,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         _id: true,
                         userId: true,
                     },
-                    {}
-                );
+                    sort: {}
+        });
 
             if (incidentTemplate) {
                 const initialValue: JSONObject = {
@@ -160,17 +161,17 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             try {
                 const listResult: ListResult<IncidentTemplate> =
-                    await ModelAPI.getList<IncidentTemplate>(
-                        IncidentTemplate,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList<IncidentTemplate>({
+                        modelType: IncidentTemplate,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             templateName: true,
                             _id: true,
                         },
-                        {}
-                    );
+                        sort: {}
+            });
 
                 setIncidentTemplates(listResult.data);
             } catch (err) {

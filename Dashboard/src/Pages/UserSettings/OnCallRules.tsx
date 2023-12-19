@@ -128,9 +128,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 sortBy="notifyAfterMinutes"
                 createVerb={'Add'}
                 id="notification-rules"
-                name={`User Settings > Notification Rules > ${
-                    options.incidentSeverity?.name || options.ruleType
-                }`}
+                name={`User Settings > Notification Rules > ${options.incidentSeverity?.name || options.ruleType
+                    }`}
                 isDeleteable={true}
                 isEditable={false}
                 isCreateable={true}
@@ -209,15 +208,15 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     )}
                                     {(item['notifyAfterMinutes'] as number) >
                                         0 && (
-                                        <p>
-                                            {
-                                                item[
+                                            <p>
+                                                {
+                                                    item[
                                                     'notifyAfterMinutes'
-                                                ] as number
-                                            }{' '}
-                                            minutes
-                                        </p>
-                                    )}
+                                                    ] as number
+                                                }{' '}
+                                                minutes
+                                            </p>
+                                        )}
                                 </div>
                             );
                         },
@@ -234,67 +233,67 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
         try {
             const incidentSeverities: ListResult<IncidentSeverity> =
-                await ModelAPI.getList(
-                    IncidentSeverity,
-                    {
+                await ModelAPI.getList({
+                    modelType: IncidentSeverity,
+                    query: {
                         projectId: DashboardNavigation.getProjectId(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         name: true,
                     },
-                    {}
-                );
+                    sort: {}
+                });
 
-            const userEmails: ListResult<UserEmail> = await ModelAPI.getList(
-                UserEmail,
-                {
+            const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
+                modelType: UserEmail,
+                query: {
                     projectId: DashboardNavigation.getProjectId(),
                     userId: User.getUserId(),
                     isVerified: true,
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     email: true,
                 },
-                {}
-            );
+                sort: {}
+            });
 
             setUserEmails(userEmails.data);
 
-            const userSMSes: ListResult<UserSMS> = await ModelAPI.getList(
-                UserSMS,
-                {
+            const userSMSes: ListResult<UserSMS> = await ModelAPI.getList({
+                modelType: UserSMS,
+                query: {
                     projectId: DashboardNavigation.getProjectId(),
                     userId: User.getUserId(),
                     isVerified: true,
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     phone: true,
                 },
-                {}
-            );
+                sort: {}
+            });
 
             setUserSMSs(userSMSes.data);
 
-            const userCalls: ListResult<UserCall> = await ModelAPI.getList(
-                UserCall,
-                {
+            const userCalls: ListResult<UserCall> = await ModelAPI.getList({
+                modelType: UserCall,
+                query: {
                     projectId: DashboardNavigation.getProjectId(),
                     userId: User.getUserId(),
                     isVerified: true,
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     phone: true,
                 },
-                {}
-            );
+                sort: {}
+            });
 
             setUserCalls(userCalls.data);
 

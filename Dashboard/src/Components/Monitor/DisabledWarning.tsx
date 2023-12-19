@@ -21,16 +21,16 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
     useAsyncEffect(async () => {
         setIsLoading(true);
 
-        const monitor: Monitor | null = await ModelAPI.getItem(
-            Monitor,
-            props.monitorId,
-            {
+        const monitor: Monitor | null = await ModelAPI.getItem({
+            modelType: Monitor,
+            id: props.monitorId,
+            select: {
                 disableActiveMonitoring: true,
                 disableActiveMonitoringBecauseOfManualIncident: true,
                 disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
                 monitorType: true,
             }
-        );
+    });
 
         if (monitor?.monitorType === MonitorType.Manual) {
             setIsLoading(false);

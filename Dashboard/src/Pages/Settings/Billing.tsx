@@ -82,10 +82,10 @@ const Settings: FunctionComponent<ComponentProps> = (
         setIsLoading(true);
 
         try {
-            const project: Project | null = await ModelAPI.getItem<Project>(
-                Project,
-                DashboardNavigation.getProjectId()!,
-                {
+            const project: Project | null = await ModelAPI.getItem<Project>({
+                modelType: Project,
+                id: DashboardNavigation.getProjectId()!,
+                select: {
                     reseller: {
                         name: true,
                         description: true,
@@ -102,7 +102,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         otherFeatures: true,
                     },
                 }
-            );
+        });
 
             if (project?.reseller) {
                 setReseller(project.reseller);
