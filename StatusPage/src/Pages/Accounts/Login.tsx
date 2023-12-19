@@ -159,7 +159,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 },
                             },
                         ]}
-                        apiUrl={apiUrl}
+                        createOrUpdateApiUrl={apiUrl}
                         formType={FormType.Create}
                         submitButtonText={'Login'}
                         onSuccess={(

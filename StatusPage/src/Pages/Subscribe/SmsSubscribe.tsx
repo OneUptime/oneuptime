@@ -182,7 +182,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                         id="SMS-form"
                                         name="Status Page > SMS Subscribe"
                                         fields={fields}
-                                        apiUrl={URL.fromString(
+                                        createOrUpdateApiUrl={URL.fromString(
                                             STATUS_PAGE_API_URL.toString()
                                         ).addRoute(
                                             `/subscribe/${id.toString()}`

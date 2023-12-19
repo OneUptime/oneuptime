@@ -47,7 +47,7 @@ const ForgotPassword: () => JSX.Element = () => {
                             modelType={User}
                             name="Forgot Password"
                             id="login-form"
-                            apiUrl={apiUrl}
+                            createOrUpdateApiUrl={apiUrl}
                             fields={[
                                 {
                                     field: {

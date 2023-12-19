@@ -76,7 +76,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onSuccess?: undefined | ((data: TBaseModel, miscData?: JSONObject) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
-    apiUrl?: undefined | URL;
+    createOrUpdateApiUrl?: undefined | URL;
+    fetchItemApiUrl?: undefined | URL;
     formType: FormType;
     hideSubmitButton?: undefined | boolean;
     submitButtonStyleType?: ButtonStyleType | undefined;
@@ -282,7 +283,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
         let item: BaseModel | null = await modelAPI.getItem(
             props.modelType,
             props.modelIdToEdit,
-            { ...getSelectFields(), ...getRelationSelect() }
+            { ...getSelectFields(), ...getRelationSelect() },
+            {
+                overrideRequestUrl: props.fetchItemApiUrl,
+            }
         );
 
         if (!(item instanceof BaseModel) && item) {
@@ -543,7 +547,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 {
                     ...props.saveRequestOptions,
                     requestHeaders: props.requestHeaders,
-                    overrideRequestUrl: props.apiUrl,
+                    overrideRequestUrl: props.createOrUpdateApiUrl,
                 }
             );
 

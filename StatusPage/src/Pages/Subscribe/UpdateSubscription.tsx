@@ -197,7 +197,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                         id="email-form"
                                         name="Status Page > Update Subscription"
                                         fields={fields}
-                                        apiUrl={updateApiUrl}
+                                        createOrUpdateApiUrl={updateApiUrl}
                                         requestHeaders={API.getDefaultHeaders(
                                             StatusPageUtil.getStatusPageId()!
                                         )}

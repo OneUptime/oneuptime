@@ -209,7 +209,7 @@ const RegisterPage: () => JSX.Element = () => {
                         initialValues={initialValues}
                         maxPrimaryButtonWidth={true}
                         fields={formFields}
-                        apiUrl={apiUrl}
+                        createOrUpdateApiUrl={apiUrl}
                         onBeforeCreate={(item: User): Promise<User> => {
                             const utmParams: Dictionary<string> =
                                 UserUtil.getUtmParams();
