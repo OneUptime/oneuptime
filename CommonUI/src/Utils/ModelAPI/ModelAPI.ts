@@ -141,7 +141,10 @@ export default class ModelAPI {
                 ? HTTPMethod.POST
                 : HTTPMethod.PUT;
 
-        if (httpMethod === HTTPMethod.PUT && !data.requestOptions?.overrideRequestUrl) {
+        if (
+            httpMethod === HTTPMethod.PUT &&
+            !data.requestOptions?.overrideRequestUrl
+        ) {
             apiUrl = apiUrl.addRoute(`/${data.model._id}`);
         }
 

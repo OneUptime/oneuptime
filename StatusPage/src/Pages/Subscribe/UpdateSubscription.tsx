@@ -49,7 +49,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
     const getSubscriptionUrl: URL = URL.fromString(
         URL.fromString(STATUS_PAGE_API_URL.toString())
-            .addRoute(`/get-subscription/${statusPageId.toString()}`).addRoute('/' + statusPageSubscriberId.toString())
+            .addRoute(`/get-subscription/${statusPageId.toString()}`)
+            .addRoute('/' + statusPageSubscriberId.toString())
             .toString()
     );
 

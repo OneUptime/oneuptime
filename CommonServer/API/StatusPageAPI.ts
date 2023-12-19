@@ -1956,10 +1956,11 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         if (isUpdate) {
-
             // check isUnsubscribed is set to false.
 
-            statusPageSubscriber.isUnsubscribed =  req.body.data['isUnsubscribed'] ? true : false;
+            statusPageSubscriber.isUnsubscribed = Boolean(
+                req.body.data['isUnsubscribed']
+            );
 
             await StatusPageSubscriberService.updateOneById({
                 id: statusPageSubscriber.id!,
