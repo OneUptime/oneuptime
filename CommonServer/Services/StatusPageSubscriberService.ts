@@ -18,6 +18,7 @@ import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCo
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import ProjectService from './ProjectService';
+import StatusPageResource from 'Model/Models/StatusPageResource';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -221,6 +222,8 @@ export class Service extends DatabaseService<Model> {
                 subscriberEmail: true,
                 subscriberPhone: true,
                 subscriberWebhook: true,
+                isSubscribedToAllResources: true,
+                statusPageResources: true,
             },
             skip: 0,
             limit: LIMIT_MAX,
@@ -235,6 +238,36 @@ export class Service extends DatabaseService<Model> {
         return URL.fromString(statusPageUrl.toString()).addRoute(
             '/update-subscription/' + statusPageSubscriberId.toString()
         );
+    }
+
+    public shouldSendNotification(data: {
+        subscriber: Model,
+        statusPageResources: Array<StatusPageResource>,
+        statusPage: StatusPage,
+    }){
+        if (data.subscriber.isUnsubscribed) {
+            return false;
+        }
+
+        if(!data.statusPage.allowSubscribersToChooseResources){
+            return true; 
+        }
+
+        if(data.subscriber.isSubscribedToAllResources){
+            return true;
+        }
+
+        const subscriberResourceIds: Array<string> = data.subscriber.statusPageResources?.map(
+            (resource: StatusPageResource) => resource.id?.toString() as string
+        ) || [];
+
+        for (const resource of data.statusPageResources) {
+           if(subscriberResourceIds.includes(resource.id?.toString() as string)){
+               return true;
+           }
+        }
+
+        return false;
     }
 }
 export default new Service();

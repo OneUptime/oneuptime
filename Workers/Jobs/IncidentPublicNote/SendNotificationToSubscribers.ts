@@ -172,6 +172,7 @@ RunCron(
                         pageTitle: true,
                         projectId: true,
                         isPublicStatusPage: true,
+                        allowSubscribersToChooseResources: true,
                         logoFileId: true,
                         smtpConfig: {
                             _id: true,
@@ -209,6 +210,16 @@ RunCron(
 
                 for (const subscriber of subscribers) {
                     if (!subscriber._id) {
+                        continue;
+                    }
+
+                    const shouldNotifySubscriber: boolean = StatusPageSubscriberService.shouldSendNotification({
+                        subscriber: subscriber,
+                        statusPageResources: statusPageToResources[statuspage._id!] || [],
+                        statusPage: statuspage,
+                    });
+
+                    if (!shouldNotifySubscriber) {
                         continue;
                     }
 
