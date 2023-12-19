@@ -29,14 +29,14 @@ const Settings: FunctionComponent = (): ReactElement => {
         setIsLoading(true);
 
         const globalConfig: GlobalConfig | null =
-            await ModelAPI.getItem<GlobalConfig>(
-                GlobalConfig,
-                ObjectID.getZeroObjectID(),
-                {
+            await ModelAPI.getItem<GlobalConfig>({
+                modelType: GlobalConfig,
+                id: ObjectID.getZeroObjectID(),
+                select: {
                     _id: true,
                     emailServerType: true,
-                }
-            );
+                },
+            });
 
         if (globalConfig) {
             setemailServerType(
