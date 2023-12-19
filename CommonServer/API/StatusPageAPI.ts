@@ -1134,7 +1134,6 @@ export default class StatusPageAPI extends BaseAPI<
             ) => {
                 try {
                     await this.subscribeToStatusPage(req);
-
                     return Response.sendEmptyResponse(req, res);
                 } catch (err) {
                     next(err);
@@ -1957,6 +1956,11 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         if (isUpdate) {
+
+            // check isUnsubscribed is set to false.
+
+            statusPageSubscriber.isUnsubscribed =  req.body.data['isUnsubscribed'] ? true : false;
+
             await StatusPageSubscriberService.updateOneById({
                 id: statusPageSubscriber.id!,
                 data: statusPageSubscriber,

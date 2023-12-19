@@ -72,6 +72,7 @@ RUN npm i -D webpack-cli
 #Run the app
 RUN mkdir /usr/src/app/dev-env
 RUN touch /usr/src/app/dev-env/.env
+RUN npm i -D webpack-dev-server
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
