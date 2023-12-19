@@ -25,6 +25,7 @@ import CheckboxElement, {
     CategoryCheckboxValue,
 } from '../../Checkbox/Checkbox';
 import CategoryCheckbox from '../../CategoryCheckbox/Index';
+import Typeof from 'Common/Types/Typeof';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -87,6 +88,14 @@ const FormField: <T extends Object>(
             return <></>;
         }
 
+        let required: boolean = false;
+
+        if (props.field.required && typeof props.field.required === Typeof.Boolean) {
+            required = true;
+        } else if (props.field.required && typeof props.field.required === 'function' && props.field.required(props.currentValues)) {
+            required = true;
+        }
+
         let codeType: CodeType = CodeType.HTML;
 
         if (props.field.fieldType === FormFieldSchemaType.CSS) {
@@ -112,6 +121,8 @@ const FormField: <T extends Object>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
+
+
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
                 {/*** Do not display label on checkbox because checkbox can display its own label */}
@@ -121,7 +132,7 @@ const FormField: <T extends Object>(
                         title={props.field.title || ''}
                         description={fieldDescription}
                         sideLink={props.field.sideLink}
-                        required={props.field.required}
+                        required={required}
                         isHeading={
                             props.field.styleType === FormFieldStyleType.Heading
                         }

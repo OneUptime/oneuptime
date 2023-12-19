@@ -170,7 +170,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                         )}
 
                         {!isSuccess ? (
-                            <div className="-mr-4">
+                            <div className="">
                                 <Card
                                     title="Subscribe by SMS"
                                     description={

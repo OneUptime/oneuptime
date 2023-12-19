@@ -20,6 +20,7 @@ import URL from 'Common/Types/API/URL';
 import Dictionary from 'Common/Types/Dictionary';
 import Field from './Types/Field';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Typeof from 'Common/Types/Typeof';
 
 export default class Validation {
     public static validateLength<T extends Object>(
@@ -113,10 +114,19 @@ export default class Validation {
     }
 
     public static validateRequired<T extends Object>(
+        currentValues: FormValues<T>,
         content: string | undefined,
         field: Field<T>
     ): string | null {
-        if (field.required && (!content || content.length === 0)) {
+        let required: boolean = false;
+
+        if (field.required && typeof field.required === Typeof.Boolean) {
+            required = true;
+        } else if (field.required && typeof field.required === 'function' && field.required(currentValues)) {
+            required = true;
+        }
+
+        if (required && (!content || content.length === 0)) {
             return `${field.title} is required.`;
         }
         return null;
@@ -251,9 +261,11 @@ export default class Validation {
 
                 // Check Required fields.
                 const resultRequired: string | null = this.validateRequired(
+                    args.values,
                     content,
                     field
                 );
+
                 if (resultRequired) {
                     errors[name] = resultRequired;
                 }

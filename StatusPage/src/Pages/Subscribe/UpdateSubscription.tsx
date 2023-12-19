@@ -39,6 +39,12 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
     const statusPageId: ObjectID = LocalStorage.getItem('statusPageId') as ObjectID;
 
+    const updateApiUrl: URL = URL.fromString(URL.fromString(
+        STATUS_PAGE_API_URL.toString()
+    ).addRoute(
+        `/update-subscription/${statusPageId.toString()}`
+    ).toString());
+
     const [
         categoryCheckboxOptionsAndCategories,
         setCategoryCheckboxOptionsAndCategories,
@@ -94,7 +100,9 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             },
             title: 'Your Email',
             fieldType: FormFieldSchemaType.Email,
-            required: true,
+            required: (model: FormValues<StatusPageSubscriber>) => {
+                return model && Boolean(model.subscriberEmail);
+            },
             disabled: true,
             placeholder: 'subscriber@company.com',
             showIf: (model: FormValues<StatusPageSubscriber>) => {
@@ -107,7 +115,9 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             },
             title: 'Your Phone Number',
             fieldType: FormFieldSchemaType.Email,
-            required: true,
+            required: (model: FormValues<StatusPageSubscriber>) => {
+                return model && Boolean(model.subscriberPhone);
+            },
             placeholder: '+15853641376',
             disabled: true,
             showIf: (model: FormValues<StatusPageSubscriber>) => {
@@ -185,35 +195,15 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                     <ModelForm<StatusPageSubscriber>
                                         modelType={StatusPageSubscriber}
                                         id="email-form"
-                                        name="Status Page >  Unsubscribe"
+                                        name="Status Page > Update Subscription"
                                         fields={fields}
-                                        apiUrl={URL.fromString(
-                                            STATUS_PAGE_API_URL.toString()
-                                        ).addRoute(
-                                            `/update-subscription/${statusPageId.toString()}/${statusPageSubscriberId.toString()}}`
-                                        )}
+                                        apiUrl={updateApiUrl}
                                         requestHeaders={API.getDefaultHeaders(
                                             StatusPageUtil.getStatusPageId()!
                                         )}
                                         formType={FormType.Update}
                                         modelIdToEdit={new ObjectID(statusPageSubscriberId)}
                                         submitButtonText={'Update Subscription'}
-                                        onBeforeCreate={async (
-                                            item: StatusPageSubscriber
-                                        ) => {
-                                            const statusPageId: ObjectID =
-                                                LocalStorage.getItem(
-                                                    'statusPageId'
-                                                ) as ObjectID;
-                                            if (!statusPageId) {
-                                                throw new BadDataException(
-                                                    'Status Page ID is required'
-                                                );
-                                            }
-
-                                            item.statusPageId = statusPageId;
-                                            return item;
-                                        }}
                                         onSuccess={(
                                             _value: StatusPagePrivateUser
                                         ) => {

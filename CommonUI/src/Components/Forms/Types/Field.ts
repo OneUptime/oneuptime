@@ -48,7 +48,7 @@ export default interface Field<TEntity> {
     forceShow?: boolean; // show this field even if user does not have permissions to view.
     disabled?: boolean;
     stepId?: string | undefined;
-    required?: boolean;
+    required?: boolean | ((item: FormValues<TEntity>) => boolean) | undefined;
     dropdownOptions?: Array<DropdownOption> | undefined;
     fetchDropdownOptions?: (() => Promise<Array<DropdownOption>>) | undefined;
     dropdownModal?: {
