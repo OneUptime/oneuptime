@@ -1153,7 +1153,8 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    const subscriber = await this.getSubscriber(req);
+                    const subscriber: StatusPageSubscriber =
+                        await this.getSubscriber(req);
 
                     return Response.sendEntityResponse(
                         req,
@@ -1820,7 +1821,7 @@ export default class StatusPageAPI extends BaseAPI<
         return response;
     }
 
-    public async subscribeToStatusPage(req: ExpressRequest) {
+    public async subscribeToStatusPage(req: ExpressRequest): Promise<void> {
         const objectId: ObjectID = new ObjectID(
             req.params['statusPageId'] as string
         );
@@ -1898,7 +1899,7 @@ export default class StatusPageAPI extends BaseAPI<
 
         let statusPageSubscriber: StatusPageSubscriber | null = null;
 
-        let isUpdate = false;
+        let isUpdate: boolean = false;
 
         if (!req.params['subscriberId']) {
             statusPageSubscriber = new StatusPageSubscriber();
