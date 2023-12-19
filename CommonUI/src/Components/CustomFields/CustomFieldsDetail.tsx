@@ -18,8 +18,8 @@ export interface ComponentProps {
     title: string;
     description: string;
     modelId: ObjectID;
-    modelType: { new(): BaseModel };
-    customFieldType: { new(): BaseModel };
+    modelType: { new (): BaseModel };
+    customFieldType: { new (): BaseModel };
     projectId: ObjectID;
     name: string;
 }
@@ -51,7 +51,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                         type: true,
                         description: true,
                     } as any,
-                    sort: {}
+                    sort: {},
                 });
 
             const item: BaseModel | null = await ModelAPI.getItem<BaseModel>({
@@ -59,7 +59,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                 id: props.modelId,
                 select: {
                     customFields: true,
-                } as any
+                } as any,
             });
 
             setSchemaList(schemaList.data);
@@ -78,9 +78,13 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             setIsLoading(true);
             setShowModelForm(false);
 
-            await ModelAPI.updateById({ modelType: props.modelType, id: props.modelId, data: {
-                customFields: data,
-            }});
+            await ModelAPI.updateById({
+                modelType: props.modelType,
+                id: props.modelId,
+                data: {
+                    customFields: data,
+                },
+            });
 
             await onLoad();
         } catch (err) {

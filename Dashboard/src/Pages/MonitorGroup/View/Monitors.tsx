@@ -58,8 +58,8 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                         name: true,
                         color: true,
                     },
-                    sort: {}
-        });
+                    sort: {},
+                });
 
             setMonitorStatuses(monitorStatuses.data);
         } catch (err) {

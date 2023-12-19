@@ -73,8 +73,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 select: {
                     allowSubscribersToChooseResources: true,
                     enableSmsSubscribers: true,
-                }
-        });
+                },
+            });
 
             if (statusPage && statusPage.allowSubscribersToChooseResources) {
                 setAllowSubscribersToChooseResources(
@@ -116,7 +116,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     subscriberPhone: true,
                 },
                 title: 'Phone Number',
-                description: 'Status page updates will be sent to this phone number.',
+                description:
+                    'Status page updates will be sent to this phone number.',
                 fieldType: FormFieldSchemaType.Phone,
                 required: true,
                 placeholder: '+11234567890',
@@ -127,7 +128,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     isUnsubscribed: true,
                 },
                 title: 'Unsubscribe',
-                description: 'Unsubscribe this phone number from the status page.',
+                description:
+                    'Unsubscribe this phone number from the status page.',
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
             },

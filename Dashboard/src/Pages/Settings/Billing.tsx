@@ -101,8 +101,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                         planType: true,
                         otherFeatures: true,
                     },
-                }
-        });
+                },
+            });
 
             if (project?.reseller) {
                 setReseller(project.reseller);

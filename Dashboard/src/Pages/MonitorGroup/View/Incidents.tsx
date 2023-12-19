@@ -43,7 +43,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                     select: {
                         monitorId: true,
                     },
-                    sort: {}
+                    sort: {},
                 });
 
             const monitorIds: Array<ObjectID> = monitorGroupResources.data.map(
@@ -61,7 +61,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        loadMonitorsIds().catch(() => { });
+        loadMonitorsIds().catch(() => {});
     }, []);
 
     if (isLoading) {

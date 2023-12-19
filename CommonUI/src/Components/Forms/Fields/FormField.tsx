@@ -90,9 +90,16 @@ const FormField: <T extends Object>(
 
         let required: boolean = false;
 
-        if (props.field.required && typeof props.field.required === Typeof.Boolean) {
+        if (
+            props.field.required &&
+            typeof props.field.required === Typeof.Boolean
+        ) {
             required = true;
-        } else if (props.field.required && typeof props.field.required === 'function' && props.field.required(props.currentValues)) {
+        } else if (
+            props.field.required &&
+            typeof props.field.required === 'function' &&
+            props.field.required(props.currentValues)
+        ) {
             required = true;
         }
 
@@ -120,8 +127,6 @@ const FormField: <T extends Object>(
                 ' This is in your local timezone - ' +
                 OneUptimeDate.getCurrentTimezoneString();
         }
-
-
 
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>

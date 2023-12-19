@@ -40,9 +40,9 @@ export interface RequestOptions {
 
 export default class ModelAPI {
     public static async create<TBaseModel extends BaseModel>(data: {
-        model: TBaseModel,
-        modelType: { new(): TBaseModel },
-        requestOptions?: RequestOptions | undefined
+        model: TBaseModel;
+        modelType: { new (): TBaseModel };
+        requestOptions?: RequestOptions | undefined;
     }): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
@@ -51,26 +51,29 @@ export default class ModelAPI {
             modelType: data.modelType,
             formType: FormType.Create,
             miscDataProps: {},
-            requestOptions: data.requestOptions
-        }
-        );
+            requestOptions: data.requestOptions,
+        });
     }
 
     public static async update<TBaseModel extends BaseModel>(data: {
-        model: TBaseModel,
-        modelType: { new(): TBaseModel }
+        model: TBaseModel;
+        modelType: { new (): TBaseModel };
     }): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
-        return await ModelAPI.createOrUpdate({ model: data.model, modelType: data.modelType, formType: FormType.Update });
+        return await ModelAPI.createOrUpdate({
+            model: data.model,
+            modelType: data.modelType,
+            formType: FormType.Update,
+        });
     }
 
     public static async updateById<TBaseModel extends BaseModel>(data: {
-        modelType: { new(): TBaseModel },
-        id: ObjectID,
-        data: JSONObject,
-        apiUrlOverride?: URL,
-        requestOptions?: RequestOptions
+        modelType: { new (): TBaseModel };
+        id: ObjectID;
+        data: JSONObject;
+        apiUrlOverride?: URL;
+        requestOptions?: RequestOptions;
     }): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
@@ -113,13 +116,14 @@ export default class ModelAPI {
     }
 
     public static async createOrUpdate<TBaseModel extends BaseModel>(data: {
-        model: TBaseModel,
-        modelType: { new(): TBaseModel },
-        formType: FormType,
-        miscDataProps?: JSONObject,
-        requestOptions?: RequestOptions | undefined
+        model: TBaseModel;
+        modelType: { new (): TBaseModel };
+        formType: FormType;
+        miscDataProps?: JSONObject;
+        requestOptions?: RequestOptions | undefined;
     }): Promise<ModelAPIHttpResponse<TBaseModel>> {
-        let apiUrl: URL | null = data.requestOptions?.overrideRequestUrl || null;
+        let apiUrl: URL | null =
+            data.requestOptions?.overrideRequestUrl || null;
 
         if (!apiUrl) {
             const apiPath: Route | null = data.model.getCrudApiPath();
@@ -133,7 +137,9 @@ export default class ModelAPI {
         }
 
         const httpMethod: HTTPMethod =
-            data.formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
+            data.formType === FormType.Create
+                ? HTTPMethod.POST
+                : HTTPMethod.PUT;
 
         if (httpMethod === HTTPMethod.PUT) {
             apiUrl = apiUrl.addRoute(`/${data.model._id}`);
@@ -177,13 +183,13 @@ export default class ModelAPI {
     }
 
     public static async getList<TBaseModel extends BaseModel>(data: {
-        modelType: { new(): TBaseModel },
-        query: Query<TBaseModel>,
-        limit: number,
-        skip: number,
-        select: Select<TBaseModel>,
-        sort: Sort<TBaseModel>,
-        requestOptions?: RequestOptions | undefined
+        modelType: { new (): TBaseModel };
+        query: Query<TBaseModel>;
+        limit: number;
+        skip: number;
+        select: Select<TBaseModel>;
+        sort: Sort<TBaseModel>;
+        requestOptions?: RequestOptions | undefined;
     }): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new data.modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -207,8 +213,9 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> =
-            this.getCommonHeaders(data.requestOptions);
+        const headers: Dictionary<string> = this.getCommonHeaders(
+            data.requestOptions
+        );
         if (data.requestOptions && data.requestOptions.isMultiTenantRequest) {
             headers['isMultiTenantRequest'] = 'true';
         }
@@ -249,9 +256,9 @@ export default class ModelAPI {
     }
 
     public static async count<TBaseModel extends BaseModel>(data: {
-        modelType: { new(): TBaseModel },
-        query: Query<TBaseModel>,
-        requestOptions?: RequestOptions | undefined
+        modelType: { new (): TBaseModel };
+        query: Query<TBaseModel>;
+        requestOptions?: RequestOptions | undefined;
     }): Promise<number> {
         const model: TBaseModel = new data.modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -275,8 +282,9 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> =
-            this.getCommonHeaders(data.requestOptions);
+        const headers: Dictionary<string> = this.getCommonHeaders(
+            data.requestOptions
+        );
         if (data.requestOptions && data.requestOptions.isMultiTenantRequest) {
             headers['is-multi-tenant-query'] = 'true';
         }
@@ -333,10 +341,10 @@ export default class ModelAPI {
     }
 
     public static async getItem<TBaseModel extends BaseModel>(data: {
-        modelType: { new(): TBaseModel },
-        id: ObjectID,
-        select: Select<TBaseModel>,
-        requestOptions?: RequestOptions | undefined
+        modelType: { new (): TBaseModel };
+        id: ObjectID;
+        select: Select<TBaseModel>;
+        requestOptions?: RequestOptions | undefined;
     }): Promise<TBaseModel | null> {
         const apiPath: Route | null = new data.modelType().getCrudApiPath();
         if (!apiPath) {
@@ -361,22 +369,27 @@ export default class ModelAPI {
         }
 
         return this.post<TBaseModel>({
-            modelType: data.modelType, apiUrl: apiUrl, select: data.select, requestOptions: data.requestOptions
+            modelType: data.modelType,
+            apiUrl: apiUrl,
+            select: data.select,
+            requestOptions: data.requestOptions,
         });
     }
 
     public static async post<TBaseModel extends BaseModel>(data: {
-        modelType: { new(): TBaseModel },
-        apiUrl: URL,
-        select?: Select<TBaseModel> | undefined,
-        requestOptions?: RequestOptions | undefined
+        modelType: { new (): TBaseModel };
+        apiUrl: URL;
+        select?: Select<TBaseModel> | undefined;
+        requestOptions?: RequestOptions | undefined;
     }): Promise<TBaseModel | null> {
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
                 HTTPMethod.POST,
                 data.apiUrl,
                 {
-                    select: JSONFunctions.serialize(data.select as JSONObject) || {},
+                    select:
+                        JSONFunctions.serialize(data.select as JSONObject) ||
+                        {},
                 },
                 this.getCommonHeaders(data.requestOptions)
             );
@@ -394,9 +407,9 @@ export default class ModelAPI {
     }
 
     public static async deleteItem<TBaseModel extends BaseModel>(data: {
-        modelType: { new(): TBaseModel },
-        id: ObjectID,
-        requestOptions?: RequestOptions | undefined
+        modelType: { new (): TBaseModel };
+        id: ObjectID;
+        requestOptions?: RequestOptions | undefined;
     }): Promise<void> {
         const apiPath: Route | null = new data.modelType().getCrudApiPath();
         if (!apiPath) {
@@ -435,8 +448,8 @@ export default class ModelAPI {
     private static checkStatusCode<TBaseModel extends BaseModel>(
         result:
             | HTTPResponse<
-                TBaseModel | JSONObject | JSONArray | Array<TBaseModel>
-            >
+                  TBaseModel | JSONObject | JSONArray | Array<TBaseModel>
+              >
             | HTTPErrorResponse
     ): void {
         if (result.statusCode === 406) {

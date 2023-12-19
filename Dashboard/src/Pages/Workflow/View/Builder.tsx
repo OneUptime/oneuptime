@@ -65,7 +65,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 select: {
                     graph: true,
                 },
-                requestOptions: {}
+                requestOptions: {},
             });
 
             if (workflow) {
@@ -119,7 +119,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             if (!componentMetdata) {
                                 throw new BadDataException(
                                     'Component Metadata not found for node ' +
-                                    nodes[i]?.data.metadataId
+                                        nodes[i]?.data.metadataId
                                 );
                             }
 
@@ -134,9 +134,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             !nodes.find((node: Node) => {
                                 return (
                                     node.data.nodeType ===
-                                    NodeType.PlaceholderNode ||
+                                        NodeType.PlaceholderNode ||
                                     node.data.componentType ===
-                                    ComponentType.Trigger
+                                        ComponentType.Trigger
                                 );
                             })
                         ) {
@@ -235,9 +235,12 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     }
 
                     await ModelAPI.updateById({
-                        modelType: WorkflowModel, id: modelId, data: {
-                        graph,
-                    }});
+                        modelType: WorkflowModel,
+                        id: modelId,
+                        data: {
+                            graph,
+                        },
+                    });
 
                     setSaveStatus('Changes Saved.');
                 } catch (err) {

@@ -116,8 +116,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     },
                     sort: {
                         createdAt: SortOrder.Ascending,
-                    }
-        });
+                    },
+                });
 
             const item: Monitor | null = await ModelAPI.getItem({
                 modelType: Monitor,
@@ -129,7 +129,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         color: true,
                     },
                 },
-        });
+            });
 
             const monitorStatuses: ListResult<MonitorStatus> =
                 await ModelAPI.getList({
@@ -148,8 +148,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     },
                     sort: {
                         priority: SortOrder.Ascending,
-                    }
-        });
+                    },
+                });
 
             if (!item) {
                 setError(`Monitor not found`);

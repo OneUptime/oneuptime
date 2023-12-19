@@ -40,8 +40,8 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
             const item: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({
                 modelType: props.modelType,
                 id: props.modelId,
-                select: props.fieldsToDuplicate
-        });
+                select: props.fieldsToDuplicate,
+            });
 
             if (!item) {
                 throw new Error(
@@ -69,8 +69,8 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
             const newItem: HTTPResponse<TBaseModel> =
                 (await ModelAPI.create<TBaseModel>({
                     model: item,
-                    modelType: props.modelType
-        })) as HTTPResponse<TBaseModel>;
+                    modelType: props.modelType,
+                })) as HTTPResponse<TBaseModel>;
 
             if (!newItem) {
                 throw new Error(`Could not create ${model.singularName}`);

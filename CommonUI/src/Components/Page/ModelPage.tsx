@@ -39,8 +39,8 @@ const ModelPage: <TBaseModel extends BaseModel>(
                 select: {
                     [props.modelNameField]: true,
                 } as any,
-                requestOptions: {}
-        });
+                requestOptions: {},
+            });
 
             if (!item) {
                 setError(

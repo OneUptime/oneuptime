@@ -41,7 +41,7 @@ const TeamView: FunctionComponent<ComponentProps> = (
                             name: true,
                         },
                     },
-                    sort: {}
+                    sort: {},
                 });
 
             const teams: Array<Team> = onCallTeams.data.map(

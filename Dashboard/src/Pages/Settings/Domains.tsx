@@ -204,13 +204,13 @@ const Domains: FunctionComponent<PageComponentProps> = (
                                 id: new ObjectID(
                                     currentVerificationDomain['_id']
                                         ? currentVerificationDomain[
-                                            '_id'
-                                        ].toString()
+                                              '_id'
+                                          ].toString()
                                         : ''
                                 ),
                                 data: {
                                     isVerified: true,
-                                }
+                                },
                             });
                             setIsVerificationLoading(false);
                             setShowVerificationModal(false);

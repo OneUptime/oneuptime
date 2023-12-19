@@ -82,8 +82,9 @@ const Layers: FunctionComponent<ComponentProps> = (
             );
 
             // count the description and generate a unique description for this layer.
-            const newLayerDescription: string = `Layer ${layers.length + 1
-                } description.`;
+            const newLayerDescription: string = `Layer ${
+                layers.length + 1
+            } description.`;
             onCallPolicyScheduleLayer.description = newLayerDescription;
             onCallPolicyScheduleLayer.order = layers.length + 1;
             onCallPolicyScheduleLayer.restrictionTimes =
@@ -131,7 +132,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         try {
             await ModelAPI.deleteItem<OnCallDutyPolicyScheduleLayer>({
                 modelType: OnCallDutyPolicyScheduleLayer,
-                id: item.id
+                id: item.id,
             });
 
             // remove this layer from layers array and set it.
@@ -196,7 +197,7 @@ const Layers: FunctionComponent<ComponentProps> = (
                     },
                     sort: {
                         order: SortOrder.Ascending,
-                    }
+                    },
                 });
 
             setLayers(layers.data);

@@ -67,7 +67,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             isOfflineState: true,
                         },
 
-                        sort: {}
+                        sort: {},
                     });
 
                 if (monitorStatusList.data) {
@@ -93,7 +93,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         },
                         sort: {
                             order: SortOrder.Ascending,
-                        }
+                        },
                     });
 
                 const onCallPolicyList: ListResult<OnCallDutyPolicy> =
@@ -105,7 +105,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         select: {
                             name: true,
                         },
-                        sort: {}
+                        sort: {},
                     });
 
                 if (incidentSeverityList.data) {
@@ -300,7 +300,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         (i: DropdownOption) => {
                             return (
                                 i.value ===
-                                monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
+                                    monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
                                 undefined
                             );
                         }

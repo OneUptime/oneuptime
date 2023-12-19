@@ -162,8 +162,8 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         isAcknowledgedState: true,
                                     },
                                 },
-                                sort: {}
-                    });
+                                sort: {},
+                            });
 
                         return incidentTimelines;
                     },

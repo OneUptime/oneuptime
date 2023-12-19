@@ -43,7 +43,7 @@ const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
                             name: true,
                         },
                     },
-                    sort: {}
+                    sort: {},
                 });
 
             const schedules: Array<OnCallDutyPolicySchedule> =

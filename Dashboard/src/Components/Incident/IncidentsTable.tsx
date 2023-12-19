@@ -67,19 +67,22 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             const incidentTemplate: IncidentTemplate | null =
                 await ModelAPI.getItem<IncidentTemplate>({
-                    modelType: IncidentTemplate, id: id, select: {
-                    title: true,
-                    description: true,
-                    incidentSeverityId: true,
-                    monitors: true,
-                    onCallDutyPolicies: true,
-                    labels: true,
-                    changeMonitorStatusToId: true,
-                }});
+                    modelType: IncidentTemplate,
+                    id: id,
+                    select: {
+                        title: true,
+                        description: true,
+                        incidentSeverityId: true,
+                        monitors: true,
+                        onCallDutyPolicies: true,
+                        labels: true,
+                        changeMonitorStatusToId: true,
+                    },
+                });
 
             const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
                 await ModelAPI.getList<IncidentTemplateOwnerTeam>({
-                    modelType:IncidentTemplateOwnerTeam,
+                    modelType: IncidentTemplateOwnerTeam,
                     query: {
                         incidentTemplate: id,
                     },
@@ -89,8 +92,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         _id: true,
                         teamId: true,
                     },
-                    sort: {}
-        });
+                    sort: {},
+                });
 
             const usersListResult: ListResult<IncidentTemplateOwnerUser> =
                 await ModelAPI.getList<IncidentTemplateOwnerUser>({
@@ -104,8 +107,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         _id: true,
                         userId: true,
                     },
-                    sort: {}
-        });
+                    sort: {},
+                });
 
             if (incidentTemplate) {
                 const initialValue: JSONObject = {
@@ -170,8 +173,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             templateName: true,
                             _id: true,
                         },
-                        sort: {}
-            });
+                        sort: {},
+                    });
 
                 setIncidentTemplates(listResult.data);
             } catch (err) {

@@ -31,25 +31,26 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps
 ): ReactElement => {
-
     const statusPageSubscriberId: string | undefined =
-                Navigation.getLastParamAsObjectID().toString();
+        Navigation.getLastParamAsObjectID().toString();
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-    const statusPageId: ObjectID = LocalStorage.getItem('statusPageId') as ObjectID;
+    const statusPageId: ObjectID = LocalStorage.getItem(
+        'statusPageId'
+    ) as ObjectID;
 
-    const updateApiUrl: URL = URL.fromString(URL.fromString(
-        STATUS_PAGE_API_URL.toString()
-    ).addRoute(
-        `/update-subscription/${statusPageId.toString()}`
-    ).toString());
+    const updateApiUrl: URL = URL.fromString(
+        URL.fromString(STATUS_PAGE_API_URL.toString())
+            .addRoute(`/update-subscription/${statusPageId.toString()}`)
+            .toString()
+    );
 
-    const getSubscriptionUrl: URL = URL.fromString(URL.fromString(
-        STATUS_PAGE_API_URL.toString()
-    ).addRoute(
-        `/get-subscription/${statusPageId.toString()}`
-    ).toString());
+    const getSubscriptionUrl: URL = URL.fromString(
+        URL.fromString(STATUS_PAGE_API_URL.toString())
+            .addRoute(`/get-subscription/${statusPageId.toString()}`)
+            .toString()
+    );
 
     const [
         categoryCheckboxOptionsAndCategories,
@@ -93,7 +94,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         throw new BadDataException('Status Page ID is required');
     }
 
-    if(!statusPageSubscriberId) {
+    if (!statusPageSubscriberId) {
         throw new BadDataException('Status Page Subscriber ID is required');
     }
 
@@ -173,9 +174,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     });
 
     return (
-        <Page
-            
-        >
+        <Page>
             {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
 
             {error ? <ErrorMessage error={error} /> : <></>}
@@ -200,7 +199,6 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                 >
                                     <ModelForm<StatusPageSubscriber>
                                         modelType={StatusPageSubscriber}
-                                        
                                         id="email-form"
                                         name="Status Page > Update Subscription"
                                         fields={fields}
@@ -210,7 +208,9 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                         )}
                                         fetchItemApiUrl={getSubscriptionUrl}
                                         formType={FormType.Update}
-                                        modelIdToEdit={new ObjectID(statusPageSubscriberId)}
+                                        modelIdToEdit={
+                                            new ObjectID(statusPageSubscriberId)
+                                        }
                                         submitButtonText={'Update Subscription'}
                                         onSuccess={(
                                             _value: StatusPagePrivateUser

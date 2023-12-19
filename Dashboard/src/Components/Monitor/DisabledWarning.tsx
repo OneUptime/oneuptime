@@ -29,8 +29,8 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
                 disableActiveMonitoringBecauseOfManualIncident: true,
                 disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
                 monitorType: true,
-            }
-    });
+            },
+        });
 
         if (monitor?.monitorType === MonitorType.Manual) {
             setIsLoading(false);

@@ -71,7 +71,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     sort: {
                         order: SortOrder.Ascending,
                     },
-                    requestOptions: {}
+                    requestOptions: {},
                 });
 
             setGroups(listResult.data);
@@ -289,12 +289,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: `${statusPageGroupName
+                    title: `${
+                        statusPageGroupName
                             ? statusPageGroupName + ' - '
                             : groups.length > 0
-                                ? 'Uncategorized - '
-                                : ''
-                        }Status Page Resources`,
+                            ? 'Uncategorized - '
+                            : ''
+                    }Status Page Resources`,
                     description: 'Resources that will be shown on the page',
                 }}
                 noItemsMessage={

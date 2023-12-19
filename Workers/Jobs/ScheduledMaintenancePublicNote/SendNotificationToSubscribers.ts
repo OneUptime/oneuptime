@@ -206,7 +206,11 @@ RunCron(
                         continue;
                     }
 
-                    const unsubscribeUrl: string = StatusPageSubscriberService.getUnsubscribeLink(URL.fromString(statusPageURL), subscriber.id!).toString();;
+                    const unsubscribeUrl: string =
+                        StatusPageSubscriberService.getUnsubscribeLink(
+                            URL.fromString(statusPageURL),
+                            subscriber.id!
+                        ).toString();
 
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {

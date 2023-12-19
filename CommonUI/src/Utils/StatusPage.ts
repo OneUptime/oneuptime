@@ -105,9 +105,9 @@ export default class StatusPageUtil {
                 sort: {},
                 requestOptions: overrideRequestUrl
                     ? {
-                        overrideRequestUrl: overrideRequestUrl,
-                    }
-                    : undefined
+                          overrideRequestUrl: overrideRequestUrl,
+                      }
+                    : undefined,
             });
 
         return resources.data;

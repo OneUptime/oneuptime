@@ -44,7 +44,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                 select: {
                     monitorType: true,
                 },
-
             });
 
             if (!item) {

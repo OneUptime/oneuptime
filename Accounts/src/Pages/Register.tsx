@@ -58,7 +58,7 @@ const RegisterPage: () => JSX.Element = () => {
                         hidePhoneNumberOnSignup: true,
                     },
                     sort: {},
-                    requestOptions: {}
+                    requestOptions: {},
                 });
 
             if (reseller.data.length > 0) {

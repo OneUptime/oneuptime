@@ -57,8 +57,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 select: {
                     monitorType: true,
                 },
-            
-        });
+            });
 
             if (!item) {
                 setError(`Monitor not found`);
@@ -78,8 +77,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     _id: true,
                 },
                 sort: {},
-                
-        });
+            });
 
             const globalProbeList: ListResult<Probe> = await ModelAPI.getList({
                 modelType: Probe,
@@ -95,8 +93,8 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     overrideRequestUrl: URL.fromString(
                         DASHBOARD_API_URL.toString()
                     ).addRoute('/probe/global-probes'),
-                }
-        });
+                },
+            });
 
             setProbes([...projectProbeList.data, ...globalProbeList.data]);
             setMonitorType(item.monitorType);

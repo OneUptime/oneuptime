@@ -8,7 +8,7 @@ import HeaderAlert from './HeaderAlert';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     icon: IconProp;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
@@ -24,64 +24,65 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-        const [isLoading, setIsLoading] = useState<boolean>(true);
-        const [error, setError] = useState<string>('');
-        const [count, setCount] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [count, setCount] = useState<number>(0);
 
-        useEffect(() => {
-            fetchCount();
-        }, [props.refreshToggle]);
+    useEffect(() => {
+        fetchCount();
+    }, [props.refreshToggle]);
 
-        const fetchCount: Function = async () => {
-            setError('');
-            setIsLoading(true);
+    const fetchCount: Function = async () => {
+        setError('');
+        setIsLoading(true);
 
-            if (props.onCountFetchInit) {
-                props.onCountFetchInit();
-            }
-
-            try {
-                const count: number = await ModelAPI.count<TBaseModel>({
-                    modelType: props.modelType,
-                    query: props.query,
-                    requestOptions: props.requestOptions
-                });
-
-                setCount(count);
-            } catch (err) {
-                setError(API.getFriendlyMessage(err));
-            }
-
-            setIsLoading(false);
-        };
-
-        useEffect(() => {
-            setIsLoading(true);
-            fetchCount();
-            setIsLoading(false);
-        }, []);
-
-        if (error) {
-            return <></>;
+        if (props.onCountFetchInit) {
+            props.onCountFetchInit();
         }
 
-        if (isLoading) {
-            return <></>;
+        try {
+            const count: number = await ModelAPI.count<TBaseModel>({
+                modelType: props.modelType,
+                query: props.query,
+                requestOptions: props.requestOptions,
+            });
+
+            setCount(count);
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
         }
 
-        if (count === 0) {
-            return <></>;
-        }
-
-        return (
-            <HeaderAlert
-                title={`${count} ${count > 1 ? props.pluralName : props.singularName
-                    }`}
-                icon={props.icon}
-                onClick={props.onClick}
-                className={props.className}
-            />
-        );
+        setIsLoading(false);
     };
+
+    useEffect(() => {
+        setIsLoading(true);
+        fetchCount();
+        setIsLoading(false);
+    }, []);
+
+    if (error) {
+        return <></>;
+    }
+
+    if (isLoading) {
+        return <></>;
+    }
+
+    if (count === 0) {
+        return <></>;
+    }
+
+    return (
+        <HeaderAlert
+            title={`${count} ${
+                count > 1 ? props.pluralName : props.singularName
+            }`}
+            icon={props.icon}
+            onClick={props.onClick}
+            className={props.className}
+        />
+    );
+};
 
 export default HeaderModelAlert;

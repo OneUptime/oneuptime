@@ -115,7 +115,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                     CommonURL.fromURL(FILE_URL).addRoute(
                                         '/file'
                                     ),
-                            }
+                            },
                         })) as HTTPResponse<FileModel>;
                     filesResult.push(result.data as FileModel);
                 }
@@ -243,9 +243,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                         .map((type: MimeType) => {
                                             const enumKey: string | undefined =
                                                 Object.keys(MimeType)[
-                                                Object.values(
-                                                    MimeType
-                                                ).indexOf(type)
+                                                    Object.values(
+                                                        MimeType
+                                                    ).indexOf(type)
                                                 ];
                                             return enumKey?.toUpperCase() || '';
                                         })

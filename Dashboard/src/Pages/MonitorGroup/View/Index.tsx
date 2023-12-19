@@ -116,8 +116,8 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                             .addRoute(new MonitorGroup().getCrudApiPath()!)
                             .addRoute('/timeline/')
                             .addRoute(`/${modelId.toString()}`),
-                    }
-        });
+                    },
+                });
 
             const monitorStatuses: ListResult<MonitorStatus> =
                 await ModelAPI.getList({
@@ -136,8 +136,8 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     },
                     sort: {
                         priority: SortOrder.Ascending,
-                    }
-        });
+                    },
+                });
 
             const currentStatus: MonitorStatus | null =
                 await ModelAPI.post<MonitorStatus>({
@@ -145,9 +145,8 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     apiUrl: URL.fromString(DASHBOARD_API_URL.toString())
                         .addRoute(new MonitorGroup().getCrudApiPath()!)
                         .addRoute('/current-status/')
-                        .addRoute(`/${modelId.toString()}`)
-                }
-                );
+                        .addRoute(`/${modelId.toString()}`),
+                });
 
             setCurrentGroupStatus(currentStatus);
             setStatusTimelines(statusTimelines.data);

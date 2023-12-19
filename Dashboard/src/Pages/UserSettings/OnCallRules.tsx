@@ -128,8 +128,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 sortBy="notifyAfterMinutes"
                 createVerb={'Add'}
                 id="notification-rules"
-                name={`User Settings > Notification Rules > ${options.incidentSeverity?.name || options.ruleType
-                    }`}
+                name={`User Settings > Notification Rules > ${
+                    options.incidentSeverity?.name || options.ruleType
+                }`}
                 isDeleteable={true}
                 isEditable={false}
                 isCreateable={true}
@@ -208,15 +209,15 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                     )}
                                     {(item['notifyAfterMinutes'] as number) >
                                         0 && (
-                                            <p>
-                                                {
-                                                    item[
+                                        <p>
+                                            {
+                                                item[
                                                     'notifyAfterMinutes'
-                                                    ] as number
-                                                }{' '}
-                                                minutes
-                                            </p>
-                                        )}
+                                                ] as number
+                                            }{' '}
+                                            minutes
+                                        </p>
+                                    )}
                                 </div>
                             );
                         },
@@ -243,7 +244,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     select: {
                         name: true,
                     },
-                    sort: {}
+                    sort: {},
                 });
 
             const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
@@ -258,7 +259,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 select: {
                     email: true,
                 },
-                sort: {}
+                sort: {},
             });
 
             setUserEmails(userEmails.data);
@@ -275,7 +276,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 select: {
                     phone: true,
                 },
-                sort: {}
+                sort: {},
             });
 
             setUserSMSs(userSMSes.data);
@@ -292,7 +293,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 select: {
                     phone: true,
                 },
-                sort: {}
+                sort: {},
             });
 
             setUserCalls(userCalls.data);

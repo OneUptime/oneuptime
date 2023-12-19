@@ -63,8 +63,8 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     id,
                     select: {
                         note: true,
-                    }
-        });
+                    },
+                });
 
             if (incidentNoteTemplate) {
                 const initialValue: JSONObject = {
@@ -101,8 +101,8 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             templateName: true,
                             _id: true,
                         },
-                        sort:{}
-            });
+                        sort: {},
+                    });
 
                 setIncidentNoteTemplates(listResult.data);
             } catch (err) {

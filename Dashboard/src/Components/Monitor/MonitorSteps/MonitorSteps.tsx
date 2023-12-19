@@ -61,8 +61,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             color: true,
                             isOperationalState: true,
                         },
-                        sort: {}
-            });
+                        sort: {},
+                    });
 
                 if (monitorStatusList.data) {
                     setMonitorStatusOptions(monitorStatusList.data);
@@ -83,8 +83,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                             name: true,
                             color: true,
                         },
-                        sort: {}
-            });
+                        sort: {},
+                    });
 
                 const onCallPolicyList: ListResult<OnCallDutyPolicy> =
                     await ModelAPI.getList({
@@ -95,8 +95,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                         select: {
                             name: true,
                         },
-                        sort: {}
-            });
+                        sort: {},
+                    });
 
                 if (incidentSeverityList.data) {
                     setIncidentSeverityOptions(

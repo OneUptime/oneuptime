@@ -189,7 +189,10 @@ export class Service extends DatabaseService<Model> {
                             .isPublicStatusPage
                             ? 'true'
                             : 'false',
-                        unsubscribeUrl: this.getUnsubscribeLink(URL.fromString(statusPageURL), createdItem.id!).toString()
+                        unsubscribeUrl: this.getUnsubscribeLink(
+                            URL.fromString(statusPageURL),
+                            createdItem.id!
+                        ).toString(),
                     },
                     subject: 'You have been subscribed to ' + statusPageName,
                 },
@@ -225,9 +228,13 @@ export class Service extends DatabaseService<Model> {
         });
     }
 
-
-    public getUnsubscribeLink(statusPageUrl: URL, statusPageSubscriberId: ObjectID): URL {
-        return URL.fromString(statusPageUrl.toString()).addRoute('/update-subscription/'+statusPageSubscriberId.toString());
+    public getUnsubscribeLink(
+        statusPageUrl: URL,
+        statusPageSubscriberId: ObjectID
+    ): URL {
+        return URL.fromString(statusPageUrl.toString()).addRoute(
+            '/update-subscription/' + statusPageSubscriberId.toString()
+        );
     }
 }
 export default new Service();

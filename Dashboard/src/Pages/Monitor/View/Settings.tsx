@@ -44,8 +44,8 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                 select: {
                     monitorType: true,
                 } as any,
-                requestOptions: {}
-        });
+                requestOptions: {},
+            });
 
             if (!item) {
                 setError(`Monitor not found`);

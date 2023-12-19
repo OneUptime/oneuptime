@@ -138,9 +138,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                     title: 'Subscribe',
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
-                            ? (RouteMap[
-                                  PageMap.PREVIEW_SUBSCRIBE_SMS
-                              ] as Route)
+                            ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route)
                             : (RouteMap[PageMap.SUBSCRIBE_SMS] as Route)
                     ),
                 },

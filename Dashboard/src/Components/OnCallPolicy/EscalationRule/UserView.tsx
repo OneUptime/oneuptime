@@ -43,8 +43,8 @@ const UserView: FunctionComponent<ComponentProps> = (
                             profilePictureId: true,
                         },
                     },
-                    sort: {}
-        });
+                    sort: {},
+                });
 
             const users: Array<User> = onCallUsers.data.map(
                 (onCallUser: OnCallDutyPolicyEscalationRuleUser) => {

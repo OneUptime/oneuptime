@@ -126,8 +126,8 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                                 isCreatedState: true,
                             },
                             sort: {},
-                            requestOptions: {}
-                });
+                            requestOptions: {},
+                        });
 
                     let stateId: ObjectID | null = null;
 
@@ -161,9 +161,8 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
 
                     await ModelAPI.create({
                         model: incidentStateTimeline,
-                        modelType: IncidentStateTimeline
-                    }
-                    );
+                        modelType: IncidentStateTimeline,
+                    });
 
                     props.onActionComplete();
                     setIsLoading(false);

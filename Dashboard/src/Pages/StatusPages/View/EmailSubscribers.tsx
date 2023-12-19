@@ -73,8 +73,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 select: {
                     allowSubscribersToChooseResources: true,
                     enableEmailSubscribers: true,
-                }
-        });
+                },
+            });
 
             if (statusPage && statusPage.allowSubscribersToChooseResources) {
                 setAllowSubscribersToChooseResources(

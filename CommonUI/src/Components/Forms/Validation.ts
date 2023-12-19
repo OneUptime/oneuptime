@@ -122,7 +122,11 @@ export default class Validation {
 
         if (field.required && typeof field.required === Typeof.Boolean) {
             required = true;
-        } else if (field.required && typeof field.required === 'function' && field.required(currentValues)) {
+        } else if (
+            field.required &&
+            typeof field.required === 'function' &&
+            field.required(currentValues)
+        ) {
             required = true;
         }
 

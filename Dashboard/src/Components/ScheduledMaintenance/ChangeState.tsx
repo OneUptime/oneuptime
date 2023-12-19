@@ -160,7 +160,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
                     await ModelAPI.create({
                         model: scheduledMaintenanceStateTimeline,
-                        modelType: ScheduledMaintenanceStateTimeline
+                        modelType: ScheduledMaintenanceStateTimeline,
                     });
 
                     props.onActionComplete();

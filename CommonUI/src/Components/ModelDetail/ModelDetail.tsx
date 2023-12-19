@@ -19,7 +19,7 @@ import { useAsyncEffect } from 'use-async-effect';
 import User from '../../Utils/User';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     fields: Array<Field<TBaseModel>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
@@ -37,231 +37,231 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-        const [fields, setFields] = useState<Array<DetailField>>([]);
-        const [isLoading, setIsLoading] = useState<boolean>(true);
-        const [error, setError] = useState<string>('');
-        const [item, setItem] = useState<TBaseModel | null>(null);
+    const [fields, setFields] = useState<Array<DetailField>>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [item, setItem] = useState<TBaseModel | null>(null);
 
-        const [onBeforeFetchData, setOnBeforeFetchData] = useState<
-            JSONObject | undefined
-        >(undefined);
+    const [onBeforeFetchData, setOnBeforeFetchData] = useState<
+        JSONObject | undefined
+    >(undefined);
 
-        const getSelectFields: Function = (): Select<TBaseModel> => {
-            const select: Select<TBaseModel> = {};
-            for (const field of props.fields) {
-                const key: string | null = field.field
-                    ? (Object.keys(field.field)[0] as string)
-                    : null;
+    const getSelectFields: Function = (): Select<TBaseModel> => {
+        const select: Select<TBaseModel> = {};
+        for (const field of props.fields) {
+            const key: string | null = field.field
+                ? (Object.keys(field.field)[0] as string)
+                : null;
 
-                if (key) {
-                    (select as Dictionary<boolean>)[key] = true;
-                }
+            if (key) {
+                (select as Dictionary<boolean>)[key] = true;
             }
+        }
 
-            for (const field of Object.keys(props.selectMoreFields || {})) {
-                (select as Dictionary<boolean>)[field] = true;
+        for (const field of Object.keys(props.selectMoreFields || {})) {
+            (select as Dictionary<boolean>)[field] = true;
+        }
+
+        return select;
+    };
+
+    const getRelationSelect: Function = (): Select<TBaseModel> => {
+        const relationSelect: Select<TBaseModel> = {};
+
+        for (const field of props.fields || []) {
+            const key: string | null = field.field
+                ? (Object.keys(field.field)[0] as string)
+                : null;
+
+            if (key && new props.modelType()?.isFileColumn(key)) {
+                (relationSelect as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true,
+                };
+            } else if (key && new props.modelType()?.isEntityColumn(key)) {
+                (relationSelect as JSONObject)[key] = (field.field as any)[key];
             }
+        }
 
-            return select;
-        };
+        return relationSelect;
+    };
 
-        const getRelationSelect: Function = (): Select<TBaseModel> => {
-            const relationSelect: Select<TBaseModel> = {};
+    const setDetailFields: Function = (): void => {
+        // set fields.
 
-            for (const field of props.fields || []) {
-                const key: string | null = field.field
-                    ? (Object.keys(field.field)[0] as string)
-                    : null;
+        const userPermissions: Array<Permission> =
+            PermissionUtil.getAllPermissions();
 
-                if (key && new props.modelType()?.isFileColumn(key)) {
-                    (relationSelect as JSONObject)[key] = {
-                        file: true,
-                        _id: true,
-                        type: true,
-                        name: true,
-                    };
-                } else if (key && new props.modelType()?.isEntityColumn(key)) {
-                    (relationSelect as JSONObject)[key] = (field.field as any)[key];
-                }
-            }
+        const model: BaseModel = new props.modelType();
 
-            return relationSelect;
-        };
+        const accessControl: Dictionary<ColumnAccessControl> =
+            model.getColumnAccessControlForAllColumns() || {};
 
-        const setDetailFields: Function = (): void => {
-            // set fields.
+        const fieldsToSet: Array<DetailField> = [];
 
-            const userPermissions: Array<Permission> =
-                PermissionUtil.getAllPermissions();
+        for (const field of props.fields) {
+            const keys: Array<string> = Object.keys(
+                field.field ? field.field : {}
+            );
 
-            const model: BaseModel = new props.modelType();
+            if (keys.length > 0) {
+                const key: string = keys[0] as string;
 
-            const accessControl: Dictionary<ColumnAccessControl> =
-                model.getColumnAccessControlForAllColumns() || {};
+                let fieldPermissions: Array<Permission> = [];
 
-            const fieldsToSet: Array<DetailField> = [];
+                fieldPermissions = accessControl[key]?.read || [];
 
-            for (const field of props.fields) {
-                const keys: Array<string> = Object.keys(
-                    field.field ? field.field : {}
-                );
+                const hasPermissions: boolean =
+                    fieldPermissions &&
+                    PermissionHelper.doesPermissionsIntersect(
+                        userPermissions,
+                        fieldPermissions
+                    );
 
-                if (keys.length > 0) {
-                    const key: string = keys[0] as string;
-
-                    let fieldPermissions: Array<Permission> = [];
-
-                    fieldPermissions = accessControl[key]?.read || [];
-
-                    const hasPermissions: boolean =
-                        fieldPermissions &&
-                        PermissionHelper.doesPermissionsIntersect(
-                            userPermissions,
-                            fieldPermissions
-                        );
-
-                    if (hasPermissions || User.isMasterAdmin()) {
-                        fieldsToSet.push({
-                            ...field,
-                            key: key,
-                            getElement: field.getElement
-                                ? (item: JSONObject): ReactElement => {
-                                    return field.getElement!(
-                                        item,
-                                        onBeforeFetchData,
-                                        fetchItem
-                                    );
-                                }
-                                : undefined,
-                        });
-                    }
-                } else {
+                if (hasPermissions || User.isMasterAdmin()) {
                     fieldsToSet.push({
                         ...field,
-                        key: '',
+                        key: key,
                         getElement: field.getElement
                             ? (item: JSONObject): ReactElement => {
-                                return field.getElement!(
-                                    item,
-                                    onBeforeFetchData,
-                                    fetchItem
-                                );
-                            }
+                                  return field.getElement!(
+                                      item,
+                                      onBeforeFetchData,
+                                      fetchItem
+                                  );
+                              }
                             : undefined,
                     });
                 }
-            }
-
-            setFields(fieldsToSet);
-        };
-
-        useEffect(() => {
-            if (props.modelType) {
-                setDetailFields();
-            }
-        }, [onBeforeFetchData, props.modelType]);
-
-        const fetchItem: () => Promise<void> = async (): Promise<void> => {
-            // get item.
-            setIsLoading(true);
-            props.onLoadingChange && props.onLoadingChange(true);
-            setError('');
-            try {
-                if (props.onBeforeFetch) {
-                    const jobject: JSONObject = await props.onBeforeFetch();
-                    setOnBeforeFetchData(jobject);
-                }
-
-                const item: TBaseModel | null = await ModelAPI.getItem({
-                    modelType: props.modelType,
-                    id: props.modelId,
-                    select: {
-                        ...getSelectFields(),
-                        ...getRelationSelect(),
-                    }
+            } else {
+                fieldsToSet.push({
+                    ...field,
+                    key: '',
+                    getElement: field.getElement
+                        ? (item: JSONObject): ReactElement => {
+                              return field.getElement!(
+                                  item,
+                                  onBeforeFetchData,
+                                  fetchItem
+                              );
+                          }
+                        : undefined,
                 });
-
-                if (!item) {
-                    setError(
-                        `Cannot load ${(
-                            new props.modelType()?.singularName || 'item'
-                        ).toLowerCase()}. It could be because you don't have enough permissions to read this ${(
-                            new props.modelType()?.singularName || 'item'
-                        ).toLowerCase()}.`
-                    );
-                }
-
-                if (props.onItemLoaded && item) {
-                    props.onItemLoaded(item);
-                }
-
-                setItem(item);
-            } catch (err) {
-                setError(API.getFriendlyMessage(err));
-                props.onError && props.onError(API.getFriendlyMessage(err));
             }
-            setIsLoading(false);
-            props.onLoadingChange && props.onLoadingChange(false);
-        };
-
-        useAsyncEffect(async () => {
-            if (props.modelId && props.modelType) {
-                await fetchItem();
-            }
-        }, [props.modelId, props.refresher, props.modelType]);
-
-        if (isLoading) {
-            return (
-                <div
-                    className="row text-center flex justify-center"
-                    style={{
-                        marginTop: '50px',
-                        marginBottom: '50px',
-                    }}
-                >
-                    <Loader
-                        loaderType={LoaderType.Bar}
-                        color={VeryLightGrey}
-                        size={200}
-                    />
-                </div>
-            );
         }
 
-        if (error) {
-            return (
-                <p
-                    className="text-center color-light-grey"
-                    style={{
-                        marginTop: '50px',
-                        marginBottom: '50px',
-                    }}
-                >
-                    {error} <br />{' '}
-                    <span
-                        onClick={async () => {
-                            await fetchItem();
-                        }}
-                        className="underline primary-on-hover"
-                    >
-                        Refresh?
-                    </span>
-                </p>
-            );
-        }
-
-        if (!item) {
-            return <ErrorMessage error="Item not found" />;
-        }
-
-        return (
-            <Detail
-                id={props.id}
-                item={BaseModel.toJSONObject(item, props.modelType)}
-                fields={fields}
-                showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
-            />
-        );
+        setFields(fieldsToSet);
     };
+
+    useEffect(() => {
+        if (props.modelType) {
+            setDetailFields();
+        }
+    }, [onBeforeFetchData, props.modelType]);
+
+    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+        // get item.
+        setIsLoading(true);
+        props.onLoadingChange && props.onLoadingChange(true);
+        setError('');
+        try {
+            if (props.onBeforeFetch) {
+                const jobject: JSONObject = await props.onBeforeFetch();
+                setOnBeforeFetchData(jobject);
+            }
+
+            const item: TBaseModel | null = await ModelAPI.getItem({
+                modelType: props.modelType,
+                id: props.modelId,
+                select: {
+                    ...getSelectFields(),
+                    ...getRelationSelect(),
+                },
+            });
+
+            if (!item) {
+                setError(
+                    `Cannot load ${(
+                        new props.modelType()?.singularName || 'item'
+                    ).toLowerCase()}. It could be because you don't have enough permissions to read this ${(
+                        new props.modelType()?.singularName || 'item'
+                    ).toLowerCase()}.`
+                );
+            }
+
+            if (props.onItemLoaded && item) {
+                props.onItemLoaded(item);
+            }
+
+            setItem(item);
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+            props.onError && props.onError(API.getFriendlyMessage(err));
+        }
+        setIsLoading(false);
+        props.onLoadingChange && props.onLoadingChange(false);
+    };
+
+    useAsyncEffect(async () => {
+        if (props.modelId && props.modelType) {
+            await fetchItem();
+        }
+    }, [props.modelId, props.refresher, props.modelType]);
+
+    if (isLoading) {
+        return (
+            <div
+                className="row text-center flex justify-center"
+                style={{
+                    marginTop: '50px',
+                    marginBottom: '50px',
+                }}
+            >
+                <Loader
+                    loaderType={LoaderType.Bar}
+                    color={VeryLightGrey}
+                    size={200}
+                />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <p
+                className="text-center color-light-grey"
+                style={{
+                    marginTop: '50px',
+                    marginBottom: '50px',
+                }}
+            >
+                {error} <br />{' '}
+                <span
+                    onClick={async () => {
+                        await fetchItem();
+                    }}
+                    className="underline primary-on-hover"
+                >
+                    Refresh?
+                </span>
+            </p>
+        );
+    }
+
+    if (!item) {
+        return <ErrorMessage error="Item not found" />;
+    }
+
+    return (
+        <Detail
+            id={props.id}
+            item={BaseModel.toJSONObject(item, props.modelType)}
+            fields={fields}
+            showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
+        />
+    );
+};
 
 export default ModelDetail;

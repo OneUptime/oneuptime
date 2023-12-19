@@ -67,7 +67,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     id,
                     select: {
                         note: true,
-                    }
+                    },
                 });
 
             if (scheduledMaintenanceNoteTemplate) {
@@ -105,7 +105,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                             templateName: true,
                             _id: true,
                         },
-                        sort: {}
+                        sort: {},
                     });
 
                 setScheduledMaintenanceNoteTemplates(listResult.data);
@@ -148,7 +148,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Private Notes',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                            PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                         ] as Route,
                         { modelId }
                     ),
@@ -280,8 +280,8 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             />
 
             {scheduledMaintenanceNoteTemplates.length === 0 &&
-                showScheduledMaintenanceNoteTemplateModal &&
-                !isLoading ? (
+            showScheduledMaintenanceNoteTemplateModal &&
+            !isLoading ? (
                 <ConfirmModal
                     title={`No ScheduledMaintenance Note Templates`}
                     description={`No scheduled maintenance note templates have been created yet. You can create these in Project Settings > Scheduled Maintenance > Note Templates.`}
@@ -310,7 +310,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             )}
 
             {showScheduledMaintenanceNoteTemplateModal &&
-                scheduledMaintenanceNoteTemplates.length > 0 ? (
+            scheduledMaintenanceNoteTemplates.length > 0 ? (
                 <BasicFormModal<JSONObject>
                     title="Create Note from Template"
                     isLoading={isLoading}
@@ -322,7 +322,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     onSubmit={async (data: JSONObject) => {
                         await fetchScheduledMaintenanceNoteTemplate(
                             data[
-                            'scheduledMaintenanceNoteTemplateId'
+                                'scheduledMaintenanceNoteTemplateId'
                             ] as ObjectID
                         );
                     }}

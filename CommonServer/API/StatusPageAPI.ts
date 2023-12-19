@@ -673,7 +673,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 (resource: StatusPageResource) => {
                                     return (
                                         resource.monitorGroupId?.toString() ===
-                                        monitorGroupId.toString() &&
+                                            monitorGroupId.toString() &&
                                         (resource.showStatusHistoryChart ||
                                             resource.showUptimePercent)
                                     );
@@ -1133,7 +1133,6 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-
                     await this.subscribeToStatusPage(req);
 
                     return Response.sendEmptyResponse(req, res);
@@ -1154,10 +1153,14 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-
                     const subscriber = await this.getSubscriber(req);
 
-                    return Response.sendEntityResponse(req, res, subscriber, StatusPageSubscriber);
+                    return Response.sendEntityResponse(
+                        req,
+                        res,
+                        subscriber,
+                        StatusPageSubscriber
+                    );
                 } catch (err) {
                     next(err);
                 }
@@ -1273,8 +1276,6 @@ export default class StatusPageAPI extends BaseAPI<
                 }
             }
         );
-
-
 
         this.router.post(
             `${new this.entityType()
@@ -1819,7 +1820,6 @@ export default class StatusPageAPI extends BaseAPI<
         return response;
     }
 
-
     public async subscribeToStatusPage(req: ExpressRequest) {
         const objectId: ObjectID = new ObjectID(
             req.params['statusPageId'] as string
@@ -1828,9 +1828,7 @@ export default class StatusPageAPI extends BaseAPI<
         if (
             !(await this.service.hasReadAccess(
                 objectId,
-                await CommonAPI.getDatabaseCommonInteractionProps(
-                    req
-                ),
+                await CommonAPI.getDatabaseCommonInteractionProps(req),
                 req
             ))
         ) {
@@ -1839,8 +1837,8 @@ export default class StatusPageAPI extends BaseAPI<
             );
         }
 
-        const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
+        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
+            {
                 query: {
                     _id: objectId.toString(),
                 },
@@ -1854,7 +1852,8 @@ export default class StatusPageAPI extends BaseAPI<
                 props: {
                     isRoot: true,
                 },
-            });
+            }
+        );
 
         if (!statusPage) {
             throw new BadDataException('Status Page not found');
@@ -1889,15 +1888,11 @@ export default class StatusPageAPI extends BaseAPI<
             );
         }
 
-        const email: Email | undefined = req.body.data[
-            'subscriberEmail'
-        ]
+        const email: Email | undefined = req.body.data['subscriberEmail']
             ? new Email(req.body.data['subscriberEmail'] as string)
             : undefined;
 
-        const phone: Phone | undefined = req.body.data[
-            'subscriberPhone'
-        ]
+        const phone: Phone | undefined = req.body.data['subscriberPhone']
             ? new Phone(req.body.data['subscriberPhone'] as string)
             : undefined;
 
@@ -1912,16 +1907,14 @@ export default class StatusPageAPI extends BaseAPI<
                 req.params['subscriberId'] as string
             );
 
-            statusPageSubscriber = await StatusPageSubscriberService.findOneBy(
-                {
-                    query: {
-                        _id: subscriberId.toString(),
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                }
-            );
+            statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
+                query: {
+                    _id: subscriberId.toString(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
             if (!statusPageSubscriber) {
                 throw new BadDataException('Subscriber not found');
@@ -1957,8 +1950,7 @@ export default class StatusPageAPI extends BaseAPI<
             req.body.data['statusPageResources'] &&
             req.body.data['statusPageResources'].length > 0
         ) {
-            statusPageSubscriber.statusPageResources = req.body
-                .data[
+            statusPageSubscriber.statusPageResources = req.body.data[
                 'statusPageResources'
             ] as Array<StatusPageResource>;
         }
@@ -1981,8 +1973,9 @@ export default class StatusPageAPI extends BaseAPI<
         }
     }
 
-
-    public async getSubscriber(req: ExpressRequest): Promise<StatusPageSubscriber> {
+    public async getSubscriber(
+        req: ExpressRequest
+    ): Promise<StatusPageSubscriber> {
         const objectId: ObjectID = new ObjectID(
             req.params['statusPageId'] as string
         );
@@ -1990,9 +1983,7 @@ export default class StatusPageAPI extends BaseAPI<
         if (
             !(await this.service.hasReadAccess(
                 objectId,
-                await CommonAPI.getDatabaseCommonInteractionProps(
-                    req
-                ),
+                await CommonAPI.getDatabaseCommonInteractionProps(req),
                 req
             ))
         ) {
@@ -2001,8 +1992,8 @@ export default class StatusPageAPI extends BaseAPI<
             );
         }
 
-        const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
+        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
+            {
                 query: {
                     _id: objectId.toString(),
                 },
@@ -2013,7 +2004,8 @@ export default class StatusPageAPI extends BaseAPI<
                 props: {
                     isRoot: true,
                 },
-            });
+            }
+        );
 
         if (!statusPage) {
             throw new BadDataException('Status Page not found');

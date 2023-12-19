@@ -62,7 +62,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     id,
                     select: {
                         note: true,
-                    }
+                    },
                 });
 
             if (incidentNoteTemplate) {
@@ -100,7 +100,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             templateName: true,
                             _id: true,
                         },
-                        sort: {}
+                        sort: {},
                     });
 
                 setIncidentNoteTemplates(listResult.data);
@@ -270,8 +270,8 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             />
 
             {incidentNoteTemplates.length === 0 &&
-                showIncidentNoteTemplateModal &&
-                !isLoading ? (
+            showIncidentNoteTemplateModal &&
+            !isLoading ? (
                 <ConfirmModal
                     title={`No Incident Note Templates`}
                     description={`No incident note templates have been created yet. You can create these in Project Settings > Incident > Note Templates.`}
@@ -298,7 +298,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             )}
 
             {showIncidentNoteTemplateModal &&
-                incidentNoteTemplates.length > 0 ? (
+            incidentNoteTemplates.length > 0 ? (
                 <BasicFormModal<JSONObject>
                     title="Create Note from Template"
                     isLoading={isLoading}

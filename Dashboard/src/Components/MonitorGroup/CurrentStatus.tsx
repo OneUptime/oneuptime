@@ -36,7 +36,7 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
                     apiUrl: URL.fromString(DASHBOARD_API_URL.toString())
                         .addRoute(new MonitorGroup().getCrudApiPath()!)
                         .addRoute('/current-status/')
-                        .addRoute(`/${props.monitorGroupId.toString()}`)
+                        .addRoute(`/${props.monitorGroupId.toString()}`),
                 });
 
             setCurrentGroupStatus(currentStatus);
@@ -48,7 +48,7 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
     };
 
     useEffect(() => {
-        loadCurrentStatus().catch(() => { });
+        loadCurrentStatus().catch(() => {});
     }, []);
 
     if (isLoading) {

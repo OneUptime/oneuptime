@@ -22,8 +22,8 @@ export default class ProjectUser {
                 },
             },
             sort: {},
-            requestOptions: {}
-    });
+            requestOptions: {},
+        });
 
         return teamMembers.data.map((teamMember: TeamMember) => {
             return {

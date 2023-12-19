@@ -98,7 +98,7 @@ const Home: FunctionComponent<PageComponentProps> = (
 
                                     requestOptions: {
                                         isMultiTenantRequest: true,
-                                    }
+                                    },
                                 });
 
                                 onCompleteAction();

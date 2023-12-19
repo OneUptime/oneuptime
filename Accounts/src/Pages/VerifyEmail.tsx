@@ -37,8 +37,8 @@ const VerifyEmail: () => JSX.Element = () => {
                 miscDataProps: {},
                 requestOptions: {
                     overrideRequestUrl: apiUrl,
-                }
-        });
+                },
+            });
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
