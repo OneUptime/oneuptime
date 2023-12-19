@@ -1052,7 +1052,7 @@ export default class StatusPage extends BaseModel {
     })
     @ColumnBillingAccessControl({
         read: PlanSelect.Free,
-        update: PlanSelect.Growth,
+        update: PlanSelect.Scale,
         create: PlanSelect.Free,
     })
     public allowSubscribersToChooseResources?: boolean = undefined;
