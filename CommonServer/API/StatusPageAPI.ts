@@ -673,7 +673,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 (resource: StatusPageResource) => {
                                     return (
                                         resource.monitorGroupId?.toString() ===
-                                            monitorGroupId.toString() &&
+                                        monitorGroupId.toString() &&
                                         (resource.showStatusHistoryChart ||
                                             resource.showUptimePercent)
                                     );
@@ -1133,10 +1133,31 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    
+
                     await this.subscribeToStatusPage(req);
 
                     return Response.sendEmptyResponse(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+        this.router.post(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/get-subscription/:statusPageId/:subscriberId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+
+                    const subscriber = await this.getSubscriber(req);
+
+                    return Response.sendEntityResponse(req, res, subscriber, StatusPageSubscriber);
                 } catch (err) {
                     next(err);
                 }
@@ -1799,7 +1820,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
 
-    public async subscribeToStatusPage(req: ExpressRequest){
+    public async subscribeToStatusPage(req: ExpressRequest) {
         const objectId: ObjectID = new ObjectID(
             req.params['statusPageId'] as string
         );
@@ -1880,13 +1901,13 @@ export default class StatusPageAPI extends BaseAPI<
             ? new Phone(req.body.data['subscriberPhone'] as string)
             : undefined;
 
-        let statusPageSubscriber: StatusPageSubscriber | null = null; 
+        let statusPageSubscriber: StatusPageSubscriber | null = null;
 
-        let isUpdate = false; 
+        let isUpdate = false;
 
-        if(!req.params['subscriberId']){
+        if (!req.params['subscriberId']) {
             statusPageSubscriber = new StatusPageSubscriber();
-        }else{
+        } else {
             const subscriberId: ObjectID = new ObjectID(
                 req.params['subscriberId'] as string
             );
@@ -1942,7 +1963,7 @@ export default class StatusPageAPI extends BaseAPI<
             ] as Array<StatusPageResource>;
         }
 
-        if(isUpdate){
+        if (isUpdate) {
             await StatusPageSubscriberService.updateOneById({
                 id: statusPageSubscriber.id!,
                 data: statusPageSubscriber,
@@ -1950,7 +1971,7 @@ export default class StatusPageAPI extends BaseAPI<
                     isRoot: true,
                 },
             });
-        }else{
+        } else {
             await StatusPageSubscriberService.create({
                 data: statusPageSubscriber,
                 props: {
@@ -1958,6 +1979,74 @@ export default class StatusPageAPI extends BaseAPI<
                 },
             });
         }
+    }
+
+
+    public async getSubscriber(req: ExpressRequest): Promise<StatusPageSubscriber> {
+        const objectId: ObjectID = new ObjectID(
+            req.params['statusPageId'] as string
+        );
+
+        if (
+            !(await this.service.hasReadAccess(
+                objectId,
+                await CommonAPI.getDatabaseCommonInteractionProps(
+                    req
+                ),
+                req
+            ))
+        ) {
+            throw new NotAuthenticatedException(
+                'You are not authenticated to access this status page'
+            );
+        }
+
+        const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+                query: {
+                    _id: objectId.toString(),
+                },
+                select: {
+                    _id: true,
+                    projectId: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!statusPage) {
+            throw new BadDataException('Status Page not found');
+        }
+
+        const subscriberId: ObjectID = new ObjectID(
+            req.params['subscriberId'] as string
+        );
+
+        const statusPageSubscriber: StatusPageSubscriber | null =
+            await StatusPageSubscriberService.findOneBy({
+                query: {
+                    _id: subscriberId.toString(),
+                    statusPageId: statusPage.id!,
+                },
+                select: {
+                    isUnsubscribed: true,
+                    subscriberEmail: true,
+                    subscriberPhone: true,
+                    statusPageId: true,
+                    statusPageResources: true,
+                    isSubscribedToAllResources: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!statusPageSubscriber) {
+            throw new BadDataException('Subscriber not found');
+        }
+
+        return statusPageSubscriber;
     }
 
     public async getIncidents(

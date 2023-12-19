@@ -45,6 +45,12 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         `/update-subscription/${statusPageId.toString()}`
     ).toString());
 
+    const getSubscriptionUrl: URL = URL.fromString(URL.fromString(
+        STATUS_PAGE_API_URL.toString()
+    ).addRoute(
+        `/get-subscription/${statusPageId.toString()}`
+    ).toString());
+
     const [
         categoryCheckboxOptionsAndCategories,
         setCategoryCheckboxOptionsAndCategories,
@@ -194,6 +200,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                 >
                                     <ModelForm<StatusPageSubscriber>
                                         modelType={StatusPageSubscriber}
+                                        
                                         id="email-form"
                                         name="Status Page > Update Subscription"
                                         fields={fields}
@@ -201,6 +208,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                         requestHeaders={API.getDefaultHeaders(
                                             StatusPageUtil.getStatusPageId()!
                                         )}
+                                        fetchItemApiUrl={getSubscriptionUrl}
                                         formType={FormType.Update}
                                         modelIdToEdit={new ObjectID(statusPageSubscriberId)}
                                         submitButtonText={'Update Subscription'}
