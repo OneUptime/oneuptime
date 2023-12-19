@@ -158,7 +158,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
     return (
         <Page
-            title={'Unsubscribe'}
+            
         >
             {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
 
@@ -175,7 +175,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                         )}
 
                         {!isSuccess ? (
-                            <div className="-mr-4">
+                            <div className="">
                                 <Card
                                     title="Update Subscription"
                                     description={
@@ -190,7 +190,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                                         apiUrl={URL.fromString(
                                             STATUS_PAGE_API_URL.toString()
                                         ).addRoute(
-                                            `/update-subscription/${statusPageId.toString()}`
+                                            `/update-subscription/${statusPageId.toString()}/${statusPageSubscriberId.toString()}}`
                                         )}
                                         requestHeaders={API.getDefaultHeaders(
                                             StatusPageUtil.getStatusPageId()!

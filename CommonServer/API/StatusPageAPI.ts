@@ -1122,6 +1122,27 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
 
+        this.router.put(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/update-subscription/:statusPageId/:subscriberId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    
+                    await this.subscribeToStatusPage(req);
+
+                    return Response.sendEmptyResponse(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
         this.router.post(
             `${new this.entityType()
                 .getCrudApiPath()
@@ -1133,128 +1154,7 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    const objectId: ObjectID = new ObjectID(
-                        req.params['statusPageId'] as string
-                    );
-
-                    if (
-                        !(await this.service.hasReadAccess(
-                            objectId,
-                            await CommonAPI.getDatabaseCommonInteractionProps(
-                                req
-                            ),
-                            req
-                        ))
-                    ) {
-                        throw new NotAuthenticatedException(
-                            'You are not authenticated to access this status page'
-                        );
-                    }
-
-                    const statusPage: StatusPage | null =
-                        await StatusPageService.findOneBy({
-                            query: {
-                                _id: objectId.toString(),
-                            },
-                            select: {
-                                _id: true,
-                                projectId: true,
-                                enableEmailSubscribers: true,
-                                enableSmsSubscribers: true,
-                                allowSubscribersToChooseResources: true,
-                            },
-                            props: {
-                                isRoot: true,
-                            },
-                        });
-
-                    if (!statusPage) {
-                        throw new BadDataException('Status Page not found');
-                    }
-
-                    if (
-                        req.body.data['subscriberEmail'] &&
-                        !statusPage.enableEmailSubscribers
-                    ) {
-                        throw new BadDataException(
-                            'Email subscribers not enabled for this status page.'
-                        );
-                    }
-
-                    if (
-                        req.body.data['subscriberPhone'] &&
-                        !statusPage.enableSmsSubscribers
-                    ) {
-                        throw new BadDataException(
-                            'SMS subscribers not enabled for this status page.'
-                        );
-                    }
-
-                    // if no email or phone, throw error.
-
-                    if (
-                        !req.body.data['subscriberEmail'] &&
-                        !req.body.data['subscriberPhone']
-                    ) {
-                        throw new BadDataException(
-                            'Email or phone is required to subscribe to this status page.'
-                        );
-                    }
-
-                    const email: Email | undefined = req.body.data[
-                        'subscriberEmail'
-                    ]
-                        ? new Email(req.body.data['subscriberEmail'] as string)
-                        : undefined;
-
-                    const phone: Phone | undefined = req.body.data[
-                        'subscriberPhone'
-                    ]
-                        ? new Phone(req.body.data['subscriberPhone'] as string)
-                        : undefined;
-
-                    const statusPageSubscriber: StatusPageSubscriber =
-                        new StatusPageSubscriber();
-
-                    if (email) {
-                        statusPageSubscriber.subscriberEmail = email;
-                    }
-
-                    if (phone) {
-                        statusPageSubscriber.subscriberPhone = phone;
-                    }
-
-                    if (
-                        req.body.data['statusPageResources'] &&
-                        !statusPage.allowSubscribersToChooseResources
-                    ) {
-                        throw new BadDataException(
-                            'Subscribers are not allowed to choose resources for this status page.'
-                        );
-                    }
-
-                    statusPageSubscriber.statusPageId = objectId;
-                    statusPageSubscriber.projectId = statusPage.projectId!;
-                    statusPageSubscriber.isSubscribedToAllResources = Boolean(
-                        req.body.data['isSubscribedToAllResources']
-                    );
-
-                    if (
-                        req.body.data['statusPageResources'] &&
-                        req.body.data['statusPageResources'].length > 0
-                    ) {
-                        statusPageSubscriber.statusPageResources = req.body
-                            .data[
-                            'statusPageResources'
-                        ] as Array<StatusPageResource>;
-                    }
-
-                    await StatusPageSubscriberService.create({
-                        data: statusPageSubscriber,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    await this.subscribeToStatusPage(req);
 
                     return Response.sendEmptyResponse(req, res);
                 } catch (err) {
@@ -1352,6 +1252,8 @@ export default class StatusPageAPI extends BaseAPI<
                 }
             }
         );
+
+
 
         this.router.post(
             `${new this.entityType()
@@ -1894,6 +1796,168 @@ export default class StatusPageAPI extends BaseAPI<
         };
 
         return response;
+    }
+
+
+    public async subscribeToStatusPage(req: ExpressRequest){
+        const objectId: ObjectID = new ObjectID(
+            req.params['statusPageId'] as string
+        );
+
+        if (
+            !(await this.service.hasReadAccess(
+                objectId,
+                await CommonAPI.getDatabaseCommonInteractionProps(
+                    req
+                ),
+                req
+            ))
+        ) {
+            throw new NotAuthenticatedException(
+                'You are not authenticated to access this status page'
+            );
+        }
+
+        const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+                query: {
+                    _id: objectId.toString(),
+                },
+                select: {
+                    _id: true,
+                    projectId: true,
+                    enableEmailSubscribers: true,
+                    enableSmsSubscribers: true,
+                    allowSubscribersToChooseResources: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!statusPage) {
+            throw new BadDataException('Status Page not found');
+        }
+
+        if (
+            req.body.data['subscriberEmail'] &&
+            !statusPage.enableEmailSubscribers
+        ) {
+            throw new BadDataException(
+                'Email subscribers not enabled for this status page.'
+            );
+        }
+
+        if (
+            req.body.data['subscriberPhone'] &&
+            !statusPage.enableSmsSubscribers
+        ) {
+            throw new BadDataException(
+                'SMS subscribers not enabled for this status page.'
+            );
+        }
+
+        // if no email or phone, throw error.
+
+        if (
+            !req.body.data['subscriberEmail'] &&
+            !req.body.data['subscriberPhone']
+        ) {
+            throw new BadDataException(
+                'Email or phone is required to subscribe to this status page.'
+            );
+        }
+
+        const email: Email | undefined = req.body.data[
+            'subscriberEmail'
+        ]
+            ? new Email(req.body.data['subscriberEmail'] as string)
+            : undefined;
+
+        const phone: Phone | undefined = req.body.data[
+            'subscriberPhone'
+        ]
+            ? new Phone(req.body.data['subscriberPhone'] as string)
+            : undefined;
+
+        let statusPageSubscriber: StatusPageSubscriber | null = null; 
+
+        let isUpdate = false; 
+
+        if(!req.params['subscriberId']){
+            statusPageSubscriber = new StatusPageSubscriber();
+        }else{
+            const subscriberId: ObjectID = new ObjectID(
+                req.params['subscriberId'] as string
+            );
+
+            statusPageSubscriber = await StatusPageSubscriberService.findOneBy(
+                {
+                    query: {
+                        _id: subscriberId.toString(),
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                }
+            );
+
+            if (!statusPageSubscriber) {
+                throw new BadDataException('Subscriber not found');
+            }
+
+            isUpdate = true;
+        }
+
+        if (email) {
+            statusPageSubscriber.subscriberEmail = email;
+        }
+
+        if (phone) {
+            statusPageSubscriber.subscriberPhone = phone;
+        }
+
+        if (
+            req.body.data['statusPageResources'] &&
+            !statusPage.allowSubscribersToChooseResources
+        ) {
+            throw new BadDataException(
+                'Subscribers are not allowed to choose resources for this status page.'
+            );
+        }
+
+        statusPageSubscriber.statusPageId = objectId;
+        statusPageSubscriber.projectId = statusPage.projectId!;
+        statusPageSubscriber.isSubscribedToAllResources = Boolean(
+            req.body.data['isSubscribedToAllResources']
+        );
+
+        if (
+            req.body.data['statusPageResources'] &&
+            req.body.data['statusPageResources'].length > 0
+        ) {
+            statusPageSubscriber.statusPageResources = req.body
+                .data[
+                'statusPageResources'
+            ] as Array<StatusPageResource>;
+        }
+
+        if(isUpdate){
+            await StatusPageSubscriberService.updateOneById({
+                id: statusPageSubscriber.id!,
+                data: statusPageSubscriber,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }else{
+            await StatusPageSubscriberService.create({
+                data: statusPageSubscriber,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
     }
 
     public async getIncidents(
