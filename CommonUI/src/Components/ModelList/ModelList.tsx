@@ -22,7 +22,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 export interface ComponentProps<TBaseModel extends BaseModel> {
     id: string;
     query?: Query<TBaseModel>;
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     titleField: string;
     isSearchEnabled?: boolean | undefined;
     descriptionField?: string | undefined;
@@ -50,255 +50,258 @@ const ModelList: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);
-    const [modelList, setModalList] = useState<Array<TBaseModel>>([]);
-    const [error, setError] = useState<string>('');
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [searchedList, setSearchedList] = useState<Array<TBaseModel>>([]);
-    const [searchText, setSearchText] = useState<string>('');
+        const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);
+        const [modelList, setModalList] = useState<Array<TBaseModel>>([]);
+        const [error, setError] = useState<string>('');
+        const [isLoading, setIsLoading] = useState<boolean>(false);
+        const [searchedList, setSearchedList] = useState<Array<TBaseModel>>([]);
+        const [searchText, setSearchText] = useState<string>('');
 
-    useEffect(() => {
-        props.onSelectChange && props.onSelectChange(selectedList);
-    }, [selectedList]);
+        useEffect(() => {
+            props.onSelectChange && props.onSelectChange(selectedList);
+        }, [selectedList]);
 
-    useEffect(() => {
-        fetchItems().catch();
-    }, [props.refreshToggle]);
+        useEffect(() => {
+            fetchItems().catch();
+        }, [props.refreshToggle]);
 
-    useEffect(() => {
-        fetchItems().catch();
-    }, []);
+        useEffect(() => {
+            fetchItems().catch();
+        }, []);
 
-    useEffect(() => {
-        if (!props.isSearchEnabled) {
-            setSearchedList([...modelList]);
-        }
-    }, [props.isSearchEnabled, modelList]);
-
-    const fetchItems: Function = async () => {
-        setError('');
-        setIsLoading(true);
-
-        try {
-            const select: Select<TBaseModel> = {
-                ...props.select,
-            };
-
-            if (
-                props.dragDropIdField &&
-                !Object.keys(select).includes(props.dragDropIdField)
-            ) {
-                (select as JSONObject)[props.dragDropIdField] = true;
+        useEffect(() => {
+            if (!props.isSearchEnabled) {
+                setSearchedList([...modelList]);
             }
+        }, [props.isSearchEnabled, modelList]);
 
-            if (
-                props.dragDropIndexField &&
-                !Object.keys(select).includes(props.dragDropIndexField)
-            ) {
-                (select as JSONObject)[props.dragDropIndexField] = true;
-            }
+        const fetchItems: Function = async () => {
+            setError('');
+            setIsLoading(true);
 
-            let listResult: ListResult<TBaseModel> = {
-                data: [],
-                count: 0,
-                skip: 0,
-                limit: 0,
-            };
-
-            if (props.overrideFetchApiUrl) {
-                const result: HTTPResponse<JSONArray> = (await API.post(
-                    props.overrideFetchApiUrl,
-                    {},
-                    {}
-                )) as HTTPResponse<JSONArray>;
-
-                listResult = {
-                    data: BaseModel.fromJSONArray(
-                        result.data as JSONArray,
-                        props.modelType
-                    ),
-                    count: (result.data as JSONArray).length as number,
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
+            try {
+                const select: Select<TBaseModel> = {
+                    ...props.select,
                 };
-            } else {
-                listResult = await ModelAPI.getList<TBaseModel>(
-                    props.modelType,
-                    {
-                        ...props.query,
-                    },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    select,
-                    props.sortBy
-                        ? {
-                              [props.sortBy as any]: props.sortOrder,
-                          }
-                        : {},
 
-                    props.fetchRequestOptions
-                );
+                if (
+                    props.dragDropIdField &&
+                    !Object.keys(select).includes(props.dragDropIdField)
+                ) {
+                    (select as JSONObject)[props.dragDropIdField] = true;
+                }
+
+                if (
+                    props.dragDropIndexField &&
+                    !Object.keys(select).includes(props.dragDropIndexField)
+                ) {
+                    (select as JSONObject)[props.dragDropIndexField] = true;
+                }
+
+                let listResult: ListResult<TBaseModel> = {
+                    data: [],
+                    count: 0,
+                    skip: 0,
+                    limit: 0,
+                };
+
+                if (props.overrideFetchApiUrl) {
+                    const result: HTTPResponse<JSONArray> = (await API.post(
+                        props.overrideFetchApiUrl,
+                        {},
+                        {}
+                    )) as HTTPResponse<JSONArray>;
+
+                    listResult = {
+                        data: BaseModel.fromJSONArray(
+                            result.data as JSONArray,
+                            props.modelType
+                        ),
+                        count: (result.data as JSONArray).length as number,
+                        skip: 0,
+                        limit: LIMIT_PER_PROJECT,
+                    };
+                } else {
+                    listResult = await ModelAPI.getList<TBaseModel>({
+                        modelType: props.modelType,
+                        query: {
+                            ...props.query,
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: select,
+                        sort: props.sortBy
+                            ? {
+                                [props.sortBy as any]: props.sortOrder,
+                            }
+                            : {},
+
+                        requestOptions: props.fetchRequestOptions
+                    });
+                }
+
+                props.onListLoaded && props.onListLoaded(listResult.data);
+                setModalList(listResult.data);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
             }
 
-            props.onListLoaded && props.onListLoaded(listResult.data);
-            setModalList(listResult.data);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+            setIsLoading(false);
+        };
 
-        setIsLoading(false);
-    };
+        useEffect(() => {
+            if (!searchText) {
+                setSearchedList([...modelList]);
+            } else {
+                // search
 
-    useEffect(() => {
-        if (!searchText) {
-            setSearchedList([...modelList]);
-        } else {
-            // search
-
-            setSearchedList(
-                [...modelList].filter((model: TBaseModel): boolean => {
-                    const includedInSearch: boolean = (
-                        model.getValue(props.titleField) as string
-                    )
-                        .toLowerCase()
-                        .includes(searchText);
-
-                    if (!includedInSearch && props.descriptionField) {
-                        return (
-                            model.getValue(props.descriptionField) as string
+                setSearchedList(
+                    [...modelList].filter((model: TBaseModel): boolean => {
+                        const includedInSearch: boolean = (
+                            model.getValue(props.titleField) as string
                         )
                             .toLowerCase()
                             .includes(searchText);
-                    }
 
-                    return includedInSearch;
-                })
-            );
-        }
-    }, [modelList, searchText]);
+                        if (!includedInSearch && props.descriptionField) {
+                            return (
+                                model.getValue(props.descriptionField) as string
+                            )
+                                .toLowerCase()
+                                .includes(searchText);
+                        }
 
-    const deleteItem: Function = async (item: TBaseModel) => {
-        if (!item.id) {
-            throw new BadDataException('item.id cannot be null');
-        }
+                        return includedInSearch;
+                    })
+                );
+            }
+        }, [modelList, searchText]);
 
-        setIsLoading(true);
+        const deleteItem: Function = async (item: TBaseModel) => {
+            if (!item.id) {
+                throw new BadDataException('item.id cannot be null');
+            }
 
-        try {
-            await ModelAPI.deleteItem<TBaseModel>(props.modelType, item.id);
+            setIsLoading(true);
 
-            await fetchItems();
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+            try {
+                await ModelAPI.deleteItem<TBaseModel>({
+                    modelType: props.modelType, 
+                    id: item.id
+                });
 
-        setIsLoading(false);
-    };
+                await fetchItems();
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-    return (
-        <div>
+            setIsLoading(false);
+        };
+
+        return (
             <div>
-                {!isLoading && !error && props.isSearchEnabled && (
-                    <div className="p-2">
-                        <Input
-                            placeholder="Search..."
-                            onChange={(value: string) => {
-                                setSearchText(value);
+                <div>
+                    {!isLoading && !error && props.isSearchEnabled && (
+                        <div className="p-2">
+                            <Input
+                                placeholder="Search..."
+                                onChange={(value: string) => {
+                                    setSearchText(value);
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+                <div className="max-h-96 mb-5 overflow-y-auto p-2">
+                    {error ? <ErrorMessage error={error} /> : <></>}
+                    {isLoading ? <ComponentLoader /> : <></>}
+
+                    {!isLoading && !error && searchedList.length === 0 ? (
+                        <ErrorMessage
+                            error={
+                                searchText
+                                    ? 'No items match your search'
+                                    : props.noItemsMessage || 'No items found.'
+                            }
+                        />
+                    ) : (
+                        <></>
+                    )}
+
+                    {!error && !isLoading && (
+                        <StaticModelList<TBaseModel>
+                            enableDragAndDrop={props.enableDragAndDrop}
+                            dragDropIdField={props.dragDropIdField}
+                            dragDropIndexField={props.dragDropIndexField}
+                            list={searchedList}
+                            headerField={props.headerField}
+                            descriptionField={props.descriptionField}
+                            dragAndDropScope={`${props.id}-dnd`}
+                            customElement={props.customElement}
+                            onDragDrop={async (id: string, newOrder: number) => {
+                                if (!props.dragDropIndexField) {
+                                    return;
+                                }
+
+                                setIsLoading(true);
+
+                                await ModelAPI.updateById({
+                                    modelType: props.modelType,
+                                    id: new ObjectID(id),
+                                    data: {
+                                        [props.dragDropIndexField]: newOrder,
+                                    }
+                            });
+
+                                fetchItems();
+                            }}
+                            titleField={props.titleField}
+                            onDelete={
+                                props.isDeleteable
+                                    ? async (item: TBaseModel) => {
+                                        deleteItem(item);
+                                    }
+                                    : undefined
+                            }
+                            selectedItems={selectedList}
+                            onClick={(model: TBaseModel) => {
+                                if (props.selectMultiple) {
+                                    // if added to the list, then remove or add to list
+                                    const isSelected: boolean =
+                                        selectedList.filter(
+                                            (selectedItem: TBaseModel) => {
+                                                return (
+                                                    selectedItem._id?.toString() ===
+                                                    model._id?.toString()
+                                                );
+                                            }
+                                        ).length > 0;
+                                    if (isSelected) {
+                                        // remove the item.
+                                        setSelectedList(
+                                            selectedList.filter((i: TBaseModel) => {
+                                                return (
+                                                    i._id?.toString() !==
+                                                    model._id?.toString()
+                                                );
+                                            })
+                                        );
+                                    } else {
+                                        setSelectedList([
+                                            ...selectedList,
+                                            { ...model },
+                                        ]);
+                                    }
+                                } else {
+                                    setSelectedList([{ ...model }]);
+                                }
                             }}
                         />
-                    </div>
-                )}
+                    )}
+                    {props.footer}
+                </div>
             </div>
-            <div className="max-h-96 mb-5 overflow-y-auto p-2">
-                {error ? <ErrorMessage error={error} /> : <></>}
-                {isLoading ? <ComponentLoader /> : <></>}
-
-                {!isLoading && !error && searchedList.length === 0 ? (
-                    <ErrorMessage
-                        error={
-                            searchText
-                                ? 'No items match your search'
-                                : props.noItemsMessage || 'No items found.'
-                        }
-                    />
-                ) : (
-                    <></>
-                )}
-
-                {!error && !isLoading && (
-                    <StaticModelList<TBaseModel>
-                        enableDragAndDrop={props.enableDragAndDrop}
-                        dragDropIdField={props.dragDropIdField}
-                        dragDropIndexField={props.dragDropIndexField}
-                        list={searchedList}
-                        headerField={props.headerField}
-                        descriptionField={props.descriptionField}
-                        dragAndDropScope={`${props.id}-dnd`}
-                        customElement={props.customElement}
-                        onDragDrop={async (id: string, newOrder: number) => {
-                            if (!props.dragDropIndexField) {
-                                return;
-                            }
-
-                            setIsLoading(true);
-
-                            await ModelAPI.updateById(
-                                props.modelType,
-                                new ObjectID(id),
-                                {
-                                    [props.dragDropIndexField]: newOrder,
-                                }
-                            );
-
-                            fetchItems();
-                        }}
-                        titleField={props.titleField}
-                        onDelete={
-                            props.isDeleteable
-                                ? async (item: TBaseModel) => {
-                                      deleteItem(item);
-                                  }
-                                : undefined
-                        }
-                        selectedItems={selectedList}
-                        onClick={(model: TBaseModel) => {
-                            if (props.selectMultiple) {
-                                // if added to the list, then remove or add to list
-                                const isSelected: boolean =
-                                    selectedList.filter(
-                                        (selectedItem: TBaseModel) => {
-                                            return (
-                                                selectedItem._id?.toString() ===
-                                                model._id?.toString()
-                                            );
-                                        }
-                                    ).length > 0;
-                                if (isSelected) {
-                                    // remove the item.
-                                    setSelectedList(
-                                        selectedList.filter((i: TBaseModel) => {
-                                            return (
-                                                i._id?.toString() !==
-                                                model._id?.toString()
-                                            );
-                                        })
-                                    );
-                                } else {
-                                    setSelectedList([
-                                        ...selectedList,
-                                        { ...model },
-                                    ]);
-                                }
-                            } else {
-                                setSelectedList([{ ...model }]);
-                            }
-                        }}
-                    />
-                )}
-                {props.footer}
-            </div>
-        </div>
-    );
-};
+        );
+    };
 
 export default ModelList;

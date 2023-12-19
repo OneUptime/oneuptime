@@ -107,16 +107,16 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     fileModel.type = acceptedFile.type as MimeType;
 
                     const result: HTTPResponse<FileModel> =
-                        (await ModelAPI.create<FileModel>(
-                            fileModel,
-                            FileModel,
-                            {
+                        (await ModelAPI.create<FileModel>({
+                            model: fileModel,
+                            modelType: FileModel,
+                            requestOptions: {
                                 overrideRequestUrl:
                                     CommonURL.fromURL(FILE_URL).addRoute(
                                         '/file'
                                     ),
                             }
-                        )) as HTTPResponse<FileModel>;
+                        })) as HTTPResponse<FileModel>;
                     filesResult.push(result.data as FileModel);
                 }
 
@@ -243,9 +243,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                         .map((type: MimeType) => {
                                             const enumKey: string | undefined =
                                                 Object.keys(MimeType)[
-                                                    Object.values(
-                                                        MimeType
-                                                    ).indexOf(type)
+                                                Object.values(
+                                                    MimeType
+                                                ).indexOf(type)
                                                 ];
                                             return enumKey?.toUpperCase() || '';
                                         })

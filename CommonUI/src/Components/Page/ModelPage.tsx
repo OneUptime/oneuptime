@@ -33,14 +33,14 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
         setError('');
         try {
-            const item: TBaseModel | null = await ModelAPI.getItem(
-                props.modelType,
-                props.modelId,
-                {
+            const item: TBaseModel | null = await ModelAPI.getItem({
+                modelType: props.modelType,
+                id: props.modelId,
+                select: {
                     [props.modelNameField]: true,
                 } as any,
-                {}
-            );
+                requestOptions: {}
+        });
 
             if (!item) {
                 setError(

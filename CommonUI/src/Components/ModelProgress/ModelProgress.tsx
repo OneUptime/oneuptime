@@ -12,7 +12,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     description: string;
     totalCount: number;
     countQuery: Query<TBaseModel>;
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
 }
 
 const ModelProgress: <TBaseModel extends BaseModel>(
@@ -20,53 +20,54 @@ const ModelProgress: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string>('');
-    const [count, setCount] = useState<number>(0);
+        const [isLoading, setIsLoading] = useState<boolean>(true);
+        const [error, setError] = useState<string>('');
+        const [count, setCount] = useState<number>(0);
 
-    const fetchCount: Function = async () => {
-        setError('');
-        setIsLoading(true);
+        const fetchCount: Function = async () => {
+            setError('');
+            setIsLoading(true);
 
-        try {
-            const count: number = await ModelAPI.count<TBaseModel>(
-                props.modelType,
-                props.countQuery
-            );
+            try {
+                const count: number = await ModelAPI.count<TBaseModel>({
+                    modelType: props.modelType,
+                    query: props.countQuery
+                }
+                );
 
-            setCount(count);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+                setCount(count);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-        setIsLoading(false);
+            setIsLoading(false);
+        };
+
+        useEffect(() => {
+            setIsLoading(true);
+            fetchCount();
+            setIsLoading(false);
+        }, []);
+
+        return (
+            <Card title={props.title} description={props.description}>
+                <div className="w-full -mt-6">
+                    {!error && (
+                        <div>
+                            <ErrorMessage error={error} />
+                        </div>
+                    )}
+                    {isLoading && <ComponentLoader />}
+                    {!error && !isLoading && (
+                        <ProgressBar
+                            totalCount={props.totalCount}
+                            count={count}
+                            suffix={props.title}
+                        />
+                    )}
+                </div>
+            </Card>
+        );
     };
-
-    useEffect(() => {
-        setIsLoading(true);
-        fetchCount();
-        setIsLoading(false);
-    }, []);
-
-    return (
-        <Card title={props.title} description={props.description}>
-            <div className="w-full -mt-6">
-                {!error && (
-                    <div>
-                        <ErrorMessage error={error} />
-                    </div>
-                )}
-                {isLoading && <ComponentLoader />}
-                {!error && !isLoading && (
-                    <ProgressBar
-                        totalCount={props.totalCount}
-                        count={count}
-                        suffix={props.title}
-                    />
-                )}
-            </div>
-        </Card>
-    );
-};
 
 export default ModelProgress;

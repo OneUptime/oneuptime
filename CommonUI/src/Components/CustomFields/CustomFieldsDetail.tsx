@@ -18,8 +18,8 @@ export interface ComponentProps {
     title: string;
     description: string;
     modelId: ObjectID;
-    modelType: { new (): BaseModel };
-    customFieldType: { new (): BaseModel };
+    modelType: { new(): BaseModel };
+    customFieldType: { new(): BaseModel };
     projectId: ObjectID;
     name: string;
 }
@@ -39,28 +39,28 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             setIsLoading(true);
 
             const schemaList: ListResult<BaseModel> =
-                await ModelAPI.getList<BaseModel>(
-                    props.customFieldType,
-                    {
+                await ModelAPI.getList<BaseModel>({
+                    modelType: props.customFieldType,
+                    query: {
                         projectId: props.projectId,
                     } as any,
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         name: true,
                         type: true,
                         description: true,
                     } as any,
-                    {}
-                );
+                    sort: {}
+                });
 
-            const item: BaseModel | null = await ModelAPI.getItem<BaseModel>(
-                props.modelType,
-                props.modelId,
-                {
+            const item: BaseModel | null = await ModelAPI.getItem<BaseModel>({
+                modelType: props.modelType,
+                id: props.modelId,
+                select: {
                     customFields: true,
                 } as any
-            );
+            });
 
             setSchemaList(schemaList.data);
             setModel(item);
@@ -78,9 +78,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             setIsLoading(true);
             setShowModelForm(false);
 
-            await ModelAPI.updateById(props.modelType, props.modelId, {
+            await ModelAPI.updateById({ modelType: props.modelType, id: props.modelId, data: {
                 customFields: data,
-            });
+            }});
 
             await onLoad();
         } catch (err) {

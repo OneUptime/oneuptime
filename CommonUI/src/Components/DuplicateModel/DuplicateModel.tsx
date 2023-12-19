@@ -37,11 +37,11 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
     const duplicateItem: Function = async (partialModel: TBaseModel) => {
         setIsLoading(true);
         try {
-            const item: TBaseModel | null = await ModelAPI.getItem<TBaseModel>(
-                props.modelType,
-                props.modelId,
-                props.fieldsToDuplicate
-            );
+            const item: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({
+                modelType: props.modelType,
+                id: props.modelId,
+                select: props.fieldsToDuplicate
+        });
 
             if (!item) {
                 throw new Error(
@@ -67,10 +67,10 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
             // now we have the item, we need to remove the id and then save it
 
             const newItem: HTTPResponse<TBaseModel> =
-                (await ModelAPI.create<TBaseModel>(
-                    item,
-                    props.modelType
-                )) as HTTPResponse<TBaseModel>;
+                (await ModelAPI.create<TBaseModel>({
+                    model: item,
+                    modelType: props.modelType
+        })) as HTTPResponse<TBaseModel>;
 
             if (!newItem) {
                 throw new Error(`Could not create ${model.singularName}`);

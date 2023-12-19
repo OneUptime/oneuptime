@@ -183,7 +183,7 @@ export default class ModelAPI {
         skip: number,
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>,
-        requestOptions?: RequestOptions
+        requestOptions?: RequestOptions | undefined
     }): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new data.modelType();
         const apiPath: Route | null = model.getCrudApiPath();

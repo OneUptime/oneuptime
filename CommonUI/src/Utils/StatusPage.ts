@@ -85,14 +85,14 @@ export default class StatusPageUtil {
         overrideRequestUrl?: URL
     ): Promise<Array<StatusPageResource>> {
         const resources: ListResult<StatusPageResource> =
-            await ModelAPI.getList<StatusPageResource>(
-                StatusPageResource,
-                {
+            await ModelAPI.getList<StatusPageResource>({
+                modelType: StatusPageResource,
+                query: {
                     statusPageId: statusPageId,
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     _id: true,
                     displayName: true,
                     order: true,
@@ -102,13 +102,13 @@ export default class StatusPageUtil {
                         order: true,
                     },
                 },
-                {},
-                overrideRequestUrl
+                sort: {},
+                requestOptions: overrideRequestUrl
                     ? {
-                          overrideRequestUrl: overrideRequestUrl,
-                      }
+                        overrideRequestUrl: overrideRequestUrl,
+                    }
                     : undefined
-            );
+            });
 
         return resources.data;
     }
