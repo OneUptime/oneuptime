@@ -213,11 +213,13 @@ RunCron(
                         continue;
                     }
 
-                    const shouldNotifySubscriber: boolean = StatusPageSubscriberService.shouldSendNotification({
-                        subscriber: subscriber,
-                        statusPageResources: statusPageToResources[statuspage._id!] || [],
-                        statusPage: statuspage,
-                    });
+                    const shouldNotifySubscriber: boolean =
+                        StatusPageSubscriberService.shouldSendNotification({
+                            subscriber: subscriber,
+                            statusPageResources:
+                                statusPageToResources[statuspage._id!] || [],
+                            statusPage: statuspage,
+                        });
 
                     if (!shouldNotifySubscriber) {
                         continue;

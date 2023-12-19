@@ -241,30 +241,37 @@ export class Service extends DatabaseService<Model> {
     }
 
     public shouldSendNotification(data: {
-        subscriber: Model,
-        statusPageResources: Array<StatusPageResource>,
-        statusPage: StatusPage,
-    }){
+        subscriber: Model;
+        statusPageResources: Array<StatusPageResource>;
+        statusPage: StatusPage;
+    }): boolean {
         if (data.subscriber.isUnsubscribed) {
             return false;
         }
 
-        if(!data.statusPage.allowSubscribersToChooseResources){
-            return true; 
-        }
-
-        if(data.subscriber.isSubscribedToAllResources){
+        if (!data.statusPage.allowSubscribersToChooseResources) {
             return true;
         }
 
-        const subscriberResourceIds: Array<string> = data.subscriber.statusPageResources?.map(
-            (resource: StatusPageResource) => resource.id?.toString() as string
-        ) || [];
+        if (data.subscriber.isSubscribedToAllResources) {
+            return true;
+        }
+
+        const subscriberResourceIds: Array<string> =
+            data.subscriber.statusPageResources?.map(
+                (resource: StatusPageResource) => {
+                    return resource.id?.toString() as string;
+                }
+            ) || [];
 
         for (const resource of data.statusPageResources) {
-           if(subscriberResourceIds.includes(resource.id?.toString() as string)){
-               return true;
-           }
+            if (
+                subscriberResourceIds.includes(
+                    resource.id?.toString() as string
+                )
+            ) {
+                return true;
+            }
         }
 
         return false;
