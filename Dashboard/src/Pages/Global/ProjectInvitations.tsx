@@ -84,22 +84,22 @@ const Home: FunctionComponent<PageComponentProps> = (
                         ) => {
                             try {
                                 // accept invite.
-                                await ModelAPI.updateById(
-                                    TeamMember,
-                                    new ObjectID(
+                                await ModelAPI.updateById({
+                                    modelType: TeamMember,
+                                    id: new ObjectID(
                                         item['_id']
                                             ? item['_id'].toString()
                                             : ''
                                     ),
-                                    {
+                                    data: {
                                         hasAcceptedInvitation: true,
                                         invitationAcceptedAt: new Date(),
                                     },
-                                    undefined,
-                                    {
+
+                                    requestOptions: {
                                         isMultiTenantRequest: true,
                                     }
-                                );
+                                });
 
                                 onCompleteAction();
                                 Navigation.reload();

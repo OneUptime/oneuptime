@@ -63,13 +63,13 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             //fetch scheduledMaintenance template
 
             const scheduledMaintenanceNoteTemplate: ScheduledMaintenanceNoteTemplate | null =
-                await ModelAPI.getItem<ScheduledMaintenanceNoteTemplate>(
-                    ScheduledMaintenanceNoteTemplate,
+                await ModelAPI.getItem<ScheduledMaintenanceNoteTemplate>({
+                    modelType: ScheduledMaintenanceNoteTemplate,
                     id,
-                    {
+                    select: {
                         note: true,
                     }
-                );
+                });
 
             if (scheduledMaintenanceNoteTemplate) {
                 const initialValue: JSONObject = {
@@ -97,17 +97,17 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
             try {
                 const listResult: ListResult<ScheduledMaintenanceNoteTemplate> =
-                    await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>(
-                        ScheduledMaintenanceNoteTemplate,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>({
+                        modelType: ScheduledMaintenanceNoteTemplate,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             templateName: true,
                             _id: true,
                         },
-                        {}
-                    );
+                        sort: {}
+                    });
 
                 setScheduledMaintenanceNoteTemplates(listResult.data);
             } catch (err) {
@@ -149,7 +149,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     title: 'Public Notes',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                        PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                         ] as Route,
                         { modelId }
                     ),
@@ -294,8 +294,8 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             />
 
             {scheduledMaintenanceNoteTemplates.length === 0 &&
-            showScheduledMaintenanceNoteTemplateModal &&
-            !isLoading ? (
+                showScheduledMaintenanceNoteTemplateModal &&
+                !isLoading ? (
                 <ConfirmModal
                     title={`No ScheduledMaintenance Note Templates`}
                     description={`No scheduled maintenance note templates have been created yet. You can create these in Project Settings > Scheduled Maintenance > Note Templates.`}
@@ -324,7 +324,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             )}
 
             {showScheduledMaintenanceNoteTemplateModal &&
-            scheduledMaintenanceNoteTemplates.length > 0 ? (
+                scheduledMaintenanceNoteTemplates.length > 0 ? (
                 <BasicFormModal<JSONObject>
                     title="Create Note from Template"
                     isLoading={isLoading}
@@ -336,7 +336,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     onSubmit={async (data: JSONObject) => {
                         await fetchScheduledMaintenanceNoteTemplate(
                             data[
-                                'scheduledMaintenanceNoteTemplateId'
+                            'scheduledMaintenanceNoteTemplateId'
                             ] as ObjectID
                         );
                     }}

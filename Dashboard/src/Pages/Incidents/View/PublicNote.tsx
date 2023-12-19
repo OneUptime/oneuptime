@@ -58,13 +58,13 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             //fetch incident template
 
             const incidentNoteTemplate: IncidentNoteTemplate | null =
-                await ModelAPI.getItem<IncidentNoteTemplate>(
-                    IncidentNoteTemplate,
+                await ModelAPI.getItem<IncidentNoteTemplate>({
+                    modelType: IncidentNoteTemplate,
                     id,
-                    {
+                    select: {
                         note: true,
                     }
-                );
+        });
 
             if (incidentNoteTemplate) {
                 const initialValue: JSONObject = {
@@ -92,17 +92,17 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
             try {
                 const listResult: ListResult<IncidentNoteTemplate> =
-                    await ModelAPI.getList<IncidentNoteTemplate>(
-                        IncidentNoteTemplate,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList<IncidentNoteTemplate>({
+                        modelType: IncidentNoteTemplate,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             templateName: true,
                             _id: true,
                         },
-                        {}
-                    );
+                        sort:{}
+            });
 
                 setIncidentNoteTemplates(listResult.data);
             } catch (err) {

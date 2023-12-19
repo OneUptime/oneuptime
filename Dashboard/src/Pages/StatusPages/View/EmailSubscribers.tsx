@@ -67,14 +67,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         try {
             setIsLoading(true);
 
-            const statusPage: StatusPage | null = await ModelAPI.getItem(
-                StatusPage,
-                modelId,
-                {
+            const statusPage: StatusPage | null = await ModelAPI.getItem({
+                modelType: StatusPage,
+                id: modelId,
+                select: {
                     allowSubscribersToChooseResources: true,
                     enableEmailSubscribers: true,
                 }
-            );
+        });
 
             if (statusPage && statusPage.allowSubscribersToChooseResources) {
                 setAllowSubscribersToChooseResources(

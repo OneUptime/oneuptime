@@ -82,9 +82,8 @@ const Layers: FunctionComponent<ComponentProps> = (
             );
 
             // count the description and generate a unique description for this layer.
-            const newLayerDescription: string = `Layer ${
-                layers.length + 1
-            } description.`;
+            const newLayerDescription: string = `Layer ${layers.length + 1
+                } description.`;
             onCallPolicyScheduleLayer.description = newLayerDescription;
             onCallPolicyScheduleLayer.order = layers.length + 1;
             onCallPolicyScheduleLayer.restrictionTimes =
@@ -97,11 +96,10 @@ const Layers: FunctionComponent<ComponentProps> = (
                 | OnCallDutyPolicyScheduleLayer[]
                 | JSONObject
                 | JSONArray
-            > = await ModelAPI.create<OnCallDutyPolicyScheduleLayer>(
-                onCallPolicyScheduleLayer,
-                OnCallDutyPolicyScheduleLayer,
-                {}
-            );
+            > = await ModelAPI.create<OnCallDutyPolicyScheduleLayer>({
+                model: onCallPolicyScheduleLayer,
+                modelType: OnCallDutyPolicyScheduleLayer,
+            });
 
             // add this layer to layers array and set it.
             setLayers([
@@ -131,11 +129,10 @@ const Layers: FunctionComponent<ComponentProps> = (
         setIsDeletingLayerId([...isDeletetingLayerId, item.id]);
 
         try {
-            await ModelAPI.deleteItem<OnCallDutyPolicyScheduleLayer>(
-                OnCallDutyPolicyScheduleLayer,
-                item.id,
-                {}
-            );
+            await ModelAPI.deleteItem<OnCallDutyPolicyScheduleLayer>({
+                modelType: OnCallDutyPolicyScheduleLayer,
+                id: item.id
+            });
 
             // remove this layer from layers array and set it.
 
@@ -177,16 +174,16 @@ const Layers: FunctionComponent<ComponentProps> = (
 
         try {
             const layers: ListResult<OnCallDutyPolicyScheduleLayer> =
-                await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>(
-                    OnCallDutyPolicyScheduleLayer,
-                    {
+                await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>({
+                    modelType: OnCallDutyPolicyScheduleLayer,
+                    query: {
                         onCallDutyPolicyScheduleId:
                             props.onCallDutyPolicyScheduleId,
                         projectId: props.projectId,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         order: true,
                         name: true,
                         description: true,
@@ -197,10 +194,10 @@ const Layers: FunctionComponent<ComponentProps> = (
                         projectId: true,
                         handOffTime: true,
                     },
-                    {
+                    sort: {
                         order: SortOrder.Ascending,
                     }
-                );
+                });
 
             setLayers(layers.data);
         } catch (err) {

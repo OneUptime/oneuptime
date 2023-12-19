@@ -102,14 +102,14 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
 
         try {
             const statusTimelines: ListResult<MonitorStatusTimeline> =
-                await ModelAPI.getList(
-                    MonitorStatusTimeline,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {},
-                    {},
-                    {
+                await ModelAPI.getList({
+                    modelType: MonitorStatusTimeline,
+                    query: {},
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {},
+                    sort: {},
+                    requestOptions: {
                         overrideRequestUrl: URL.fromString(
                             DASHBOARD_API_URL.toString()
                         )
@@ -117,35 +117,36 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                             .addRoute('/timeline/')
                             .addRoute(`/${modelId.toString()}`),
                     }
-                );
+        });
 
             const monitorStatuses: ListResult<MonitorStatus> =
-                await ModelAPI.getList(
-                    MonitorStatus,
-                    {
+                await ModelAPI.getList({
+                    modelType: MonitorStatus,
+                    query: {
                         projectId: ProjectUtil.getCurrentProjectId(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         _id: true,
                         priority: true,
                         isOperationalState: true,
                         name: true,
                         color: true,
                     },
-                    {
+                    sort: {
                         priority: SortOrder.Ascending,
                     }
-                );
+        });
 
             const currentStatus: MonitorStatus | null =
-                await ModelAPI.post<MonitorStatus>(
-                    MonitorStatus,
-                    URL.fromString(DASHBOARD_API_URL.toString())
+                await ModelAPI.post<MonitorStatus>({
+                    modelType: MonitorStatus,
+                    apiUrl: URL.fromString(DASHBOARD_API_URL.toString())
                         .addRoute(new MonitorGroup().getCrudApiPath()!)
                         .addRoute('/current-status/')
                         .addRoute(`/${modelId.toString()}`)
+                }
                 );
 
             setCurrentGroupStatus(currentStatus);

@@ -28,21 +28,21 @@ const TeamView: FunctionComponent<ComponentProps> = (
             setIsLoading(true);
 
             const onCallTeams: ListResult<OnCallDutyPolicyEscalationRuleTeam> =
-                await ModelAPI.getList(
-                    OnCallDutyPolicyEscalationRuleTeam,
-                    {
+                await ModelAPI.getList({
+                    modelType: OnCallDutyPolicyEscalationRuleTeam,
+                    query: {
                         onCallDutyPolicyEscalationRuleId:
                             props.escalationRuleId,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         team: {
                             name: true,
                         },
                     },
-                    {}
-                );
+                    sort: {}
+        });
 
             const teams: Array<Team> = onCallTeams.data.map(
                 (onCallUser: OnCallDutyPolicyEscalationRuleTeam) => {
