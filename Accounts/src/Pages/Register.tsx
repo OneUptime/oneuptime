@@ -167,7 +167,7 @@ const RegisterPage: () => JSX.Element = () => {
             title: 'Confirm Password',
             overrideFieldKey: 'confirmPassword',
             required: true,
-            forceShow: true,
+            showEvenIfPermissionDoesNotExist: true,
         },
     ]);
 

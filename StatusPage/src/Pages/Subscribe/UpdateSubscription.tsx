@@ -107,7 +107,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             field: {
                 subscriberEmail: true,
             },
-            forceShow: true,
+            showEvenIfPermissionDoesNotExist: true,
             title: 'Your Email',
             fieldType: FormFieldSchemaType.Email,
             required: (model: FormValues<StatusPageSubscriber>) => {
@@ -123,7 +123,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             field: {
                 subscriberPhone: true,
             },
-            forceShow: true,
+            showEvenIfPermissionDoesNotExist: true,
             title: 'Your Phone Number',
             fieldType: FormFieldSchemaType.Email,
             required: (model: FormValues<StatusPageSubscriber>) => {
@@ -142,7 +142,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             field: {
                 isSubscribedToAllResources: true,
             },
-            forceShow: true,
+            showEvenIfPermissionDoesNotExist: true,
             title: 'Subscribe to All Resources',
             description:
                 'Select this option if you want to subscribe to all resources.',
@@ -155,7 +155,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             field: {
                 statusPageResources: true,
             },
-            forceShow: true,
+            showEvenIfPermissionDoesNotExist: true,
             title: 'Select Resources to Subscribe',
             description:
                 'Please select the resources you want to subscribe to.',
@@ -172,7 +172,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         field: {
             isUnsubscribed: true,
         },
-        forceShow: true,
+        showEvenIfPermissionDoesNotExist: true,
         title: 'Unsubscribe',
         description:
             'Please select this if you would like to unsubscribe from all resources.',

@@ -122,7 +122,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                     field: {
                                         password: true,
                                     },
-                                    forceShow: true,
+                                    showEvenIfPermissionDoesNotExist: true,
                                     fieldType: FormFieldSchemaType.Password,
                                     validation: {
                                         minLength: 6,
@@ -139,7 +139,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                         minLength: 6,
                                         toMatchField: 'password',
                                     },
-                                    forceShow: true,
+                                    showEvenIfPermissionDoesNotExist: true,
                                     fieldType: FormFieldSchemaType.Password,
                                     placeholder: 'Confirm Password',
                                     title: 'Confirm Password',

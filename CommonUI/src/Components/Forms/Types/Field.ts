@@ -45,7 +45,7 @@ export default interface Field<TEntity> {
     description?: string;
     field?: SelectFormFields<TEntity> | undefined;
     placeholder?: string;
-    forceShow?: boolean; // show this field even if user does not have permissions to view.
+    showEvenIfPermissionDoesNotExist?: boolean; // show this field even if user does not have permissions to view.
     disabled?: boolean;
     stepId?: string | undefined;
     required?: boolean | ((item: FormValues<TEntity>) => boolean) | undefined;

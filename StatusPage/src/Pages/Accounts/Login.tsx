@@ -132,7 +132,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 field: {
                                     email: true,
                                 },
-                                forceShow: true,
+                                showEvenIfPermissionDoesNotExist: true,
                                 title: 'Email',
                                 fieldType: FormFieldSchemaType.Email,
                                 required: true,
@@ -143,7 +143,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                 },
                                 title: 'Password',
                                 required: true,
-                                forceShow: true,
+                                showEvenIfPermissionDoesNotExist: true,
                                 validation: {
                                     minLength: 6,
                                 },

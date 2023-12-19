@@ -343,7 +343,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         overrideField: {
                             ownerTeams: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         title: 'Owner - Teams',
                         stepId: 'owners',
                         description:
@@ -362,7 +362,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         overrideField: {
                             ownerUsers: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         title: 'Owner - Users',
                         stepId: 'owners',
                         description:

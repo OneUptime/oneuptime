@@ -146,7 +146,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         overrideField: {
                             notificationMethod: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         overrideFieldKey: 'notificationMethod',
                         title: 'Notification Method',
                         description: 'How do you want to be notified?',

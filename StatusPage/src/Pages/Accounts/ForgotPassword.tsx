@@ -117,7 +117,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                                         email: true,
                                     },
                                     title: 'Email',
-                                    forceShow: true,
+                                    showEvenIfPermissionDoesNotExist: true,
                                     fieldType: FormFieldSchemaType.Email,
                                     required: true,
                                 },
