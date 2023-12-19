@@ -147,7 +147,7 @@ RunCron(
 
                             To view this announcement, visit ${statusPageURL}
 
-                            To unsubscribe from this status page, visit ${unsubscribeUrl}
+                            To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
                             `,
                             to: subscriber.subscriberPhone,
                         };
