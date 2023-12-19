@@ -27,6 +27,7 @@ import Label from 'Model/Models/Label';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -183,14 +184,14 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         // get ack scheduledMaintenance.
 
                         const scheduledMaintenanceTimelines: ListResult<ScheduledMaintenanceStateTimeline> =
-                            await ModelAPI.getList(
-                                ScheduledMaintenanceStateTimeline,
-                                {
+                            await ModelAPI.getList({
+                                modelType: ScheduledMaintenanceStateTimeline,
+                                query: {
                                     scheduledMaintenanceId: modelId,
                                 },
-                                99,
-                                0,
-                                {
+                                limit: LIMIT_PER_PROJECT,
+                                skip: 0,
+                                select: {
                                     _id: true,
 
                                     createdAt: true,
@@ -206,8 +207,8 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         isScheduledState: true,
                                     },
                                 },
-                                {}
-                            );
+                                sort: {}
+                    });
 
                         return scheduledMaintenanceTimelines;
                     },

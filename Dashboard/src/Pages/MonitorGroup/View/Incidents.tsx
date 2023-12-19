@@ -33,18 +33,18 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
 
         try {
             const monitorGroupResources: ListResult<MonitorGroupResource> =
-                await ModelAPI.getList(
-                    MonitorGroupResource,
-                    {
+                await ModelAPI.getList({
+                    modelType: MonitorGroupResource,
+                    query: {
                         monitorGroupId: modelId.toString(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         monitorId: true,
                     },
-                    {}
-                );
+                    sort: {}
+                });
 
             const monitorIds: Array<ObjectID> = monitorGroupResources.data.map(
                 (monitorGroupResource: MonitorGroupResource): ObjectID => {
@@ -61,7 +61,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        loadMonitorsIds().catch(() => {});
+        loadMonitorsIds().catch(() => { });
     }, []);
 
     if (isLoading) {

@@ -45,21 +45,21 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
 
         try {
             const monitorStatuses: ListResult<MonitorStatus> =
-                await ModelAPI.getList<MonitorStatus>(
-                    MonitorStatus,
-                    {
+                await ModelAPI.getList<MonitorStatus>({
+                    modelType: MonitorStatus,
+                    query: {
                         projectId:
                             DashboardNavigation.getProjectId()?.toString(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         _id: true,
                         name: true,
                         color: true,
                     },
-                    {}
-                );
+                    sort: {}
+        });
 
             setMonitorStatuses(monitorStatuses.data);
         } catch (err) {

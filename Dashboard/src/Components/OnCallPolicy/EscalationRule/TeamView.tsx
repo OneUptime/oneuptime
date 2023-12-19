@@ -42,7 +42,7 @@ const TeamView: FunctionComponent<ComponentProps> = (
                         },
                     },
                     sort: {}
-        });
+                });
 
             const teams: Array<Team> = onCallTeams.data.map(
                 (onCallUser: OnCallDutyPolicyEscalationRuleTeam) => {

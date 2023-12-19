@@ -30,6 +30,7 @@ import GlobalEvent from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../../Utils/EventName';
 import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -139,14 +140,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         // get ack incident.
 
                         const incidentTimelines: ListResult<IncidentStateTimeline> =
-                            await ModelAPI.getList(
-                                IncidentStateTimeline,
-                                {
+                            await ModelAPI.getList({
+                                modelType: IncidentStateTimeline,
+                                query: {
                                     incidentId: modelId,
                                 },
-                                99,
-                                0,
-                                {
+                                limit: LIMIT_PER_PROJECT,
+                                skip: 0,
+                                select: {
                                     _id: true,
 
                                     createdAt: true,
@@ -161,8 +162,8 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         isAcknowledgedState: true,
                                     },
                                 },
-                                {}
-                            );
+                                sort: {}
+                    });
 
                         return incidentTimelines;
                     },

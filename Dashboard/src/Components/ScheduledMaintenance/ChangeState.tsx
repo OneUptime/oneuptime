@@ -17,6 +17,7 @@ import React, {
     ReactElement,
 } from 'react';
 import UserElement from '../User/User';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 export enum StateType {
     Ongoing,
@@ -107,21 +108,21 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                     }
 
                     const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
-                        await ModelAPI.getList<ScheduledMaintenanceState>(
-                            ScheduledMaintenanceState,
-                            {
+                        await ModelAPI.getList<ScheduledMaintenanceState>({
+                            modelType: ScheduledMaintenanceState,
+                            query: {
                                 projectId: projectId,
                             },
-                            99,
-                            0,
-                            {
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            select: {
                                 _id: true,
                                 isResolvedState: true,
                                 isOngoingState: true,
                                 isScheduledState: true,
                             },
-                            {}
-                        );
+                            sort: {},
+                        });
 
                     let stateId: ObjectID | null = null;
 
@@ -157,10 +158,10 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                     scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
                         stateId;
 
-                    await ModelAPI.create(
-                        scheduledMaintenanceStateTimeline,
-                        ScheduledMaintenanceStateTimeline
-                    );
+                    await ModelAPI.create({
+                        model: scheduledMaintenanceStateTimeline,
+                        modelType: ScheduledMaintenanceStateTimeline
+                    });
 
                     props.onActionComplete();
                     setIsLoading(false);

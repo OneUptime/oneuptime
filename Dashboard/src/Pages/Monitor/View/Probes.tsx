@@ -51,14 +51,14 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
 
         setError('');
         try {
-            const item: Monitor | null = await ModelAPI.getItem(
-                Monitor,
-                modelId,
-                {
+            const item: Monitor | null = await ModelAPI.getItem({
+                modelType: Monitor,
+                id: modelId,
+                select: {
                     monitorType: true,
-                } as any,
-                {}
-            );
+                },
+            
+        });
 
             if (!item) {
                 setError(`Monitor not found`);
@@ -66,37 +66,37 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 return;
             }
 
-            const projectProbeList: ListResult<Probe> = await ModelAPI.getList(
-                Probe,
-                {
+            const projectProbeList: ListResult<Probe> = await ModelAPI.getList({
+                modelType: Probe,
+                query: {
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     name: true,
                     _id: true,
                 },
-                {},
-                {}
-            );
+                sort: {},
+                
+        });
 
-            const globalProbeList: ListResult<Probe> = await ModelAPI.getList(
-                Probe,
-                {},
-                LIMIT_PER_PROJECT,
-                0,
-                {
+            const globalProbeList: ListResult<Probe> = await ModelAPI.getList({
+                modelType: Probe,
+                query: {},
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     name: true,
                     _id: true,
                 },
-                {},
-                {
+                sort: {},
+                requestOptions: {
                     overrideRequestUrl: URL.fromString(
                         DASHBOARD_API_URL.toString()
                     ).addRoute('/probe/global-probes'),
                 }
-            );
+        });
 
             setProbes([...projectProbeList.data, ...globalProbeList.data]);
             setMonitorType(item.monitorType);

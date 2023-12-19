@@ -30,21 +30,21 @@ const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
             setIsLoading(true);
 
             const onCallSchedules: ListResult<OnCallDutyPolicyEscalationRuleSchedule> =
-                await ModelAPI.getList(
-                    OnCallDutyPolicyEscalationRuleSchedule,
-                    {
+                await ModelAPI.getList({
+                    modelType: OnCallDutyPolicyEscalationRuleSchedule,
+                    query: {
                         onCallDutyPolicyEscalationRuleId:
                             props.escalationRuleId,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         onCallDutyPolicySchedule: {
                             name: true,
                         },
                     },
-                    {}
-                );
+                    sort: {}
+                });
 
             const schedules: Array<OnCallDutyPolicySchedule> =
                 onCallSchedules.data.map(

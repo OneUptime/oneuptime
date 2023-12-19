@@ -57,13 +57,13 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             //fetch incident template
 
             const incidentNoteTemplate: IncidentNoteTemplate | null =
-                await ModelAPI.getItem<IncidentNoteTemplate>(
-                    IncidentNoteTemplate,
+                await ModelAPI.getItem<IncidentNoteTemplate>({
+                    modelType: IncidentNoteTemplate,
                     id,
-                    {
+                    select: {
                         note: true,
                     }
-                );
+                });
 
             if (incidentNoteTemplate) {
                 const initialValue: JSONObject = {
@@ -91,17 +91,17 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
 
             try {
                 const listResult: ListResult<IncidentNoteTemplate> =
-                    await ModelAPI.getList<IncidentNoteTemplate>(
-                        IncidentNoteTemplate,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList<IncidentNoteTemplate>({
+                        modelType: IncidentNoteTemplate,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             templateName: true,
                             _id: true,
                         },
-                        {}
-                    );
+                        sort: {}
+                    });
 
                 setIncidentNoteTemplates(listResult.data);
             } catch (err) {
@@ -270,8 +270,8 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             />
 
             {incidentNoteTemplates.length === 0 &&
-            showIncidentNoteTemplateModal &&
-            !isLoading ? (
+                showIncidentNoteTemplateModal &&
+                !isLoading ? (
                 <ConfirmModal
                     title={`No Incident Note Templates`}
                     description={`No incident note templates have been created yet. You can create these in Project Settings > Incident > Note Templates.`}
@@ -298,7 +298,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             )}
 
             {showIncidentNoteTemplateModal &&
-            incidentNoteTemplates.length > 0 ? (
+                incidentNoteTemplates.length > 0 ? (
                 <BasicFormModal<JSONObject>
                     title="Create Note from Template"
                     isLoading={isLoading}
