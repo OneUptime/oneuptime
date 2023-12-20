@@ -23,25 +23,26 @@ describe('ConfirmModal', () => {
     it('renders correctly', () => {
         render(<ConfirmModal {...mockProps} />);
 
-        const title = screen.getByTestId('modal-title')?.textContent;
+        const title: string | null =
+            screen.getByTestId('modal-title')?.textContent;
         expect(title).toBe('Confirmation Title');
 
-        const description = screen.getByTestId(
+        const description: string | null = screen.getByTestId(
             'confirm-modal-description'
         )?.textContent;
         expect(description).toBe('Are you sure?');
 
-        const submitButtonText = screen.getByTestId(
+        const submitButtonText: string | null = screen.getByTestId(
             'modal-footer-submit-button'
         )?.textContent;
         expect(submitButtonText).toBe('Confirm');
 
-        const submitButton = screen.getByTestId(
+        const submitButton: DOMTokenList = screen.getByTestId(
             'modal-footer-submit-button'
         )?.classList;
         expect(submitButton.contains('bg-indigo-600')).toBe(true);
 
-        const closeButton = screen.getByTestId(
+        const closeButton: DOMTokenList = screen.getByTestId(
             'modal-footer-close-button'
         )?.classList;
         expect(closeButton.contains('bg-white')).toBe(true);
@@ -50,7 +51,7 @@ describe('ConfirmModal', () => {
     it('closes the comfirm modal when the close button is clicked', () => {
         render(<ConfirmModal {...mockProps} />);
 
-        const closeButton = screen.getByTestId('close-button');
+        const closeButton: HTMLElement = screen.getByTestId('close-button');
 
         fireEvent.click(closeButton);
 
@@ -60,7 +61,9 @@ describe('ConfirmModal', () => {
     it('calls the onSubmit function when the submit button is clicked', () => {
         render(<ConfirmModal {...mockProps} />);
 
-        const submitButton = screen.getByTestId('modal-footer-submit-button');
+        const submitButton: HTMLElement = screen.getByTestId(
+            'modal-footer-submit-button'
+        );
 
         fireEvent.click(submitButton);
 
@@ -70,7 +73,9 @@ describe('ConfirmModal', () => {
     it('disables the submit button when isLoading is true', () => {
         render(<ConfirmModal {...mockProps} isLoading={true} />);
 
-        const submitButton = screen.getByTestId('modal-footer-submit-button');
+        const submitButton: HTMLElement = screen.getByTestId(
+            'modal-footer-submit-button'
+        );
 
         expect(submitButton.getAttribute('disabled')).toBeTruthy;
     });
@@ -80,7 +85,7 @@ describe('ConfirmModal', () => {
             <ConfirmModal {...mockProps} error="This is a error message." />
         );
 
-        const errorMessage = screen.getByText(
+        const errorMessage: HTMLElement = screen.getByText(
             'This is a error message.'.trim()
         );
         expect(errorMessage.textContent?.trim()).toBe(
