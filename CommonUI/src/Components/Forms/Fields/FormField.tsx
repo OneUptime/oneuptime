@@ -117,12 +117,12 @@ const FormField: <T extends Object>(
                             <div>
                                 <CategoryCheckbox
                                     categories={
-                                        props.field.categoryCheckboxProps
-                                            ?.categories || []
+                                        props.field.selectByAccessControlProps
+                                            ?.categoryCheckboxProps.categories || []
                                     }
                                     options={
-                                        props.field.categoryCheckboxProps
-                                            ?.options || []
+                                        props.field.selectByAccessControlProps
+                                            ?.categoryCheckboxProps.options || []
                                     }
                                     onChange={(
                                         value: Array<CategoryCheckboxValue>
@@ -194,7 +194,7 @@ const FormField: <T extends Object>(
                 if (
                     props.field.fieldType ===
                     FormFieldSchemaType.MultiSelectDropdown &&
-                    props.field.categoryCheckboxProps
+                    props.field.selectByAccessControlProps
                 ) {
                     return (
                         <span>
@@ -205,7 +205,7 @@ const FormField: <T extends Object>(
                                 }}
                                 className="ml-1 underline text-blue-500 cursor-pointer"
                             >
-                                Select by labels
+                                <span>Select items by {props.field.selectByAccessControlProps.accessControlColumnTitle || ''}</span>
                             </Link>
                         </span>
                     );

@@ -56,6 +56,10 @@ export default interface Field<TEntity> {
         labelField: string;
         valueField: string;
     };
+    selectByAccessControlProps?: {
+        categoryCheckboxProps: CategoryCheckboxProps; 
+        accessControlColumnTitle: string;
+    };
     fileTypes?: Array<MimeType> | undefined;
     sideLink?: FormFieldSideLink | undefined;
     validation?: {

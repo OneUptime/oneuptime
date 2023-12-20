@@ -536,10 +536,13 @@ const ModelForm: <TBaseModel extends BaseModel>(
                                     }
                                 }
 
-                                field.categoryCheckboxProps = {
-                                    categories: categories,
-                                    options: options,
-                                };
+                                field.selectByAccessControlProps = {
+                                    categoryCheckboxProps : {
+                                        categories: categories,
+                                        options: options,
+                                    },
+                                    accessControlColumnTitle: tempModel.getTableColumnMetadata(tempModel.getAccessControlColumn()!).title || '',
+                                }
                             }
                         } else {
                             field.dropdownOptions = [];
