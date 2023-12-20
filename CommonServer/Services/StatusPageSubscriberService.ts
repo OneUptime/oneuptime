@@ -7,7 +7,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageService from './StatusPageService';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { FileRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
@@ -19,6 +19,8 @@ import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import ProjectService from './ProjectService';
 import StatusPageResource from 'Model/Models/StatusPageResource';
+import QueryHelper from '../Types/Database/QueryHelper';
+import ProjectSMTPConfigService from '../Services/ProjectSmtpConfigService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -104,22 +106,13 @@ export class Service extends DatabaseService<Model> {
             });
         }
 
-        const statuspage: StatusPage | null =
-            await StatusPageService.findOneById({
-                id: data.data.statusPageId,
-                select: {
-                    projectId: true,
-                    pageTitle: true,
-                    name: true,
-                    isPublicStatusPage: true,
-                    logoFileId: true,
-                    allowSubscribersToChooseResources: true,
-                },
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
+        const statuspages: Array<StatusPage> = await this.getStatusPagesToSendNotification([data.data.statusPageId]);
+
+        const statuspage: StatusPage | undefined = statuspages.find(
+            (statuspage: StatusPage) => {
+                return statuspage._id?.toString() === data.data.statusPageId?.toString();
+            }
+        );
 
         if (statuspage && !statuspage.allowSubscribersToChooseResources) {
             data.data.isSubscribedToAllResources = true;
@@ -178,12 +171,12 @@ export class Service extends DatabaseService<Model> {
                         statusPageName: statusPageName,
                         logoUrl: onCreate.carryForward.logoFileId
                             ? new URL(httpProtocol, host)
-                                  .addRoute(FileRoute)
-                                  .addRoute(
-                                      '/image/' +
-                                          onCreate.carryForward.logoFileId
-                                  )
-                                  .toString()
+                                .addRoute(FileRoute)
+                                .addRoute(
+                                    '/image/' +
+                                    onCreate.carryForward.logoFileId
+                                )
+                                .toString()
                             : '',
                         statusPageUrl: statusPageURL,
                         isPublicStatusPage: onCreate.carryForward
@@ -199,6 +192,10 @@ export class Service extends DatabaseService<Model> {
                 },
                 {
                     projectId: createdItem.projectId,
+                    mailServer:
+                        ProjectSMTPConfigService.toEmailServer(
+                            onCreate.carryForward.smtpConfig
+                        ),
                 }
             ).catch((err: Error) => {
                 logger.error(err);
@@ -275,6 +272,41 @@ export class Service extends DatabaseService<Model> {
         }
 
         return false;
+    }
+
+    public async getStatusPagesToSendNotification(statusPageIds: Array<ObjectID>): Promise<Array<StatusPage>> {
+        return await StatusPageService.findBy({
+            query: {
+                _id: QueryHelper.in(
+                    statusPageIds
+                ),
+            },
+            props: {
+                isRoot: true,
+                ignoreHooks: true,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            select: {
+                _id: true,
+                name: true,
+                pageTitle: true,
+                projectId: true,
+                isPublicStatusPage: true,
+                logoFileId: true,
+                allowSubscribersToChooseResources: true,
+                smtpConfig: {
+                    _id: true,
+                    hostname: true,
+                    port: true,
+                    username: true,
+                    password: true,
+                    fromEmail: true,
+                    fromName: true,
+                    secure: true,
+                },
+            },
+        });
     }
 }
 export default new Service();
