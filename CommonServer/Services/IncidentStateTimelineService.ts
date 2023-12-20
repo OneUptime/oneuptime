@@ -20,6 +20,7 @@ import Incident from 'Model/Models/Incident';
 export class Service extends DatabaseService<IncidentStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(IncidentStateTimeline, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
     public async getResolvedStateIdForProject(

@@ -27,6 +27,7 @@ import DatabaseConfig from '../DatabaseConfig';
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
     protected override async onBeforeCreate(

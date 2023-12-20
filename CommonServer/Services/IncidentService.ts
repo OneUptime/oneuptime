@@ -38,6 +38,7 @@ import DeleteBy from '../Types/Database/DeleteBy';
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
     public async acknowledgeIncident(

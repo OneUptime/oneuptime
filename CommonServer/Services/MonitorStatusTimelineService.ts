@@ -16,6 +16,7 @@ import User from 'Model/Models/User';
 export class Service extends DatabaseService<MonitorStatusTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(MonitorStatusTimeline, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
     protected override async onBeforeCreate(
