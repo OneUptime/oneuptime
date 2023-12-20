@@ -116,7 +116,7 @@ const FormField: <T extends Object>(
                             setShowMultiSelectCheckboxCategoryModal(false);
                         }}
                     >
-                        <div className='max-h-96 overflow-y-auto'>
+                        <div className="max-h-96 overflow-y-auto">
                             <CategoryCheckbox
                                 categories={
                                     props.field.selectByAccessControlProps
