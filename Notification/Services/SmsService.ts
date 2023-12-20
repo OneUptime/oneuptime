@@ -20,6 +20,7 @@ import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTim
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { isHighRiskPhoneNumber } from 'Common/Types/Call/CallRequest';
+import Text from 'Common/Types/Text';
 
 export default class SmsService {
     public static async sendSms(
@@ -34,6 +35,8 @@ export default class SmsService {
     ): Promise<void> {
         // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
         const smsSegments: number = Math.ceil(message.length / 160);
+
+        message = Text.trimLines(message);
 
         let smsCost: number = 0;
 
