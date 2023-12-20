@@ -57,6 +57,10 @@ const Category: FunctionComponent<CategoryProps> = (
         }
     }, [currentValues]);
 
+    useEffect(() => {
+        setCurrentValues(props.initialValue || []);
+    }, [props.initialValue]);
+
     return (
         <div>
             {props.category && (
