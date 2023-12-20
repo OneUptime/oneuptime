@@ -173,22 +173,32 @@ const FormField: <T extends Object>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
-
-        const getFieldDescription = (): ReactElement | string => {
+        const getFieldDescription: Function = (): ReactElement | string => {
             if (fieldDescription) {
                 return fieldDescription;
             }
 
-
-            if(props.field.fieldType === FormFieldSchemaType.MultiSelectDropdown && props.field.categoryCheckboxProps) {
-                return <span>{fieldDescription}<span onClick={()=>{
-                    setShowMultiSelectCheckboxCategoryModal(true);
-                }} >Select by labels</span></span>;
+            if (
+                props.field.fieldType ===
+                    FormFieldSchemaType.MultiSelectDropdown &&
+                props.field.categoryCheckboxProps
+            ) {
+                return (
+                    <span>
+                        {fieldDescription}
+                        <span
+                            onClick={() => {
+                                setShowMultiSelectCheckboxCategoryModal(true);
+                            }}
+                        >
+                            Select by labels
+                        </span>
+                    </span>
+                );
             }
 
             return <></>;
-        }
-
+        };
 
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
