@@ -81,12 +81,12 @@ const FormField: <T extends Object>(
             setShowMultiSelectCheckboxCategoryModal,
         ] = React.useState<boolean>(false);
         const [checkboxCategoryValues, setCheckboxCategoryValues] =
-            React.useState<Array<CategoryCheckboxValue>>(props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                    ? (props.currentValues as any)[
-                          props.fieldName
-                      ]
-                    : []);
+            React.useState<Array<CategoryCheckboxValue>>(
+                props.currentValues &&
+                    (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : []
+            );
 
         const getMultiSelectCheckboxCategoryModal: Function =
             (): ReactElement => {
@@ -192,7 +192,7 @@ const FormField: <T extends Object>(
                             onClick={() => {
                                 setShowMultiSelectCheckboxCategoryModal(true);
                             }}
-                            className='ml-1 underline text-blue-500 cursor-pointer'
+                            className="ml-1 underline text-blue-500 cursor-pointer"
                         >
                             Select by labels
                         </Link>
@@ -200,12 +200,9 @@ const FormField: <T extends Object>(
                 );
             }
 
-            
             if (fieldDescription) {
                 return fieldDescription;
             }
-
-           
 
             return <></>;
         };
