@@ -322,6 +322,15 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                     },
                 },
                 {
+                    name: 'On-Call Rotation',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
                     name: 'Logs and Events',
                     plans: {
                         free: false,
@@ -339,15 +348,7 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                         enterprise: 'Coming Soon',
                     },
                 },
-                {
-                    name: 'On-Call Rotation',
-                    plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
-                    },
-                },
+                
                 {
                     name: 'Vacation and OOO Policy',
                     plans: {
