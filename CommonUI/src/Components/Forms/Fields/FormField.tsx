@@ -101,7 +101,8 @@ const FormField: <T extends Object>(
             (): ReactElement => {
                 return (
                     <Modal
-                        title={`Select ${props.field.title}`}
+                        title={`${props.field.title}`}
+                        description={`${props.field.description}`}
                         onSubmit={() => {
                             setShowMultiSelectCheckboxCategoryModal(false);
                             props.field.onChange &&
@@ -115,7 +116,7 @@ const FormField: <T extends Object>(
                             setShowMultiSelectCheckboxCategoryModal(false);
                         }}
                     >
-                        <div>
+                        <div className='max-h-96 overflow-y-auto'>
                             <CategoryCheckbox
                                 categories={
                                     props.field.selectByAccessControlProps
