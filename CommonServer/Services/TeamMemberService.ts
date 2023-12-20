@@ -16,7 +16,9 @@ import { IsBillingEnabled } from '../EnvironmentConfig';
 import { AccountsRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import BillingService from './BillingService';
-import SubscriptionPlan, { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
 import Project from 'Model/Models/Project';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -63,8 +65,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 );
             }
 
-
-            if(createBy.props.currentPlan === PlanSelect.Free && project && project.paymentProviderSubscriptionSeats && project.paymentProviderSubscriptionSeats >= 1){
+            if (
+                createBy.props.currentPlan === PlanSelect.Free &&
+                project &&
+                project.paymentProviderSubscriptionSeats &&
+                project.paymentProviderSubscriptionSeats >= 1
+            ) {
                 throw new BadDataException(
                     Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN
                 );

@@ -1,4 +1,7 @@
-import { IsBillingEnabled, IsDevelopment } from 'CommonServer/EnvironmentConfig';
+import {
+    IsBillingEnabled,
+    IsDevelopment,
+} from 'CommonServer/EnvironmentConfig';
 import RunCron from '../../Utils/Cron';
 import { EVERY_DAY, EVERY_MINUTE } from 'Common/Utils/CronTime';
 import Services from 'CommonServer/Services/Index';
@@ -12,9 +15,10 @@ RunCron(
     'HardDelete:HardDeleteItemsInDatabase',
     { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
     async () => {
-
-        if(!IsBillingEnabled){
-            logger.info('HardDelete:HardDeleteItemsInDatabase: Billing is not enabled. Skipping hard delete.');
+        if (!IsBillingEnabled) {
+            logger.info(
+                'HardDelete:HardDeleteItemsInDatabase: Billing is not enabled. Skipping hard delete.'
+            );
             return;
         }
 
