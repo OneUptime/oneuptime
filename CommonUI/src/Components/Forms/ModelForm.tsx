@@ -36,6 +36,11 @@ import Field from './Types/Field';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
 import SelectFormFields from '../../Types/SelectEntityField';
 import User from '../../Utils/User';
+import {
+    CategoryCheckboxOption,
+    CheckboxCategory,
+} from '../CategoryCheckbox/CategoryCheckboxTypes';
+import AccessControlModel from 'Common/Models/AccessControlModel';
 
 export enum FormType {
     Create,
@@ -359,16 +364,31 @@ const ModelForm: <TBaseModel extends BaseModel>(
         try {
             for (const field of fields) {
                 if (field.dropdownModal && field.dropdownModal.type) {
+                    const tempModel: BaseModel = new field.dropdownModal.type();
+                    const select: any = {
+                        [field.dropdownModal.labelField]: true,
+                        [field.dropdownModal.valueField]: true,
+                    } as any;
+
+                    let hasAccessControlColumn: boolean = false;
+
+                    // also select labels, so they can select resources by labels. This is useful for resources like monitors, etc.
+                    if (tempModel.getAccessControlColumn()) {
+                        select[tempModel.getAccessControlColumn()!] = {
+                            _id: true,
+                            name: true,
+                        } as any;
+
+                        hasAccessControlColumn = true;
+                    }
+
                     const listResult: ListResult<BaseModel> =
                         await modelAPI.getList<BaseModel>({
                             modelType: field.dropdownModal.type,
                             query: {},
                             limit: LIMIT_PER_PROJECT,
                             skip: 0,
-                            select: {
-                                [field.dropdownModal.labelField]: true,
-                                [field.dropdownModal.valueField]: true,
-                            },
+                            select: select,
                             sort: {},
                         });
 
@@ -391,6 +411,104 @@ const ModelForm: <TBaseModel extends BaseModel>(
                                 };
                             }
                         );
+
+                        if (hasAccessControlColumn) {
+                            let categories: Array<CheckboxCategory> = [];
+
+                            // populate categories.
+
+                            for (const item of listResult.data) {
+                                const accessControlColumn: string | null =
+                                    tempModel.getAccessControlColumn()!;
+                                const labels: Array<AccessControlModel> =
+                                    ((item as any)[
+                                        accessControlColumn
+                                    ] as Array<AccessControlModel>) || [];
+
+                                for (const label of labels) {
+                                    if (
+                                        label &&
+                                        label._id &&
+                                        label.getColumnValue('name')
+                                    ) {
+                                        // check if this category already exists.
+
+                                        const existingCategory:
+                                            | CheckboxCategory
+                                            | undefined = categories.find(
+                                            (i: CheckboxCategory) => {
+                                                return (
+                                                    i.id.toString() ===
+                                                    label._id?.toString()
+                                                );
+                                            }
+                                        );
+
+                                        if (!existingCategory) {
+                                            categories.push({
+                                                id: label._id,
+                                                title:
+                                                    (
+                                                        label.getColumnValue(
+                                                            'name'
+                                                        ) as string
+                                                    )?.toString() || '',
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+
+                            // sort category by name.
+
+                            categories = categories.sort(
+                                (a: CheckboxCategory, b: CheckboxCategory) => {
+                                    return a.title.localeCompare(b.title);
+                                }
+                            );
+
+                            // now populate options.
+                            const options: Array<CategoryCheckboxOption> = [];
+
+                            for (const item of listResult.data) {
+                                const accessControlColumn: string =
+                                    tempModel.getAccessControlColumn()!;
+                                const labels: Array<AccessControlModel> =
+                                    ((item as any)[
+                                        accessControlColumn
+                                    ] as Array<AccessControlModel>) || [];
+
+                                if (labels.length > 0) {
+                                    for (const label of labels) {
+                                        options.push({
+                                            value: item.getColumnValue(
+                                                field.dropdownModal.valueField
+                                            ) as string,
+                                            label: item.getColumnValue(
+                                                field.dropdownModal.labelField
+                                            ) as string,
+                                            categoryId:
+                                                label._id?.toString() || '',
+                                        });
+                                    }
+                                } else {
+                                    options.push({
+                                        value: item.getColumnValue(
+                                            field.dropdownModal.valueField
+                                        ) as string,
+                                        label: item.getColumnValue(
+                                            field.dropdownModal.labelField
+                                        ) as string,
+                                        categoryId: '',
+                                    });
+                                }
+                            }
+
+                            field.categoryCheckboxProps = {
+                                categories: categories,
+                                options: options,
+                            };
+                        }
                     } else {
                         field.dropdownOptions = [];
                     }

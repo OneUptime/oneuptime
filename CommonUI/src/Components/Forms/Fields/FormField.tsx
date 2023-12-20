@@ -26,6 +26,7 @@ import CheckboxElement, {
 } from '../../Checkbox/Checkbox';
 import CategoryCheckbox from '../../CategoryCheckbox/Index';
 import Typeof from 'Common/Types/Typeof';
+import Modal from '../../Modal/Modal';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -74,6 +75,50 @@ const FormField: <T extends Object>(
     };
 
     const getFormField: Function = (): ReactElement => {
+        const [
+            showMultiSelectCheckboxCategoryModal,
+            setShowMultiSelectCheckboxCategoryModal,
+        ] = React.useState<boolean>(false);
+        const [checkboxCategoryValues, setCheckboxCategoryValues] =
+            React.useState<Array<CategoryCheckboxValue>>([]);
+
+        const getMultiSelectCheckboxCategoryModal: Function =
+            (): ReactElement => {
+                return (
+                    <Modal
+                        title="Select Categories"
+                        description="Please select resources "
+                        onSubmit={() => {
+                            setShowMultiSelectCheckboxCategoryModal(false);
+                            props.field.onChange &&
+                                props.field.onChange(checkboxCategoryValues);
+                        }}
+                        onClose={() => {
+                            setShowMultiSelectCheckboxCategoryModal(false);
+                        }}
+                    >
+                        <div>
+                            <CategoryCheckbox
+                                categories={
+                                    props.field.categoryCheckboxProps
+                                        ?.categories || []
+                                }
+                                options={
+                                    props.field.categoryCheckboxProps
+                                        ?.options || []
+                                }
+                                onChange={(
+                                    value: Array<CategoryCheckboxValue>
+                                ) => {
+                                    setCheckboxCategoryValues(value);
+                                }}
+                                initialValue={checkboxCategoryValues}
+                            />
+                        </div>
+                    </Modal>
+                );
+            };
+
         const index: number = props.index + 1;
 
         const fieldType: string = props.field.fieldType
@@ -128,6 +173,23 @@ const FormField: <T extends Object>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
+
+        const getFieldDescription = (): ReactElement | string => {
+            if (fieldDescription) {
+                return fieldDescription;
+            }
+
+
+            if(props.field.fieldType === FormFieldSchemaType.MultiSelectDropdown && props.field.categoryCheckboxProps) {
+                return <span>{fieldDescription}<span onClick={()=>{
+                    setShowMultiSelectCheckboxCategoryModal(true);
+                }} >Select by labels</span></span>;
+            }
+
+            return <></>;
+        }
+
+
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
                 {/*** Do not display label on checkbox because checkbox can display its own label */}
@@ -135,7 +197,7 @@ const FormField: <T extends Object>(
                 {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
                     <FieldLabelElement
                         title={props.field.title || ''}
-                        description={fieldDescription}
+                        description={getFieldDescription()}
                         sideLink={props.field.sideLink}
                         required={required}
                         isHeading={
@@ -645,6 +707,9 @@ const FormField: <T extends Object>(
                         />
                     )}
                 </div>
+
+                {showMultiSelectCheckboxCategoryModal &&
+                    getMultiSelectCheckboxCategoryModal()}
             </div>
         );
     };
