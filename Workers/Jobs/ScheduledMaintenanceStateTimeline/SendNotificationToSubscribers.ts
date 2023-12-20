@@ -155,42 +155,11 @@ RunCron(
             }
 
             const statusPages: Array<StatusPage> =
-                await StatusPageService.findBy({
-                    query: {
-                        _id: QueryHelper.in(
-                            Object.keys(statusPageToResources).map(
-                                (i: string) => {
-                                    return new ObjectID(i);
-                                }
-                            )
-                        ),
-                    },
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                    select: {
-                        _id: true,
-                        name: true,
-                        pageTitle: true,
-                        isPublicStatusPage: true,
-                        logoFileId: true,
-                        projectId: true,
-                        allowSubscribersToChooseResources: true,
-                        smtpConfig: {
-                            _id: true,
-                            hostname: true,
-                            port: true,
-                            username: true,
-                            password: true,
-                            fromEmail: true,
-                            fromName: true,
-                            secure: true,
-                        },
-                    },
-                });
+                await StatusPageSubscriberService.getStatusPagesToSendNotification(
+                    Object.keys(statusPageToResources).map((i: string) => {
+                        return new ObjectID(i);
+                    })
+                );
 
             for (const statuspage of statusPages) {
                 if (!statuspage.id) {

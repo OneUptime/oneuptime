@@ -106,11 +106,17 @@ export class Service extends DatabaseService<Model> {
             });
         }
 
-        const statuspages: Array<StatusPage> = await this.getStatusPagesToSendNotification([data.data.statusPageId]);
+        const statuspages: Array<StatusPage> =
+            await this.getStatusPagesToSendNotification([
+                data.data.statusPageId,
+            ]);
 
         const statuspage: StatusPage | undefined = statuspages.find(
             (statuspage: StatusPage) => {
-                return statuspage._id?.toString() === data.data.statusPageId?.toString();
+                return (
+                    statuspage._id?.toString() ===
+                    data.data.statusPageId?.toString()
+                );
             }
         );
 
@@ -171,12 +177,12 @@ export class Service extends DatabaseService<Model> {
                         statusPageName: statusPageName,
                         logoUrl: onCreate.carryForward.logoFileId
                             ? new URL(httpProtocol, host)
-                                .addRoute(FileRoute)
-                                .addRoute(
-                                    '/image/' +
-                                    onCreate.carryForward.logoFileId
-                                )
-                                .toString()
+                                  .addRoute(FileRoute)
+                                  .addRoute(
+                                      '/image/' +
+                                          onCreate.carryForward.logoFileId
+                                  )
+                                  .toString()
                             : '',
                         statusPageUrl: statusPageURL,
                         isPublicStatusPage: onCreate.carryForward
@@ -192,10 +198,9 @@ export class Service extends DatabaseService<Model> {
                 },
                 {
                     projectId: createdItem.projectId,
-                    mailServer:
-                        ProjectSMTPConfigService.toEmailServer(
-                            onCreate.carryForward.smtpConfig
-                        ),
+                    mailServer: ProjectSMTPConfigService.toEmailServer(
+                        onCreate.carryForward.smtpConfig
+                    ),
                 }
             ).catch((err: Error) => {
                 logger.error(err);
@@ -274,12 +279,12 @@ export class Service extends DatabaseService<Model> {
         return false;
     }
 
-    public async getStatusPagesToSendNotification(statusPageIds: Array<ObjectID>): Promise<Array<StatusPage>> {
+    public async getStatusPagesToSendNotification(
+        statusPageIds: Array<ObjectID>
+    ): Promise<Array<StatusPage>> {
         return await StatusPageService.findBy({
             query: {
-                _id: QueryHelper.in(
-                    statusPageIds
-                ),
+                _id: QueryHelper.in(statusPageIds),
             },
             props: {
                 isRoot: true,
