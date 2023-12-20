@@ -19,7 +19,9 @@ export default class Text {
     public static trimLines(text: string): string {
         return text
             .split('\n')
-            .map((line: string) => line.trim())
+            .map((line: string) => {
+                return line.trim();
+            })
             .join('\n');
     }
 
