@@ -57,7 +57,7 @@ export default interface Field<TEntity> {
         valueField: string;
     };
     selectByAccessControlProps?: {
-        categoryCheckboxProps: CategoryCheckboxProps; 
+        categoryCheckboxProps: CategoryCheckboxProps;
         accessControlColumnTitle: string;
     };
     fileTypes?: Array<MimeType> | undefined;
