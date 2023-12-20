@@ -1,12 +1,14 @@
+import { ReactElement } from "react-markdown/lib/react-markdown";
+
 export type CategoryCheckboxValue = string | number | boolean;
 
 export interface CheckboxCategory {
-    title: string;
+    title: string | ReactElement;
     id: string;
 }
 
 export interface CategoryCheckboxOption {
     value: CategoryCheckboxValue;
-    label: string;
+    label: string | ReactElement;
     categoryId: string;
 }

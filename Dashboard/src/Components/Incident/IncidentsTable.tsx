@@ -274,6 +274,23 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     {
                         field: {
+                            monitors: true,
+                        },
+                        title: 'Monitors affected',
+                        stepId: 'incident-details',
+                        description:
+                            'Select monitors affected by this incident.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Monitor,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Monitors affected',
+                    },
+                    {
+                        field: {
                             incidentSeverity: true,
                         },
                         title: 'Incident Severity',
@@ -288,23 +305,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         required: true,
                         placeholder: 'Incident Severity',
                     },
-                    {
-                        field: {
-                            monitors: true,
-                        },
-                        title: 'Monitors affected',
-                        stepId: 'resources-affected',
-                        description:
-                            'Select monitors affected by this incident.',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        dropdownModal: {
-                            type: Monitor,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: true,
-                        placeholder: 'Monitors affected',
-                    },
+
                     {
                         field: {
                             onCallDutyPolicies: true,

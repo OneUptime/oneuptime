@@ -27,6 +27,7 @@ import CheckboxElement, {
 import CategoryCheckbox from '../../CategoryCheckbox/Index';
 import Typeof from 'Common/Types/Typeof';
 import Modal from '../../Modal/Modal';
+import Link from '../../Link/Link';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -80,7 +81,12 @@ const FormField: <T extends Object>(
             setShowMultiSelectCheckboxCategoryModal,
         ] = React.useState<boolean>(false);
         const [checkboxCategoryValues, setCheckboxCategoryValues] =
-            React.useState<Array<CategoryCheckboxValue>>([]);
+            React.useState<Array<CategoryCheckboxValue>>(props.currentValues &&
+                (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[
+                          props.fieldName
+                      ]
+                    : []);
 
         const getMultiSelectCheckboxCategoryModal: Function =
             (): ReactElement => {
@@ -174,10 +180,6 @@ const FormField: <T extends Object>(
         }
 
         const getFieldDescription: Function = (): ReactElement | string => {
-            if (fieldDescription) {
-                return fieldDescription;
-            }
-
             if (
                 props.field.fieldType ===
                     FormFieldSchemaType.MultiSelectDropdown &&
@@ -186,16 +188,24 @@ const FormField: <T extends Object>(
                 return (
                     <span>
                         {fieldDescription}
-                        <span
+                        <Link
                             onClick={() => {
                                 setShowMultiSelectCheckboxCategoryModal(true);
                             }}
+                            className='ml-1 underline text-blue-500 cursor-pointer'
                         >
                             Select by labels
-                        </span>
+                        </Link>
                     </span>
                 );
             }
+
+            
+            if (fieldDescription) {
+                return fieldDescription;
+            }
+
+           
 
             return <></>;
         };
@@ -272,7 +282,7 @@ const FormField: <T extends Object>(
                             }
                             options={props.field.dropdownOptions || []}
                             placeholder={props.field.placeholder || ''}
-                            initialValue={
+                            value={
                                 props.currentValues &&
                                 (props.currentValues as any)[props.fieldName]
                                     ? (props.currentValues as any)[
