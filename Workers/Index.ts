@@ -75,6 +75,8 @@ import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDat
 // import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
 
 import './Jobs/Workflow/TimeoutJobs';
+import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
+
 
 const APP_NAME: string = 'workers';
 
