@@ -2,7 +2,6 @@ import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class ServerMeteredPlan {
     public static meteredPlan: MeteredPlan | undefined = undefined;
@@ -20,7 +19,7 @@ export default class ServerMeteredPlan {
         _options: {
             meteredPlanSubscriptionId?: string | undefined;
         }
-    ): Promise<PositiveNumber> {
+    ): Promise<void> {
         throw new NotImplementedException();
     }
 }

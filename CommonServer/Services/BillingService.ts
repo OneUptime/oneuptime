@@ -38,6 +38,7 @@ export interface Invoice {
 }
 
 export class BillingService extends BaseService {
+    
     public constructor() {
         super();
     }
@@ -296,6 +297,7 @@ export class BillingService extends BaseService {
         meteredPlan: MeteredPlan,
         quantity: number
     ): Promise<void> {
+        
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
                 Errors.BillingService.BILLING_NOT_ENABLED

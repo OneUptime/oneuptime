@@ -23,7 +23,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         options?: {
             meteredPlanSubscriptionId?: string | undefined;
         }
-    ): Promise<PositiveNumber> {
+    ): Promise<void> {
         const count: PositiveNumber = await MonitorService.countBy({
             query: {
                 projectId: projectId,
@@ -71,6 +71,5 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
             );
         }
 
-        return count;
     }
 }

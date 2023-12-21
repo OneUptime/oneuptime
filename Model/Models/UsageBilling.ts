@@ -271,10 +271,35 @@ export default class UsageBilling extends AccessControlModel {
     })
     @Column({
         nullable: false,
-        type: ColumnType.Number,
+        type: ColumnType.Boolean,
         default: false
     })
-    public isReportedToBillingProvider?: number = undefined;
+    public isReportedToBillingProvider?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+
+        ],
+        read: [
+            
+        ],
+        update: [
+
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Date,
+        canReadOnRelationQuery: true,
+        title: 'Reported to Billing Provider At',
+        description: 'When this usage billing was reported to billing provider or not (eg Stripe)',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.Date,
+    })
+    public reportedToBillingProviderAt?: Date = undefined;
 
 
 
