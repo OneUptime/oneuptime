@@ -428,6 +428,11 @@ import LogService, {
 } from 'CommonServer/Services/LogService';
 import Realtime from 'CommonServer/Utils/Realtime';
 
+import UsageBilling from 'Model/Models/UsageBilling';
+import UsageBillingService, {
+    Service as UsageBillingServiceType,
+} from 'CommonServer/Services/UsageBillingService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -441,6 +446,14 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<UsageBilling, UsageBillingServiceType>(
+        UsageBilling,
+        UsageBillingService
+    ).getRouter()
 );
 
 app.use(
