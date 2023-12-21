@@ -26,6 +26,7 @@ import Name from 'Common/Types/Name';
 import Reseller from './Reseller';
 import ResellerPlan from './ResellerPlan';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/ColumnBillingAccessControl';
 
 @EnableDocumentation({
     isMasterAdminApiDocs: true,
@@ -528,6 +529,7 @@ export default class Model extends TenantModel {
     })
     public workflowRunsInLast30Days?: number = undefined;
 
+
     @ColumnAccessControl({
         create: [],
         read: [
@@ -554,6 +556,11 @@ export default class Model extends TenantModel {
         nullable: false,
         unique: false,
         default: false,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Scale,
+        create: PlanSelect.Free,
     })
     public requireSsoForLogin?: boolean = undefined;
 
