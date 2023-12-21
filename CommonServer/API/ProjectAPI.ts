@@ -16,6 +16,8 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import Response from '../Utils/Response';
 import TeamMember from 'Model/Models/TeamMember';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
+import ResellerService from '../Services/ResellerService';
+import Reseller from 'Model/Models/Reseller';
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
     public constructor() {
@@ -83,6 +85,28 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                             }) === -1
                         ) {
                             projects.push(teamMember.project!);
+                        }
+                    }
+
+                    // get reseller for each project. 
+                    for(const project of projects) {
+                        if(project.resellerId) {
+
+                            const reseller: Reseller | null = await ResellerService.findOneById({
+                                id: project.resellerId,
+                                select: {
+                                    enableTelemetryFeatures: true
+                                },
+                                props: {
+                                    isRoot: true,
+                                }
+                            });
+
+                            if(!reseller) {
+                                continue;
+                            }
+
+                            project.reseller = reseller;
                         }
                     }
 
