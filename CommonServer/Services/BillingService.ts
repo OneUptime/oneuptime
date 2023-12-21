@@ -143,7 +143,7 @@ export class BillingService extends BaseService {
             );
 
         for (const serverMeteredPlan of data.serverMeteredPlans) {
-            await serverMeteredPlan.updateCurrentQuantity(data.projectId, {
+            await serverMeteredPlan.reportQuantityToBillingProvider(data.projectId, {
                 meteredPlanSubscriptionId: meteredSubscription.id,
             });
         }

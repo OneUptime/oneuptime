@@ -14,7 +14,7 @@ export default class ServerMeteredPlan {
         return this.meteredPlan;
     }
 
-    public static async updateCurrentQuantity(
+    public static async reportQuantityToBillingProvider(
         _projectId: ObjectID,
         _options: {
             meteredPlanSubscriptionId?: string | undefined;

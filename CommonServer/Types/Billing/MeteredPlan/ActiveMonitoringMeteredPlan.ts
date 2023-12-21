@@ -18,7 +18,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         return meteredPlan;
     }
 
-    public static override async updateCurrentQuantity(
+    public static override async reportQuantityToBillingProvider(
         projectId: ObjectID,
         options?: {
             meteredPlanSubscriptionId?: string | undefined;

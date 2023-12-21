@@ -40,7 +40,7 @@ export class Service extends DatabaseService<Model> {
         _itemIdsBeforeDelete: ObjectID[]
     ): Promise<OnDelete<Model>> {
         if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
-            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(
+            await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
                 onDelete.deleteBy.props.tenantId
             );
         }
@@ -161,7 +161,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (IsBillingEnabled) {
-            await ActiveMonitoringMeteredPlan.updateCurrentQuantity(
+            await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
                 createdItem.projectId
             );
         }
