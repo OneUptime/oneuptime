@@ -1,5 +1,5 @@
 # Hugging Face Transformers
-transformers==4.34.0
+transformers==4.36.0
 
 # Rest api related stuff. 
 fastapi===0.103.2
