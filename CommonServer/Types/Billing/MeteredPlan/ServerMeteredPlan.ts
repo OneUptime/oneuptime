@@ -9,7 +9,7 @@ export default class ServerMeteredPlan {
         throw new NotImplementedException();
     }
 
-    public getMeteredPlan(projectId: ObjectID): MeteredPlan {
+    public getMeteredPlan(_projectId: ObjectID): MeteredPlan {
         throw new NotImplementedException();
     }
 

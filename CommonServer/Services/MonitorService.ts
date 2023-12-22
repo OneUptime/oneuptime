@@ -16,7 +16,6 @@ import MonitorProbe from 'Model/Models/MonitorProbe';
 import MonitorProbeService from './MonitorProbeService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
-import ActiveMonitoringMeteredPlan from '../Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan';
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
 import MonitorOwnerUser from 'Model/Models/MonitorOwnerUser';
@@ -29,6 +28,7 @@ import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DatabaseConfig from '../DatabaseConfig';
+import { ActiveMonitoringMeteredPlan } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

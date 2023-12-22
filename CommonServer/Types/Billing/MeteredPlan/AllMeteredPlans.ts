@@ -1,13 +1,18 @@
-import ActiveMonitoringMeteredPlan from './ActiveMonitoringMeteredPlan';
+import ActiveMonitoringMeteredPlanType from './ActiveMonitoringMeteredPlan';
 import ServerMeteredPlan from './ServerMeteredPlan';
-import TelemetryMeteredPlan from './TelemetryMeteredPlan';
+import TelemetryMeteredPlanType from './TelemetryMeteredPlan';
 import { ProductType } from 'Model/Models/UsageBilling';
 
+export const ActiveMonitoringMeteredPlan:ActiveMonitoringMeteredPlanType  = new ActiveMonitoringMeteredPlanType();
+export const LogDataIngestMeteredPlan:TelemetryMeteredPlanType =  new TelemetryMeteredPlanType(ProductType.Logs);
+export const MetricsDataIngestMeteredPlan: TelemetryMeteredPlanType =  new TelemetryMeteredPlanType(ProductType.Metrics);
+export const TracesDataIngestMetredPlan: TelemetryMeteredPlanType =     new TelemetryMeteredPlanType(ProductType.Traces);
+
 const AllMeteredPlans: Array<ServerMeteredPlan> = [
-    new ActiveMonitoringMeteredPlan(),
-    new TelemetryMeteredPlan(ProductType.Logs),
-    new TelemetryMeteredPlan(ProductType.Metrics),
-    new TelemetryMeteredPlan(ProductType.Traces),
+    ActiveMonitoringMeteredPlan, 
+    LogDataIngestMeteredPlan,
+    MetricsDataIngestMeteredPlan,
+    TracesDataIngestMetredPlan
 ];
 
 export default AllMeteredPlans;
