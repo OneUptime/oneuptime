@@ -12,6 +12,7 @@ export class Service extends DatabaseService<Model> {
 
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
     public async getUnreportedUsageBilling(data: { projectId: ObjectID; productType: ProductType; }): Promise<Model[]> {

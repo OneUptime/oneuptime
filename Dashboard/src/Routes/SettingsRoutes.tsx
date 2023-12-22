@@ -160,6 +160,13 @@ const ScheduledMaintenanceNoteTemplateView: LazyExoticComponent<
     return import('../Pages/Settings/ScheduledMaintenanceNoteTemplateView');
 });
 
+const SettingsUsageHistory: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/UsageHistory');
+});
+
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -201,7 +208,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_TEMPLATES
+                                PageMap.SETTINGS_INCIDENT_TEMPLATES
                                 ] as Route
                             }
                         />
@@ -212,7 +219,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                    PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
                     ] || ''
                 }
                 element={
@@ -221,7 +228,28 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+
+            <PageRoute
+                path={
+                    SettingsRoutePath[
+                    PageMap.SETTINGS_USAGE_HISTORY
+                    ] || ''
+                }
+                element={
+                    <Suspense fallback={Loader}>
+                        <SettingsUsageHistory
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                PageMap.SETTINGS_USAGE_HISTORY
                                 ] as Route
                             }
                         />
@@ -237,7 +265,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_FEATURE_FLAGS
+                                PageMap.SETTINGS_FEATURE_FLAGS
                                 ] as Route
                             }
                         />
@@ -248,7 +276,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
                     ] || ''
                 }
                 element={
@@ -257,7 +285,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                                PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
                                 ] as Route
                             }
                         />
@@ -268,7 +296,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
                     ] || ''
                 }
                 element={
@@ -277,8 +305,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                                PageMap
+                                    .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
                                 ] as Route
                             }
                         />
@@ -289,7 +317,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
                     ] || ''
                 }
                 element={
@@ -298,8 +326,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
                                 ] as Route
                             }
                         />
@@ -310,8 +338,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap
-                            .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                    PageMap
+                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
                     ] || ''
                 }
                 element={
@@ -320,8 +348,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
                                 ] as Route
                             }
                         />
@@ -379,7 +407,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITORS_STATUS
+                                PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
                         />
@@ -395,7 +423,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
                         />
@@ -406,7 +434,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                     ] || ''
                 }
                 element={
@@ -415,7 +443,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
                         />
@@ -445,7 +473,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                PageMap.SETTINGS_INCIDENTS_SEVERITY
                                 ] as Route
                             }
                         />
@@ -520,7 +548,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -531,7 +559,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
                     ] || ''
                 }
                 element={
@@ -540,7 +568,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -551,7 +579,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                     ] || ''
                 }
                 element={
@@ -560,8 +588,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -572,7 +600,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
                     ] || ''
                 }
                 element={
@@ -581,7 +609,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -592,7 +620,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     SettingsRoutePath[
-                        PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                    PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                     ] || ''
                 }
                 element={
@@ -601,8 +629,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                                 ] as Route
                             }
                         />
@@ -634,7 +662,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_BILLING_INVOICES
+                                PageMap.SETTINGS_BILLING_INVOICES
                                 ] as Route
                             }
                         />

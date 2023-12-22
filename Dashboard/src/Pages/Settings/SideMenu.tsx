@@ -297,6 +297,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     />
                     <SideMenuItem
                         link={{
+                            title: 'Usage History',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[
+                                    PageMap.SETTINGS_USAGE_HISTORY
+                                ] as Route
+                            ),
+                        }}
+                        icon={IconProp.ChartBar}
+                    />
+                    <SideMenuItem
+                        link={{
                             title: 'Invoices',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[

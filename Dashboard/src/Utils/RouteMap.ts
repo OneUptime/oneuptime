@@ -123,6 +123,7 @@ export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW]: `scheduled-maintenance-note-templates/${RouteParams.ModelID}`,
     [PageMap.SETTINGS_BILLING]: 'billing',
     [PageMap.SETTINGS_BILLING_INVOICES]: 'invoices',
+    [PageMap.SETTINGS_USAGE_HISTORY]: 'usage-history',
     [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
     [PageMap.SETTINGS_LABELS]: 'labels',
     [PageMap.SETTINGS_PROBES]: 'probes',
@@ -175,6 +176,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`
     ),
+
     [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`
     ),
