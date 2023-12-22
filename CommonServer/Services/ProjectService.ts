@@ -1162,5 +1162,24 @@ export class Service extends DatabaseService<Model> {
 
         return Boolean(project.enableSmsNotifications);
     }
+
+
+    public async getTelemetryDataRetentionInDays(projectId: ObjectID): Promise<number> {
+        const project: Model | null = await this.findOneById({
+            id: projectId,
+            select: {
+                retainTelemetryDataForDays: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!project) {
+            throw new BadDataException('Project not found');
+        }
+
+        return project.retainTelemetryDataForDays || 15; // default is 15 days.
+    }
 }
 export default new Service();

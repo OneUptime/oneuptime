@@ -166,6 +166,12 @@ const SettingsUsageHistory: LazyExoticComponent<
     return import('../Pages/Settings/UsageHistory');
 });
 
+const SettingsDataRentention: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/DataRentention');
+});
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -657,6 +663,25 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_BILLING_INVOICES
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+
+<PageRoute
+                path={
+                    SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION] || ''
+                }
+                element={
+                    <Suspense fallback={Loader}>
+                        <SettingsDataRentention
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_DATA_RETENTION
                                 ] as Route
                             }
                         />
