@@ -16,6 +16,7 @@ import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
 import Errors from '../Utils/Errors';
 import ProjectService from './ProjectService';
+import { ProductType } from 'Model/Models/UsageBilling';
 
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
@@ -38,17 +39,6 @@ export interface Invoice {
     downloadableLink: string;
     customerId: string | undefined;
 }
-
-export enum MeteredPlanName {
-    ActiveMonitoring = 'ActiveMonitoring',
-    LogsDataIngestion = 'LogsDataIngestion',
-    TracesDataIngestion = 'TracesDataIngestion',
-    MetricsDataIngestion = 'MetricsDataIngestion',
-}
-
-export const MeteredPlanNameArray: Array<MeteredPlanName> = [
-    ...Object.values(MeteredPlanName),
-];
 
 export class BillingService extends BaseService {
     public constructor() {
@@ -843,9 +833,9 @@ export class BillingService extends BaseService {
         };
     }
 
-    public getMeteredPlanPriceId(name: MeteredPlanName): string {
+    public getMeteredPlanPriceId(productType: ProductType): string {
 
-        if (name === MeteredPlanName.ActiveMonitoring) {
+        if (productType === ProductType.ActiveMonitoring) {
 
             if (this.isTestEnvironment()) {
                 return 'price_1N6CHFANuQdJ93r7qDaLmb7S';
@@ -855,7 +845,7 @@ export class BillingService extends BaseService {
         }
 
 
-        if (name === MeteredPlanName.LogsDataIngestion) {
+        if (productType === ProductType.Logs) {
 
             if (this.isTestEnvironment()) {
                 return 'price_1OPnB5ANuQdJ93r7jG4NLCJG';
@@ -865,7 +855,7 @@ export class BillingService extends BaseService {
         }
 
 
-        if (name === MeteredPlanName.TracesDataIngestion) {
+        if (productType === ProductType.Traces) {
 
             if (this.isTestEnvironment()) {
                 return 'price_1OQ8i9ANuQdJ93r75J3wr0PX';
@@ -875,7 +865,7 @@ export class BillingService extends BaseService {
         }
 
 
-        if (name === MeteredPlanName.MetricsDataIngestion) {
+        if (productType === ProductType.Metrics) {
 
             if (this.isTestEnvironment()) {
                 return 'price_1OQ8iqANuQdJ93r7wZ7gJ7Gb';
@@ -885,34 +875,33 @@ export class BillingService extends BaseService {
         }
 
 
-        throw new BadDataException('Plan with name ' + name + ' not found');
+        throw new BadDataException('Plan with productType ' + productType + ' not found');
 
     }
 
     public async getMeteredPlan(data: {
-        meteredPlanName: MeteredPlanName,
+        productType: ProductType,
         projectId: ObjectID
     }): Promise<MeteredPlan> {
 
-        if (data.meteredPlanName === MeteredPlanName.ActiveMonitoring) {
+        if (data.productType === ProductType.ActiveMonitoring) {
             return new MeteredPlan(
                 {
-                    priceId: this.getMeteredPlanPriceId(data.meteredPlanName),
+                    priceId: this.getMeteredPlanPriceId(data.productType),
                     pricePerUnitInUSD: 1,
                     unitName: 'Active Monitor',
                 }
             );
         }
 
-
         const dataRetentionDays = await ProjectService.getTelemetryDataRetentionInDays(data.projectId);
 
         const dataRetentionMultiplier: number = 0.1; // if the retention is 10 days for example, the cost per GB will be 0.01$ per GB per day (0.10 * dataRetentionDays * dataRetentionMultiplier).
 
-        if (data.meteredPlanName === MeteredPlanName.LogsDataIngestion) {
+        if (data.productType === ProductType.Logs) {
             return new MeteredPlan(
                 {
-                    priceId: this.getMeteredPlanPriceId(data.meteredPlanName),
+                    priceId: this.getMeteredPlanPriceId(data.productType),
                     pricePerUnitInUSD: 0.10 * dataRetentionDays * dataRetentionMultiplier,
                     unitName: `per GB for ${dataRetentionDays} days data retention.`,
                 }
@@ -920,10 +909,10 @@ export class BillingService extends BaseService {
         }
 
 
-        if (data.meteredPlanName === MeteredPlanName.TracesDataIngestion) {
+        if (data.productType === ProductType.Traces) {
             return new MeteredPlan(
                 {
-                    priceId: this.getMeteredPlanPriceId(data.meteredPlanName),
+                    priceId: this.getMeteredPlanPriceId(data.productType),
                     pricePerUnitInUSD: 0.10 * dataRetentionDays * dataRetentionMultiplier,
                     unitName: `per GB for ${dataRetentionDays} days data retention.`,
                 }
@@ -931,10 +920,10 @@ export class BillingService extends BaseService {
         }
 
 
-        if (data.meteredPlanName === MeteredPlanName.MetricsDataIngestion) {
+        if (data.productType === ProductType.Metrics) {
             return new MeteredPlan(
                 {
-                    priceId: this.getMeteredPlanPriceId(data.meteredPlanName),
+                    priceId: this.getMeteredPlanPriceId(data.productType),
                     pricePerUnitInUSD: 0.10 * dataRetentionDays * dataRetentionMultiplier,
                     unitName: `per GB for ${dataRetentionDays} days data retention.`,
                 }
@@ -942,7 +931,7 @@ export class BillingService extends BaseService {
         }
 
 
-        throw new BadDataException('Plan with name ' + data.meteredPlanName + ' not found');
+        throw new BadDataException('Plan with name ' + data.productType + ' not found');
 
     }
 

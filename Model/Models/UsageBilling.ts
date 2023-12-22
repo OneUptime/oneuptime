@@ -21,6 +21,7 @@ export enum ProductType {
     Logs = 'Logs',
     Traces = 'Traces',
     Metrics = 'Metrics',
+    ActiveMonitoring = 'ActiveMonitoring', // eventually this will be migrated to this table. For now, it's in Project table.
 }
 
 @TenantColumn('projectId')

@@ -6,6 +6,8 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from '../Types/Database/QueryHelper';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { MeteredPlanUtil } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
+import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -46,6 +48,13 @@ export class Service extends DatabaseService<Model> {
         productType: ProductType;
         usageCount: number;
     }): Promise<void> {
+
+        const serverMeteredPlan = MeteredPlanUtil.getServerMeteredPlanByProductType(data.productType);
+
+        const meteredPlan: MeteredPlan = await serverMeteredPlan.getMeteredPlan(data.projectId);
+
+        const totalCostOfThisOperationInUSD = serverMeteredPlan.getCostByMeteredPlan(meteredPlan, data.usageCount);
+
         const usageBilling: Model | null = await this.findOneBy({
             query: {
                 projectId: data.projectId,
@@ -62,6 +71,7 @@ export class Service extends DatabaseService<Model> {
             select: {
                 _id: true,
                 usageCount: true,
+                totalCostInUSD: true,
             },
             props: {
                 isRoot: true,
@@ -77,6 +87,9 @@ export class Service extends DatabaseService<Model> {
                 data: {
                     usageCount:
                         (usageBilling.usageCount || 0) + data.usageCount,
+                    totalCostInUSD:
+                        (usageBilling.totalCostInUSD || 0) +
+                        totalCostOfThisOperationInUSD,
                 },
                 props: {
                     isRoot: true,
@@ -89,8 +102,9 @@ export class Service extends DatabaseService<Model> {
             usageBilling.usageCount = data.usageCount;
             usageBilling.isReportedToBillingProvider = false;
             usageBilling.createdAt = OneUptimeDate.getCurrentDate();
-
-            // add total cost in USD as well.
+            usageBilling.day = OneUptimeDate.getDateString(OneUptimeDate.getCurrentDate());
+            usageBilling.totalCostInUSD = totalCostOfThisOperationInUSD;
+            usageBilling.usageUnitName = meteredPlan.getUnitName(); // e.g. "GB"
 
             await this.create({
                 data: usageBilling,

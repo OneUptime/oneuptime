@@ -1,7 +1,7 @@
 import ServerMeteredPlan from './ServerMeteredPlan';
 import ObjectID from 'Common/Types/ObjectID';
 import ProjectService from '../../../Services/ProjectService';
-import BillingService, { MeteredPlanName } from '../../../Services/BillingService';
+import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
 import UsageBilling, { ProductType } from 'Model/Models/UsageBilling';
 import UsageBillingService from '../../../Services/UsageBillingService';
@@ -24,8 +24,8 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
     }
 
 
-    public override getMeteredPlanName(): MeteredPlanName {
-        return MeteredPlanName.LogsDataIngestion;
+    public override getProductType(): ProductType {
+        return this.productType;
     }
 
     public override async reportQuantityToBillingProvider(

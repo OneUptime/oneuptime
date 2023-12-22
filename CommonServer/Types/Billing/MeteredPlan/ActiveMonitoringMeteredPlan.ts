@@ -10,7 +10,7 @@ import Project from 'Model/Models/Project';
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
 
-    public override getMeteredPlanName(): MeteredPlanName {
+    public override getProductType(): MeteredPlanName {
         return MeteredPlanName.ActiveMonitoring;
     }
 
