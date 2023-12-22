@@ -9,20 +9,18 @@ import OneUptimeDate from 'Common/Types/Date';
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
 
-
-    
-    private _prodyctType!: ProductType;
-    public get prodyctType() : ProductType {
-        return this._prodyctType;
+    private _productType!: ProductType;
+    public get productType() : ProductType {
+        return this._productType;
     }
-    public set prodyctType(v : ProductType) {
-        this._prodyctType = v;
+    public set productType(v : ProductType) {
+        this._productType = v;
     }
     
 
     public constructor(productType: ProductType) {
         super();
-        this.prodyctType = productType; 
+        this.productType = productType; 
     }
 
 
@@ -41,7 +39,7 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
         const usageBillings: Array<UsageBilling> =
             await UsageBillingService.getUnreportedUsageBilling({
                 projectId: projectId,
-                productType: ProductType.Logs,
+                productType: this.productType,
             });
 
         if (usageBillings.length === 0) {
