@@ -77,7 +77,6 @@ import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDat
 import './Jobs/Workflow/TimeoutJobs';
 import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
 
-
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();

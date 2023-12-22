@@ -135,10 +135,7 @@ router.use(
                 serviceProjectId as string
             );
 
-
-            // report to Usage Service. 
-
-            
+            // report to Usage Service.
 
             next();
         } catch (err) {

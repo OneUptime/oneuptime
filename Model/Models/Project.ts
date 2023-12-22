@@ -529,7 +529,6 @@ export default class Model extends TenantModel {
     })
     public workflowRunsInLast30Days?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -540,16 +539,17 @@ export default class Model extends TenantModel {
         ],
         update: [],
     })
-    @TableColumn({ 
+    @TableColumn({
         type: TableColumnType.Number,
         title: 'Retain Telemetry Logs For Days',
-        description: 'Number of days to retain telemetry logs for this project.', 
+        description:
+            'Number of days to retain telemetry logs for this project.',
     })
     @Column({
         type: ColumnType.Number,
         nullable: true,
         unique: false,
-        default: 15
+        default: 15,
     })
     public retainTelemetryLogsForDays?: number = undefined;
 
@@ -563,16 +563,17 @@ export default class Model extends TenantModel {
         ],
         update: [],
     })
-    @TableColumn({ 
+    @TableColumn({
         type: TableColumnType.Number,
         title: 'Retain Telemetry Traces For Days',
-        description: 'Number of days to retain telemetry traces for this project.', 
+        description:
+            'Number of days to retain telemetry traces for this project.',
     })
     @Column({
         type: ColumnType.Number,
         nullable: true,
         unique: false,
-        default: 15
+        default: 15,
     })
     public retainTelemetryTracesForDays?: number = undefined;
 

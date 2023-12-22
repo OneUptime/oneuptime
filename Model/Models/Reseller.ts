@@ -268,8 +268,7 @@ export default class Reseller extends BaseModel {
         type: TableColumnType.Boolean,
         canReadOnRelationQuery: true,
         title: 'Enable Telemetry Features',
-        description:
-            'Should we enable telemetry features for this reseller?',
+        description: 'Should we enable telemetry features for this reseller?',
     })
     @Column({
         nullable: true,

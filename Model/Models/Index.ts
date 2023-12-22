@@ -265,5 +265,5 @@ export default [
 
     OnCallDutyPolicyEscalationRuleSchedule,
 
-    UsageBilling
+    UsageBilling,
 ];

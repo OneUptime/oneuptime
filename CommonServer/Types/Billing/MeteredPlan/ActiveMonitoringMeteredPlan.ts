@@ -70,6 +70,5 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
                 count.toNumber()
             );
         }
-
     }
 }

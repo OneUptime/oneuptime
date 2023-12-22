@@ -17,7 +17,6 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 
-
 export enum ProductType {
     Logs = 'Logs',
     Traces = 'Traces',
@@ -26,20 +25,14 @@ export enum ProductType {
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [
-
-    ],
+    create: [],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.CanManageProjectBilling,
     ],
-    delete: [
-
-    ],
-    update: [
-
-    ],
+    delete: [],
+    update: [],
 })
 @CrudApiEndpoint(new Route('/usage-billing'))
 @SlugifyColumn('name', 'slug')
@@ -56,9 +49,7 @@ export enum ProductType {
 })
 export default class UsageBilling extends AccessControlModel {
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -89,9 +80,7 @@ export default class UsageBilling extends AccessControlModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -116,17 +105,13 @@ export default class UsageBilling extends AccessControlModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanManageProjectBilling,
         ],
-        update: [
-
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -142,19 +127,14 @@ export default class UsageBilling extends AccessControlModel {
     })
     public day?: string = undefined; // this is of format DD-MM-YYYY
 
-
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanManageProjectBilling,
         ],
-        update: [
-
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -170,19 +150,14 @@ export default class UsageBilling extends AccessControlModel {
     })
     public productType?: ProductType = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanManageProjectBilling,
         ],
-        update: [
-
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -198,24 +173,21 @@ export default class UsageBilling extends AccessControlModel {
     public usageCount?: number = undefined;
 
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanManageProjectBilling,
         ],
-        update: [
-
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
         canReadOnRelationQuery: true,
         title: 'Usage Unit Name',
-        description: 'Usage Unit Name this usage billing was generated for (eg: GB, MB, etc.)',
+        description:
+            'Usage Unit Name this usage billing was generated for (eg: GB, MB, etc.)',
     })
     @Column({
         nullable: false,
@@ -225,17 +197,13 @@ export default class UsageBilling extends AccessControlModel {
     public usageUnitName?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanManageProjectBilling,
         ],
-        update: [
-
-        ],
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -250,50 +218,38 @@ export default class UsageBilling extends AccessControlModel {
     })
     public totalCostInUSD?: number = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-
-        ],
-        read: [
-            
-        ],
-        update: [
-
-        ],
+        create: [],
+        read: [],
+        update: [],
     })
     @TableColumn({
         required: true,
         type: TableColumnType.Boolean,
         canReadOnRelationQuery: true,
         title: 'Reported to Billing Provider',
-        description: 'Whether this usage billing was reported to billing provider or not (eg Stripe)',
+        description:
+            'Whether this usage billing was reported to billing provider or not (eg Stripe)',
     })
     @Column({
         nullable: false,
         type: ColumnType.Boolean,
-        default: false
+        default: false,
     })
     public isReportedToBillingProvider?: boolean = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-
-        ],
-        read: [
-            
-        ],
-        update: [
-
-        ],
+        create: [],
+        read: [],
+        update: [],
     })
     @TableColumn({
         required: false,
         type: TableColumnType.Date,
         canReadOnRelationQuery: true,
         title: 'Reported to Billing Provider At',
-        description: 'When this usage billing was reported to billing provider or not (eg Stripe)',
+        description:
+            'When this usage billing was reported to billing provider or not (eg Stripe)',
     })
     @Column({
         nullable: true,
@@ -301,12 +257,8 @@ export default class UsageBilling extends AccessControlModel {
     })
     public reportedToBillingProviderAt?: Date = undefined;
 
-
-
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -337,9 +289,7 @@ export default class UsageBilling extends AccessControlModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -412,5 +362,4 @@ export default class UsageBilling extends AccessControlModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }

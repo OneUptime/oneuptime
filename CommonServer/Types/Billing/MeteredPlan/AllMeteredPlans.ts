@@ -4,7 +4,7 @@ import ServerMeteredPlan from './ServerMeteredPlan';
 
 const AllMeteredPlans: Array<typeof ServerMeteredPlan> = [
     ActiveMonitoringMeteredPlan,
-    LogsDataIngestMeteredPlan
+    LogsDataIngestMeteredPlan,
 ];
 
 export default AllMeteredPlans;

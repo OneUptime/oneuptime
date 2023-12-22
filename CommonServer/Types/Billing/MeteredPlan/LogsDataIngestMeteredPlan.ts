@@ -23,14 +23,13 @@ export default class LogsDataIngestMeteredPlan extends ServerMeteredPlan {
             meteredPlanSubscriptionId?: string | undefined;
         }
     ): Promise<void> {
-
         // get all unreported logs
 
-        const usageBillings: Array<UsageBilling> = await UsageBillingService.getUnreportedUsageBilling({
-            projectId: projectId,
-            productType: ProductType.Logs
-        });
-
+        const usageBillings: Array<UsageBilling> =
+            await UsageBillingService.getUnreportedUsageBilling({
+                projectId: projectId,
+                productType: ProductType.Logs,
+            });
 
         if (usageBillings.length === 0) {
             return;
@@ -54,28 +53,31 @@ export default class LogsDataIngestMeteredPlan extends ServerMeteredPlan {
                 project.paymentProviderMeteredSubscriptionId) &&
             project.paymentProviderPlanId
         ) {
-
             for (const usageBilling of usageBillings) {
-
-                if (usageBilling?.usageCount && usageBilling?.usageCount > 0 && usageBilling.id) {
+                if (
+                    usageBilling?.usageCount &&
+                    usageBilling?.usageCount > 0 &&
+                    usageBilling.id
+                ) {
                     await BillingService.addOrUpdateMeteredPricingOnSubscription(
                         (options?.meteredPlanSubscriptionId as string) ||
-                        (project.paymentProviderMeteredSubscriptionId as string),
+                            (project.paymentProviderMeteredSubscriptionId as string),
                         LogsDataIngestMeteredPlan.getMeteredPlan(),
                         usageBilling.usageCount
                     );
 
-                    // now mark it as reported. 
+                    // now mark it as reported.
 
                     await UsageBillingService.updateOneById({
                         id: usageBilling.id,
                         data: {
                             isReportedToBillingProvider: true,
-                            reportedToBillingProviderAt: OneUptimeDate.getCurrentDate(),
+                            reportedToBillingProviderAt:
+                                OneUptimeDate.getCurrentDate(),
                         },
                         props: {
                             isRoot: true,
-                        }
+                        },
                     });
                 }
             }

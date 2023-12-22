@@ -11,12 +11,11 @@ import UsageBilling from 'Model/Models/UsageBilling';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DashboardNavigation from '../../Utils/Navigation';
 
-export interface ComponentProps extends PageComponentProps { }
+export interface ComponentProps extends PageComponentProps {}
 
 const Settings: FunctionComponent<ComponentProps> = (
     _props: ComponentProps
 ): ReactElement => {
-    
     return (
         <Page
             title={'Project Settings'}
@@ -42,72 +41,76 @@ const Settings: FunctionComponent<ComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-           
-
-           
-                <ModelTable<UsageBilling>
-                    modelType={UsageBilling}
-                    id="usage-history-table"
-                    isDeleteable={false}
-                    name="Settings > Billing > Usage History"
-                    isEditable={false}
-                    isCreateable={false}
-                    isViewable={false}
-                    cardProps={{
-                        title: 'Usage History',
-                        description:
-                            'Here is the usage history for this project.',
-                    }}
-                    noItemsMessage={'No usage history found. Maybe you have not used Telemetry features yet?'}
-                    query={{
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    }}
-                    showRefreshButton={true}
-                    showFilterButton={false}
-                    selectMoreFields={{
-                        usageUnitName: true,
-                    }}
-                    columns={[
-                        {
-                            field: {
-                                productType: true,
-                            },
-                            title: 'Product',
-                            type: FieldType.Text,
-                            isFilterable: true,
+            <ModelTable<UsageBilling>
+                modelType={UsageBilling}
+                id="usage-history-table"
+                isDeleteable={false}
+                name="Settings > Billing > Usage History"
+                isEditable={false}
+                isCreateable={false}
+                isViewable={false}
+                cardProps={{
+                    title: 'Usage History',
+                    description: 'Here is the usage history for this project.',
+                }}
+                noItemsMessage={
+                    'No usage history found. Maybe you have not used Telemetry features yet?'
+                }
+                query={{
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                showRefreshButton={true}
+                showFilterButton={false}
+                selectMoreFields={{
+                    usageUnitName: true,
+                }}
+                columns={[
+                    {
+                        field: {
+                            productType: true,
                         },
-                        {
-                            field: {
-                                createdAt: true,
-                            },
-                            title: 'Day',
-                            type: FieldType.Date,
-                            isFilterable: true,
+                        title: 'Product',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
                         },
-                        {
-                            field: {
-                                usageCount: true,
-                            },
-                            title: 'Usage',
-                            type: FieldType.Text,
-                            getElement: (item: JSONObject) => {
-                                return <div>{`${item['usageCount'] as string} ${item['usageUnitName'] as string}`}</div>;
-                            },
+                        title: 'Day',
+                        type: FieldType.Date,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            usageCount: true,
                         },
-                        {
-                            field: {
-                                totalCostInUSD: true,
-                            },
-                            title: 'Total Cost',
-                            type: FieldType.Text,
-                            getElement: (item: JSONObject) => {
-                                return <div>{`${item['totalCostInUSD'] as string} USD`}</div>;
-                            },
+                        title: 'Usage',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject) => {
+                            return (
+                                <div>{`${item['usageCount'] as string} ${
+                                    item['usageUnitName'] as string
+                                }`}</div>
+                            );
                         },
-                    ]}
-                />
-
+                    },
+                    {
+                        field: {
+                            totalCostInUSD: true,
+                        },
+                        title: 'Total Cost',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject) => {
+                            return (
+                                <div>{`${
+                                    item['totalCostInUSD'] as string
+                                } USD`}</div>
+                            );
+                        },
+                    },
+                ]}
+            />
         </Page>
     );
 };

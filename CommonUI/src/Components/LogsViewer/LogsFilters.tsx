@@ -33,9 +33,11 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
         props.onFilterChanged(filterOptions);
     }, [filterOptions]);
 
-
-    const showAutoScrollButton: boolean = !isSqlQuery && !showMoreFilters && !filterOptions.searchText; 
-    const showSearchButton: boolean = Boolean(showMoreFilters || filterOptions.searchText);
+    const showAutoScrollButton: boolean =
+        !isSqlQuery && !showMoreFilters && !filterOptions.searchText;
+    const showSearchButton: boolean = Boolean(
+        showMoreFilters || filterOptions.searchText
+    );
 
     return (
         <div className="shadow sm:overflow-hidden sm:rounded-md">
@@ -175,8 +177,6 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                     </div>
                                 </div>
                             )}
-
-                           
                         </div>
                         {showAutoScrollButton && (
                             <div>
@@ -211,7 +211,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 <div className="mt-12 -ml-8 justify-end flex w-44">
                                     <Button
                                         title="Search with SQL"
-                                        onClick={() => { }}
+                                        onClick={() => {}}
                                     />
                                 </div>
                             </div>
@@ -221,7 +221,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 <div className="mt-7 -ml-20 justify-end flex w-44">
                                     <Button
                                         title="Search"
-                                        onClick={() => { }}
+                                        onClick={() => {}}
                                         icon={IconProp.Search}
                                     />
                                 </div>

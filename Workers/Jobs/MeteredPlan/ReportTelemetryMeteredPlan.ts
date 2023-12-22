@@ -23,9 +23,7 @@ RunCron(
         }
 
         const projects: Array<Project> = await ProjectService.findBy({
-            query: {
-                
-            },
+            query: {},
             select: {
                 _id: true,
             },
@@ -38,11 +36,11 @@ RunCron(
 
         for (const project of projects) {
             if (project.id) {
-                await LogsDataIngestMeteredPlan.reportQuantityToBillingProvider(project.id);
+                await LogsDataIngestMeteredPlan.reportQuantityToBillingProvider(
+                    project.id
+                );
                 await Sleep.sleep(1000);
             }
         }
     }
 );
-
-

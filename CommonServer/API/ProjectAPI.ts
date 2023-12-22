@@ -88,21 +88,21 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                         }
                     }
 
-                    // get reseller for each project. 
-                    for(const project of projects) {
-                        if(project.resellerId) {
+                    // get reseller for each project.
+                    for (const project of projects) {
+                        if (project.resellerId) {
+                            const reseller: Reseller | null =
+                                await ResellerService.findOneById({
+                                    id: project.resellerId,
+                                    select: {
+                                        enableTelemetryFeatures: true,
+                                    },
+                                    props: {
+                                        isRoot: true,
+                                    },
+                                });
 
-                            const reseller: Reseller | null = await ResellerService.findOneById({
-                                id: project.resellerId,
-                                select: {
-                                    enableTelemetryFeatures: true
-                                },
-                                props: {
-                                    isRoot: true,
-                                }
-                            });
-
-                            if(!reseller) {
+                            if (!reseller) {
                                 continue;
                             }
 
