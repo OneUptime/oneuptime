@@ -17,8 +17,6 @@
   value: {{ $.Values.subscriptionPlan.scale }}
 - name: SUBSCRIPTION_PLAN_ENTERPRISE
   value: {{ $.Values.subscriptionPlan.enterprise }}
-- name: METERED_PLAN_ACTIVE_MONITORING
-  value: {{ $.Values.meteredPlan.activeMonitoring }}
 - name: ANALYTICS_KEY
   value: {{ $.Values.analytics.key }}
 - name: ANALYTICS_HOST
