@@ -115,7 +115,7 @@ export class BillingService extends BaseService {
     public async subscribeToMeteredPlan(data: {
         projectId: ObjectID;
         customerId: string;
-        serverMeteredPlans: Array<typeof ServerMeteredPlan> ;
+        serverMeteredPlans: Array<ServerMeteredPlan> ;
         trialDate: Date | null;
         defaultPaymentMethodId?: string | undefined;
         promoCode?: string | undefined;
@@ -127,9 +127,9 @@ export class BillingService extends BaseService {
             customer: data.customerId,
 
             items: data.serverMeteredPlans.map(
-                (item: typeof ServerMeteredPlan) => {
+                (item:  ServerMeteredPlan) => {
                     return {
-                        price: item.getMeteredPlan()?.getPriceId(),
+                        price: item.getPriceId(),
                     };
                 }
             ),
@@ -195,7 +195,7 @@ export class BillingService extends BaseService {
     public async subscribeToPlan(data: {
         projectId: ObjectID;
         customerId: string;
-        serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+        serverMeteredPlans: Array<ServerMeteredPlan>;
         plan: SubscriptionPlan;
         quantity: number;
         isYearly: boolean;
@@ -313,7 +313,7 @@ export class BillingService extends BaseService {
 
     public async addOrUpdateMeteredPricingOnSubscription(
         subscriptionId: string,
-        meteredPlan: MeteredPlan,
+        serverMeteredPlan: ServerMeteredPlan,
         quantity: number
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
@@ -337,7 +337,7 @@ export class BillingService extends BaseService {
 
         const pricingExists: boolean = subscription.items.data.some(
             (item: SubscriptionItem) => {
-                return item.price?.id === meteredPlan.getPriceId();
+                return item.price?.id === serverMeteredPlan.getPriceId();
             }
         );
 
@@ -345,7 +345,7 @@ export class BillingService extends BaseService {
             // update the quantity.
             const subscriptionItemId: string | undefined =
                 subscription.items.data.find((item: SubscriptionItem) => {
-                    return item.price?.id === meteredPlan.getPriceId();
+                    return item.price?.id === serverMeteredPlan.getPriceId();
                 })?.id;
 
             if (!subscriptionItemId) {
@@ -366,7 +366,7 @@ export class BillingService extends BaseService {
             const subscriptionItem: SubscriptionItem =
                 await this.stripe.subscriptionItems.create({
                     subscription: subscriptionId,
-                    price: meteredPlan.getPriceId(),
+                    price: serverMeteredPlan.getPriceId(),
                 });
 
             // use stripe usage based api to update the quantity.
@@ -470,7 +470,7 @@ export class BillingService extends BaseService {
         projectId: ObjectID;
         subscriptionId: string;
         meteredSubscriptionId: string;
-        serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+        serverMeteredPlans: Array<ServerMeteredPlan>;
         newPlan: SubscriptionPlan;
         quantity: number;
         isYearly: boolean;

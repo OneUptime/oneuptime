@@ -1,23 +1,36 @@
-import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
-import MeteredPlanUtil from './MeteredPlanUtil';
 import ServerMeteredPlan from './ServerMeteredPlan';
 import ObjectID from 'Common/Types/ObjectID';
 import ProjectService from '../../../Services/ProjectService';
-import BillingService from '../../../Services/BillingService';
+import BillingService, { MeteredPlanName } from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
 import UsageBilling, { ProductType } from 'Model/Models/UsageBilling';
 import UsageBillingService from '../../../Services/UsageBillingService';
 import OneUptimeDate from 'Common/Types/Date';
 
-export default class LogsDataIngestMeteredPlan extends ServerMeteredPlan {
-    public static override getMeteredPlan(): MeteredPlan {
-        const meteredPlan: MeteredPlan =
-            MeteredPlanUtil.getMeteredPlan('LOGS_DATA_INGEST');
-        this.meteredPlan = meteredPlan;
-        return meteredPlan;
+export default class TelemetryMeteredPlan extends ServerMeteredPlan {
+
+
+    
+    private _prodyctType!: ProductType;
+    public get prodyctType() : ProductType {
+        return this._prodyctType;
+    }
+    public set prodyctType(v : ProductType) {
+        this._prodyctType = v;
+    }
+    
+
+    public constructor(productType: ProductType) {
+        super();
+        this.prodyctType = productType; 
     }
 
-    public static override async reportQuantityToBillingProvider(
+
+    public override getMeteredPlanName(): MeteredPlanName {
+        return MeteredPlanName.LogsDataIngestion;
+    }
+
+    public override async reportQuantityToBillingProvider(
         projectId: ObjectID,
         options?: {
             meteredPlanSubscriptionId?: string | undefined;
@@ -62,7 +75,7 @@ export default class LogsDataIngestMeteredPlan extends ServerMeteredPlan {
                     await BillingService.addOrUpdateMeteredPricingOnSubscription(
                         (options?.meteredPlanSubscriptionId as string) ||
                             (project.paymentProviderMeteredSubscriptionId as string),
-                        LogsDataIngestMeteredPlan.getMeteredPlan(),
+                        this,
                         usageBilling.usageCount
                     );
 

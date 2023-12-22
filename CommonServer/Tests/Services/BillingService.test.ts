@@ -641,11 +641,11 @@ describe('BillingService', () => {
             it('should throw if billing is not enabled', async () => {
                 const subscriptionItem: SubscriptionItem | undefined =
                     mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
+                const meteredPlan: MeteredPlan = new MeteredPlan({
+                    priceId: subscriptionItem?.price?.id || '',
+                    pricePerUnitInUSD: 100,
+                    unitName: 'unit'
+                });
 
                 billingService = mockIsBillingEnabled(false);
 
@@ -661,11 +661,11 @@ describe('BillingService', () => {
             it('should successfully add metered pricing to a subscription', async () => {
                 const subscriptionItem: SubscriptionItem | undefined =
                     mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
+                const meteredPlan: MeteredPlan = new MeteredPlan({
+                    priceId: subscriptionItem?.price?.id || '',
+                    pricePerUnitInUSD: 100,
+                    unitName: 'unit'
+                });
 
                 mockSubscription.items.data = [];
 
@@ -702,11 +702,11 @@ describe('BillingService', () => {
             it('should successfully update existing metered pricing on a subscription', async () => {
                 const subscriptionItem: SubscriptionItem | undefined =
                     mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
+                const meteredPlan: MeteredPlan = new MeteredPlan({
+                    priceId: subscriptionItem?.price?.id || '',
+                    pricePerUnitInUSD: 100,
+                    unitName: 'unit'
+                });
 
                 mockStripe.subscriptions.retrieve = jest
                     .fn()
@@ -734,11 +734,11 @@ describe('BillingService', () => {
             it('should handle non-existent subscription', async () => {
                 const subscriptionItem: SubscriptionItem | undefined =
                     mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
+                const meteredPlan: MeteredPlan = new MeteredPlan({
+                    priceId: subscriptionItem?.price?.id || '',
+                    pricePerUnitInUSD: 100,
+                    unitName: 'unit'
+                });
 
                 const subscriptionId: string = 'sub_nonexistent';
                 mockStripe.subscriptions.retrieve = jest

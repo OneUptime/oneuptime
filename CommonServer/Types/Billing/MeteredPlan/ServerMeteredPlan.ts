@@ -1,25 +1,28 @@
-import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 import ObjectID from 'Common/Types/ObjectID';
+import BillingService, { MeteredPlanName } from '../../../Services/BillingService';
+import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 
 export default class ServerMeteredPlan {
-    public static meteredPlan: MeteredPlan | undefined = undefined;
-
-    public static getMeteredPlan(): MeteredPlan {
-        if (!this.meteredPlan) {
-            throw new BadDataException('Metered plan not found');
-        }
-
-        return this.meteredPlan;
+   
+    public getMeteredPlanName(): MeteredPlanName {
+        throw new NotImplementedException();
     }
 
-    public static async reportQuantityToBillingProvider(
+    public getMeteredPlan(projectId: ObjectID): MeteredPlan {
+        throw new NotImplementedException();
+    }
+
+    public async reportQuantityToBillingProvider(
         _projectId: ObjectID,
         _options: {
             meteredPlanSubscriptionId?: string | undefined;
         }
     ): Promise<void> {
         throw new NotImplementedException();
+    }
+
+    public getPriceId(): string {
+        return BillingService.getMeteredPlanPriceId(this.getMeteredPlanName());
     }
 }
