@@ -8,7 +8,7 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import logger from 'CommonServer/Utils/Logger';
 import Project from 'Model/Models/Project';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import LogsDataIngestMeteredPlan from 'CommonServer/Types/Billing/MeteredPlan/LogsDataIngestMeteredPlan';
+import { LogDataIngestMeteredPlan, TracesDataIngestMetredPlan, MetricsDataIngestMeteredPlan } from 'CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans';
 import Sleep from 'Common/Types/Sleep';
 
 RunCron(
@@ -36,9 +36,22 @@ RunCron(
 
         for (const project of projects) {
             if (project.id) {
-                await LogsDataIngestMeteredPlan.reportQuantityToBillingProvider(
+                await LogDataIngestMeteredPlan.reportQuantityToBillingProvider(
                     project.id
                 );
+                
+                await Sleep.sleep(1000);
+
+                await MetricsDataIngestMeteredPlan.reportQuantityToBillingProvider(
+                    project.id
+                );
+
+                await Sleep.sleep(1000);
+
+                await TracesDataIngestMetredPlan.reportQuantityToBillingProvider(
+                    project.id
+                );
+
                 await Sleep.sleep(1000);
             }
         }
