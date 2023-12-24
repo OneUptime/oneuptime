@@ -3,9 +3,15 @@ import BadDataException from '../../../Types/Exception/BadDataException';
 
 describe('CompareBase', () => {
     describe('toString', () => {
-        it('should return string representation of value', () => {
+        it('should return string representation of value if it is a number', () => {
             const compareBase: CompareBase = new CompareBase(10);
             expect(compareBase.toString()).toBe('10');
+        });
+
+        it('should return string representation of value if it is a date', () => {
+            const now: Date = new Date();
+            const compareBase: CompareBase = new CompareBase(now);
+            expect(compareBase.toString()).toBe(now.toJSON());
         });
     });
 
