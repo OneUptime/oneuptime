@@ -113,16 +113,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: ingestor
-       
-
-    file:
-        image:  oneuptime/file:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: file
-        
-
-  
+    
+    
     home:
         image:  oneuptime/home:${APP_TAG}
         extends:
