@@ -23,6 +23,10 @@ export default class ObjectID extends DatabaseProperty {
 
         this.id = id;
     }
+    
+    public get value() : string {
+        return this._id.toString();
+    }
 
     public equals(other: ObjectID): boolean {
         return this.id.toString() === other.id.toString();

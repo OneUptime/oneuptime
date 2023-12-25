@@ -85,6 +85,7 @@ export default class BaseAnalyticsAPI<
                 next: NextFunction
             ) => {
                 try {
+                    debugger;
                     await this.getList(req, res);
                 } catch (err) {
                     next(err);

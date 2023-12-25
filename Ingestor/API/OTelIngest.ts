@@ -25,6 +25,9 @@ import OTelIngestService from '../Service/OTelIngest';
 import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
 import TelemetryServiceService from 'CommonServer/Services/TelemetryServiceService';
 import TelemetryService from 'Model/Models/TelemetryService';
+import DiskSize from 'Common/Types/DiskSize';
+import UsageBillingService from 'CommonServer/Services/UsageBillingService';
+import { ProductType } from 'Model/Models/UsageBilling';
 
 // Load proto file for OTel
 
@@ -60,12 +63,26 @@ router.use(
     '/otel/*',
     async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
         try {
+
+
+            // size of req.body in bytes.
+            const sizeInBytes: number = Buffer.byteLength(
+                JSON.stringify(req.body)
+            );
+
+            let productType: ProductType;
+
+            const sizeToGb: number = DiskSize.byteSizeToGB(sizeInBytes);
+
             if (req.baseUrl === '/otel/v1/traces') {
                 req.body = TracesData.decode(req.body);
+                productType = ProductType.Traces;
             } else if (req.baseUrl === '/otel/v1/logs') {
                 req.body = LogsData.decode(req.body);
+                productType = ProductType.Logs;
             } else if (req.baseUrl === '/otel/v1/metrics') {
                 req.body = MetricsData.decode(req.body);
+                productType = ProductType.Metrics;
             } else {
                 throw new BadRequestException('Invalid URL: ' + req.baseUrl);
             }
@@ -136,6 +153,15 @@ router.use(
             );
 
             // report to Usage Service.
+
+            UsageBillingService.updateUsageBilling({
+                projectId: (req as OtelRequest).projectId,
+                productType: productType,
+                usageCount: sizeToGb,
+            }).catch((err: Error) => {
+                logger.error("Failed to update usage billing for OTel");
+                logger.error(err);
+            });
 
             next();
         } catch (err) {

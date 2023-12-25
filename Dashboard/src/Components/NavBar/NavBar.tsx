@@ -134,7 +134,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
-                            {/* <NavBarMenuItem
+                            <NavBarMenuItem
                                 title="Telemetry"
                                 description="Logs, Traces, Metrics and more."
                                 route={RouteUtil.populateRouteParams(
@@ -144,7 +144,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                     forceHideMoreMenu();
                                 }}
-                            /> */}
+                            />
 
                             <NavBarMenuItem
                                 title="On-Call Duty"
