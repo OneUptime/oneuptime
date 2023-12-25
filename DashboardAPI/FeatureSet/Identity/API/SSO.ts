@@ -265,7 +265,7 @@ router.post(
                     alreadySavedUser
                 );
 
-                return Response.render(req, res, '../Views/Message.ejs', {
+                return Response.render(req, res, '/usr/src/app/FeatureSet/Identity/Views/Message.ejs', {
                     title: 'Email not verified.',
                     message:
                         'Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.',
@@ -290,7 +290,7 @@ router.post(
                 // user not in project, add him to default teams.
 
                 if (!projectSSO.teams || projectSSO.teams.length === 0) {
-                    return Response.render(req, res, '../Views/Message.ejs', {
+                    return Response.render(req, res, '/usr/src/app/FeatureSet/Identity/Views/Message.ejs', {
                         title: 'No teams added.',
                         message:
                             'No teams have been added to this SSO config. Please contact your admin and have default teams added.',
@@ -320,7 +320,7 @@ router.post(
             }
 
             if (isNewUser) {
-                return Response.render(req, res, '../Views/Message.ejs', {
+                return Response.render(req, res, '/usr/src/app/FeatureSet/Identity/Views/Message.ejs', {
                     title: 'You have not signed up so far.',
                     message:
                         'You need to sign up for an account on OneUptime with this email:' +
