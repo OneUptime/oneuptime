@@ -39,7 +39,7 @@ export class CallService extends BaseService {
             new URL(
                 Protocol.HTTP,
                 DashboardApiHostname,
-                new Route('/notification/call/make-call')
+                new Route('/api/notification/call/make-call')
             ),
             body,
             {

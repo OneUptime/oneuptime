@@ -17,7 +17,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 const router: ExpressRouter = Express.getRouter();
 
 router.post(
-    '/notification/recharge',
+    '/api/notification/recharge',
     UserMiddleware.getUserMiddleware,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {

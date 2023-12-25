@@ -40,7 +40,7 @@ export class SmsService extends BaseService {
             new URL(
                 Protocol.HTTP,
                 DashboardApiHostname,
-                new Route('/notification/sms/send')
+                new Route('/api/notification/sms/send')
             ),
             body,
             {

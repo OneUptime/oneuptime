@@ -50,7 +50,7 @@ export class MailService extends BaseService {
             new URL(
                 Protocol.HTTP,
                 DashboardApiHostname,
-                new Route('/notification/email/send')
+                new Route('/api/notification/email/send')
             ),
             body,
             {
