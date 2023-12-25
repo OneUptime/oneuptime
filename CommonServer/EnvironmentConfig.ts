@@ -67,11 +67,6 @@ export const RealtimeHostname: Hostname = Hostname.fromString(
     }`
 );
 
-export const NotificationHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_NOTIFICATION_HOSTNAME'] || 'localhost'}:${
-        process.env['NOTIFICATION_PORT'] || 80
-    }`
-);
 
 export const WorkerHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_WORKERS_HOSTNAME'] || 'localhost'}:${

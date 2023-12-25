@@ -33,8 +33,6 @@
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_HOME_HOSTNAME
   value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_NOTIFICATION_HOSTNAME
-  value: {{ $.Release.Name }}-notification.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKERS_HOSTNAME
