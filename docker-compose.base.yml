@@ -357,20 +357,7 @@ services:
             - notification
        
 
-    file:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-server-variables
-            PORT: ${FILE_PORT}
-        depends_on:
-            - postgres
-        links:
-            - postgres
-        
 
-  
     home:
         networks:
           - oneuptime
