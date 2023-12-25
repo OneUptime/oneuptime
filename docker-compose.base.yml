@@ -23,7 +23,6 @@ x-common-variables: &common-variables
     SERVER_INGESTOR_HOSTNAME: ingestor
     SERVER_TEST_SERVER_HOSTNAME: test-server
     SERVER_HOME_HOSTNAME: home
-    SERVER_NOTIFICATION_HOSTNAME: notification
     SERVER_WORKERS_HOSTNAME: workers
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
@@ -41,7 +40,6 @@ x-common-variables: &common-variables
     PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     HOME_PORT: ${HOME_PORT}
-    NOTIFICATION_PORT: ${NOTIFICATION_PORT}
     REALTIME_PORT: ${REALTIME_PORT}
     WORKERS_PORT: ${WORKERS_PORT}
     ACCOUNTS_PORT: ${ACCOUNTS_PORT}
@@ -144,22 +142,6 @@ services:
           - oneuptime
         volumes: 
             - postgres:/var/lib/postgresql/data
-    
-    notification:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-server-variables
-            PORT: ${NOTIFICATION_PORT}
-            SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
-            CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE: ${CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE}
-            SMS_HIGH_RISK_COST_IN_CENTS: ${SMS_HIGH_RISK_COST_IN_CENTS}
-            CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE: ${CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE}
-            INTERNAL_SMTP_EMAIL: ${INTERNAL_SMTP_EMAIL}
-            INTERNAL_SMTP_PASSWORD: ${INTERNAL_SMTP_PASSWORD}
-        depends_on:
-            - haraka
         
     accounts:
         networks:
@@ -220,11 +202,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - notification
+            
         links:
             - redis
             - postgres
-            - notification
+            
        
         
 
@@ -238,11 +220,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - notification
+            
         links:
             - redis
             - postgres
-            - notification
+            
         
     
     workers:
@@ -255,10 +237,10 @@ services:
             ENVIRONMENT: ${ENVIRONMENT}
         depends_on:
             - postgres
-            - notification
+            
         links:
             - postgres
-            - notification
+            
         volumes:
             - ./Certs:/usr/src/Certs
         
@@ -320,11 +302,11 @@ services:
         depends_on:
             - redis
             - postgres
-            - notification
+            
         links:
             - redis
             - postgres
-            - notification
+            
        
 
 
@@ -352,7 +334,7 @@ services:
             - dashboard-api
             - dashboard
             - home
-            - notification
+            
             - otel-collector
         restart: always
         networks:

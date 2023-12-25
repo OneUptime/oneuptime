@@ -113,20 +113,6 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Notification",
-            "name": "Notification: Debug with Docker",
-            "port": 9111,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Realtime",
             "name": "Realtime: Debug with Docker",
             "port": 9250,
@@ -172,20 +158,6 @@
             "localRoot": "${workspaceFolder}/Ingestor",
             "name": "Probe API: Debug with Docker",
             "port": 9251,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Identity",
-            "name": "Identity: Debug with Docker",
-            "port": 9132,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [

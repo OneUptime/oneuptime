@@ -26,12 +26,7 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: postgres
-    
-    notification:
-        image:  oneuptime/notification:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: notification
+
     
     otel-collector:
         image:  oneuptime/otel-collector:${APP_TAG}
