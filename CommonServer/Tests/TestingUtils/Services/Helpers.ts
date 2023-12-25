@@ -18,7 +18,7 @@ import {
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 const mockIsBillingEnabled: Function = (value: boolean): BillingService => {
     jest.resetModules();
-    jest.doMock('../../../EnvironmentConfig', () => {
+    jest.doMock('../../../BillingConfig', () => {
         return {
             IsBillingEnabled: value,
         };

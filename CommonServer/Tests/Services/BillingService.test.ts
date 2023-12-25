@@ -34,6 +34,7 @@ import {
     Subscription,
 } from '../TestingUtils/Services/Types';
 import { ActiveMonitoringMeteredPlan } from '../../Types/Billing/MeteredPlan/AllMeteredPlans';
+import Database from '../TestingUtils/Database';
 
 describe('BillingService', () => {
     let billingService: BillingService;
@@ -42,9 +43,20 @@ describe('BillingService', () => {
         customer.id.toString()
     );
 
-    beforeEach(() => {
-        jest.clearAllMocks();
-        billingService = mockIsBillingEnabled(true);
+    let database!: Database;
+
+    beforeEach(
+        async () => {
+            jest.clearAllMocks();
+            billingService = mockIsBillingEnabled(true);
+            database = new Database();
+            await database.createAndConnect();
+        },
+        10 * 1000 // 10 second timeout because setting up the DB is slow
+    );
+
+    afterEach(async () => {
+        await database.disconnectAndDropDatabase();
     });
 
     describe('Customer Management', () => {
@@ -193,19 +205,6 @@ describe('BillingService', () => {
                     })
                 );
             });
-
-            // it.only('should handle invalid metered plans', async () => {
-            //     const mp: MeteredPlan = new MeteredPlan('price_123', 100, 'unit');
-            //     subscription.serverMeteredPlans = [];
-
-            //     (
-            //         mockStripe.subscriptions.create as jest.Mock
-            //     ).mockResolvedValueOnce(mockSubscription);
-
-            //     await expect(
-            //         billingService.subscribeToMeteredPlan(subscription)
-            //     ).rejects.toThrow();
-            // });
 
             it('should handle API errors during subscription creation', async () => {
                 mockStripe.subscriptions.create = jest
