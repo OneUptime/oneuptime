@@ -16,13 +16,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.9",
     "Model": "file:../Model",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "xml-crypto": "^5.0.0",
+    "xml2js": "^0.6.2",
+    "xmldom": "^0.6.0"
   },
   "devDependencies": {
     "@types/node": "^17.0.31",
+    "@types/xml2js": "^0.4.14",
+    "@types/xmldom": "^0.1.34",
     "jest": "^28.1.0",
     "nodemon": "^2.0.20"
   }
