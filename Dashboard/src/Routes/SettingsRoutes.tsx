@@ -160,6 +160,18 @@ const ScheduledMaintenanceNoteTemplateView: LazyExoticComponent<
     return import('../Pages/Settings/ScheduledMaintenanceNoteTemplateView');
 });
 
+const SettingsUsageHistory: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/UsageHistory');
+});
+
+const SettingsDataRentention: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/DataRentention');
+});
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -222,6 +234,22 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+            <PageRoute
+                path={SettingsRoutePath[PageMap.SETTINGS_USAGE_HISTORY] || ''}
+                element={
+                    <Suspense fallback={Loader}>
+                        <SettingsUsageHistory
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_USAGE_HISTORY
                                 ] as Route
                             }
                         />
@@ -635,6 +663,25 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_BILLING_INVOICES
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+
+<PageRoute
+                path={
+                    SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION] || ''
+                }
+                element={
+                    <Suspense fallback={Loader}>
+                        <SettingsDataRentention
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_DATA_RETENTION
                                 ] as Route
                             }
                         />

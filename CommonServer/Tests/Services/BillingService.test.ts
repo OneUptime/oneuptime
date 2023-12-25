@@ -33,6 +33,7 @@ import {
     PaymentMethodsResponse,
     Subscription,
 } from '../TestingUtils/Services/Types';
+import { ActiveMonitoringMeteredPlan } from '../../Types/Billing/MeteredPlan/AllMeteredPlans';
 
 describe('BillingService', () => {
     let billingService: BillingService;
@@ -639,20 +640,13 @@ describe('BillingService', () => {
             const quantity: number = 10;
 
             it('should throw if billing is not enabled', async () => {
-                const subscriptionItem: SubscriptionItem | undefined =
-                    mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
-
+               
                 billingService = mockIsBillingEnabled(false);
 
                 await expect(
                     billingService.addOrUpdateMeteredPricingOnSubscription(
                         mockSubscription.id,
-                        meteredPlan,
+                        ActiveMonitoringMeteredPlan,
                         quantity
                     )
                 ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
@@ -661,11 +655,11 @@ describe('BillingService', () => {
             it('should successfully add metered pricing to a subscription', async () => {
                 const subscriptionItem: SubscriptionItem | undefined =
                     mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
+                const meteredPlan: MeteredPlan = new MeteredPlan({
+                    priceId: subscriptionItem?.price?.id || '',
+                    pricePerUnitInUSD: 100,
+                    unitName: 'unit'
+                });
 
                 mockSubscription.items.data = [];
 
@@ -681,7 +675,7 @@ describe('BillingService', () => {
 
                 await billingService.addOrUpdateMeteredPricingOnSubscription(
                     mockSubscription.id,
-                    meteredPlan,
+                    ActiveMonitoringMeteredPlan,
                     quantity
                 );
 
@@ -702,11 +696,6 @@ describe('BillingService', () => {
             it('should successfully update existing metered pricing on a subscription', async () => {
                 const subscriptionItem: SubscriptionItem | undefined =
                     mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
 
                 mockStripe.subscriptions.retrieve = jest
                     .fn()
@@ -717,7 +706,7 @@ describe('BillingService', () => {
 
                 await billingService.addOrUpdateMeteredPricingOnSubscription(
                     mockSubscription.id,
-                    meteredPlan,
+                    ActiveMonitoringMeteredPlan,
                     quantity
                 );
 
@@ -732,13 +721,8 @@ describe('BillingService', () => {
             });
 
             it('should handle non-existent subscription', async () => {
-                const subscriptionItem: SubscriptionItem | undefined =
-                    mockSubscription.items.data[0];
-                const meteredPlan: MeteredPlan = new MeteredPlan(
-                    subscriptionItem?.price?.id || '',
-                    100,
-                    'unit'
-                );
+               
+
 
                 const subscriptionId: string = 'sub_nonexistent';
                 mockStripe.subscriptions.retrieve = jest
@@ -748,7 +732,7 @@ describe('BillingService', () => {
                 await expect(
                     billingService.addOrUpdateMeteredPricingOnSubscription(
                         subscriptionId,
-                        meteredPlan,
+                        ActiveMonitoringMeteredPlan,
                         quantity
                     )
                 ).rejects.toThrow(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);

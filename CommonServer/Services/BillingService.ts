@@ -15,6 +15,9 @@ import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
 import Errors from '../Utils/Errors';
+import ProjectService from './ProjectService';
+import { ProductType } from 'Model/Models/UsageBilling';
+
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -102,7 +105,7 @@ export class BillingService extends BaseService {
     public async subscribeToMeteredPlan(data: {
         projectId: ObjectID;
         customerId: string;
-        serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+        serverMeteredPlans: Array<ServerMeteredPlan> ;
         trialDate: Date | null;
         defaultPaymentMethodId?: string | undefined;
         promoCode?: string | undefined;
@@ -114,9 +117,9 @@ export class BillingService extends BaseService {
             customer: data.customerId,
 
             items: data.serverMeteredPlans.map(
-                (item: typeof ServerMeteredPlan) => {
+                (item:  ServerMeteredPlan) => {
                     return {
-                        price: item.getMeteredPlan()?.getPriceId(),
+                        price: item.getPriceId(),
                     };
                 }
             ),
@@ -142,15 +145,22 @@ export class BillingService extends BaseService {
             );
 
         for (const serverMeteredPlan of data.serverMeteredPlans) {
-            await serverMeteredPlan.updateCurrentQuantity(data.projectId, {
-                meteredPlanSubscriptionId: meteredSubscription.id,
-            });
+            await serverMeteredPlan.reportQuantityToBillingProvider(
+                data.projectId,
+                {
+                    meteredPlanSubscriptionId: meteredSubscription.id,
+                }
+            );
         }
 
         return {
             meteredSubscriptionId: meteredSubscription.id,
             trialEndsAt: data.trialDate,
         };
+    }
+
+    public isTestEnvironment(): boolean {
+        return BillingPrivateKey.startsWith('sk_test');
     }
 
     public async generateCouponCode(data: {
@@ -175,7 +185,7 @@ export class BillingService extends BaseService {
     public async subscribeToPlan(data: {
         projectId: ObjectID;
         customerId: string;
-        serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+        serverMeteredPlans: Array<ServerMeteredPlan>;
         plan: SubscriptionPlan;
         quantity: number;
         isYearly: boolean;
@@ -293,7 +303,7 @@ export class BillingService extends BaseService {
 
     public async addOrUpdateMeteredPricingOnSubscription(
         subscriptionId: string,
-        meteredPlan: MeteredPlan,
+        serverMeteredPlan: ServerMeteredPlan,
         quantity: number
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
@@ -317,7 +327,7 @@ export class BillingService extends BaseService {
 
         const pricingExists: boolean = subscription.items.data.some(
             (item: SubscriptionItem) => {
-                return item.price?.id === meteredPlan.getPriceId();
+                return item.price?.id === serverMeteredPlan.getPriceId();
             }
         );
 
@@ -325,7 +335,7 @@ export class BillingService extends BaseService {
             // update the quantity.
             const subscriptionItemId: string | undefined =
                 subscription.items.data.find((item: SubscriptionItem) => {
-                    return item.price?.id === meteredPlan.getPriceId();
+                    return item.price?.id === serverMeteredPlan.getPriceId();
                 })?.id;
 
             if (!subscriptionItemId) {
@@ -346,7 +356,7 @@ export class BillingService extends BaseService {
             const subscriptionItem: SubscriptionItem =
                 await this.stripe.subscriptionItems.create({
                     subscription: subscriptionId,
-                    price: meteredPlan.getPriceId(),
+                    price: serverMeteredPlan.getPriceId(),
                 });
 
             // use stripe usage based api to update the quantity.
@@ -381,7 +391,7 @@ export class BillingService extends BaseService {
         } catch (err) {
             throw new BadDataException(
                 (err as Error).message ||
-                    Errors.BillingService.PROMO_CODE_INVALID
+                Errors.BillingService.PROMO_CODE_INVALID
             );
         }
     }
@@ -414,9 +424,9 @@ export class BillingService extends BaseService {
         const subscriptionItemOptions: Stripe.SubscriptionItemDeleteParams =
             isMeteredSubscriptionItem
                 ? {
-                      proration_behavior: 'create_prorations',
-                      clear_usage: true,
-                  }
+                    proration_behavior: 'create_prorations',
+                    clear_usage: true,
+                }
                 : {};
 
         await this.stripe.subscriptionItems.del(
@@ -450,7 +460,7 @@ export class BillingService extends BaseService {
         projectId: ObjectID;
         subscriptionId: string;
         meteredSubscriptionId: string;
-        serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+        serverMeteredPlans: Array<ServerMeteredPlan>;
         newPlan: SubscriptionPlan;
         quantity: number;
         isYearly: boolean;
@@ -822,6 +832,109 @@ export class BillingService extends BaseService {
             customerId: invoice.customer?.toString() || '',
         };
     }
+
+    public getMeteredPlanPriceId(productType: ProductType): string {
+
+        if (productType === ProductType.ActiveMonitoring) {
+
+            if (this.isTestEnvironment()) {
+                return 'price_1N6CHFANuQdJ93r7qDaLmb7S';
+            }
+
+            return 'price_1N6B9EANuQdJ93r7fj3bhcWP'
+        }
+
+
+        if (productType === ProductType.Logs) {
+
+            if (this.isTestEnvironment()) {
+                return 'price_1OPnB5ANuQdJ93r7jG4NLCJG';
+            }
+
+            return 'price_1OQ8gwANuQdJ93r74Pi85UQq';
+        }
+
+
+        if (productType === ProductType.Traces) {
+
+            if (this.isTestEnvironment()) {
+                return 'price_1OQ8i9ANuQdJ93r75J3wr0PX';
+            }
+
+            return 'price_1OQ8ivANuQdJ93r7NAR8KbH3'
+        }
+
+
+        if (productType === ProductType.Metrics) {
+
+            if (this.isTestEnvironment()) {
+                return 'price_1OQ8iqANuQdJ93r7wZ7gJ7Gb';
+            }
+
+            return 'price_1OQ8j0ANuQdJ93r7WGzR0p6j'
+        }
+
+
+        throw new BadDataException('Plan with productType ' + productType + ' not found');
+
+    }
+
+    public async getMeteredPlan(data: {
+        productType: ProductType,
+        projectId: ObjectID
+    }): Promise<MeteredPlan> {
+
+        if (data.productType === ProductType.ActiveMonitoring) {
+            return new MeteredPlan(
+                {
+                    priceId: this.getMeteredPlanPriceId(data.productType),
+                    pricePerUnitInUSD: 1,
+                    unitName: 'Active Monitor',
+                }
+            );
+        }
+
+        const dataRetentionDays = await ProjectService.getTelemetryDataRetentionInDays(data.projectId);
+
+        const dataRetentionMultiplier: number = 0.1; // if the retention is 10 days for example, the cost per GB will be 0.01$ per GB per day (0.10 * dataRetentionDays * dataRetentionMultiplier).
+
+        if (data.productType === ProductType.Logs) {
+            return new MeteredPlan(
+                {
+                    priceId: this.getMeteredPlanPriceId(data.productType),
+                    pricePerUnitInUSD: 0.10 * dataRetentionDays * dataRetentionMultiplier,
+                    unitName: `per GB for ${dataRetentionDays} days data retention.`,
+                }
+            );
+        }
+
+
+        if (data.productType === ProductType.Traces) {
+            return new MeteredPlan(
+                {
+                    priceId: this.getMeteredPlanPriceId(data.productType),
+                    pricePerUnitInUSD: 0.10 * dataRetentionDays * dataRetentionMultiplier,
+                    unitName: `per GB for ${dataRetentionDays} days data retention.`,
+                }
+            );
+        }
+
+
+        if (data.productType === ProductType.Metrics) {
+            return new MeteredPlan(
+                {
+                    priceId: this.getMeteredPlanPriceId(data.productType),
+                    pricePerUnitInUSD: 0.10 * dataRetentionDays * dataRetentionMultiplier,
+                    unitName: `per GB for ${dataRetentionDays} days data retention.`,
+                }
+            );
+        }
+
+
+        throw new BadDataException('Plan with name ' + data.productType + ' not found');
+
+    }
+
 }
 
 export default new BillingService();

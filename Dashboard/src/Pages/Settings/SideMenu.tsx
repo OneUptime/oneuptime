@@ -297,6 +297,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     />
                     <SideMenuItem
                         link={{
+                            title: 'Usage History',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[
+                                    PageMap.SETTINGS_USAGE_HISTORY
+                                ] as Route
+                            ),
+                        }}
+                        icon={IconProp.ChartBar}
+                    />
+                    <SideMenuItem
+                        link={{
                             title: 'Invoices',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[
@@ -319,6 +330,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Lock}
+                />
+            </SideMenuSection>
+            <SideMenuSection title="Data">
+                <SideMenuItem
+                    link={{
+                        title: 'Data Rentention',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route
+                        ),
+                    }}
+                    icon={IconProp.Database}
                 />
             </SideMenuSection>
             <SideMenuSection title="Danger Zone">

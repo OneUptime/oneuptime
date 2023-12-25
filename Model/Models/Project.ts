@@ -529,6 +529,35 @@ export default class Model extends TenantModel {
     })
     public workflowRunsInLast30Days?: number = undefined;
 
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+            Permission.CanEditProject,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.Number,
+        title: 'Retain Telemetry Data For Days',
+        description:
+            'Number of days to retain telemetry data for this project.',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+        default: 15,
+    })
+    public retainTelemetryDataForDays?: number = undefined;
+
     @ColumnAccessControl({
         create: [],
         read: [
