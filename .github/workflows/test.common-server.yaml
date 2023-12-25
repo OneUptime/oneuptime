@@ -21,4 +21,4 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && bash test-setup.sh
       - run: cd CommonServer && npm install
-      - run: export $(grep -v '^#' config.env | xargs) && cd CommonServer && npm run test
+      - run: export $(grep -v '^#' config.env | xargs) && cd CommonServer && rm -rf build && npm run test
