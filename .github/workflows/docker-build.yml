@@ -133,21 +133,6 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Home/Dockerfile .
 
-  docker-build-identity:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v2
-      
-      - name: Preinstall 
-        run: npm run prerun
-        
-      # build image for identity
-      - name: build docker image
-        run: sudo docker build -f ./Identity/Dockerfile .
-
 
   docker-build-notification:
     runs-on: ubuntu-latest

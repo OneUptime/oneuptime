@@ -33,12 +33,8 @@
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_FILE_HOSTNAME
-  value: {{ $.Release.Name }}-file.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_HOME_HOSTNAME
   value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_IDENTITY_HOSTNAME
-  value: {{ $.Release.Name }}-identity.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_NOTIFICATION_HOSTNAME
   value: {{ $.Release.Name }}-notification.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: OTEL_COLLECTOR_HOSTNAME

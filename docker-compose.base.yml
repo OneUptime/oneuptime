@@ -23,9 +23,7 @@ x-common-variables: &common-variables
     SERVER_ALERT_HOSTNAME: alert
     SERVER_INGESTOR_HOSTNAME: ingestor
     SERVER_TEST_SERVER_HOSTNAME: test-server
-    SERVER_FILE_HOSTNAME: file
     SERVER_HOME_HOSTNAME: home
-    SERVER_IDENTITY_HOSTNAME: identity
     SERVER_NOTIFICATION_HOSTNAME: notification
     SERVER_WORKERS_HOSTNAME: workers
     SERVER_STATUS_PAGE_HOSTNAME: status-page
@@ -43,9 +41,7 @@ x-common-variables: &common-variables
     INGESTOR_PORT: ${INGESTOR_PORT}
     PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
-    FILE_PORT: ${FILE_PORT}
     HOME_PORT: ${HOME_PORT}
-    IDENTITY_PORT: ${IDENTITY_PORT}
     NOTIFICATION_PORT: ${NOTIFICATION_PORT}
     REALTIME_PORT: ${REALTIME_PORT}
     WORKERS_PORT: ${WORKERS_PORT}
@@ -173,8 +169,6 @@ services:
         environment: 
             <<: *common-ui-variables
             PORT: ${ACCOUNTS_PORT}
-        depends_on:
-            - identity
        
 
     admin-dashboard:
@@ -184,9 +178,6 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${ADMIN_DASHBOARD_PORT}
-        depends_on:
-            - identity
-            - accounts
 
     dashboard:
         networks:
@@ -195,9 +186,6 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${DASHBOARD_PORT}
-        depends_on:
-            - identity
-            - accounts
         
     
 
@@ -312,23 +300,6 @@ services:
             - ingestor
         links:
             - ingestor
-        
-
-    identity:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-server-variables
-            PORT: ${IDENTITY_PORT}
-        depends_on:
-            - redis
-            - postgres
-            - notification
-        links:
-            - redis
-            - postgres
-            - notification
        
 
     otel-collector:
@@ -378,7 +349,6 @@ services:
 
     ingress:
         depends_on:
-            - identity
             - accounts
             - dashboard-api
             - dashboard

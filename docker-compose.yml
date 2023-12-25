@@ -100,14 +100,6 @@ services:
             file: ./docker-compose.base.yml
             service: probe-2
 
-    identity:
-        image:  oneuptime/identity:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: identity
-       
-    
-
     ingestor:
         image:  oneuptime/ingestor:${APP_TAG}
         extends:
