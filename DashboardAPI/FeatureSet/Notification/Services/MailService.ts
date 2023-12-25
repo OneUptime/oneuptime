@@ -182,6 +182,8 @@ export default class MailService {
             templateData = await fsp.readFile(
                 Path.resolve(
                     process.cwd(),
+                    'FeatureSet',
+                    'Notification',
                     'Templates',
                     `${emailTemplateType}`
                 ),
