@@ -158,6 +158,12 @@ import StatusPageHeaderLinkService, {
     Service as StatusPageHeaderLinkServiceType,
 } from 'CommonServer/Services/StatusPageHeaderLinkService';
 
+
+import File from 'Model/Models/File';
+import FileService, {
+    Service as FileServiceType,
+} from 'CommonServer/Services/FileService';
+
 import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import UserNotificationRuleService, {
     Service as UserNotificationRuleServiceType,
@@ -687,6 +693,14 @@ app.use(
     new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
         StatusPageHeaderLink,
         StatusPageHeaderLinkService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<File, FileServiceType>(
+        File,
+        FileService
     ).getRouter()
 );
 
