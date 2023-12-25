@@ -1,7 +1,6 @@
 import BadDataException from "./Exception/BadDataException";
 
-export default class DiskSize {
-
+export default class Currency {
     public static convertToDecimalPlaces(value: number, decimalPlaces: number = 2): number {
 
         if(decimalPlaces < 0) {
@@ -12,12 +11,9 @@ export default class DiskSize {
             value = parseFloat(value);
         }
 
-
         if(decimalPlaces === 0){
             return Math.ceil(value);
         }
-
-
 
         value = value * Math.pow(10, decimalPlaces);
 
@@ -31,19 +27,5 @@ export default class DiskSize {
         value = value / Math.pow(10, decimalPlaces);
 
         return value;
-
-
-    }
-
-    public static byteSizeToGB(byteSize: number): number {
-        return byteSize / 1024 / 1024 / 1024;
-    }
-
-    public static byteSizeToMB(byteSize: number): number {
-        return byteSize / 1024 / 1024;
-    }
-
-    public static byteSizeToKB(byteSize: number): number {
-        return byteSize / 1024;
     }
 }
