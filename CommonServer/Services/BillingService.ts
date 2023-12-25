@@ -892,7 +892,7 @@ export class BillingService extends BaseService {
                 priceId: this.getMeteredPlanPriceId(data.productType),
                 pricePerUnitInUSD:
                     0.1 * dataRetentionDays * dataRetentionMultiplier,
-                unitName: `per GB for ${dataRetentionDays} days data retention.`,
+                unitName: `GB (${dataRetentionDays} days data retention)`,
             });
         }
 
@@ -901,7 +901,7 @@ export class BillingService extends BaseService {
                 priceId: this.getMeteredPlanPriceId(data.productType),
                 pricePerUnitInUSD:
                     0.1 * dataRetentionDays * dataRetentionMultiplier,
-                unitName: `per GB for ${dataRetentionDays} days data retention.`,
+                unitName: `GB (${dataRetentionDays} days data retention)`,
             });
         }
 
@@ -910,7 +910,7 @@ export class BillingService extends BaseService {
                 priceId: this.getMeteredPlanPriceId(data.productType),
                 pricePerUnitInUSD:
                     0.1 * dataRetentionDays * dataRetentionMultiplier,
-                unitName: `per GB for ${dataRetentionDays} days data retention.`,
+                unitName: `GB (${dataRetentionDays} days data retention)`,
             });
         }
 

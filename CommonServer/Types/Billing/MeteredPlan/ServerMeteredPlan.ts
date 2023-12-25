@@ -24,8 +24,11 @@ export default class ServerMeteredPlan {
         return meteredPlan.getPricePerUnit() * quantity;
     }
 
-    public async getMeteredPlan(_projectId: ObjectID): Promise<MeteredPlan> {
-        throw new NotImplementedException();
+    public async getMeteredPlan(projectId: ObjectID): Promise<MeteredPlan> {
+        return await BillingService.getMeteredPlan({
+            projectId: projectId,
+            productType: this.getProductType(),
+        });
     }
 
     public async reportQuantityToBillingProvider(

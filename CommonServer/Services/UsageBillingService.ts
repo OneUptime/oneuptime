@@ -49,6 +49,7 @@ export class Service extends DatabaseService<Model> {
         productType: ProductType;
         usageCount: number;
     }): Promise<void> {
+        
         const serverMeteredPlan: ServerMeteredPlan =
             MeteredPlanUtil.getServerMeteredPlanByProductType(data.productType);
 

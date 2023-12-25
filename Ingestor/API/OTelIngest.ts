@@ -153,7 +153,6 @@ router.use(
             );
 
             // report to Usage Service.
-
             UsageBillingService.updateUsageBilling({
                 projectId: (req as OtelRequest).projectId,
                 productType: productType,

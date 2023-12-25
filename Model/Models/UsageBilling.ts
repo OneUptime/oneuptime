@@ -169,7 +169,7 @@ export default class UsageBilling extends AccessControlModel {
     })
     @Column({
         nullable: false,
-        type: ColumnType.Number,
+        type: ColumnType.Decimal,
     })
     public usageCount?: number = undefined;
 
@@ -215,7 +215,7 @@ export default class UsageBilling extends AccessControlModel {
     })
     @Column({
         nullable: false,
-        type: ColumnType.Number,
+        type: ColumnType.Decimal,
     })
     public totalCostInUSD?: number = undefined;
 

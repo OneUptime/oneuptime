@@ -17,8 +17,11 @@ import Sleep from 'Common/Types/Sleep';
 
 RunCron(
     'MeteredPlan:ReportTelemetryMeteredPlan',
-    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
+    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: true },
     async () => {
+
+        debugger;
+        
         if (!IsBillingEnabled) {
             logger.info(
                 'MeteredPlan:ReportTelemetryMeteredPlan Billing is not enabled. Skipping job.'

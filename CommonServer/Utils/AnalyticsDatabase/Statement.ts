@@ -48,8 +48,6 @@ export class Statement implements BaseQueryParams {
 
     public get query_params(): Record<string, unknown> {
 
-        debugger;
-
         return Object.fromEntries(
             this.values.map((v: StatementParameter | string, i: integer) => {
                 let finalValue: any = v;
