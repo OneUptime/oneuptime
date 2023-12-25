@@ -5,20 +5,24 @@ import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 import { ProductType } from 'Model/Models/UsageBilling';
 
 export default class ServerMeteredPlan {
-   
     public getProductType(): ProductType {
         throw new NotImplementedException();
     }
 
-    public async getCostByProjectId(projectId: ObjectID, quantity: number): Promise<number> {
-        const meteredPlan = await this.getMeteredPlan(projectId);
+    public async getCostByProjectId(
+        projectId: ObjectID,
+        quantity: number
+    ): Promise<number> {
+        const meteredPlan: MeteredPlan = await this.getMeteredPlan(projectId);
         return this.getCostByMeteredPlan(meteredPlan, quantity);
     }
 
-    public getCostByMeteredPlan(meteredPlan: MeteredPlan, quantity: number): number {
+    public getCostByMeteredPlan(
+        meteredPlan: MeteredPlan,
+        quantity: number
+    ): number {
         return meteredPlan.getPricePerUnit() * quantity;
     }
-
 
     public async getMeteredPlan(_projectId: ObjectID): Promise<MeteredPlan> {
         throw new NotImplementedException();

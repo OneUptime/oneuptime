@@ -6,14 +6,12 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 import Realtime from 'CommonServer/Utils/Realtime';
 
-
-// import featuresets. 
+// import featuresets.
 import './FeatureSet/Identity/Index';
 import './FeatureSet/Notification/Index';
 import './FeatureSet/Base/Index';
 
 const APP_NAME: string = 'api';
-
 
 const init: () => Promise<void> = async (): Promise<void> => {
     try {

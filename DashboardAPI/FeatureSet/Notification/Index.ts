@@ -8,7 +8,6 @@ import CallAPI from './API/Call';
 import SMTPConfigAPI from './API/SMTPConfig';
 import './Utils/Handlebars';
 
-
 const APP_NAME: string = 'api/notification';
 const app: ExpressApplication = Express.getExpressApp();
 

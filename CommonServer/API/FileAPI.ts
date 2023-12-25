@@ -1,4 +1,8 @@
-import { ExpressRequest, ExpressResponse, NextFunction } from '../Utils/Express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from '../Utils/Express';
 import Response from '../Utils/Response';
 import FileService, {
     Service as FileServiceType,
@@ -8,13 +12,9 @@ import ObjectID from 'Common/Types/ObjectID';
 import File from 'Model/Models/File';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 
-export default class FileAPI extends BaseAPI<
-    File,
-    FileServiceType
-> {
+export default class FileAPI extends BaseAPI<File, FileServiceType> {
     public constructor() {
         super(File, FileService);
-
 
         this.router.get(
             `/image/:imageId`,

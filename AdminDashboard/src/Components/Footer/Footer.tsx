@@ -33,7 +33,7 @@ const DashboardFooter: () => JSX.Element = () => {
                 {
                     name: 'Dashboard',
                     path: '/dashboard',
-                }
+                },
             ];
 
             for (const app of apps) {

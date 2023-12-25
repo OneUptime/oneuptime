@@ -6,7 +6,6 @@ import ResellerAPI from './API/Reseller';
 import StatusPageSsoAPI from './API/StatusPageSSO';
 import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
 
-
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api/identity';
@@ -23,4 +22,3 @@ app.use(
     [`/${APP_NAME}/status-page`, '/status-page'],
     StatusPageAuthenticationAPI
 );
-

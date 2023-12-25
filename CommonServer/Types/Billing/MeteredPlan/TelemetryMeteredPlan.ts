@@ -8,21 +8,18 @@ import UsageBillingService from '../../../Services/UsageBillingService';
 import OneUptimeDate from 'Common/Types/Date';
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
-
     private _productType!: ProductType;
-    public get productType() : ProductType {
+    public get productType(): ProductType {
         return this._productType;
     }
-    public set productType(v : ProductType) {
+    public set productType(v: ProductType) {
         this._productType = v;
     }
-    
 
     public constructor(productType: ProductType) {
         super();
-        this.productType = productType; 
+        this.productType = productType;
     }
-
 
     public override getProductType(): ProductType {
         return this.productType;

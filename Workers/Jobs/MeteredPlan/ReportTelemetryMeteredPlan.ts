@@ -8,7 +8,11 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import logger from 'CommonServer/Utils/Logger';
 import Project from 'Model/Models/Project';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import { LogDataIngestMeteredPlan, TracesDataIngestMetredPlan, MetricsDataIngestMeteredPlan } from 'CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans';
+import {
+    LogDataIngestMeteredPlan,
+    TracesDataIngestMetredPlan,
+    MetricsDataIngestMeteredPlan,
+} from 'CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans';
 import Sleep from 'Common/Types/Sleep';
 
 RunCron(
@@ -39,7 +43,7 @@ RunCron(
                 await LogDataIngestMeteredPlan.reportQuantityToBillingProvider(
                     project.id
                 );
-                
+
                 await Sleep.sleep(1000);
 
                 await MetricsDataIngestMeteredPlan.reportQuantityToBillingProvider(

@@ -150,7 +150,6 @@ import StatusPageHeaderLinkService, {
     Service as StatusPageHeaderLinkServiceType,
 } from 'CommonServer/Services/StatusPageHeaderLinkService';
 
-
 import File from 'Model/Models/File';
 import FileService, {
     Service as FileServiceType,
@@ -424,7 +423,6 @@ import Log from 'Model/AnalyticsModels/Log';
 import LogService, {
     LogService as LogServiceType,
 } from 'CommonServer/Services/LogService';
-
 
 import UsageBilling from 'Model/Models/UsageBilling';
 import UsageBillingService, {
@@ -705,10 +703,7 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<File, FileServiceType>(
-        File,
-        FileService
-    ).getRouter()
+    new BaseAPI<File, FileServiceType>(File, FileService).getRouter()
 );
 
 app.use(

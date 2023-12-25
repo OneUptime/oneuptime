@@ -67,7 +67,6 @@ export const RealtimeHostname: Hostname = Hostname.fromString(
     }`
 );
 
-
 export const WorkerHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_WORKERS_HOSTNAME'] || 'localhost'}:${
         process.env['WORKERS_PORT'] || 80

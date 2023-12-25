@@ -40,7 +40,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
             <Alert
                 type={AlertType.DANGER}
                 strongTitle="Please note"
@@ -52,7 +51,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 name="Data Retention"
                 cardProps={{
                     title: 'Telemetry Data Retention',
-                    description: 'Configure how long you want to keep your telemetry data - like Logs, Metrics, and Traces.',
+                    description:
+                        'Configure how long you want to keep your telemetry data - like Logs, Metrics, and Traces.',
                 }}
                 isEditable={true}
                 formFields={[
@@ -61,7 +61,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             retainTelemetryDataForDays: true,
                         },
                         title: 'Telemetry Data Retention (Days)',
-                        description: 'How long do you want to keep your telemetry data - like Logs, Metrics, and Traces.',
+                        description:
+                            'How long do you want to keep your telemetry data - like Logs, Metrics, and Traces.',
                         fieldType: FormFieldSchemaType.Number,
                         required: true,
                         placeholder: '15',
@@ -76,10 +77,10 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 retainTelemetryDataForDays: true,
                             },
                             title: 'Telemetry Data Retention (Days)',
-                            description: 'How long do you want to keep your telemetry data - like Logs, Metrics, and Traces.',
+                            description:
+                                'How long do you want to keep your telemetry data - like Logs, Metrics, and Traces.',
                             fieldType: FieldType.Number,
                         },
-
                     ],
                     modelId: DashboardNavigation.getProjectId()!,
                 }}

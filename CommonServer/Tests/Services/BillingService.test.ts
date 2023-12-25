@@ -640,7 +640,6 @@ describe('BillingService', () => {
             const quantity: number = 10;
 
             it('should throw if billing is not enabled', async () => {
-               
                 billingService = mockIsBillingEnabled(false);
 
                 await expect(
@@ -658,7 +657,7 @@ describe('BillingService', () => {
                 const meteredPlan: MeteredPlan = new MeteredPlan({
                     priceId: subscriptionItem?.price?.id || '',
                     pricePerUnitInUSD: 100,
-                    unitName: 'unit'
+                    unitName: 'unit',
                 });
 
                 mockSubscription.items.data = [];
@@ -721,9 +720,6 @@ describe('BillingService', () => {
             });
 
             it('should handle non-existent subscription', async () => {
-               
-
-
                 const subscriptionId: string = 'sub_nonexistent';
                 mockStripe.subscriptions.retrieve = jest
                     .fn()

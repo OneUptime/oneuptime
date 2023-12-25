@@ -8,6 +8,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import { MeteredPlanUtil } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
+import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -48,12 +49,18 @@ export class Service extends DatabaseService<Model> {
         productType: ProductType;
         usageCount: number;
     }): Promise<void> {
+        const serverMeteredPlan: ServerMeteredPlan =
+            MeteredPlanUtil.getServerMeteredPlanByProductType(data.productType);
 
-        const serverMeteredPlan = MeteredPlanUtil.getServerMeteredPlanByProductType(data.productType);
+        const meteredPlan: MeteredPlan = await serverMeteredPlan.getMeteredPlan(
+            data.projectId
+        );
 
-        const meteredPlan: MeteredPlan = await serverMeteredPlan.getMeteredPlan(data.projectId);
-
-        const totalCostOfThisOperationInUSD = serverMeteredPlan.getCostByMeteredPlan(meteredPlan, data.usageCount);
+        const totalCostOfThisOperationInUSD: number =
+            serverMeteredPlan.getCostByMeteredPlan(
+                meteredPlan,
+                data.usageCount
+            );
 
         const usageBilling: Model | null = await this.findOneBy({
             query: {
@@ -102,7 +109,9 @@ export class Service extends DatabaseService<Model> {
             usageBilling.usageCount = data.usageCount;
             usageBilling.isReportedToBillingProvider = false;
             usageBilling.createdAt = OneUptimeDate.getCurrentDate();
-            usageBilling.day = OneUptimeDate.getDateString(OneUptimeDate.getCurrentDate());
+            usageBilling.day = OneUptimeDate.getDateString(
+                OneUptimeDate.getCurrentDate()
+            );
             usageBilling.totalCostInUSD = totalCostOfThisOperationInUSD;
             usageBilling.usageUnitName = meteredPlan.getUnitName(); // e.g. "GB"
 

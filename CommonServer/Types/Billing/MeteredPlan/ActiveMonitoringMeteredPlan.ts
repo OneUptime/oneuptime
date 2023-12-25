@@ -10,7 +10,6 @@ import Project from 'Model/Models/Project';
 import { ProductType } from 'Model/Models/UsageBilling';
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
-
     public override getProductType(): ProductType {
         return ProductType.ActiveMonitoring;
     }

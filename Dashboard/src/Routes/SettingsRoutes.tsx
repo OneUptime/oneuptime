@@ -670,11 +670,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 }
             />
 
-
-<PageRoute
-                path={
-                    SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION] || ''
-                }
+            <PageRoute
+                path={SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION] || ''}
                 element={
                     <Suspense fallback={Loader}>
                         <SettingsDataRentention

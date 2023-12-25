@@ -1163,8 +1163,9 @@ export class Service extends DatabaseService<Model> {
         return Boolean(project.enableSmsNotifications);
     }
 
-
-    public async getTelemetryDataRetentionInDays(projectId: ObjectID): Promise<number> {
+    public async getTelemetryDataRetentionInDays(
+        projectId: ObjectID
+    ): Promise<number> {
         const project: Model | null = await this.findOneById({
             id: projectId,
             select: {
