@@ -112,9 +112,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                             modelType: FileModel,
                             requestOptions: {
                                 overrideRequestUrl:
-                                    CommonURL.fromURL(FILE_URL).addRoute(
-                                        '/file'
-                                    ),
+                                    CommonURL.fromURL(FILE_URL),
                             },
                         })) as HTTPResponse<FileModel>;
                     filesResult.push(result.data as FileModel);
