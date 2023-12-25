@@ -5,13 +5,14 @@ import QueryHelper from '../../Database/QueryHelper';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import ProjectService from '../../../Services/ProjectService';
-import BillingService, { MeteredPlanName } from '../../../Services/BillingService';
+import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
+import { ProductType } from 'Model/Models/UsageBilling';
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
 
-    public override getProductType(): MeteredPlanName {
-        return MeteredPlanName.ActiveMonitoring;
+    public override getProductType(): ProductType {
+        return ProductType.ActiveMonitoring;
     }
 
     public override async reportQuantityToBillingProvider(
