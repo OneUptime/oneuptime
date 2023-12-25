@@ -434,6 +434,11 @@ import LogService, {
 } from 'CommonServer/Services/LogService';
 import Realtime from 'CommonServer/Utils/Realtime';
 
+
+// import featuresets. 
+import './FeatureSet/Identity/Index';
+
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
