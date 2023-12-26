@@ -2,6 +2,7 @@
 
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
+import Search from '../Types/BaseDatabase/Search';
 import OneUptimeDate from '../Types/Date';
 import BadDataException from '../Types/Exception/BadDataException';
 import { JSONArray, JSONObject, JSONValue } from '../Types/JSON';
@@ -14,6 +15,7 @@ export type RecordValue =
     | number
     | boolean
     | Date
+    | Search
     | Array<number>
     | Array<string>
     | Array<CommonModel>;

@@ -15,14 +15,16 @@ import CommonModel, {
 } from 'Common/AnalyticsModels/CommonModel';
 import { SQL, Statement } from './Statement';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import Search from 'Common/Types/BaseDatabase/Search';
+import NotEqual from 'Common/Types/BaseDatabase/NotEqual';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database: ClickhouseDatabase;
     }) {
         this.modelType = data.modelType;
@@ -36,8 +38,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         /* eslint-disable prettier/prettier */
         const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-                this.model.tableName
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName
             }
             UPDATE `.append(setStatement).append(SQL`
             WHERE TRUE `).append(whereStatement);
@@ -127,9 +128,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             records.push(record);
         }
 
-        const statement: string = `INSERT INTO ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -329,9 +329,22 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             } else {
                 whereStatement.append(SQL` `);
             }
-            whereStatement.append(
-                SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
-            );
+
+            if (value instanceof Search) {
+                whereStatement.append(
+                    SQL`AND ${key} ILIKE ${{ value: value, type: tableColumn.type }}`
+                );
+            } else if (value instanceof NotEqual) {
+                whereStatement.append(
+                    SQL`AND ${key} != ${{ value: value.toString(), type: tableColumn.type }}`
+                );
+            } else {
+                whereStatement.append(
+                    SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
+                );
+            }
+
+
         }
 
         return whereStatement;
@@ -482,7 +495,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         const statement: Statement = SQL`
             CREATE TABLE IF NOT EXISTS ${databaseName}.${this.model.tableName}
             (\n`
-                .append(columnsStatement).append(SQL`
+            .append(columnsStatement).append(SQL`
             )
             ENGINE = `).append(tableEngineStatement).append(SQL`
             PRIMARY KEY (`);
