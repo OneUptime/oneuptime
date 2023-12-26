@@ -23,7 +23,7 @@ export class Statement implements BaseQueryParams {
     public constructor(
         private strings: string[] = [''],
         private values: Array<StatementParameter | string> = []
-    ) { }
+    ) {}
 
     public get query(): string {
         let query: string = this.strings.reduce(
@@ -63,8 +63,8 @@ export class Statement implements BaseQueryParams {
                 } else if (v.value instanceof Search) {
                     finalValue = `%${v.value.toString()}%`;
                 } else if (
-                    v.value instanceof LessThan || 
-                    v.value instanceof LessThanOrEqual || 
+                    v.value instanceof LessThan ||
+                    v.value instanceof LessThanOrEqual ||
                     v.value instanceof GreaterThan ||
                     v.value instanceof GreaterThanOrEqual
                 ) {

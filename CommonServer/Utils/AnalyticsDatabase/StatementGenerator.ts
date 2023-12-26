@@ -24,11 +24,11 @@ import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database: ClickhouseDatabase;
     }) {
         this.modelType = data.modelType;
@@ -132,8 +132,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             records.push(record);
         }
 
-        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
