@@ -17,7 +17,6 @@ export interface FilterOption {
     logSeverity?: LogSeverity | undefined;
     startTime?: Date | undefined;
     endTime?: Date | undefined;
-
 }
 
 export interface ComponentProps {
@@ -74,22 +73,29 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                 required={true}
                                             />
                                             <Dropdown
-                                                onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-
+                                                onChange={(
+                                                    value:
+                                                        | DropdownValue
+                                                        | Array<DropdownValue>
+                                                        | null
+                                                ) => {
                                                     if (value === null) {
                                                         setFilterOptions({
                                                             ...filterOptions,
-                                                            logSeverity: undefined
+                                                            logSeverity:
+                                                                undefined,
                                                         });
                                                     } else {
                                                         setFilterOptions({
                                                             ...filterOptions,
-                                                            logSeverity: value.toString() as LogSeverity
+                                                            logSeverity:
+                                                                value.toString() as LogSeverity,
                                                         });
                                                     }
-
                                                 }}
-                                                options={DropdownUtil.getDropdownOptionsFromEnum(LogSeverity)}
+                                                options={DropdownUtil.getDropdownOptionsFromEnum(
+                                                    LogSeverity
+                                                )}
                                             />
                                         </div>
                                     )}
@@ -108,16 +114,21 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                     ) => {
                                                         setFilterOptions({
                                                             ...filterOptions,
-                                                            startTime: value ? OneUptimeDate.fromString(value) : undefined,
+                                                            startTime: value
+                                                                ? OneUptimeDate.fromString(
+                                                                      value
+                                                                  )
+                                                                : undefined,
                                                         });
                                                     }}
                                                     type={
                                                         InputType.DATETIME_LOCAL
                                                     }
                                                 />
-                                                {filterOptions.endTime && !filterOptions.startTime && (
-                                                    <ErrorMessage error="Start Time is required." />
-                                                )}
+                                                {filterOptions.endTime &&
+                                                    !filterOptions.startTime && (
+                                                        <ErrorMessage error="Start Time is required." />
+                                                    )}
                                             </div>
                                             <div className="w-1/2">
                                                 <FieldLabelElement
@@ -131,16 +142,21 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                     ) => {
                                                         setFilterOptions({
                                                             ...filterOptions,
-                                                            endTime: value ? OneUptimeDate.fromString(value) : undefined,
+                                                            endTime: value
+                                                                ? OneUptimeDate.fromString(
+                                                                      value
+                                                                  )
+                                                                : undefined,
                                                         });
                                                     }}
                                                     type={
                                                         InputType.DATETIME_LOCAL
                                                     }
                                                 />
-                                                {filterOptions.startTime && !filterOptions.endTime && (
-                                                    <ErrorMessage error="End Time is required." />
-                                                )}
+                                                {filterOptions.startTime &&
+                                                    !filterOptions.endTime && (
+                                                        <ErrorMessage error="End Time is required." />
+                                                    )}
                                             </div>
                                         </div>
                                     )}
@@ -201,7 +217,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 <div className="mt-12 -ml-8 justify-end flex w-44">
                                     <Button
                                         title="Search with SQL"
-                                        onClick={() => { }}
+                                        onClick={() => {}}
                                     />
                                 </div>
                             </div>

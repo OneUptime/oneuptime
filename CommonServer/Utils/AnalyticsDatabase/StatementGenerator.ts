@@ -377,7 +377,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                         type: tableColumn.type,
                     }}`
                 );
-            }  else if (value instanceof InBetween) {
+            } else if (value instanceof InBetween) {
                 whereStatement.append(
                     SQL`AND ${key} >= ${{
                         value: value.startValue,
@@ -387,7 +387,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                         type: tableColumn.type,
                     }}`
                 );
-            }else {
+            } else {
                 whereStatement.append(
                     SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
                 );

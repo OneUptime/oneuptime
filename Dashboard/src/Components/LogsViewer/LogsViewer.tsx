@@ -48,11 +48,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             query.body = new Search(filterOptions.searchText);
         }
 
-        if(filterOptions.endTime && filterOptions.startTime) {
-            query.createdAt = new InBetween(filterOptions.startTime, filterOptions.endTime);
+        if (filterOptions.endTime && filterOptions.startTime) {
+            query.createdAt = new InBetween(
+                filterOptions.startTime,
+                filterOptions.endTime
+            );
         }
 
-        if(filterOptions.logSeverity) {
+        if (filterOptions.logSeverity) {
             query.severityText = filterOptions.logSeverity;
         }
 
