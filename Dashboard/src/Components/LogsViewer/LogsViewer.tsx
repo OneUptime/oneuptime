@@ -15,6 +15,7 @@ import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { FilterOption } from 'CommonUI/src/Components/LogsViewer/LogsFilters';
 import Query from 'CommonUI/src/Utils/AnalyticsModelAPI/Query';
 import Search from 'Common/Types/BaseDatabase/Search';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 
 export interface ComponentProps {
     id: string;
@@ -45,6 +46,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
         if (filterOptions.searchText) {
             query.body = new Search(filterOptions.searchText);
+        }
+
+        if(filterOptions.endTime && filterOptions.startTime) {
+            query.createdAt = new InBetween(filterOptions.startTime, filterOptions.endTime);
+        }
+
+        if(filterOptions.logSeverity) {
+            query.severityText = filterOptions.logSeverity;
         }
 
         try {

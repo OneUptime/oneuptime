@@ -2,14 +2,22 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Input, { InputType } from '../Input/Input';
 import Button, { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
-import Dropdown from '../Dropdown/Dropdown';
+import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
 import FieldLabelElement from '../Forms/Fields/FieldLabel';
 // import TelemetryService from 'Model/Models/TelemetryService';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
+import DropdownUtil from '../../Utils/Dropdown';
+import { LogSeverity } from 'Model/AnalyticsModels/Log';
+import OneUptimeDate from 'Common/Types/Date';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
 export interface FilterOption {
     searchText?: string | undefined;
+    logSeverity?: LogSeverity | undefined;
+    startTime?: Date | undefined;
+    endTime?: Date | undefined;
+
 }
 
 export interface ComponentProps {
@@ -52,6 +60,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                             placeholder="Search"
                                             onChange={(value: string) => {
                                                 setFilterOptions({
+                                                    ...filterOptions,
                                                     searchText: value,
                                                 });
                                             }}
@@ -61,53 +70,30 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                     {showMoreFilters && (
                                         <div>
                                             <FieldLabelElement
-                                                title="Telemetry Services"
-                                                required={true}
-                                            />
-                                            <Dropdown
-                                                isMultiSelect={true}
-                                                options={[
-                                                    {
-                                                        label: 'Information',
-                                                        value: 'information',
-                                                    },
-                                                    {
-                                                        label: 'Warning',
-                                                        value: 'warning',
-                                                    },
-                                                    {
-                                                        label: 'Error',
-                                                        value: 'error',
-                                                    },
-                                                ]}
-                                            />
-                                        </div>
-                                    )}
-                                    {showMoreFilters && (
-                                        <div>
-                                            <FieldLabelElement
                                                 title="Log Severity"
                                                 required={true}
                                             />
                                             <Dropdown
-                                                isMultiSelect={true}
-                                                options={[
-                                                    {
-                                                        label: 'Information',
-                                                        value: 'information',
-                                                    },
-                                                    {
-                                                        label: 'Warning',
-                                                        value: 'warning',
-                                                    },
-                                                    {
-                                                        label: 'Error',
-                                                        value: 'error',
-                                                    },
-                                                ]}
+                                                onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+
+                                                    if (value === null) {
+                                                        setFilterOptions({
+                                                            ...filterOptions,
+                                                            logSeverity: undefined
+                                                        });
+                                                    } else {
+                                                        setFilterOptions({
+                                                            ...filterOptions,
+                                                            logSeverity: value.toString() as LogSeverity
+                                                        });
+                                                    }
+
+                                                }}
+                                                options={DropdownUtil.getDropdownOptionsFromEnum(LogSeverity)}
                                             />
                                         </div>
                                     )}
+
                                     {showMoreFilters && (
                                         <div className="flex space-x-2 w-full">
                                             <div className="w-1/2">
@@ -121,13 +107,17 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                         value: string
                                                     ) => {
                                                         setFilterOptions({
-                                                            searchText: value,
+                                                            ...filterOptions,
+                                                            startTime: value ? OneUptimeDate.fromString(value) : undefined,
                                                         });
                                                     }}
                                                     type={
                                                         InputType.DATETIME_LOCAL
                                                     }
                                                 />
+                                                {filterOptions.endTime && !filterOptions.startTime && (
+                                                    <ErrorMessage error="Start Time is required." />
+                                                )}
                                             </div>
                                             <div className="w-1/2">
                                                 <FieldLabelElement
@@ -140,13 +130,17 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                                         value: string
                                                     ) => {
                                                         setFilterOptions({
-                                                            searchText: value,
+                                                            ...filterOptions,
+                                                            endTime: value ? OneUptimeDate.fromString(value) : undefined,
                                                         });
                                                     }}
                                                     type={
                                                         InputType.DATETIME_LOCAL
                                                     }
                                                 />
+                                                {filterOptions.startTime && !filterOptions.endTime && (
+                                                    <ErrorMessage error="End Time is required." />
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -207,7 +201,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 <div className="mt-12 -ml-8 justify-end flex w-44">
                                     <Button
                                         title="Search with SQL"
-                                        onClick={() => {}}
+                                        onClick={() => { }}
                                     />
                                 </div>
                             </div>
