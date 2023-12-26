@@ -63,8 +63,6 @@ router.use(
     '/otel/*',
     async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
         try {
-
-
             // size of req.body in bytes.
             const sizeInBytes: number = Buffer.byteLength(
                 JSON.stringify(req.body)
@@ -158,7 +156,7 @@ router.use(
                 productType: productType,
                 usageCount: sizeToGb,
             }).catch((err: Error) => {
-                logger.error("Failed to update usage billing for OTel");
+                logger.error('Failed to update usage billing for OTel');
                 logger.error(err);
             });
 

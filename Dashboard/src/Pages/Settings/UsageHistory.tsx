@@ -53,7 +53,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                 isViewable={false}
                 cardProps={{
                     title: 'Usage History',
-                    description: 'Here is the usage history for this project. Please refer to the pricing page for more details.',
+                    description:
+                        'Here is the usage history for this project. Please refer to the pricing page for more details.',
                 }}
                 noItemsMessage={
                     'No usage history found. Maybe you have not used Telemetry features yet?'
@@ -91,9 +92,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         getElement: (item: JSONObject) => {
                             return (
-                                <div>{`${DiskSize.convertToDecimalPlaces(item['usageCount'] as number)} ${
-                                    item['usageUnitName'] as string
-                                }`}</div>
+                                <div>{`${DiskSize.convertToDecimalPlaces(
+                                    item['usageCount'] as number
+                                )} ${item['usageUnitName'] as string}`}</div>
                             );
                         },
                     },
@@ -105,9 +106,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         getElement: (item: JSONObject) => {
                             return (
-                                <div>{`${
-                                    Currency.convertToDecimalPlaces(item['totalCostInUSD'] as number)
-                                } USD`}</div>
+                                <div>{`${Currency.convertToDecimalPlaces(
+                                    item['totalCostInUSD'] as number
+                                )} USD`}</div>
                             );
                         },
                     },

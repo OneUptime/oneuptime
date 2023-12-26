@@ -23,8 +23,8 @@ export default class ObjectID extends DatabaseProperty {
 
         this.id = id;
     }
-    
-    public get value() : string {
+
+    public get value(): string {
         return this._id.toString();
     }
 

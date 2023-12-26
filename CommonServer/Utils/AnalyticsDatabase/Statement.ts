@@ -18,7 +18,7 @@ export class Statement implements BaseQueryParams {
     public constructor(
         private strings: string[] = [''],
         private values: Array<StatementParameter | string> = []
-    ) { }
+    ) {}
 
     public get query(): string {
         let query: string = this.strings.reduce(
@@ -47,7 +47,6 @@ export class Statement implements BaseQueryParams {
     }
 
     public get query_params(): Record<string, unknown> {
-
         return Object.fromEntries(
             this.values.map((v: StatementParameter | string, i: integer) => {
                 let finalValue: any = v;

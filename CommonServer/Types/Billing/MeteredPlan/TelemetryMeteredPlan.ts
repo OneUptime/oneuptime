@@ -45,21 +45,24 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
 
         // calculate all the total usage count and report it to billing provider.
 
-        let totalCostInUSD: number = 0; 
+        let totalCostInUSD: number = 0;
 
         for (const usageBilling of usageBillings) {
-            if (usageBilling?.totalCostInUSD && usageBilling?.totalCostInUSD > 0) {
+            if (
+                usageBilling?.totalCostInUSD &&
+                usageBilling?.totalCostInUSD > 0
+            ) {
                 totalCostInUSD += usageBilling.totalCostInUSD;
             }
         }
 
-        if(totalCostInUSD < 1){
-            return; // too low to report. 
+        if (totalCostInUSD < 1) {
+            return; // too low to report.
         }
 
-        // convert USD to cents. 
+        // convert USD to cents.
 
-        let totalCostInCents = totalCostInUSD * 100;
+        let totalCostInCents: number = totalCostInUSD * 100;
 
         // convert this to integer.
 
@@ -83,7 +86,6 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
                 project.paymentProviderMeteredSubscriptionId) &&
             project.paymentProviderPlanId
         ) {
-
             await BillingService.addOrUpdateMeteredPricingOnSubscription(
                 (options?.meteredPlanSubscriptionId as string) ||
                     (project.paymentProviderMeteredSubscriptionId as string),
@@ -91,12 +93,8 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
                 totalCostInCents
             );
 
-
             for (const usageBilling of usageBillings) {
-                if (
-                    usageBilling.id
-                ) {
-                    
+                if (usageBilling.id) {
                     // now mark it as reported.
 
                     await UsageBillingService.updateOneById({
