@@ -311,6 +311,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * Conditions to append to "WHERE TRUE"
      */
     public toWhereStatement(query: Query<TBaseModel>): Statement {
+        debugger;
         const whereStatement: Statement = new Statement();
 
         let first: boolean = true;

@@ -14,6 +14,7 @@ import { ModelEventType } from 'Common/Utils/Realtime';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { FilterOption } from 'CommonUI/src/Components/LogsViewer/LogsFilters';
 import Query from 'CommonUI/src/Utils/AnalyticsModelAPI/Query';
+import Search from 'Common/Types/BaseDatabase/Search';
 
 export interface ComponentProps {
     id: string;
@@ -23,6 +24,7 @@ export interface ComponentProps {
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
     const [logs, setLogs] = React.useState<Array<Log>>([]);
     const [error, setError] = React.useState<string>('');
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -43,6 +45,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         const query: Query<Log> = {
             serviceId: props.telemetryServiceIds[0],
         };
+
+        if(filterOptions.searchText){
+            query.body = new Search(filterOptions.searchText);
+        }
 
         try {
             const listResult: ListResult<Log> =
