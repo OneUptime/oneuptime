@@ -1,4 +1,4 @@
-import Search from '../../../Types/Database/Search';
+import Search from '../../../Types/BaseDatabase/Search';
 
 describe('Search', () => {
     test('new Search() should return a valid object', () => {

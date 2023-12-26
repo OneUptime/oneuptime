@@ -1,11 +1,13 @@
 import Log from 'Model/AnalyticsModels/Log';
 import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import LogItem from './LogItem';
-import LogsFilters, { FiterOptions } from './LogsFilters';
+import LogsFilters, { FilterOption } from './LogsFilters';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
 
 export interface ComponentProps {
     logs: Array<Log>;
-    onFilterChanged: (filterOptions: FiterOptions) => void;
+    onFilterChanged: (filterOptions: FilterOption) => void;
+    isLoading: boolean;
 }
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
@@ -64,11 +66,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     onFilterChanged={props.onFilterChanged}
                 />
             </div>
-            <div
+            {!props.isLoading && <div
                 ref={logsViewerRef}
                 className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
                 style={{
-                    height: screenHeight - 330,
+                    height: screenHeight - 520,
                 }}
             >
                 {props.logs.map((log: Log, i: number) => {
@@ -80,7 +82,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                         No logs found for this service.
                     </div>
                 )}
-            </div>
+            </div>}
+            {props.isLoading && <ComponentLoader />}
         </div>
     );
 };

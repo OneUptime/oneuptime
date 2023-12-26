@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Input, { InputType } from '../Input/Input';
 import Button, { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -8,12 +8,12 @@ import FieldLabelElement from '../Forms/Fields/FieldLabel';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 
-export interface FiterOptions {
+export interface FilterOption {
     searchText?: string | undefined;
 }
 
 export interface ComponentProps {
-    onFilterChanged: (filterOptions: FiterOptions) => void;
+    onFilterChanged: (filterOptions: FilterOption) => void;
     onAutoScrollChanged: (turnOnAutoScroll: boolean) => void;
     // telemetryServices?: Array<TelemetryService>;
 }
@@ -21,7 +21,7 @@ export interface ComponentProps {
 const LogsFilters: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [filterOptions, setFilterOptions] = React.useState<FiterOptions>({});
+    const [filterOptions, setFilterOptions] = React.useState<FilterOption>({});
 
     const [turnOnAutoScroll, setTurnOnAutoScroll] =
         React.useState<boolean>(true);
@@ -29,9 +29,6 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
         React.useState<boolean>(false);
     const [isSqlQuery, setIsSqlQuery] = React.useState<boolean>(false);
 
-    useEffect(() => {
-        props.onFilterChanged(filterOptions);
-    }, [filterOptions]);
 
     const showAutoScrollButton: boolean =
         !isSqlQuery && !showMoreFilters && !filterOptions.searchText;
@@ -211,7 +208,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 <div className="mt-12 -ml-8 justify-end flex w-44">
                                     <Button
                                         title="Search with SQL"
-                                        onClick={() => {}}
+                                        onClick={() => { }}
                                     />
                                 </div>
                             </div>
@@ -221,7 +218,11 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 <div className="mt-7 -ml-20 justify-end flex w-44">
                                     <Button
                                         title="Search"
-                                        onClick={() => {}}
+                                        onClick={() => {
+                                            props.onFilterChanged(
+                                                filterOptions
+                                            );
+                                        }}
                                         icon={IconProp.Search}
                                     />
                                 </div>

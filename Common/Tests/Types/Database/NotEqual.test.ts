@@ -1,4 +1,4 @@
-import NotEqual from '../../../Types/Database/NotEqual';
+import NotEqual from '../../../Types/BaseDatabase/NotEqual';
 
 describe('NotEqual', () => {
     describe('constructor', () => {

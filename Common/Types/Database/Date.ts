@@ -1,6 +1,6 @@
 import moment from 'moment';
 import OneUptimeDate from '../Date';
-import InBetween from './InBetween';
+import InBetween from '../BaseDatabase/InBetween';
 
 export default class DatabaseDate {
     public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
