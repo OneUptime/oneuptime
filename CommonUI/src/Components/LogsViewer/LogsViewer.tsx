@@ -66,23 +66,25 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     onFilterChanged={props.onFilterChanged}
                 />
             </div>
-            {!props.isLoading && <div
-                ref={logsViewerRef}
-                className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
-                style={{
-                    height: screenHeight - 520,
-                }}
-            >
-                {props.logs.map((log: Log, i: number) => {
-                    return <LogItem key={i} log={log} />;
-                })}
+            {!props.isLoading && (
+                <div
+                    ref={logsViewerRef}
+                    className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
+                    style={{
+                        height: screenHeight - 520,
+                    }}
+                >
+                    {props.logs.map((log: Log, i: number) => {
+                        return <LogItem key={i} log={log} />;
+                    })}
 
-                {props.logs.length === 0 && (
-                    <div className={`text-slate-200 courier-prime`}>
-                        No logs found for this service.
-                    </div>
-                )}
-            </div>}
+                    {props.logs.length === 0 && (
+                        <div className={`text-slate-200 courier-prime`}>
+                            No logs found for this service.
+                        </div>
+                    )}
+                </div>
+            )}
             {props.isLoading && <ComponentLoader />}
         </div>
     );

@@ -24,12 +24,10 @@ export interface ComponentProps {
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [logs, setLogs] = React.useState<Array<Log>>([]);
     const [error, setError] = React.useState<string>('');
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [filterOptions, setFilterOptions] = React.useState<FilterOption>({});
-
 
     useEffect(() => {
         fetchItems().catch((err: unknown) => {
@@ -41,12 +39,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setError('');
         setIsLoading(true);
 
-
         const query: Query<Log> = {
             serviceId: props.telemetryServiceIds[0],
         };
 
-        if(filterOptions.searchText){
+        if (filterOptions.searchText) {
             query.body = new Search(filterOptions.searchText);
         }
 
@@ -119,9 +116,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     return (
         <div id={props.id}>
-            <LogsViewer isLoading={isLoading} onFilterChanged={(filterOptions: FilterOption) => {
-                setFilterOptions(filterOptions);
-            }} logs={logs} />
+            <LogsViewer
+                isLoading={isLoading}
+                onFilterChanged={(filterOptions: FilterOption) => {
+                    setFilterOptions(filterOptions);
+                }}
+                logs={logs}
+            />
         </div>
     );
 };

@@ -20,11 +20,11 @@ import NotEqual from 'Common/Types/BaseDatabase/NotEqual';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database: ClickhouseDatabase;
     }) {
         this.modelType = data.modelType;
@@ -128,8 +128,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             records.push(record);
         }
 
-        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
-            }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${
+            this.database.getDatasourceOptions().database
+        }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -311,7 +312,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * Conditions to append to "WHERE TRUE"
      */
     public toWhereStatement(query: Query<TBaseModel>): Statement {
-        debugger;
         const whereStatement: Statement = new Statement();
 
         let first: boolean = true;
@@ -332,19 +332,23 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
             if (value instanceof Search) {
                 whereStatement.append(
-                    SQL`AND ${key} ILIKE ${{ value: value, type: tableColumn.type }}`
+                    SQL`AND ${key} ILIKE ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
                 );
             } else if (value instanceof NotEqual) {
                 whereStatement.append(
-                    SQL`AND ${key} != ${{ value: value.toString(), type: tableColumn.type }}`
+                    SQL`AND ${key} != ${{
+                        value: value.toString(),
+                        type: tableColumn.type,
+                    }}`
                 );
             } else {
                 whereStatement.append(
                     SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
                 );
             }
-
-
         }
 
         return whereStatement;

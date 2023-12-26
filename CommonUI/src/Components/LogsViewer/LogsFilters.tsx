@@ -29,7 +29,6 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
         React.useState<boolean>(false);
     const [isSqlQuery, setIsSqlQuery] = React.useState<boolean>(false);
 
-
     const showAutoScrollButton: boolean =
         !isSqlQuery && !showMoreFilters && !filterOptions.searchText;
     const showSearchButton: boolean = Boolean(
@@ -208,7 +207,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 <div className="mt-12 -ml-8 justify-end flex w-44">
                                     <Button
                                         title="Search with SQL"
-                                        onClick={() => { }}
+                                        onClick={() => {}}
                                     />
                                 </div>
                             </div>
