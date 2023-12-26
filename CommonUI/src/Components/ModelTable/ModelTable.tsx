@@ -32,7 +32,7 @@ import Permission, {
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import Query from '../../Utils/ModelAPI/Query';
-import Search from 'Common/Types/Database/Search';
+import Search from 'Common/Types/BaseDatabase/Search';
 import Typeof from 'Common/Types/Typeof';
 import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
@@ -45,7 +45,7 @@ import { FilterData } from '../Table/Filter';
 import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import InBetween from 'Common/Types/Database/InBetween';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from '../../Config';
 import SubscriptionPlan, {
     PlanSelect,

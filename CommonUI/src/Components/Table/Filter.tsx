@@ -9,14 +9,14 @@ import Columns from './Types/Columns';
 import Dictionary from 'Common/Types/Dictionary';
 import Input, { InputType } from '../Input/Input';
 import FieldType from '../Types/FieldType';
-import Search from 'Common/Types/Database/Search';
+import Search from 'Common/Types/BaseDatabase/Search';
 import OneUptimeDate from 'Common/Types/Date';
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
 import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import InBetween from 'Common/Types/Database/InBetween';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import DatabaseDate from 'Common/Types/Database/Date';
 
 export type FilterData = Dictionary<

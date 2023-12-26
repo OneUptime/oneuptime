@@ -17,7 +17,7 @@ import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import NotNull from 'Common/Types/Database/NotNull';
+import NotNull from 'Common/Types/BaseDatabase/NotNull';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Red } from 'Common/Types/BrandColors';
