@@ -25,6 +25,7 @@ export type RecordValue =
     | NotEqual
     | GreaterThan
     | InBetween
+    | Date
     | LessThan
     | LessThanOrEqual
     | GreaterThanOrEqual

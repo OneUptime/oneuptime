@@ -908,4 +908,9 @@ export default class OneUptimeDate {
 
         return date;
     }
+
+    public static toDatabaseDate(date: Date): string {
+        date = this.fromString(date);
+        return moment(date).format('YYYY-MM-DD HH:mm:ss');
+    }
 }

@@ -7,6 +7,7 @@ import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import LessThan from 'Common/Types/BaseDatabase/LessThan';
 import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import Search from 'Common/Types/BaseDatabase/Search';
+import OneUptimeDate from 'Common/Types/Date';
 import ObjectID from 'Common/Types/ObjectID';
 import { inspect } from 'util';
 
@@ -59,6 +60,8 @@ export class Statement implements BaseQueryParams {
         for (const v of this.values) {
             let finalValue: any = v;
 
+            // if of type date, convert to database date
+
             if (typeof v === 'string') {
                 finalValue = v;
             } else if (v.value instanceof ObjectID) {
@@ -72,8 +75,17 @@ export class Statement implements BaseQueryParams {
                 v.value instanceof GreaterThanOrEqual
             ) {
                 finalValue = v.value.value;
+            } else if (v.value instanceof Date) {
+                finalValue = OneUptimeDate.toDatabaseDate(v.value);
             } else {
                 finalValue = v.value;
+            }
+
+            // serialize to date.
+
+            if (typeof v !== 'string' && v.type === TableColumnType.Date) {
+                finalValue = OneUptimeDate.fromString(finalValue as string);
+                finalValue = OneUptimeDate.toDatabaseDate(finalValue);
             }
 
             returnObject[`p${index}`] = finalValue;
