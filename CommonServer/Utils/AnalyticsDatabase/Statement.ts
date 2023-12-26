@@ -2,6 +2,10 @@ import { BaseQueryParams } from '@clickhouse/client';
 import { integer } from '@elastic/elasticsearch/lib/api/types';
 import { RecordValue } from 'Common/AnalyticsModels/CommonModel';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
+import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
+import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
+import LessThan from 'Common/Types/BaseDatabase/LessThan';
+import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import Search from 'Common/Types/BaseDatabase/Search';
 import ObjectID from 'Common/Types/ObjectID';
 import { inspect } from 'util';
@@ -19,7 +23,7 @@ export class Statement implements BaseQueryParams {
     public constructor(
         private strings: string[] = [''],
         private values: Array<StatementParameter | string> = []
-    ) {}
+    ) { }
 
     public get query(): string {
         let query: string = this.strings.reduce(
@@ -58,6 +62,13 @@ export class Statement implements BaseQueryParams {
                     finalValue = v.value.toString();
                 } else if (v.value instanceof Search) {
                     finalValue = `%${v.value.toString()}%`;
+                } else if (
+                    v.value instanceof LessThan || 
+                    v.value instanceof LessThanOrEqual || 
+                    v.value instanceof GreaterThan ||
+                    v.value instanceof GreaterThanOrEqual
+                ) {
+                    finalValue = v.value.value;
                 } else {
                     finalValue = v.value;
                 }

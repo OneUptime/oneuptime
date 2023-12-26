@@ -2,6 +2,11 @@
 
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
+import GreaterThan from '../Types/BaseDatabase/GreaterThan';
+import GreaterThanOrEqual from '../Types/BaseDatabase/GreaterThanOrEqual';
+import LessThan from '../Types/BaseDatabase/LessThan';
+import LessThanOrEqual from '../Types/BaseDatabase/LessThanOrEqual';
+import NotEqual from '../Types/BaseDatabase/NotEqual';
 import Search from '../Types/BaseDatabase/Search';
 import OneUptimeDate from '../Types/Date';
 import BadDataException from '../Types/Exception/BadDataException';
@@ -16,6 +21,11 @@ export type RecordValue =
     | boolean
     | Date
     | Search
+    | NotEqual
+    | GreaterThan
+    | LessThan
+    | LessThanOrEqual
+    | GreaterThanOrEqual
     | Array<number>
     | Array<string>
     | Array<CommonModel>;

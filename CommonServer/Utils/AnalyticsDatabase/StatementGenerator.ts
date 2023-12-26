@@ -17,14 +17,18 @@ import { SQL, Statement } from './Statement';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Search from 'Common/Types/BaseDatabase/Search';
 import NotEqual from 'Common/Types/BaseDatabase/NotEqual';
+import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
+import LessThan from 'Common/Types/BaseDatabase/LessThan';
+import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
+import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database: ClickhouseDatabase;
     }) {
         this.modelType = data.modelType;
@@ -128,9 +132,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             records.push(record);
         }
 
-        const statement: string = `INSERT INTO ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -340,7 +343,35 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             } else if (value instanceof NotEqual) {
                 whereStatement.append(
                     SQL`AND ${key} != ${{
-                        value: value.toString(),
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof GreaterThan) {
+                whereStatement.append(
+                    SQL`AND ${key} > ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof LessThan) {
+                whereStatement.append(
+                    SQL`AND ${key} < ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof LessThanOrEqual) {
+                whereStatement.append(
+                    SQL`AND ${key} <= ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof GreaterThanOrEqual) {
+                whereStatement.append(
+                    SQL`AND ${key} >= ${{
+                        value: value,
                         type: tableColumn.type,
                     }}`
                 );

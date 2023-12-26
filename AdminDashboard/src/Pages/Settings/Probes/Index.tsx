@@ -12,7 +12,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import { Green, Red } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
-import IsNull from 'Common/Types/Database/IsNull';
+import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
