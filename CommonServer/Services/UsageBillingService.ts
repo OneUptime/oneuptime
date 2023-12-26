@@ -37,6 +37,7 @@ export class Service extends DatabaseService<Model> {
             select: {
                 _id: true,
                 usageCount: true,
+                totalCostInUSD: true,
             },
             props: {
                 isRoot: true,

@@ -3,7 +3,7 @@ import {
     IsDevelopment,
 } from 'CommonServer/EnvironmentConfig';
 import RunCron from '../../Utils/Cron';
-import { EVERY_DAY, EVERY_MINUTE } from 'Common/Utils/CronTime';
+import { EVERY_DAY, EVERY_FIVE_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import logger from 'CommonServer/Utils/Logger';
 import Project from 'Model/Models/Project';
@@ -17,7 +17,10 @@ import Sleep from 'Common/Types/Sleep';
 
 RunCron(
     'MeteredPlan:ReportTelemetryMeteredPlan',
-    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
+    {
+        schedule: IsDevelopment ? EVERY_FIVE_MINUTE : EVERY_DAY,
+        runOnStartup: true,
+    },
     async () => {
         if (!IsBillingEnabled) {
             logger.info(

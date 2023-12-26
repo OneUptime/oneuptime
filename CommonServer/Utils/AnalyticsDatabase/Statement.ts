@@ -2,6 +2,7 @@ import { BaseQueryParams } from '@clickhouse/client';
 import { integer } from '@elastic/elasticsearch/lib/api/types';
 import { RecordValue } from 'Common/AnalyticsModels/CommonModel';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
+import ObjectID from 'Common/Types/ObjectID';
 import { inspect } from 'util';
 
 /**
@@ -48,7 +49,17 @@ export class Statement implements BaseQueryParams {
     public get query_params(): Record<string, unknown> {
         return Object.fromEntries(
             this.values.map((v: StatementParameter | string, i: integer) => {
-                return [`p${i}`, typeof v === 'string' ? v : v.value];
+                let finalValue: any = v;
+
+                if (typeof v === 'string') {
+                    finalValue = v;
+                } else if (v.value instanceof ObjectID) {
+                    finalValue = v.value.toString();
+                } else {
+                    finalValue = v.value;
+                }
+
+                return [`p${i}`, finalValue];
             })
         );
     }

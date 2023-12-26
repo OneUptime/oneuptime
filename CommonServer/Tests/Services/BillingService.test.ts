@@ -34,7 +34,6 @@ import {
     Subscription,
 } from '../TestingUtils/Services/Types';
 import { ActiveMonitoringMeteredPlan } from '../../Types/Billing/MeteredPlan/AllMeteredPlans';
-import Database from '../TestingUtils/Database';
 
 describe('BillingService', () => {
     let billingService: BillingService;
@@ -43,21 +42,13 @@ describe('BillingService', () => {
         customer.id.toString()
     );
 
-    let database!: Database;
-
     beforeEach(
         async () => {
             jest.clearAllMocks();
             billingService = mockIsBillingEnabled(true);
-            database = new Database();
-            await database.createAndConnect();
         },
         10 * 1000 // 10 second timeout because setting up the DB is slow
     );
-
-    afterEach(async () => {
-        await database.disconnectAndDropDatabase();
-    });
 
     describe('Customer Management', () => {
         describe('createCustomer', () => {

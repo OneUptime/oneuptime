@@ -43,6 +43,31 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
             return;
         }
 
+        // calculate all the total usage count and report it to billing provider.
+
+        let totalCostInUSD: number = 0;
+
+        for (const usageBilling of usageBillings) {
+            if (
+                usageBilling?.totalCostInUSD &&
+                usageBilling?.totalCostInUSD > 0
+            ) {
+                totalCostInUSD += usageBilling.totalCostInUSD;
+            }
+        }
+
+        if (totalCostInUSD < 1) {
+            return; // too low to report.
+        }
+
+        // convert USD to cents.
+
+        let totalCostInCents: number = totalCostInUSD * 100;
+
+        // convert this to integer.
+
+        totalCostInCents = Math.ceil(totalCostInCents);
+
         // update this count in project as well.
         const project: Project | null = await ProjectService.findOneById({
             id: projectId,
@@ -61,19 +86,15 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
                 project.paymentProviderMeteredSubscriptionId) &&
             project.paymentProviderPlanId
         ) {
-            for (const usageBilling of usageBillings) {
-                if (
-                    usageBilling?.usageCount &&
-                    usageBilling?.usageCount > 0 &&
-                    usageBilling.id
-                ) {
-                    await BillingService.addOrUpdateMeteredPricingOnSubscription(
-                        (options?.meteredPlanSubscriptionId as string) ||
-                            (project.paymentProviderMeteredSubscriptionId as string),
-                        this,
-                        usageBilling.usageCount
-                    );
+            await BillingService.addOrUpdateMeteredPricingOnSubscription(
+                (options?.meteredPlanSubscriptionId as string) ||
+                    (project.paymentProviderMeteredSubscriptionId as string),
+                this,
+                totalCostInCents
+            );
 
+            for (const usageBilling of usageBillings) {
+                if (usageBilling.id) {
                     // now mark it as reported.
 
                     await UsageBillingService.updateOneById({

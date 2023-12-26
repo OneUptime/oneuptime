@@ -10,6 +10,8 @@ import DashboardSideMenu from './SideMenu';
 import UsageBilling from 'Model/Models/UsageBilling';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DashboardNavigation from '../../Utils/Navigation';
+import Currency from 'Common/Types/Currency';
+import DiskSize from 'Common/Types/DiskSize';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -51,7 +53,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                 isViewable={false}
                 cardProps={{
                     title: 'Usage History',
-                    description: 'Here is the usage history for this project.',
+                    description:
+                        'Here is the usage history for this project. Please refer to the pricing page for more details.',
                 }}
                 noItemsMessage={
                     'No usage history found. Maybe you have not used Telemetry features yet?'
@@ -89,9 +92,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         getElement: (item: JSONObject) => {
                             return (
-                                <div>{`${item['usageCount'] as string} ${
-                                    item['usageUnitName'] as string
-                                }`}</div>
+                                <div>{`${DiskSize.convertToDecimalPlaces(
+                                    item['usageCount'] as number
+                                )} ${item['usageUnitName'] as string}`}</div>
                             );
                         },
                     },
@@ -103,9 +106,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         getElement: (item: JSONObject) => {
                             return (
-                                <div>{`${
-                                    item['totalCostInUSD'] as string
-                                } USD`}</div>
+                                <div>{`${Currency.convertToDecimalPlaces(
+                                    item['totalCostInUSD'] as number
+                                )} USD`}</div>
                             );
                         },
                     },
