@@ -4,6 +4,7 @@ import { RecordValue } from 'Common/AnalyticsModels/CommonModel';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
 import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import LessThan from 'Common/Types/BaseDatabase/LessThan';
 import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import Search from 'Common/Types/BaseDatabase/Search';
@@ -23,7 +24,7 @@ export class Statement implements BaseQueryParams {
     public constructor(
         private strings: string[] = [''],
         private values: Array<StatementParameter | string> = []
-    ) {}
+    ) { }
 
     public get query(): string {
         let query: string = this.strings.reduce(
@@ -52,30 +53,38 @@ export class Statement implements BaseQueryParams {
     }
 
     public get query_params(): Record<string, unknown> {
-        return Object.fromEntries(
-            this.values.map((v: StatementParameter | string, i: integer) => {
-                let finalValue: any = v;
 
-                if (typeof v === 'string') {
-                    finalValue = v;
-                } else if (v.value instanceof ObjectID) {
-                    finalValue = v.value.toString();
-                } else if (v.value instanceof Search) {
-                    finalValue = `%${v.value.toString()}%`;
-                } else if (
-                    v.value instanceof LessThan ||
-                    v.value instanceof LessThanOrEqual ||
-                    v.value instanceof GreaterThan ||
-                    v.value instanceof GreaterThanOrEqual
-                ) {
-                    finalValue = v.value.value;
-                } else {
-                    finalValue = v.value;
-                }
+        let index: number = 0;
 
-                return [`p${i}`, finalValue];
-            })
-        );
+        let returnObject: Record<string, unknown> = {};
+
+        for (const v of this.values) {
+
+            let finalValue: any = v;
+
+            if (typeof v === 'string') {
+                finalValue = v;
+            } else if (v.value instanceof ObjectID) {
+                finalValue = v.value.toString();
+            } else if (v.value instanceof Search) {
+                finalValue = `%${v.value.toString()}%`;
+            } else if (
+                v.value instanceof LessThan ||
+                v.value instanceof LessThanOrEqual ||
+                v.value instanceof GreaterThan ||
+                v.value instanceof GreaterThanOrEqual
+            ) {
+                finalValue = v.value.value;
+            } else {
+                finalValue = v.value;
+            }
+
+            returnObject[`p${index}`] = finalValue;
+
+            index++;
+        }
+
+        return returnObject;
     }
 
     /**

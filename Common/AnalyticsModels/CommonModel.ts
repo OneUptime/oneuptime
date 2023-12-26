@@ -4,6 +4,7 @@ import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import GreaterThan from '../Types/BaseDatabase/GreaterThan';
 import GreaterThanOrEqual from '../Types/BaseDatabase/GreaterThanOrEqual';
+import InBetween from '../Types/BaseDatabase/InBetween';
 import LessThan from '../Types/BaseDatabase/LessThan';
 import LessThanOrEqual from '../Types/BaseDatabase/LessThanOrEqual';
 import NotEqual from '../Types/BaseDatabase/NotEqual';
@@ -23,6 +24,7 @@ export type RecordValue =
     | Search
     | NotEqual
     | GreaterThan
+    | InBetween
     | LessThan
     | LessThanOrEqual
     | GreaterThanOrEqual

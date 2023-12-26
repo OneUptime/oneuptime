@@ -21,6 +21,7 @@ import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
 import LessThan from 'Common/Types/BaseDatabase/LessThan';
 import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
@@ -376,7 +377,17 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                         type: tableColumn.type,
                     }}`
                 );
-            } else {
+            }  else if (value instanceof InBetween) {
+                whereStatement.append(
+                    SQL`AND ${key} >= ${{
+                        value: value.startValue,
+                        type: tableColumn.type,
+                    }} AND ${key} <= ${{
+                        value: value.endValue,
+                        type: tableColumn.type,
+                    }}`
+                );
+            }else {
                 whereStatement.append(
                     SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
                 );
