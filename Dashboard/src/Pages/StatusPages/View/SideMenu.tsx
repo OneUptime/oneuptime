@@ -241,7 +241,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{

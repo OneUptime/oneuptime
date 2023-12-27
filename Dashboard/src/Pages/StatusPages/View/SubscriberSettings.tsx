@@ -52,7 +52,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Subscriber Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -198,7 +198,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                         <ProjectSMTPConfig
                                             smtpConfig={
                                                 item[
-                                                'smtpConfig'
+                                                    'smtpConfig'
                                                 ] as ProjectSmtpConfig
                                             }
                                         />
@@ -216,7 +216,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
         </ModelPage>
     );
 };
