@@ -28,6 +28,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import SMS from 'Common/Types/SMS/SMS';
 import SmsService from 'CommonServer/Services/SmsService';
+import ProjectCallSMSConfigService from 'CommonServer/Services/ProjectCallSMSConfigService';
 
 RunCron(
     'ScheduledMaintenancePublicNote:SendNotificationToSubscribers',
@@ -211,6 +212,7 @@ RunCron(
                         // send sms here.
                         SmsService.sendSms(sms, {
                             projectId: statuspage.projectId,
+                            customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(statuspage.callSmsConfig),
                         }).catch((err: Error) => {
                             logger.error(err);
                         });
