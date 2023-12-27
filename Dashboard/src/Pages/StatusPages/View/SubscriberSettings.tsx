@@ -171,7 +171,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Custom SMTP Config',
                         description:
-                            'Select SMTP Config to use for this status page to send email to subscribers. You can add SMTP Config in Project Settings > Custom SMTP.',
+                            'Select SMTP Config to use for this status page to send email to subscribers. You can add SMTP Config in Project Settings >  Notification Settings > Custom SMTP.',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownModal: {
                             type: ProjectSmtpConfig,
@@ -236,7 +236,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Twilio Config',
                         description:
-                            'Select Twilio Config to use for this status page to send SMS to subscribers. You can add Twilio Config in Project Settings > Twilio Config.',
+                            'Select Twilio Config to use for this status page to send SMS to subscribers. You can add Twilio Config in Project Settings > Notification Settings > Twilio Config.',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownModal: {
                             type: ProjectCallSMSConfig,
@@ -249,7 +249,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
-                    modelType: ProjectCallSMSConfig,
+                    modelType: StatusPage,
                     id: 'model-detail-call-config',
                     fields: [
                         {
