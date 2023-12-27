@@ -315,7 +315,7 @@ export class Service extends DatabaseService<Model> {
                     twilioAccountSID: true,
                     twilioAuthToken: true,
                     twilioPhoneNumber: true,
-                }
+                },
             },
         });
     }

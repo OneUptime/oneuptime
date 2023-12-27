@@ -33,11 +33,14 @@ export class SmsService extends BaseService {
             isSensitive: options.isSensitive,
             userOnCallLogTimelineId:
                 options.userOnCallLogTimelineId?.toString(),
-            customTwilioConfig: options.customTwilioConfig ? {
-                twilioAccountSID: options.customTwilioConfig?.accountSid!,
-                twilioAuthToken: options.customTwilioConfig?.authToken!,
-                twilioPhoneNumber: options.customTwilioConfig?.phoneNumber.toString(),
-            } : undefined,
+            customTwilioConfig: options.customTwilioConfig
+                ? {
+                      twilioAccountSID: options.customTwilioConfig.accountSid!,
+                      twilioAuthToken: options.customTwilioConfig.authToken!,
+                      twilioPhoneNumber:
+                          options.customTwilioConfig.phoneNumber.toString(),
+                  }
+                : undefined,
         };
 
         return await API.post<EmptyResponseData>(

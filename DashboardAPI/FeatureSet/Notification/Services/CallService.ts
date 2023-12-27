@@ -139,7 +139,7 @@ export default class CallService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'Call notifications not enabled for ' +
-                            (project.name || ''),
+                                (project.name || ''),
                             `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in Project Settings.`
                         );
                     }
@@ -147,7 +147,6 @@ export default class CallService {
                 }
 
                 if (shouldChargeForCall) {
-
                     // check if auto recharge is enabled and current balance is low.
                     let updatedBalance: number =
                         project.smsOrCallCurrentBalanceInUSDCents!;
@@ -173,7 +172,9 @@ export default class CallService {
                             },
                         });
 
-                        if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
+                        if (
+                            !project.lowCallAndSMSBalanceNotificationSentToOwners
+                        ) {
                             await ProjectService.updateOneById({
                                 data: {
                                     lowCallAndSMSBalanceNotificationSentToOwners:
@@ -187,9 +188,10 @@ export default class CallService {
                             await ProjectService.sendEmailToProjectOwners(
                                 project.id!,
                                 'Low SMS and Call Balance for ' +
-                                (project.name || ''),
-                                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${(project.smsOrCallCurrentBalanceInUSDCents ||
-                                    0) / 100
+                                    (project.name || ''),
+                                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
+                                    (project.smsOrCallCurrentBalanceInUSDCents ||
+                                        0) / 100
                                 } USD. Required balance to send this SMS should is ${callCost} USD. Please enable auto recharge or recharge manually.`
                             );
                         }
@@ -201,8 +203,9 @@ export default class CallService {
                         callCost * 100
                     ) {
                         callLog.status = CallStatus.LowBalance;
-                        callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
-                            } USD. Required balance is ${callCost} USD to make this call.`;
+                        callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${
+                            project.smsOrCallCurrentBalanceInUSDCents / 100
+                        } USD. Required balance is ${callCost} USD to make this call.`;
                         logger.error(callLog.statusMessage);
                         await CallLogService.create({
                             data: callLog,
@@ -210,7 +213,9 @@ export default class CallService {
                                 isRoot: true,
                             },
                         });
-                        if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
+                        if (
+                            !project.lowCallAndSMSBalanceNotificationSentToOwners
+                        ) {
                             await ProjectService.updateOneById({
                                 data: {
                                     lowCallAndSMSBalanceNotificationSentToOwners:
@@ -224,8 +229,10 @@ export default class CallService {
                             await ProjectService.sendEmailToProjectOwners(
                                 project.id!,
                                 'Low SMS and Call Balance for ' +
-                                (project.name || ''),
-                                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
+                                    (project.name || ''),
+                                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
+                                    project.smsOrCallCurrentBalanceInUSDCents /
+                                    100
                                 } USD. Required balance is ${callCost} USD to make this call. Please enable auto recharge or recharge manually.`
                             );
                         }
@@ -258,7 +265,7 @@ export default class CallService {
                 if (twillioCall && parseInt(twillioCall.duration) > 60) {
                     callLog.callCostInUSDCents = Math.ceil(
                         Math.ceil(parseInt(twillioCall.duration) / 60) *
-                        (callCost * 100)
+                            (callCost * 100)
                     );
                 }
 
@@ -283,7 +290,7 @@ export default class CallService {
                 logger.info("Project's current balance updated.");
                 logger.info(
                     'Current Balance: ' +
-                    project.smsOrCallCurrentBalanceInUSDCents
+                        project.smsOrCallCurrentBalanceInUSDCents
                 );
             }
         } catch (e: any) {

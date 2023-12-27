@@ -7,7 +7,6 @@ import API from 'Common/Utils/API';
 import { DashboardApiHostname } from '../EnvironmentConfig';
 import Protocol from 'Common/Types/API/Protocol';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
-import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
 import CallRequest from 'Common/Types/Call/CallRequest';
 import BaseService from './BaseService';
@@ -33,11 +32,14 @@ export class CallService extends BaseService {
             isSensitive: options.isSensitive,
             userOnCallLogTimelineId:
                 options.userOnCallLogTimelineId?.toString(),
-            customTwilioConfig: options.customTwilioConfig ? {
-                twilioAccountSID: options.customTwilioConfig?.accountSid!,
-                twilioAuthToken: options.customTwilioConfig?.authToken!,
-                twilioPhoneNumber: options.customTwilioConfig?.phoneNumber.toString(),
-            } : undefined,
+            customTwilioConfig: options.customTwilioConfig
+                ? {
+                      twilioAccountSID: options.customTwilioConfig.accountSid!,
+                      twilioAuthToken: options.customTwilioConfig.authToken!,
+                      twilioPhoneNumber:
+                          options.customTwilioConfig.phoneNumber.toString(),
+                  }
+                : undefined,
         };
 
         return await API.post<EmptyResponseData>(

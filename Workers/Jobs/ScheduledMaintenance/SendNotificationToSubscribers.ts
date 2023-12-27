@@ -202,7 +202,10 @@ RunCron(
                         // send sms here.
                         SmsService.sendSms(sms, {
                             projectId: statuspage.projectId,
-                            customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(statuspage.callSmsConfig),
+                            customTwilioConfig:
+                                ProjectCallSMSConfigService.toTwilioConfig(
+                                    statuspage.callSmsConfig
+                                ),
                         }).catch((err: Error) => {
                             logger.error(err);
                         });
