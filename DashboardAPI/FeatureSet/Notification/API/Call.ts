@@ -54,6 +54,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
                 twilioAccountSID: true,
                 twilioAuthToken: true,
                 twilioPhoneNumber: true,
+                projectId: true,
             },
         });
 
@@ -121,7 +122,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
         };
 
         await CallService.makeCall(testCallRequest, {
-            projectId: body['projectId'] as ObjectID,
+            projectId: config.projectId,
             customTwilioConfig: twilioConfig,
         });
     } catch (err) {

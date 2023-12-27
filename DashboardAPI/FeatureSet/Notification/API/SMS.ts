@@ -57,6 +57,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
                 twilioAccountSID: true,
                 twilioAuthToken: true,
                 twilioPhoneNumber: true,
+                projectId: true,
             },
         });
 
@@ -118,7 +119,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
             toPhone,
             'This is a test SMS from OneUptime.',
             {
-                projectId: body['projectId'] as ObjectID,
+                projectId: config.projectId,
                 customTwilioConfig: twilioConfig,
             }
         );
