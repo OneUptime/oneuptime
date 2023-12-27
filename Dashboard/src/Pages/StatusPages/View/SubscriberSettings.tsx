@@ -11,6 +11,10 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectSMTPConfig from '../../../Components/ProjectSMTPConfig/ProjectSMTPConfig';
+import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
+import PlaceholderText from 'CommonUI/src/Components/Detail/PlaceholderText';
+import { JSONObject } from 'Common/Types/JSON';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -48,7 +52,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Subscriber Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -147,6 +151,72 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Email > Subscriber"
+                cardProps={{
+                    title: 'Custom SMTP',
+                    description:
+                        'Custom SMTP settings for this status page. This will be used to send emails to subscribers.',
+                }}
+                editButtonText={'Edit SMTP'}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            smtpConfig: true,
+                        },
+                        title: 'Custom SMTP Config',
+                        description:
+                            'Select SMTP Config to use for this status page to send email to subscribers. You can add SMTP Config in Project Settings > Custom SMTP.',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: ProjectSmtpConfig,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'SMTP Config',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                smtpConfig: {
+                                    name: true,
+                                },
+                            },
+                            title: 'Custom SMTP Config',
+                            fieldType: FieldType.Element,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (item['smtpConfig']) {
+                                    return (
+                                        <ProjectSMTPConfig
+                                            smtpConfig={
+                                                item[
+                                                'smtpConfig'
+                                                ] as ProjectSmtpConfig
+                                            }
+                                        />
+                                    );
+                                }
+                                return (
+                                    <PlaceholderText
+                                        text="No Custom SMTP Config selected so far
+                                    for this status page."
+                                    />
+                                );
+                            },
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
         </ModelPage>
     );
 };

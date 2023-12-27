@@ -50,7 +50,6 @@ export const StatusPagesRoutePath: Dictionary<string> = {
     [PageMap.STATUS_PAGE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
     [PageMap.STATUS_PAGE_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
-    [PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]: `${RouteParams.ModelID}/custom-smtp`,
     [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: `${RouteParams.ModelID}/email-subscribers`,
     [PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]: `${RouteParams.ModelID}/sms-subscribers`,
     [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: `${RouteParams.ModelID}/webhook-subscribers`,
@@ -447,12 +446,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.STATUS_PAGE_VIEW_DOMAINS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${
             StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_DOMAINS]
-        }`
-    ),
-
-    [PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${
-            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]
         }`
     ),
 

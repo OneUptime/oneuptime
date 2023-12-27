@@ -241,20 +241,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-            <SideMenuSection title="Emails">
-                <SideMenuItem
-                    link={{
-                        title: 'Custom SMTP',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
-                            ] as Route,
-                            { modelId: props.modelId }
-                        ),
-                    }}
-                    icon={IconProp.Email}
-                />
-            </SideMenuSection>
 
             <SideMenuSection title="Advanced">
                 <SideMenuItem
