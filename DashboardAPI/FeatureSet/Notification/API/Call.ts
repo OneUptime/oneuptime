@@ -12,6 +12,11 @@ import Phone from 'Common/Types/Phone';
 import ObjectID from 'Common/Types/ObjectID';
 import CallService from '../Services/CallService';
 import CallRequest from 'Common/Types/Call/CallRequest';
+import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
+import ProjectCallSMSConfigService from 'CommonServer/Services/ProjectCallSMSConfigService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
+import logger from 'CommonServer/Utils/Logger';
 
 router.post(
     '/make-call',
@@ -21,39 +26,34 @@ router.post(
 
         await CallService.makeCall(body['callRequest'] as CallRequest, {
             projectId: body['projectId'] as ObjectID,
-            from: body['from'] as Phone,
             isSensitive: (body['isSensitive'] as boolean) || false,
             userOnCallLogTimelineId:
                 (body['userOnCallLogTimelineId'] as ObjectID) || undefined,
+            customTwilioConfig: body['customTwilioConfig'] as any,
         });
 
         return Response.sendEmptyResponse(req, res);
     }
 );
 
-
-
 router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
     const body: JSONObject = req.body;
 
-    const smtpConfigId: ObjectID = new ObjectID(body['smtpConfigId'] as string);
+    const callSMSConfigId: ObjectID = new ObjectID(
+        body['callSMSConfigId'] as string
+    );
 
-    const config: ProjectSmtpConfig | null =
-        await ProjectSMTPConfigService.findOneById({
-            id: smtpConfigId,
+    const config: ProjectCallSMSConfig | null =
+        await ProjectCallSMSConfigService.findOneById({
+            id: callSMSConfigId,
             props: {
                 isRoot: true,
             },
             select: {
                 _id: true,
-                hostname: true,
-                port: true,
-                username: true,
-                password: true,
-                fromEmail: true,
-                fromName: true,
-                secure: true,
-                projectId: true,
+                twilioAccountSID: true,
+                twilioAuthToken: true,
+                twilioPhoneNumber: true,
             },
         });
 
@@ -62,45 +62,67 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
             req,
             res,
             new BadDataException(
-                'smtp-config not found for id' + smtpConfigId.toString()
+                'call and sms config not found for id' +
+                    callSMSConfigId.toString()
             )
         );
     }
 
-    const toEmail: Email = new Email(body['toEmail'] as string);
+    const toPhone: Phone = new Phone(body['toPhone'] as string);
 
-    if (!toEmail) {
+    if (!toPhone) {
         return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException('toEmail is required')
+            new BadDataException('toPhone is required')
         );
     }
 
-    const mail: EmailMessage = {
-        templateType: EmailTemplateType.SMTPTest,
-        toEmail: new Email(body['toEmail'] as string),
-        subject: 'Test Email from OneUptime',
-        vars: {},
-        body: '',
-    };
+    // if any of the twilio config is missing, we will not send make the call
 
-    const mailServer: EmailServer = {
-        id: config.id!,
-        host: config.hostname!,
-        port: config.port!,
-        username: config.username!,
-        password: config.password!,
-        fromEmail: config.fromEmail!,
-        fromName: config.fromName!,
-        secure: Boolean(config.secure),
+    if (!config.twilioAccountSID) {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException('twilioAccountSID is required')
+        );
+    }
+
+    if (!config.twilioAuthToken) {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException('twilioAuthToken is required')
+        );
+    }
+
+    if (!config.twilioPhoneNumber) {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException('twilioPhoneNumber is required')
+        );
+    }
+
+    const twilioConfig: TwilioConfig = {
+        accountSid: config.twilioAccountSID,
+        authToken: config.twilioAuthToken,
+        phoneNumber: config.twilioPhoneNumber,
     };
 
     try {
-        await MailService.send(mail, {
-            emailServer: mailServer,
-            projectId: config.projectId!,
-            timeout: 4000,
+        const testCallRequest: CallRequest = {
+            data: [
+                {
+                    sayMessage: 'This is a test call from OneUptime.',
+                },
+            ],
+            to: toPhone,
+        };
+
+        await CallService.makeCall(testCallRequest, {
+            projectId: body['projectId'] as ObjectID,
+            customTwilioConfig: twilioConfig,
         });
     } catch (err) {
         logger.error(err);
@@ -108,13 +130,12 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
             req,
             res,
             new BadDataException(
-                'Cannot send email. Please check your SMTP config. If you are using Google or Gmail, please dont since it does not support machine access to their mail servers. If you are still having issues, please uncheck SSL/TLS toggle and try again. We recommend using SendGrid or Mailgun or any large volume mail provider for SMTP.'
+                'Error making test call. Please check the twilio logs for more details'
             )
         );
     }
 
     return Response.sendEmptyResponse(req, res);
 });
-
 
 export default router;

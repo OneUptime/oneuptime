@@ -266,7 +266,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
 
                                 {
                                     toPhone: values['toPhone'],
-                                    CallSMSConfigId: new ObjectID(
+                                    callSMSConfigId: new ObjectID(
                                         currentCallSMSTestConfig['_id']
                                             ? currentCallSMSTestConfig[
                                                   '_id'
@@ -358,7 +358,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
 
                                 {
                                     toPhone: values['toPhone'],
-                                    CallSMSConfigId: new ObjectID(
+                                    callSMSConfigId: new ObjectID(
                                         currentCallSMSTestConfig['_id']
                                             ? currentCallSMSTestConfig[
                                                   '_id'

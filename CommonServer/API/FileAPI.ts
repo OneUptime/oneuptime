@@ -15,7 +15,7 @@ import NotFoundException from 'Common/Types/Exception/NotFoundException';
 export default class FileAPI extends BaseAPI<File, FileServiceType> {
     public constructor() {
         super(File, FileService);
-        
+
         this.router.get(
             `${new this.entityType()
                 .getCrudApiPath()

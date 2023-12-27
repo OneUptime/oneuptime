@@ -1,5 +1,4 @@
 import ObjectID from 'Common/Types/ObjectID';
-import Phone from 'Common/Types/Phone';
 import {
     CallDefaultCostInCentsPerMinute,
     CallHighRiskCostInCentsPerMinute,
@@ -33,16 +32,20 @@ export default class CallService {
         callRequest: CallRequest,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
-            from: Phone; // from phone number
             isSensitive?: boolean; // if true, message will not be logged
             userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
+            customTwilioConfig?: TwilioConfig | undefined;
         }
     ): Promise<void> {
         logger.info('Call Request received.');
 
         let callCost: number = 0;
 
-        if (IsBillingEnabled) {
+        // is no custom twilio config is provided, use default twilio config and charge for call.
+        const shouldChargeForCall: boolean =
+            IsBillingEnabled && !options.customTwilioConfig;
+
+        if (shouldChargeForCall) {
             callCost = CallDefaultCostInCentsPerMinute / 100;
             if (isHighRiskPhoneNumber(callRequest.to)) {
                 callCost = CallHighRiskCostInCentsPerMinute / 100;
@@ -51,7 +54,8 @@ export default class CallService {
 
         logger.info('Call Cost: ' + callCost);
 
-        const twilioConfig: TwilioConfig | null = await getTwilioConfig();
+        const twilioConfig: TwilioConfig | null =
+            options.customTwilioConfig || (await getTwilioConfig());
 
         if (!twilioConfig) {
             throw new BadDataException('Twilio Config not found');
@@ -64,7 +68,7 @@ export default class CallService {
 
         const callLog: CallLog = new CallLog();
         callLog.toNumber = callRequest.to;
-        callLog.fromNumber = options.from || twilioConfig.phoneNumber;
+        callLog.fromNumber = twilioConfig.phoneNumber;
         callLog.callData =
             options && options.isSensitive
                 ? { message: 'This call is sensitive and is not logged' }
@@ -80,7 +84,7 @@ export default class CallService {
         try {
             // make sure project has enough balance.
 
-            if (options.projectId && IsBillingEnabled) {
+            if (options.projectId && shouldChargeForCall) {
                 project = await ProjectService.findOneById({
                     id: options.projectId,
                     select: {
@@ -235,10 +239,7 @@ export default class CallService {
             const twillioCall: CallInstance = await client.calls.create({
                 twiml: this.generateTwimlForCall(callRequest),
                 to: callRequest.to.toString(),
-                from:
-                    options && options.from
-                        ? options.from.toString()
-                        : twilioConfig.phoneNumber.toString(), // From a valid Twilio number
+                from: twilioConfig.phoneNumber.toString(), // From a valid Twilio number
             });
 
             logger.info('Call Request sent successfully.');
@@ -249,7 +250,7 @@ export default class CallService {
             logger.info('Call ID: ' + twillioCall.sid);
             logger.info(callLog.statusMessage);
 
-            if (IsBillingEnabled && project) {
+            if (shouldChargeForCall && project) {
                 logger.info('Updating Project Balance.');
 
                 callLog.callCostInUSDCents = callCost * 100;

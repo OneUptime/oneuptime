@@ -28,7 +28,7 @@ export default class SmsService {
         message: string,
         options: {
             projectId?: ObjectID | undefined; // project id for sms log
-            from: Phone; // from phone number
+            customTwilioConfig?: TwilioConfig | undefined;
             isSensitive?: boolean; // if true, message will not be logged
             userOnCallLogTimelineId?: ObjectID | undefined;
         }
@@ -40,7 +40,10 @@ export default class SmsService {
 
         let smsCost: number = 0;
 
-        if (IsBillingEnabled) {
+        const shouldChargeForSMS: boolean =
+            IsBillingEnabled && !options.customTwilioConfig;
+
+        if (shouldChargeForSMS) {
             smsCost = SMSDefaultCostInCents / 100;
 
             if (isHighRiskPhoneNumber(to)) {
@@ -52,7 +55,8 @@ export default class SmsService {
             smsCost = smsCost * smsSegments;
         }
 
-        const twilioConfig: TwilioConfig | null = await getTwilioConfig();
+        const twilioConfig: TwilioConfig | null =
+            options.customTwilioConfig || (await getTwilioConfig());
 
         if (!twilioConfig) {
             throw new BadDataException('Twilio Config not found');
@@ -65,7 +69,7 @@ export default class SmsService {
 
         const smsLog: SmsLog = new SmsLog();
         smsLog.toNumber = to;
-        smsLog.fromNumber = options.from || twilioConfig.phoneNumber;
+        smsLog.fromNumber = twilioConfig.phoneNumber;
         smsLog.smsText =
             options && options.isSensitive
                 ? 'This message is sensitive and is not logged'
@@ -81,7 +85,7 @@ export default class SmsService {
         try {
             // make sure project has enough balance.
 
-            if (options.projectId && IsBillingEnabled) {
+            if (options.projectId && shouldChargeForSMS) {
                 project = await ProjectService.findOneById({
                     id: options.projectId,
                     select: {
@@ -229,10 +233,7 @@ export default class SmsService {
                 await client.messages.create({
                     body: message,
                     to: to.toString(),
-                    from:
-                        options && options.from
-                            ? options.from.toString()
-                            : twilioConfig.phoneNumber.toString(), // From a valid Twilio number
+                    from: twilioConfig.phoneNumber.toString(), // From a valid Twilio number
                 });
 
             smsLog.status = SmsStatus.Success;
@@ -241,7 +242,7 @@ export default class SmsService {
             logger.info('SMS message sent successfully.');
             logger.info(smsLog.statusMessage);
 
-            if (IsBillingEnabled && project) {
+            if (shouldChargeForSMS && project) {
                 smsLog.smsCostInUSDCents = smsCost * 100;
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
