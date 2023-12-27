@@ -33,58 +33,64 @@ export default class SmsService {
             userOnCallLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
+
+
+
         let smsError: Error | null = null;
-
-        // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
-        const smsSegments: number = Math.ceil(message.length / 160);
-
-        message = Text.trimLines(message);
-
-        let smsCost: number = 0;
-
-        const shouldChargeForSMS: boolean =
-            IsBillingEnabled && !options.customTwilioConfig;
-
-        if (shouldChargeForSMS) {
-            smsCost = SMSDefaultCostInCents / 100;
-
-            if (isHighRiskPhoneNumber(to)) {
-                smsCost = SMSHighRiskCostInCents / 100;
-            }
-        }
-
-        if (smsSegments > 1) {
-            smsCost = smsCost * smsSegments;
-        }
-
-        const twilioConfig: TwilioConfig | null =
-            options.customTwilioConfig || (await getTwilioConfig());
-
-        if (!twilioConfig) {
-            throw new BadDataException('Twilio Config not found');
-        }
-
-        const client: Twilio.Twilio = Twilio(
-            twilioConfig.accountSid,
-            twilioConfig.authToken
-        );
-
         const smsLog: SmsLog = new SmsLog();
-        smsLog.toNumber = to;
-        smsLog.fromNumber = twilioConfig.phoneNumber;
-        smsLog.smsText =
-            options && options.isSensitive
-                ? 'This message is sensitive and is not logged'
-                : message;
-        smsLog.smsCostInUSDCents = 0;
-
-        if (options.projectId) {
-            smsLog.projectId = options.projectId;
-        }
-
-        let project: Project | null = null;
 
         try {
+
+            // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
+            const smsSegments: number = Math.ceil(message.length / 160);
+
+            message = Text.trimLines(message);
+
+            let smsCost: number = 0;
+
+            const shouldChargeForSMS: boolean =
+                IsBillingEnabled && !options.customTwilioConfig;
+
+            if (shouldChargeForSMS) {
+                smsCost = SMSDefaultCostInCents / 100;
+
+                if (isHighRiskPhoneNumber(to)) {
+                    smsCost = SMSHighRiskCostInCents / 100;
+                }
+            }
+
+            if (smsSegments > 1) {
+                smsCost = smsCost * smsSegments;
+            }
+
+            const twilioConfig: TwilioConfig | null =
+                options.customTwilioConfig || (await getTwilioConfig());
+
+            if (!twilioConfig) {
+                throw new BadDataException('Twilio Config not found');
+            }
+
+            const client: Twilio.Twilio = Twilio(
+                twilioConfig.accountSid,
+                twilioConfig.authToken
+            );
+
+            
+            smsLog.toNumber = to;
+            smsLog.fromNumber = twilioConfig.phoneNumber;
+            smsLog.smsText =
+                options && options.isSensitive
+                    ? 'This message is sensitive and is not logged'
+                    : message;
+            smsLog.smsCostInUSDCents = 0;
+
+            if (options.projectId) {
+                smsLog.projectId = options.projectId;
+            }
+
+            let project: Project | null = null;
+
+
             // make sure project has enough balance.
 
             if (options.projectId) {
@@ -139,7 +145,7 @@ export default class SmsService {
                         await ProjectService.sendEmailToProjectOwners(
                             project.id!,
                             'SMS notifications not enabled for ' +
-                                (project.name || ''),
+                            (project.name || ''),
                             `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`
                         );
                     }
@@ -188,10 +194,9 @@ export default class SmsService {
                             await ProjectService.sendEmailToProjectOwners(
                                 project.id!,
                                 'Low SMS and Call Balance for ' +
-                                    (project.name || ''),
-                                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                                    (project.smsOrCallCurrentBalanceInUSDCents ||
-                                        0) / 100
+                                (project.name || ''),
+                                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${(project.smsOrCallCurrentBalanceInUSDCents ||
+                                    0) / 100
                                 } USD cents. Required balance to send this SMS should is ${smsCost} USD. Please enable auto recharge or recharge manually.`
                             );
                         }
@@ -203,9 +208,8 @@ export default class SmsService {
                         smsCost * 100
                     ) {
                         smsLog.status = SmsStatus.LowBalance;
-                        smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${
-                            project.smsOrCallCurrentBalanceInUSDCents / 100
-                        } USD. Required balance is ${smsCost} USD to send this SMS.`;
+                        smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents / 100
+                            } USD. Required balance is ${smsCost} USD to send this SMS.`;
                         logger.error(smsLog.statusMessage);
                         await SmsLogService.create({
                             data: smsLog,
@@ -229,10 +233,9 @@ export default class SmsService {
                             await ProjectService.sendEmailToProjectOwners(
                                 project.id!,
                                 'Low SMS and Call Balance for ' +
-                                    (project.name || ''),
-                                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                                    project.smsOrCallCurrentBalanceInUSDCents /
-                                    100
+                                (project.name || ''),
+                                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${project.smsOrCallCurrentBalanceInUSDCents /
+                                100
                                 } USD. Required balance is ${smsCost} USD to send this SMS. Please enable auto recharge or recharge manually.`
                             );
                         }

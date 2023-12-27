@@ -34,9 +34,9 @@ export class CallService extends BaseService {
                 options.userOnCallLogTimelineId?.toString(),
             customTwilioConfig: options.customTwilioConfig
                 ? {
-                      twilioAccountSID: options.customTwilioConfig.accountSid!,
-                      twilioAuthToken: options.customTwilioConfig.authToken!,
-                      twilioPhoneNumber:
+                    accountSid: options.customTwilioConfig.accountSid!,
+                    authToken: options.customTwilioConfig.authToken!,
+                    phoneNumber:
                           options.customTwilioConfig.phoneNumber.toString(),
                   }
                 : undefined,
