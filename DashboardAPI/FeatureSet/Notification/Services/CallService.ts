@@ -3,7 +3,6 @@ import Phone from 'Common/Types/Phone';
 import {
     CallDefaultCostInCentsPerMinute,
     CallHighRiskCostInCentsPerMinute,
-    TwilioConfig,
     getTwilioConfig,
 } from '../Config';
 import Twilio from 'twilio';
@@ -27,6 +26,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
 
 export default class CallService {
     public static async makeCall(

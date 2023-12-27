@@ -3,7 +3,6 @@ import Phone from 'Common/Types/Phone';
 import {
     SMSDefaultCostInCents,
     SMSHighRiskCostInCents,
-    TwilioConfig,
     getTwilioConfig,
 } from '../Config';
 import Twilio from 'twilio';
@@ -21,6 +20,7 @@ import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificati
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { isHighRiskPhoneNumber } from 'Common/Types/Call/CallRequest';
 import Text from 'Common/Types/Text';
+import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
 
 export default class SmsService {
     public static async sendSms(

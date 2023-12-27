@@ -1364,10 +1364,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
-
             {
                 permission: Permission.CanCreateProjectCallSMSConfig,
                 title: 'Can Create Call and SMS',
@@ -1400,9 +1396,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
-
 
             {
                 permission: Permission.CanCreateStatusPageDomain,

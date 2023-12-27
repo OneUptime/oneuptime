@@ -5,8 +5,8 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
-import Phone from 'Common/Types/Phone';
 import EmailServer from 'Common/Types/Email/EmailServer';
+import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
 
 export const InternalSmtpUsername: string = 'oneuptime';
 
@@ -25,12 +25,6 @@ export const InternalSmtpEmail: Email = new Email(
 
 export const InternalSmtpFromName: string =
     process.env['INTERNAL_SMTP_FROM_NAME'] || 'OneUptime';
-
-export interface TwilioConfig {
-    accountSid: string;
-    authToken: string;
-    phoneNumber: Phone;
-}
 
 export const getGlobalSMTPConfig: Function =
     async (): Promise<EmailServer | null> => {

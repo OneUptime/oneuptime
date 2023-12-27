@@ -140,6 +140,8 @@ import OnCallDutyPolicyEscalationRuleSchedule from './OnCallDutyPolicyEscalation
 
 import UsageBilling from './UsageBilling';
 
+import ProjectCallSMSConfig from './ProjectCallSMSConfig';
+
 export default [
     User,
     Probe,
@@ -266,4 +268,6 @@ export default [
     OnCallDutyPolicyEscalationRuleSchedule,
 
     UsageBilling,
+
+    ProjectCallSMSConfig,
 ];
