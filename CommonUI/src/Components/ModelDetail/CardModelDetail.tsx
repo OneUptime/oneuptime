@@ -31,6 +31,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     className?: string | undefined;
     name: string;
     createEditModalWidth?: ModalWidth | undefined;
+    refresher?: boolean;
 }
 
 const CardModelDetail: <TBaseModel extends BaseModel>(
@@ -43,6 +44,10 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     const [item, setItem] = useState<TBaseModel | null>(null);
     const [refresher, setRefresher] = useState<boolean>(false);
     const model: TBaseModel = new props.modelDetailProps.modelType();
+
+    useEffect(()=>{
+        setRefresher(!refresher);
+    }, [props.refresher])
 
     useEffect(() => {
         const userProjectPermissions: UserTenantAccessPermission | null =

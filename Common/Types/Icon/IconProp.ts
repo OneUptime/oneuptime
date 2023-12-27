@@ -19,6 +19,7 @@ enum IconProp {
     SquareStack = 'SquareStack',
     Calendar = 'Calendar',
     Help = 'Help',
+    Reload = 'Reload',
     JSON = 'JSON',
     Signal = 'Signal',
     Stop = 'Stop',
