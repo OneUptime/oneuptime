@@ -34,6 +34,7 @@ import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/ColumnBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import ProjectCallSMSConfig from './ProjectCallSMSConfig';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -1272,6 +1273,89 @@ export default class StatusPage extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public smtpConfigId?: ObjectID = undefined;
+
+
+
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'callSmsConfigId',
+        type: TableColumnType.Entity,
+        modelType: ProjectCallSMSConfig,
+        title: 'Call/SMS Config',
+        description:
+            'Relation to Call/SMS Config Resource which is used to send SMS to subscribers.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return ProjectCallSMSConfig;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'callSmsConfigId' })
+    public callSmsConfig?: ProjectCallSMSConfig = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'Call/SMS Config ID',
+        description:
+            'ID of your Call/SMS Config Resource which is used to send SMS to subscribers.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public callSmsConfigId?: ObjectID = undefined;
+
 
     @ColumnAccessControl({
         create: [
