@@ -1274,10 +1274,6 @@ export default class StatusPage extends BaseModel {
     })
     public smtpConfigId?: ObjectID = undefined;
 
-
-
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -1355,7 +1351,6 @@ export default class StatusPage extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public callSmsConfigId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [
