@@ -227,7 +227,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description:
                         'Twilio Config settings for this status page. This will be used to send SMS to subscribers.',
                 }}
-                editButtonText={'Edit SMTP'}
+                editButtonText={'Edit Twilio Config'}
                 isEditable={true}
                 formFields={[
                     {

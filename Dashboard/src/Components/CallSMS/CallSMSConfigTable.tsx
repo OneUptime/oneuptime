@@ -159,7 +159,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Twilio Auth Token',
                         stepId: 'twilio-info',
-                        fieldType: FormFieldSchemaType.Password,
+                        fieldType: FormFieldSchemaType.Text,
                         required: true,
                         description:
                             'You can find this in your Twilio console.',

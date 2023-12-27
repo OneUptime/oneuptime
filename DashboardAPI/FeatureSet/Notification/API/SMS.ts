@@ -108,13 +108,12 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
         );
     }
 
-    const twilioConfig: TwilioConfig = {
-        accountSid: config.twilioAccountSID,
-        authToken: config.twilioAuthToken,
-        phoneNumber: config.twilioPhoneNumber,
-    };
+    const twilioConfig: TwilioConfig | undefined = ProjectCallSMSConfigService.toTwilioConfig(config);
 
     try {
+
+        if(!twilioConfig) throw new BadDataException('twilioConfig is undefined');
+
         await SmsService.sendSms(
             toPhone,
             'This is a test SMS from OneUptime.',

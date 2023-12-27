@@ -41,9 +41,9 @@ export class Service extends DatabaseService<Model> {
         }
 
         return {
-            accountSid: projectCallSmsConfig.twilioAccountSID,
+            accountSid: projectCallSmsConfig.twilioAccountSID.toString(),
+            authToken: projectCallSmsConfig.twilioAuthToken.toString(),
             phoneNumber: projectCallSmsConfig.twilioPhoneNumber,
-            authToken: projectCallSmsConfig.twilioAuthToken,
         };
     }
 }
