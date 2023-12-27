@@ -19,6 +19,7 @@ import URL from 'Common/Types/API/URL';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import CustomSMTPTable from '../../Components/CustomSMTP/CustomSMTPTable';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -48,9 +49,11 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Call & SMS',
+                    title: 'Notification Settings',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                        RouteMap[
+                            PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                        ] as Route
                     ),
                 },
             ]}
@@ -388,6 +391,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
+
+            <CustomSMTPTable />
         </Page>
     );
 };

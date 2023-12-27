@@ -205,7 +205,9 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     link={{
                         title: 'Notification Settings',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                            RouteMap[
+                                PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Settings}

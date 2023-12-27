@@ -91,7 +91,7 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
 
 export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_DANGERZONE]: 'danger-zone',
-    [PageMap.SETTINGS_CALL_SMS]: 'call-sms',
+    [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: 'notification-settings',
     [PageMap.SETTINGS_SMS_LOGS]: 'sms-logs',
     [PageMap.SETTINGS_EMAIL_LOGS]: 'email-logs',
     [PageMap.SETTINGS_CALL_LOGS]: 'call-logs',
@@ -760,9 +760,9 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
-    [PageMap.SETTINGS_CALL_SMS]: new Route(
+    [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
-            SettingsRoutePath[PageMap.SETTINGS_CALL_SMS]
+            SettingsRoutePath[PageMap.SETTINGS_NOTIFICATION_SETTINGS]
         }`
     ),
 

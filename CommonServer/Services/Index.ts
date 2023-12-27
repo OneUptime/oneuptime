@@ -262,7 +262,7 @@ const services: Array<BaseService> = [
     OnCallDutyPolicyEscalationRuleScheduleService,
 
     UsageBillingService,
-    ProjectCallSMSConfigService
+    ProjectCallSMSConfigService,
 ];
 
 export const AnalyticsServices: Array<

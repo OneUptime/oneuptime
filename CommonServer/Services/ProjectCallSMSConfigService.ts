@@ -17,7 +17,9 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (!projectCallSmsConfig.id) {
-            throw new BadDataException('Project Call and SMS Config id is not set');
+            throw new BadDataException(
+                'Project Call and SMS Config id is not set'
+            );
         }
 
         if (!projectCallSmsConfig.twilioAccountSID) {
@@ -43,7 +45,6 @@ export class Service extends DatabaseService<Model> {
             phoneNumber: projectCallSmsConfig.twilioPhoneNumber,
             authToken: projectCallSmsConfig.twilioAuthToken,
         };
-
     }
 }
 export default new Service();

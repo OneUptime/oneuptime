@@ -1,15 +1,9 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -28,9 +22,7 @@ import EmptyResponseData from 'Common/Types/API/EmptyResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
-const CustomSMTP: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
-): ReactElement => {
+const CustomSMTPTable: FunctionComponent = (): ReactElement => {
     const [showSMTPTestModal, setShowSMTPTestModal] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [currentSMTPTestConfig, setCurrentSMTPTestConfig] =
@@ -44,30 +36,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
     }, [showSMTPTestModal]);
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Custom SMTP',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <>
             <ModelTable<ProjectSmtpConfig>
                 modelType={ProjectSmtpConfig}
                 id="smtp-table"
@@ -343,8 +312,8 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
-        </Page>
+        </>
     );
 };
 
-export default CustomSMTP;
+export default CustomSMTPTable;
