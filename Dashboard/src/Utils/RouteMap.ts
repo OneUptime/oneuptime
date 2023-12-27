@@ -39,6 +39,7 @@ export const TelemetryRouthPath: Dictionary<string> = {
     [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
     [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
     [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `${RouteParams.ModelID}/dashboards`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -674,6 +675,12 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
             TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_DELETE]
+        }`
+    ),
+
+    [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]
         }`
     ),
 

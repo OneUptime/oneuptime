@@ -213,9 +213,6 @@ services:
         links:
             - redis
             - postgres
-            
-       
-        
 
     workflow:
         networks:
