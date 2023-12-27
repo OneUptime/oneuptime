@@ -15,6 +15,10 @@ import ProjectSMTPConfig from '../../../Components/ProjectSMTPConfig/ProjectSMTP
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import PlaceholderText from 'CommonUI/src/Components/Detail/PlaceholderText';
 import { JSONObject } from 'Common/Types/JSON';
+import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
+import ProjectCallSMSConfigElement from '../../../Components/ProjectCallSMSConfig/ProjectCallSMSConfig';
+
+
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -52,7 +56,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Subscriber Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -198,7 +202,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                         <ProjectSMTPConfig
                                             smtpConfig={
                                                 item[
-                                                    'smtpConfig'
+                                                'smtpConfig'
                                                 ] as ProjectSmtpConfig
                                             }
                                         />
@@ -216,6 +220,73 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Call and SMS > Subscriber"
+                cardProps={{
+                    title: 'Twilio Config',
+                    description:
+                        'Twilio Config settings for this status page. This will be used to send SMS to subscribers.',
+                }}
+                editButtonText={'Edit SMTP'}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            callSmsConfig: true,
+                        },
+                        title: 'Twilio Config',
+                        description:
+                            'Select Twilio Config to use for this status page to send SMS to subscribers. You can add Twilio Config in Project Settings > Twilio Config.',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: ProjectCallSMSConfig,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Twilio Config',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: ProjectCallSMSConfig,
+                    id: 'model-detail-call-config',
+                    fields: [
+                        {
+                            field: {
+                                callSmsConfig: {
+                                    name: true,
+                                },
+                            },
+                            title: 'Twilio Config',
+                            fieldType: FieldType.Element,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (item['callSmsConfig']) {
+                                    return (
+                                        <ProjectCallSMSConfigElement
+                                            callSmsConfig={
+                                                item[
+                                                'callSmsConfig'
+                                                ] as ProjectCallSMSConfig
+                                            }
+                                        />
+                                    );
+                                }
+                                return (
+                                    <PlaceholderText
+                                        text="No Twilio Config selected so far."
+                                    />
+                                );
+                            },
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
         </ModelPage>
     );
 };
