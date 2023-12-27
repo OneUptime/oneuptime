@@ -431,6 +431,12 @@ import UsageBillingService, {
 import BaseAPI from 'CommonServer/API/BaseAPI';
 import BaseAnalyticsAPI from 'CommonServer/API/BaseAnalyticsAPI';
 
+
+import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
+import ProjectCallSMSConfigService, {
+    Service as ProjectCallSMSConfigServiceType,
+} from 'CommonServer/Services/ProjectCallSMSConfigService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -526,6 +532,14 @@ app.use(
     new BaseAPI<MonitorGroupOwnerTeam, MonitorGroupOwnerTeamServiceType>(
         MonitorGroupOwnerTeam,
         MonitorGroupOwnerTeamService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<ProjectCallSMSConfig, ProjectCallSMSConfigServiceType>(
+        ProjectCallSMSConfig,
+        ProjectCallSMSConfigService
     ).getRouter()
 );
 
