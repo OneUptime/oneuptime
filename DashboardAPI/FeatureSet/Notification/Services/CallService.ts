@@ -37,6 +37,8 @@ export default class CallService {
             customTwilioConfig?: TwilioConfig | undefined;
         }
     ): Promise<void> {
+        let callError: Error | null = null;
+
         logger.info('Call Request received.');
 
         let callCost: number = 0;
@@ -301,6 +303,7 @@ export default class CallService {
 
             logger.error('Call Request failed.');
             logger.error(callLog.statusMessage);
+            callError = e;
         }
 
         logger.info('Saving Call Log if project id is provided.');
@@ -332,6 +335,10 @@ export default class CallService {
                     isRoot: true,
                 },
             });
+        }
+
+        if (callError) {
+            throw callError;
         }
     }
 

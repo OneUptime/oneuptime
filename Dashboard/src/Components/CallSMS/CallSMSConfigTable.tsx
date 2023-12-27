@@ -91,7 +91,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 isDeleteable={true}
-                createVerb='Create Twilio Config'
+                createVerb="Create Twilio Config"
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{

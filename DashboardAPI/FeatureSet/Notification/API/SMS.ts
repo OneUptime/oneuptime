@@ -108,11 +108,13 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
         );
     }
 
-    const twilioConfig: TwilioConfig | undefined = ProjectCallSMSConfigService.toTwilioConfig(config);
+    const twilioConfig: TwilioConfig | undefined =
+        ProjectCallSMSConfigService.toTwilioConfig(config);
 
     try {
-
-        if(!twilioConfig) throw new BadDataException('twilioConfig is undefined');
+        if (!twilioConfig) {
+            throw new BadDataException('twilioConfig is undefined');
+        }
 
         await SmsService.sendSms(
             toPhone,

@@ -33,6 +33,8 @@ export default class SmsService {
             userOnCallLogTimelineId?: ObjectID | undefined;
         }
     ): Promise<void> {
+        let smsError: Error | null = null;
+
         // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
         const smsSegments: number = Math.ceil(message.length / 160);
 
@@ -279,6 +281,8 @@ export default class SmsService {
 
             logger.error('SMS message failed to send.');
             logger.error(smsLog.statusMessage);
+
+            smsError = e;
         }
 
         if (options.projectId) {
@@ -304,6 +308,10 @@ export default class SmsService {
                     isRoot: true,
                 },
             });
+        }
+
+        if (smsError) {
+            throw smsError;
         }
     }
 }
