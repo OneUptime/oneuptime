@@ -24,7 +24,7 @@ export const InternalSmtpEmail: Email = new Email(
 );
 
 export const InternalSmtpFromName: string =
-    process.env['INTERNAL_SMTP_NAME'] || '';
+    process.env['INTERNAL_SMTP_FROM_NAME'] || 'OneUptime';
 
 export interface TwilioConfig {
     accountSid: string;
