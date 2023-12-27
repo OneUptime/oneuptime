@@ -6,9 +6,9 @@ import RouteMap, { RouteUtil } from '../../../../Utils/RouteMap';
 import PageComponentProps from '../../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import TelemetryService from 'Model/Models/TelemetryService';
+import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -51,10 +51,10 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Service',
+                    title: 'Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                            PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
                         ] as Route,
                         { modelId }
                     ),
@@ -62,14 +62,12 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
+            <ResetObjectID<TelemetryService>
                 modelType={TelemetryService}
+                fieldName={'telemetryServiceToken'}
+                title={'Reset Service Token'}
+                description={'Reset the service token to a new value.'}
                 modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.TELEMETRY_SERVICES] as Route
-                    );
-                }}
             />
         </ModelPage>
     );

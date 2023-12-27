@@ -279,13 +279,13 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-            <ResetObjectID<ApiKey> 
+            <ResetObjectID<ApiKey>
                 modelType={ApiKey}
                 fieldName={'apiKey'}
                 title={'Reset API Key'}
                 description={'Reset the API Key to a new value.'}
                 modelId={modelId}
-                onUpdateComplete={()=>{
+                onUpdateComplete={() => {
                     setRefresher(!refresher);
                 }}
             />

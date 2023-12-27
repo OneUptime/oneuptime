@@ -45,9 +45,9 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     const [refresher, setRefresher] = useState<boolean>(false);
     const model: TBaseModel = new props.modelDetailProps.modelType();
 
-    useEffect(()=>{
+    useEffect(() => {
         setRefresher(!refresher);
-    }, [props.refresher])
+    }, [props.refresher]);
 
     useEffect(() => {
         const userProjectPermissions: UserTenantAccessPermission | null =

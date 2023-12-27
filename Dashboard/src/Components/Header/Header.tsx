@@ -65,30 +65,33 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
-
-    const showAddCardButton: boolean = Boolean(BILLING_ENABLED &&
-        props.selectedProject?.id &&
-        props.selectedProject.paymentProviderPlanId &&
-        !SubscriptionPlan.isFreePlan(
-            props.selectedProject.paymentProviderPlanId,
-            getAllEnvVars()
-        ) &&
-        !SubscriptionPlan.isCustomPricingPlan(
-            props.selectedProject.paymentProviderPlanId,
-            getAllEnvVars()
-        ) &&
-        props.paymentMethodsCount !== undefined &&
-        props.paymentMethodsCount === 0 &&
-        !props.selectedProject.resellerId);
-
-    const showTrialButton: boolean = Boolean(props.selectedProject?.trialEndsAt &&
+    const showAddCardButton: boolean = Boolean(
         BILLING_ENABLED &&
-        showAddCardButton &&
-        OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-            OneUptimeDate.getCurrentDate(),
-            props.selectedProject?.trialEndsAt
-        ) > 0 &&
-        !props.selectedProject.resellerId);
+            props.selectedProject?.id &&
+            props.selectedProject.paymentProviderPlanId &&
+            !SubscriptionPlan.isFreePlan(
+                props.selectedProject.paymentProviderPlanId,
+                getAllEnvVars()
+            ) &&
+            !SubscriptionPlan.isCustomPricingPlan(
+                props.selectedProject.paymentProviderPlanId,
+                getAllEnvVars()
+            ) &&
+            props.paymentMethodsCount !== undefined &&
+            props.paymentMethodsCount === 0 &&
+            !props.selectedProject.resellerId
+    );
+
+    const showTrialButton: boolean = Boolean(
+        props.selectedProject?.trialEndsAt &&
+            BILLING_ENABLED &&
+            showAddCardButton &&
+            OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                OneUptimeDate.getCurrentDate(),
+                props.selectedProject?.trialEndsAt
+            ) > 0 &&
+            !props.selectedProject.resellerId
+    );
 
     return (
         <>
@@ -96,7 +99,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => { }} />
+                            <Logo onClick={() => {}} />
                         )}
 
                         <ProjectPicker
@@ -155,15 +158,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
                                     title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                         OneUptimeDate.getCurrentDate(),
-                                        props.selectedProject?.trialEndsAt!
-                                    )} ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                                        OneUptimeDate.getCurrentDate(),
-                                        props.selectedProject
-                                            ?.trialEndsAt!
-                                    ) > 1
-                                        ? 'days'
-                                        : 'day'
-                                        }`}
+                                        props.selectedProject!.trialEndsAt!
+                                    )} ${
+                                        OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                            OneUptimeDate.getCurrentDate(),
+                                            props.selectedProject!.trialEndsAt!
+                                        ) > 1
+                                            ? 'days'
+                                            : 'day'
+                                    }`}
                                 />
                             )}
                         </div>
@@ -188,7 +191,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     Navigation.navigate(
                                         RouteUtil.populateRouteParams(
                                             RouteMap[
-                                            PageMap.SETTINGS_BILLING
+                                                PageMap.SETTINGS_BILLING
                                             ] as Route
                                         )
                                     );
@@ -201,12 +204,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             <></>
                         )}
                         {BILLING_ENABLED &&
-                            props.selectedProject?.id &&
-                            props.selectedProject.paymentProviderPlanId &&
-                            SubscriptionPlan.isFreePlan(
-                                props.selectedProject.paymentProviderPlanId,
-                                getAllEnvVars()
-                            ) ? (
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
+                        ) ? (
                             <Upgrade />
                         ) : (
                             <></>

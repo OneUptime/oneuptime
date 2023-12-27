@@ -35,7 +35,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Logs',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_LOGS
+                                PageMap.TELEMETRY_SERVICES_VIEW_LOGS
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -47,7 +47,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Traces',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                PageMap.TELEMETRY_SERVICES_VIEW_TRACES
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -59,7 +59,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Metrics',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                                PageMap.TELEMETRY_SERVICES_VIEW_METRICS
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -71,7 +71,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Dashboards',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
+                                PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -85,7 +85,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                                PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -98,7 +98,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Delete Service',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                                PageMap.TELEMETRY_SERVICES_VIEW_DELETE
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -107,7 +107,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     className="danger-on-hover"
                 />
             </SideMenuSection>
-        </SideMenu >
+        </SideMenu>
     );
 };
 
