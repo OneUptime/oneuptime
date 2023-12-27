@@ -150,10 +150,7 @@ import StatusPageHeaderLinkService, {
     Service as StatusPageHeaderLinkServiceType,
 } from 'CommonServer/Services/StatusPageHeaderLinkService';
 
-import File from 'Model/Models/File';
-import FileService, {
-    Service as FileServiceType,
-} from 'CommonServer/Services/FileService';
+import FileAPI from 'CommonServer/API/FileAPI';
 
 import UserNotificationRule from 'Model/Models/UserNotificationRule';
 import UserNotificationRuleService, {
@@ -714,10 +711,6 @@ app.use(
     ).getRouter()
 );
 
-app.use(
-    `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<File, FileServiceType>(File, FileService).getRouter()
-);
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
@@ -971,6 +964,7 @@ app.use(
 
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorGroupAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectSsoAPI().getRouter());
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ResellerPlanAPI().getRouter());

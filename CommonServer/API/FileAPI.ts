@@ -15,9 +15,11 @@ import NotFoundException from 'Common/Types/Exception/NotFoundException';
 export default class FileAPI extends BaseAPI<File, FileServiceType> {
     public constructor() {
         super(File, FileService);
-
+        
         this.router.get(
-            `/image/:imageId`,
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/image/:imageId`,
             async (
                 req: ExpressRequest,
                 res: ExpressResponse,
