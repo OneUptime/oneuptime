@@ -307,7 +307,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                     submitButtonType={ButtonStyleType.NORMAL}
                     submitButtonText={'Close'}
                     onSubmit={async () => {
-                        setShowSMSTestModal(false);
+                        setSMSShowSuccessModal(false);
                         setError('');
                     }}
                 />

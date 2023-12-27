@@ -97,7 +97,6 @@ export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_CALL_LOGS]: 'call-logs',
     [PageMap.SETTINGS_APIKEYS]: `api-keys`,
     [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
-    [PageMap.SETTINGS_CUSTOM_SMTP]: 'custom-smtp',
     [PageMap.SETTINGS_MONITORS_STATUS]: 'monitors-status',
     [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: 'monitor-custom-fields',
     [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: 'incident-custom-fields',
@@ -793,12 +792,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_APIKEY_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
             SettingsRoutePath[PageMap.SETTINGS_APIKEY_VIEW]
-        }`
-    ),
-
-    [PageMap.SETTINGS_CUSTOM_SMTP]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/${
-            SettingsRoutePath[PageMap.SETTINGS_CUSTOM_SMTP]
         }`
     ),
 

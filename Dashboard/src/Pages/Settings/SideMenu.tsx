@@ -194,15 +194,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             <SideMenuSection title="Notifications">
                 <SideMenuItem
                     link={{
-                        title: 'Custom SMTP',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
-                        ),
-                    }}
-                    icon={IconProp.Email}
-                />
-                <SideMenuItem
-                    link={{
                         title: 'Notification Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
