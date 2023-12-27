@@ -20,6 +20,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import CustomSMTPTable from '../../Components/CustomSMTP/CustomSMTPTable';
+import CustomCallSMSTable from '../../Components/CallSMS/CallSMSConfigTable';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -393,6 +394,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             )}
 
             <CustomSMTPTable />
+            <CustomCallSMSTable />
         </Page>
     );
 };
