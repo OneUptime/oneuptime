@@ -4,7 +4,6 @@ import Express, {
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
-import path from 'path';
 import ResourceUtil, { ModelDocumentation } from './Utils/Resources';
 import IntroductionServiceHandler from './Service/Introduction';
 import ErrorServiceHandler from './Service/Errors';
@@ -16,6 +15,7 @@ import PaginationServiceHandler from './Service/Pagination';
 import StatusServiceHandler from './Service/Status';
 import DataTypeServiceHandler from './Service/DataType';
 import Dictionary from 'Common/Types/Dictionary';
+import { StaticPath } from './Utils/Config';
 
 const ResourceDictionary: Dictionary<ModelDocumentation> =
     ResourceUtil.getResourceDictionaryByPath();
@@ -24,7 +24,7 @@ const app: ExpressApplication = Express.getExpressApp();
 
 app.use(
     '/reference',
-    ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 })
+    ExpressStatic(StaticPath, { maxAge: 2592000 })
 );
 
 // Index page

@@ -10,27 +10,21 @@ import path from 'path';
 
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
-import productCompare, { Product } from './config/product-compare';
+import ProductCompare, { Product } from './Utils/ProductCompare';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 import API from 'Common/Utils/API';
 import { JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import { StaticPath, ViewsPath } from './Utils/Config';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 
-
-/**
- * @param {string} val : The value to be parsed.
- * @description Resolves or Parses any value to boolean value.
- * @returns Boolean true or false
- */
-
 //Routes
 app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/index`, {
+    res.render(`${ViewsPath}/index`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -40,7 +34,7 @@ app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/support', async (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/support`);
+    res.render(`${ViewsPath}/support`);
 });
 
 app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
@@ -475,13 +469,13 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
         },
     ];
 
-    res.render(`${viewsPath}/pricing`, {
+    res.render(`${ViewsPath}/pricing`, {
         pricing,
     });
 });
 
 app.get('/enterprise/demo', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/demo`, {
+    res.render(`${ViewsPath}/demo`, {
         support: false,
         footerCards: false,
         cta: false,
@@ -493,14 +487,14 @@ app.get('/enterprise/demo', (_req: ExpressRequest, res: ExpressResponse) => {
 app.get(
     '/product/status-page',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${viewsPath}/status-page`);
+        res.render(`${ViewsPath}/status-page`);
     }
 );
 
 app.get(
     '/product/logs-management',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${viewsPath}/logs-management`);
+        res.render(`${ViewsPath}/logs-management`);
     }
 );
 
@@ -584,7 +578,7 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
         gitHubCommits = commits;
     }
 
-    res.render(`${viewsPath}/about`, {
+    res.render(`${ViewsPath}/about`, {
         contributors: gitHubContributors,
         basicInfo: gitHubBasicInfo,
         commits: gitHubCommits,
@@ -594,7 +588,7 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
 app.get(
     '/product/status-page',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${viewsPath}/status-page`, {
+        res.render(`${ViewsPath}/status-page`, {
             support: false,
             footerCards: true,
             cta: true,
@@ -619,21 +613,21 @@ app.get('/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/product/monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/monitoring`);
+    res.render(`${ViewsPath}/monitoring`);
 });
 
 app.get('/product/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/on-call`);
+    res.render(`${ViewsPath}/on-call`);
 });
 
 app.get('/product/workflows', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/workflows`);
+    res.render(`${ViewsPath}/workflows`);
 });
 
 app.get(
     '/product/incident-management',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${viewsPath}/incident-management`);
+        res.render(`${ViewsPath}/incident-management`);
     }
 );
 
@@ -647,7 +641,7 @@ app.get(
 app.get(
     '/enterprise/overview',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${viewsPath}/enterprise-overview.ejs`, {
+        res.render(`${ViewsPath}/enterprise-overview.ejs`, {
             support: false,
             footerCards: true,
             cta: true,
@@ -658,7 +652,7 @@ app.get(
 );
 
 app.get('/legal', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -669,7 +663,7 @@ app.get('/legal', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/terms', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -680,7 +674,7 @@ app.get('/legal/terms', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/privacy', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -691,7 +685,7 @@ app.get('/legal/privacy', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/contact', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -704,7 +698,7 @@ app.get('/legal/contact', (_req: ExpressRequest, res: ExpressResponse) => {
 app.get(
     '/legal/subprocessors',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${viewsPath}/legal.ejs`, {
+        res.render(`${ViewsPath}/legal.ejs`, {
             support: false,
             footerCards: true,
             cta: true,
@@ -716,7 +710,7 @@ app.get(
 );
 
 app.get('/legal/ccpa', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -727,7 +721,7 @@ app.get('/legal/ccpa', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/hipaa', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -738,7 +732,7 @@ app.get('/legal/hipaa', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/dmca', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -749,7 +743,7 @@ app.get('/legal/dmca', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/pci', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -760,7 +754,7 @@ app.get('/legal/pci', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/iso-27001', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
         footerCards: true,
         cta: true,
@@ -771,7 +765,7 @@ app.get('/legal/iso-27001', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/iso-27017', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -782,7 +776,7 @@ app.get('/legal/iso-27017', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/iso-27018', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -793,7 +787,7 @@ app.get('/legal/iso-27018', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/iso-27017', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -804,7 +798,7 @@ app.get('/legal/iso-27017', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/iso-27018', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -815,7 +809,7 @@ app.get('/legal/iso-27018', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/soc-2', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -826,7 +820,7 @@ app.get('/legal/soc-2', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/soc-3', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -839,7 +833,7 @@ app.get('/legal/soc-3', (_req: ExpressRequest, res: ExpressResponse) => {
 app.get(
     '/legal/data-residency',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${viewsPath}/legal.ejs`, {
+        res.render(`${ViewsPath}/legal.ejs`, {
             footerCards: true,
             support: false,
             cta: true,
@@ -851,7 +845,7 @@ app.get(
 );
 
 app.get('/legal/gdpr', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -862,7 +856,7 @@ app.get('/legal/gdpr', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/legal/sla', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${viewsPath}/legal.ejs`, {
+    res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
         cta: true,
@@ -873,13 +867,13 @@ app.get('/legal/sla', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig: Product = productCompare(
+    const productConfig: Product = ProductCompare(
         req.params['product'] as string
     );
 
     if (!productConfig) {
         res.status(404);
-        res.render(`${viewsPath}/not-found.ejs`, {
+        res.render(`${ViewsPath}/not-found.ejs`, {
             footerCards: false,
             support: false,
             cta: false,
@@ -887,7 +881,7 @@ app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
             requestDemoCta: false,
         });
     } else {
-        res.render(`${viewsPath}/product-compare.ejs`, {
+        res.render(`${ViewsPath}/product-compare.ejs`, {
             support: false,
             footerCards: true,
             cta: true,
@@ -972,7 +966,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
  * Loads up the site faster
  */
 app.use(
-    ExpressStatic(path.join(__dirname, 'public'), {
+    ExpressStatic(StaticPath, {
         setHeaders(res: ExpressResponse) {
             res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
         },
@@ -981,7 +975,7 @@ app.use(
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(404);
-    res.render(`${viewsPath}/not-found.ejs`, {
+    res.render(`${ViewsPath}/not-found.ejs`, {
         footerCards: false,
         support: false,
         cta: false,
