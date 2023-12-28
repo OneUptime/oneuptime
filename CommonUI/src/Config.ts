@@ -70,7 +70,7 @@ export const HOME_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const FILE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const APP_URL: URL = new URL(
+export const APP_API_URL: URL = new URL(
     HTTP_PROTOCOL,
     APP_HOSTNAME,
     DashboardApiRoute

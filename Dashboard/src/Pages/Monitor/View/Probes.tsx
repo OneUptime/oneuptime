@@ -25,7 +25,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
-import { APP_URL } from 'CommonUI/src/Config';
+import { APP_API_URL } from 'CommonUI/src/Config';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
@@ -91,7 +91,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 sort: {},
                 requestOptions: {
                     overrideRequestUrl: URL.fromString(
-                        APP_URL.toString()
+                        APP_API_URL.toString()
                     ).addRoute('/probe/global-probes'),
                 },
             });
