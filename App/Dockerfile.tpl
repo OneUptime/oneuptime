@@ -1,5 +1,5 @@
 #
-# OneUptime-DashboardAPI Dockerfile
+# OneUptime-App Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -53,7 +53,7 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./DashboardAPI/package*.json /usr/src/app/
+COPY ./App/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
@@ -65,7 +65,7 @@ EXPOSE 3002
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./DashboardAPI /usr/src/app
+COPY ./App /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app

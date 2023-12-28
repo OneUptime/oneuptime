@@ -55,7 +55,7 @@ jobs:
         
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./DashboardAPI/Dockerfile .
+        run: sudo docker build -f ./App/Dockerfile .
 
   docker-build-admin-dashboard:
     runs-on: ubuntu-latest

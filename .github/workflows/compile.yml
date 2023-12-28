@@ -76,7 +76,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd DashboardAPI && npm install && npm run compile && npm run dep-check
+      - run: cd App && npm install && npm run compile && npm run dep-check
   
 
   compile-admin-dashboard:

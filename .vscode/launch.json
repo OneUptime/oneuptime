@@ -29,7 +29,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/DashboardAPI",
+            "localRoot": "${workspaceFolder}/App",
             "name": "Dashboard API: Debug with Docker",
             "port": 9232,
             "remoteRoot": "/usr/src/app",
