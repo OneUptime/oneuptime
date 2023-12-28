@@ -96,12 +96,6 @@ export const AccountsHostname: Hostname = Hostname.fromString(
     }`
 );
 
-export const HomeHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_HOME_HOSTNAME'] || 'localhost'}:${
-        process.env['HOME_PORT'] || 80
-    }`
-);
-
 export const DashboardHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_DASHBOARD_HOSTNAME'] || 'localhost'}:${
         process.env['DASHBOARD_PORT'] || 80

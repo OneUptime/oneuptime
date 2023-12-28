@@ -46,8 +46,6 @@
 
 - name: APP_PORT
   value: {{ $.Values.port.dashboardApi | squote }}
-- name: API_REFERENCE_PORT
-  value: {{ $.Values.port.apiReference | squote }}
 - name: WORKFLOW_PORT
   value: {{ $.Values.port.workflow | squote }}
 - name: ALERT_PORT
@@ -58,14 +56,6 @@
   value: {{ $.Values.port.probe | squote }}
 - name: TEST_SERVER_PORT
   value: {{ $.Values.port.testServer | squote }}
-- name: FILE_PORT
-  value: {{ $.Values.port.file | squote }}
-- name: HOME_PORT
-  value: {{ $.Values.port.home | squote }}
-- name: IDENTITY_PORT
-  value: {{ $.Values.port.identity | squote }}
-- name: NOTIFICATION_PORT
-  value: {{ $.Values.port.notification | squote }}
 - name: REALTIME_PORT
   value: {{ $.Values.port.realtime | squote }}
 - name: WORKERS_PORT
