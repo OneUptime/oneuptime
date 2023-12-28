@@ -22,7 +22,6 @@ x-common-variables: &common-variables
     SERVER_ALERT_HOSTNAME: alert
     SERVER_INGESTOR_HOSTNAME: ingestor
     SERVER_TEST_SERVER_HOSTNAME: test-server
-    SERVER_HOME_HOSTNAME: home
     SERVER_WORKERS_HOSTNAME: workers
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
@@ -316,8 +315,6 @@ services:
             - accounts
             - app
             - dashboard
-            - home
-            
             - otel-collector
         restart: always
         networks:
