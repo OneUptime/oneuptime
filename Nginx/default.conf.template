@@ -11,10 +11,6 @@ upstream workflow {
     server ${SERVER_WORKFLOW_HOSTNAME}:${WORKFLOW_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
-upstream api-reference {
-    server ${SERVER_API_REFERENCE_HOSTNAME}:${API_REFERENCE_PORT} weight=10 max_fails=3 fail_timeout=30s; 
-}
-
 upstream ingestor {
     server ${SERVER_INGESTOR_HOSTNAME}:${INGESTOR_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
@@ -29,10 +25,6 @@ upstream admin-dashboard {
 
 upstream status-page {
     server ${SERVER_STATUS_PAGE_HOSTNAME}:${STATUS_PAGE_PORT} weight=10 max_fails=3 fail_timeout=30s;
-}
-
-upstream home {
-    server ${SERVER_HOME_HOSTNAME}:${HOME_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream workers {
@@ -260,7 +252,7 @@ server {
         
         # If billing_enabled is true then proxy to home otherwise to dashboard because we dont need marketing paages for on-prem install.
         if ($billing_enabled = true) {
-            proxy_pass http://home;
+            proxy_pass http://app;
         }
 
         if ($billing_enabled != true) {
@@ -430,7 +422,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://api-reference;
+        proxy_pass http://app/reference;
     }
 
     location /file {
@@ -458,7 +450,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app;
+        proxy_pass http://app/api;
 
         client_max_body_size 50M;
     }

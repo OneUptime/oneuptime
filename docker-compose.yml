@@ -100,21 +100,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: ingestor
-    
-    
-    home:
-        image:  oneuptime/home:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: home
-        
-    
-    api-reference:
-        image:  oneuptime/api-reference:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: api-reference
-
 
     ingress:
        image:  oneuptime/nginx:${APP_TAG}

@@ -43,20 +43,6 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/ApiReference",
-            "name": "API Reference: Debug with Docker",
-            "port": 9178,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/TestServer",
             "name": "Test Server: Debug with Docker",
             "port": 9141,
@@ -186,20 +172,6 @@
             "localRoot": "${workspaceFolder}/HttpTestServer",
             "name": "HTTP Test Server: Debug with Docker",
             "port": 9234,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/home",
-            "name": "Home: Debug with Docker",
-            "port": 9235,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [

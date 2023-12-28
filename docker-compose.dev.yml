@@ -297,56 +297,6 @@ services:
             network: host
             context: .
             dockerfile: ./Ingestor/Dockerfile
-       
-    
-    home:
-        volumes:
-            - ./Home:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
-            - ./Model:/usr/src/Model
-            - ./CommonServer:/usr/src/CommonServer
-            - ./CommonUI:/usr/src/CommonUI
-            - /usr/src/Common/node_modules/
-            - /usr/src/CommonUI/node_modules/
-            - /usr/src/CommonServer/node_modules/
-            - /usr/src/Model/node_modules/
-        ports:
-          - '9235:9229' # Debugging port.
-        extends:
-            file: ./docker-compose.base.yml
-            service: home
-        build:
-            network: host
-            context: .
-            dockerfile: ./Home/Dockerfile
-        
-    
-    api-reference:
-        volumes:
-            - ./ApiReference:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
-            - ./Model:/usr/src/Model
-            - ./CommonServer:/usr/src/CommonServer
-            - ./CommonUI:/usr/src/CommonUI
-            - /usr/src/Common/node_modules/
-            - /usr/src/CommonUI/node_modules/
-            - /usr/src/CommonServer/node_modules/
-            - /usr/src/Model/node_modules/
-        ports:
-          - '9178:9229' # Debugging port.
-        extends:
-            file: ./docker-compose.base.yml
-            service: api-reference
-        build:
-            network: host
-            context: .
-            dockerfile: ./ApiReference/Dockerfile
 
 
     ingress:

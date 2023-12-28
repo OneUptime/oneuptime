@@ -311,25 +311,7 @@ services:
             - redis
             - postgres
             
-       
-
-
-    home:
-        networks:
-          - oneuptime
-        environment:
-            <<: *common-ui-variables
-            PORT: ${HOME_PORT}
-        
-        
     
-    api-reference:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-ui-variables
-            PORT: ${API_REFERENCE_PORT}
 
 
     ingress:
