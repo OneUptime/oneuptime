@@ -1,0 +1,1 @@
+export const ViewsPath: string = '/usr/src/app/FeatureSet/ApiReference/views';

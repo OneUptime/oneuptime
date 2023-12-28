@@ -1,9 +1,12 @@
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
+import { ViewsPath } from '../Utils/Config';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const FeaturedResources: Array<ModelDocumentation> =
     ResourceUtil.getFeaturedResources();
+
+
 
 export default class ServiceHandler {
     public static async executeResponse(
@@ -19,7 +22,7 @@ export default class ServiceHandler {
         pageTitle = 'Introduction';
         pageDescription = 'API Documentation for OneUptime';
 
-        return res.render('pages/index', {
+        return res.render(`${ViewsPath}/pages/index`, {
             page: page,
             resources: Resources,
             pageTitle: pageTitle,

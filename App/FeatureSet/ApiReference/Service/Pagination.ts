@@ -38,7 +38,7 @@ export default class ServiceHandler {
             }
         );
 
-        return res.render('pages/index', {
+        return res.render(`${ViewsPath}/pages/index`, {
             page: page,
             resources: Resources,
             pageTitle: pageTitle,

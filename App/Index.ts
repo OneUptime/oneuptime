@@ -10,8 +10,10 @@ import Realtime from 'CommonServer/Utils/Realtime';
 import './FeatureSet/Identity/Index';
 import './FeatureSet/Notification/Index';
 import './FeatureSet/BaseAPI/Index';
-import './FeatureSet/Home/Index';
 import './FeatureSet/ApiReference/Index';
+
+// home should be in the end.
+import './FeatureSet/Home/Index';
 
 const APP_NAME: string = 'oneuptime';
 

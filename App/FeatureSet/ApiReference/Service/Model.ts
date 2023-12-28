@@ -232,7 +232,7 @@ export default class ServiceHandler {
         pageData.isMasterAdminApiDocs =
             currentResource.model.isMasterAdminApiDocs;
 
-        return res.render('pages/index', {
+        return res.render(`${ViewsPath}/pages/index`, {
             page: page,
             resources: Resources,
             pageTitle: pageTitle,

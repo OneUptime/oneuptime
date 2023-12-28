@@ -22,13 +22,6 @@ const ResourceDictionary: Dictionary<ModelDocumentation> =
 
 const app: ExpressApplication = Express.getExpressApp();
 
-// Set the view engine to ejs
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-// Public static files
-app.use(ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 }));
-
 app.use(
     '/reference',
     ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 })
@@ -78,7 +71,7 @@ app.get(['/reference/:page'], (req: ExpressRequest, res: ExpressResponse) => {
     return PageNotFoundServiceHandler.executeResponse(req, res);
 });
 
-app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/reference/*', (req: ExpressRequest, res: ExpressResponse) => {
     return PageNotFoundServiceHandler.executeResponse(req, res);
 });
 

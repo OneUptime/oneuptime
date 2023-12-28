@@ -9,7 +9,7 @@ export default class ServiceHandler {
         res: ExpressResponse
     ): Promise<void> {
         res.status(404);
-        return res.render('pages/index', {
+        return res.render(`${ViewsPath}/pages/index`, {
             page: '404',
             pageTitle: 'Page Not Found',
             pageDescription: "Page you're looking for is not found.",

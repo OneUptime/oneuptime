@@ -123,7 +123,7 @@ export default class ServiceHandler {
         );
 
         res.status(200);
-        return res.render('pages/index', {
+        return res.render(`${ViewsPath}/pages/index`, {
             page: 'data-types',
             pageTitle: 'Data Types',
             pageDescription:

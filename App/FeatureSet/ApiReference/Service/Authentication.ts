@@ -1,5 +1,6 @@
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
+import { ViewsPath } from '../Utils/Config';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
@@ -17,7 +18,7 @@ export default class ServiceHandler {
         pageDescription =
             'Learn how to authenticate requests with OneUptime API';
 
-        return res.render('pages/index', {
+        return res.render(`${ViewsPath}/pages/index`, {
             page: page,
             resources: Resources,
             pageTitle: pageTitle,
