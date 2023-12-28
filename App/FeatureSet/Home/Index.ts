@@ -6,8 +6,6 @@ import Express, {
     ExpressApplication,
 } from 'CommonServer/Utils/Express';
 import Dictionary from 'Common/Types/Dictionary';
-import path from 'path';
-
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
 import ProductCompare, { Product } from './Utils/ProductCompare';

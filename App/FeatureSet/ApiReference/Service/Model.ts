@@ -12,7 +12,7 @@ import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import LocalFile from 'CommonServer/Utils/LocalFile';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 import PageNotFoundServiceHandler from './PageNotFound';
-import { ViewsPath } from '../Utils/Config';
+import { CodeExamplesPath, ViewsPath } from '../Utils/Config';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const ResourceDictionary: Dictionary<ModelDocumentation> =
@@ -109,7 +109,7 @@ export default class ServiceHandler {
             'list-request',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/ListRequest.md'
+                    `${CodeExamplesPath}CodeExamples/Model/ListRequest.md`
                 );
             }
         );
@@ -119,7 +119,7 @@ export default class ServiceHandler {
             'item-request',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/ItemRequest.md'
+                    `${CodeExamplesPath}CodeExamples/Model/ItemRequest.md`
                 );
             }
         );
@@ -129,7 +129,7 @@ export default class ServiceHandler {
             'item-response',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/ItemResponse.md'
+                    `${CodeExamplesPath}CodeExamples/Model/ItemResponse.md`
                 );
             }
         );
@@ -139,7 +139,7 @@ export default class ServiceHandler {
             'count-request',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/CountRequest.md'
+                    `${CodeExamplesPath}CodeExamples/Model/CountRequest.md`
                 );
             }
         );
@@ -149,7 +149,7 @@ export default class ServiceHandler {
             'count-response',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/CountResponse.md'
+                    `${CodeExamplesPath}CodeExamples/Model/CountResponse.md`
                 );
             }
         );
@@ -159,7 +159,7 @@ export default class ServiceHandler {
             'update-request',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/UpdateRequest.md'
+                    `${CodeExamplesPath}CodeExamples/Model/UpdateRequest.md`
                 );
             }
         );
@@ -169,7 +169,7 @@ export default class ServiceHandler {
             'update-response',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/UpdateResponse.md'
+                    `${CodeExamplesPath}CodeExamples/Model/UpdateResponse.md`
                 );
             }
         );
@@ -179,7 +179,7 @@ export default class ServiceHandler {
             'create-request',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/CreateRequest.md'
+                    `${CodeExamplesPath}CodeExamples/Model/CreateRequest.md`
                 );
             }
         );
@@ -189,7 +189,7 @@ export default class ServiceHandler {
             'create-response',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/CreateResponse.md'
+                    `${CodeExamplesPath}CodeExamples/Model/CreateResponse.md`
                 );
             }
         );
@@ -199,7 +199,7 @@ export default class ServiceHandler {
             'delete-request',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/DeleteRequest.md'
+                    `${CodeExamplesPath}CodeExamples/Model/DeleteRequest.md`
                 );
             }
         );
@@ -209,7 +209,7 @@ export default class ServiceHandler {
             'delete-response',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/DeleteResponse.md'
+                    `${CodeExamplesPath}CodeExamples/Model/DeleteResponse.md`
                 );
             }
         );
@@ -219,7 +219,7 @@ export default class ServiceHandler {
             'list-response',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Model/ListResponse.md'
+                    `${CodeExamplesPath}CodeExamples/Model/ListResponse.md`
                 );
             }
         );
