@@ -5,7 +5,6 @@ import Express, {
     ExpressStatic,
     ExpressApplication,
 } from 'CommonServer/Utils/Express';
-import App from 'CommonServer/Utils/StartServer';
 import Dictionary from 'Common/Types/Dictionary';
 import path from 'path';
 
@@ -993,5 +992,3 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
         requestDemoCta: false,
     });
 });
-
-App(APP_NAME);
