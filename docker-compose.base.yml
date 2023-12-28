@@ -17,7 +17,7 @@ x-common-variables: &common-variables
 
     SERVER_ACCOUNTS_HOSTNAME: accounts
     SERVER_REALTIME_HOSTNAME: realtime
-    SERVER_DASHBOARD_API_HOSTNAME: dashboard-api
+    SERVER_DASHBOARD_API_HOSTNAME: app
     SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_ALERT_HOSTNAME: alert
     SERVER_INGESTOR_HOSTNAME: ingestor
@@ -179,7 +179,7 @@ services:
             PORT: ${STATUS_PAGE_PORT}
         depends_on:
             - accounts
-            - dashboard-api
+            - app
             
         
 
@@ -192,7 +192,7 @@ services:
             PORT: ${TEST_SERVER_PORT}
             
 
-    dashboard-api:
+    app:
         networks:
           - oneuptime
         restart: always
@@ -335,7 +335,7 @@ services:
     ingress:
         depends_on:
             - accounts
-            - dashboard-api
+            - app
             - dashboard
             - home
             

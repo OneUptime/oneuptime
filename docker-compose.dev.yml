@@ -174,7 +174,7 @@ services:
             dockerfile: ./TestServer/Dockerfile
 
 
-    dashboard-api:
+    app:
         volumes:
             - ./DashboardAPI:/usr/src/app
             # Use node modules of the container and not host system.
@@ -190,7 +190,7 @@ services:
             - /usr/src/Model/node_modules/
         extends:
             file: ./docker-compose.base.yml
-            service: dashboard-api
+            service: app
         ports:
             - '9232:9229' # Debugging port.
         build:

@@ -24,7 +24,7 @@
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DASHBOARD_API_HOSTNAME
-  value: {{ $.Release.Name }}-dashboard-api.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
   value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME

@@ -61,11 +61,11 @@ services:
             
         
 
-    dashboard-api:
-        image:  oneuptime/dashboard-api:${APP_TAG}
+    app:
+        image:  oneuptime/app:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
-            service: dashboard-api
+            service: app
         
 
     workflow:

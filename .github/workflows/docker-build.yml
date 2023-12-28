@@ -41,22 +41,7 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./OTelCollector/Dockerfile .
 
-  docker-build-api-reference:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v2
-
-      - name: Preinstall 
-        run: npm run prerun
-        
-      # build image for home
-      - name: build docker image
-        run: sudo docker build -f ./ApiReference/Dockerfile .
-
-  docker-build-dashboard-api:
+  docker-build-app:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -117,21 +102,6 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Haraka/Dockerfile .
 
-
-  docker-build-home:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v2
-
-      - name: Preinstall 
-        run: npm run prerun
-        
-      # build image for home
-      - name: build docker image
-        run: sudo docker build -f ./Home/Dockerfile .
 
   docker-build-probe:
     runs-on: ubuntu-latest

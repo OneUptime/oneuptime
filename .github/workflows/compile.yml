@@ -63,7 +63,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install && npm run compile && npm run dep-check
 
-  compile-dashboard-api:
+  compile-app:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}

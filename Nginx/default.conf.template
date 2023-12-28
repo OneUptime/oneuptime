@@ -3,7 +3,7 @@ upstream accounts {
 }
 
 
-upstream dashboard-api {
+upstream app {
     server ${SERVER_DASHBOARD_API_HOSTNAME}:${DASHBOARD_API_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
@@ -82,7 +82,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/status-page/;
+        proxy_pass http://app/api/status-page/;
     }
 
     location /status-page-sso-api/ {
@@ -96,7 +96,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/identity/status-page-sso/;
+        proxy_pass http://app/api/identity/status-page-sso/;
     }
 
     location /status-page-identity-api/ {
@@ -110,7 +110,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/identity/status-page/;
+        proxy_pass http://app/api/identity/status-page/;
     }
 
     # Acme Verification.
@@ -125,7 +125,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://dashboard-api/api/status-page/.well-known;
+        proxy_pass  http://app/api/status-page/.well-known;
     }
 
 }
@@ -180,7 +180,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/status-page/;
+        proxy_pass http://app/api/status-page/;
     }
 
     location /status-page-sso-api/ {
@@ -194,7 +194,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/identity/status-page-sso/;
+        proxy_pass http://app/api/identity/status-page-sso/;
     }
 
     location /status-page-identity-api/ {
@@ -208,7 +208,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/identity/status-page/;
+        proxy_pass http://app/api/identity/status-page/;
     }
 
     location /status-page {
@@ -280,7 +280,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/status-page/;
+        proxy_pass http://app/api/status-page/;
     }
 
     location /status-page-sso-api/ {
@@ -294,7 +294,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/identity/status-page-sso/;
+        proxy_pass http://app/api/identity/status-page-sso/;
     }
 
     location /status-page-identity-api/ {
@@ -308,7 +308,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://dashboard-api/api/identity/status-page/;
+        proxy_pass http://app/api/identity/status-page/;
     }
     
 
@@ -348,7 +348,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://dashboard-api/api/notification;
+        proxy_pass http://app/api/notification;
     }
 
     location /ingestor {
@@ -417,7 +417,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://dashboard-api/api/identity;
+        proxy_pass http://app/api/identity;
     }
 
     location /reference {
@@ -443,7 +443,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://dashboard-api/api/file;
+        proxy_pass http://app/api/file;
 
         client_max_body_size 50M;
     }
@@ -458,7 +458,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://dashboard-api;
+        proxy_pass http://app;
 
         client_max_body_size 50M;
     }
@@ -473,7 +473,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://dashboard-api;
+        proxy_pass http://app;
 
         client_max_body_size 50M;
     }
@@ -488,7 +488,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://dashboard-api;
+        proxy_pass http://app;
 
         client_max_body_size 50M;
     }
@@ -535,7 +535,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://dashboard-api/api/short-link/redirect-to-shortlink/;
+        proxy_pass http://app/api/short-link/redirect-to-shortlink/;
 
         client_max_body_size 50M;
     }
