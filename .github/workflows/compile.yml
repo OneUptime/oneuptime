@@ -25,20 +25,6 @@ jobs:
       - run: cd CommonUI && npm install --force
       - run: cd Accounts && npm install && npm run compile && npm run dep-check
 
-  compile-api-reference:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd ApiReference && npm install && npm run compile && npm run dep-check
-
   compile-common-server:
     runs-on: ubuntu-latest
     env:
@@ -122,20 +108,6 @@ jobs:
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd Dashboard && npm install && npm run compile && npm run dep-check
-
-  compile-home:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd Home && npm install && npm run compile && npm run dep-check
 
 
   compile-model:
