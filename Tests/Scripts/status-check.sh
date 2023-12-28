@@ -32,6 +32,12 @@ bash $scriptDir/endpoint-status.sh "Workflow" $HOST_TO_CHECK/workflow/status
 
 bash $scriptDir/endpoint-status.sh "API Docs" $HOST_TO_CHECK/reference/status
 
+bash $scriptDir/endpoint-status.sh "Notification" $HOST_TO_CHECK/notification/status
+
+bash $scriptDir/endpoint-status.sh "File" $HOST_TO_CHECK/file/status
+
+bash $scriptDir/endpoint-status.sh "Identity" $HOST_TO_CHECK/identity/status
+
 bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status
 
 bash $scriptDir/endpoint-status.sh "Ingestor" $HOST_TO_CHECK/ingestor/status
