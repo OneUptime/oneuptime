@@ -501,12 +501,23 @@ app.get(
     }
 );
 
+app.get(
+    '/product/logs-management',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('logs-management');
+    }
+);
+
 app.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(200).send({ status: 'ok' });
 });
 
 app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
+});
+
+app.get('/logs-manageemnt', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/logs-manageemnt');
 });
 
 let gitHubContributors: Array<JSONObject> = [];

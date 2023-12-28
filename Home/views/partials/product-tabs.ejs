@@ -1,6 +1,6 @@
 <div class="relative overflow-hidden bg-white pt-32 pb-32">
     <div class="max-w-3xl1 px-6">
-        <p class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">OneUptime is 5+ tools combined
+        <p class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">OneUptime is 6+ tools combined
             into one.</p>
         <p class="mt-5 text-xl text-gray-500 sm:text-center mb-12">Everything from monitoring, status pages,
             incident management, on-call schedules - we've got it and we are just getting started!</p>
@@ -12,9 +12,10 @@
             <select id="location" onchange="showTab(this.value)" name="location" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6">
                 <option value="1" selected>Status Pages</option>
                 <option value="2">Monitoring</option>
-                <option value="3">Incident Management</option>
-                <option value="4">On Call Policy &amp; Alerts </option>
-                <option value="5">Workflows </option>
+                <option value="3">Incidents</option>
+                <option value="4">On Call</option>
+                <option value="5">Logs Management</option>
+                <option value="6">Workflows </option>
             </select>
           </div>
 
@@ -55,7 +56,7 @@
                                 d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                         </svg>
 
-                        <span>Incident Management</span>
+                        <span>Incidents</span>
                     </a>
                     <a onclick="showTab(4)"
                         class="tab-4-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium">
@@ -66,12 +67,22 @@
                                 d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                         </svg>
 
-                        <span>On Call Policy &amp; Alerts</span>
+                        <span>On Call Alerts</span>
                     </a>
 
                     <a onclick="showTab(5)"
                         class="tab-5-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium">
-                        <svg class="icon-tab-5 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon-tab-6 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                          </svg>
+
+                        <span>Logs Management</span>
+                    </a>
+
+                    <a onclick="showTab(6)"
+                        class="tab-6-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium">
+                    
+                        <svg class="icon-tab-6 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round"
@@ -368,6 +379,72 @@
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Ingest logs from any source and search in seconds.</h2>
+
+                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Native OpenTelemetry Support</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Docker, Syslog, Application logs</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Ingest TB's and search in seconds</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Alert right team members</div>
+                            </li>
+                        </ul>
+
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                started</a>
+                            <a href="/product/log-management"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <blockquote>
+                        <div>
+                            <p class="text-base text-gray-500">&ldquo;We have built fastest log software on the planet, powered by Ceph &amp; Clickhouse. Ingest petabytes of data and search in milliseconds.&rdquo;</p>
+                        </div>
+                        <footer class="mt-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-base font-medium text-gray-700">Simon Larsen, CTO, OneUptime.
+                                </div>
+                            </div>
+                        </footer>
+                    </blockquote>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div
+                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+
+                    <img class="relative rounded-lg shadow-lg" src="/img/workflow-builder.png" alt="App screenshot">
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mt-10 tab-6" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+
+
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
                         <h2 class="text-2xl font-medium tracking-tight text-gray-900">Integrate with any software</h2>
 
                         <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
@@ -426,6 +503,7 @@
             </div>
         </div>
     </div>
+
 </div>
 
 
