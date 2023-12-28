@@ -1,37 +1,46 @@
 <div class="relative bg-white">
-    <div class="mx-auto max-w-7xl px-6">
-      <div class="flex items-center justify-between border-b-2 border-gray-100 py-6 md:justify-start md:space-x-10">
-        <div class="flex justify-start lg:w-0 lg:flex-1">
-          <a href="/">
-            <span class="sr-only">OneUptime</span>
-            <img class="h-8 w-auto sm:h-10" src="/img/3-transparent.svg" alt="">
-          </a>
-        </div>
-        <div class="-my-2 -mr-2 md:hidden">
-          <button type="button" onclick="openMobileMenu()" class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" aria-expanded="false">
-            <span class="sr-only">Open menu</span>
-            <!-- Heroicon name: outline/bars-3 -->
-            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          </button>
-        </div>
-        <nav class="hidden space-x-10 md:flex">
-          <div class="relative" onmouseenter="showProductMenu()" onmouseover="showProductMenu()" onmouseleave="hideProductMenu()">
-            <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
-            <button onclick="showProductMenu()" type="button" class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" aria-expanded="false">
-              <span>Products</span>
-              <!--
+  <div class="mx-auto max-w-7xl px-6">
+    <div class="flex items-center justify-between border-b-2 border-gray-100 py-6 md:justify-start md:space-x-10">
+      <div class="flex justify-start lg:w-0 lg:flex-1">
+        <a href="/">
+          <span class="sr-only">OneUptime</span>
+          <img class="h-8 w-auto sm:h-10" src="/img/3-transparent.svg" alt="">
+        </a>
+      </div>
+      <div class="-my-2 -mr-2 md:hidden">
+        <button type="button" onclick="openMobileMenu()"
+          class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+          aria-expanded="false">
+          <span class="sr-only">Open menu</span>
+          <!-- Heroicon name: outline/bars-3 -->
+          <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+            stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+      </div>
+      <nav class="hidden space-x-10 md:flex">
+        <div class="relative" onmouseenter="showProductMenu()" onmouseover="showProductMenu()"
+          onmouseleave="hideProductMenu()">
+          <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
+          <button onclick="showProductMenu()" type="button"
+            class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            aria-expanded="false">
+            <span>Products</span>
+            <!--
                 Heroicon name: mini/chevron-down
   
                 Item active: "text-gray-600", Item inactive: "text-gray-400"
               -->
-              <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-              </svg>
-            </button>
-  
-            <!--
+            <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          <!--
               'Solutions' flyout menu, show/hide based on flyout menu state.
   
               Entering: "transition ease-out duration-200"
@@ -41,122 +50,163 @@
                 From: "opacity-100 translate-y-0"
                 To: "opacity-0 translate-y-1"
             -->
-            <div onmouseenter="showProductMenu()" onmouseover="showProductMenu()" onmouseleave="hideProductMenu()" class="absolute z-20 -ml-4 mt-3 w-screen max-w-md transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2" id="product-menu" style="visibility: collapse;">
-              <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
-                <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
-                  <a href="/product/status-page" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/chart-bar -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div onmouseenter="showProductMenu()" onmouseover="showProductMenu()" onmouseleave="hideProductMenu()"
+            class="absolute z-20 -ml-4 mt-3 w-screen max-w-md transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+            id="product-menu" style="visibility: collapse;">
+            <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
+              <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
+                <a href="/product/status-page" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/chart-bar -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Status Pages</p>
+                    <p class="mt-1 text-sm text-gray-500">Status Page helps you be more transparent with your customers
+                      and showcase reliability.</p>
+                  </div>
+                </a>
+
+                <a href="/product/monitoring" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/shield-check -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                  </svg>
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Monitoring</p>
+                    <p class="mt-1 text-sm text-gray-500">Analyse uptime & performance of your resources.</p>
+                  </div>
+                </a>
+
+                <a href="/product/incident-management" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/cursor-arrow-rays -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Incident Management</p>
+                    <p class="mt-1 text-sm text-gray-500">Protect revenue and improve customer experiences by resolving
+                      incidents faster.</p>
+                  </div>
+                </a>
+
+                <a href="/product/on-call" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/chart-bar -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                  </svg>
+
+
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">On-Call and Alerts</p>
+                    <p class="mt-1 text-sm text-gray-500">Alert right people at the right time. Create on-call schedules
+                      and more.</p>
+                  </div>
+                </a>
+
+                <a href="/product/logs-management" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/chart-bar -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                  </svg>
+
+
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Logs Management</p>
+                    <p class="mt-1 text-sm text-gray-500">Ingest logs from any source and search in seconds.</p>
+                  </div>
+                </a>
+
+
+                <a href="/product/workflows" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/chart-bar -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
+
+
+                  </svg>
+
+
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Workflows</p>
+                    <p class="mt-1 text-sm text-gray-500">Integrate with 5000+ different services and products without
+                      writing any code.</p>
+                  </div>
+                </a>
+
+
+
+              </div>
+              <div class="space-y-6 bg-gray-50 px-5 py-5 sm:flex sm:space-y-0 sm:space-x-10 sm:px-8">
+                <div class="flow-root">
+                  <a href="/enterprise/demo"
+                    class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
+                    <!-- Heroicon name: outline/play -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                      viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
                     </svg>
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">Status Pages</p>
-                      <p class="mt-1 text-sm text-gray-500">Status Page helps you be more transparent with your customers and showcase reliability.</p>
-                    </div>
+                    <span class="ml-3">Request Demo</span>
                   </a>
-
-                  <a href="/product/monitoring" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/shield-check -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                    </svg>
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">Monitoring</p>
-                      <p class="mt-1 text-sm text-gray-500">Analyse uptime & performance of your resources.</p>
-                    </div>
-                  </a>
-  
-                  <a href="/product/incident-management" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/cursor-arrow-rays -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                    </svg>
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">Incident Management</p>
-                      <p class="mt-1 text-sm text-gray-500">Protect revenue and improve customer experiences by resolving incidents faster.</p>
-                    </div>
-                  </a>
-
-                  <a href="/product/on-call" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/chart-bar -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                    </svg>
-
-                    
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">On-Call and Alerts</p>
-                      <p class="mt-1 text-sm text-gray-500">Alert right people at the right time. Create on-call schedules and more.</p>
-                    </div>
-                  </a>
-
-
-                  <a href="/product/workflows" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/chart-bar -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"
-            />
-                    </svg>
-
-                    
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">Workflows</p>
-                      <p class="mt-1 text-sm text-gray-500">Integrate with 5000+ different services and products without writing any code.</p>
-                    </div>
-                  </a>
-  
-                
-  
                 </div>
-                <div class="space-y-6 bg-gray-50 px-5 py-5 sm:flex sm:space-y-0 sm:space-x-10 sm:px-8">
-                  <div class="flow-root">
-                    <a href="/enterprise/demo" class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
-                      <!-- Heroicon name: outline/play -->
-                      <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
-                      </svg>
-                      <span class="ml-3">Request Demo</span>
-                    </a>
-                  </div>
-  
-                  <div class="flow-root">
-                    <a href="mailto:sales@oneuptime.com" class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
-                      <!-- Heroicon name: outline/phone -->
-                      
-                      <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                      </svg>
-                      
-                      <span class="ml-3">Contact Sales</span>
-                    </a>
-                  </div>
+
+                <div class="flow-root">
+                  <a href="mailto:sales@oneuptime.com"
+                    class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
+                    <!-- Heroicon name: outline/phone -->
+
+                    <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                      viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                    </svg>
+
+                    <span class="ml-3">Contact Sales</span>
+                  </a>
                 </div>
               </div>
             </div>
           </div>
-  
-          <a href="/pricing" class="text-base font-medium text-gray-500 hover:text-gray-900">Pricing</a>
-          <a href="/enterprise/overview" class="text-base font-medium text-gray-500 hover:text-gray-900">Enterprise</a>
-          <a href="/enterprise/demo" class="text-base font-medium text-gray-500 hover:text-gray-900" data-testid="request-demo-desktop-link">Request Demo</a>
-  
-          <div class="relative" onmouseenter="showMoreMenu()" onmouseover="showMoreMenu()" onmouseleave="hideMoreMenu()">
-            <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
-            <button onclick="showMoreMenu()" type="button" class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" aria-expanded="false">
-              <span>More</span>
-              <!--
+        </div>
+
+        <a href="/pricing" class="text-base font-medium text-gray-500 hover:text-gray-900">Pricing</a>
+        <a href="/enterprise/overview" class="text-base font-medium text-gray-500 hover:text-gray-900">Enterprise</a>
+        <a href="/enterprise/demo" class="text-base font-medium text-gray-500 hover:text-gray-900"
+          data-testid="request-demo-desktop-link">Request Demo</a>
+
+        <div class="relative" onmouseenter="showMoreMenu()" onmouseover="showMoreMenu()" onmouseleave="hideMoreMenu()">
+          <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
+          <button onclick="showMoreMenu()" type="button"
+            class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            aria-expanded="false">
+            <span>More</span>
+            <!--
                 Heroicon name: mini/chevron-down
   
                 Item active: "text-gray-600", Item inactive: "text-gray-400"
               -->
-              <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-              </svg>
-            </button>
-  
-            <!--
+            <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          <!--
               'More' flyout menu, show/hide based on flyout menu state.
   
               Entering: "transition ease-out duration-200"
@@ -166,83 +216,101 @@
                 From: "opacity-100 translate-y-0"
                 To: "opacity-0 translate-y-1"
             -->
-            <div  onmouseenter="showMoreMenu()" onmouseover="showMoreMenu()" onmouseleave="hideMoreMenu()" id="more-menu" class="absolute left-1/2 z-20 mt-3 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0" style="visibility:collapse;">
-              <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
-                <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
+          <div onmouseenter="showMoreMenu()" onmouseover="showMoreMenu()" onmouseleave="hideMoreMenu()" id="more-menu"
+            class="absolute left-1/2 z-20 mt-3 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0"
+            style="visibility:collapse;">
+            <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
+              <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
 
-                  <a href="/reference" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/lifebuoy -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                    </svg>
-                    
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">API Documentation</p>
-                      <p class="mt-1 text-sm text-gray-500">Connect OneUptime with the rest of your software stack.</p>
-                    </div>
-                  </a>
+                <a href="/reference" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/lifebuoy -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
 
-                  <a href="https://blog.oneuptime.com" target="_blank" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/lifebuoy -->
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">API Documentation</p>
+                    <p class="mt-1 text-sm text-gray-500">Connect OneUptime with the rest of your software stack.</p>
+                  </div>
+                </a>
 
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
-                    </svg>
-                    
-                    
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">Learning Resources and Blog</p>
-                      <p class="mt-1 text-sm text-gray-500">Learn about observability and keep yourself updated.</p>
-                    </div>
-                  </a>
+                <a href="https://blog.oneuptime.com" target="_blank"
+                  class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/lifebuoy -->
 
-                  <a href="/support" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/lifebuoy -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" />
-                    </svg>
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">Help &amp; Support</p>
-                      <p class="mt-1 text-sm text-gray-500">Get all of your questions answered by contacting support.</p>
-                    </div>
-                  </a>
-  
-                  <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/bookmark-square -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
-                    </svg>
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">GitHub</p>
-                      <p class="mt-1 text-sm text-gray-500">Check the code out, create new feature requests all on GitHub.</p>
-                    </div>
-                  </a>
-  
-                  <a href="/about" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/calendar -->
-                    
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 flex-shrink-0 text-indigo-600">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                    </svg>
-                    
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">About Us</p>
-                      <p class="mt-1 text-sm text-gray-500">Learn more about why we are building OneUptime.</p>
-                    </div>
-                  </a>
-  
-                  <a href="/legal" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                    <!-- Heroicon name: outline/shield-check -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                    </svg>
-                    <div class="ml-4">
-                      <p class="text-base font-medium text-gray-900">Legal Center</p>
-                      <p class="mt-1 text-sm text-gray-500">See our terms, privacy, GDPR, SOC documents.</p>
-                    </div>
-                  </a>
-                </div>
-                <!-- <div class="bg-gray-50 px-5 py-5 sm:px-8 sm:py-8">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+                  </svg>
+
+
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Learning Resources and Blog</p>
+                    <p class="mt-1 text-sm text-gray-500">Learn about observability and keep yourself updated.</p>
+                  </div>
+                </a>
+
+                <a href="/support" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/lifebuoy -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" />
+                  </svg>
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Help &amp; Support</p>
+                    <p class="mt-1 text-sm text-gray-500">Get all of your questions answered by contacting support.</p>
+                  </div>
+                </a>
+
+                <a href="https://github.com/oneuptime/oneuptime" target="_blank"
+                  class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/bookmark-square -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">GitHub</p>
+                    <p class="mt-1 text-sm text-gray-500">Check the code out, create new feature requests all on GitHub.
+                    </p>
+                  </div>
+                </a>
+
+                <a href="/about" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/calendar -->
+
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="h-6 w-6 flex-shrink-0 text-indigo-600">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                  </svg>
+
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">About Us</p>
+                    <p class="mt-1 text-sm text-gray-500">Learn more about why we are building OneUptime.</p>
+                  </div>
+                </a>
+
+                <a href="/legal" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                  <!-- Heroicon name: outline/shield-check -->
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                  <div class="ml-4">
+                    <p class="text-base font-medium text-gray-900">Legal Center</p>
+                    <p class="mt-1 text-sm text-gray-500">See our terms, privacy, GDPR, SOC documents.</p>
+                  </div>
+                </a>
+              </div>
+              <!-- <div class="bg-gray-50 px-5 py-5 sm:px-8 sm:py-8">
                   <div>
                     <h3 class="text-base font-medium text-gray-500">Recent Posts</h3>
                     <ul role="list" class="mt-4 space-y-4">
@@ -266,18 +334,21 @@
                     </a>
                   </div>
                 </div> -->
-              </div>
             </div>
           </div>
-        </nav>
-        <div class="hidden items-center justify-end md:flex md:flex-1 lg:w-0">
-          <a href="/accounts" class="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900">Sign in</a>
-          <a href="/accounts/register" class="ml-8 inline-flex items-center justify-center whitespace-nowrap rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 hover:text-white"  data-testid="Sign-up">Sign up</a>
         </div>
+      </nav>
+      <div class="hidden items-center justify-end md:flex md:flex-1 lg:w-0">
+        <a href="/accounts" class="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900">Sign
+          in</a>
+        <a href="/accounts/register"
+          class="ml-8 inline-flex items-center justify-center whitespace-nowrap rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 hover:text-white"
+          data-testid="Sign-up">Sign up</a>
       </div>
     </div>
-  
-    <!--
+  </div>
+
+  <!--
       Mobile menu, show/hide based on mobile menu state.
   
       Entering: "duration-200 ease-out"
@@ -288,158 +359,181 @@
         To: "opacity-0 scale-95"
     -->
 
-    <div id="mobile-menu" class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition md:hidden z-20" style="visibility: collapse;">
-      <div class="divide-y-2 divide-gray-50 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
-        <div class="px-5 pt-5 pb-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <img class="h-8 w-auto" src="/img/3-transparent.svg" alt="OneUptime">
-            </div>
-            <div class="-mr-2">
-              <button type="button" class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" onclick="closeMobileMenu()">
-                <span class="sr-only">Close menu</span>
-                <!-- Heroicon name: outline/x-mark -->
-                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+  <div id="mobile-menu" class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition md:hidden z-20"
+    style="visibility: collapse;">
+    <div class="divide-y-2 divide-gray-50 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+      <div class="px-5 pt-5 pb-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <img class="h-8 w-auto" src="/img/3-transparent.svg" alt="OneUptime">
           </div>
-          <div class="mt-6" >
-            <nav class="grid gap-y-8">
-              <a href="/product/status-page" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
-                <!-- Heroicon name: outline/chart-bar -->
-               
-                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                
-                <span class="ml-3 text-base font-medium text-gray-900">Status Page</span>
-              </a>
-
-
-              <a href="/product/monitoring" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
-                <!-- Heroicon name: outline/shield-check -->
-                
-                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                </svg>
-                
-                <span class="ml-3 text-base font-medium text-gray-900">Monitoring</span>
-              </a>
-  
-              <a href="/product/incident-management" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
-                <!-- Heroicon name: outline/cursor-arrow-rays -->
-              
-                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                
-                <span class="ml-3 text-base font-medium text-gray-900">Incident Management</span>
-              </a>
-
-              <a href="/product/on-call" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
-                <!-- Heroicon name: outline/cursor-arrow-rays -->
-              
-                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                </svg>
-                
-                <span class="ml-3 text-base font-medium text-gray-900">On-Call and Alerts</span>
-              </a>
-
-              <a href="/product/workflows" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
-                <!-- Heroicon name: outline/cursor-arrow-rays -->
-                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"
-        />
-                </svg>
-                
-                <span class="ml-3 text-base font-medium text-gray-900">Workflows</span>
-              </a>
-  
-
-            </nav>
+          <div class="-mr-2">
+            <button type="button"
+              class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+              onclick="closeMobileMenu()">
+              <span class="sr-only">Close menu</span>
+              <!-- Heroicon name: outline/x-mark -->
+              <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
-        <div class="space-y-6 py-6 px-5">
-          <div class="grid grid-cols-2 gap-y-4 gap-x-8">
-            <a href="/pricing" class="text-base font-medium text-gray-900 hover:text-gray-700">Pricing</a>
-  
-            <a href="/enterprise/overview" class="text-base font-medium text-gray-900 hover:text-gray-700">Enterprise</a>
-  
-            <a href="/enterprise/demo" class="text-base font-medium text-gray-900 hover:text-gray-700" data-testid="request-demo-mobile-link">Request Demo</a>
-  
-            <a href="/support" class="text-base font-medium text-gray-900 hover:text-gray-700">Support</a>
-          </div>
-          <div>
-            <a href="/accounts/register" class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700">Sign up</a>
-            <p class="mt-6 text-center text-base font-medium text-gray-500">
-              Existing customer?
-              <a href="/accounts" class="text-indigo-600 hover:text-indigo-500">Sign in</a>
-            </p>
-          </div>
+        <div class="mt-6">
+          <nav class="grid gap-y-8">
+            <a href="/product/status-page" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+              <!-- Heroicon name: outline/chart-bar -->
+
+              <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+
+              <span class="ml-3 text-base font-medium text-gray-900">Status Page</span>
+            </a>
+
+
+            <a href="/product/monitoring" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+              <!-- Heroicon name: outline/shield-check -->
+
+              <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+              </svg>
+
+              <span class="ml-3 text-base font-medium text-gray-900">Monitoring</span>
+            </a>
+
+            <a href="/product/incident-management" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+              <!-- Heroicon name: outline/cursor-arrow-rays -->
+
+              <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+
+              <span class="ml-3 text-base font-medium text-gray-900">Incident Management</span>
+            </a>
+
+            <a href="/product/on-call" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+              <!-- Heroicon name: outline/cursor-arrow-rays -->
+
+              <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+              </svg>
+
+              <span class="ml-3 text-base font-medium text-gray-900">On-Call and Alerts</span>
+            </a>
+
+
+            <a href="/product/logs-management" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+              <!-- Heroicon name: outline/cursor-arrow-rays -->
+              <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+              </svg>
+              
+
+              <span class="ml-3 text-base font-medium text-gray-900">Logs Management</span>
+            </a>
+
+            <a href="/product/workflows" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+              <!-- Heroicon name: outline/cursor-arrow-rays -->
+              <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
+              </svg>
+
+              <span class="ml-3 text-base font-medium text-gray-900">Workflows</span>
+            </a>
+
+
+          </nav>
+        </div>
+      </div>
+      <div class="space-y-6 py-6 px-5">
+        <div class="grid grid-cols-2 gap-y-4 gap-x-8">
+          <a href="/pricing" class="text-base font-medium text-gray-900 hover:text-gray-700">Pricing</a>
+
+          <a href="/enterprise/overview" class="text-base font-medium text-gray-900 hover:text-gray-700">Enterprise</a>
+
+          <a href="/enterprise/demo" class="text-base font-medium text-gray-900 hover:text-gray-700"
+            data-testid="request-demo-mobile-link">Request Demo</a>
+
+          <a href="/support" class="text-base font-medium text-gray-900 hover:text-gray-700">Support</a>
+        </div>
+        <div>
+          <a href="/accounts/register"
+            class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700">Sign
+            up</a>
+          <p class="mt-6 text-center text-base font-medium text-gray-500">
+            Existing customer?
+            <a href="/accounts" class="text-indigo-600 hover:text-indigo-500">Sign in</a>
+          </p>
         </div>
       </div>
     </div>
   </div>
+</div>
 
 
-  <script>
+<script>
 
-    let productMenuTimer = null; 
-    let moreMenuTimer = null;
+  let productMenuTimer = null;
+  let moreMenuTimer = null;
 
-    function closeMobileMenu(){
-      document.getElementById("mobile-menu").style.visibility = "collapse";
+  function closeMobileMenu() {
+    document.getElementById("mobile-menu").style.visibility = "collapse";
 
+  }
+
+  function openMobileMenu() {
+    document.getElementById("mobile-menu").style.visibility = "visible";
+  }
+
+
+  function showProductMenu() {
+
+    document.getElementById("product-menu").style.visibility = "visible";
+    if (productMenuTimer) {
+      clearInterval(productMenuTimer)
     }
+  }
 
-    function openMobileMenu(){
-      document.getElementById("mobile-menu").style.visibility = "visible";
+  function hideProductMenu() {
+
+    if (productMenuTimer) {
+      clearInterval(productMenuTimer)
     }
+    productMenuTimer = setInterval(() => {
+      document.getElementById("product-menu").style.visibility = "collapse";
+    }, 500);
 
+  }
 
-    function showProductMenu(){
-     
-      document.getElementById("product-menu").style.visibility = "visible";
-      if(productMenuTimer){
-        clearInterval(productMenuTimer)
-      }
+  function showMoreMenu() {
+
+    document.getElementById("more-menu").style.visibility = "visible";
+    if (moreMenuTimer) {
+      clearInterval(moreMenuTimer)
     }
+  }
 
-    function hideProductMenu(){
-      
-      if(productMenuTimer){
-        clearInterval(productMenuTimer)
-      }
-      productMenuTimer = setInterval(() => {
-        document.getElementById("product-menu").style.visibility = "collapse";
-      }, 500);
-      
+  function hideMoreMenu() {
+
+    if (moreMenuTimer) {
+      clearInterval(moreMenuTimer)
     }
+    moreMenuTimer = setInterval(() => {
+      document.getElementById("more-menu").style.visibility = "collapse";
+    }, 500);
 
-    function showMoreMenu(){
-      
-      document.getElementById("more-menu").style.visibility = "visible";
-      if(moreMenuTimer){
-        clearInterval(moreMenuTimer)
-      }
-    }
+  }
 
-    function hideMoreMenu(){
-  
-      if(moreMenuTimer){
-        clearInterval(moreMenuTimer)
-      }
-      moreMenuTimer = setInterval(() => {
-        document.getElementById("more-menu").style.visibility = "collapse";
-      }, 500);
-      
-    }
-
-  </script>
-  
+</script>
