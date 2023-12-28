@@ -31,7 +31,7 @@ import URL from 'Common/Types/API/URL';
 import {
     BILLING_ENABLED,
     BILLING_PUBLIC_KEY,
-    DASHBOARD_API_URL,
+    APP_URL,
     getAllEnvVars,
 } from 'CommonUI/src/Config';
 import { Elements } from '@stripe/react-stripe-js';
@@ -124,7 +124,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                    URL.fromString(APP_URL.toString()).addRoute(
                         `/billing-payment-methods/setup`
                     ),
                     {},

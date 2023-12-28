@@ -23,7 +23,7 @@
   value: {{ $.Values.analytics.host }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_DASHBOARD_API_HOSTNAME
+- name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
   value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
@@ -43,10 +43,8 @@
   value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ADMIN_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_API_REFERENCE_HOSTNAME
-  value: {{ $.Release.Name }}-api-reference.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 
-- name: DASHBOARD_API_PORT
+- name: APP_PORT
   value: {{ $.Values.port.dashboardApi | squote }}
 - name: API_REFERENCE_PORT
   value: {{ $.Values.port.apiReference | squote }}

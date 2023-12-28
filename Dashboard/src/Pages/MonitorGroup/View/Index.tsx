@@ -22,7 +22,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { APP_URL } from 'CommonUI/src/Config';
 import API from 'CommonUI/src/Utils/API/API';
 import OneUptimeDate from 'Common/Types/Date';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
@@ -111,7 +111,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     sort: {},
                     requestOptions: {
                         overrideRequestUrl: URL.fromString(
-                            DASHBOARD_API_URL.toString()
+                            APP_URL.toString()
                         )
                             .addRoute(new MonitorGroup().getCrudApiPath()!)
                             .addRoute('/timeline/')
@@ -142,7 +142,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
             const currentStatus: MonitorStatus | null =
                 await ModelAPI.post<MonitorStatus>({
                     modelType: MonitorStatus,
-                    apiUrl: URL.fromString(DASHBOARD_API_URL.toString())
+                    apiUrl: URL.fromString(APP_URL.toString())
                         .addRoute(new MonitorGroup().getCrudApiPath()!)
                         .addRoute('/current-status/')
                         .addRoute(`/${modelId.toString()}`),

@@ -11,7 +11,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { BILLING_ENABLED, DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { BILLING_ENABLED, APP_URL } from 'CommonUI/src/Config';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'CommonUI/src/Utils/API/API';
@@ -344,7 +344,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
                                 URL.fromString(
-                                    DASHBOARD_API_URL.toString()
+                                    APP_URL.toString()
                                 ).addRoute('/notification/recharge'),
                                 {
                                     amount: item['amount'],

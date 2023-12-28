@@ -12,7 +12,7 @@ import URL from 'Common/Types/API/URL';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { APP_URL } from 'CommonUI/src/Config';
 import API from 'CommonUI/src/Utils/API/API';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
@@ -170,7 +170,7 @@ const Email: () => JSX.Element = (): ReactElement => {
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
                                 URL.fromString(
-                                    DASHBOARD_API_URL.toString()
+                                    APP_URL.toString()
                                 ).addRoute('/user-email/verify'),
                                 {
                                     code: item['code'],
@@ -237,7 +237,7 @@ const Email: () => JSX.Element = (): ReactElement => {
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
                                 URL.fromString(
-                                    DASHBOARD_API_URL.toString()
+                                    APP_URL.toString()
                                 ).addRoute(
                                     '/user-email/resend-verification-code'
                                 ),

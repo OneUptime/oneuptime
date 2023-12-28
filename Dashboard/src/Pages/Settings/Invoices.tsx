@@ -16,7 +16,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import URL from 'Common/Types/API/URL';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { APP_URL } from 'CommonUI/src/Config';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
@@ -41,7 +41,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             const result: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                    URL.fromString(APP_URL.toString()).addRoute(
                         `/billing-invoices/pay`
                     ),
                     {

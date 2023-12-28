@@ -17,7 +17,7 @@ x-common-variables: &common-variables
 
     SERVER_ACCOUNTS_HOSTNAME: accounts
     SERVER_REALTIME_HOSTNAME: realtime
-    SERVER_DASHBOARD_API_HOSTNAME: app
+    SERVER_APP_HOSTNAME: app
     SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_ALERT_HOSTNAME: alert
     SERVER_INGESTOR_HOSTNAME: ingestor
@@ -27,12 +27,11 @@ x-common-variables: &common-variables
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
     SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
-    SERVER_API_REFERENCE_HOSTNAME: api-reference
     OTEL_COLLECTOR_HOSTNAME: otel-collector
 
 
     #Ports. Usually they don't need to change. 
-    DASHBOARD_API_PORT: ${DASHBOARD_API_PORT}
+    APP_PORT: ${APP_PORT}
     API_REFERENCE_PORT: ${API_REFERENCE_PORT}
     WORKFLOW_PORT: ${WORKFLOW_PORT}
     ALERT_PORT: ${ALERT_PORT}
@@ -198,7 +197,7 @@ services:
         restart: always
         environment: 
             <<: *common-server-variables
-            PORT: ${DASHBOARD_API_PORT}
+            PORT: ${APP_PORT}
             SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
             CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE: ${CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE}
             SMS_HIGH_RISK_COST_IN_CENTS: ${SMS_HIGH_RISK_COST_IN_CENTS}

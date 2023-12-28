@@ -79,8 +79,8 @@ export const WorkflowHostname: Hostname = Hostname.fromString(
 );
 
 export const DashboardApiHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_DASHBOARD_API_HOSTNAME'] || 'localhost'}:${
-        process.env['DASHBOARD_API_PORT'] || 80
+    `${process.env['SERVER_APP_HOSTNAME'] || 'localhost'}:${
+        process.env['APP_PORT'] || 80
     }`
 );
 

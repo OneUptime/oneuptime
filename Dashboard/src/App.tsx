@@ -22,7 +22,7 @@ import PageMap from './Utils/PageMap';
 import {
     ACCOUNTS_URL,
     BILLING_ENABLED,
-    DASHBOARD_API_URL,
+    APP_URL,
 } from 'CommonUI/src/Config';
 
 import ActiveIncidents from './Pages/Global/ActiveIncidents';
@@ -180,7 +180,7 @@ const App: () => JSX.Element = () => {
                     requestOptions: {
                         isMultiTenantRequest: true,
                         overrideRequestUrl: URL.fromString(
-                            DASHBOARD_API_URL.toString()
+                            APP_URL.toString()
                         ).addRoute('/project/list-user-projects'),
                     },
                 }
