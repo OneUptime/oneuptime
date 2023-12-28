@@ -20,7 +20,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const viewsPath: string = '/usr/src/app/FeatureSet/Home/views';
+
 
 /**
  * @param {string} val : The value to be parsed.

@@ -2,6 +2,7 @@ import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 import LocalFile from 'CommonServer/Utils/LocalFile';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
+import { ViewsPath } from '../Utils/Config';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 

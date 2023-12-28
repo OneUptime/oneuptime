@@ -12,6 +12,7 @@ import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import LocalFile from 'CommonServer/Utils/LocalFile';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 import PageNotFoundServiceHandler from './PageNotFound';
+import { ViewsPath } from '../Utils/Config';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const ResourceDictionary: Dictionary<ModelDocumentation> =
