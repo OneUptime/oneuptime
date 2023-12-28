@@ -109,7 +109,7 @@ export default class ServiceHandler {
             'list-request',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/ListRequest.md`
+                    `${CodeExamplesPath}/Model/ListRequest.md`
                 );
             }
         );
@@ -119,7 +119,7 @@ export default class ServiceHandler {
             'item-request',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/ItemRequest.md`
+                    `${CodeExamplesPath}/Model/ItemRequest.md`
                 );
             }
         );
@@ -129,7 +129,7 @@ export default class ServiceHandler {
             'item-response',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/ItemResponse.md`
+                    `${CodeExamplesPath}/Model/ItemResponse.md`
                 );
             }
         );
@@ -139,7 +139,7 @@ export default class ServiceHandler {
             'count-request',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/CountRequest.md`
+                    `${CodeExamplesPath}/Model/CountRequest.md`
                 );
             }
         );
@@ -149,7 +149,7 @@ export default class ServiceHandler {
             'count-response',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/CountResponse.md`
+                    `${CodeExamplesPath}/Model/CountResponse.md`
                 );
             }
         );
@@ -159,7 +159,7 @@ export default class ServiceHandler {
             'update-request',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/UpdateRequest.md`
+                    `${CodeExamplesPath}/Model/UpdateRequest.md`
                 );
             }
         );
@@ -169,7 +169,7 @@ export default class ServiceHandler {
             'update-response',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/UpdateResponse.md`
+                    `${CodeExamplesPath}/Model/UpdateResponse.md`
                 );
             }
         );
@@ -179,7 +179,7 @@ export default class ServiceHandler {
             'create-request',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/CreateRequest.md`
+                    `${CodeExamplesPath}/Model/CreateRequest.md`
                 );
             }
         );
@@ -189,7 +189,7 @@ export default class ServiceHandler {
             'create-response',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/CreateResponse.md`
+                    `${CodeExamplesPath}/Model/CreateResponse.md`
                 );
             }
         );
@@ -199,7 +199,7 @@ export default class ServiceHandler {
             'delete-request',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/DeleteRequest.md`
+                    `${CodeExamplesPath}/Model/DeleteRequest.md`
                 );
             }
         );
@@ -209,7 +209,7 @@ export default class ServiceHandler {
             'delete-response',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/DeleteResponse.md`
+                    `${CodeExamplesPath}/Model/DeleteResponse.md`
                 );
             }
         );
@@ -219,7 +219,7 @@ export default class ServiceHandler {
             'list-response',
             async () => {
                 return await LocalFile.read(
-                    `${CodeExamplesPath}CodeExamples/Model/ListResponse.md`
+                    `${CodeExamplesPath}/Model/ListResponse.md`
                 );
             }
         );

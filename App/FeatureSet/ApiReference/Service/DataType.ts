@@ -2,7 +2,7 @@ import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import LocalFile from 'CommonServer/Utils/LocalFile';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
-import { ViewsPath } from '../Utils/Config';
+import { CodeExamplesPath, ViewsPath } from '../Utils/Config';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
@@ -18,7 +18,7 @@ export default class ServiceHandler {
             'select',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/Select.md'
+                    `${CodeExamplesPath}/DataTypes/Select.md`
                 );
             }
         );
@@ -28,7 +28,7 @@ export default class ServiceHandler {
             'sort',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/Sort.md'
+                    `${CodeExamplesPath}/DataTypes/Sort.md`
                 );
             }
         );
@@ -38,7 +38,7 @@ export default class ServiceHandler {
             'equal-to',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/EqualTo.md'
+                    `${CodeExamplesPath}/DataTypes/EqualTo.md`
                 );
             }
         );
@@ -48,7 +48,7 @@ export default class ServiceHandler {
             'equal-to-or-null',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/EqualToOrNull.md'
+                    `${CodeExamplesPath}/DataTypes/EqualToOrNull.md`
                 );
             }
         );
@@ -58,7 +58,7 @@ export default class ServiceHandler {
             'greater-than',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/GreaterThan.md'
+                    `${CodeExamplesPath}/DataTypes/GreaterThan.md`
                 );
             }
         );
@@ -68,7 +68,7 @@ export default class ServiceHandler {
             'greater-than-or-equal',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/GreaterThanOrEqual.md'
+                    `${CodeExamplesPath}/DataTypes/GreaterThanOrEqual.md`
                 );
             }
         );
@@ -78,7 +78,7 @@ export default class ServiceHandler {
             'less-than',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/LessThan.md'
+                    `${CodeExamplesPath}/DataTypes/LessThan.md`
                 );
             }
         );
@@ -88,7 +88,7 @@ export default class ServiceHandler {
             'less-than-or-equal',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/LessThanOrEqual.md'
+                    `${CodeExamplesPath}/DataTypes/LessThanOrEqual.md`
                 );
             }
         );
@@ -98,7 +98,7 @@ export default class ServiceHandler {
             'is-null',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/IsNull.md'
+                    `${CodeExamplesPath}/DataTypes/IsNull.md`
                 );
             }
         );
@@ -108,7 +108,7 @@ export default class ServiceHandler {
             'not-null',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/NotNull.md'
+                    `${CodeExamplesPath}/DataTypes/NotNull.md`
                 );
             }
         );
@@ -118,7 +118,7 @@ export default class ServiceHandler {
             'not-equals',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/DataTypes/NotEqualTo.md'
+                    `${CodeExamplesPath}/DataTypes/NotEqualTo.md`
                 );
             }
         );

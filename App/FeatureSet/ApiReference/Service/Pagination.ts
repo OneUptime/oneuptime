@@ -2,7 +2,7 @@ import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 import LocalFile from 'CommonServer/Utils/LocalFile';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
-import { ViewsPath } from '../Utils/Config';
+import { CodeExamplesPath, ViewsPath } from '../Utils/Config';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
@@ -24,7 +24,7 @@ export default class ServiceHandler {
             'response',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Pagination/Response.md'
+                    `${CodeExamplesPath}/Pagination/Response.md`
                 );
             }
         );
@@ -34,7 +34,7 @@ export default class ServiceHandler {
             'request',
             async () => {
                 return await LocalFile.read(
-                    '/usr/src/app/CodeExamples/Pagination/Request.md'
+                    `${CodeExamplesPath}/Pagination/Request.md`
                 );
             }
         );
