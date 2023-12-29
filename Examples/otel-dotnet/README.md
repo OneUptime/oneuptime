@@ -5,5 +5,5 @@
 Please use 
 
 ```bash
-export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-service-token=2310ba80-821f-11ee-89ce-49d0fde7878f && dotnet run --urls=http://localhost:7856/
+export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-service-token=9c8806e0-a4aa-11ee-be95-010d5967b068 && dotnet run --urls=http://localhost:7856/
 ```

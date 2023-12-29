@@ -111,18 +111,18 @@ var countGreetings = greeterMeter.CreateCounter<int>("greetings.count", descript
 var greeterActivitySource = new ActivitySource("OtPrGrJa.Example");
 
 
-async Task<String> SendGreeting(ILogger<Program> logger)
+async Task<String> LogMessage(ILogger<Program> logger)
 {
     // Create a new Activity scoped to the method
     using var activity = greeterActivitySource.StartActivity("GreeterActivity");
 
     // Log a message
-    logger.LogInformation("Sending greeting");
-    logger.LogError("Error sending greeting");
-    logger.LogWarning("Warning sending greeting");
+    logger.LogInformation("User johndoe@company.com has logged in.");
+    // logger.LogError("Error sending greeting");
+    // logger.LogWarning("Warning sending greeting");
 
-    // very big log message 
-    logger.LogInformation("LONG LOG:  sdsfdg dfgdfgdfg dfgdfgfdgdfg dfgdfgdfg fdgfdgdf fdjgk gkdfjgf dfkgjdfkgjdfkjgkdfjgk  gdkfjgkdfjgkdfj gjdfkjgkdfjgkdfjgk fdjgkdfjgkdfjgkjdfkgj fdkgjfdkgjdfkgjkdfg dfkgjdfkjgkfdjgkfjkgdfjkg fdkgjkfdgjkdfjgkjdkg fdkgjdfkjgk");
+    // // very big log message 
+    // logger.LogInformation("LONG LOG:  sdsfdg dfgdfgdfg dfgdfgfdgdfg dfgdfgdfg fdgfdgdf fdjgk gkdfjgf dfkgjdfkgjdfkjgkdfjgk  gdkfjgkdfjgkdfj gjdfkjgkdfjgkdfjgk fdjgkdfjgkdfjgkjdfkgj fdkgjfdkgjdfkgjkdfg dfkgjdfkjgkfdjgkfjkgdfjkg fdkgjkfdgjkdfjgkjdkg fdkgjdfkjgk");
 
     // Increment the custom counter
     countGreetings.Add(1);
@@ -137,7 +137,43 @@ async Task<String> SendGreeting(ILogger<Program> logger)
     return $"Hello World! OpenTelemetry Trace: {Activity.Current?.Id}";
 }
 
-app.MapGet("/", SendGreeting);
+async Task<String> LogError(ILogger<Program> logger)
+{
+    // Create a new Activity scoped to the method
+    using var activity = greeterActivitySource.StartActivity("GreeterActivity");
+    // Log a message
+    logger.LogError("Transaction "+Guid.NewGuid().ToString()+" failed");
+
+    return $"Hello World! OpenTelemetry Trace: {Activity.Current?.Id}";
+}
+
+
+async Task<String> LogWarning(ILogger<Program> logger)
+{
+    // Create a new Activity scoped to the method
+    using var activity = greeterActivitySource.StartActivity("GreeterActivity");
+    // Log a message
+    logger.LogWarning("Account balance is 0 USD. Cannot complete transaction "+Guid.NewGuid().ToString());
+
+    return $"Hello World! OpenTelemetry Trace: {Activity.Current?.Id}";
+}
+
+
+async Task<String> LogInformation(ILogger<Program> logger)
+{
+    // Create a new Activity scoped to the method
+    using var activity = greeterActivitySource.StartActivity("GreeterActivity");
+    // Log a message
+    logger.LogInformation("Transaction Success: "+Guid.NewGuid().ToString());
+
+    return $"Hello World! OpenTelemetry Trace: {Activity.Current?.Id}";
+}
+
+
+app.MapGet("/", LogMessage);
+app.MapGet("/error", LogError);
+app.MapGet("/warning", LogWarning);
+app.MapGet("/info", LogInformation);
 
 
 app.Run();
