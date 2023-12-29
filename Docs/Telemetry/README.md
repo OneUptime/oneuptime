@@ -53,6 +53,6 @@ export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-service-token=9c8806e0-a4aa-11ee-b
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://opentelemetry-collector.oneuptime.com
 ```
 
-If you're self-hosting oneuptime, this can be changed to your self hosted collector endpoint (eg: http(s)://<your-oneuptime-host>/opentelemetry-collector)
+If you're self-hosting oneuptime, this can be changed to your self hosted collector endpoint (eg: `http(s)://<your-oneuptime-host>/opentelemetry-collector`)
 
 Once you run your application, you should see the logs in the OneUptime telemetry service page. Please contact support@oneuptime.com if you need any help.
