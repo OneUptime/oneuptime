@@ -27,10 +27,11 @@
     "twilio": "^4.20.0",
     "xml-crypto": "^3.2.0",
     "xml2js": "^0.6.2",
-    "xmldom": "^0.6.0",
-    "xmlbuilder2": "^3.1.1"
+    "xmlbuilder2": "^3.1.1",
+    "xmldom": "^0.6.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.11",
     "@types/node": "^17.0.31",
     "@types/nodemailer": "^6.4.14",
     "@types/xml2js": "^0.4.14",
