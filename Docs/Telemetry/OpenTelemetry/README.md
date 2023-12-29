@@ -1,4 +1,4 @@
-# Integrate teelmetry (logging, metrics and traces) with OneUptime. 
+# Integrate OpenTelemetry (logging, metrics and traces) with OneUptime. 
 
 ### Step 1 - Create a OneUptime Telemetry Service. 
 
