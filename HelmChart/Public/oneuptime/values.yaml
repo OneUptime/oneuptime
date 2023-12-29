@@ -127,7 +127,7 @@ probes:
   #   monitorFetchLimit: 10
 
 port: 
-  dashboardApi: 3002
+  app: 3002
   workflow: 3099
   alert: 3088
   ingestor: 3400

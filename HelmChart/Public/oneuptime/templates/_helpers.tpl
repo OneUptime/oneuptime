@@ -43,7 +43,7 @@
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 
 - name: APP_PORT
-  value: {{ $.Values.port.dashboardApi | squote }}
+  value: {{ $.Values.port.app | squote }}
 - name: WORKFLOW_PORT
   value: {{ $.Values.port.workflow | squote }}
 - name: ALERT_PORT
