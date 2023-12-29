@@ -6,7 +6,7 @@ import Permission, {
     PermissionHelper,
     PermissionProps,
 } from 'Common/Types/Permission';
-import { DashboardApiRoute } from 'Common/ServiceRoute';
+import { AppApiRoute } from 'Common/ServiceRoute';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 import LocalFile from 'CommonServer/Utils/LocalFile';
@@ -227,7 +227,7 @@ export default class ServiceHandler {
         pageData.exampleObjectID = ObjectID.generate();
 
         pageData.apiPath =
-            DashboardApiRoute.toString() +
+            AppApiRoute.toString() +
             currentResource.model.crudApiPath?.toString();
 
         pageData.isMasterAdminApiDocs =

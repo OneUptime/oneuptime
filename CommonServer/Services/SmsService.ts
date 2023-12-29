@@ -4,7 +4,7 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
-import { DashboardApiHostname } from '../EnvironmentConfig';
+import { AppApiHostname } from '../EnvironmentConfig';
 import Protocol from 'Common/Types/API/Protocol';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import ObjectID from 'Common/Types/ObjectID';
@@ -46,7 +46,7 @@ export class SmsService extends BaseService {
         return await API.post<EmptyResponseData>(
             new URL(
                 Protocol.HTTP,
-                DashboardApiHostname,
+                AppApiHostname,
                 new Route('/api/notification/sms/send')
             ),
             body,

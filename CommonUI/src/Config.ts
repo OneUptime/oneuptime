@@ -4,7 +4,7 @@ import {
     AccountsRoute,
     AdminDashboardRoute,
     ApiReferenceRoute,
-    DashboardApiRoute,
+    AppApiRoute,
     DashboardRoute,
     FileRoute,
     IdentityRoute,
@@ -73,7 +73,7 @@ export const FILE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 export const APP_API_URL: URL = new URL(
     HTTP_PROTOCOL,
     APP_HOSTNAME,
-    DashboardApiRoute
+    AppApiRoute
 );
 
 export const REALTIME_URL: URL = new URL(
