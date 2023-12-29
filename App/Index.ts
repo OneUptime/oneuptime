@@ -15,7 +15,7 @@ import './FeatureSet/ApiReference/Index';
 // home should be in the end.
 import './FeatureSet/Home/Index';
 
-const APP_NAME: string = 'oneuptime';
+const APP_NAME: string = 'app';
 
 const init: () => Promise<void> = async (): Promise<void> => {
     try {
