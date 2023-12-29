@@ -10,7 +10,7 @@
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-    "test": "jest --detectOpenHandles",
+    "test": "rm -rf build && jest --detectOpenHandles",
     "coverage": "jest --detectOpenHandles --coverage"
   },
   "author": "",
