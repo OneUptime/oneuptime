@@ -50,7 +50,7 @@ Once you have configured the telemetry service in your application, you can inte
 
 ```bash
 export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-service-token=9c8806e0-a4aa-11ee-be95-010d5967b068
-export OTEL_EXPORTER_OTLP_ENDPOINT="https://ingest-otel.oneuptime.com"
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://opentelemetry-collector.oneuptime.com
 ```
 
 Once you run your application, you should see the logs in the OneUptime telemetry service page. Please contact support@oneuptime.com if you need any help.
