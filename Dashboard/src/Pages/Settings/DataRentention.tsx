@@ -55,7 +55,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         'Configure how long you want to keep your telemetry data - like Logs, Metrics, and Traces.',
                 }}
                 isEditable={true}
-                editButtonText='Edit Data Retention'
+                editButtonText="Edit Data Retention"
                 formFields={[
                     {
                         field: {
