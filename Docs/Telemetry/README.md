@@ -8,13 +8,13 @@ After you sign up to OneUptime and create a project. Click on more in the Naviga
 
 On the telemetry service page, click on "Create Telemetry Service" button.
 
-![Create Service](Docs/Telemetry/Logs/Images/CreateService.png)
+![Create Service](/Docs/Telemetry/Images/CreateService.png)
 
 Once you create a telemetry service, click on "View Service" and you will be redirected to the telemetry service page.
 
 Click on View Service Token and copy the token. You will need this token to configure the telemetry service. Please keep this token safe.
 
-![View Service](Docs/Telemetry/Logs/Images/ViewServiceToken.png)
+![View Service](/Docs/Telemetry/Images/ViewServiceToken.png)
 
 
 ### Step 2 - Configure the telemetry service in your application.
@@ -44,7 +44,7 @@ Once you have configured the telemetry service in your application, you can inte
 | Environment Variable | Value |
 | --- | --- |
 | OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-service-token=<YOUR_ONEUPTIME_SERVICE_TOKEN> |
-| OTEL_EXPORTER_OTLP_ENDPOINT | "https://ingest-otel.oneuptime.com" |
+| OTEL_EXPORTER_OTLP_ENDPOINT | https://opentelemetry-collector.oneuptime.com |
 
 **Example**
 
