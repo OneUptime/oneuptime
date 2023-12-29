@@ -169,9 +169,9 @@ const Call: () => JSX.Element = (): ReactElement => {
                             const response:
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(
-                                    APP_API_URL.toString()
-                                ).addRoute('/user-call/verify'),
+                                URL.fromString(APP_API_URL.toString()).addRoute(
+                                    '/user-call/verify'
+                                ),
                                 {
                                     code: item['code'],
                                     projectId:
@@ -236,9 +236,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                             const response:
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(
-                                    APP_API_URL.toString()
-                                ).addRoute(
+                                URL.fromString(APP_API_URL.toString()).addRoute(
                                     '/user-call/resend-verification-code'
                                 ),
                                 {

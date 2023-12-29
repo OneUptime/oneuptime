@@ -22,10 +22,7 @@ const ResourceDictionary: Dictionary<ModelDocumentation> =
 
 const app: ExpressApplication = Express.getExpressApp();
 
-app.use(
-    '/reference',
-    ExpressStatic(StaticPath, { maxAge: 2592000 })
-);
+app.use('/reference', ExpressStatic(StaticPath, { maxAge: 2592000 }));
 
 // Index page
 app.get(['/reference'], (_req: ExpressRequest, res: ExpressResponse) => {
@@ -74,5 +71,3 @@ app.get(['/reference/:page'], (req: ExpressRequest, res: ExpressResponse) => {
 app.get('/reference/*', (req: ExpressRequest, res: ExpressResponse) => {
     return PageNotFoundServiceHandler.executeResponse(req, res);
 });
-
-

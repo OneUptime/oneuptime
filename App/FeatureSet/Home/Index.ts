@@ -19,7 +19,6 @@ import { StaticPath, ViewsPath } from './Utils/Config';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-
 //Routes
 app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render(`${ViewsPath}/index`, {

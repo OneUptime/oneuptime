@@ -169,9 +169,9 @@ const SMS: () => JSX.Element = (): ReactElement => {
                             const response:
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(
-                                    APP_API_URL.toString()
-                                ).addRoute('/user-sms/verify'),
+                                URL.fromString(APP_API_URL.toString()).addRoute(
+                                    '/user-sms/verify'
+                                ),
                                 {
                                     code: item['code'],
                                     projectId:
@@ -236,9 +236,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                             const response:
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(
-                                    APP_API_URL.toString()
-                                ).addRoute(
+                                URL.fromString(APP_API_URL.toString()).addRoute(
                                     '/user-sms/resend-verification-code'
                                 ),
                                 {

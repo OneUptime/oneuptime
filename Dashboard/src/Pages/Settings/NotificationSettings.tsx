@@ -343,9 +343,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             const response:
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(
-                                    APP_API_URL.toString()
-                                ).addRoute('/notification/recharge'),
+                                URL.fromString(APP_API_URL.toString()).addRoute(
+                                    '/notification/recharge'
+                                ),
                                 {
                                     amount: item['amount'],
                                     projectId:

@@ -6,8 +6,6 @@ const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const FeaturedResources: Array<ModelDocumentation> =
     ResourceUtil.getFeaturedResources();
 
-
-
 export default class ServiceHandler {
     public static async executeResponse(
         req: ExpressRequest,
