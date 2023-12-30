@@ -31,7 +31,7 @@
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: OTEL_COLLECTOR_HOSTNAME
+- name: SERVER_OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKERS_HOSTNAME
   value: {{ $.Release.Name }}-workers.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}

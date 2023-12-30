@@ -26,7 +26,7 @@ x-common-variables: &common-variables
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
     SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
-    OTEL_COLLECTOR_HOSTNAME: otel-collector
+    SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
 
 
     #Ports. Usually they don't need to change. 

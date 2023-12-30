@@ -33,8 +33,46 @@ upstream workers {
 
 
 upstream otel-collector {
-    server ${OTEL_COLLECTOR_HOSTNAME}:${OTEL_COLLECTOR_PORT} weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:${OTEL_COLLECTOR_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
+
+# Otel Collector
+
+server {
+
+    gzip on;
+    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_proxied    no-cache no-store private expired auth;
+    gzip_min_length 1000;
+   
+    listen 80 default_server;
+
+    server_name oneuptime-otel-collector ${OTEL_COLLECTOR_HOST};
+
+    proxy_busy_buffers_size   512k;
+    proxy_buffers   4 512k;
+    proxy_buffer_size   256k;
+
+    fastcgi_buffers  16 16k;
+    fastcgi_buffer_size  32k;
+
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme; 
+
+        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_pass  http://otel-collector;
+    }
+
+}
+
+# Status Pages
 
 server {
 
@@ -121,6 +159,8 @@ server {
     }
 
 }
+
+# 
 
 server {
 
