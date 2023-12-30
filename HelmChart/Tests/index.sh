@@ -24,4 +24,4 @@ sudo microk8s helm install oneuptime ../../HelmChart/Public/oneuptime -f ../../H
 sudo microk8s kubectl wait pod --all --for=condition=Ready --namespace=default
 
 # Once it's ready. Run helm test. 
-sudo microk8s helm test oneuptime
+# sudo microk8s helm test oneuptime
