@@ -1,0 +1,8 @@
+global:
+  storageClass: microk8s-hostpath
+
+host: localhost
+httpProtocol: http
+
+image:
+  tag: test
