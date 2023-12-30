@@ -55,6 +55,12 @@ const TelemetryServicesViewSettings: LazyExoticComponent<
     return import('../Pages/Telemetry/Services/View/Settings');
 });
 
+const TelemetryServicesViewDocumentation: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Telemetry/Services/View/Documentation');
+});
+
 const TelemetryRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -94,7 +100,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW
+                                PageMap.TELEMETRY_SERVICES_VIEW
                                 ] as Route
                             }
                         />
@@ -105,7 +111,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     TelemetryRouthPath[
-                        PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                    PageMap.TELEMETRY_SERVICES_VIEW_DELETE
                     ] || ''
                 }
                 element={
@@ -114,7 +120,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                                PageMap.TELEMETRY_SERVICES_VIEW_DELETE
                                 ] as Route
                             }
                         />
@@ -133,7 +139,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_LOGS
+                                PageMap.TELEMETRY_SERVICES_VIEW_LOGS
                                 ] as Route
                             }
                         />
@@ -144,7 +150,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     TelemetryRouthPath[
-                        PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                    PageMap.TELEMETRY_SERVICES_VIEW_TRACES
                     ] || ''
                 }
                 element={
@@ -153,7 +159,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                PageMap.TELEMETRY_SERVICES_VIEW_TRACES
                                 ] as Route
                             }
                         />
@@ -164,7 +170,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     TelemetryRouthPath[
-                        PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                    PageMap.TELEMETRY_SERVICES_VIEW_METRICS
                     ] || ''
                 }
                 element={
@@ -173,7 +179,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                                PageMap.TELEMETRY_SERVICES_VIEW_METRICS
                                 ] as Route
                             }
                         />
@@ -184,7 +190,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     TelemetryRouthPath[
-                        PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
+                    PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
                     ] || ''
                 }
                 element={
@@ -193,7 +199,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
+                                PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS
                                 ] as Route
                             }
                         />
@@ -204,7 +210,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             <PageRoute
                 path={
                     TelemetryRouthPath[
-                        PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
+                    PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
                     ] || ''
                 }
                 element={
@@ -213,13 +219,36 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
+                                PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
                                 ] as Route
                             }
                         />
                     </Suspense>
                 }
             />
+
+
+            <PageRoute
+                path={
+                    TelemetryRouthPath[
+                    PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                    ] || ''
+                }
+                element={
+                    <Suspense fallback={Loader}>
+                        <TelemetryServicesViewDocumentation
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+
         </Routes>
     );
 };
