@@ -19,7 +19,7 @@ receivers:
 
 exporters:
   otlphttp:
-    endpoint: "http://ingestor:3400/otel"
+    endpoint: "http://${env:SERVER_INGESTOR_HOSTNAME}:${env:INGESTOR_PORT}/otel"
     headers: {"Content-Type": "application/json"}
     auth:
       authenticator: headers_setter

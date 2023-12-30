@@ -30,7 +30,6 @@ x-common-variables: &common-variables
     SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
     SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
 
-
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
     WORKFLOW_PORT: ${WORKFLOW_PORT}
@@ -289,6 +288,8 @@ services:
     otel-collector:
         networks:
           - oneuptime
+        environment:
+            <<: *common-variables
         restart: always
 
     ingestor:
