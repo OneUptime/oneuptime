@@ -6,6 +6,8 @@ sudo microk8s status --wait-ready
 sudo echo "alias kubectl='microk8s kubectl'" >> ~/.bash_aliases
 sudo echo "alias helm='microk8s helm3'" >> ~/.bash_aliases
 
+source ~/.bash_aliases
+
 # Enable MicroK8s addons
 sudo microk8s enable dashboard
 sudo microk8s enable dns
