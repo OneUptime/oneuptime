@@ -6,7 +6,7 @@ import { Outlet } from 'react-router';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getMonitorBreadcrumbs } from '../../Utils/Breadcrumbs';
 import { RouteUtil } from '../../Utils/RouteMap';
-const MonitorContainer: FunctionComponent<PageComponentProps> = (
+const MonitorLayout: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
@@ -25,4 +25,4 @@ const MonitorContainer: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default MonitorContainer;
+export default MonitorLayout;

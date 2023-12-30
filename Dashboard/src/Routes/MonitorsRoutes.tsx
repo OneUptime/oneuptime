@@ -11,8 +11,8 @@ import RouteMap, { MonitorsRoutePath, RouteUtil } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import ComponentProps from '../Pages/PageComponentProps';
 import Loader from '../Components/Loader/Loader';
-import MonitorContainer from '../Pages/Monitor/MonitorsContainer';
-import MonitorViewContainer from '../Pages/Monitor/View/MonitorViewContainer';
+import MonitorLayout from '../Pages/Monitor/Layout';
+import MonitorViewLayout from '../Pages/Monitor/View/Layout';
 
 // Pages
 const MonitorPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -81,7 +81,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <Routes>
-            <PageRoute path="/" element={<MonitorContainer {...props} />}>
+            <PageRoute path="/" element={<MonitorLayout {...props} />}>
                 <PageRoute
                     index
                     element={
@@ -127,7 +127,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
 
             <PageRoute
                 path={MonitorsRoutePath[PageMap.MONITOR_VIEW] || ''}
-                element={<MonitorViewContainer />}
+                element={<MonitorViewLayout />}
             >
                 <PageRoute
                     index

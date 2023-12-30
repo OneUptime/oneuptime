@@ -8,7 +8,7 @@ import SideMenu from './SideMenu';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 
-const MonitorViewContainer: FunctionComponent = (): ReactElement => {
+const MonitorViewLayout: FunctionComponent = (): ReactElement => {
     const { id } = useParams();
     const modelId: ObjectID = new ObjectID(id || '');
     const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
@@ -26,4 +26,4 @@ const MonitorViewContainer: FunctionComponent = (): ReactElement => {
     );
 };
 
-export default MonitorViewContainer;
+export default MonitorViewLayout;
