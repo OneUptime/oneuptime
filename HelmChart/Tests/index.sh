@@ -2,10 +2,6 @@
 sudo snap install microk8s --classic
 sudo microk8s status --wait-ready
 
-
-# Add current user to microk8s group
-sudo microk8s kubectl config view --raw > ~/.kube/config
-
 # Add kubectl and helm aliases
 sudo echo "alias kubectl='microk8s kubectl'" >> ~/.bash_aliases
 sudo echo "alias helm='microk8s helm3'" >> ~/.bash_aliases
