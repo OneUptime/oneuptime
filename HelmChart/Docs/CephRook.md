@@ -19,3 +19,17 @@ Now install the Ceph Cluster.
 helm install --create-namespace --namespace rook-ceph rook-ceph-cluster \
    --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster -f ceph-cluster.yaml
 ```
+
+Once you install the cluster, you can check the status of the cluster by running this command: 
+
+```bash
+kubectl -n rook-ceph exec -it rook-ceph-tools -- ceph status
+```
+
+See all the storage classes by running this command: 
+
+```bash
+kubectl get storageclass
+```
+
+You should see ceph created storage classes. 
