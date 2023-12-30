@@ -65,7 +65,6 @@ router.use(
     '/otel/*',
     async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
         try {
-
             // check header.
 
             const serviceTokenInHeader: string | undefined = req.headers[
@@ -99,8 +98,6 @@ router.use(
             } else {
                 throw new BadRequestException('Invalid URL: ' + req.baseUrl);
             }
-
-
 
             const cachedServiceId: string | null = await GlobalCache.getString(
                 'service-token',
@@ -281,7 +278,7 @@ router.post(
                             (metric['sum'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['sum'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -331,7 +328,7 @@ router.post(
                             (metric['gauge'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['gauge'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -382,7 +379,7 @@ router.post(
                             (metric['histogram'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['histogram'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {

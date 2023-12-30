@@ -94,7 +94,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                         getElement: (item: JSONObject) => {
                             return (
                                 <div>{`${DiskSize.convertToDecimalPlaces(
-                                    (item['usageCount'] as Decimal).value as number
+                                    (item['usageCount'] as Decimal)
+                                        .value as number
                                 )} ${item['usageUnitName'] as string}`}</div>
                             );
                         },
@@ -108,7 +109,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                         getElement: (item: JSONObject) => {
                             return (
                                 <div>{`${Currency.convertToDecimalPlaces(
-                                    (item['totalCostInUSD'] as Decimal).value as number
+                                    (item['totalCostInUSD'] as Decimal)
+                                        .value as number
                                 )} USD`}</div>
                             );
                         },

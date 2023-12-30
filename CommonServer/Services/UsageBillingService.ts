@@ -94,11 +94,13 @@ export class Service extends DatabaseService<Model> {
             await this.updateOneById({
                 id: usageBilling.id,
                 data: {
-                    usageCount:
-                        new Decimal((usageBilling.usageCount?.value || 0) + data.usageCount),
-                    totalCostInUSD:new Decimal(
+                    usageCount: new Decimal(
+                        (usageBilling.usageCount?.value || 0) + data.usageCount
+                    ),
+                    totalCostInUSD: new Decimal(
                         (usageBilling.totalCostInUSD?.value || 0) +
-                        totalCostOfThisOperationInUSD),
+                            totalCostOfThisOperationInUSD
+                    ),
                 },
                 props: {
                     isRoot: true,
@@ -114,7 +116,9 @@ export class Service extends DatabaseService<Model> {
             usageBilling.day = OneUptimeDate.getDateString(
                 OneUptimeDate.getCurrentDate()
             );
-            usageBilling.totalCostInUSD = new Decimal(totalCostOfThisOperationInUSD);
+            usageBilling.totalCostInUSD = new Decimal(
+                totalCostOfThisOperationInUSD
+            );
             usageBilling.usageUnitName = meteredPlan.getUnitName(); // e.g. "GB"
 
             await this.create({

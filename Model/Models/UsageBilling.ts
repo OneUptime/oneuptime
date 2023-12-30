@@ -171,7 +171,7 @@ export default class UsageBilling extends AccessControlModel {
     @Column({
         nullable: false,
         type: ColumnType.Decimal,
-        transformer: Decimal.getDatabaseTransformer()
+        transformer: Decimal.getDatabaseTransformer(),
     })
     public usageCount?: Decimal = undefined;
 
@@ -218,7 +218,7 @@ export default class UsageBilling extends AccessControlModel {
     @Column({
         nullable: false,
         type: ColumnType.Decimal,
-        transformer: Decimal.getDatabaseTransformer()
+        transformer: Decimal.getDatabaseTransformer(),
     })
     public totalCostInUSD?: Decimal = undefined;
 

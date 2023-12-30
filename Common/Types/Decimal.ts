@@ -5,7 +5,6 @@ import { JSONObject, ObjectType } from './JSON';
 import BadDataException from './Exception/BadDataException';
 
 export default class Decimal extends DatabaseProperty {
-
     private _value: number = 0;
     public get value(): number {
         return this._value;
@@ -35,7 +34,6 @@ export default class Decimal extends DatabaseProperty {
     public override toString(): string {
         return this.value.toString();
     }
-
 
     protected static override toDatabase(
         value: Decimal | FindOperator<Decimal>
@@ -69,7 +67,6 @@ export default class Decimal extends DatabaseProperty {
 
         return null;
     }
-
 
     public static fromString(value: string): Decimal {
         return new Decimal(value);
