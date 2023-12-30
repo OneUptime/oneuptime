@@ -1,6 +1,8 @@
 {{- define "oneuptime.env.common" }}
 - name: HOST
   value: {{ $.Values.host }}
+- name: OTEL_COLLECTOR_HOST
+  value: {{ $.Values.openTelemetryCollectorHost }}
 - name: HTTP_PROTOCOL
   value: {{ $.Values.httpProtocol }}
 - name: NODE_ENV

@@ -3,9 +3,12 @@ global:
   clusterDomain: &global-cluster-domain cluster.local
 
 
-# Please change this to the domain name / IP where OneUtpime server is hosted on. 
+# Please change this to the domain name / IP where OneUptime server is hosted on. 
 host: localhost
 httpProtocol: http
+
+# (Optional): You usually do not need to set this if you're self hosting. 
+openTelemetryCollectorHost: 
 
 volume: 
   certs: 
