@@ -35,11 +35,11 @@ upstream workers {
 
 
 upstream opentelemetry-collector-http {
-    server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:${OTEL_COLLECTOR_HTTP_PORT};
+    server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:4318;
 }
 
 upstream opentelemetry-collector-grpc {
-    server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:${OTEL_COLLECTOR_GRPC_PORT};
+    server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:4317;
 }
 
 # Otel Collector
