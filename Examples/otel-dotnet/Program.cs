@@ -7,6 +7,8 @@ using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string endpoint = "http://localhost:4317";
+
 Console.WriteLine($"Env var: {Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_HEADERS")?.ToString()}");
 
 
@@ -28,6 +30,15 @@ builder.Logging.AddOpenTelemetry(logging =>
         .AddConsoleExporter()
         .AddOtlpExporter(opt =>
         {
+            // If endpoint was not specified, the proper one will be selected according to the protocol.
+            if (!string.IsNullOrEmpty(endpoint))
+            {
+                opt.Endpoint = new Uri(endpoint);
+
+                // Set headers in OTLP exporter
+                // opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+            }
+
             System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
         });
 });
@@ -41,6 +52,16 @@ builder.Services.AddOpenTelemetry()
         .AddConsoleExporter()
          .AddOtlpExporter(opt =>
                 {
+                    // If endpoint was not specified, the proper one will be selected according to the protocol.
+                    if (!string.IsNullOrEmpty(endpoint))
+                    {
+                        opt.Endpoint = new Uri(endpoint);
+                        // Set headers in OTLP exporter
+                        // opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+                        
+
+                    }
+
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
                 }));
 
@@ -61,6 +82,14 @@ builder.Services.AddOpenTelemetry()
         })
          .AddOtlpExporter(opt =>
                 {
+                    // If endpoint was not specified, the proper one will be selected according to the protocol.
+                    if (!string.IsNullOrEmpty(endpoint))
+                    {
+                        opt.Endpoint = new Uri(endpoint);
+                        // Set headers in OTLP exporter
+                        // opt.Headers = "oneuptime-service-token=0a00ebc0-7f39-11ee-ac8c-3fb43926b224";
+                    }
+
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
 
                 }));

@@ -68,8 +68,10 @@
   value: {{ $.Values.port.dashboard | squote }}
 - name: ADMIN_DASHBOARD_PORT
   value: {{ $.Values.port.adminDashboard | squote }}
-- name: OTEL_COLLECTOR_PORT
-  value: {{ $.Values.port.otelCollector | squote }}
+- name: OTEL_COLLECTOR_GRPC_PORT
+  value: {{ $.Values.port.otelCollectorGrpc | squote }}
+- name: OTEL_COLLECTOR_HTTP_PORT
+  value: {{ $.Values.port.otelCollectorHttp | squote }}
 {{- end }}
 
 

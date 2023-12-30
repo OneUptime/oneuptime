@@ -9,6 +9,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import { MeteredPlanUtil } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
+import Decimal from 'Common/Types/Decimal';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -94,10 +95,10 @@ export class Service extends DatabaseService<Model> {
                 id: usageBilling.id,
                 data: {
                     usageCount:
-                        (usageBilling.usageCount || 0) + data.usageCount,
-                    totalCostInUSD:
-                        (usageBilling.totalCostInUSD || 0) +
-                        totalCostOfThisOperationInUSD,
+                        new Decimal((usageBilling.usageCount?.value || 0) + data.usageCount),
+                    totalCostInUSD:new Decimal(
+                        (usageBilling.totalCostInUSD?.value || 0) +
+                        totalCostOfThisOperationInUSD),
                 },
                 props: {
                     isRoot: true,
@@ -107,13 +108,13 @@ export class Service extends DatabaseService<Model> {
             const usageBilling: Model = new Model();
             usageBilling.projectId = data.projectId;
             usageBilling.productType = data.productType;
-            usageBilling.usageCount = data.usageCount;
+            usageBilling.usageCount = new Decimal(data.usageCount);
             usageBilling.isReportedToBillingProvider = false;
             usageBilling.createdAt = OneUptimeDate.getCurrentDate();
             usageBilling.day = OneUptimeDate.getDateString(
                 OneUptimeDate.getCurrentDate()
             );
-            usageBilling.totalCostInUSD = totalCostOfThisOperationInUSD;
+            usageBilling.totalCostInUSD = new Decimal(totalCostOfThisOperationInUSD);
             usageBilling.usageUnitName = meteredPlan.getUnitName(); // e.g. "GB"
 
             await this.create({
