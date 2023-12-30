@@ -14,11 +14,12 @@ import {
     ChangePlan,
     CouponData,
 } from '../../TestingUtils/Services/Types';
+import { ProductType } from 'Model/Models/UsageBilling';
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 const mockIsBillingEnabled: Function = (value: boolean): BillingService => {
     jest.resetModules();
-    jest.doMock('../../../EnvironmentConfig', () => {
+    jest.doMock('../../../BillingConfig', () => {
         return {
             IsBillingEnabled: value,
         };
@@ -57,7 +58,11 @@ const getStripeSubscription: Function = (): Stripe.Subscription => {
                 {
                     id: faker.datatype.uuid(),
                     // @ts-ignore
-                    price: { id: faker.datatype.uuid() },
+                    price: {
+                        id: new BillingService().getMeteredPlanPriceId(
+                            ProductType.ActiveMonitoring
+                        ),
+                    },
                 },
             ],
         },

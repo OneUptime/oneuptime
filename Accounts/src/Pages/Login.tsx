@@ -87,7 +87,7 @@ const LoginPage: () => JSX.Element = () => {
                                 },
                             },
                         ]}
-                        apiUrl={apiUrl}
+                        createOrUpdateApiUrl={apiUrl}
                         formType={FormType.Create}
                         submitButtonText={'Login'}
                         onSuccess={(

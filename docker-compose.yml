@@ -26,12 +26,7 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: postgres
-    
-    notification:
-        image:  oneuptime/notification:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: notification
+
     
     otel-collector:
         image:  oneuptime/otel-collector:${APP_TAG}
@@ -66,11 +61,11 @@ services:
             
         
 
-    dashboard-api:
-        image:  oneuptime/dashboard-api:${APP_TAG}
+    app:
+        image:  oneuptime/app:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
-            service: dashboard-api
+            service: app
         
 
     workflow:
@@ -100,42 +95,11 @@ services:
             file: ./docker-compose.base.yml
             service: probe-2
 
-    identity:
-        image:  oneuptime/identity:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: identity
-       
-    
-
     ingestor:
         image:  oneuptime/ingestor:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: ingestor
-       
-
-    file:
-        image:  oneuptime/file:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: file
-        
-
-  
-    home:
-        image:  oneuptime/home:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: home
-        
-    
-    api-reference:
-        image:  oneuptime/api-reference:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: api-reference
-
 
     ingress:
        image:  oneuptime/nginx:${APP_TAG}

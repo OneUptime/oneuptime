@@ -135,6 +135,9 @@ import OnCallDutyPolicyScheduleLayerUserService from './OnCallDutyPolicySchedule
 import OnCallDutyPolicyScheduleLayerService from './OnCallDutyPolicyScheduleLayerService';
 import OnCallDutyPolicyEscalationRuleScheduleService from './OnCallDutyPolicyEscalationRuleScheduleService';
 
+import UsageBillingService from './UsageBillingService';
+import ProjectCallSMSConfigService from './ProjectCallSMSConfigService';
+
 const services: Array<BaseService> = [
     PromoCodeService,
 
@@ -257,6 +260,9 @@ const services: Array<BaseService> = [
     OnCallDutyPolicyScheduleLayerUserService,
     OnCallDutyPolicyScheduleLayerService,
     OnCallDutyPolicyEscalationRuleScheduleService,
+
+    UsageBillingService,
+    ProjectCallSMSConfigService,
 ];
 
 export const AnalyticsServices: Array<

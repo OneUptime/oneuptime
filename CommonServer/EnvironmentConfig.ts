@@ -3,16 +3,15 @@ import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
+import BillingConfig from './BillingConfig';
 
 export const getAllEnvVars: () => JSONObject = (): JSONObject => {
     return process.env;
 };
 
-export const IsBillingEnabled: boolean =
-    process.env['BILLING_ENABLED'] === 'true';
-export const BillingPublicKey: string = process.env['BILLING_PUBLIC_KEY'] || '';
-export const BillingPrivateKey: string =
-    process.env['BILLING_PRIVATE_KEY'] || '';
+export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
+export const BillingPublicKey: string = BillingConfig.BillingPublicKey;
+export const BillingPrivateKey: string = BillingConfig.BillingPrivateKey;
 
 export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || 'postgres'
@@ -67,12 +66,6 @@ export const RealtimeHostname: Hostname = Hostname.fromString(
     }`
 );
 
-export const NotificationHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_NOTIFICATION_HOSTNAME'] || 'localhost'}:${
-        process.env['NOTIFICATION_PORT'] || 80
-    }`
-);
-
 export const WorkerHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_WORKERS_HOSTNAME'] || 'localhost'}:${
         process.env['WORKERS_PORT'] || 80
@@ -85,9 +78,9 @@ export const WorkflowHostname: Hostname = Hostname.fromString(
     }`
 );
 
-export const DashboardApiHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_DASHBOARD_API_HOSTNAME'] || 'localhost'}:${
-        process.env['DASHBOARD_API_PORT'] || 80
+export const AppApiHostname: Hostname = Hostname.fromString(
+    `${process.env['SERVER_APP_HOSTNAME'] || 'localhost'}:${
+        process.env['APP_PORT'] || 80
     }`
 );
 
@@ -100,12 +93,6 @@ export const IngestorHostname: Hostname = Hostname.fromString(
 export const AccountsHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_ACCOUNTS_HOSTNAME'] || 'localhost'}:${
         process.env['ACCOUNTS_PORT'] || 80
-    }`
-);
-
-export const HomeHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_HOME_HOSTNAME'] || 'localhost'}:${
-        process.env['HOME_PORT'] || 80
     }`
 );
 

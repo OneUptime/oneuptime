@@ -56,23 +56,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
         try {
             const listResult: ListResult<StatusPageGroup> =
-                await ModelAPI.getList<StatusPageGroup>(
-                    StatusPageGroup,
-                    {
+                await ModelAPI.getList<StatusPageGroup>({
+                    modelType: StatusPageGroup,
+                    query: {
                         statusPageId: modelId,
                         projectId: props.currentProject?.id,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         name: true,
                         _id: true,
                     },
-                    {
+                    sort: {
                         order: SortOrder.Ascending,
                     },
-                    {}
-                );
+                    requestOptions: {},
+                });
 
             setGroups(listResult.data);
         } catch (err) {

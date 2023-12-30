@@ -14,29 +14,18 @@ echo "⏳ Waiting for OneUptime to boot (this will take a few minutes)"
 echo ""
 echo ""
 
-bash $scriptDir/endpoint-status.sh "Root" $HOST_TO_CHECK/
 
-bash $scriptDir/endpoint-status.sh "Home" $HOST_TO_CHECK/status
-
-bash $scriptDir/endpoint-status.sh "API" $HOST_TO_CHECK/api/status
+bash $scriptDir/endpoint-status.sh "App" $HOST_TO_CHECK/status
 
 bash $scriptDir/endpoint-status.sh "Dashboard" $HOST_TO_CHECK/dashboard/status
-
-bash $scriptDir/endpoint-status.sh "File" $HOST_TO_CHECK/file/status
 
 bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page/status
 
 bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts/status
 
-bash $scriptDir/endpoint-status.sh "Notification" $HOST_TO_CHECK/notification/status
-
 bash $scriptDir/endpoint-status.sh "Worker" $HOST_TO_CHECK/workers/status
 
-bash $scriptDir/endpoint-status.sh "Identity" $HOST_TO_CHECK/identity/status
-
 bash $scriptDir/endpoint-status.sh "Workflow" $HOST_TO_CHECK/workflow/status
-
-bash $scriptDir/endpoint-status.sh "API Docs" $HOST_TO_CHECK/reference/status
 
 bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status
 

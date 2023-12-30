@@ -6,7 +6,7 @@ import API from '../../Utils/API/API';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { DASHBOARD_API_URL } from '../../Config';
+import { APP_API_URL } from '../../Config';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -39,42 +39,46 @@ export interface RequestOptions {
 }
 
 export default class ModelAPI {
-    public static async create<TBaseModel extends BaseModel>(
-        model: TBaseModel,
-        modelType: { new (): TBaseModel },
-        requestOptions?: RequestOptions | undefined
-    ): Promise<
+    public static async create<TBaseModel extends BaseModel>(data: {
+        model: TBaseModel;
+        modelType: { new (): TBaseModel };
+        requestOptions?: RequestOptions | undefined;
+    }): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
-        return await ModelAPI.createOrUpdate(
-            model,
-            modelType,
-            FormType.Create,
-            {},
-            requestOptions
-        );
+        return await ModelAPI.createOrUpdate({
+            model: data.model,
+            modelType: data.modelType,
+            formType: FormType.Create,
+            miscDataProps: {},
+            requestOptions: data.requestOptions,
+        });
     }
 
-    public static async update<TBaseModel extends BaseModel>(
-        model: TBaseModel,
-        modelType: { new (): TBaseModel }
-    ): Promise<
+    public static async update<TBaseModel extends BaseModel>(data: {
+        model: TBaseModel;
+        modelType: { new (): TBaseModel };
+    }): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
-        return await ModelAPI.createOrUpdate(model, modelType, FormType.Update);
+        return await ModelAPI.createOrUpdate({
+            model: data.model,
+            modelType: data.modelType,
+            formType: FormType.Update,
+        });
     }
 
-    public static async updateById<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
-        id: ObjectID,
-        data: JSONObject,
-        apiUrlOverride?: URL,
-        requestOptions?: RequestOptions
-    ): Promise<
+    public static async updateById<TBaseModel extends BaseModel>(data: {
+        modelType: { new (): TBaseModel };
+        id: ObjectID;
+        data: JSONObject;
+        apiUrlOverride?: URL;
+        requestOptions?: RequestOptions;
+    }): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
-        const model: BaseModel = new modelType();
-        let apiUrl: URL | null = apiUrlOverride || null;
+        const model: BaseModel = new data.modelType();
+        let apiUrl: URL | null = data.apiUrlOverride || null;
 
         if (!apiUrl) {
             const apiPath: Route | null = model.getCrudApiPath();
@@ -84,10 +88,10 @@ export default class ModelAPI {
                 );
             }
 
-            apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
+            apiUrl = URL.fromURL(APP_API_URL).addRoute(apiPath);
         }
 
-        apiUrl = apiUrl.addRoute(`/${id.toString()}`);
+        apiUrl = apiUrl.addRoute(`/${data.id.toString()}`);
 
         const result: HTTPResponse<
             JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
@@ -97,9 +101,9 @@ export default class ModelAPI {
             HTTPMethod.PUT,
             apiUrl,
             {
-                data: data,
+                data: data.data,
             },
-            this.getCommonHeaders(requestOptions)
+            this.getCommonHeaders(data.requestOptions)
         );
 
         if (result.isSuccess()) {
@@ -111,31 +115,37 @@ export default class ModelAPI {
         throw result;
     }
 
-    public static async createOrUpdate<TBaseModel extends BaseModel>(
-        model: TBaseModel,
-        modelType: { new (): TBaseModel },
-        formType: FormType,
-        miscDataProps?: JSONObject,
-        requestOptions?: RequestOptions | undefined
-    ): Promise<ModelAPIHttpResponse<TBaseModel>> {
-        let apiUrl: URL | null = requestOptions?.overrideRequestUrl || null;
+    public static async createOrUpdate<TBaseModel extends BaseModel>(data: {
+        model: TBaseModel;
+        modelType: { new (): TBaseModel };
+        formType: FormType;
+        miscDataProps?: JSONObject;
+        requestOptions?: RequestOptions | undefined;
+    }): Promise<ModelAPIHttpResponse<TBaseModel>> {
+        let apiUrl: URL | null =
+            data.requestOptions?.overrideRequestUrl || null;
 
         if (!apiUrl) {
-            const apiPath: Route | null = model.getCrudApiPath();
+            const apiPath: Route | null = data.model.getCrudApiPath();
             if (!apiPath) {
                 throw new BadDataException(
                     'This model does not support create or update operations.'
                 );
             }
 
-            apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
+            apiUrl = URL.fromURL(APP_API_URL).addRoute(apiPath);
         }
 
         const httpMethod: HTTPMethod =
-            formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
+            data.formType === FormType.Create
+                ? HTTPMethod.POST
+                : HTTPMethod.PUT;
 
-        if (httpMethod === HTTPMethod.PUT) {
-            apiUrl = apiUrl.addRoute(`/${model._id}`);
+        if (
+            httpMethod === HTTPMethod.PUT &&
+            !data.requestOptions?.overrideRequestUrl
+        ) {
+            apiUrl = apiUrl.addRoute(`/${data.model._id}`);
         }
 
         const apiResult: HTTPErrorResponse | HTTPResponse<TBaseModel> =
@@ -144,13 +154,13 @@ export default class ModelAPI {
                 apiUrl,
                 {
                     data: JSONFunctions.serialize(
-                        BaseModel.toJSON(model, modelType)
+                        BaseModel.toJSON(data.model, data.modelType)
                     ),
-                    miscDataProps: miscDataProps || {},
+                    miscDataProps: data.miscDataProps || {},
                 },
                 {
-                    ...this.getCommonHeaders(requestOptions),
-                    ...(requestOptions?.requestHeaders || {}),
+                    ...this.getCommonHeaders(data.requestOptions),
+                    ...(data.requestOptions?.requestHeaders || {}),
                 }
             );
 
@@ -165,7 +175,7 @@ export default class ModelAPI {
                 delete (result.data as any)['_miscData'];
             }
 
-            result.data = BaseModel.fromJSONObject(result.data, modelType);
+            result.data = BaseModel.fromJSONObject(result.data, data.modelType);
 
             return result;
         }
@@ -175,16 +185,16 @@ export default class ModelAPI {
         throw apiResult;
     }
 
-    public static async getList<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
-        query: Query<TBaseModel>,
-        limit: number,
-        skip: number,
-        select: Select<TBaseModel>,
-        sort: Sort<TBaseModel>,
-        requestOptions?: RequestOptions
-    ): Promise<ListResult<TBaseModel>> {
-        const model: TBaseModel = new modelType();
+    public static async getList<TBaseModel extends BaseModel>(data: {
+        modelType: { new (): TBaseModel };
+        query: Query<TBaseModel>;
+        limit: number;
+        skip: number;
+        select: Select<TBaseModel>;
+        sort: Sort<TBaseModel>;
+        requestOptions?: RequestOptions | undefined;
+    }): Promise<ListResult<TBaseModel>> {
+        const model: TBaseModel = new data.modelType();
         const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
@@ -192,12 +202,12 @@ export default class ModelAPI {
             );
         }
 
-        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
             .addRoute('/get-list');
 
-        if (requestOptions?.overrideRequestUrl) {
-            apiUrl = requestOptions.overrideRequestUrl;
+        if (data.requestOptions?.overrideRequestUrl) {
+            apiUrl = data.requestOptions.overrideRequestUrl;
         }
 
         if (!apiUrl) {
@@ -206,9 +216,10 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> =
-            this.getCommonHeaders(requestOptions);
-        if (requestOptions && requestOptions.isMultiTenantRequest) {
+        const headers: Dictionary<string> = this.getCommonHeaders(
+            data.requestOptions
+        );
+        if (data.requestOptions && data.requestOptions.isMultiTenantRequest) {
             headers['isMultiTenantRequest'] = 'true';
         }
 
@@ -217,21 +228,21 @@ export default class ModelAPI {
                 HTTPMethod.POST,
                 apiUrl,
                 {
-                    query: JSONFunctions.serialize(query as JSONObject),
-                    select: JSONFunctions.serialize(select as JSONObject),
-                    sort: JSONFunctions.serialize(sort as JSONObject),
+                    query: JSONFunctions.serialize(data.query as JSONObject),
+                    select: JSONFunctions.serialize(data.select as JSONObject),
+                    sort: JSONFunctions.serialize(data.sort as JSONObject),
                 },
                 headers,
                 {
-                    limit: limit.toString(),
-                    skip: skip.toString(),
+                    limit: data.limit.toString(),
+                    skip: data.skip.toString(),
                 }
             );
 
         if (result.isSuccess()) {
             const list: Array<TBaseModel> = BaseModel.fromJSONArray(
                 result.data as JSONArray,
-                modelType
+                data.modelType
             );
 
             return {
@@ -247,12 +258,12 @@ export default class ModelAPI {
         throw result;
     }
 
-    public static async count<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
-        query: Query<TBaseModel>,
-        requestOptions?: RequestOptions | undefined
-    ): Promise<number> {
-        const model: TBaseModel = new modelType();
+    public static async count<TBaseModel extends BaseModel>(data: {
+        modelType: { new (): TBaseModel };
+        query: Query<TBaseModel>;
+        requestOptions?: RequestOptions | undefined;
+    }): Promise<number> {
+        const model: TBaseModel = new data.modelType();
         const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
@@ -260,12 +271,12 @@ export default class ModelAPI {
             );
         }
 
-        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
             .addRoute('/count');
 
-        if (requestOptions?.overrideRequestUrl) {
-            apiUrl = requestOptions.overrideRequestUrl;
+        if (data.requestOptions?.overrideRequestUrl) {
+            apiUrl = data.requestOptions.overrideRequestUrl;
         }
 
         if (!apiUrl) {
@@ -274,9 +285,10 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> =
-            this.getCommonHeaders(requestOptions);
-        if (requestOptions && requestOptions.isMultiTenantRequest) {
+        const headers: Dictionary<string> = this.getCommonHeaders(
+            data.requestOptions
+        );
+        if (data.requestOptions && data.requestOptions.isMultiTenantRequest) {
             headers['is-multi-tenant-query'] = 'true';
         }
 
@@ -285,7 +297,7 @@ export default class ModelAPI {
                 HTTPMethod.POST,
                 apiUrl,
                 {
-                    query: JSONFunctions.serialize(query as JSONObject),
+                    query: JSONFunctions.serialize(data.query as JSONObject),
                 },
                 headers
             );
@@ -331,26 +343,26 @@ export default class ModelAPI {
         return headers;
     }
 
-    public static async getItem<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
-        id: ObjectID,
-        select: Select<TBaseModel>,
-        requestOptions?: RequestOptions | undefined
-    ): Promise<TBaseModel | null> {
-        const apiPath: Route | null = new modelType().getCrudApiPath();
+    public static async getItem<TBaseModel extends BaseModel>(data: {
+        modelType: { new (): TBaseModel };
+        id: ObjectID;
+        select: Select<TBaseModel>;
+        requestOptions?: RequestOptions | undefined;
+    }): Promise<TBaseModel | null> {
+        const apiPath: Route | null = new data.modelType().getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
                 'This model does not support get operations.'
             );
         }
 
-        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
-            .addRoute('/' + id.toString())
+            .addRoute('/' + data.id.toString())
             .addRoute('/get-item');
 
-        if (requestOptions?.overrideRequestUrl) {
-            apiUrl = requestOptions.overrideRequestUrl;
+        if (data.requestOptions?.overrideRequestUrl) {
+            apiUrl = data.requestOptions.overrideRequestUrl;
         }
 
         if (!apiUrl) {
@@ -359,29 +371,36 @@ export default class ModelAPI {
             );
         }
 
-        return this.post<TBaseModel>(modelType, apiUrl, select, requestOptions);
+        return this.post<TBaseModel>({
+            modelType: data.modelType,
+            apiUrl: apiUrl,
+            select: data.select,
+            requestOptions: data.requestOptions,
+        });
     }
 
-    public static async post<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
-        apiUrl: URL,
-        select?: Select<TBaseModel> | undefined,
-        requestOptions?: RequestOptions | undefined
-    ): Promise<TBaseModel | null> {
+    public static async post<TBaseModel extends BaseModel>(data: {
+        modelType: { new (): TBaseModel };
+        apiUrl: URL;
+        select?: Select<TBaseModel> | undefined;
+        requestOptions?: RequestOptions | undefined;
+    }): Promise<TBaseModel | null> {
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
                 HTTPMethod.POST,
-                apiUrl,
+                data.apiUrl,
                 {
-                    select: JSONFunctions.serialize(select as JSONObject) || {},
+                    select:
+                        JSONFunctions.serialize(data.select as JSONObject) ||
+                        {},
                 },
-                this.getCommonHeaders(requestOptions)
+                this.getCommonHeaders(data.requestOptions)
             );
 
         if (result.isSuccess()) {
             return BaseModel.fromJSONObject(
                 result.data as JSONObject,
-                modelType
+                data.modelType
             );
         }
 
@@ -390,21 +409,21 @@ export default class ModelAPI {
         throw result;
     }
 
-    public static async deleteItem<TBaseModel extends BaseModel>(
-        modelType: { new (): TBaseModel },
-        id: ObjectID,
-        requestOptions?: RequestOptions | undefined
-    ): Promise<void> {
-        const apiPath: Route | null = new modelType().getCrudApiPath();
+    public static async deleteItem<TBaseModel extends BaseModel>(data: {
+        modelType: { new (): TBaseModel };
+        id: ObjectID;
+        requestOptions?: RequestOptions | undefined;
+    }): Promise<void> {
+        const apiPath: Route | null = new data.modelType().getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
                 'This model does not support delete operations.'
             );
         }
 
-        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        const apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
-            .addRoute('/' + id.toString());
+            .addRoute('/' + data.id.toString());
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -417,7 +436,7 @@ export default class ModelAPI {
                 HTTPMethod.DELETE,
                 apiUrl,
                 undefined,
-                this.getCommonHeaders(requestOptions)
+                this.getCommonHeaders(data.requestOptions)
             );
 
         if (result.isSuccess()) {

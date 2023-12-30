@@ -26,6 +26,7 @@ import Name from 'Common/Types/Name';
 import Reseller from './Reseller';
 import ResellerPlan from './ResellerPlan';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/ColumnBillingAccessControl';
 
 @EnableDocumentation({
     isMasterAdminApiDocs: true,
@@ -535,6 +536,34 @@ export default class Model extends TenantModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanReadProject,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+            Permission.CanEditProject,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.Number,
+        title: 'Retain Telemetry Data For Days',
+        description:
+            'Number of days to retain telemetry data for this project.',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+        default: 15,
+    })
+    public retainTelemetryDataForDays?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProject,
             Permission.UnAuthorizedSsoUser,
             Permission.ProjectUser,
         ],
@@ -554,6 +583,11 @@ export default class Model extends TenantModel {
         nullable: false,
         unique: false,
         default: false,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Scale,
+        create: PlanSelect.Free,
     })
     public requireSsoForLogin?: boolean = undefined;
 

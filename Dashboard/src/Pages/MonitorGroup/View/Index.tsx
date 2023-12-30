@@ -22,7 +22,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { APP_API_URL } from 'CommonUI/src/Config';
 import API from 'CommonUI/src/Utils/API/API';
 import OneUptimeDate from 'Common/Types/Date';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
@@ -102,51 +102,51 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
 
         try {
             const statusTimelines: ListResult<MonitorStatusTimeline> =
-                await ModelAPI.getList(
-                    MonitorStatusTimeline,
-                    {},
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {},
-                    {},
-                    {
+                await ModelAPI.getList({
+                    modelType: MonitorStatusTimeline,
+                    query: {},
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {},
+                    sort: {},
+                    requestOptions: {
                         overrideRequestUrl: URL.fromString(
-                            DASHBOARD_API_URL.toString()
+                            APP_API_URL.toString()
                         )
                             .addRoute(new MonitorGroup().getCrudApiPath()!)
                             .addRoute('/timeline/')
                             .addRoute(`/${modelId.toString()}`),
-                    }
-                );
+                    },
+                });
 
             const monitorStatuses: ListResult<MonitorStatus> =
-                await ModelAPI.getList(
-                    MonitorStatus,
-                    {
+                await ModelAPI.getList({
+                    modelType: MonitorStatus,
+                    query: {
                         projectId: ProjectUtil.getCurrentProjectId(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         _id: true,
                         priority: true,
                         isOperationalState: true,
                         name: true,
                         color: true,
                     },
-                    {
+                    sort: {
                         priority: SortOrder.Ascending,
-                    }
-                );
+                    },
+                });
 
             const currentStatus: MonitorStatus | null =
-                await ModelAPI.post<MonitorStatus>(
-                    MonitorStatus,
-                    URL.fromString(DASHBOARD_API_URL.toString())
+                await ModelAPI.post<MonitorStatus>({
+                    modelType: MonitorStatus,
+                    apiUrl: URL.fromString(APP_API_URL.toString())
                         .addRoute(new MonitorGroup().getCrudApiPath()!)
                         .addRoute('/current-status/')
-                        .addRoute(`/${modelId.toString()}`)
-                );
+                        .addRoute(`/${modelId.toString()}`),
+                });
 
             setCurrentGroupStatus(currentStatus);
             setStatusTimelines(statusTimelines.data);

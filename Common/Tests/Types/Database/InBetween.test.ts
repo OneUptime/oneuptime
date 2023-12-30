@@ -1,4 +1,4 @@
-import InBetween from '../../../Types/Database/InBetween';
+import InBetween from '../../../Types/BaseDatabase/InBetween';
 import BadDataException from '../../../Types/Exception/BadDataException';
 import { JSONObject } from '../../../Types/JSON';
 

@@ -97,9 +97,6 @@ subscriptionPlan:
   scale: 
   enterprise: 
 
-meteredPlan: 
-  activeMonitoring: 
-
 analytics: 
   host:
   key: 
@@ -130,9 +127,7 @@ probes:
   #   monitorFetchLimit: 10
 
 port: 
-  home: 1444
-  dashboardApi: 3002
-  apiReference: 1445
+  app: 3002
   workflow: 3099
   alert: 3088
   ingestor: 3400

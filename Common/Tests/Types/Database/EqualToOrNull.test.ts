@@ -1,4 +1,4 @@
-import EqualToOrNull from '../../../Types/Database/EqualToOrNull';
+import EqualToOrNull from '../../../Types/BaseDatabase/EqualToOrNull';
 import BadDataException from '../../../Types/Exception/BadDataException';
 import { JSONObject } from '../../../Types/JSON';
 

@@ -38,14 +38,13 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
 
         setError('');
         try {
-            const item: Monitor | null = await ModelAPI.getItem(
-                Monitor,
-                modelId,
-                {
+            const item: Monitor | null = await ModelAPI.getItem({
+                modelType: Monitor,
+                id: modelId,
+                select: {
                     monitorType: true,
-                } as any,
-                {}
-            );
+                },
+            });
 
             if (!item) {
                 setError(`Monitor not found`);

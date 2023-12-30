@@ -22,7 +22,7 @@ import EmailMessage from 'Common/Types/Email/EmailMessage';
 import SMS from 'Common/Types/SMS/SMS';
 import Incident from 'Model/Models/Incident';
 import URL from 'Common/Types/API/URL';
-import { DashboardApiRoute } from 'Common/ServiceRoute';
+import { AppApiRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
 import ShortLinkService from './ShortLinkService';
 import ShortLink from 'Model/Models/ShortLink';
@@ -445,7 +445,7 @@ export class Service extends DatabaseService<Model> {
                     responseUrl: new URL(
                         httpProtocol,
                         host,
-                        new Route(DashboardApiRoute.toString())
+                        new Route(AppApiRoute.toString())
                             .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                             .addRoute(
                                 '/call/gather-input/' +
@@ -471,7 +471,7 @@ export class Service extends DatabaseService<Model> {
             new URL(
                 httpProtocol,
                 host,
-                new Route(DashboardApiRoute.toString())
+                new Route(AppApiRoute.toString())
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                     .addRoute(
                         '/acknowledge/' + userOnCallLogTimelineId.toString()
@@ -518,7 +518,7 @@ export class Service extends DatabaseService<Model> {
             acknowledgeIncidentLink: new URL(
                 httpProtocol,
                 host,
-                new Route(DashboardApiRoute.toString())
+                new Route(AppApiRoute.toString())
                     .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                     .addRoute(
                         '/acknowledge/' + userOnCallLogTimelineId.toString()

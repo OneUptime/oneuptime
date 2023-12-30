@@ -34,11 +34,7 @@ const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     lazy(() => {
         return import('../Pages/Settings/Probes');
     });
-const SettingCustomSMTP: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
-> = lazy(() => {
-    return import('../Pages/Settings/CustomSMTP');
-});
+
 const SettingFeatureFlags: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -95,10 +91,11 @@ const SettingsEmailLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     lazy(() => {
         return import('../Pages/Settings/EmailLog');
     });
-const SettingsCallSms: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-    lazy(() => {
-        return import('../Pages/Settings/CallSms');
-    });
+const SettingsNotifications: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/NotificationSettings');
+});
 const SettingsInvoices: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     lazy(() => {
         return import('../Pages/Settings/Invoices');
@@ -158,6 +155,18 @@ const ScheduledMaintenanceNoteTemplateView: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
     return import('../Pages/Settings/ScheduledMaintenanceNoteTemplateView');
+});
+
+const SettingsUsageHistory: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/UsageHistory');
+});
+
+const SettingsDataRentention: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/DataRentention');
 });
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
@@ -222,6 +231,22 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+            <PageRoute
+                path={SettingsRoutePath[PageMap.SETTINGS_USAGE_HISTORY] || ''}
+                element={
+                    <Suspense fallback={Loader}>
+                        <SettingsUsageHistory
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_USAGE_HISTORY
                                 ] as Route
                             }
                         />
@@ -358,13 +383,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             />
 
             <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_CALL_SMS] || ''}
+                path={
+                    SettingsRoutePath[PageMap.SETTINGS_NOTIFICATION_SETTINGS] ||
+                    ''
+                }
                 element={
                     <Suspense fallback={Loader}>
-                        <SettingsCallSms
+                        <SettingsNotifications
                             {...props}
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                                RouteMap[
+                                    PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                                ] as Route
                             }
                         />
                     </Suspense>
@@ -461,20 +491,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             {...props}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DOMAINS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_CUSTOM_SMTP] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingCustomSMTP
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
                             }
                         />
                     </Suspense>
@@ -635,6 +651,22 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_BILLING_INVOICES
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+            <PageRoute
+                path={SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION] || ''}
+                element={
+                    <Suspense fallback={Loader}>
+                        <SettingsDataRentention
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_DATA_RETENTION
                                 ] as Route
                             }
                         />

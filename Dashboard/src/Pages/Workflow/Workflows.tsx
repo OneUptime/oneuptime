@@ -20,7 +20,7 @@ import ModelProgress from 'CommonUI/src/Components/ModelProgress/ModelProgress';
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import OneUptimeDate from 'Common/Types/Date';
-import InBetween from 'Common/Types/Database/InBetween';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import BaseModel from 'Common/Models/BaseModel';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import URL from 'Common/Types/API/URL';

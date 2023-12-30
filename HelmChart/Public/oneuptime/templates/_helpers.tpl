@@ -17,30 +17,20 @@
   value: {{ $.Values.subscriptionPlan.scale }}
 - name: SUBSCRIPTION_PLAN_ENTERPRISE
   value: {{ $.Values.subscriptionPlan.enterprise }}
-- name: METERED_PLAN_ACTIVE_MONITORING
-  value: {{ $.Values.meteredPlan.activeMonitoring }}
 - name: ANALYTICS_KEY
   value: {{ $.Values.analytics.key }}
 - name: ANALYTICS_HOST
   value: {{ $.Values.analytics.host }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_DASHBOARD_API_HOSTNAME
-  value: {{ $.Release.Name }}-dashboard-api.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_APP_HOSTNAME
+  value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
   value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_FILE_HOSTNAME
-  value: {{ $.Release.Name }}-file.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_HOME_HOSTNAME
-  value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_IDENTITY_HOSTNAME
-  value: {{ $.Release.Name }}-identity.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_NOTIFICATION_HOSTNAME
-  value: {{ $.Release.Name }}-notification.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKERS_HOSTNAME
@@ -51,13 +41,9 @@
   value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ADMIN_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_API_REFERENCE_HOSTNAME
-  value: {{ $.Release.Name }}-api-reference.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 
-- name: DASHBOARD_API_PORT
-  value: {{ $.Values.port.dashboardApi | squote }}
-- name: API_REFERENCE_PORT
-  value: {{ $.Values.port.apiReference | squote }}
+- name: APP_PORT
+  value: {{ $.Values.port.app | squote }}
 - name: WORKFLOW_PORT
   value: {{ $.Values.port.workflow | squote }}
 - name: ALERT_PORT
@@ -68,14 +54,6 @@
   value: {{ $.Values.port.probe | squote }}
 - name: TEST_SERVER_PORT
   value: {{ $.Values.port.testServer | squote }}
-- name: FILE_PORT
-  value: {{ $.Values.port.file | squote }}
-- name: HOME_PORT
-  value: {{ $.Values.port.home | squote }}
-- name: IDENTITY_PORT
-  value: {{ $.Values.port.identity | squote }}
-- name: NOTIFICATION_PORT
-  value: {{ $.Values.port.notification | squote }}
 - name: REALTIME_PORT
   value: {{ $.Values.port.realtime | squote }}
 - name: WORKERS_PORT

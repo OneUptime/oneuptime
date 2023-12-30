@@ -25,20 +25,6 @@ jobs:
       - run: cd CommonUI && npm install --force
       - run: cd Accounts && npm install && npm run compile && npm run dep-check
 
-  compile-api-reference:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd ApiReference && npm install && npm run compile && npm run dep-check
-
   compile-common-server:
     runs-on: ubuntu-latest
     env:
@@ -77,7 +63,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install && npm run compile && npm run dep-check
 
-  compile-dashboard-api:
+  compile-app:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -90,7 +76,7 @@ jobs:
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
-      - run: cd DashboardAPI && npm install && npm run compile && npm run dep-check
+      - run: cd App && npm install && npm run compile && npm run dep-check
   
 
   compile-admin-dashboard:
@@ -123,62 +109,6 @@ jobs:
       - run: cd CommonUI && npm install --force
       - run: cd Dashboard && npm install && npm run compile && npm run dep-check
 
-  compile-file:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd File && npm install && npm run compile && npm run dep-check
-
-  compile-home:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd Home && npm install && npm run compile && npm run dep-check
-
-  compile-identity:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd Identity && npm install && npm run compile && npm run dep-check
-
-
-  compile-notification:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd Notification && npm install && npm run compile && npm run dep-check
 
   compile-model:
     runs-on: ubuntu-latest

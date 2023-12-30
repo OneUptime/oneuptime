@@ -19,7 +19,7 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import { Green, Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { APP_API_URL } from 'CommonUI/src/Config';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import ProbeStatusElement from '../../Components/Probe/ProbeStatus';
 
@@ -70,7 +70,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     }}
                     fetchRequestOptions={{
                         overrideRequestUrl: URL.fromString(
-                            DASHBOARD_API_URL.toString()
+                            APP_API_URL.toString()
                         ).addRoute('/probe/global-probes'),
                     }}
                     noItemsMessage={'No probes found.'}

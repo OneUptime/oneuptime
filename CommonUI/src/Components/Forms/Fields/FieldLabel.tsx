@@ -6,7 +6,7 @@ export interface ComponentProps {
     title: string;
     required?: boolean | undefined;
     sideLink?: FormFieldSideLink | undefined;
-    description?: string | undefined;
+    description?: string | ReactElement | undefined;
     isHeading?: boolean | undefined;
 }
 

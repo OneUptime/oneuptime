@@ -34,7 +34,10 @@ export default class UpdateActiveMonitorCountToBillingProvider extends DataMigra
 
         for (const project of projects) {
             for (const meteredPlan of AllMeteredPlans) {
-                await meteredPlan.updateCurrentQuantity(project.id!, {});
+                await meteredPlan.reportQuantityToBillingProvider(
+                    project.id!,
+                    {}
+                );
             }
 
             await Sleep.sleep(100);

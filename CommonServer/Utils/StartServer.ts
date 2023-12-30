@@ -113,6 +113,9 @@ const setDefaultHeaders: RequestHandler = (
 app.use(cors());
 app.use(setDefaultHeaders);
 
+// Set the view engine to ejs
+app.set('view engine', 'ejs');
+
 /*
  * Add limit of 10 MB to avoid "Request Entity too large error"
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large

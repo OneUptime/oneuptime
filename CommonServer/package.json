@@ -21,7 +21,7 @@
         "@opentelemetry/sdk-node": "^0.45.1",
         "@socket.io/redis-adapter": "^8.2.1",
         "airtable": "^0.12.2",
-        "axios": "^1.6.2",
+        "axios": "^1.6.3",
         "bullmq": "^3.6.6",
         "Common": "file:../Common",
         "cookie-parser": "^1.4.6",

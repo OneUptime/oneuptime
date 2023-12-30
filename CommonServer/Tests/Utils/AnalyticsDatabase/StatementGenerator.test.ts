@@ -10,6 +10,7 @@ import UpdateBy from '../../../Types/AnalyticsDatabase/UpdateBy';
 import logger from '../../../Utils/Logger';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
+import OneUptimeDate from 'Common/Types/Date';
 
 function expectStatement(actual: Statement, expected: Statement): void {
     expect(actual.query).toBe(expected.query);
@@ -161,9 +162,11 @@ describe('StatementGenerator', () => {
         });
 
         test('should check multiple columns', () => {
+            const date: Date = new Date(9876543210);
+
             const statement: Statement = generator.toWhereStatement({
                 _id: '<value>',
-                updatedAt: new Date(9876543210),
+                updatedAt: date,
             });
             expect(statement.query).toBe(
                 'AND {p0:Identifier} = {p1:String} AND {p2:Identifier} = {p3:DateTime}'
@@ -172,7 +175,7 @@ describe('StatementGenerator', () => {
                 p0: '_id',
                 p1: '<value>',
                 p2: 'updatedAt',
-                p3: new Date(9876543210),
+                p3: OneUptimeDate.toDatabaseDate(date),
             });
         });
     });

@@ -26,7 +26,10 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                     leftComponents={
                         <>
                             {props.logo && (
-                                <div className="flex h-12 mt-2">
+                                <div
+                                    id="status-page-logo"
+                                    className="flex h-12 mt-2"
+                                >
                                     <Logo
                                         file={props.logo}
                                         onClick={() => {

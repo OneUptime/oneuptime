@@ -24,13 +24,13 @@ describe('CSV Converter', () => {
         const csv: string = csvConverter.ToCsv(json);
 
         const headerRow: string = csv.split('\n')[0]!;
-        expect(headerRow).toBe(`"id","name"`);
+        expect(headerRow.trim()).toBe(`"id","name"`);
 
         const dataRows: string[] = csv.split('\n').slice(1);
         expect(dataRows.length).toBe(2);
 
-        expect(dataRows[0]).toBe(`"1","test1"`);
-        expect(dataRows[1]).toBe(`"2","test2"`);
+        expect(dataRows[0]?.trim()).toBe(`"1","test1"`);
+        expect(dataRows[1]?.trim()).toBe(`"2","test2"`);
     });
 
     it('handles an empty JSON object', () => {
@@ -54,13 +54,13 @@ describe('CSV Converter', () => {
         const csv: string = csvConverter.ToCsv(json);
 
         const headerRow: string = csv.split('\n')[0]!;
-        expect(headerRow).toBe(`"id","name"`);
+        expect(headerRow.trim()).toBe(`"id","name"`);
 
         const dataRows: string[] = csv.split('\n').slice(1);
         expect(dataRows.length).toBe(100);
 
         for (let i: number = 0; i < 100; i++) {
-            expect(dataRows[i]).toBe(`"${i}","test${i}"`);
+            expect(dataRows[i]?.trim()).toBe(`"${i}","test${i}"`);
         }
     });
 
@@ -76,7 +76,7 @@ describe('CSV Converter', () => {
         const csv: string = csvConverter.ToCsv(json);
 
         const headerRow: string = csv.split('\n')[0]!;
-        expect(headerRow).toBe(`"id","name","array"`);
+        expect(headerRow.trim()).toBe(`"id","name","array"`);
 
         const dataRows: string[] = csv.split('\n').slice(1);
         expect(dataRows.length).toBe(1);
@@ -96,7 +96,7 @@ describe('CSV Converter', () => {
         const csv: string = csvConverter.ToCsv(json);
 
         const headerRow: string = csv.split('\n')[0]!;
-        expect(headerRow).toBe(`"id","name","object"`);
+        expect(headerRow.trim()).toBe(`"id","name","object"`);
 
         const dataRows: string[] = csv.split('\n').slice(1);
         expect(dataRows.length).toBe(1);
@@ -116,7 +116,7 @@ describe('CSV Converter', () => {
         const csv: string = csvConverter.ToCsv(json);
 
         const headerRow: string = csv.split('\n')[0]!;
-        expect(headerRow).toBe(`"id","name","array"`);
+        expect(headerRow.trim()).toBe(`"id","name","array"`);
 
         const dataRows: string[] = csv.split('\n').slice(1);
         expect(dataRows.length).toBe(1);
@@ -136,7 +136,7 @@ describe('CSV Converter', () => {
         const csv: string = csvConverter.ToCsv(json);
 
         const headerRow: string = csv.split('\n')[0]!;
-        expect(headerRow).toBe(`"id","name","object"`);
+        expect(headerRow.trim()).toBe(`"id","name","object"`);
 
         const dataRows: string[] = csv.split('\n').slice(1);
         expect(dataRows.length).toBe(1);

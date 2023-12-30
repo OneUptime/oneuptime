@@ -22,7 +22,7 @@ export type CouponData = {
 export type Subscription = {
     projectId: ObjectID;
     customerId: string;
-    serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+    serverMeteredPlans: Array<ServerMeteredPlan>;
     promoCode?: string;
     defaultPaymentMethodId?: string;
     trialDate: Date;
@@ -31,7 +31,7 @@ export type Subscription = {
 export type MeteredSubscription = {
     projectId: ObjectID;
     customerId: string;
-    serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+    serverMeteredPlans: Array<ServerMeteredPlan>;
     plan: SubscriptionPlan;
     quantity: number;
     isYearly: boolean;
@@ -44,7 +44,7 @@ export type ChangePlan = {
     projectId: ObjectID;
     subscriptionId: string;
     meteredSubscriptionId: string;
-    serverMeteredPlans: Array<typeof ServerMeteredPlan>;
+    serverMeteredPlans: Array<ServerMeteredPlan>;
     newPlan: SubscriptionPlan;
     quantity: number;
     isYearly: boolean;

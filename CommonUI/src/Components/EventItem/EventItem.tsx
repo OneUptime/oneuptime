@@ -95,21 +95,21 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     </h2>
                 </div>
                 {props.eventDescription && (
-                    <p className="mt-2 text-sm">
+                    <div className="mt-2 text-sm">
                         <MarkdownViewer text={props.eventDescription || ''} />
-                    </p>
+                    </div>
                 )}
 
                 {props.eventSecondDescription && (
-                    <p className="mt-3 text-gray-500 text-sm">
+                    <div className="mt-3 text-gray-500 text-sm">
                         {props.eventSecondDescription}
-                    </p>
+                    </div>
                 )}
 
                 {props.eventMiniDescription && (
-                    <p className="mt-3 text-gray-400 text-sm">
+                    <div className="mt-3 text-gray-400 text-sm">
                         {props.eventMiniDescription}
-                    </p>
+                    </div>
                 )}
 
                 {props.labels && props.labels.length > 0 ? (

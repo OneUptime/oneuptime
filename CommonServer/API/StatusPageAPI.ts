@@ -71,6 +71,7 @@ import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from '../Services/ScheduledMaintenanceStateService';
 import BaseModel from 'Common/Models/BaseModel';
 import CommonAPI from './CommonAPI';
+import Phone from 'Common/Types/Phone';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -236,8 +237,10 @@ export default class StatusPageAPI extends BaseAPI<
                         hidePoweredByOneUptimeBranding: true,
                         headerHTML: true,
                         footerHTML: true,
-                        enableSubscribers: true,
+                        enableEmailSubscribers: true,
+                        enableSmsSubscribers: true,
                         isPublicStatusPage: true,
+                        allowSubscribersToChooseResources: true,
                         requireSsoForLogin: true,
                         coverImageFile: {
                             file: true,
@@ -385,6 +388,71 @@ export default class StatusPageAPI extends BaseAPI<
                         sso,
                         new PositiveNumber(sso.length),
                         StatusPageSSO
+                    );
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+        // Get all status page resources for subscriber to subscribe to.
+        this.router.post(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/resources/:statusPageId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    const objectId: ObjectID = new ObjectID(
+                        req.params['statusPageId'] as string
+                    );
+
+                    if (
+                        !(await this.service.hasReadAccess(
+                            objectId,
+                            await CommonAPI.getDatabaseCommonInteractionProps(
+                                req
+                            ),
+                            req
+                        ))
+                    ) {
+                        throw new NotAuthenticatedException(
+                            'You are not authenticated to access this status page'
+                        );
+                    }
+
+                    const resources: Array<StatusPageResource> =
+                        await StatusPageResourceService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                            },
+                            select: {
+                                _id: true,
+                                displayName: true,
+                                order: true,
+                                statusPageGroup: {
+                                    _id: true,
+                                    name: true,
+                                    order: true,
+                                },
+                            },
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    return Response.sendEntityArrayResponse(
+                        req,
+                        res,
+                        resources,
+                        new PositiveNumber(resources.length),
+                        StatusPageResource
                     );
                 } catch (err) {
                     next(err);
@@ -1054,6 +1122,51 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
 
+        this.router.put(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/update-subscription/:statusPageId/:subscriberId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.subscribeToStatusPage(req);
+                    return Response.sendEmptyResponse(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+        this.router.post(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/get-subscription/:statusPageId/:subscriberId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    const subscriber: StatusPageSubscriber =
+                        await this.getSubscriber(req);
+
+                    return Response.sendEntityResponse(
+                        req,
+                        res,
+                        subscriber,
+                        StatusPageSubscriber
+                    );
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
         this.router.post(
             `${new this.entityType()
                 .getCrudApiPath()
@@ -1065,65 +1178,7 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    const objectId: ObjectID = new ObjectID(
-                        req.params['statusPageId'] as string
-                    );
-
-                    if (
-                        !(await this.service.hasReadAccess(
-                            objectId,
-                            await CommonAPI.getDatabaseCommonInteractionProps(
-                                req
-                            ),
-                            req
-                        ))
-                    ) {
-                        throw new NotAuthenticatedException(
-                            'You are not authenticated to access this status page'
-                        );
-                    }
-
-                    const statusPage: StatusPage | null =
-                        await StatusPageService.findOneBy({
-                            query: {
-                                _id: objectId.toString(),
-                            },
-                            select: {
-                                _id: true,
-                                projectId: true,
-                                enableSubscribers: true,
-                            },
-                            props: {
-                                isRoot: true,
-                            },
-                        });
-
-                    if (!statusPage) {
-                        throw new BadDataException('Status Page not found');
-                    }
-
-                    if (!statusPage.enableSubscribers) {
-                        throw new BadDataException(
-                            'Subscribers not enabled for this status page.'
-                        );
-                    }
-
-                    const email: Email = new Email(
-                        req.body.data['subscriberEmail'] as string
-                    );
-
-                    const statusPageSubscriber: StatusPageSubscriber =
-                        new StatusPageSubscriber();
-                    statusPageSubscriber.subscriberEmail = email;
-                    statusPageSubscriber.statusPageId = objectId;
-                    statusPageSubscriber.projectId = statusPage.projectId!;
-
-                    await StatusPageSubscriberService.create({
-                        data: statusPageSubscriber,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    await this.subscribeToStatusPage(req);
 
                     return Response.sendEmptyResponse(req, res);
                 } catch (err) {
@@ -1763,6 +1818,233 @@ export default class StatusPageAPI extends BaseAPI<
         };
 
         return response;
+    }
+
+    public async subscribeToStatusPage(req: ExpressRequest): Promise<void> {
+        const objectId: ObjectID = new ObjectID(
+            req.params['statusPageId'] as string
+        );
+
+        if (
+            !(await this.service.hasReadAccess(
+                objectId,
+                await CommonAPI.getDatabaseCommonInteractionProps(req),
+                req
+            ))
+        ) {
+            throw new NotAuthenticatedException(
+                'You are not authenticated to access this status page'
+            );
+        }
+
+        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
+            {
+                query: {
+                    _id: objectId.toString(),
+                },
+                select: {
+                    _id: true,
+                    projectId: true,
+                    enableEmailSubscribers: true,
+                    enableSmsSubscribers: true,
+                    allowSubscribersToChooseResources: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            }
+        );
+
+        if (!statusPage) {
+            throw new BadDataException('Status Page not found');
+        }
+
+        if (
+            req.body.data['subscriberEmail'] &&
+            !statusPage.enableEmailSubscribers
+        ) {
+            throw new BadDataException(
+                'Email subscribers not enabled for this status page.'
+            );
+        }
+
+        if (
+            req.body.data['subscriberPhone'] &&
+            !statusPage.enableSmsSubscribers
+        ) {
+            throw new BadDataException(
+                'SMS subscribers not enabled for this status page.'
+            );
+        }
+
+        // if no email or phone, throw error.
+
+        if (
+            !req.body.data['subscriberEmail'] &&
+            !req.body.data['subscriberPhone']
+        ) {
+            throw new BadDataException(
+                'Email or phone is required to subscribe to this status page.'
+            );
+        }
+
+        const email: Email | undefined = req.body.data['subscriberEmail']
+            ? new Email(req.body.data['subscriberEmail'] as string)
+            : undefined;
+
+        const phone: Phone | undefined = req.body.data['subscriberPhone']
+            ? new Phone(req.body.data['subscriberPhone'] as string)
+            : undefined;
+
+        let statusPageSubscriber: StatusPageSubscriber | null = null;
+
+        let isUpdate: boolean = false;
+
+        if (!req.params['subscriberId']) {
+            statusPageSubscriber = new StatusPageSubscriber();
+        } else {
+            const subscriberId: ObjectID = new ObjectID(
+                req.params['subscriberId'] as string
+            );
+
+            statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
+                query: {
+                    _id: subscriberId.toString(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (!statusPageSubscriber) {
+                throw new BadDataException('Subscriber not found');
+            }
+
+            isUpdate = true;
+        }
+
+        if (email) {
+            statusPageSubscriber.subscriberEmail = email;
+        }
+
+        if (phone) {
+            statusPageSubscriber.subscriberPhone = phone;
+        }
+
+        if (
+            req.body.data['statusPageResources'] &&
+            !statusPage.allowSubscribersToChooseResources
+        ) {
+            throw new BadDataException(
+                'Subscribers are not allowed to choose resources for this status page.'
+            );
+        }
+
+        statusPageSubscriber.statusPageId = objectId;
+        statusPageSubscriber.projectId = statusPage.projectId!;
+        statusPageSubscriber.isSubscribedToAllResources = Boolean(
+            req.body.data['isSubscribedToAllResources']
+        );
+
+        if (
+            req.body.data['statusPageResources'] &&
+            req.body.data['statusPageResources'].length > 0
+        ) {
+            statusPageSubscriber.statusPageResources = req.body.data[
+                'statusPageResources'
+            ] as Array<StatusPageResource>;
+        }
+
+        if (isUpdate) {
+            // check isUnsubscribed is set to false.
+
+            statusPageSubscriber.isUnsubscribed = Boolean(
+                req.body.data['isUnsubscribed']
+            );
+
+            await StatusPageSubscriberService.updateOneById({
+                id: statusPageSubscriber.id!,
+                data: statusPageSubscriber,
+                props: {
+                    isRoot: true,
+                },
+            });
+        } else {
+            await StatusPageSubscriberService.create({
+                data: statusPageSubscriber,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+    }
+
+    public async getSubscriber(
+        req: ExpressRequest
+    ): Promise<StatusPageSubscriber> {
+        const objectId: ObjectID = new ObjectID(
+            req.params['statusPageId'] as string
+        );
+
+        if (
+            !(await this.service.hasReadAccess(
+                objectId,
+                await CommonAPI.getDatabaseCommonInteractionProps(req),
+                req
+            ))
+        ) {
+            throw new NotAuthenticatedException(
+                'You are not authenticated to access this status page'
+            );
+        }
+
+        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
+            {
+                query: {
+                    _id: objectId.toString(),
+                },
+                select: {
+                    _id: true,
+                    projectId: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            }
+        );
+
+        if (!statusPage) {
+            throw new BadDataException('Status Page not found');
+        }
+
+        const subscriberId: ObjectID = new ObjectID(
+            req.params['subscriberId'] as string
+        );
+
+        const statusPageSubscriber: StatusPageSubscriber | null =
+            await StatusPageSubscriberService.findOneBy({
+                query: {
+                    _id: subscriberId.toString(),
+                    statusPageId: statusPage.id!,
+                },
+                select: {
+                    isUnsubscribed: true,
+                    subscriberEmail: true,
+                    subscriberPhone: true,
+                    statusPageId: true,
+                    statusPageResources: true,
+                    isSubscribedToAllResources: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!statusPageSubscriber) {
+            throw new BadDataException('Subscriber not found');
+        }
+
+        return statusPageSubscriber;
     }
 
     public async getIncidents(

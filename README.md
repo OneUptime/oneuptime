@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD033 -->
-<h1 align="center"><img alt="oneuptime logo" width=50% src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/public/img/OneUptimePNG/7.png"/></h1>
+<h1 align="center"><img alt="oneuptime logo" width=50% src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/App/FeatureSet/Home/Static/img/OneUptimePNG/7.png"/></h1>
 <!-- markdownlint-enable MD033 -->
 
 **OneUptime: The Complete Open-Source Observability Platform**

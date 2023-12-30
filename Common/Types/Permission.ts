@@ -416,6 +416,11 @@ enum Permission {
     CanDeleteProjectSMTPConfig = 'CanDeleteProjectSMTPConfig',
     CanReadProjectSMTPConfig = 'CanReadProjectSMTPConfig',
 
+    CanCreateProjectCallSMSConfig = 'CanCreateProjectCallSMSConfig',
+    CanEditProjectCallSMSConfig = 'CanEditProjectCallSMSConfig',
+    CanDeleteProjectCallSMSConfig = 'CanDeleteProjectCallSMSConfig',
+    CanReadProjectCallSMSConfig = 'CanReadProjectCallSMSConfig',
+
     // Project SMTP Config (Team Permission)
     CanCreateIncidentSeverity = 'CanCreateIncidentSeverity',
     CanEditIncidentSeverity = 'CanEditIncidentSeverity',
@@ -1355,6 +1360,39 @@ export class PermissionHelper {
                 title: 'Can Read SMTP Config',
                 description:
                     'This permission can read SMTP configs of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateProjectCallSMSConfig,
+                title: 'Can Create Call and SMS',
+                description:
+                    'This permission can create Call and SMS this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteProjectCallSMSConfig,
+                title: 'Can Delete Call and SMS',
+                description:
+                    'This permission can delete Call and SMS of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditProjectCallSMSConfig,
+                title: 'Can Edit Call and SMS',
+                description:
+                    'This permission can edit Call and SMS of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadProjectCallSMSConfig,
+                title: 'Can Read Call and SMS',
+                description:
+                    'This permission can read Call and SMS of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

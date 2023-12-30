@@ -2,7 +2,7 @@ import Route from './Types/API/Route';
 
 export const homeRoute: Route = new Route('/');
 
-export const DashboardApiRoute: Route = new Route('/api');
+export const AppApiRoute: Route = new Route('/api');
 
 export const IdentityRoute: Route = new Route('/identity');
 

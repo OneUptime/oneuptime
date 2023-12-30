@@ -1,26 +1,46 @@
-import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import BillingService from '../../../Services/BillingService';
+import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
+import { ProductType } from 'Model/Models/UsageBilling';
 
 export default class ServerMeteredPlan {
-    public static meteredPlan: MeteredPlan | undefined = undefined;
-
-    public static getMeteredPlan(): MeteredPlan {
-        if (!this.meteredPlan) {
-            throw new BadDataException('Metered plan not found');
-        }
-
-        return this.meteredPlan;
+    public getProductType(): ProductType {
+        throw new NotImplementedException();
     }
 
-    public static async updateCurrentQuantity(
+    public async getCostByProjectId(
+        projectId: ObjectID,
+        quantity: number
+    ): Promise<number> {
+        const meteredPlan: MeteredPlan = await this.getMeteredPlan(projectId);
+        return this.getCostByMeteredPlan(meteredPlan, quantity);
+    }
+
+    public getCostByMeteredPlan(
+        meteredPlan: MeteredPlan,
+        quantity: number
+    ): number {
+        return meteredPlan.getPricePerUnit() * quantity;
+    }
+
+    public async getMeteredPlan(projectId: ObjectID): Promise<MeteredPlan> {
+        return await BillingService.getMeteredPlan({
+            projectId: projectId,
+            productType: this.getProductType(),
+        });
+    }
+
+    public async reportQuantityToBillingProvider(
         _projectId: ObjectID,
         _options: {
             meteredPlanSubscriptionId?: string | undefined;
         }
-    ): Promise<PositiveNumber> {
+    ): Promise<void> {
         throw new NotImplementedException();
+    }
+
+    public getPriceId(): string {
+        return BillingService.getMeteredPlanPriceId(this.getProductType());
     }
 }

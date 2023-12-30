@@ -150,7 +150,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         overrideField: {
                             teams: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         title: 'Teams',
                         stepId: 'notification',
                         description:
@@ -169,7 +169,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         overrideField: {
                             onCallSchedules: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         title: 'On Call Duty Schedules',
                         stepId: 'notification',
                         description:
@@ -188,7 +188,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         overrideField: {
                             users: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         title: 'Users',
                         stepId: 'notification',
                         description:

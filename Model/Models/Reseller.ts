@@ -257,4 +257,23 @@ export default class Reseller extends BaseModel {
         type: ColumnType.Boolean,
     })
     public hidePhoneNumberOnSignup?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.Public],
+        update: [],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Boolean,
+        canReadOnRelationQuery: true,
+        title: 'Enable Telemetry Features',
+        description: 'Should we enable telemetry features for this reseller?',
+    })
+    @Column({
+        nullable: true,
+        default: false,
+        type: ColumnType.Boolean,
+    })
+    public enableTelemetryFeatures?: boolean = undefined;
 }

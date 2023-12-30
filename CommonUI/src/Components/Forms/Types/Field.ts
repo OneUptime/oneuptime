@@ -8,6 +8,10 @@ import MimeType from 'Common/Types/File/MimeType';
 import FormValues from './FormValues';
 import { RadioButton } from '../../RadioButtons/GroupRadioButtons';
 import { ReactElement } from 'react';
+import {
+    CategoryCheckboxOption,
+    CheckboxCategory,
+} from '../../CategoryCheckbox/CategoryCheckboxTypes';
 
 export enum FormFieldStyleType {
     Default = 'Default',
@@ -30,22 +34,31 @@ export interface CustomElementProps {
     placeholder?: string | undefined;
 }
 
+export interface CategoryCheckboxProps {
+    categories: Array<CheckboxCategory>;
+    options: Array<CategoryCheckboxOption>;
+}
+
 export default interface Field<TEntity> {
     name?: string; // form field name, should be unique in thr form. If not provided, the field will be auto generated.
     title?: string;
     description?: string;
     field?: SelectFormFields<TEntity> | undefined;
     placeholder?: string;
-    forceShow?: boolean; // show this field even if user does not have permissions to view.
+    showEvenIfPermissionDoesNotExist?: boolean; // show this field even if user does not have permissions to view.
     disabled?: boolean;
     stepId?: string | undefined;
-    required?: boolean;
+    required?: boolean | ((item: FormValues<TEntity>) => boolean) | undefined;
     dropdownOptions?: Array<DropdownOption> | undefined;
     fetchDropdownOptions?: (() => Promise<Array<DropdownOption>>) | undefined;
     dropdownModal?: {
         type: { new (): BaseModel };
         labelField: string;
         valueField: string;
+    };
+    selectByAccessControlProps?: {
+        categoryCheckboxProps: CategoryCheckboxProps;
+        accessControlColumnTitle: string;
     };
     fileTypes?: Array<MimeType> | undefined;
     sideLink?: FormFieldSideLink | undefined;
@@ -75,4 +88,5 @@ export default interface Field<TEntity> {
         values: FormValues<TEntity>,
         props: CustomElementProps
     ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
+    categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
 }

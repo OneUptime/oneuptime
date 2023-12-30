@@ -65,7 +65,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                             twilioAuthToken: true,
                         },
                         title: 'Twilio Auth Token',
-                        fieldType: FormFieldSchemaType.Password,
+                        fieldType: FormFieldSchemaType.Text,
                         required: true,
                         description:
                             'You can find this in your Twilio console.',

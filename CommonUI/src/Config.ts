@@ -4,7 +4,7 @@ import {
     AccountsRoute,
     AdminDashboardRoute,
     ApiReferenceRoute,
-    DashboardApiRoute,
+    AppApiRoute,
     DashboardRoute,
     FileRoute,
     IdentityRoute,
@@ -41,7 +41,7 @@ export const BILLING_PUBLIC_KEY: string = env('BILLING_PUBLIC_KEY') || '';
 
 export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
 
-export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(HOST);
+export const APP_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
@@ -70,10 +70,10 @@ export const HOME_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const FILE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const DASHBOARD_API_URL: URL = new URL(
+export const APP_API_URL: URL = new URL(
     HTTP_PROTOCOL,
-    DASHBOARD_API_HOSTNAME,
-    DashboardApiRoute
+    APP_HOSTNAME,
+    AppApiRoute
 );
 
 export const REALTIME_URL: URL = new URL(

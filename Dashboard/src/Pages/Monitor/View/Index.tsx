@@ -21,7 +21,7 @@ import Card from 'CommonUI/src/Components/Card/Card';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import OneUptimeDate from 'Common/Types/Date';
 import useAsyncEffect from 'use-async-effect';
-import InBetween from 'Common/Types/Database/InBetween';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -95,16 +95,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
         try {
             const monitorStatus: ListResult<MonitorStatusTimeline> =
-                await ModelAPI.getList(
-                    MonitorStatusTimeline,
-                    {
+                await ModelAPI.getList({
+                    modelType: MonitorStatusTimeline,
+                    query: {
                         createdAt: new InBetween(startDate, endDate),
                         monitorId: modelId,
                         projectId: ProjectUtil.getCurrentProjectId(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         createdAt: true,
                         monitorId: true,
                         monitorStatus: {
@@ -114,43 +114,42 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                             priority: true,
                         },
                     },
-                    {
+                    sort: {
                         createdAt: SortOrder.Ascending,
-                    }
-                );
+                    },
+                });
 
-            const item: Monitor | null = await ModelAPI.getItem(
-                Monitor,
-                modelId,
-                {
+            const item: Monitor | null = await ModelAPI.getItem({
+                modelType: Monitor,
+                id: modelId,
+                select: {
                     monitorType: true,
                     currentMonitorStatus: {
                         name: true,
                         color: true,
                     },
-                } as any,
-                {}
-            );
+                },
+            });
 
             const monitorStatuses: ListResult<MonitorStatus> =
-                await ModelAPI.getList(
-                    MonitorStatus,
-                    {
+                await ModelAPI.getList({
+                    modelType: MonitorStatus,
+                    query: {
                         projectId: ProjectUtil.getCurrentProjectId(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         _id: true,
                         priority: true,
                         isOperationalState: true,
                         name: true,
                         color: true,
                     },
-                    {
+                    sort: {
                         priority: SortOrder.Ascending,
-                    }
-                );
+                    },
+                });
 
             if (!item) {
                 setError(`Monitor not found`);

@@ -16,6 +16,15 @@ export default class Text {
         return result;
     }
 
+    public static trimLines(text: string): string {
+        return text
+            .split('\n')
+            .map((line: string) => {
+                return line.trim();
+            })
+            .join('\n');
+    }
+
     public static generateRandomNumber(length?: number): string {
         if (!length) {
             length = 10;

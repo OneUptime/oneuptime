@@ -210,7 +210,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         overrideField: {
                             ownerTeams: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         title: 'Owner - Teams',
                         stepId: 'owners',
                         description:
@@ -229,7 +229,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         overrideField: {
                             ownerUsers: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         title: 'Owner - Users',
                         stepId: 'owners',
                         description:

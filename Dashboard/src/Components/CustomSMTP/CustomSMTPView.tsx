@@ -23,7 +23,7 @@ const CustomSMTPElement: FunctionComponent<ComponentProps> = (
                 onNavigateComplete={props.onNavigateComplete}
                 className="hover:underline"
                 to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
+                    RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route
                 )}
             >
                 <span>{props.smtp.name}</span>

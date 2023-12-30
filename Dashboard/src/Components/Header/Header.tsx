@@ -65,6 +65,34 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         };
     }, []);
 
+    const showAddCardButton: boolean = Boolean(
+        BILLING_ENABLED &&
+            props.selectedProject?.id &&
+            props.selectedProject.paymentProviderPlanId &&
+            !SubscriptionPlan.isFreePlan(
+                props.selectedProject.paymentProviderPlanId,
+                getAllEnvVars()
+            ) &&
+            !SubscriptionPlan.isCustomPricingPlan(
+                props.selectedProject.paymentProviderPlanId,
+                getAllEnvVars()
+            ) &&
+            props.paymentMethodsCount !== undefined &&
+            props.paymentMethodsCount === 0 &&
+            !props.selectedProject.resellerId
+    );
+
+    const showTrialButton: boolean = Boolean(
+        props.selectedProject?.trialEndsAt &&
+            BILLING_ENABLED &&
+            showAddCardButton &&
+            OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                OneUptimeDate.getCurrentDate(),
+                props.selectedProject?.trialEndsAt
+            ) > 0 &&
+            !props.selectedProject.resellerId
+    );
+
     return (
         <>
             <Header
@@ -124,30 +152,23 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 }}
                             />
 
-                            {props.selectedProject?.trialEndsAt &&
-                                BILLING_ENABLED &&
-                                OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                                    OneUptimeDate.getCurrentDate(),
-                                    props.selectedProject?.trialEndsAt
-                                ) > 0 &&
-                                !props.selectedProject.resellerId && (
-                                    <HeaderAlert
-                                        icon={IconProp.Clock}
-                                        className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
-                                        title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                            {showTrialButton && (
+                                <HeaderAlert
+                                    icon={IconProp.Clock}
+                                    className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
+                                    title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                        OneUptimeDate.getCurrentDate(),
+                                        props.selectedProject!.trialEndsAt!
+                                    )} ${
+                                        OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
-                                            props.selectedProject?.trialEndsAt
-                                        )} ${
-                                            OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                                                OneUptimeDate.getCurrentDate(),
-                                                props.selectedProject
-                                                    ?.trialEndsAt
-                                            ) > 1
-                                                ? 'days'
-                                                : 'day'
-                                        }`}
-                                    />
-                                )}
+                                            props.selectedProject!.trialEndsAt!
+                                        ) > 1
+                                            ? 'days'
+                                            : 'day'
+                                    }`}
+                                />
+                            )}
                         </div>
                     </>
                 }
@@ -163,20 +184,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
-                        {BILLING_ENABLED &&
-                        props.selectedProject?.id &&
-                        props.selectedProject.paymentProviderPlanId &&
-                        !SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) &&
-                        !SubscriptionPlan.isCustomPricingPlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) &&
-                        props.paymentMethodsCount !== undefined &&
-                        props.paymentMethodsCount === 0 &&
-                        !props.selectedProject.resellerId ? (
+                        {showAddCardButton ? (
                             <Button
                                 title="Add Card Details"
                                 onClick={() => {

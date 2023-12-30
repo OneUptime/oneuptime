@@ -97,20 +97,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Email}
                 />
-                {/* <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'SMS Subscribers',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                             ] as Route,
-                             {modelId: props.modelId}
-                    ),
+                            { modelId: props.modelId }
+                        ),
                     }}
-                    icon={IconProp.SendMessage}
+                    icon={IconProp.SMS}
                 />
 
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'Webhook Subscribers',
                         to: RouteUtil.populateRouteParams(
@@ -238,21 +238,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Settings}
-                />
-            </SideMenuSection>
-
-            <SideMenuSection title="Emails">
-                <SideMenuItem
-                    link={{
-                        title: 'Custom SMTP',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP
-                            ] as Route,
-                            { modelId: props.modelId }
-                        ),
-                    }}
-                    icon={IconProp.Email}
                 />
             </SideMenuSection>
 

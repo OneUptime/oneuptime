@@ -5,7 +5,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import URL from 'Common/Types/API/URL';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { APP_API_URL } from 'CommonUI/src/Config';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
@@ -31,13 +31,13 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
         try {
             const currentStatus: MonitorStatus | null =
-                await ModelAPI.post<MonitorStatus>(
-                    MonitorStatus,
-                    URL.fromString(DASHBOARD_API_URL.toString())
+                await ModelAPI.post<MonitorStatus>({
+                    modelType: MonitorStatus,
+                    apiUrl: URL.fromString(APP_API_URL.toString())
                         .addRoute(new MonitorGroup().getCrudApiPath()!)
                         .addRoute('/current-status/')
-                        .addRoute(`/${props.monitorGroupId.toString()}`)
-                );
+                        .addRoute(`/${props.monitorGroupId.toString()}`),
+                });
 
             setCurrentGroupStatus(currentStatus);
         } catch (err) {

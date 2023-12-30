@@ -22,11 +22,13 @@ import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DashboardNavigation from '../../Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
+import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+    const [refresher, setRefresher] = React.useState<boolean>(false);
 
     return (
         <Page
@@ -66,6 +68,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     title: 'API Key Details',
                     description: 'Here are more details for this API Key.',
                 }}
+                refresher={refresher}
                 isEditable={true}
                 formFields={[
                     {
@@ -274,6 +277,17 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         },
                     },
                 ]}
+            />
+
+            <ResetObjectID<ApiKey>
+                modelType={ApiKey}
+                fieldName={'apiKey'}
+                title={'Reset API Key'}
+                description={'Reset the API Key to a new value.'}
+                modelId={modelId}
+                onUpdateComplete={() => {
+                    setRefresher(!refresher);
+                }}
             />
 
             <ModelDelete

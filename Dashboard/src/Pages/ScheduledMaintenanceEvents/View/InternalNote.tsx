@@ -62,13 +62,13 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             //fetch scheduledMaintenance template
 
             const scheduledMaintenanceNoteTemplate: ScheduledMaintenanceNoteTemplate | null =
-                await ModelAPI.getItem<ScheduledMaintenanceNoteTemplate>(
-                    ScheduledMaintenanceNoteTemplate,
+                await ModelAPI.getItem<ScheduledMaintenanceNoteTemplate>({
+                    modelType: ScheduledMaintenanceNoteTemplate,
                     id,
-                    {
+                    select: {
                         note: true,
-                    }
-                );
+                    },
+                });
 
             if (scheduledMaintenanceNoteTemplate) {
                 const initialValue: JSONObject = {
@@ -96,17 +96,17 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
 
             try {
                 const listResult: ListResult<ScheduledMaintenanceNoteTemplate> =
-                    await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>(
-                        ScheduledMaintenanceNoteTemplate,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>({
+                        modelType: ScheduledMaintenanceNoteTemplate,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             templateName: true,
                             _id: true,
                         },
-                        {}
-                    );
+                        sort: {},
+                    });
 
                 setScheduledMaintenanceNoteTemplates(listResult.data);
             } catch (err) {

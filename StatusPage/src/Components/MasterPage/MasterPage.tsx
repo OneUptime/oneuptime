@@ -42,7 +42,8 @@ export interface ComponentProps {
     onLoadComplete: (masterPage: JSONObject) => void;
     isPreview: boolean;
     isPrivateStatusPage: boolean;
-    enableSubscribers: boolean;
+    enableEmailSubscribers: boolean;
+    enableSMSSubscribers: boolean;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -316,7 +317,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                         isPrivateStatusPage={props.isPrivateStatusPage}
                         show={true}
                         isPreview={true}
-                        enableSubscribers={props.enableSubscribers}
+                        enableEmailSubscribers={props.enableEmailSubscribers}
+                        enableSMSSubscribers={props.enableSMSSubscribers}
                     />
                     {props.children}
                     {!footerHtml ? (

@@ -138,6 +138,10 @@ import OnCallDutyPolicyScheduleLayer from './OnCallDutyPolicyScheduleLayer';
 import OnCallDutyPolicyScheduleLayerUser from './OnCallDutyPolicyScheduleLayerUser';
 import OnCallDutyPolicyEscalationRuleSchedule from './OnCallDutyPolicyEscalationRuleSchedule';
 
+import UsageBilling from './UsageBilling';
+
+import ProjectCallSMSConfig from './ProjectCallSMSConfig';
+
 export default [
     User,
     Probe,
@@ -262,4 +266,8 @@ export default [
     OnCallDutyPolicyScheduleLayerUser,
 
     OnCallDutyPolicyEscalationRuleSchedule,
+
+    UsageBilling,
+
+    ProjectCallSMSConfig,
 ];

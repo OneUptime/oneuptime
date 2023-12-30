@@ -6,7 +6,7 @@ import API from '../API/API';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { DASHBOARD_API_URL } from '../../Config';
+import { APP_API_URL } from '../../Config';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -95,7 +95,7 @@ export default class ModelAPI {
                 );
             }
 
-            apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
+            apiUrl = URL.fromURL(APP_API_URL).addRoute(apiPath);
         }
 
         apiUrl = apiUrl.addRoute(`/${id.toString()}`);
@@ -147,7 +147,7 @@ export default class ModelAPI {
                 );
             }
 
-            apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
+            apiUrl = URL.fromURL(APP_API_URL).addRoute(apiPath);
         }
 
         const httpMethod: HTTPMethod =
@@ -207,7 +207,7 @@ export default class ModelAPI {
             );
         }
 
-        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
             .addRoute('/get-list');
 
@@ -273,7 +273,7 @@ export default class ModelAPI {
             );
         }
 
-        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
             .addRoute('/count');
 
@@ -346,7 +346,7 @@ export default class ModelAPI {
             );
         }
 
-        let apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        let apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
             .addRoute('/' + id.toString())
             .addRoute('/get-item');
@@ -411,7 +411,7 @@ export default class ModelAPI {
             );
         }
 
-        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+        const apiUrl: URL = URL.fromURL(APP_API_URL)
             .addRoute(apiPath)
             .addRoute('/' + id.toString());
 

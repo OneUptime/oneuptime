@@ -112,22 +112,22 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                     }
 
                     const incidentStates: ListResult<IncidentState> =
-                        await ModelAPI.getList<IncidentState>(
-                            IncidentState,
-                            {
+                        await ModelAPI.getList<IncidentState>({
+                            modelType: IncidentState,
+                            query: {
                                 projectId: projectId,
                             },
-                            99,
-                            0,
-                            {
+                            limit: 99,
+                            skip: 0,
+                            select: {
                                 _id: true,
                                 isResolvedState: true,
                                 isAcknowledgedState: true,
                                 isCreatedState: true,
                             },
-                            {},
-                            {}
-                        );
+                            sort: {},
+                            requestOptions: {},
+                        });
 
                     let stateId: ObjectID | null = null;
 
@@ -159,10 +159,10 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                     incidentStateTimeline.incidentId = props.incidentId;
                     incidentStateTimeline.incidentStateId = stateId;
 
-                    await ModelAPI.create(
-                        incidentStateTimeline,
-                        IncidentStateTimeline
-                    );
+                    await ModelAPI.create({
+                        model: incidentStateTimeline,
+                        modelType: IncidentStateTimeline,
+                    });
 
                     props.onActionComplete();
                     setIsLoading(false);

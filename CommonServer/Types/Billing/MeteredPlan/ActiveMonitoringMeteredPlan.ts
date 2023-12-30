@@ -1,5 +1,3 @@
-import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
-import MeteredPlanUtil from './MeteredPlanUtil';
 import ServerMeteredPlan from './ServerMeteredPlan';
 import ObjectID from 'Common/Types/ObjectID';
 import MonitorService from '../../../Services/MonitorService';
@@ -9,21 +7,19 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import ProjectService from '../../../Services/ProjectService';
 import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
+import { ProductType } from 'Model/Models/UsageBilling';
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
-    public static override getMeteredPlan(): MeteredPlan {
-        const meteredPlan: MeteredPlan =
-            MeteredPlanUtil.getMeteredPlan('ACTIVE_MONITORING');
-        this.meteredPlan = meteredPlan;
-        return meteredPlan;
+    public override getProductType(): ProductType {
+        return ProductType.ActiveMonitoring;
     }
 
-    public static override async updateCurrentQuantity(
+    public override async reportQuantityToBillingProvider(
         projectId: ObjectID,
         options?: {
             meteredPlanSubscriptionId?: string | undefined;
         }
-    ): Promise<PositiveNumber> {
+    ): Promise<void> {
         const count: PositiveNumber = await MonitorService.countBy({
             query: {
                 projectId: projectId,
@@ -66,11 +62,9 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
             await BillingService.addOrUpdateMeteredPricingOnSubscription(
                 (options?.meteredPlanSubscriptionId as string) ||
                     (project.paymentProviderMeteredSubscriptionId as string),
-                ActiveMonitoringMeteredPlan.getMeteredPlan(),
+                this,
                 count.toNumber()
             );
         }
-
-        return count;
     }
 }

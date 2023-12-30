@@ -103,7 +103,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                             modelType={StatusPagePrivateUser}
                             id="login-form"
                             name="Status Page > Forgot Password"
-                            apiUrl={apiUrl}
+                            createOrUpdateApiUrl={apiUrl}
                             onBeforeCreate={(
                                 item: StatusPagePrivateUser
                             ): Promise<StatusPagePrivateUser> => {
@@ -117,7 +117,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                                         email: true,
                                     },
                                     title: 'Email',
-                                    forceShow: true,
+                                    showEvenIfPermissionDoesNotExist: true,
                                     fieldType: FormFieldSchemaType.Email,
                                     required: true,
                                 },

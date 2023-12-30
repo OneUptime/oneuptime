@@ -15,6 +15,13 @@ import CommonModel, {
 } from 'Common/AnalyticsModels/CommonModel';
 import { SQL, Statement } from './Statement';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import Search from 'Common/Types/BaseDatabase/Search';
+import NotEqual from 'Common/Types/BaseDatabase/NotEqual';
+import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
+import LessThan from 'Common/Types/BaseDatabase/LessThan';
+import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
+import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
@@ -36,8 +43,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         /* eslint-disable prettier/prettier */
         const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-                this.model.tableName
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName
             }
             UPDATE `.append(setStatement).append(SQL`
             WHERE TRUE `).append(whereStatement);
@@ -328,9 +334,64 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             } else {
                 whereStatement.append(SQL` `);
             }
-            whereStatement.append(
-                SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
-            );
+
+            if (value instanceof Search) {
+                whereStatement.append(
+                    SQL`AND ${key} ILIKE ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof NotEqual) {
+                whereStatement.append(
+                    SQL`AND ${key} != ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof GreaterThan) {
+                whereStatement.append(
+                    SQL`AND ${key} > ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof LessThan) {
+                whereStatement.append(
+                    SQL`AND ${key} < ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof LessThanOrEqual) {
+                whereStatement.append(
+                    SQL`AND ${key} <= ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof GreaterThanOrEqual) {
+                whereStatement.append(
+                    SQL`AND ${key} >= ${{
+                        value: value,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof InBetween) {
+                whereStatement.append(
+                    SQL`AND ${key} >= ${{
+                        value: value.startValue,
+                        type: tableColumn.type,
+                    }} AND ${key} <= ${{
+                        value: value.endValue,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else {
+                whereStatement.append(
+                    SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
+                );
+            }
         }
 
         return whereStatement;
@@ -481,7 +542,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         const statement: Statement = SQL`
             CREATE TABLE IF NOT EXISTS ${databaseName}.${this.model.tableName}
             (\n`
-                .append(columnsStatement).append(SQL`
+            .append(columnsStatement).append(SQL`
             )
             ENGINE = `).append(tableEngineStatement).append(SQL`
             PRIMARY KEY (`);

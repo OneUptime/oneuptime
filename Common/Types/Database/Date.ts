@@ -1,6 +1,5 @@
-import moment from 'moment';
 import OneUptimeDate from '../Date';
-import InBetween from './InBetween';
+import InBetween from '../BaseDatabase/InBetween';
 
 export default class DatabaseDate {
     public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
@@ -22,8 +21,8 @@ export default class DatabaseDate {
         endValue = OneUptimeDate.getEndOfDay(endValue);
 
         return new InBetween(
-            moment(startValue).format('YYYY-MM-DD HH:mm:ss'),
-            moment(endValue).format('YYYY-MM-DD HH:mm:ss')
+            OneUptimeDate.toDatabaseDate(startValue),
+            OneUptimeDate.toDatabaseDate(endValue)
         );
     }
 }

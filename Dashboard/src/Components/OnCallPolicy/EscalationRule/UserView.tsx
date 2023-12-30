@@ -28,23 +28,23 @@ const UserView: FunctionComponent<ComponentProps> = (
             setIsLoading(true);
 
             const onCallUsers: ListResult<OnCallDutyPolicyEscalationRuleUser> =
-                await ModelAPI.getList(
-                    OnCallDutyPolicyEscalationRuleUser,
-                    {
+                await ModelAPI.getList({
+                    modelType: OnCallDutyPolicyEscalationRuleUser,
+                    query: {
                         onCallDutyPolicyEscalationRuleId:
                             props.escalationRuleId,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         user: {
                             name: true,
                             email: true,
                             profilePictureId: true,
                         },
                     },
-                    {}
-                );
+                    sort: {},
+                });
 
             const users: Array<User> = onCallUsers.data.map(
                 (onCallUser: OnCallDutyPolicyEscalationRuleUser) => {

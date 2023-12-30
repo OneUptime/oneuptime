@@ -134,6 +134,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     fontLigatures: false,
                     formatOnPaste: false,
                     formatOnType: false,
+
                     hideCursorInOverviewRuler: false,
                     links: true,
                     mouseWheelZoom: false,
@@ -145,7 +146,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     quickSuggestionsDelay: 100,
                     readOnly: props.readOnly || false,
                     renderControlCharacters: false,
-
+                    scrollbar: {
+                        horizontal: 'hidden',
+                    },
                     renderLineHighlight: 'all',
                     renderWhitespace: 'none',
                     revealHorizontalRightPadding: 30,
@@ -161,12 +164,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     smoothScrolling: false,
                     suggestOnTriggerCharacters: true,
                     wordBasedSuggestions: 'off',
-                    wordSeparators: '~!@#$%^&*()-=+[{]}|;:\'",.<>/?',
                     wordWrap: props.type === CodeType.Markdown ? 'on' : 'off',
-                    wordWrapBreakAfterCharacters: '\t})]?|&,;',
-                    wordWrapBreakBeforeCharacters: '{([+',
-                    wordWrapColumn: 80,
-                    wrappingIndent: 'none',
                 }}
             />
             {props.error && (

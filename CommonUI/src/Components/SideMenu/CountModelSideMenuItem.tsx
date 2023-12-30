@@ -45,11 +45,11 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
         }
 
         try {
-            const count: number = await ModelAPI.count<BaseModel>(
-                props.modelType,
-                props.countQuery,
-                props.requestOptions
-            );
+            const count: number = await ModelAPI.count<BaseModel>({
+                modelType: props.modelType,
+                query: props.countQuery,
+                requestOptions: props.requestOptions,
+            });
 
             setCount(count);
         } catch (err) {

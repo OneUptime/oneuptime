@@ -30,15 +30,15 @@ const VerifyEmail: () => JSX.Element = () => {
                 Navigation.getLastParam()?.toString().replace('/', '') || ''
             );
 
-            await ModelAPI.createOrUpdate<EmailVerificationToken>(
-                emailverificationToken,
-                EmailVerificationToken,
-                FormType.Create,
-                {},
-                {
+            await ModelAPI.createOrUpdate<EmailVerificationToken>({
+                model: emailverificationToken,
+                modelType: EmailVerificationToken,
+                formType: FormType.Create,
+                miscDataProps: {},
+                requestOptions: {
                     overrideRequestUrl: apiUrl,
-                }
-            );
+                },
+            });
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }

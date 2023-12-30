@@ -172,14 +172,14 @@ const ModelDetail: <TBaseModel extends BaseModel>(
                 setOnBeforeFetchData(jobject);
             }
 
-            const item: TBaseModel | null = await ModelAPI.getItem(
-                props.modelType,
-                props.modelId,
-                {
+            const item: TBaseModel | null = await ModelAPI.getItem({
+                modelType: props.modelType,
+                id: props.modelId,
+                select: {
                     ...getSelectFields(),
                     ...getRelationSelect(),
-                }
-            );
+                },
+            });
 
             if (!item) {
                 setError(

@@ -41,11 +41,11 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
         }
 
         try {
-            const count: number = await ModelAPI.count<TBaseModel>(
-                props.modelType,
-                props.query,
-                props.requestOptions
-            );
+            const count: number = await ModelAPI.count<TBaseModel>({
+                modelType: props.modelType,
+                query: props.query,
+                requestOptions: props.requestOptions,
+            });
 
             setCount(count);
         } catch (err) {

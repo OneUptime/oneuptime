@@ -7,6 +7,12 @@ import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
 
+export enum LogSeverity {
+    Information = 'Information',
+    Warning = 'Warning',
+    Error = 'Error',
+}
+
 export default class Log extends AnalyticsBaseModel {
     public constructor() {
         super({

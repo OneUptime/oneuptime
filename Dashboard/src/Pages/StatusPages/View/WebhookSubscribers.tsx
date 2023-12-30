@@ -12,7 +12,7 @@ import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import NotNull from 'Common/Types/Database/NotNull';
+import NotNull from 'Common/Types/BaseDatabase/NotNull';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import StatusPage from 'Model/Models/StatusPage';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (

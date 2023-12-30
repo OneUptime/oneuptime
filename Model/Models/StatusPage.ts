@@ -34,6 +34,7 @@ import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/ColumnBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import ProjectCallSMSConfig from './ProjectCallSMSConfig';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -955,6 +956,7 @@ export default class StatusPage extends BaseModel {
     })
     public showScheduledEventLabelsOnStatusPage?: boolean = undefined;
 
+    // This column is Deprectaed.
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -986,6 +988,112 @@ export default class StatusPage extends BaseModel {
         default: true,
     })
     public enableSubscribers?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable Email Subscribers',
+        description: 'Can email subscribers subscribe to this Status Page?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public enableEmailSubscribers?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Allow Subscribers to Choose Resources',
+        description: 'Can subscribers choose which resources to subscribe to?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Scale,
+        create: PlanSelect.Free,
+    })
+    public allowSubscribersToChooseResources?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Enable SMS Subscribers',
+        description: 'Can SMS subscribers subscribe to this Status Page?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    @ColumnBillingAccessControl({
+        read: PlanSelect.Free,
+        update: PlanSelect.Growth,
+        create: PlanSelect.Free,
+    })
+    public enableSmsSubscribers?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -1165,6 +1273,84 @@ export default class StatusPage extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public smtpConfigId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'callSmsConfigId',
+        type: TableColumnType.Entity,
+        modelType: ProjectCallSMSConfig,
+        title: 'Call/SMS Config',
+        description:
+            'Relation to Call/SMS Config Resource which is used to send SMS to subscribers.',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return ProjectCallSMSConfig;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'callSmsConfigId' })
+    public callSmsConfig?: ProjectCallSMSConfig = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        canReadOnRelationQuery: true,
+        title: 'Call/SMS Config ID',
+        description:
+            'ID of your Call/SMS Config Resource which is used to send SMS to subscribers.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public callSmsConfigId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [

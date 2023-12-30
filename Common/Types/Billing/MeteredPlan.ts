@@ -1,16 +1,16 @@
 export default class MeteredPlan {
     private priceId: string;
     private unitName: string;
-    private pricePerUnit: number;
+    private pricePerUnitInUSD: number;
 
-    public constructor(
-        priceId: string,
-        pricePerUnit: number,
-        unitName: string
-    ) {
-        this.priceId = priceId;
-        this.pricePerUnit = pricePerUnit;
-        this.unitName = unitName;
+    public constructor(data: {
+        priceId: string;
+        pricePerUnitInUSD: number;
+        unitName: string;
+    }) {
+        this.priceId = data.priceId;
+        this.pricePerUnitInUSD = data.pricePerUnitInUSD;
+        this.unitName = data.unitName;
     }
 
     public getPriceId(): string {
@@ -18,7 +18,7 @@ export default class MeteredPlan {
     }
 
     public getPricePerUnit(): number {
-        return this.pricePerUnit;
+        return this.pricePerUnitInUSD;
     }
 
     public getUnitName(): string {

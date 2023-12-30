@@ -2,6 +2,13 @@ import { BaseQueryParams } from '@clickhouse/client';
 import { integer } from '@elastic/elasticsearch/lib/api/types';
 import { RecordValue } from 'Common/AnalyticsModels/CommonModel';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
+import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
+import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
+import LessThan from 'Common/Types/BaseDatabase/LessThan';
+import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
+import Search from 'Common/Types/BaseDatabase/Search';
+import OneUptimeDate from 'Common/Types/Date';
+import ObjectID from 'Common/Types/ObjectID';
 import { inspect } from 'util';
 
 /**
@@ -46,11 +53,47 @@ export class Statement implements BaseQueryParams {
     }
 
     public get query_params(): Record<string, unknown> {
-        return Object.fromEntries(
-            this.values.map((v: StatementParameter | string, i: integer) => {
-                return [`p${i}`, typeof v === 'string' ? v : v.value];
-            })
-        );
+        let index: number = 0;
+
+        const returnObject: Record<string, unknown> = {};
+
+        for (const v of this.values) {
+            let finalValue: any = v;
+
+            // if of type date, convert to database date
+
+            if (typeof v === 'string') {
+                finalValue = v;
+            } else if (v.value instanceof ObjectID) {
+                finalValue = v.value.toString();
+            } else if (v.value instanceof Search) {
+                finalValue = `%${v.value.toString()}%`;
+            } else if (
+                v.value instanceof LessThan ||
+                v.value instanceof LessThanOrEqual ||
+                v.value instanceof GreaterThan ||
+                v.value instanceof GreaterThanOrEqual
+            ) {
+                finalValue = v.value.value;
+            } else if (v.value instanceof Date) {
+                finalValue = OneUptimeDate.toDatabaseDate(v.value);
+            } else {
+                finalValue = v.value;
+            }
+
+            // serialize to date.
+
+            if (typeof v !== 'string' && v.type === TableColumnType.Date) {
+                finalValue = OneUptimeDate.fromString(finalValue as string);
+                finalValue = OneUptimeDate.toDatabaseDate(finalValue);
+            }
+
+            returnObject[`p${index}`] = finalValue;
+
+            index++;
+        }
+
+        return returnObject;
     }
 
     /**

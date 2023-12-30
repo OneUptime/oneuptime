@@ -146,7 +146,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         overrideField: {
                             notificationMethod: true,
                         },
-                        forceShow: true,
+                        showEvenIfPermissionDoesNotExist: true,
                         overrideFieldKey: 'notificationMethod',
                         title: 'Notification Method',
                         description: 'How do you want to be notified?',
@@ -234,67 +234,67 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
         try {
             const incidentSeverities: ListResult<IncidentSeverity> =
-                await ModelAPI.getList(
-                    IncidentSeverity,
-                    {
+                await ModelAPI.getList({
+                    modelType: IncidentSeverity,
+                    query: {
                         projectId: DashboardNavigation.getProjectId(),
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         name: true,
                     },
-                    {}
-                );
+                    sort: {},
+                });
 
-            const userEmails: ListResult<UserEmail> = await ModelAPI.getList(
-                UserEmail,
-                {
+            const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
+                modelType: UserEmail,
+                query: {
                     projectId: DashboardNavigation.getProjectId(),
                     userId: User.getUserId(),
                     isVerified: true,
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     email: true,
                 },
-                {}
-            );
+                sort: {},
+            });
 
             setUserEmails(userEmails.data);
 
-            const userSMSes: ListResult<UserSMS> = await ModelAPI.getList(
-                UserSMS,
-                {
+            const userSMSes: ListResult<UserSMS> = await ModelAPI.getList({
+                modelType: UserSMS,
+                query: {
                     projectId: DashboardNavigation.getProjectId(),
                     userId: User.getUserId(),
                     isVerified: true,
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     phone: true,
                 },
-                {}
-            );
+                sort: {},
+            });
 
             setUserSMSs(userSMSes.data);
 
-            const userCalls: ListResult<UserCall> = await ModelAPI.getList(
-                UserCall,
-                {
+            const userCalls: ListResult<UserCall> = await ModelAPI.getList({
+                modelType: UserCall,
+                query: {
                     projectId: DashboardNavigation.getProjectId(),
                     userId: User.getUserId(),
                     isVerified: true,
                 },
-                LIMIT_PER_PROJECT,
-                0,
-                {
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
                     phone: true,
                 },
-                {}
-            );
+                sort: {},
+            });
 
             setUserCalls(userCalls.data);
 

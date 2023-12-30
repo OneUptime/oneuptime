@@ -29,10 +29,10 @@ const ModelProgress: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            const count: number = await ModelAPI.count<TBaseModel>(
-                props.modelType,
-                props.countQuery
-            );
+            const count: number = await ModelAPI.count<TBaseModel>({
+                modelType: props.modelType,
+                query: props.countQuery,
+            });
 
             setCount(count);
         } catch (err) {

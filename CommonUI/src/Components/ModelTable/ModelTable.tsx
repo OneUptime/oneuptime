@@ -32,7 +32,7 @@ import Permission, {
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import Query from '../../Utils/ModelAPI/Query';
-import Search from 'Common/Types/Database/Search';
+import Search from 'Common/Types/BaseDatabase/Search';
 import Typeof from 'Common/Types/Typeof';
 import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
@@ -45,7 +45,7 @@ import { FilterData } from '../Table/Filter';
 import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import InBetween from 'Common/Types/Database/InBetween';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from '../../Config';
 import SubscriptionPlan, {
     PlanSelect,
@@ -252,11 +252,11 @@ const ModelTable: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            await modelAPI.deleteItem<TBaseModel>(
-                props.modelType,
-                item.id,
-                props.deleteRequestOptions
-            );
+            await modelAPI.deleteItem<TBaseModel>({
+                modelType: props.modelType,
+                id: item.id,
+                requestOptions: props.deleteRequestOptions,
+            });
 
             props.onItemDeleted && props.onItemDeleted(item);
 
@@ -451,17 +451,17 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 const query: Query<BaseModel> = column.filterQuery || {};
 
                 const listResult: ListResult<BaseModel> =
-                    await modelAPI.getList<BaseModel>(
-                        column.filterEntityType,
-                        query,
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await modelAPI.getList<BaseModel>({
+                        modelType: column.filterEntityType,
+                        query: query,
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             [column.filterDropdownField.label]: true,
                             [column.filterDropdownField.value]: true,
                         },
-                        {}
-                    );
+                        sort: {},
+                    });
 
                 classicColumn.filterDropdownOptions = [];
                 for (const item of listResult.data) {
@@ -511,25 +511,25 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
         try {
             const listResult: ListResult<TBaseModel> =
-                await modelAPI.getList<TBaseModel>(
-                    props.modelType,
-                    {
+                await modelAPI.getList<TBaseModel>({
+                    modelType: props.modelType,
+                    query: {
                         ...query,
                         ...props.query,
                     },
-                    itemsOnPage,
-                    (currentPageNumber - 1) * itemsOnPage,
-                    {
+                    limit: itemsOnPage,
+                    skip: (currentPageNumber - 1) * itemsOnPage,
+                    select: {
                         ...getSelect(),
                         ...getRelationSelect(),
                     },
-                    sortBy
+                    sort: sortBy
                         ? {
                               [sortBy as any]: sortOrder,
                           }
                         : {},
-                    props.fetchRequestOptions
-                );
+                    requestOptions: props.fetchRequestOptions,
+                });
 
             setTotalItemsCount(listResult.count);
             setData(listResult.data);
@@ -1040,13 +1040,13 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
                     setIsLoading(true);
 
-                    await modelAPI.updateById(
-                        props.modelType,
-                        new ObjectID(id),
-                        {
+                    await modelAPI.updateById({
+                        modelType: props.modelType,
+                        id: new ObjectID(id),
+                        data: {
                             [props.dragDropIndexField]: newOrder,
-                        }
-                    );
+                        },
+                    });
 
                     fetchItems();
                 }}
@@ -1158,13 +1158,13 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
                     setIsLoading(true);
 
-                    await modelAPI.updateById(
-                        props.modelType,
-                        new ObjectID(id),
-                        {
+                    await modelAPI.updateById({
+                        modelType: props.modelType,
+                        id: new ObjectID(id),
+                        data: {
                             [props.dragDropIndexField]: newOrder,
-                        }
-                    );
+                        },
+                    });
 
                     fetchItems();
                 }}

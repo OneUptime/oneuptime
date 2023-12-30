@@ -39,6 +39,14 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
         },
         {
             field: {
+                fromNumber: true,
+            },
+            isFilterable: true,
+            title: 'From Number',
+            type: FieldType.Phone,
+        },
+        {
+            field: {
                 toNumber: true,
             },
             isFilterable: true,

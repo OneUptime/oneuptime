@@ -39,6 +39,7 @@ export const TelemetryRouthPath: Dictionary<string> = {
     [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
     [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
     [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `${RouteParams.ModelID}/dashboards`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -49,7 +50,6 @@ export const StatusPagesRoutePath: Dictionary<string> = {
     [PageMap.STATUS_PAGE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
     [PageMap.STATUS_PAGE_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
-    [PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]: `${RouteParams.ModelID}/custom-smtp`,
     [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: `${RouteParams.ModelID}/email-subscribers`,
     [PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]: `${RouteParams.ModelID}/sms-subscribers`,
     [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: `${RouteParams.ModelID}/webhook-subscribers`,
@@ -91,13 +91,12 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
 
 export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_DANGERZONE]: 'danger-zone',
-    [PageMap.SETTINGS_CALL_SMS]: 'call-sms',
+    [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: 'notification-settings',
     [PageMap.SETTINGS_SMS_LOGS]: 'sms-logs',
     [PageMap.SETTINGS_EMAIL_LOGS]: 'email-logs',
     [PageMap.SETTINGS_CALL_LOGS]: 'call-logs',
     [PageMap.SETTINGS_APIKEYS]: `api-keys`,
     [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
-    [PageMap.SETTINGS_CUSTOM_SMTP]: 'custom-smtp',
     [PageMap.SETTINGS_MONITORS_STATUS]: 'monitors-status',
     [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: 'monitor-custom-fields',
     [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: 'incident-custom-fields',
@@ -123,9 +122,11 @@ export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW]: `scheduled-maintenance-note-templates/${RouteParams.ModelID}`,
     [PageMap.SETTINGS_BILLING]: 'billing',
     [PageMap.SETTINGS_BILLING_INVOICES]: 'invoices',
+    [PageMap.SETTINGS_USAGE_HISTORY]: 'usage-history',
     [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
     [PageMap.SETTINGS_LABELS]: 'labels',
     [PageMap.SETTINGS_PROBES]: 'probes',
+    [PageMap.SETTINGS_DATA_RETENTION]: 'data-retention',
 };
 
 export const OnCallDutyRoutePath: Dictionary<string> = {
@@ -175,6 +176,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`
     ),
+
     [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`
     ),
@@ -446,12 +448,6 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
-    [PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${
-            StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_CUSTOM_SMTP]
-        }`
-    ),
-
     [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${
             StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]
@@ -674,6 +670,12 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
+    [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]
+        }`
+    ),
+
     //TELEMETRY_SERVICE_VIEW_LOGS
     [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
@@ -757,9 +759,9 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
-    [PageMap.SETTINGS_CALL_SMS]: new Route(
+    [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
-            SettingsRoutePath[PageMap.SETTINGS_CALL_SMS]
+            SettingsRoutePath[PageMap.SETTINGS_NOTIFICATION_SETTINGS]
         }`
     ),
 
@@ -790,12 +792,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_APIKEY_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
             SettingsRoutePath[PageMap.SETTINGS_APIKEY_VIEW]
-        }`
-    ),
-
-    [PageMap.SETTINGS_CUSTOM_SMTP]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/${
-            SettingsRoutePath[PageMap.SETTINGS_CUSTOM_SMTP]
         }`
     ),
 
@@ -892,9 +888,21 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
+    [PageMap.SETTINGS_DATA_RETENTION]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/${
+            SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION]
+        }`
+    ),
+
     [PageMap.SETTINGS_BILLING_INVOICES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
             SettingsRoutePath[PageMap.SETTINGS_BILLING_INVOICES]
+        }`
+    ),
+
+    [PageMap.SETTINGS_USAGE_HISTORY]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/${
+            SettingsRoutePath[PageMap.SETTINGS_USAGE_HISTORY]
         }`
     ),
 

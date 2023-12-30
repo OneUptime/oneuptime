@@ -494,9 +494,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         if (elements.length === 0) {
             elements.push(
-                <p key={1} className="text-center">
-                    No resources in this group.
-                </p>
+                <div key={1} className="mb-20">
+                    <ErrorMessage error="No resources added to this group." />
+                </div>
             );
         }
 

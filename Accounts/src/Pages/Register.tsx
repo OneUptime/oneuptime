@@ -47,19 +47,19 @@ const RegisterPage: () => JSX.Element = () => {
 
         try {
             const reseller: ListResult<Reseller> =
-                await ModelAPI.getList<Reseller>(
-                    Reseller,
-                    {
+                await ModelAPI.getList<Reseller>({
+                    modelType: Reseller,
+                    query: {
                         resellerId: resellerId,
                     },
-                    1,
-                    0,
-                    {
+                    limit: 1,
+                    skip: 0,
+                    select: {
                         hidePhoneNumberOnSignup: true,
                     },
-                    {},
-                    {}
-                );
+                    sort: {},
+                    requestOptions: {},
+                });
 
             if (reseller.data.length > 0) {
                 setResller(reseller.data[0]);
@@ -167,7 +167,7 @@ const RegisterPage: () => JSX.Element = () => {
             title: 'Confirm Password',
             overrideFieldKey: 'confirmPassword',
             required: true,
-            forceShow: true,
+            showEvenIfPermissionDoesNotExist: true,
         },
     ]);
 
@@ -209,7 +209,7 @@ const RegisterPage: () => JSX.Element = () => {
                         initialValues={initialValues}
                         maxPrimaryButtonWidth={true}
                         fields={formFields}
-                        apiUrl={apiUrl}
+                        createOrUpdateApiUrl={apiUrl}
                         onBeforeCreate={(item: User): Promise<User> => {
                             const utmParams: Dictionary<string> =
                                 UserUtil.getUtmParams();

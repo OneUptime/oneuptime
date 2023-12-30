@@ -239,6 +239,7 @@ export default class StatusPageGroup extends BaseModel {
         type: TableColumnType.ShortText,
         title: 'Group Name',
         description: 'Name of the Group',
+        canReadOnRelationQuery: true,
     })
     @Column({
         nullable: false,
@@ -395,6 +396,7 @@ export default class StatusPageGroup extends BaseModel {
         type: TableColumnType.Number,
         title: 'Order',
         description: 'Order / Priority of this resource',
+        canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.Number,
@@ -425,7 +427,7 @@ export default class StatusPageGroup extends BaseModel {
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
         title: 'Expanded by Default',
-        description: 'IS this group expanded by default',
+        description: 'Is this group expanded by default on Status Page?',
     })
     @Column({
         type: ColumnType.Boolean,

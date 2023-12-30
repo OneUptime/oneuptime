@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useEffect } from 'react';
 
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from '../Types/FormFieldSchemaType';
@@ -21,6 +21,13 @@ import { JSONValue } from 'Common/Types/JSON';
 import IDGenerator from '../../ObjectID/IDGenerator';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
+import CheckboxElement, {
+    CategoryCheckboxValue,
+} from '../../Checkbox/Checkbox';
+import CategoryCheckbox from '../../CategoryCheckbox/Index';
+import Typeof from 'Common/Types/Typeof';
+import Modal from '../../Modal/Modal';
+import Link from '../../Link/Link';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -69,6 +76,68 @@ const FormField: <T extends Object>(
     };
 
     const getFormField: Function = (): ReactElement => {
+        const [
+            showMultiSelectCheckboxCategoryModal,
+            setShowMultiSelectCheckboxCategoryModal,
+        ] = React.useState<boolean>(false);
+        const [checkboxCategoryValues, setCheckboxCategoryValues] =
+            React.useState<Array<CategoryCheckboxValue>>(
+                props.currentValues &&
+                    (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : []
+            );
+
+        useEffect(() => {
+            setCheckboxCategoryValues(
+                props.currentValues &&
+                    (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : []
+            );
+        }, [props.currentValues]);
+
+        const getMultiSelectCheckboxCategoryModal: Function =
+            (): ReactElement => {
+                return (
+                    <Modal
+                        title={`${props.field.title}`}
+                        description={`${props.field.description}`}
+                        onSubmit={() => {
+                            setShowMultiSelectCheckboxCategoryModal(false);
+                            props.field.onChange &&
+                                props.field.onChange(checkboxCategoryValues);
+                            props.setFieldValue(
+                                props.fieldName,
+                                checkboxCategoryValues
+                            );
+                        }}
+                        onClose={() => {
+                            setShowMultiSelectCheckboxCategoryModal(false);
+                        }}
+                    >
+                        <div className="max-h-96 overflow-y-auto">
+                            <CategoryCheckbox
+                                categories={
+                                    props.field.selectByAccessControlProps
+                                        ?.categoryCheckboxProps.categories || []
+                                }
+                                options={
+                                    props.field.selectByAccessControlProps
+                                        ?.categoryCheckboxProps.options || []
+                                }
+                                onChange={(
+                                    value: Array<CategoryCheckboxValue>
+                                ) => {
+                                    setCheckboxCategoryValues(value);
+                                }}
+                                initialValue={checkboxCategoryValues}
+                            />
+                        </div>
+                    </Modal>
+                );
+            };
+
         const index: number = props.index + 1;
 
         const fieldType: string = props.field.fieldType
@@ -81,6 +150,21 @@ const FormField: <T extends Object>(
 
         if (props.field.showIf && !props.field.showIf(props.currentValues)) {
             return <></>;
+        }
+
+        let required: boolean = false;
+
+        if (
+            props.field.required &&
+            typeof props.field.required === Typeof.Boolean
+        ) {
+            required = true;
+        } else if (
+            props.field.required &&
+            typeof props.field.required === 'function' &&
+            props.field.required(props.currentValues)
+        ) {
+            required = true;
         }
 
         let codeType: CodeType = CodeType.HTML;
@@ -108,17 +192,53 @@ const FormField: <T extends Object>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
+        const getFieldDescription: Function = (): ReactElement | string => {
+            if (
+                props.field.fieldType ===
+                    FormFieldSchemaType.MultiSelectDropdown &&
+                props.field.selectByAccessControlProps
+            ) {
+                return (
+                    <span>
+                        {fieldDescription}
+                        <Link
+                            onClick={() => {
+                                setShowMultiSelectCheckboxCategoryModal(true);
+                            }}
+                            className="ml-1 underline text-blue-500 cursor-pointer"
+                        >
+                            <span>
+                                Select items by{' '}
+                                {props.field.selectByAccessControlProps
+                                    .accessControlColumnTitle || ''}
+                            </span>
+                        </Link>
+                    </span>
+                );
+            }
+
+            if (fieldDescription) {
+                return fieldDescription;
+            }
+
+            return <></>;
+        };
+
         return (
             <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
-                <FieldLabelElement
-                    title={props.field.title || ''}
-                    description={fieldDescription}
-                    sideLink={props.field.sideLink}
-                    required={props.field.required}
-                    isHeading={
-                        props.field.styleType === FormFieldStyleType.Heading
-                    }
-                />
+                {/*** Do not display label on checkbox because checkbox can display its own label */}
+
+                {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
+                    <FieldLabelElement
+                        title={props.field.title || ''}
+                        description={getFieldDescription()}
+                        sideLink={props.field.sideLink}
+                        required={required}
+                        isHeading={
+                            props.field.styleType === FormFieldStyleType.Heading
+                        }
+                    />
+                )}
 
                 <div className="mt-2">
                     {props.field.fieldType === FormFieldSchemaType.Color && (
@@ -176,7 +296,7 @@ const FormField: <T extends Object>(
                             }
                             options={props.field.dropdownOptions || []}
                             placeholder={props.field.placeholder || ''}
-                            initialValue={
+                            value={
                                 props.currentValues &&
                                 (props.currentValues as any)[props.fieldName]
                                     ? (props.currentValues as any)[
@@ -496,6 +616,76 @@ const FormField: <T extends Object>(
                         />
                     )}
 
+                    {props.field.fieldType === FormFieldSchemaType.Checkbox && (
+                        <CheckboxElement
+                            error={
+                                props.touched && props.error
+                                    ? props.error
+                                    : undefined
+                            }
+                            title={props.field.title || ''}
+                            description={props.field.description || ''}
+                            onChange={async (value: boolean) => {
+                                props.field.onChange &&
+                                    props.field.onChange(value);
+                                props.setFieldValue(props.fieldName, value);
+                            }}
+                            onBlur={async () => {
+                                props.setFieldTouched(props.fieldName, true);
+                            }}
+                            onFocus={async () => {
+                                props.setFieldTouched(props.fieldName, true);
+                            }}
+                            initialValue={
+                                props.currentValues &&
+                                ((props.currentValues as any)[
+                                    props.fieldName
+                                ] === true ||
+                                    (props.currentValues as any)[
+                                        props.fieldName
+                                    ] === false)
+                                    ? (props.currentValues as any)[
+                                          props.fieldName
+                                      ]
+                                    : (props.field.defaultValue as boolean) ||
+                                      false
+                            }
+                        />
+                    )}
+
+                    {props.field.fieldType ===
+                        FormFieldSchemaType.CategoryCheckbox && (
+                        <CategoryCheckbox
+                            categories={
+                                props.field.categoryCheckboxProps?.categories ||
+                                []
+                            }
+                            options={
+                                props.field.categoryCheckboxProps?.options || []
+                            }
+                            error={
+                                props.touched && props.error
+                                    ? props.error
+                                    : undefined
+                            }
+                            onChange={async (
+                                value: Array<CategoryCheckboxValue>
+                            ) => {
+                                props.field.onChange &&
+                                    props.field.onChange(value);
+                                props.setFieldValue(props.fieldName, value);
+                            }}
+                            initialValue={
+                                props.currentValues &&
+                                (props.currentValues as any)[props.fieldName]
+                                    ? (props.currentValues as any)[
+                                          props.fieldName
+                                      ]
+                                    : []
+                            }
+                        />
+                    )}
+
                     {/* Default Field */}
                     {(props.field.fieldType === FormFieldSchemaType.Name ||
                         props.field.fieldType === FormFieldSchemaType.Email ||
@@ -551,6 +741,9 @@ const FormField: <T extends Object>(
                         />
                     )}
                 </div>
+
+                {showMultiSelectCheckboxCategoryModal &&
+                    getMultiSelectCheckboxCategoryModal()}
             </div>
         );
     };

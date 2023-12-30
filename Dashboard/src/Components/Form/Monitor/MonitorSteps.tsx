@@ -56,19 +56,19 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
             try {
                 const monitorStatusList: ListResult<MonitorStatus> =
-                    await ModelAPI.getList(
-                        MonitorStatus,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList({
+                        modelType: MonitorStatus,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             name: true,
                             isOperationalState: true,
                             isOfflineState: true,
                         },
 
-                        {}
-                    );
+                        sort: {},
+                    });
 
                 if (monitorStatusList.data) {
                     setMonitorStatusDropdownOptions(
@@ -82,31 +82,31 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 }
 
                 const incidentSeverityList: ListResult<IncidentSeverity> =
-                    await ModelAPI.getList(
-                        IncidentSeverity,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList({
+                        modelType: IncidentSeverity,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             name: true,
                             order: true,
                         },
-                        {
+                        sort: {
                             order: SortOrder.Ascending,
-                        }
-                    );
+                        },
+                    });
 
                 const onCallPolicyList: ListResult<OnCallDutyPolicy> =
-                    await ModelAPI.getList(
-                        OnCallDutyPolicy,
-                        {},
-                        LIMIT_PER_PROJECT,
-                        0,
-                        {
+                    await ModelAPI.getList({
+                        modelType: OnCallDutyPolicy,
+                        query: {},
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
                             name: true,
                         },
-                        {}
-                    );
+                        sort: {},
+                    });
 
                 if (incidentSeverityList.data) {
                     setIncidentSeverityDropdownOptions(

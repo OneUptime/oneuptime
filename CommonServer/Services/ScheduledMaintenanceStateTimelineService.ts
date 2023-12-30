@@ -23,6 +23,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(ScheduledMaintenanceStateTimeline, postgresDatabase);
+        this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
     protected override async onCreateSuccess(

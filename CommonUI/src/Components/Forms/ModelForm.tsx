@@ -16,7 +16,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import useAsyncEffect from 'use-async-effect';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
-import { VeryLightGrey } from 'Common/Types/BrandColors';
+import { Black, VeryLightGrey } from 'Common/Types/BrandColors';
 import Permission, {
     PermissionHelper,
     UserPermission,
@@ -36,6 +36,13 @@ import Field from './Types/Field';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
 import SelectFormFields from '../../Types/SelectEntityField';
 import User from '../../Utils/User';
+import {
+    CategoryCheckboxOption,
+    CheckboxCategory,
+} from '../CategoryCheckbox/CategoryCheckboxTypes';
+import AccessControlModel from 'Common/Models/AccessControlModel';
+import Pill, { PillSize } from '../Pill/Pill';
+import Color from 'Common/Types/Color';
 
 export enum FormType {
     Create,
@@ -76,7 +83,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onSuccess?: undefined | ((data: TBaseModel, miscData?: JSONObject) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
-    apiUrl?: undefined | URL;
+    createOrUpdateApiUrl?: undefined | URL;
+    fetchItemApiUrl?: undefined | URL;
     formType: FormType;
     hideSubmitButton?: undefined | boolean;
     submitButtonStyleType?: ButtonStyleType | undefined;
@@ -117,7 +125,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key && (hasPermissionOnField(key) || field.forceShow)) {
+            if (
+                key &&
+                (hasPermissionOnField(key) ||
+                    field.showEvenIfPermissionDoesNotExist)
+            ) {
                 (select as Dictionary<boolean>)[key] = true;
             }
         }
@@ -223,7 +235,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 const hasPermission: boolean = hasPermissionOnField(key);
 
                 if (
-                    (field.forceShow || hasPermission) &&
+                    (field.showEvenIfPermissionDoesNotExist || hasPermission) &&
                     fieldsToSet.filter((i: ModelField<TBaseModel>) => {
                         const fieldObj:
                             | {
@@ -279,11 +291,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
             throw new BadDataException('Model ID to update not found.');
         }
 
-        let item: BaseModel | null = await modelAPI.getItem(
-            props.modelType,
-            props.modelIdToEdit,
-            { ...getSelectFields(), ...getRelationSelect() }
-        );
+        let item: BaseModel | null = await modelAPI.getItem({
+            modelType: props.modelType,
+            id: props.modelIdToEdit,
+            select: { ...getSelectFields(), ...getRelationSelect() },
+            requestOptions: {
+                overrideRequestUrl: props.fetchItemApiUrl,
+            },
+        });
 
         if (!(item instanceof BaseModel) && item) {
             item = BaseModel.fromJSON(
@@ -351,18 +366,34 @@ const ModelForm: <TBaseModel extends BaseModel>(
         try {
             for (const field of fields) {
                 if (field.dropdownModal && field.dropdownModal.type) {
+                    const tempModel: BaseModel = new field.dropdownModal.type();
+                    const select: any = {
+                        [field.dropdownModal.labelField]: true,
+                        [field.dropdownModal.valueField]: true,
+                    } as any;
+
+                    let hasAccessControlColumn: boolean = false;
+
+                    // also select labels, so they can select resources by labels. This is useful for resources like monitors, etc.
+                    if (tempModel.getAccessControlColumn()) {
+                        select[tempModel.getAccessControlColumn()!] = {
+                            _id: true,
+                            name: true,
+                            color: true,
+                        } as any;
+
+                        hasAccessControlColumn = true;
+                    }
+
                     const listResult: ListResult<BaseModel> =
-                        await modelAPI.getList<BaseModel>(
-                            field.dropdownModal.type,
-                            {},
-                            LIMIT_PER_PROJECT,
-                            0,
-                            {
-                                [field.dropdownModal.labelField]: true,
-                                [field.dropdownModal.valueField]: true,
-                            },
-                            {}
-                        );
+                        await modelAPI.getList<BaseModel>({
+                            modelType: field.dropdownModal.type,
+                            query: {},
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            select: select,
+                            sort: {},
+                        });
 
                     if (listResult.data && listResult.data.length > 0) {
                         field.dropdownOptions = listResult.data.map(
@@ -383,6 +414,139 @@ const ModelForm: <TBaseModel extends BaseModel>(
                                 };
                             }
                         );
+
+                        if (hasAccessControlColumn) {
+                            const categories: Array<CheckboxCategory> = [];
+
+                            // populate categories.
+
+                            let localLabels: Array<AccessControlModel> = [];
+
+                            for (const item of listResult.data) {
+                                const accessControlColumn: string | null =
+                                    tempModel.getAccessControlColumn()!;
+                                const labels: Array<AccessControlModel> =
+                                    ((item as any)[
+                                        accessControlColumn
+                                    ] as Array<AccessControlModel>) || [];
+
+                                for (const label of labels) {
+                                    if (
+                                        label &&
+                                        label._id &&
+                                        label.getColumnValue('name')
+                                    ) {
+                                        // check if this category already exists.
+
+                                        const existingLabel:
+                                            | AccessControlModel
+                                            | undefined = localLabels.find(
+                                            (i: AccessControlModel) => {
+                                                return (
+                                                    i._id?.toString() ===
+                                                    label._id?.toString()
+                                                );
+                                            }
+                                        );
+
+                                        if (!existingLabel) {
+                                            localLabels.push(label);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // sort category by name.
+
+                            localLabels = localLabels.sort(
+                                (
+                                    a: AccessControlModel,
+                                    b: AccessControlModel
+                                ) => {
+                                    return a
+                                        .getColumnValue('name')!
+                                        .toString()
+                                        .localeCompare(
+                                            b
+                                                .getColumnValue('name')
+                                                ?.toString() || ''
+                                        );
+                                }
+                            );
+
+                            // for each of these labels add category.
+
+                            for (const label of localLabels) {
+                                categories.push({
+                                    id: label._id?.toString() || '',
+                                    title: (
+                                        <span className="mb-1">
+                                            <Pill
+                                                size={PillSize.Small}
+                                                color={
+                                                    (label.getColumnValue(
+                                                        'color'
+                                                    ) as Color) || Black
+                                                }
+                                                text={
+                                                    (label.getColumnValue(
+                                                        'name'
+                                                    ) as string) || ''
+                                                }
+                                            />
+                                        </span>
+                                    ),
+                                });
+                            }
+
+                            // now populate options.
+                            const options: Array<CategoryCheckboxOption> = [];
+
+                            for (const item of listResult.data) {
+                                const accessControlColumn: string =
+                                    tempModel.getAccessControlColumn()!;
+                                const labels: Array<AccessControlModel> =
+                                    ((item as any)[
+                                        accessControlColumn
+                                    ] as Array<AccessControlModel>) || [];
+
+                                if (labels.length > 0) {
+                                    for (const label of labels) {
+                                        options.push({
+                                            value: item.getColumnValue(
+                                                field.dropdownModal.valueField
+                                            ) as string,
+                                            label: item.getColumnValue(
+                                                field.dropdownModal.labelField
+                                            ) as string,
+                                            categoryId:
+                                                label._id?.toString() || '',
+                                        });
+                                    }
+                                } else {
+                                    options.push({
+                                        value: item.getColumnValue(
+                                            field.dropdownModal.valueField
+                                        ) as string,
+                                        label: item.getColumnValue(
+                                            field.dropdownModal.labelField
+                                        ) as string,
+                                        categoryId: '',
+                                    });
+                                }
+                            }
+
+                            field.selectByAccessControlProps = {
+                                categoryCheckboxProps: {
+                                    categories: categories,
+                                    options: options,
+                                },
+                                accessControlColumnTitle:
+                                    tempModel.getTableColumnMetadata(
+                                        tempModel.getAccessControlColumn()!
+                                    ).title || '',
+                            };
+                        }
                     } else {
                         field.dropdownOptions = [];
                     }
@@ -535,17 +699,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 );
             }
 
-            result = await modelAPI.createOrUpdate<TBaseModel>(
-                tBaseModel as TBaseModel,
-                props.modelType,
-                props.formType,
-                miscDataProps,
-                {
+            result = await modelAPI.createOrUpdate<TBaseModel>({
+                model: tBaseModel as TBaseModel,
+                modelType: props.modelType,
+                formType: props.formType,
+                miscDataProps: miscDataProps,
+                requestOptions: {
                     ...props.saveRequestOptions,
                     requestHeaders: props.requestHeaders,
-                    overrideRequestUrl: props.apiUrl,
-                }
-            );
+                    overrideRequestUrl: props.createOrUpdateApiUrl,
+                },
+            });
 
             const miscData: JSONObject | undefined = result.miscData;
 

@@ -1,6 +1,6 @@
 import DatabaseDate from '../../../Types/Database/Date';
 import moment from 'moment';
-import InBetween from '../../../Types/Database/InBetween';
+import InBetween from '../../../Types/BaseDatabase/InBetween';
 import { JSONObject } from '../../../Types/JSON';
 
 describe('DatabaseDate', () => {

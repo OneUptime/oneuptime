@@ -1,11 +1,13 @@
 import Log from 'Model/AnalyticsModels/Log';
 import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import LogItem from './LogItem';
-import LogsFilters, { FiterOptions } from './LogsFilters';
+import LogsFilters, { FilterOption } from './LogsFilters';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
 
 export interface ComponentProps {
     logs: Array<Log>;
-    onFilterChanged: (filterOptions: FiterOptions) => void;
+    onFilterChanged: (filterOptions: FilterOption) => void;
+    isLoading: boolean;
 }
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
@@ -64,23 +66,26 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     onFilterChanged={props.onFilterChanged}
                 />
             </div>
-            <div
-                ref={logsViewerRef}
-                className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
-                style={{
-                    height: screenHeight - 330,
-                }}
-            >
-                {props.logs.map((log: Log, i: number) => {
-                    return <LogItem key={i} log={log} />;
-                })}
+            {!props.isLoading && (
+                <div
+                    ref={logsViewerRef}
+                    className="shadow-xl rounded-xl bg-slate-800 p-5 overflow-hidden hover:overflow-y-auto dark-scrollbar"
+                    style={{
+                        height: screenHeight - 520,
+                    }}
+                >
+                    {props.logs.map((log: Log, i: number) => {
+                        return <LogItem key={i} log={log} />;
+                    })}
 
-                {props.logs.length === 0 && (
-                    <div className={`text-slate-200 courier-prime`}>
-                        No logs found for this service.
-                    </div>
-                )}
-            </div>
+                    {props.logs.length === 0 && (
+                        <div className={`text-slate-200 courier-prime`}>
+                            No logs found for this service.
+                        </div>
+                    )}
+                </div>
+            )}
+            {props.isLoading && <ComponentLoader />}
         </div>
     );
 };

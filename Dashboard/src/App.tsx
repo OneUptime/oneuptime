@@ -22,7 +22,7 @@ import PageMap from './Utils/PageMap';
 import {
     ACCOUNTS_URL,
     BILLING_ENABLED,
-    DASHBOARD_API_URL,
+    APP_API_URL,
 } from 'CommonUI/src/Config';
 
 import ActiveIncidents from './Pages/Global/ActiveIncidents';
@@ -103,10 +103,10 @@ const App: () => JSX.Element = () => {
         try {
             if (selectedProject && selectedProject._id && BILLING_ENABLED) {
                 setPaymentMethodsCountLoading(true);
-                const paymentMethodsCount: number = await ModelAPI.count(
-                    BillingPaymentMethod,
-                    { projectId: selectedProject._id }
-                );
+                const paymentMethodsCount: number = await ModelAPI.count({
+                    modelType: BillingPaymentMethod,
+                    query: { projectId: selectedProject._id },
+                });
 
                 setPaymentMethodsCount(paymentMethodsCount);
 
@@ -169,18 +169,20 @@ const App: () => JSX.Element = () => {
         // get list of projects.
         try {
             const result: ListResult<Project> = await ModelAPI.getList<Project>(
-                Project,
-                {},
-                50,
-                0,
-                {},
-                {},
-
                 {
-                    isMultiTenantRequest: true,
-                    overrideRequestUrl: URL.fromString(
-                        DASHBOARD_API_URL.toString()
-                    ).addRoute('/project/list-user-projects'),
+                    modelType: Project,
+                    query: {},
+                    limit: 50,
+                    skip: 0,
+                    select: {},
+                    sort: {},
+
+                    requestOptions: {
+                        isMultiTenantRequest: true,
+                        overrideRequestUrl: URL.fromString(
+                            APP_API_URL.toString()
+                        ).addRoute('/project/list-user-projects'),
+                    },
                 }
             );
             setProjects(result.data);

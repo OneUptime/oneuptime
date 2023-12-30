@@ -32,6 +32,8 @@ enum FormFieldSchemaType {
     JSON = 'JSON',
     Query = 'Query',
     CustomComponent = 'CustomComponent',
+    Checkbox = 'Checkbox',
+    CategoryCheckbox = 'CategoryCheckbox',
 }
 
 export default FormFieldSchemaType;

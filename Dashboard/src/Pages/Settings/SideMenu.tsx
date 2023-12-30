@@ -194,18 +194,11 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             <SideMenuSection title="Notifications">
                 <SideMenuItem
                     link={{
-                        title: 'Custom SMTP',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
-                        ),
-                    }}
-                    icon={IconProp.Email}
-                />
-                <SideMenuItem
-                    link={{
                         title: 'Notification Settings',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_CALL_SMS] as Route
+                            RouteMap[
+                                PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Settings}
@@ -297,6 +290,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     />
                     <SideMenuItem
                         link={{
+                            title: 'Usage History',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[
+                                    PageMap.SETTINGS_USAGE_HISTORY
+                                ] as Route
+                            ),
+                        }}
+                        icon={IconProp.ChartBar}
+                    />
+                    <SideMenuItem
+                        link={{
                             title: 'Invoices',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[
@@ -319,6 +323,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Lock}
+                />
+            </SideMenuSection>
+            <SideMenuSection title="Data">
+                <SideMenuItem
+                    link={{
+                        title: 'Data Rentention',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route
+                        ),
+                    }}
+                    icon={IconProp.Database}
                 />
             </SideMenuSection>
             <SideMenuSection title="Danger Zone">

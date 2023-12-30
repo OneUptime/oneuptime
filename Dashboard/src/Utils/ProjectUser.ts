@@ -8,12 +8,12 @@ export default class ProjectUser {
     public static async fetchProjectUsersAsDropdownOptions(
         projectId: ObjectID
     ): Promise<Array<DropdownOption>> {
-        const teamMembers: ListResult<TeamMember> = await ModelAPI.getList(
-            TeamMember,
-            { projectId },
-            LIMIT_PER_PROJECT,
-            0,
-            {
+        const teamMembers: ListResult<TeamMember> = await ModelAPI.getList({
+            modelType: TeamMember,
+            query: { projectId },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
                 _id: true,
                 user: {
                     _id: true,
@@ -21,9 +21,9 @@ export default class ProjectUser {
                     email: true,
                 },
             },
-            {},
-            {}
-        );
+            sort: {},
+            requestOptions: {},
+        });
 
         return teamMembers.data.map((teamMember: TeamMember) => {
             return {

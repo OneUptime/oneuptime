@@ -59,14 +59,14 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const loadGraph: () => Promise<void> = async (): Promise<void> => {
         try {
             setIsLoading(true);
-            const workflow: WorkflowModel | null = await ModelAPI.getItem(
-                WorkflowModel,
-                modelId,
-                {
+            const workflow: WorkflowModel | null = await ModelAPI.getItem({
+                modelType: WorkflowModel,
+                id: modelId,
+                select: {
                     graph: true,
                 },
-                {}
-            );
+                requestOptions: {},
+            });
 
             if (workflow) {
                 const allComponents: {
@@ -234,8 +234,12 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         }
                     }
 
-                    await ModelAPI.updateById(WorkflowModel, modelId, {
-                        graph,
+                    await ModelAPI.updateById({
+                        modelType: WorkflowModel,
+                        id: modelId,
+                        data: {
+                            graph,
+                        },
                     });
 
                     setSaveStatus('Changes Saved.');

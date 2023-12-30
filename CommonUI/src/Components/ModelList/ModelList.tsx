@@ -122,22 +122,22 @@ const ModelList: <TBaseModel extends BaseModel>(
                     limit: LIMIT_PER_PROJECT,
                 };
             } else {
-                listResult = await ModelAPI.getList<TBaseModel>(
-                    props.modelType,
-                    {
+                listResult = await ModelAPI.getList<TBaseModel>({
+                    modelType: props.modelType,
+                    query: {
                         ...props.query,
                     },
-                    LIMIT_PER_PROJECT,
-                    0,
-                    select,
-                    props.sortBy
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: select,
+                    sort: props.sortBy
                         ? {
                               [props.sortBy as any]: props.sortOrder,
                           }
                         : {},
 
-                    props.fetchRequestOptions
-                );
+                    requestOptions: props.fetchRequestOptions,
+                });
             }
 
             props.onListLoaded && props.onListLoaded(listResult.data);
@@ -185,7 +185,10 @@ const ModelList: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
-            await ModelAPI.deleteItem<TBaseModel>(props.modelType, item.id);
+            await ModelAPI.deleteItem<TBaseModel>({
+                modelType: props.modelType,
+                id: item.id,
+            });
 
             await fetchItems();
         } catch (err) {
@@ -242,13 +245,13 @@ const ModelList: <TBaseModel extends BaseModel>(
 
                             setIsLoading(true);
 
-                            await ModelAPI.updateById(
-                                props.modelType,
-                                new ObjectID(id),
-                                {
+                            await ModelAPI.updateById({
+                                modelType: props.modelType,
+                                id: new ObjectID(id),
+                                data: {
                                     [props.dragDropIndexField]: newOrder,
-                                }
-                            );
+                                },
+                            });
 
                             fetchItems();
                         }}

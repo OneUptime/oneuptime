@@ -1,4 +1,4 @@
-import InBetween from './Database/InBetween';
+import InBetween from './BaseDatabase/InBetween';
 import DayOfWeek, { DayOfWeekUtil } from './Day/DayOfWeek';
 import BadDataException from './Exception/BadDataException';
 import { JSONObject, ObjectType } from './JSON';
@@ -907,5 +907,10 @@ export default class OneUptimeDate {
         date.setSeconds(seconds);
 
         return date;
+    }
+
+    public static toDatabaseDate(date: Date): string {
+        date = this.fromString(date);
+        return moment(date).format('YYYY-MM-DD HH:mm:ss');
     }
 }

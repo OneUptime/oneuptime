@@ -11,14 +11,14 @@ import './Jobs/PaymentProvider/UpdateTeamMembersIfNull';
 import './Jobs/PaymentProvider/PopulatePlanNameInProject';
 
 // Announcements.
-import './Jobs/Announcement/SendEmailToSubscribers';
+import './Jobs/Announcement/SendNotificationToSubscribers';
 
 // Incidents
-import './Jobs/Incident/SendEmailToSubscribers';
-import './Jobs/IncidentStateTimeline/SendEmailToSubscribers';
+import './Jobs/Incident/SendNotificationToSubscribers';
+import './Jobs/IncidentStateTimeline/SendNotificationToSubscribers';
 
 // Incident Notes
-import './Jobs/IncidentPublicNote/SendEmailToSubscribers';
+import './Jobs/IncidentPublicNote/SendNotificationToSubscribers';
 
 // Hard Delete
 import './Jobs/HardDelete/HardDeleteItemsInDatabase';
@@ -26,11 +26,11 @@ import './Jobs/HardDelete/HardDeleteItemsInDatabase';
 // Scheduled Event
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
 import './Jobs/ScheduledMaintenance/ChangeStateToEnded';
-import './Jobs/ScheduledMaintenance/SendEmailToSubscribers';
-import './Jobs/ScheduledMaintenanceStateTimeline/SendEmailToSubscribers';
+import './Jobs/ScheduledMaintenance/SendNotificationToSubscribers';
+import './Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers';
 
 // Scheduled Event Notes
-import './Jobs/ScheduledMaintenancePublicNote/SendEmailToSubscribers';
+import './Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers';
 
 // Certs Routers
 import StatusPageCerts from './Jobs/StatusPageCerts/StatusPageCerts';
@@ -75,6 +75,7 @@ import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDat
 // import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
 
 import './Jobs/Workflow/TimeoutJobs';
+import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
 
 const APP_NAME: string = 'workers';
 

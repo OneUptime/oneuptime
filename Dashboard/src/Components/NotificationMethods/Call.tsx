@@ -12,7 +12,7 @@ import URL from 'Common/Types/API/URL';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { APP_API_URL } from 'CommonUI/src/Config';
 import API from 'CommonUI/src/Utils/API/API';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
@@ -169,9 +169,9 @@ const Call: () => JSX.Element = (): ReactElement => {
                             const response:
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(
-                                    DASHBOARD_API_URL.toString()
-                                ).addRoute('/user-call/verify'),
+                                URL.fromString(APP_API_URL.toString()).addRoute(
+                                    '/user-call/verify'
+                                ),
                                 {
                                     code: item['code'],
                                     projectId:
@@ -236,9 +236,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                             const response:
                                 | HTTPResponse<JSONObject>
                                 | HTTPErrorResponse = await API.post(
-                                URL.fromString(
-                                    DASHBOARD_API_URL.toString()
-                                ).addRoute(
+                                URL.fromString(APP_API_URL.toString()).addRoute(
                                     '/user-call/resend-verification-code'
                                 ),
                                 {

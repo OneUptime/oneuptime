@@ -85,7 +85,7 @@ const RegisterPage: () => JSX.Element = () => {
                                     required: true,
                                 },
                             ]}
-                            apiUrl={apiUrl}
+                            createOrUpdateApiUrl={apiUrl}
                             formType={FormType.Create}
                             submitButtonText={'Reset Password'}
                             onSuccess={() => {

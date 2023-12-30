@@ -17,8 +17,8 @@ import AnnouncementList from './Pages/Announcement/List';
 import AnnouncementDetail from './Pages/Announcement/Detail';
 import ScheduledEventList from './Pages/ScheduledEvent/List';
 import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
-import Subscribe from './Pages/Subscribe/EmailSubscribe';
-
+import EmailSubscribe from './Pages/Subscribe/EmailSubscribe';
+import SMSSubscribe from './Pages/Subscribe/SmsSubscribe';
 // Accounts.
 import Login from './Pages/Accounts/Login';
 import Sso from './Pages/Accounts/SSO';
@@ -36,6 +36,7 @@ import ObjectID from 'Common/Types/ObjectID';
 // Logout.
 import Logout from './Pages/Accounts/Logout';
 import StatusPageUtil from './Utils/StatusPage';
+import UpdateSubscription from './Pages/Subscribe/UpdateSubscription';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -43,7 +44,14 @@ const App: () => JSX.Element = () => {
     Navigation.setParams(useParams());
 
     const [isPreview, setIsPreview] = useState<boolean>(false);
-    const [enableSubscribers, setEnableSubscribers] = useState<boolean>(true);
+    const [enableEmailSubscribers, setenableEmailSubscribers] =
+        useState<boolean>(true);
+    const [
+        allowSubscribersToChooseResources,
+        setAllowSubscribersToChooseResources,
+    ] = useState<boolean>(false);
+    const [enableSMSSubscribers, setenableSMSSubscribers] =
+        useState<boolean>(false);
     const [statusPageName, setStatusPageName] = useState<string>('');
     const [statusPageLogoFileId, setStatusPageLogoFileId] =
         useState<string>('');
@@ -71,7 +79,8 @@ const App: () => JSX.Element = () => {
     return (
         <MasterPage
             isPreview={isPreview}
-            enableSubscribers={enableSubscribers}
+            enableSMSSubscribers={enableSMSSubscribers}
+            enableEmailSubscribers={enableEmailSubscribers}
             isPrivateStatusPage={isPrivateStatusPage}
             onLoadComplete={(masterpage: JSONObject) => {
                 document.title =
@@ -111,13 +120,30 @@ const App: () => JSX.Element = () => {
                         'statusPage.isPublicStatusPage'
                     ) as boolean;
 
-                const enableSubscribers: boolean =
+                const enableEmailSubscribers: boolean =
                     JSONFunctions.getJSONValueInPath(
                         masterpage || {},
-                        'statusPage.enableSubscribers'
+                        'statusPage.enableEmailSubscribers'
                     ) as boolean;
 
-                setEnableSubscribers(enableSubscribers);
+                const enableSMSSubscribers: boolean =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.enableSmsSubscribers'
+                    ) as boolean;
+
+                const allowSubscribersToChooseResources: boolean =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.allowSubscribersToChooseResources'
+                    ) as boolean;
+
+                setAllowSubscribersToChooseResources(
+                    allowSubscribersToChooseResources
+                );
+
+                setenableSMSSubscribers(enableSMSSubscribers);
+                setenableEmailSubscribers(enableEmailSubscribers);
 
                 StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
                 setIsPrivateStatusPage(isPrivateStatusPage);
@@ -309,13 +335,56 @@ const App: () => JSX.Element = () => {
                 <PageRoute
                     path={RouteMap[PageMap.SUBSCRIBE_EMAIL]?.toString() || ''}
                     element={
-                        <Subscribe
+                        <EmailSubscribe
                             pageRoute={
                                 RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route
+                            }
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
                             }
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SUBSCRIBE_SMS]?.toString() || ''}
+                    element={
+                        <SMSSubscribe
+                            pageRoute={RouteMap[PageMap.SUBSCRIBE_SMS] as Route}
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.UPDATE_SUBSCRIPTION]?.toString() || ''
+                    }
+                    element={
+                        <UpdateSubscription
+                            pageRoute={
+                                RouteMap[PageMap.UPDATE_SUBSCRIPTION] as Route
+                            }
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
                         />
                     }
                 />
@@ -342,7 +411,7 @@ const App: () => JSX.Element = () => {
                         ''
                     }
                     element={
-                        <Subscribe
+                        <EmailSubscribe
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
@@ -351,6 +420,58 @@ const App: () => JSX.Element = () => {
                                     PageMap.PREVIEW_SUBSCRIBE_EMAIL
                                 ] as Route
                             }
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_UPDATE_SUBSCRIPTION
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <UpdateSubscription
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.PREVIEW_UPDATE_SUBSCRIPTION
+                                ] as Route
+                            }
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={
+                        RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS]?.toString() ||
+                        ''
+                    }
+                    element={
+                        <SMSSubscribe
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
+                            pageRoute={
+                                RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route
+                            }
+                            allowSubscribersToChooseResources={
+                                allowSubscribersToChooseResources
+                            }
+                            enableEmailSubscribers={enableEmailSubscribers}
+                            enableSMSSubscribers={enableSMSSubscribers}
                         />
                     }
                 />
