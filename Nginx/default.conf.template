@@ -51,7 +51,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80;
+    listen 80 http2;
 
     server_name oneuptime-opentelemetry-collector ${OTEL_COLLECTOR_HOST};
 
