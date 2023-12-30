@@ -62,7 +62,7 @@ export interface OtelRequest extends ExpressRequest {
  *
  */
 router.use(
-    '/otel/*',
+    '/otlp/*',
     async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
         try {
             // check header.
@@ -170,7 +170,7 @@ router.use(
 );
 
 router.post(
-    '/otel/v1/traces',
+    '/otlp/v1/traces',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -240,7 +240,7 @@ router.post(
 );
 
 router.post(
-    '/otel/v1/metrics',
+    '/otlp/v1/metrics',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -480,7 +480,7 @@ router.post(
 );
 
 router.post(
-    '/otel/v1/logs',
+    '/otlp/v1/logs',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
