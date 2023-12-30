@@ -6,12 +6,11 @@ import RouteMap, { RouteUtil } from '../../../../Utils/RouteMap';
 import PageComponentProps from '../../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import TelemetryService from 'Model/Models/TelemetryService';
 import TelemetryDocumentation from '../../../../Components/Telemetry/Documentation';
 
-const ServiceDelete: FunctionComponent<PageComponentProps> = (
+const TelemetryDocumentationPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -68,4 +67,4 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default ServiceDelete;
+export default TelemetryDocumentationPage;

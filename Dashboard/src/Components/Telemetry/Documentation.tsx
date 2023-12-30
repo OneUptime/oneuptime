@@ -11,56 +11,72 @@ import JavaImage from '../Images/SvgImages/java.svg';
 import CSharpImage from '../Images/SvgImages/csharp.svg';
 
 import URL from 'Common/Types/API/URL';
+import Card from 'CommonUI/src/Components/Card/Card';
 
-
-const TelemetryDocumentation: FunctionComponent = (
-
-): ReactElement => {
-
-    const docUrl: URL = URL.fromString("https://github.com/OneUptime/oneuptime/tree/master/Docs/Telemetry/OpenTelemetry");
+const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
+    const docUrl: URL = URL.fromString(
+        'https://github.com/OneUptime/oneuptime/tree/master/Docs/Telemetry/OpenTelemetry'
+    );
 
     return (
-        <ImageTiles
-            tiles={[
-                {
-                    image: JavaScriptImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: TypeScriptImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: ReactImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: NodeImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: RustImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: GoImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: PythonImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: JavaImage,
-                    navigateToUrl: docUrl
-                },
-                {
-                    image: CSharpImage,
-                    navigateToUrl: docUrl
-                },
-
-            ]}
-        />
+        <Card
+            title={'Documentation'}
+            description={
+                'Learn how to integrate OneUptime with your application or resources to collect logs, metriics and traces data.'
+            }
+        >
+            <ImageTiles
+                title="Integrate with OpenTelemetry"
+                description="OneUptime supports a native integration with OpenTelemetry. OpenTelemetry is a collection of tools, APIs, and SDKs used to instrument, generate, collect, and export telemetry data (metrics, logs, and traces) for analysis in order to understand your software performance and behavior."
+                tiles={[
+                    {
+                        image: JavaScriptImage,
+                        navigateToUrl: docUrl,
+                        title: 'JavaScript',
+                    },
+                    {
+                        image: TypeScriptImage,
+                        navigateToUrl: docUrl,
+                        title: 'TypeScript',
+                    },
+                    {
+                        image: ReactImage,
+                        navigateToUrl: docUrl,
+                        title: 'React',
+                    },
+                    {
+                        image: NodeImage,
+                        navigateToUrl: docUrl,
+                        title: 'Node',
+                    },
+                    {
+                        image: RustImage,
+                        navigateToUrl: docUrl,
+                        title: 'Rust',
+                    },
+                    {
+                        image: GoImage,
+                        navigateToUrl: docUrl,
+                        title: 'Go',
+                    },
+                    {
+                        image: PythonImage,
+                        navigateToUrl: docUrl,
+                        title: 'Python',
+                    },
+                    {
+                        image: JavaImage,
+                        navigateToUrl: docUrl,
+                        title: 'Java',
+                    },
+                    {
+                        image: CSharpImage,
+                        navigateToUrl: docUrl,
+                        title: 'C#',
+                    },
+                ]}
+            />
+        </Card>
     );
 };
 

@@ -28,6 +28,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Info}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Documentation',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.Book}
+                />
             </SideMenuSection>
             <SideMenuSection title="Telemetry">
                 <SideMenuItem

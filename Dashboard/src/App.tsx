@@ -15,7 +15,6 @@ import OngoingScheduledEvents from './Pages/Home/OngoingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 
-import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
@@ -344,18 +343,6 @@ const App: () => JSX.Element = () => {
                     element={
                         <ScheduledMaintenanceEventsRoutes
                             {...commonPageProps}
-                        />
-                    }
-                />
-
-                {/* Logs */}
-
-                <PageRoute
-                    path={RouteMap[PageMap.LOGS]?.toString() || ''}
-                    element={
-                        <Logs
-                            {...commonPageProps}
-                            pageRoute={RouteMap[PageMap.LOGS] as Route}
                         />
                     }
                 />

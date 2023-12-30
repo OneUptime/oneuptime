@@ -8,7 +8,7 @@ import URLFromProject from 'Common/Types/API/URL';
 
 export interface ComponentProps {
     onClick?: () => void | undefined;
-    imageUrl?: URLFromProject | Route | undefined;
+    imageUrl?: URLFromProject | Route | ReactElement | undefined;
     height?: number | undefined;
     file?: File | undefined;
     className?: string | undefined;
