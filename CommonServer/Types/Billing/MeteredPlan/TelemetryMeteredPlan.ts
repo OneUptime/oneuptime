@@ -49,10 +49,10 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
 
         for (const usageBilling of usageBillings) {
             if (
-                usageBilling?.totalCostInUSD &&
-                usageBilling?.totalCostInUSD > 0
+                usageBilling?.totalCostInUSD?.value &&
+                usageBilling?.totalCostInUSD.value > 0
             ) {
-                totalCostInUSD += usageBilling.totalCostInUSD;
+                totalCostInUSD += usageBilling.totalCostInUSD.value;
             }
         }
 

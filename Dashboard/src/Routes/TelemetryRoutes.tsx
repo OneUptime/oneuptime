@@ -55,6 +55,12 @@ const TelemetryServicesViewSettings: LazyExoticComponent<
     return import('../Pages/Telemetry/Services/View/Settings');
 });
 
+const TelemetryServicesViewDocumentation: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Telemetry/Services/View/Documentation');
+});
+
 const TelemetryRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -214,6 +220,27 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                             pageRoute={
                                 RouteMap[
                                     PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
+                                ] as Route
+                            }
+                        />
+                    </Suspense>
+                }
+            />
+
+            <PageRoute
+                path={
+                    TelemetryRouthPath[
+                        PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                    ] || ''
+                }
+                element={
+                    <Suspense fallback={Loader}>
+                        <TelemetryServicesViewDocumentation
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .TELEMETRY_SERVICES_VIEW_DOCUMENTATION
                                 ] as Route
                             }
                         />

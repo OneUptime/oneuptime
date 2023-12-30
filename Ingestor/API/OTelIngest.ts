@@ -35,9 +35,11 @@ import { ProductType } from 'Model/Models/UsageBilling';
 const LogsProto: protobuf.Root = protobuf.loadSync(
     '/usr/src/app/ProtoFiles/OTel/v1/logs.proto'
 );
+
 const TracesProto: protobuf.Root = protobuf.loadSync(
     '/usr/src/app/ProtoFiles/OTel/v1/traces.proto'
 );
+
 const MetricsProto: protobuf.Root = protobuf.loadSync(
     '/usr/src/app/ProtoFiles/OTel/v1/metrics.proto'
 );
@@ -63,6 +65,18 @@ router.use(
     '/otel/*',
     async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
         try {
+            // check header.
+
+            const serviceTokenInHeader: string | undefined = req.headers[
+                'x-oneuptime-service-token'
+            ] as string | undefined;
+
+            if (!serviceTokenInHeader) {
+                throw new BadRequestException(
+                    'Missing header: x-oneuptime-service-token'
+                );
+            }
+
             // size of req.body in bytes.
             const sizeInBytes: number = Buffer.byteLength(
                 JSON.stringify(req.body)
@@ -83,18 +97,6 @@ router.use(
                 productType = ProductType.Metrics;
             } else {
                 throw new BadRequestException('Invalid URL: ' + req.baseUrl);
-            }
-
-            // check header.
-
-            const serviceTokenInHeader: string | undefined = req.headers[
-                'x-oneuptime-service-token'
-            ] as string | undefined;
-
-            if (!serviceTokenInHeader) {
-                throw new BadRequestException(
-                    'Missing header: oneuptime-service-token'
-                );
             }
 
             const cachedServiceId: string | null = await GlobalCache.getString(

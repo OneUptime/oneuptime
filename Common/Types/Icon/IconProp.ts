@@ -20,6 +20,7 @@ enum IconProp {
     Calendar = 'Calendar',
     Help = 'Help',
     Reload = 'Reload',
+    Book = 'Book',
     JSON = 'JSON',
     Signal = 'Signal',
     Stop = 'Stop',

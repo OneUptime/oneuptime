@@ -40,6 +40,7 @@ export const TelemetryRouthPath: Dictionary<string> = {
     [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
     [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `${RouteParams.ModelID}/dashboards`,
     [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+    [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -80,6 +81,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
 };
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
+    [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: 'ongoing',
     [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -339,7 +341,11 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/ongoing`
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+            ScheduledMaintenanceEventsRoutePath[
+                PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+            ]
+        }`
     ),
 
     [PageMap.SCHEDULED_MAINTENANCE_VIEW]: new Route(
@@ -661,6 +667,12 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.TELEMETRY_SERVICES_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
             TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW]
+        }`
+    ),
+
+    [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
+            TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]
         }`
     ),
 

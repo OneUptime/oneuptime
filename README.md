@@ -13,10 +13,10 @@ OneUptime replaces multiple tools with one integrated platform:
 -   **Incident Management**: Manage incidents from start to finish with a collaborative workflow. Create incident reports, assign tasks, update stakeholders, and document resolutions. Replace tools like Incident.io.
 -   **On-call Rotation and Alerts**: Schedule on-call shifts for your team and define escalation policies. Ensure that the right person is notified at the right time when an incident occurs. Replace tools like PagerDuty.
 -   **Tests** (Coming soon): Automate testing of your online services with scripts or scenarios. Verify the functionality and performance of your APIs, web pages, or workflows. Replace tools like Postman.
--   **Security** (Coming soon): Protect your online services from cyberattacks and vulnerabilities. Scan your code and dependencies for security issues and get recommendations for fixing them. Replace tools like Snyk.
 -   **Logs Management** (Coming soon): Collect, store, and analyze logs from your online services. Search, filter, and visualize log data to gain insights and troubleshoot issues. Replace tools like Loggly.
 -   **Performance Monitoring** (Coming soon): Measure and optimize the performance of your online services. Track key metrics such as response time, throughput, error rate, and user satisfaction. Replace tools like NewRelic.
 -   **Error Tracking** (Coming soon): Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
+-   **Reliability Autopilot** (Coming soon): Scan your code and fix performance issues and errors automatically. Get recommendations for improving the reliability of your online services.
 
 All under one platform.
 

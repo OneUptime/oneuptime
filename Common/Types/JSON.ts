@@ -28,6 +28,7 @@ import StartAndEndTime from './Time/StartAndEndTime';
 
 export enum ObjectType {
     ObjectID = 'ObjectID',
+    Decimal = 'Decimal',
     Name = 'Name',
     EqualToOrNull = 'EqualToOrNull',
     MonitorSteps = 'MonitorSteps',

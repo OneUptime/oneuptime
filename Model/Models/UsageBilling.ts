@@ -16,6 +16,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
+import Decimal from 'Common/Types/Decimal';
 
 export enum ProductType {
     Logs = 'Logs',
@@ -170,8 +171,9 @@ export default class UsageBilling extends AccessControlModel {
     @Column({
         nullable: false,
         type: ColumnType.Decimal,
+        transformer: Decimal.getDatabaseTransformer(),
     })
-    public usageCount?: number = undefined;
+    public usageCount?: Decimal = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -216,8 +218,9 @@ export default class UsageBilling extends AccessControlModel {
     @Column({
         nullable: false,
         type: ColumnType.Decimal,
+        transformer: Decimal.getDatabaseTransformer(),
     })
-    public totalCostInUSD?: number = undefined;
+    public totalCostInUSD?: Decimal = undefined;
 
     @ColumnAccessControl({
         create: [],

@@ -1,12 +1,12 @@
 # OneUptime otel-collector Deployment
-{{- $identityEnv := dict "PORT"  $.Values.port.otelCollector -}}
-{{- $identityDeploymentArgs :=dict "IsServer" true "ServiceName" "otel-collector" "Port" $.Values.port.otelCollector "Release" $.Release "Values" $.Values "Env" $identityEnv -}}
+{{- $identityEnv := dict "PORT"  $.Values.port.otelCollectorGrpc -}}
+{{- $identityDeploymentArgs :=dict "IsServer" true "ServiceName" "otel-collector" "Port" $.Values.port.otelCollectorGrpc "Release" $.Release "Values" $.Values "Env" $identityEnv -}}
 {{- include "oneuptime.deployment" $identityDeploymentArgs }}
 ---
 
 # OneUptime otel-collector Service
 
-{{- $identityServiceArgs := dict "ServiceName" "otel-collector" "Port" $.Values.port.otelCollector "Release" $.Release "Values" $.Values -}}
+{{- $identityServiceArgs := dict "ServiceName" "otel-collector" "Port" $.Values.port.otelCollectorGrpc "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $identityServiceArgs }}
 ---
 

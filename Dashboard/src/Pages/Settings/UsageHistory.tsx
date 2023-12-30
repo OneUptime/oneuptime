@@ -12,6 +12,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DashboardNavigation from '../../Utils/Navigation';
 import Currency from 'Common/Types/Currency';
 import DiskSize from 'Common/Types/DiskSize';
+import Decimal from 'Common/Types/Decimal';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -93,7 +94,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                         getElement: (item: JSONObject) => {
                             return (
                                 <div>{`${DiskSize.convertToDecimalPlaces(
-                                    item['usageCount'] as number
+                                    (item['usageCount'] as Decimal)
+                                        .value as number
                                 )} ${item['usageUnitName'] as string}`}</div>
                             );
                         },
@@ -107,7 +109,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                         getElement: (item: JSONObject) => {
                             return (
                                 <div>{`${Currency.convertToDecimalPlaces(
-                                    item['totalCostInUSD'] as number
+                                    (item['totalCostInUSD'] as Decimal)
+                                        .value as number
                                 )} USD`}</div>
                             );
                         },

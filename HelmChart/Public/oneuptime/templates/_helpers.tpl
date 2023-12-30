@@ -1,6 +1,8 @@
 {{- define "oneuptime.env.common" }}
 - name: HOST
   value: {{ $.Values.host }}
+- name: OTEL_COLLECTOR_HOST
+  value: {{ $.Values.openTelemetryCollectorHost }}
 - name: HTTP_PROTOCOL
   value: {{ $.Values.httpProtocol }}
 - name: NODE_ENV
@@ -31,7 +33,7 @@
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: OTEL_COLLECTOR_HOSTNAME
+- name: SERVER_OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKERS_HOSTNAME
   value: {{ $.Release.Name }}-workers.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
@@ -66,8 +68,10 @@
   value: {{ $.Values.port.dashboard | squote }}
 - name: ADMIN_DASHBOARD_PORT
   value: {{ $.Values.port.adminDashboard | squote }}
-- name: OTEL_COLLECTOR_PORT
-  value: {{ $.Values.port.otelCollector | squote }}
+- name: OTEL_COLLECTOR_GRPC_PORT
+  value: {{ $.Values.port.otelCollectorGrpc | squote }}
+- name: OTEL_COLLECTOR_HTTP_PORT
+  value: {{ $.Values.port.otelCollectorHttp | squote }}
 {{- end }}
 
 
