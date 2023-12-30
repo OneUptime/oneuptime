@@ -76,6 +76,10 @@ server {
         proxy_pass  http://opentelemetry-collector-http;
     }
 
+    location ~ /opentelemetry.proto.collector* {
+        grpc_pass grpc://opentelemetry-collector-grpc;
+    }
+
 }
 
 # Status Pages
