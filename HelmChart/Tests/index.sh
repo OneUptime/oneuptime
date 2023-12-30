@@ -13,6 +13,9 @@ sudo microk8s enable dashboard
 sudo microk8s enable dns
 sudo microk8s enable hostpath-storage
 
+echo "MicroK8s is ready. Installing OneUptime"
+# Get pods 
+sudo microk8s kubectl get pods
 
 # Install OneUptime 
 sudo microk8s helm install oneuptime ../../HelmChart/Public/oneuptime -f ../../HelmChart/Public/oneuptime/values.yaml -f ./ci-values.yaml
