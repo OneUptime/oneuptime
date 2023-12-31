@@ -46,9 +46,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Builder',
+                    title: 'Variables',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
+                        RouteMap[PageMap.WORKFLOW_VARIABLES] as Route,
                         { modelId }
                     ),
                 },
