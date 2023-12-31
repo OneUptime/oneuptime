@@ -49,13 +49,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         { modelId }
                     ),
                 },
-                {
-                    title: 'Builder',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
-                        { modelId }
-                    ),
-                },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
