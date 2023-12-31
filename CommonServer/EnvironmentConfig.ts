@@ -60,7 +60,6 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
-
 export const WorkerHostname: Hostname = Hostname.fromString(
     `${process.env['SERVER_WORKERS_HOSTNAME'] || 'localhost'}:${
         process.env['WORKERS_PORT'] || 80
