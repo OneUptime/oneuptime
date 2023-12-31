@@ -34,7 +34,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
         React.useState<boolean>(true);
     const [showMoreFilters, setShowMoreFilters] =
         React.useState<boolean>(false);
-    const [isSqlQuery, _setIsSqlQuery] = React.useState<boolean>(false);
+    const [isSqlQuery] = React.useState<boolean>(false);
 
     const showAutoScrollButton: boolean =
         !isSqlQuery && !showMoreFilters && !filterOptions.searchText;
