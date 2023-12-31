@@ -86,13 +86,13 @@ router.use(
 
             const sizeToGb: number = DiskSize.byteSizeToGB(sizeInBytes);
 
-            if (req.baseUrl === '/otel/v1/traces') {
+            if (req.baseUrl === '/otlp/v1/traces') {
                 req.body = TracesData.decode(req.body);
                 productType = ProductType.Traces;
-            } else if (req.baseUrl === '/otel/v1/logs') {
+            } else if (req.baseUrl === '/otlp/v1/logs') {
                 req.body = LogsData.decode(req.body);
                 productType = ProductType.Logs;
-            } else if (req.baseUrl === '/otel/v1/metrics') {
+            } else if (req.baseUrl === '/otlp/v1/metrics') {
                 req.body = MetricsData.decode(req.body);
                 productType = ProductType.Metrics;
             } else {
