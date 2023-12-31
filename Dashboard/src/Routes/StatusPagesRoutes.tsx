@@ -7,10 +7,11 @@ import React, {
 } from 'react';
 import { Routes, Route as PageRoute } from 'react-router';
 import PageMap from '../Utils/PageMap';
-import RouteMap, { StatusPagesRoutePath } from '../Utils/RouteMap';
+import RouteMap, { RouteUtil, StatusPagesRoutePath } from '../Utils/RouteMap';
 import ComponentProps from '../Pages/PageComponentProps';
 import Route from 'Common/Types/API/Route';
 import Loader from '../Components/Loader/Loader';
+import StatusPageViewLayout from '../Pages/StatusPages/View/Layout';
 
 // Pages
 const StatusPages: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -151,437 +152,418 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
 
             <PageRoute
-                path={
-                    StatusPagesRoutePath[
-                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageViewSubscriberSettings
-                            {...props}
-                            pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
                 path={StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesView
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.STATUS_PAGE_VIEW] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                element={<StatusPageViewLayout {...props} />}
+            >
+                <PageRoute
+                    index
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.STATUS_PAGE_VIEW] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageViewSubscriberSettings
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.STATUS_PAGES] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_DELETE
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewDelete
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_DELETE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_BRANDING
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewBranding
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_BRANDING
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_DELETE] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewDelete
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_DELETE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_BRANDING] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewBranding
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_BRANDING
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewCustomHtmlCss
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewCustomHtmlCss
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewAdvancedOptions
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewAdvancedOptions
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageViewCustomFields
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageViewCustomFields
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_OWNERS] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageViewOwners
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_OWNERS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_OWNERS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageViewOwners
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_OWNERS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SSO] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageViewSSO
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_SSO
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageViewSSO
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_SSO
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewEmailSubscribers
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewEmailSubscribers
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageViewAuthenticationSettings
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageViewAuthenticationSettings
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SETTINGS] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageViewSettings
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_SETTINGS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_SETTINGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageViewSettings
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_SETTINGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageViewPrivateUser
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageViewPrivateUser
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewSMSSubscribers
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewSMSSubscribers
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewHeaderStyle
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewHeaderStyle
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewFooterStyle
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewFooterStyle
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewNavBarStyle
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewNavBarStyle
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewWebhookSubscribers
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewWebhookSubscribers
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_EMBEDDED] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewEmbedded
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_EMBEDDED
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewEmbedded
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_RESOURCES] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewResources
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_RESOURCES
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_RESOURCES
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewResources
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_DOMAINS] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewDomains
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_DOMAINS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_DOMAINS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewDomains
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_GROUPS] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewGroups
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_GROUPS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_GROUPS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewGroups
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_GROUPS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    StatusPagesRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPagesViewAnnouncement
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewAnnouncement
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
         </Routes>
     );
 };

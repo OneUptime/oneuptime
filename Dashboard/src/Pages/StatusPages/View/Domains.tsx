@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
@@ -19,7 +19,6 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import StatusPage from 'Model/Models/StatusPage';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -31,43 +30,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         useState<boolean>(false);
 
     return (
-        <ModelPage
-            title="Status Page"
-            modelType={StatusPage}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Status Pages',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Status Page',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Domains',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <>
                 <ModelTable<StatusPageDomain>
                     modelType={StatusPageDomain}
@@ -277,7 +240,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     />
                 )}
             </>
-        </ModelPage>
+        </Fragment>
     );
 };
 

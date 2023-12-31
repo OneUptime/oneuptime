@@ -1,10 +1,5 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
@@ -18,43 +13,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <ModelPage
-            title="Status Page"
-            modelType={StatusPage}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Status Pages',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Status Page',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Essential Branding',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <CardModelDetail<StatusPage>
                 name="Status Page > Branding > Title and Description"
                 cardProps={{
@@ -185,7 +144,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-        </ModelPage>
+        </Fragment>
     );
 };
 
