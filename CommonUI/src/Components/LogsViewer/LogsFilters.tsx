@@ -34,7 +34,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
         React.useState<boolean>(true);
     const [showMoreFilters, setShowMoreFilters] =
         React.useState<boolean>(false);
-    const [isSqlQuery, setIsSqlQuery] = React.useState<boolean>(false);
+    const [isSqlQuery, _setIsSqlQuery] = React.useState<boolean>(false);
 
     const showAutoScrollButton: boolean =
         !isSqlQuery && !showMoreFilters && !filterOptions.searchText;
@@ -270,7 +270,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                 </div>
                             )}
                             <div>
-                                {!isSqlQuery && (
+                                {/* {!isSqlQuery && (
                                     <Button
                                         buttonStyle={
                                             ButtonStyleType.SECONDARY_LINK
@@ -291,11 +291,11 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                             setIsSqlQuery(false);
                                         }}
                                     />
-                                )}
+                                )} */}
                             </div>
                         </div>
                         <div className="flex">
-                            <div>
+                            {/* <div>
                                 <Button
                                     buttonStyle={ButtonStyleType.SECONDARY_LINK}
                                     title="Save as Preset"
@@ -312,7 +312,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
                                         setIsSqlQuery(true);
                                     }}
                                 />
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>
