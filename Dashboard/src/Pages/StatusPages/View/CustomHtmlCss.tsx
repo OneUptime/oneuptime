@@ -46,9 +46,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Custom HTML, CSS & JavaScript',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                        ] as Route,
                         { modelId }
                     ),
                 },
