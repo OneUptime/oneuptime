@@ -1133,6 +1133,11 @@ export class RouteUtil {
         return RouteMap[key]?.toString() || '';
     }
 
+    public static getLastPath(path: string): string {
+        const paths: string[] = path.split('/');
+        return paths[paths.length - 1] || '';
+    }
+
     public static getLastPathForKey(key: string): string {
         const routePath: string = RouteMap[key]?.toString() || '';
         const paths: string[] = routePath.split('/');

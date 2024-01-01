@@ -1,8 +1,4 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
@@ -13,37 +9,13 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import DashboardSideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page
-            title={'On-Call Duty Schedules'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'On-Call Duty',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY] as Route
-                    ),
-                },
-                {
-                    title: 'Schedules',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <ModelTable<OnCallDutySchedule>
                 modelType={OnCallDutySchedule}
                 id="on-call-duty-table"
@@ -152,7 +124,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </Fragment>
     );
 };
 
