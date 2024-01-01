@@ -60,10 +60,10 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete On-Call Policy',
+                    title: 'Escalation Rules',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
+                            PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
                         ] as Route,
                         { modelId }
                     ),

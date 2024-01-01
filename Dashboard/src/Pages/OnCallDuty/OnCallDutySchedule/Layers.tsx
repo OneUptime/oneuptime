@@ -47,10 +47,10 @@ const OnCallScheduleDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete On-Call Schedule',
+                    title: 'Layers',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE
+                            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS
                         ] as Route,
                         { modelId }
                     ),
