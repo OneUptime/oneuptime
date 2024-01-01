@@ -10,7 +10,7 @@
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.8",
     "Model": "file:../Model",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@faker-js/faker": "^6.3.1",

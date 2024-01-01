@@ -28,8 +28,7 @@ builder.Logging.AddOpenTelemetry(logging =>
         .AddConsoleExporter()
         .AddOtlpExporter(opt =>
         {
-        
-
+            // opt.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
             System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
         });
 });
@@ -43,7 +42,7 @@ builder.Services.AddOpenTelemetry()
         .AddConsoleExporter()
          .AddOtlpExporter(opt =>
                 {
-                   
+                   // opt.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
 
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
                 }));
@@ -65,8 +64,7 @@ builder.Services.AddOpenTelemetry()
         })
          .AddOtlpExporter(opt =>
                 {
-                   
-
+                    // opt.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
                     System.Console.WriteLine($"OTLP Exporter is using {opt.Protocol} protocol and endpoint {opt.Endpoint}");
 
                 }));

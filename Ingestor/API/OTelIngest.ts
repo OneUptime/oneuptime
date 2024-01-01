@@ -62,7 +62,7 @@ export interface OtelRequest extends ExpressRequest {
  *
  */
 router.use(
-    '/otel/*',
+    '/otlp/*',
     async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
         try {
             // check header.
@@ -86,13 +86,13 @@ router.use(
 
             const sizeToGb: number = DiskSize.byteSizeToGB(sizeInBytes);
 
-            if (req.baseUrl === '/otel/v1/traces') {
+            if (req.baseUrl === '/otlp/v1/traces') {
                 req.body = TracesData.decode(req.body);
                 productType = ProductType.Traces;
-            } else if (req.baseUrl === '/otel/v1/logs') {
+            } else if (req.baseUrl === '/otlp/v1/logs') {
                 req.body = LogsData.decode(req.body);
                 productType = ProductType.Logs;
-            } else if (req.baseUrl === '/otel/v1/metrics') {
+            } else if (req.baseUrl === '/otlp/v1/metrics') {
                 req.body = MetricsData.decode(req.body);
                 productType = ProductType.Metrics;
             } else {
@@ -170,7 +170,7 @@ router.use(
 );
 
 router.post(
-    '/otel/v1/traces',
+    '/otlp/v1/traces',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -240,7 +240,7 @@ router.post(
 );
 
 router.post(
-    '/otel/v1/metrics',
+    '/otlp/v1/metrics',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -480,7 +480,7 @@ router.post(
 );
 
 router.post(
-    '/otel/v1/logs',
+    '/otlp/v1/logs',
     async (
         req: ExpressRequest,
         res: ExpressResponse,

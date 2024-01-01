@@ -48,16 +48,12 @@
   value: {{ $.Values.port.app | squote }}
 - name: WORKFLOW_PORT
   value: {{ $.Values.port.workflow | squote }}
-- name: ALERT_PORT
-  value: {{ $.Values.port.alert | squote }}
 - name: INGESTOR_PORT
   value: {{ $.Values.port.ingestor | squote }}
 - name: PROBE_PORT
   value: {{ $.Values.port.probe | squote }}
 - name: TEST_SERVER_PORT
   value: {{ $.Values.port.testServer | squote }}
-- name: REALTIME_PORT
-  value: {{ $.Values.port.realtime | squote }}
 - name: WORKERS_PORT
   value: {{ $.Values.port.workers | squote }}
 - name: ACCOUNTS_PORT
@@ -68,10 +64,6 @@
   value: {{ $.Values.port.dashboard | squote }}
 - name: ADMIN_DASHBOARD_PORT
   value: {{ $.Values.port.adminDashboard | squote }}
-- name: OTEL_COLLECTOR_GRPC_PORT
-  value: {{ $.Values.port.otelCollectorGrpc | squote }}
-- name: OTEL_COLLECTOR_HTTP_PORT
-  value: {{ $.Values.port.otelCollectorHttp | squote }}
 {{- end }}
 
 
