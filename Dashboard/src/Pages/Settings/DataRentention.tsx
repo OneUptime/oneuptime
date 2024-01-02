@@ -1,14 +1,9 @@
 import Project from 'Model/Models/Project';
-import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import DashboardNavigation from '../../Utils/Navigation';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 
@@ -16,30 +11,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Data Retention',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <Alert
                 type={AlertType.DANGER}
                 strongTitle="Please note"
@@ -86,7 +58,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     modelId: DashboardNavigation.getProjectId()!,
                 }}
             />
-        </Page>
+        </Fragment>
     );
 };
 

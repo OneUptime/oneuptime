@@ -1138,10 +1138,13 @@ export class RouteUtil {
         return paths[paths.length - 1] || '';
     }
 
-    public static getLastPathForKey(key: string): string {
+    public static getLastPathForKey(key: string, count: number = 1): string {
         const routePath: string = RouteMap[key]?.toString() || '';
         const paths: string[] = routePath.split('/');
-        return paths[paths.length - 1] || '';
+        if (count === 1) {
+            return paths[paths.length - 1] || '';
+        }
+        return paths.splice(paths.length - count, count).join('/');
     }
 }
 

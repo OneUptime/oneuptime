@@ -1,10 +1,5 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import ModelTable, {
     ShowTableAs,
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -21,30 +16,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Scheduled Maintenance State',
-                    to: RouteMap[
-                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
-                    ] as Route,
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <ModelTable<ScheduledMaintenanceState>
                 modelType={ScheduledMaintenanceState}
                 id="ScheduledMaintenance-state-table"
@@ -176,7 +148,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     shouldAddItemInTheEnd: true,
                 }}
             />
-        </Page>
+        </Fragment>
     );
 };
 

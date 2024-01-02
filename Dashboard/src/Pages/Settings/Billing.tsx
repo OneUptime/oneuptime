@@ -7,11 +7,11 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Page from 'CommonUI/src/Components/Page/Page';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Project from 'Model/Models/Project';
 import React, {
+    Fragment,
     FunctionComponent,
     ReactElement,
     useRef,
@@ -20,7 +20,6 @@ import React, {
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Modal from 'CommonUI/src/Components/Modal/Modal';
@@ -158,30 +157,7 @@ const Settings: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Billing',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_BILLING] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             {isLoading ? <PageLoader isVisible={true} /> : <></>}
 
             {error ? <ErrorMessage error={error} /> : <></>}
@@ -633,7 +609,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             ) : (
                 <></>
             )}
-        </Page>
+        </Fragment>
     );
 };
 

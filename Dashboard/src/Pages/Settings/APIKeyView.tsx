@@ -1,10 +1,8 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -31,36 +29,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
     const [refresher, setRefresher] = React.useState<boolean>(false);
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'API Keys',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_APIKEYS] as Route
-                    ),
-                },
-                {
-                    title: 'View API Key',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             {/* API Key View  */}
             <CardModelDetail
                 name="API Key Details"
@@ -299,7 +268,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     );
                 }}
             />
-        </Page>
+        </Fragment>
     );
 };
 

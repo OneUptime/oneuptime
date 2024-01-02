@@ -1,14 +1,14 @@
 import Project from 'Model/Models/Project';
-import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import DashboardNavigation from '../../Utils/Navigation';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { BILLING_ENABLED, APP_API_URL } from 'CommonUI/src/Config';
@@ -34,32 +34,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
     >(null);
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Notification Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.SETTINGS_NOTIFICATION_SETTINGS
-                        ] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             {/* API Key View  */}
             {BILLING_ENABLED ? (
                 <CardModelDetail
@@ -395,7 +370,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
             <CustomSMTPTable />
             <CustomCallSMSTable />
-        </Page>
+        </Fragment>
     );
 };
 
