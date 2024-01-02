@@ -1,10 +1,5 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import DashboardNavigation from '../../Utils/Navigation';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import User from 'CommonUI/src/Utils/User';
@@ -133,32 +128,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
     };
 
     return (
-        <Page
-            title={'User Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'User Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Notification Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
-                        ] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <div>
                 {getModelTable({
                     eventOptions: [
@@ -212,7 +182,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         'Here are the list of notification methods we will use when an event happens on an incident.',
                 })}
             </div>
-        </Page>
+        </Fragment>
     );
 };
 

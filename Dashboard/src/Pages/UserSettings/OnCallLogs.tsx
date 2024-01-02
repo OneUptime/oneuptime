@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -31,30 +31,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
     const [statusMessage, setStatusMessage] = useState<string>('');
 
     return (
-        <Page
-            title={'User Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'User Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Notification Logs',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <ModelTable<UserOnCallLog>
                 modelType={UserOnCallLog}
                 query={{
@@ -264,7 +241,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
-        </Page>
+        </Fragment>
     );
 };
 
