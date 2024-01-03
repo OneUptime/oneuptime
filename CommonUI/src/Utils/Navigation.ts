@@ -37,7 +37,7 @@ abstract class Navigation {
         return new Route(window.location.pathname);
     }
 
-    public static getBreadcrumpRoute(level: number): Route {
+    public static getBreadcrumbRoute(level: number): Route {
         const paths: Array<string> = this.location.pathname.split('/');
         // +2 because we want to include the first 2 paths which are empty, dashboard and project id
         const indexToSplice: number = level + 2;

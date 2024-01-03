@@ -21,7 +21,7 @@ export function BuildBreadcrumbLinksByTitles(
             (title: string, index: number) => {
                 return {
                     title,
-                    to: Navigation.getBreadcrumpRoute(index + 1),
+                    to: Navigation.getBreadcrumbRoute(index + 1),
                 };
             }
         ),
