@@ -36,7 +36,7 @@ export const HTTP_PROTOCOL: Protocol =
 
 export const HOST: string = env('HOST') || '';
 
-export const BILLING_ENABLED: boolean = true;
+export const BILLING_ENABLED: boolean = env('BILLING_ENABLED') === 'true';
 export const BILLING_PUBLIC_KEY: string = env('BILLING_PUBLIC_KEY') || '';
 
 export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
