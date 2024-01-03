@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
@@ -21,7 +21,6 @@ import User from 'Model/Models/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -118,45 +117,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         };
 
     return (
-        <ModelPage
-            title="Scheduled Event"
-            modelType={ScheduledMaintenance}
-            modelId={modelId}
-            modelNameField="title"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Scheduled Maintenance Events',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Scheduled Maintenance Event',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Public Notes',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
-                        ] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <ModelTable<ScheduledMaintenancePublicNote>
                 modelType={ScheduledMaintenancePublicNote}
                 id="table-scheduled-maintenance-internal-note"
@@ -368,7 +329,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             ) : (
                 <> </>
             )}
-        </ModelPage>
+        </Fragment>
     );
 };
 

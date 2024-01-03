@@ -1,16 +1,16 @@
-import Route from 'Common/Types/API/Route';
 import { JSONObject } from 'Common/Types/JSON';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Page from 'CommonUI/src/Components/Page/Page';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import Text from 'Common/Types/Text';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import BillingInvoice from 'Model/Models/BillingInvoice';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import URL from 'Common/Types/API/URL';
@@ -65,30 +65,7 @@ const Settings: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Invoices',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             {isLoading ? <ComponentLoader /> : <></>}
 
             {!isLoading ? (
@@ -237,7 +214,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             ) : (
                 <></>
             )}
-        </Page>
+        </Fragment>
     );
 };
 

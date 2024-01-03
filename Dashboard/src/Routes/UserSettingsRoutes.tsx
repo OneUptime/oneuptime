@@ -11,6 +11,7 @@ import RouteMap, { UserSettingsRoutePath } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import ComponentProps from '../Pages/PageComponentProps';
 import Loader from '../Components/Loader/Loader';
+import UserSettingsLayout from '../Pages/UserSettings/Layout';
 
 // Pages
 const UserSettingsNotificationMethods: LazyExoticComponent<
@@ -44,116 +45,123 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <Routes>
-            <PageRoute
-                path={UserSettingsRoutePath[PageMap.USER_SETTINGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <UserSettingsNotificationMethods
-                            {...props}
-                            pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
-                        />
-                    </Suspense>
-                }
-            />
+            <PageRoute element={<UserSettingsLayout {...props} />}>
+                <PageRoute
+                    path={UserSettingsRoutePath[PageMap.USER_SETTINGS] || ''}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <UserSettingsNotificationMethods
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.USER_SETTINGS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={
+                        UserSettingsRoutePath[
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS
+                        ] || ''
+                    }
+                    element={
+                        <Suspense fallback={Loader}>
+                            <UserSettingsNotificationLogs
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.USER_SETTINGS_ON_CALL_LOGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_LOGS] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <UserSettingsNotificationLogs
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_LOGS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={
+                        UserSettingsRoutePath[
+                            PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
+                        ] || ''
+                    }
+                    element={
+                        <Suspense fallback={Loader}>
+                            <UserSettingsNotificationLogsTimeline
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .USER_SETTINGS_ON_CALL_LOGS_TIMELINE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    UserSettingsRoutePath[
-                        PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <UserSettingsNotificationLogsTimeline
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={
+                        UserSettingsRoutePath[
+                            PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
+                        ] || ''
+                    }
+                    element={
+                        <Suspense fallback={Loader}>
+                            <UserSettingsNotiifcationSetting
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .USER_SETTINGS_NOTIFICATION_SETTINGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    UserSettingsRoutePath[
-                        PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <UserSettingsNotiifcationSetting
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={
+                        UserSettingsRoutePath[
+                            PageMap.USER_SETTINGS_NOTIFICATION_METHODS
+                        ] || ''
+                    }
+                    element={
+                        <Suspense fallback={Loader}>
+                            <UserSettingsNotificationMethods
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .USER_SETTINGS_NOTIFICATION_METHODS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    UserSettingsRoutePath[
-                        PageMap.USER_SETTINGS_NOTIFICATION_METHODS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <UserSettingsNotificationMethods
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_NOTIFICATION_METHODS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    UserSettingsRoutePath[
-                        PageMap.USER_SETTINGS_ON_CALL_RULES
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <UserSettingsNotificationRules
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.USER_SETTINGS_ON_CALL_RULES
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={
+                        UserSettingsRoutePath[
+                            PageMap.USER_SETTINGS_ON_CALL_RULES
+                        ] || ''
+                    }
+                    element={
+                        <Suspense fallback={Loader}>
+                            <UserSettingsNotificationRules
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.USER_SETTINGS_ON_CALL_RULES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
         </Routes>
     );
 };

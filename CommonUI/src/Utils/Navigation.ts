@@ -1,10 +1,16 @@
 import Route from 'Common/Types/API/Route';
-import { NavigateFunction, Location, Params } from 'react-router-dom';
+import {
+    NavigateFunction,
+    Location,
+    Params,
+    matchRoutes,
+} from 'react-router-dom';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
 import ObjectID from 'Common/Types/ObjectID';
 import Dictionary from 'Common/Types/Dictionary';
+import { AgnosticRouteMatch } from '@remix-run/router';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;
@@ -29,6 +35,21 @@ abstract class Navigation {
 
     public static getCurrentPath(): Route {
         return new Route(window.location.pathname);
+    }
+
+    public static getBreadcrumpRoute(level: number): Route {
+        const paths: Array<string> = this.location.pathname.split('/');
+        // +2 because we want to include the first 2 paths which are empty, dashboard and project id
+        const indexToSplice: number = level + 2;
+        return new Route(paths.splice(0, indexToSplice).join('/'));
+    }
+
+    public static getRoutePath(routes: Array<{ path: string }>): string {
+        const pathes: AgnosticRouteMatch[] | null = matchRoutes(
+            routes,
+            this.location.pathname
+        );
+        return pathes?.[0]?.route.path || '';
     }
 
     public static getQueryStringByName(paramName: string): string | null {

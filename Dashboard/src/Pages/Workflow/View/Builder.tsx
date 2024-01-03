@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow, {
@@ -262,43 +262,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
     }, []);
 
     return (
-        <ModelPage
-            title="Workflow"
-            modelType={WorkflowModel}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Workflows',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOWS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Workflow',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOW_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Builder',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <>
                 <Banner
                     openInNewTab={true}
@@ -405,7 +369,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     />
                 )}
             </>
-        </ModelPage>
+        </Fragment>
     );
 };
 

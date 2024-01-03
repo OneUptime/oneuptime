@@ -7,10 +7,12 @@ import React, {
 } from 'react';
 import { Routes, Route as PageRoute } from 'react-router';
 import Route from 'Common/Types/API/Route';
-import RouteMap, { WorkflowRoutePath } from '../Utils/RouteMap';
+import RouteMap, { RouteUtil, WorkflowRoutePath } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import ComponentProps from '../Pages/PageComponentProps';
 import Loader from '../Components/Loader/Loader';
+import WorkflowsLayout from '../Pages/Workflow/Layout';
+import WorkflowViewLayout from '../Pages/Workflow/View/Layout';
 
 // Lazy Pages
 const Workflows: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
@@ -58,127 +60,145 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <Routes>
-            <PageRoute
-                index
-                element={
-                    <Suspense fallback={Loader}>
-                        <Workflows
-                            {...props}
-                            pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
-                        />
-                    </Suspense>
-                }
-            />
+            <PageRoute path="/" element={<WorkflowsLayout {...props} />}>
+                <PageRoute
+                    index
+                    element={
+                        <Suspense fallback={Loader}>
+                            <Workflows
+                                {...props}
+                                pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={WorkflowRoutePath[PageMap.WORKFLOWS_VARIABLES] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowsVariables
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={WorkflowRoutePath[PageMap.WORKFLOWS_VARIABLES] || ''}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowsVariables
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.WORKFLOWS_VARIABLES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={WorkflowRoutePath[PageMap.WORKFLOWS_LOGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowsLogs
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOWS_LOGS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={WorkflowRoutePath[PageMap.WORKFLOW_VARIABLES] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowVariables
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOW_VARIABLES] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={WorkflowRoutePath[PageMap.WORKFLOW_VIEW_SETTINGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowSettings
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.WORKFLOW_VIEW_SETTINGS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={WorkflowRoutePath[PageMap.WORKFLOW_BUILDER] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowBuilder
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOW_BUILDER] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={WorkflowRoutePath[PageMap.WORKFLOWS_LOGS] || ''}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowsLogs
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.WORKFLOWS_LOGS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
 
             <PageRoute
                 path={WorkflowRoutePath[PageMap.WORKFLOW_VIEW] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowOverview
-                            {...props}
-                            pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
-                        />
-                    </Suspense>
-                }
-            />
+                element={<WorkflowViewLayout {...props} />}
+            >
+                <PageRoute
+                    index
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowOverview
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.WORKFLOW_VIEW] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.WORKFLOW_VIEW_SETTINGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowSettings
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.WORKFLOW_VIEW_SETTINGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={WorkflowRoutePath[PageMap.WORKFLOW_LOGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowLogs
-                            {...props}
-                            pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.WORKFLOW_VARIABLES
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowVariables
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.WORKFLOW_VARIABLES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={WorkflowRoutePath[PageMap.WORKFLOW_DELETE] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <WorkflowDelete
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.WORKFLOW_DELETE] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_BUILDER)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowBuilder
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.WORKFLOW_BUILDER] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_LOGS)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowLogs
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.WORKFLOW_LOGS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_DELETE)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <WorkflowDelete
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.WORKFLOW_DELETE] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
         </Routes>
     );
 };

@@ -1,15 +1,11 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
 import React, {
+    Fragment,
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -349,30 +345,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page
-            title={'User Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'User Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Notification Rules',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <div>
                 {incidentSeverities.map(
                     (incidentSeverity: IncidentSeverity, i: number) => {
@@ -416,7 +389,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         'Here are the rules to notify you when you go off call.',
                 })}
             </div> */}
-        </Page>
+        </Fragment>
     );
 };
 

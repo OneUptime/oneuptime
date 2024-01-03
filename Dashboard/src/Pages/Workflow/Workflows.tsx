@@ -1,15 +1,11 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Workflow from 'Model/Models/Workflow';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import WorkflowSideMenu from './SideMenu';
 import Label from 'Model/Models/Label';
 import DashboardNavigation from '../../Utils/Navigation';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -33,24 +29,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
     const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
 
     return (
-        <Page
-            title={'Workflows'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Workflows',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOWS] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<WorkflowSideMenu />}
-        >
+        <Fragment>
             <>
                 <Banner
                     openInNewTab={true}
@@ -220,7 +199,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
             </>
-        </Page>
+        </Fragment>
     );
 };
 

@@ -7,10 +7,11 @@ import React, {
 } from 'react';
 import { Routes, Route as PageRoute } from 'react-router';
 import Route from 'Common/Types/API/Route';
-import RouteMap, { MonitorGroupRoutePath } from '../Utils/RouteMap';
+import RouteMap, { MonitorGroupRoutePath, RouteUtil } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import ComponentProps from '../Pages/PageComponentProps';
 import Loader from '../Components/Loader/Loader';
+import MonitorGroupViewLayout from '../Pages/MonitorGroup/View/Layout';
 
 // Pages
 const MonitorGroups: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -63,95 +64,95 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
 
             <PageRoute
                 path={MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <MonitorGroupView
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                element={<MonitorGroupViewLayout {...props} />}
+            >
+                <PageRoute
+                    index
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorGroupView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.MONITOR_GROUP_VIEW
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.MONITOR_GROUP_VIEW_DELETE
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorGroupViewDelete
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.MONITOR_GROUP_VIEW_DELETE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_DELETE] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <MonitorGroupViewDelete
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_DELETE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    MonitorGroupRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.MONITOR_GROUP_VIEW_MONITORS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <MonitorGroupViewMonitors
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_MONITORS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorGroupViewMonitors
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.MONITOR_GROUP_VIEW_MONITORS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    MonitorGroupRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.MONITOR_GROUP_VIEW_INCIDENTS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <MonitorGroupViewIncidents
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_INCIDENTS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorGroupViewIncidents
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.MONITOR_GROUP_VIEW_INCIDENTS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_OWNERS] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <MonitorGroupViewOwners
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.MONITOR_GROUP_VIEW_OWNERS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.MONITOR_GROUP_VIEW_OWNERS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorGroupViewOwners
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.MONITOR_GROUP_VIEW_OWNERS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
         </Routes>
     );
 };

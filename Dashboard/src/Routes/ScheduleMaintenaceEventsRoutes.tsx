@@ -8,11 +8,14 @@ import React, {
 import { Routes, Route as PageRoute } from 'react-router';
 import Route from 'Common/Types/API/Route';
 import RouteMap, {
+    RouteUtil,
     ScheduledMaintenanceEventsRoutePath,
 } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import ComponentProps from '../Pages/PageComponentProps';
 import Loader from '../Components/Loader/Loader';
+import ScheduledMaintenancesLaoyut from '../Pages/ScheduledMaintenanceEvents/Layout';
+import ScheduledMaintenanceViewLayout from '../Pages/ScheduledMaintenanceEvents/View/Layout';
 
 // Pages
 
@@ -70,44 +73,45 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
     return (
         <Routes>
             <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
-                        PageMap.SCHEDULED_MAINTENANCE_EVENTS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEvents
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
-                        PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <OngoingScheduledMaintenanceEvents
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                path="/"
+                element={<ScheduledMaintenancesLaoyut {...props} />}
+            >
+                <PageRoute
+                    index
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEvents
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={
+                        ScheduledMaintenanceEventsRoutePath[
+                            PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                        ] || ''
+                    }
+                    element={
+                        <Suspense fallback={Loader}>
+                            <OngoingScheduledMaintenanceEvents
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
 
             <PageRoute
                 path={
@@ -115,141 +119,136 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                         PageMap.SCHEDULED_MAINTENANCE_VIEW
                     ] || ''
                 }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEventView
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
+                element={<ScheduledMaintenanceViewLayout {...props} />}
+            >
+                <PageRoute
+                    index
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEventView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SCHEDULED_MAINTENANCE_VIEW
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEventsViewCustomFields
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEventsViewCustomFields
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEventViewDelete
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEventViewDelete
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SCHEDULED_MAINTENANCE_VIEW_DELETE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEventViewOwner
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEventViewOwner
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SCHEDULED_MAINTENANCE_VIEW_OWNERS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEventViewStateTimeline
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEventViewStateTimeline
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEventInternalNote
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEventInternalNote
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    ScheduledMaintenanceEventsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceEventPublicNote
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceEventPublicNote
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
         </Routes>
     );
 };
