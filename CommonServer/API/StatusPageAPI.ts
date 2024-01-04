@@ -619,7 +619,10 @@ export default class StatusPageAPI extends BaseAPI<
                     const monitorsOnStatusPageForTimeline: Array<ObjectID> =
                         statusPageResources
                             .filter((monitor: StatusPageResource) => {
-                                return monitor.showStatusHistoryChart || monitor.showUptimePercent;
+                                return (
+                                    monitor.showStatusHistoryChart ||
+                                    monitor.showUptimePercent
+                                );
                             })
                             .map((monitor: StatusPageResource) => {
                                 return monitor.monitorId!;
