@@ -16,7 +16,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.3",
+    "axios": "^1.6.4",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "greenlock": "^4.0.4",
