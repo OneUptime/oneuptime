@@ -22,7 +22,7 @@
     "dependencies": {
         "@types/crypto-js": "^4.1.1",
         "@types/uuid": "^8.3.4",
-        "axios": "^1.6.3",
+        "axios": "^1.6.4",
         "crypto-js": "^4.1.1",
         "json5": "^2.2.3",
         "moment": "^2.29.2",
@@ -30,7 +30,7 @@
         "posthog-js": "^1.77.0",
         "reflect-metadata": "^0.1.13",
         "slugify": "^1.6.5",
-        "typeorm": "^0.3.6",
+        "typeorm": "^0.3.18",
         "uuid": "^8.3.2"
     }
 }
