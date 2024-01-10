@@ -40,7 +40,7 @@
         "socket.io": "^4.7.2",
         "stripe": "^10.17.0",
         "twilio": "^4.19.3",
-        "typeorm": "^0.3.10",
+        "typeorm": "^0.3.18",
         "typeorm-extension": "^2.2.13",
         "vm2": "^3.9.14",
         "winston": "^3.6.0"
