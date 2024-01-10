@@ -1,8 +1,4 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
@@ -13,7 +9,6 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import DashboardSideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import URL from 'Common/Types/API/URL';
@@ -22,30 +17,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page
-            title={'On-Call Duty'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'On-Call Duty',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY] as Route
-                    ),
-                },
-                {
-                    title: 'Policies',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <Banner
                 openInNewTab={true}
                 title="Learn how on-call policy works"
@@ -161,7 +133,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </Fragment>
     );
 };
 

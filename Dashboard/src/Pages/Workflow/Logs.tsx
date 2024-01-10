@@ -1,8 +1,9 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -10,7 +11,6 @@ import WorkflowLogs from 'Model/Models/WorkflowLog';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import WorkflowSideMenu from './SideMenu';
 import { JSONObject } from 'Common/Types/JSON';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowElement from '../../Components/Workflow/WorkflowElement';
@@ -27,30 +27,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
     const [logs, setLogs] = useState<string>('');
 
     return (
-        <Page
-            title={'Workflow Logs'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Workflows',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOWS] as Route
-                    ),
-                },
-                {
-                    title: 'Logs',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOWS_LOGS] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<WorkflowSideMenu />}
-        >
+        <Fragment>
             <>
                 <ModelTable<WorkflowLogs>
                     modelType={WorkflowLogs}
@@ -188,7 +165,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     </Modal>
                 )}
             </>
-        </Page>
+        </Fragment>
     );
 };
 

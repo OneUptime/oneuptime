@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
@@ -24,7 +24,6 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
-import MonitorGroup from 'Model/Models/MonitorGroup';
 import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
@@ -82,43 +81,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <ModelPage
-            title="Monitor Group"
-            modelType={MonitorGroup}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Monitor Groups',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_GROUPS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Monitor Group',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <>
                 <ModelTable<MonitorGroupResource>
                     modelType={MonitorGroupResource}
@@ -271,7 +234,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
             </>
-        </ModelPage>
+        </Fragment>
     );
 };
 

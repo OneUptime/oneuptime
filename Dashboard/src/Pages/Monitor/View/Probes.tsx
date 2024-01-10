@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
@@ -289,43 +289,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
     };
 
     return (
-        <ModelPage
-            title="Monitor"
-            modelType={Monitor}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITORS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Monitor',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Probes',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <DisabledWarning monitorId={modelId} />
             {getPageContent()}
             {showViewLogsModal && (
@@ -347,7 +311,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     </div>
                 </Modal>
             )}
-        </ModelPage>
+        </Fragment>
     );
 };
 

@@ -1,15 +1,11 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
 import React, {
+    Fragment,
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -41,30 +37,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
     }, [showVerificationModal]);
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Domains',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_DOMAINS] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <ModelTable<Domain>
                 modelType={Domain}
                 showViewIdButton={true}
@@ -224,7 +197,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
-        </Page>
+        </Fragment>
     );
 };
 

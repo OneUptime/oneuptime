@@ -7,10 +7,11 @@ import React, {
 } from 'react';
 import { Routes, Route as PageRoute } from 'react-router';
 import Route from 'Common/Types/API/Route';
-import RouteMap, { SettingsRoutePath } from '../Utils/RouteMap';
+import RouteMap, { RouteUtil, SettingsRoutePath } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import ComponentProps from '../Pages/PageComponentProps';
 import Loader from '../Components/Loader/Loader';
+import SettingsLayout from '../Pages/Settings/Layout';
 
 // Pages
 const ProjectSettings: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -176,559 +177,577 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         <Routes>
             <PageRoute
                 path={SettingsRoutePath[PageMap.SETTINGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <ProjectSettings
-                            {...props}
-                            pageRoute={RouteMap[PageMap.SETTINGS] as Route}
-                        />
-                    </Suspense>
-                }
-            />
+                element={<SettingsLayout {...props} />}
+            >
+                <PageRoute
+                    index
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ProjectSettings
+                                {...props}
+                                pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+                            />
+                        </Suspense>
+                    }
+                />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_SMS_LOGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsSmsLog
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_SMS_LOGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsSmsLog
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_INCIDENT_TEMPLATES
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <IncidentTemplates
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_INCIDENT_TEMPLATES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <IncidentTemplates
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_TEMPLATES
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW,
+                        2
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <IncidentTemplatesView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
-                        PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <IncidentTemplatesView
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_USAGE_HISTORY
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsUsageHistory
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_USAGE_HISTORY
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_USAGE_HISTORY] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsUsageHistory
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_USAGE_HISTORY
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_FEATURE_FLAGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingFeatureFlags
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_FEATURE_FLAGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_FEATURE_FLAGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingFeatureFlags
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_FEATURE_FLAGS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
-
-            <PageRoute
-                path={
-                    SettingsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <IncidentNoteTemplates
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <IncidentNoteTemplates
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
-                        PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <IncidentNoteTemplateView
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW,
+                        2
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <IncidentNoteTemplateView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceNoteTemplates
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceNoteTemplates
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
-                        PageMap
-                            .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceNoteTemplateView
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW,
+                        2
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceNoteTemplateView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_CALL_LOGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsCallLog
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_CALL_LOGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsCallLog
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_CALL_LOGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_EMAIL_LOGS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsEmailLog
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_EMAIL_LOGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsEmailLog
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_EMAIL_LOGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[PageMap.SETTINGS_NOTIFICATION_SETTINGS] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsNotifications
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_NOTIFICATION_SETTINGS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsNotifications
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_MONITORS_STATUS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsMonitors
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_MONITORS_STATUS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_MONITORS_STATUS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsMonitors
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_MONITORS_STATUS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_STATE] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsIncidents
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_STATE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_INCIDENTS_STATE
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsIncidents
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_INCIDENTS_STATE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsScheduledMaintenanceState
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsScheduledMaintenanceState
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_SSO] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsSSO
-                            {...props}
-                            pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SSO)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsSSO
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_SSO] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_SEVERITY] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsIncidentSeverity
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_INCIDENTS_SEVERITY
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsIncidentSeverity
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_DOMAINS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsDomains
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_DOMAINS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_DOMAINS)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsDomains
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_DOMAINS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_APIKEYS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsApiKeys
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_APIKEYS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_APIKEYS)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsApiKeys
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_APIKEY_VIEW] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsApiKeyView
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_APIKEY_VIEW,
+                        2
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsApiKeyView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_APIKEY_VIEW
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS] ||
-                    ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <MonitorCustomFields
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorCustomFields
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <StatusPageCustomFields
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPageCustomFields
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <ScheduledMaintenanceCustomFields
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ScheduledMaintenanceCustomFields
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <IncidentCustomFields
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <IncidentCustomFields
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
                         PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
-                    ] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <OnCallDutyPolicyCustomFields
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <OnCallDutyPolicyCustomFields
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_BILLING] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsBilling
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_BILLING] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_BILLING)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsBilling
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_BILLING] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={
-                    SettingsRoutePath[PageMap.SETTINGS_BILLING_INVOICES] || ''
-                }
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsInvoices
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_BILLING_INVOICES
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_BILLING_INVOICES
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsInvoices
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_BILLING_INVOICES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsDataRentention
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap.SETTINGS_DATA_RETENTION
-                                ] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_DATA_RETENTION
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsDataRentention
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_DATA_RETENTION
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_LABELS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingLabels
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_LABELS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LABELS)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingLabels
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_LABELS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_PROBES] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingProbes
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_PROBES] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PROBES)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingProbes
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_PROBES] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_TEAMS] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsTeams
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_TEAMS] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAMS)}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsTeams
+                                {...props}
+                                pageRoute={
+                                    RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
 
-            <PageRoute
-                path={SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <SettingsTeamView
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
-                            }
-                        />
-                    </Suspense>
-                }
-            />
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_TEAM_VIEW,
+                        2
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <SettingsTeamView
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SETTINGS_TEAM_VIEW
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+            </PageRoute>
         </Routes>
     );
 };

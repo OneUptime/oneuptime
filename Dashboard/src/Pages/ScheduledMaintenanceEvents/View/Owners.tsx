@@ -1,10 +1,5 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -20,7 +15,6 @@ import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwne
 import User from 'Model/Models/User';
 import UserElement from '../../../Components/User/User';
 import ProjectUser from '../../../Utils/ProjectUser';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 
 const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -28,45 +22,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <ModelPage
-            title="ScheduledMaintenance"
-            modelType={ScheduledMaintenance}
-            modelId={modelId}
-            modelNameField="title"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Scheduled Maintenance Owners',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Scheduled Maintenance',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Owners',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS
-                        ] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <ModelTable<ScheduledMaintenanceOwnerTeam>
                 modelType={ScheduledMaintenanceOwnerTeam}
                 id="table-scheduledMaintenance-owner-team"
@@ -220,7 +176,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </ModelPage>
+        </Fragment>
     );
 };
 

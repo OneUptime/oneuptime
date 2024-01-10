@@ -1,10 +1,5 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { ReactElement } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, { Fragment, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import DashboardSideMenu from '../SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -27,7 +22,6 @@ export type CustomFieldsBaseModels =
 export interface ComponentProps<CustomFieldsBaseModels>
     extends PageComponentProps {
     title: string;
-    currentRoute: Route;
     modelType: { new (): CustomFieldsBaseModels };
 }
 
@@ -37,28 +31,7 @@ const CustomFieldsPageBase: (
     props: ComponentProps<CustomFieldsBaseModels>
 ): ReactElement => {
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: props.title,
-                    to: props.currentRoute,
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <ModelTable<CustomFieldsBaseModels>
                 modelType={props.modelType}
                 query={{
@@ -147,7 +120,7 @@ const CustomFieldsPageBase: (
                     },
                 ]}
             />
-        </Page>
+        </Fragment>
     );
 };
 

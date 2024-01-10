@@ -1,7 +1,9 @@
-import Route from 'Common/Types/API/Route';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../PageComponentProps';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -10,8 +12,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import DashboardSideMenu from './SideMenu';
-import Page from 'CommonUI/src/Components/Page/Page';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import SmsStatus from 'Common/Types/SmsStatus';
 import { Green, Red } from 'Common/Types/BrandColors';
@@ -101,30 +101,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'SMS Logs',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <>
                 <ModelTable<SmsLog>
                     modelType={SmsLog}
@@ -201,7 +178,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                     />
                 )}
             </>
-        </Page>
+        </Fragment>
     );
 };
 

@@ -1,41 +1,16 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import MonitorTable from '../../Components/Monitor/MonitorTable';
-import DashboardSideMenu from './SideMenu';
 import DashboardNavigation from '../../Utils/Navigation';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import URL from 'Common/Types/API/URL';
 
-const MonitorPage: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
-): ReactElement => {
+const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
-        <Page
-            title={'Monitors'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITORS] as Route
-                    ),
-                },
-            ]}
-            sideMenu={
-                <DashboardSideMenu
-                    project={props.currentProject || undefined}
-                />
-            }
-        >
+        <Fragment>
             <Banner
                 openInNewTab={true}
                 title="Monitoring Demo"
@@ -50,7 +25,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
             />
-        </Page>
+        </Fragment>
     );
 };
 

@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
@@ -21,7 +21,6 @@ import User from 'Model/Models/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import AlignItem from 'CommonUI/src/Types/AlignItem';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import Incident from 'Model/Models/Incident';
 import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
@@ -113,43 +112,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         };
 
     return (
-        <ModelPage
-            title="Incident"
-            modelType={Incident}
-            modelId={modelId}
-            modelNameField="title"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Incidents',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENTS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Incident',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Public Notes',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <ModelTable<IncidentPublicNote>
                 modelType={IncidentPublicNote}
                 id="table-incident-internal-note"
@@ -355,7 +318,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             ) : (
                 <> </>
             )}
-        </ModelPage>
+        </Fragment>
     );
 };
 

@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+} from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import ObjectID from 'Common/Types/ObjectID';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import IncidentsTable from '../../../Components/Incident/IncidentsTable';
@@ -15,7 +15,6 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import API from 'CommonUI/src/Utils/API/API';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import MonitorGroup from 'Model/Models/MonitorGroup';
 
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -73,43 +72,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <ModelPage
-            title="Monitor Group"
-            modelType={MonitorGroup}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Monitor Groups',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_GROUPS] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Monitor Group',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Incidents',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.MONITOR_GROUP_VIEW_INCIDENTS] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <IncidentsTable
                 viewPageRoute={Navigation.getCurrentRoute()}
                 query={{
@@ -117,7 +80,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                     monitors: monitorIds,
                 }}
             />
-        </ModelPage>
+        </Fragment>
     );
 };
 

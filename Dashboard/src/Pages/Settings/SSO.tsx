@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
@@ -34,30 +34,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
     const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
         useState<string>('');
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'SSO',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_SSO] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <>
                 <Banner
                     openInNewTab={true}
@@ -383,7 +360,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     />
                 )}
             </>
-        </Page>
+        </Fragment>
     );
 };
 

@@ -1120,6 +1120,32 @@ export class RouteUtil {
 
         return tempRoute;
     }
+
+    public static getRoutes(): Array<{ path: string }> {
+        return Object.values(RouteMap).map((route: Route) => {
+            return {
+                path: route.toString(),
+            };
+        });
+    }
+
+    public static getRouteString(key: string): string {
+        return RouteMap[key]?.toString() || '';
+    }
+
+    public static getLastPath(path: string): string {
+        const paths: string[] = path.split('/');
+        return paths[paths.length - 1] || '';
+    }
+
+    public static getLastPathForKey(key: string, count: number = 1): string {
+        const routePath: string = RouteMap[key]?.toString() || '';
+        const paths: string[] = routePath.split('/');
+        if (count === 1) {
+            return paths[paths.length - 1] || '';
+        }
+        return paths.splice(paths.length - count, count).join('/');
+    }
 }
 
 export default RouteMap;

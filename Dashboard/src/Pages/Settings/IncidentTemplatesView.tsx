@@ -1,10 +1,8 @@
 import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
@@ -41,38 +39,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Incident Templates',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_INCIDENT_TEMPLATES] as Route
-                    ),
-                },
-                {
-                    title: 'View Template',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
-                        ] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             {/* Incident View  */}
             <CardModelDetail
                 name="Incident Template Details"
@@ -553,7 +520,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     );
                 }}
             />
-        </Page>
+        </Fragment>
     );
 };
 

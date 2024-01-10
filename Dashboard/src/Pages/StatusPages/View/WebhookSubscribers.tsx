@@ -1,10 +1,5 @@
-import Route from 'Common/Types/API/Route';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -14,52 +9,13 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import NotNull from 'Common/Types/BaseDatabase/NotNull';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import StatusPage from 'Model/Models/StatusPage';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
-        <ModelPage
-            title="Status Page"
-            modelType={StatusPage}
-            modelId={modelId}
-            modelNameField="name"
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Status Pages',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGES] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'View Status Page',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-                        { modelId }
-                    ),
-                },
-                {
-                    title: 'Webhook Subscribers',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
-                        ] as Route,
-                        { modelId }
-                    ),
-                },
-            ]}
-            sideMenu={<SideMenu modelId={modelId} />}
-        >
+        <Fragment>
             <ModelTable<StatusPageSubscriber>
                 modelType={StatusPageSubscriber}
                 name="Status Page > Webhook Subscribers"
@@ -122,7 +78,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-        </ModelPage>
+        </Fragment>
     );
 };
 

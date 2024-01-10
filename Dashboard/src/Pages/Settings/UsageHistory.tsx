@@ -1,12 +1,7 @@
-import Route from 'Common/Types/API/Route';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import UsageBilling from 'Model/Models/UsageBilling';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -20,30 +15,7 @@ const Settings: FunctionComponent<ComponentProps> = (
     _props: ComponentProps
 ): ReactElement => {
     return (
-        <Page
-            title={'Project Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Usage History',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             <ModelTable<UsageBilling>
                 modelType={UsageBilling}
                 id="usage-history-table"
@@ -117,7 +89,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                     },
                 ]}
             />
-        </Page>
+        </Fragment>
     );
 };
 

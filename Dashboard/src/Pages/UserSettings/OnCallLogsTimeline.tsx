@@ -1,10 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 import PageComponentProps from '../PageComponentProps';
-import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
@@ -179,41 +179,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
     };
 
     return (
-        <Page
-            title={'User Settings'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'User Settings',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS] as Route
-                    ),
-                },
-                {
-                    title: 'Notification Logs',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS] as Route
-                    ),
-                },
-                {
-                    title: 'Timeline',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[
-                            PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
-                        ] as Route,
-                        {
-                            modelId,
-                        }
-                    ),
-                },
-            ]}
-            sideMenu={<DashboardSideMenu />}
-        >
+        <Fragment>
             {getModelTable()}
 
             {showViewStatusMessageModal ? (
@@ -228,7 +194,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
-        </Page>
+        </Fragment>
     );
 };
 
