@@ -28,7 +28,7 @@
         "moment": "^2.29.2",
         "moment-timezone": "^0.5.40",
         "posthog-js": "^1.77.0",
-        "reflect-metadata": "^0.1.13",
+        "reflect-metadata": "^0.2.1",
         "slugify": "^1.6.5",
         "typeorm": "^0.3.18",
         "uuid": "^8.3.2"
