@@ -22,7 +22,7 @@ import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import OneUptimeDate from 'Common/Types/Date';
 import useAsyncEffect from 'use-async-effect';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
@@ -102,7 +102,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         monitorId: modelId,
                         projectId: ProjectUtil.getCurrentProjectId(),
                     },
-                    limit: LIMIT_MAX,
+                    limit: LIMIT_PER_PROJECT,
                     skip: 0,
                     select: {
                         createdAt: true,

@@ -91,7 +91,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80;
+    listen 80 default_server;
 
     server_name  _; # All domains. 
 
@@ -179,7 +179,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
 
-    listen 443 ssl; # Port HTTPS
+    listen 443 ssl default_server; # Port HTTPS
 
 
     ssl_certificate /etc/nginx/certs/StatusPageCerts/$ssl_server_name.crt; 
