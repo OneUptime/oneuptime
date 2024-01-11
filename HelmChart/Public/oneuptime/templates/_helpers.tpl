@@ -35,8 +35,6 @@
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_WORKERS_HOSTNAME
-  value: {{ $.Release.Name }}-workers.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_STATUS_PAGE_HOSTNAME
   value: {{ $.Release.Name }}-status-page.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DASHBOARD_HOSTNAME
@@ -54,8 +52,6 @@
   value: {{ $.Values.port.probe | squote }}
 - name: TEST_SERVER_PORT
   value: {{ $.Values.port.testServer | squote }}
-- name: WORKERS_PORT
-  value: {{ $.Values.port.workers | squote }}
 - name: ACCOUNTS_PORT
   value: {{ $.Values.port.accounts | squote }}
 - name: STATUS_PAGE_PORT

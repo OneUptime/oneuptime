@@ -29,11 +29,6 @@ upstream status-page {
     server ${SERVER_STATUS_PAGE_HOSTNAME}:${STATUS_PAGE_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
-upstream workers {
-    server ${SERVER_WORKERS_HOSTNAME}:${WORKERS_PORT} weight=10 max_fails=3 fail_timeout=30s;
-}
-
-
 upstream opentelemetry-collector-http {
     server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:4318;
 }
