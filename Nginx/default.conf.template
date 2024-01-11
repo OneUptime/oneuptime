@@ -9,10 +9,6 @@ upstream app {
     server ${SERVER_APP_HOSTNAME}:${APP_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
-upstream workflow {
-    server ${SERVER_WORKFLOW_HOSTNAME}:${WORKFLOW_PORT} weight=10 max_fails=3 fail_timeout=30s; 
-}
-
 upstream ingestor {
     server ${SERVER_INGESTOR_HOSTNAME}:${INGESTOR_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }

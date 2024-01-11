@@ -39,7 +39,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // init workers
 
-        Workers.init();
+        await Workers.init();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

@@ -20,7 +20,6 @@ x-common-variables: &common-variables
     SERVER_ACCOUNTS_HOSTNAME: accounts
     SERVER_REALTIME_HOSTNAME: realtime
     SERVER_APP_HOSTNAME: app
-    SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_ALERT_HOSTNAME: alert
     SERVER_INGESTOR_HOSTNAME: ingestor
     SERVER_TEST_SERVER_HOSTNAME: test-server
@@ -31,7 +30,6 @@ x-common-variables: &common-variables
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
-    WORKFLOW_PORT: ${WORKFLOW_PORT}
     INGESTOR_PORT: ${INGESTOR_PORT}
     PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
@@ -206,20 +204,6 @@ services:
             - postgres
         volumes:
             - ./Certs:/usr/src/Certs
-
-    workflow:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-server-variables
-            PORT: ${WORKFLOW_PORT}
-        depends_on:
-            - redis
-            - postgres
-        links:
-            - redis
-            - postgres
             
 
     probe-1:   

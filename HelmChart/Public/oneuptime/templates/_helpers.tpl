@@ -27,8 +27,6 @@
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_WORKFLOW_HOSTNAME
-  value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
@@ -44,8 +42,6 @@
 
 - name: APP_PORT
   value: {{ $.Values.port.app | squote }}
-- name: WORKFLOW_PORT
-  value: {{ $.Values.port.workflow | squote }}
 - name: INGESTOR_PORT
   value: {{ $.Values.port.ingestor | squote }}
 - name: PROBE_PORT
