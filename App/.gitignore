@@ -27,3 +27,4 @@ container_security_dir
 
 /greenlock.d/config.json
 /greenlock.d/config.json.bak
+/.greenlockrc
