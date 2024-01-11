@@ -203,10 +203,11 @@ services:
         depends_on:
             - redis
             - postgres
-            
         links:
             - redis
             - postgres
+        volumes:
+            - ./Certs:/usr/src/Certs
 
     workflow:
         networks:
@@ -218,31 +219,10 @@ services:
         depends_on:
             - redis
             - postgres
-            
         links:
             - redis
             - postgres
             
-        
-    
-    workers:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-server-variables
-            PORT: ${WORKERS_PORT}
-            ENVIRONMENT: ${ENVIRONMENT}
-        depends_on:
-            - postgres
-            
-        links:
-            - postgres
-            
-        volumes:
-            - ./Certs:/usr/src/Certs
-        
-    
 
     probe-1:   
         networks:
