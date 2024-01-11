@@ -68,7 +68,9 @@ export class Service extends DatabaseService<Model> {
             new URL(
                 Protocol.HTTP,
                 AppApiHostname,
-                new Route('/api/workflow/update/' + onUpdate.updateBy.query._id!)
+                new Route(
+                    '/api/workflow/update/' + onUpdate.updateBy.query._id!
+                )
             ),
             {},
             {

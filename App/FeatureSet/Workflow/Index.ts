@@ -12,6 +12,7 @@ import RunWorkflow from './Services/RunWorkflow';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import WorkflowAPI from './API/Workflow';
+import FeatureSet from 'CommonServer/Types/FeatureSet';
 
 const APP_NAME: string = 'api/workflow';
 
@@ -25,27 +26,25 @@ app.get(
     `/${APP_NAME}/docs/:componentName`,
     (req: ExpressRequest, res: ExpressResponse) => {
         res.sendFile(
-            __dirname +
-            '/Docs/ComponentDocumentation/' +
-            req.params['componentName']
+            '/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation/' +
+                req.params['componentName']
         );
     }
 );
 
 app.use(`/${APP_NAME}`, new ComponentCode().router);
 
-const WorkflowFeatureSet = {
-
+const WorkflowFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
         try {
-
-        
             // Job process.
             QueueWorker.getWorker(
                 QueueName.Workflow,
                 async (job: QueueJob) => {
                     await new RunWorkflow().runWorkflow({
-                        workflowId: new ObjectID(job.data['workflowId'] as string),
+                        workflowId: new ObjectID(
+                            job.data['workflowId'] as string
+                        ),
                         workflowLogId: job.data['workflowLogId']
                             ? new ObjectID(job.data['workflowLogId'] as string)
                             : null,
@@ -60,8 +59,7 @@ const WorkflowFeatureSet = {
             logger.error(err);
             throw err;
         }
-    }
-}
-
+    },
+};
 
 export default WorkflowFeatureSet;

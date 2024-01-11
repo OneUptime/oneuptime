@@ -1,6 +1,7 @@
 import logger from 'CommonServer/Utils/Logger';
 import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
 import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
+import FeatureSet from 'CommonServer/Types/FeatureSet';
 
 // Payments.
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
@@ -80,7 +81,7 @@ const app: ExpressApplication = Express.getExpressApp();
 //cert routes.
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, StatusPageCerts);
 
-const WorkersFeatureSet = {
+const WorkersFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
         try {
             await RunDatabaseMigrations();
