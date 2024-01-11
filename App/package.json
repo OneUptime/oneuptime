@@ -23,6 +23,7 @@
     "handlebars": "^4.7.8",
     "Model": "file:../Model",
     "nodemailer": "^6.9.7",
+    "greenlock": "^4.0.4",
     "ts-node": "^10.9.1",
     "twilio": "^4.20.0",
     "xml-crypto": "^3.2.0",
