@@ -81,10 +81,8 @@ const app: ExpressApplication = Express.getExpressApp();
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, StatusPageCerts);
 
 const WorkersFeatureSet = {
-
     init: async (): Promise<void> => {
         try {
-
             await RunDatabaseMigrations();
 
             // create tables in analytics database
@@ -98,7 +96,8 @@ const WorkersFeatureSet = {
 
                     logger.info('Running Job: ' + name);
 
-                    const funcToRun: Function = JobDictionary.getJobFunction(name);
+                    const funcToRun: Function =
+                        JobDictionary.getJobFunction(name);
 
                     if (funcToRun) {
                         await funcToRun();
@@ -111,7 +110,7 @@ const WorkersFeatureSet = {
             logger.error(err);
             throw err;
         }
-    }
-}
+    },
+};
 
 export default WorkersFeatureSet;
