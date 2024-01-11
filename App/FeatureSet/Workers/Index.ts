@@ -73,7 +73,7 @@ import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement'
 import './Jobs/Workflow/TimeoutJobs';
 import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
 
-const APP_NAME: string = 'workers';
+const APP_NAME: string = 'api/workers';
 
 const app: ExpressApplication = Express.getExpressApp();
 
