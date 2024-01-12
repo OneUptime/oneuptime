@@ -191,12 +191,19 @@ RunCron(
                 },
             });
 
+        logger.info(`Certificates to Order: ${domains.length}`);
+
         for (const domain of domains) {
             logger.info(
                 `StatusPageCerts:OrderCerts - Ordering Certificate ${domain.fullDomain}`
             );
 
-            await greenlock.order(domain.greenlockConfig);
+            greenlock.order(domain.greenlockConfig).catch((err: any) => {
+                logger.error(
+                    `StatusPageCerts:OrderCerts - Failed for domain ${domain.fullDomain}`
+                );
+                logger.error(err);
+            });
         }
     }
 );
