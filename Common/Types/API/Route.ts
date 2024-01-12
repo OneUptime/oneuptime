@@ -73,6 +73,10 @@ export default class Route extends DatabaseProperty {
         value: Route | FindOperator<Route>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new Route(value);
+            }
+
             return value.toString();
         }
 

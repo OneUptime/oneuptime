@@ -48,10 +48,14 @@ export default class Name extends DatabaseProperty {
     }
 
     public static override toDatabase(
-        _value: Name | FindOperator<Name>
+        value: Name | FindOperator<Name>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            if (typeof value === 'string') {
+                value = new Name(value);
+            }
+
+            return value.toString();
         }
 
         return null;

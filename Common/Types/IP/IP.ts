@@ -92,10 +92,14 @@ export default class IP extends DatabaseProperty {
     }
 
     public static override toDatabase(
-        _value: IP | FindOperator<IP>
+        value: IP | FindOperator<IP>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            if (typeof value === 'string') {
+                value = new IP(value);
+            }
+
+            return value.toString();
         }
 
         return null;

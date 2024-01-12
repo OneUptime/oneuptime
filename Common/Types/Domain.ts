@@ -56,10 +56,14 @@ export default class Domain extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: Domain | FindOperator<Domain>
+        value: Domain | FindOperator<Domain>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            if (typeof value === 'string') {
+                value = new Domain(value);
+            }
+
+            return value.toString();
         }
 
         return null;

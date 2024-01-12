@@ -98,6 +98,10 @@ export default class Hostname extends DatabaseProperty {
         value: Hostname | FindOperator<Hostname>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new Hostname(value);
+            }
+
             return value.toString();
         }
 
