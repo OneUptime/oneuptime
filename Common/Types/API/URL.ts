@@ -253,6 +253,10 @@ export default class URL extends DatabaseProperty {
         value: URL | FindOperator<URL>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = URL.fromString(value);
+            }
+
             return value.toString();
         }
 

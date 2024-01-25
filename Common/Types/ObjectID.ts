@@ -44,6 +44,10 @@ export default class ObjectID extends DatabaseProperty {
         value: ObjectID | FindOperator<ObjectID>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new ObjectID(value);
+            }
+
             return value.toString();
         }
 

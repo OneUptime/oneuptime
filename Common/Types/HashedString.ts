@@ -51,6 +51,10 @@ export default class HashedString extends DatabaseProperty {
         value: HashedString | FindOperator<HashedString>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new HashedString(value);
+            }
+
             return value.toString();
         }
 

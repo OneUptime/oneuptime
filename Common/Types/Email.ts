@@ -101,6 +101,10 @@ export default class Email extends DatabaseProperty {
         value: Email | FindOperator<Email>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new Email(value);
+            }
+
             return value.toString();
         }
 

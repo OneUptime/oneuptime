@@ -24,7 +24,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
 import Protocol from 'Common/Types/API/Protocol';
-import { WorkflowHostname } from '../EnvironmentConfig';
+import { AppApiHostname } from '../EnvironmentConfig';
 import Route from 'Common/Types/API/Route';
 import { WorkflowRoute } from 'Common/ServiceRoute';
 import Text from 'Common/Types/Text';
@@ -775,9 +775,9 @@ export default class AnalyticsDatabaseService<
             API.post(
                 new URL(
                     Protocol.HTTP,
-                    WorkflowHostname,
+                    AppApiHostname,
                     new Route(
-                        `${WorkflowRoute.toString()}/analytics-model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                        `/api${WorkflowRoute.toString()}/analytics-model/${projectId.toString()}/${Text.pascalCaseToDashes(
                             this.getModel().tableName!
                         )}/${triggerType}`
                     )

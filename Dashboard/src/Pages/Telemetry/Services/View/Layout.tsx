@@ -6,7 +6,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import TelemetryService from 'Model/Models/TelemetryService';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 import { getTelemetryBreadcrumbs } from '../../../../Utils/Breadcrumbs';
 
 const TelemetryServiceViewLayout: FunctionComponent<PageComponentProps> = (

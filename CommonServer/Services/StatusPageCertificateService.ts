@@ -4,7 +4,7 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
-import { WorkerHostname } from '../EnvironmentConfig';
+import { AppApiHostname } from '../EnvironmentConfig';
 import DatabaseConfig from '../DatabaseConfig';
 import BaseService from './BaseService';
 import Protocol from 'Common/Types/API/Protocol';
@@ -22,7 +22,7 @@ export class StatusPageCertificateService extends BaseService {
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         return await API.post<EmptyResponseData>(
-            new URL(httpProtocol, WorkerHostname, new Route('/cert')),
+            new URL(httpProtocol, AppApiHostname, new Route('/api/workers/cert')),
             body
         );
     }
@@ -37,7 +37,7 @@ export class StatusPageCertificateService extends BaseService {
         };
 
         return await API.delete<EmptyResponseData>(
-            new URL(httpProtocol, WorkerHostname, new Route('/cert')),
+            new URL(httpProtocol, AppApiHostname, new Route('/api/workers/cert')),
             body
         );
     }
@@ -50,7 +50,7 @@ export class StatusPageCertificateService extends BaseService {
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         return await API.get<JSONObject>(
-            new URL(httpProtocol, WorkerHostname, new Route('/cert')),
+            new URL(httpProtocol, AppApiHostname, new Route('/api/workers/cert')),
             body
         );
     }

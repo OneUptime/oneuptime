@@ -23,10 +23,6 @@ bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page/stat
 
 bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts/status
 
-bash $scriptDir/endpoint-status.sh "Worker" $HOST_TO_CHECK/workers/status
-
-bash $scriptDir/endpoint-status.sh "Workflow" $HOST_TO_CHECK/workflow/status
-
 bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status
 
 bash $scriptDir/endpoint-status.sh "Ingestor" $HOST_TO_CHECK/ingestor/status

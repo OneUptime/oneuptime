@@ -52,10 +52,14 @@ export default class Phone extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: Phone | FindOperator<Phone>
+        value: Phone | FindOperator<Phone>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            if (typeof value === 'string') {
+                value = new Phone(value);
+            }
+
+            return value.toString();
         }
 
         return null;

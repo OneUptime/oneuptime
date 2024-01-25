@@ -11,6 +11,8 @@ import './FeatureSet/Identity/Index';
 import './FeatureSet/Notification/Index';
 import './FeatureSet/BaseAPI/Index';
 import './FeatureSet/ApiReference/Index';
+import Workers from './FeatureSet/Workers/Index';
+import Workflow from './FeatureSet/Workflow/Index';
 
 // home should be in the end.
 import './FeatureSet/Home/Index';
@@ -35,6 +37,12 @@ const init: () => Promise<void> = async (): Promise<void> => {
         );
 
         Realtime.init();
+
+        // init workers
+        await Workers.init();
+
+        // init workflow
+        await Workflow.init();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

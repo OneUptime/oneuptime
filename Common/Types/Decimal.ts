@@ -39,6 +39,10 @@ export default class Decimal extends DatabaseProperty {
         value: Decimal | FindOperator<Decimal>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new Decimal(value);
+            }
+
             return value.toString();
         }
 

@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import { RouteUtil } from '../../Utils/RouteMap';
 import SideMenu from './SideMenu';
-import { Outlet } from 'react-router';
+import { Outlet } from 'react-router-dom';
 import { getScheduleMaintenanceBreadcrumbs } from '../../Utils/Breadcrumbs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const ScheduledMaintenancesLayout: FunctionComponent<PageComponentProps> = (

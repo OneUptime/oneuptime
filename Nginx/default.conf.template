@@ -9,10 +9,6 @@ upstream app {
     server ${SERVER_APP_HOSTNAME}:${APP_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
-upstream workflow {
-    server ${SERVER_WORKFLOW_HOSTNAME}:${WORKFLOW_PORT} weight=10 max_fails=3 fail_timeout=30s; 
-}
-
 upstream ingestor {
     server ${SERVER_INGESTOR_HOSTNAME}:${INGESTOR_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
@@ -28,11 +24,6 @@ upstream admin-dashboard {
 upstream status-page {
     server ${SERVER_STATUS_PAGE_HOSTNAME}:${STATUS_PAGE_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
-
-upstream workers {
-    server ${SERVER_WORKERS_HOSTNAME}:${WORKERS_PORT} weight=10 max_fails=3 fail_timeout=30s;
-}
-
 
 upstream opentelemetry-collector-http {
     server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:4318;
@@ -570,7 +561,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://workflow;
+        proxy_pass http://app/api/workflow;
 
         client_max_body_size 50M;
     }
@@ -600,6 +591,6 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://workers;
+        proxy_pass http://app/api/workers;
     }
 }

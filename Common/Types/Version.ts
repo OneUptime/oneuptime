@@ -46,6 +46,10 @@ export default class Version extends DatabaseProperty {
         value: Version | FindOperator<Version>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new Version(value);
+            }
+
             return value.toString();
         }
 

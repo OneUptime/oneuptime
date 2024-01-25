@@ -46,6 +46,10 @@ export default class Color extends DatabaseProperty {
         value: Color | FindOperator<Color>
     ): string | null {
         if (value) {
+            if (typeof value === 'string') {
+                value = new Color(value);
+            }
+
             return value.toString();
         }
 

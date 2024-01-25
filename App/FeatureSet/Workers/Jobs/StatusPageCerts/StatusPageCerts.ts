@@ -31,9 +31,9 @@ import LocalFile from 'CommonServer/Utils/LocalFile';
 const router: ExpressRouter = Express.getRouter();
 
 const greenlock: any = Greenlock.create({
-    configFile: '/greenlockrc',
+    configFile: '/usr/src/app/FeatureSet/Workers/greenlockrc',
     packageRoot: `/usr/src/app`,
-    manager: '/usr/src/app/Utils/Greenlock/Manager.ts',
+    manager: '/usr/src/app/FeatureSet/Workers/Utils/Greenlock/Manager.ts',
     approveDomains: async (opts: any) => {
         const domain: StatusPageDomain | null =
             await StatusPageDomainService.findOneBy({
@@ -58,7 +58,7 @@ const greenlock: any = Greenlock.create({
         return opts; // or Promise.resolve(opts);
     },
     store: {
-        module: '/usr/src/app/Utils/Greenlock/Store.ts',
+        module: '/usr/src/app/FeatureSet/Workers/Utils/Greenlock/Store.ts',
     },
     // Staging for testing environments
     // staging: IsDevelopment,
@@ -82,7 +82,7 @@ const greenlock: any = Greenlock.create({
     agreeToTerms: true,
     challenges: {
         'http-01': {
-            module: '/usr/src/app/Utils/Greenlock/HttpChallenge.ts',
+            module: '/usr/src/app/FeatureSet/Workers/Utils/Greenlock/HttpChallenge.ts',
         },
     },
 });

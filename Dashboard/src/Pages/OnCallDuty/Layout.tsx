@@ -4,7 +4,7 @@ import PageMap from '../../Utils/PageMap';
 import { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import { Outlet } from 'react-router';
+import { Outlet } from 'react-router-dom';
 import Dictionary from 'Common/Types/Dictionary';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getOnCallDutyBreadcrumbs } from '../../Utils/Breadcrumbs';

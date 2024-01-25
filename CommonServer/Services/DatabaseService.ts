@@ -23,7 +23,7 @@ import PostgresDatabase, {
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { EncryptionSecret, WorkflowHostname } from '../EnvironmentConfig';
+import { EncryptionSecret, AppApiHostname } from '../EnvironmentConfig';
 import { WorkflowRoute } from 'Common/ServiceRoute';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
@@ -559,9 +559,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             API.post(
                 new URL(
                     Protocol.HTTP,
-                    WorkflowHostname,
+                    AppApiHostname,
                     new Route(
-                        `${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                        `/api${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
                             this.getModel().tableName!
                         )}/${triggerType}`
                     )

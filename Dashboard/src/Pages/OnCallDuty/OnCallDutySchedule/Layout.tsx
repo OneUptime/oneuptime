@@ -6,7 +6,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 import { getOnCallDutyBreadcrumbs } from '../../../Utils/Breadcrumbs';
 
 const OnCallDutyScheduleViewLayout: FunctionComponent<PageComponentProps> = (

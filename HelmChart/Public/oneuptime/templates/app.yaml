@@ -1,5 +1,7 @@
 # OneUptime app Deployment
-{{- $appEnv := dict "PORT"  $.Values.port.app "SMS_HIGH_RISK_COST_IN_CENTS" $.Values.billing.smsHighRiskValueInCents "CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE" $.Values.billing.callHighRiskValueInCentsPerMinute "SMS_DEFAULT_COST_IN_CENTS" $.Values.billing.smsDefaultValueInCents "CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE" $.Values.billing.callDefaultValueInCentsPerMinute "INTERNAL_SMTP_FROM_NAME" $.Values.internalSmtp.name "INTERNAL_SMTP_EMAIL" $.Values.internalSmtp.email "INTERNAL_SMTP_PASSWORD" "internal_smtp_password" -}}
+{{- $certVolume := dict "Name" (printf "%s-%s" $.Release.Name "certs") "MountPath" "/usr/src/Certs" }}
+{{- $appVolumes := dict "certs" $certVolume }}
+{{- $appEnv := dict "PORT"  $.Values.port.app "Volumes" $appVolumes "SMS_HIGH_RISK_COST_IN_CENTS" $.Values.billing.smsHighRiskValueInCents "CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE" $.Values.billing.callHighRiskValueInCentsPerMinute "SMS_DEFAULT_COST_IN_CENTS" $.Values.billing.smsDefaultValueInCents "CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE" $.Values.billing.callDefaultValueInCentsPerMinute "INTERNAL_SMTP_FROM_NAME" $.Values.internalSmtp.name "INTERNAL_SMTP_EMAIL" $.Values.internalSmtp.email "INTERNAL_SMTP_PASSWORD" "internal_smtp_password" -}}
 {{- $appDeploymentArgs :=dict "IsServer" true "ServiceName" "app" "Port" $.Values.port.app "Release" $.Release "Values" $.Values "Env" $appEnv -}}
 {{- include "oneuptime.deployment" $appDeploymentArgs }}
 ---
