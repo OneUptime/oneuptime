@@ -561,7 +561,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                     Protocol.HTTP,
                     AppApiHostname,
                     new Route(
-                        `/api/${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                        `/api${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
                             this.getModel().tableName!
                         )}/${triggerType}`
                     )

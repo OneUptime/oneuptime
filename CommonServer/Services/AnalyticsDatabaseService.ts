@@ -777,7 +777,7 @@ export default class AnalyticsDatabaseService<
                     Protocol.HTTP,
                     AppApiHostname,
                     new Route(
-                        `/api/${WorkflowRoute.toString()}/analytics-model/${projectId.toString()}/${Text.pascalCaseToDashes(
+                        `/api${WorkflowRoute.toString()}/analytics-model/${projectId.toString()}/${Text.pascalCaseToDashes(
                             this.getModel().tableName!
                         )}/${triggerType}`
                     )
