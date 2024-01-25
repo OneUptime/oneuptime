@@ -22,7 +22,7 @@ export class StatusPageCertificateService extends BaseService {
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         return await API.post<EmptyResponseData>(
-            new URL(httpProtocol, AppApiHostname, new Route('/workers/cert')),
+            new URL(httpProtocol, AppApiHostname, new Route('/api/workers/cert')),
             body
         );
     }
@@ -37,7 +37,7 @@ export class StatusPageCertificateService extends BaseService {
         };
 
         return await API.delete<EmptyResponseData>(
-            new URL(httpProtocol, AppApiHostname, new Route('/workers/cert')),
+            new URL(httpProtocol, AppApiHostname, new Route('/api/workers/cert')),
             body
         );
     }
@@ -50,7 +50,7 @@ export class StatusPageCertificateService extends BaseService {
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         return await API.get<JSONObject>(
-            new URL(httpProtocol, AppApiHostname, new Route('/workers/cert')),
+            new URL(httpProtocol, AppApiHostname, new Route('/api/workers/cert')),
             body
         );
     }
