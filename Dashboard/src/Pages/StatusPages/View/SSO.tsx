@@ -49,7 +49,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     query={{
                         projectId:
                             DashboardNavigation.getProjectId()?.toString(),
-                            statusPageId: modelId.toString()
+                        statusPageId: modelId.toString(),
                     }}
                     onBeforeCreate={(
                         item: StatusPageSSO
