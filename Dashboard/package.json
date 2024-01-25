@@ -38,7 +38,6 @@
         "Model": "file:../Model",
         "react": "^18.2.0",
         "react-dom": "^18.1.0",
-        "react-router": "^6.21.1",
         "react-router-dom": "^6.3.0",
         "reactflow": "^11.5.3",
         "stripe": "^11.0.0",
