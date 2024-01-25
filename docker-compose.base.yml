@@ -97,6 +97,10 @@ services:
             DOMAIN: ${INTERNAL_SMTP_SENDING_DOMAIN}
             DKIM_PRIVATE_KEY: ${INTERNAL_SMTP_DKIM_PRIVATE_KEY_AS_BASE64}
             DKIM_PUBLIC_KEY: ${INTERNAL_SMTP_DKIM_PUBLIC_KEY_AS_BASE64}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     
     redis:
@@ -107,6 +111,10 @@ services:
         command: redis-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
         environment: 
             REDIS_PASSWORD: ${REDIS_PASSWORD}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     clickhouse:
         image: clickhouse/clickhouse-server:23.7
@@ -120,6 +128,10 @@ services:
           - oneuptime
         volumes:
             - clickhouse:/var/lib/clickhouse/
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     postgres:
         image: postgres:15
@@ -132,6 +144,10 @@ services:
           - oneuptime
         volumes: 
             - postgres:/var/lib/postgresql/data
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
         
     accounts:
         networks:
@@ -140,6 +156,10 @@ services:
         environment: 
             <<: *common-ui-variables
             PORT: ${ACCOUNTS_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
        
 
     admin-dashboard:
@@ -149,6 +169,10 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${ADMIN_DASHBOARD_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     dashboard:
         networks:
@@ -157,6 +181,10 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${DASHBOARD_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
         
     
 
@@ -170,6 +198,10 @@ services:
         depends_on:
             - accounts
             - app
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
             
         
 
@@ -180,6 +212,10 @@ services:
         environment: 
             <<: *common-server-variables
             PORT: ${TEST_SERVER_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
             
 
     app:
@@ -204,6 +240,10 @@ services:
             - postgres
         volumes:
             - ./Certs:/usr/src/Certs
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
             
 
     probe-1:   
@@ -223,6 +263,10 @@ services:
             - ingestor
         links:
             - ingestor
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     probe-2:   
         networks:
@@ -241,6 +285,10 @@ services:
             - ingestor
         links:
             - ingestor
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
        
 
     otel-collector:
@@ -249,6 +297,10 @@ services:
         environment:
             <<: *common-variables
         restart: always
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     ingestor:
         networks:
@@ -264,6 +316,10 @@ services:
         links:
             - redis
             - postgres
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
             
     
 
@@ -284,6 +340,12 @@ services:
             - '${ONEUPTIME_HTTPS_PORT}:443'
         volumes:
             - ./Certs:/etc/nginx/certs
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+                
 volumes:
     postgres:
     clickhouse:
