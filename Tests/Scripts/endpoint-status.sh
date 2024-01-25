@@ -12,7 +12,7 @@ fi
 
 # Set the maximum number of retries
 max_retries=20  # This allows for 12 attempts, which totals 1 minute with 5 seconds between each retry
-retry_interval=5  # Retry interval in seconds
+retry_interval=15  # Retry interval in seconds
 
 # Initialize variables
 retries=0
@@ -28,7 +28,7 @@ while [ $retries -lt $max_retries ]; do
         echo "✅ $name endpoint is up ($endpoint_url)"
         exit 0  # Exit the script with success status
     else
-        echo "$name $endpoint_url returned HTTP $http_status, retrying in $retry_interval seconds..."
+        echo "$name $endpoint_url returned HTTP $http_status, retrying in $retry_interval seconds. Usually takes few minutes for the app to boot."
         sleep $retry_interval
         retries=$((retries + 1))
     fi
