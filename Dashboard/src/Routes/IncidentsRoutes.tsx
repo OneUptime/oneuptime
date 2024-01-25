@@ -5,7 +5,7 @@ import React, {
     lazy,
 } from 'react';
 import ComponentProps from '../Pages/PageComponentProps';
-import { Routes, Route as PageRoute } from 'react-router';
+import { Routes, Route as PageRoute } from 'react-router-dom';
 import RouteMap, { IncidentsRoutePath, RouteUtil } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';
 import Route from 'Common/Types/API/Route';

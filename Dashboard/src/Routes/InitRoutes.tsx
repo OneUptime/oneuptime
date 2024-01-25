@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement, Suspense, lazy } from 'react';
-import { Routes, Route as PageRoute } from 'react-router';
+import { Routes, Route as PageRoute } from 'react-router-dom';
 import Route from 'Common/Types/API/Route';
 import { RoutesProps } from '../Types/RoutesProps';
 import RouteMap from '../Utils/RouteMap';

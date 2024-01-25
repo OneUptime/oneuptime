@@ -5,7 +5,7 @@ import React, {
     Suspense,
     lazy,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router';
+import { Routes, Route as PageRoute } from 'react-router-dom';
 import Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil, WorkflowRoutePath } from '../Utils/RouteMap';
 import PageMap from '../Utils/PageMap';

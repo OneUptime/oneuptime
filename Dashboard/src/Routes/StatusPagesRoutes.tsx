@@ -5,7 +5,7 @@ import React, {
     Suspense,
     lazy,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router';
+import { Routes, Route as PageRoute } from 'react-router-dom';
 import PageMap from '../Utils/PageMap';
 import RouteMap, { RouteUtil, StatusPagesRoutePath } from '../Utils/RouteMap';
 import ComponentProps from '../Pages/PageComponentProps';

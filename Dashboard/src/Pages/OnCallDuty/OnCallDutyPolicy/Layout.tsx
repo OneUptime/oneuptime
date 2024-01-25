@@ -5,7 +5,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 import { getOnCallDutyBreadcrumbs } from '../../../Utils/Breadcrumbs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 

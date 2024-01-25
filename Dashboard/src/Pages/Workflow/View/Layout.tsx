@@ -7,7 +7,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow from 'Model/Models/Workflow';
 import { getWorkflowsBreadcrumbs } from '../../../Utils/Breadcrumbs';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 
 const WorkflowViewLayout: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

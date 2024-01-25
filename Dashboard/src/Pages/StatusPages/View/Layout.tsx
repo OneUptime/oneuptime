@@ -6,7 +6,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 import { getStatusPagesBreadcrumbs } from '../../../Utils/Breadcrumbs';
 
 const StatusPageViewLayout: FunctionComponent<PageComponentProps> = (

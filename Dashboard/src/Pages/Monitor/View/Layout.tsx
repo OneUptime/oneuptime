@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getMonitorBreadcrumbs } from '../../../Utils/Breadcrumbs';
 import { RouteUtil } from '../../../Utils/RouteMap';

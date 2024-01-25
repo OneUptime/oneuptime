@@ -2,7 +2,7 @@ import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import { Outlet } from 'react-router';
+import { Outlet } from 'react-router-dom';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getMonitorBreadcrumbs } from '../../Utils/Breadcrumbs';
 import { RouteUtil } from '../../Utils/RouteMap';

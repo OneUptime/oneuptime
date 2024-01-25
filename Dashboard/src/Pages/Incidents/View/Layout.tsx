@@ -6,7 +6,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Incident from 'Model/Models/Incident';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 import { getIncidentsBreadcrumbs } from '../../../Utils/Breadcrumbs/IncidentBreadcrumbs';
 
 const IncidentViewLayout: FunctionComponent<PageComponentProps> = (

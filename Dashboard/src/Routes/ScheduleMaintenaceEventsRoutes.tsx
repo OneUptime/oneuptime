@@ -5,7 +5,7 @@ import React, {
     lazy,
     Suspense,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router';
+import { Routes, Route as PageRoute } from 'react-router-dom';
 import Route from 'Common/Types/API/Route';
 import RouteMap, {
     RouteUtil,
