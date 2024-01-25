@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "Common": "file:../Common",
-    "typeorm": "^0.3.18"
+    "typeorm": "^0.3.19"
   },
   "devDependencies": {
     "@types/jest": "^27.4.1",
