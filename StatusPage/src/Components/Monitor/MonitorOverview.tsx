@@ -27,7 +27,7 @@ export interface ComponentProps {
     uptimePrecision?: UptimePrecision | undefined;
     monitorStatuses: Array<MonitorStatus>;
     statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule>;
-    downtimeMonitorStatus: Array<MonitorStatus>;
+    downtimeMonitorStatuses: Array<MonitorStatus>;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -48,8 +48,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         ) {
             const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
                 props.monitorStatusTimeline,
-                props.monitorStatuses,
-                precision
+                precision,
+                props.downtimeMonitorStatuses
             );
 
             return (
@@ -122,7 +122,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         barColorRules={
                             props.statusPageHistoryChartBarColorRules
                         }
-                        downtimeMonitorStatus={props.downtimeMonitorStatus}
+                        downtimeMonitorStatuses={props.downtimeMonitorStatuses}
                         items={props.monitorStatusTimeline || []}
                         startDate={props.startDate}
                         endDate={props.endDate}

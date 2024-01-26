@@ -27,7 +27,7 @@ export interface ComponentProps {
     error?: string | undefined;
     height?: number | undefined;
     barColorRules?: Array<StatusPageHistoryChartBarColorRule> | undefined;
-    downtimeMonitorStatus: Array<MonitorStatus> | undefined;
+    downtimeMonitorStatuses: Array<MonitorStatus> | undefined;
 }
 
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -80,7 +80,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
             defaultLabel={'Operational'}
             height={props.height}
             barColorRules={barColorRules}
-            downtimeEventStatusIds={props.downtimeMonitorStatus?.map((status: MonitorStatus)=>{
+            downtimeEventStatusIds={props.downtimeMonitorStatuses?.map((status: MonitorStatus)=>{
                 return status.id!;
             }) || []}
         />

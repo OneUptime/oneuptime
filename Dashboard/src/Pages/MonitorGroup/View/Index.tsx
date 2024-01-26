@@ -46,7 +46,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
     const [statusTimelines, setStatusTimelines] = useState<
         Array<MonitorStatusTimeline>
     >([]);
-    const [monitorStatuses, setMonitorStatuses] = useState<
+    const [downTimeMonitorStatues, setDowntimeMonitorStatues] = useState<
         Array<MonitorStatus>
     >([]);
 
@@ -60,8 +60,8 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
 
         const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
             statusTimelines,
-            monitorStatuses,
-            UptimePrecision.THREE_DECIMAL
+            UptimePrecision.THREE_DECIMAL,
+            downTimeMonitorStatues,
         );
 
         return (
@@ -150,7 +150,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
 
             setCurrentGroupStatus(currentStatus);
             setStatusTimelines(statusTimelines.data);
-            setMonitorStatuses(monitorStatuses.data);
+            setDowntimeMonitorStatues(monitorStatuses.data.filter((status) => !status.isOperationalState));
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -301,6 +301,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
                     isLoading={isLoading}
+                    downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>
         </Fragment>
