@@ -56,6 +56,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
     [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: `${RouteParams.ModelID}/webhook-subscribers`,
     [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: `${RouteParams.ModelID}/header-style`,
     [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: `${RouteParams.ModelID}/footer-style`,
+    [PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]: `${RouteParams.ModelID}/overview-page-branding`,
     [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
     [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: `${RouteParams.ModelID}/navbar-style`,
     [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: `${RouteParams.ModelID}/announcements`,
@@ -481,6 +482,14 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${
             StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]
+        }`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${
+            StatusPagesRoutePath[
+                PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
+            ]
         }`
     ),
 

@@ -134,6 +134,12 @@ const StatusPageViewSettings: LazyExoticComponent<
     return import('../Pages/StatusPages/View/StatusPageSettings');
 });
 
+const StatusPagesViewOverviewPageBranding: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/StatusPages/View/OverviewPageBranding');
+});
+
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -430,6 +436,25 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                                 pageRoute={
                                     RouteMap[
                                         PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <StatusPagesViewOverviewPageBranding
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap
+                                            .STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
                                     ] as Route
                                 }
                             />

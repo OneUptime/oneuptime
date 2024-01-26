@@ -93,6 +93,15 @@ export function getStatusPagesBreadcrumbs(
             'View Status Page',
             'Footer',
         ]),
+        ...BuildBreadcrumbLinksByTitles(
+            PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING,
+            [
+                'Project',
+                'Status Pages',
+                'View Status Page',
+                'Overview Page Branding',
+            ]
+        ),
         ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE, [
             'Project',
             'Status Pages',

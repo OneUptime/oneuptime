@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -21,7 +29,6 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import MonitorStatus from './MonitorStatus';
 import Color from 'Common/Types/Color';
-
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
@@ -64,7 +71,8 @@ import Color from 'Common/Types/Color';
     singularName: 'Status Page History Chart Bar Color',
     pluralName: 'Status Page History Chart Bar Colors',
     icon: IconProp.ChartBar,
-    tableDescription: 'Modify the colors of the history chart bars on Status Page',
+    tableDescription:
+        'Modify the colors of the history chart bars on Status Page',
 })
 @Entity({
     name: 'StatusPageHistoryChartBarColorRule',
@@ -205,8 +213,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
     })
     public statusPageId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -253,8 +259,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
     })
     public downtimeMonitorStatuses?: Array<MonitorStatus> = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -288,7 +292,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
     })
     public uptimePercentGreaterThanOrEqualTo?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -310,12 +313,13 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
         ],
     })
     @TableColumn({
-        title: 'Color',
+        title: 'Bar Color',
         required: true,
         unique: false,
         type: TableColumnType.Color,
         canReadOnRelationQuery: true,
-        description: 'Color of the bar chart when this rule matches (#32a852 for example)',
+        description:
+            'Color of the bar chart when this rule matches (#32a852 for example)',
     })
     @Column({
         type: ColumnType.Color,
@@ -325,8 +329,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
         transformer: Color.getDatabaseTransformer(),
     })
     public barColor?: Color = undefined;
-
-    
 
     @ColumnAccessControl({
         create: [

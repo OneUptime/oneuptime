@@ -35,6 +35,7 @@ import ProjectSmtpConfig from './ProjectSmtpConfig';
 import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/ColumnBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ProjectCallSMSConfig from './ProjectCallSMSConfig';
+import Color from 'Common/Types/Color';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -1561,4 +1562,41 @@ export default class StatusPage extends BaseModel {
         create: PlanSelect.Free,
     })
     public hidePoweredByOneUptimeBranding?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        title: 'Default Bar Color',
+        required: false,
+        unique: false,
+        type: TableColumnType.Color,
+        canReadOnRelationQuery: true,
+        description: 'Default color of the bar on the overview page',
+    })
+    @Column({
+        type: ColumnType.Color,
+        length: ColumnLength.Color,
+        unique: false,
+        nullable: true,
+        transformer: Color.getDatabaseTransformer(),
+    })
+    public defaultBarColor?: Color = undefined;
 }
