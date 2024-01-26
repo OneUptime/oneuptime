@@ -12,6 +12,8 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatus from 'Model/Models/MonitorStatus';
+import { JSONObject } from 'Common/Types/JSON';
+import MonitorStatuesElement from '../../../Components/MonitorStatus/MonitorStatusesElement';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -120,22 +122,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'No color set',
                     },
-                    {
-                        field: {
-                            downtimeMonitorStatuses: true,
-                        },
-                        title: 'These monitor statuses are considered as downtime',
-                        description:
-                            'These monitor statuses will be considered as downtime.',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        dropdownModal: {
-                            type: MonitorStatus,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: true,
-                        placeholder: 'Select monitor statuses',
-                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -158,6 +144,71 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         isFilterable: false,
                     },
                 ]}
+            />
+
+            <CardModelDetail<StatusPage>
+                name="Status Page > Branding > Downtime Monitor Statuses"
+                cardProps={{
+                    title: 'Downtime Monitor Statuses',
+                    description:
+                        'These monitor statuses are be considered as down when we calculate uptime %.',
+                }}
+                isEditable={true}
+                editButtonText={'Edit Statuses'}
+                formFields={[
+                    {
+                        field: {
+                            downtimeMonitorStatuses: true,
+                        },
+                        title: 'These monitor statuses are considered as down',
+                        description:
+                            'These monitor statuses are be considered as down when we calculate uptime %.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: MonitorStatus,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Select monitor statuses',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'default-bar-color',
+                    fields: [
+                        {
+                            field: {
+                                downtimeMonitorStatuses: {
+                                    _id: true,
+                                    name: true,
+                                    color: true,
+                                },
+                            },
+                            title: 'Downtime Monitor Statuses',
+                            description:
+                                'These monitor statuses are be considered as down when we calculate uptime %',
+                            fieldType: FieldType.EntityArray,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (item['downtimeMonitorStatuses']) {
+                                    return (
+                                        <MonitorStatuesElement
+                                            monitorStatuses={
+                                                (item[
+                                                    'downtimeMonitorStatuses'
+                                                ] as Array<MonitorStatus>) || []
+                                            }
+                                        />
+                                    );
+                                }
+
+                                return <></>;
+                            },
+                        },
+                    ],
+                    modelId: modelId,
+                }}
             />
 
             <CardModelDetail<StatusPage>

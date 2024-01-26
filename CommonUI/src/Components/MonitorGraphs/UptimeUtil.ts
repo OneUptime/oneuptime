@@ -53,6 +53,7 @@ export default class UptimeUtil {
                 priority: monitorEvents[i]?.monitorStatus?.priority || 0,
                 color: monitorEvents[i]?.monitorStatus?.color || Green,
                 monitorId: monitorEvents[i]!.monitorId!,
+                eventStatusId: monitorEvents[i]!.monitorStatus?.id!,
             });
         }
 
@@ -120,6 +121,7 @@ export default class UptimeUtil {
                             label: tempLastEvent.label,
                             priority: tempLastEvent.priority,
                             color: tempLastEvent.color,
+                            eventStatusId: tempLastEvent.eventStatusId,
                         });
                     }
                 }

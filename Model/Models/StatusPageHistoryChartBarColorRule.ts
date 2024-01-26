@@ -1,12 +1,4 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -212,52 +204,6 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public statusPageId?: ObjectID = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanCreateStatusPageHistoryChartBarColorRule,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadStatusPageHistoryChartBarColorRule,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditStatusPageHistoryChartBarColorRule,
-        ],
-    })
-    @TableColumn({
-        required: false,
-        type: TableColumnType.EntityArray,
-        modelType: MonitorStatus,
-        title: 'Downtime Monitor Statuses',
-        description: 'List of monitors statuses that are considered as "down"',
-    })
-    @ManyToMany(
-        () => {
-            return MonitorStatus;
-        },
-        { eager: false }
-    )
-    @JoinTable({
-        name: 'IncidentMonitorStatus',
-        inverseJoinColumn: {
-            name: 'monitorStatusId',
-            referencedColumnName: '_id',
-        },
-        joinColumn: {
-            name: 'StatusPageHistoryChartBarColorRuleRuleId',
-            referencedColumnName: '_id',
-        },
-    })
-    public downtimeMonitorStatuses?: Array<MonitorStatus> = undefined;
 
     @ColumnAccessControl({
         create: [

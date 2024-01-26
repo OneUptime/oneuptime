@@ -36,6 +36,7 @@ import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/Colu
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ProjectCallSMSConfig from './ProjectCallSMSConfig';
 import Color from 'Common/Types/Color';
+import MonitorStatus from './MonitorStatus';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -1599,4 +1600,51 @@ export default class StatusPage extends BaseModel {
         transformer: Color.getDatabaseTransformer(),
     })
     public defaultBarColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: MonitorStatus,
+        title: 'Downtime Monitor Statuses',
+        description:
+            'List of monitors statuses that are considered as "down" for this status page.',
+    })
+    @ManyToMany(
+        () => {
+            return MonitorStatus;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'StatusPageDownMonitorStatus',
+        inverseJoinColumn: {
+            name: 'monitorStatusId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'statusPageId',
+            referencedColumnName: '_id',
+        },
+    })
+    public downtimeMonitorStatuses?: Array<MonitorStatus> = undefined;
 }

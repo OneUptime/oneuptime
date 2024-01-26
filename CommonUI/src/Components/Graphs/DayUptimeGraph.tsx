@@ -9,6 +9,7 @@ import React, {
     useState,
 } from 'react';
 import Tooltip from '../Tooltip/Tooltip';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface Event {
     startDate: Date;
@@ -16,6 +17,12 @@ export interface Event {
     label: string;
     priority: number;
     color: Color;
+    eventStatusId: ObjectID; // this is the id of the event status. for example, monitor status id.
+}
+
+export interface BarChartRule {
+    barColor: Color;
+    uptimePercentGreaterThanOrEqualTo: number;
 }
 
 export interface ComponentProps {
@@ -24,6 +31,8 @@ export interface ComponentProps {
     events: Array<Event>;
     defaultLabel: string;
     height?: number | undefined;
+    barColorRules?: Array<BarChartRule> | undefined;
+    downtimeEventStatusIds?: Array<ObjectID> | undefined;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -42,14 +51,17 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
     const getUptimeBar: Function = (dayNumber: number): ReactElement => {
         let color: Color = Green;
+
         const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
             props.startDate,
             dayNumber
         );
+
         let toolTipText: string = `${OneUptimeDate.getDateAsLocalFormattedString(
             todaysDay,
             true
         )}`;
+
         const startOfTheDay: Date = OneUptimeDate.getStartOfDay(todaysDay);
         const endOfTheDay: Date = OneUptimeDate.getEndOfDay(todaysDay);
 
@@ -121,11 +133,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
                 endDate
             );
 
-            if (!secondsOfEvent[event.label]) {
-                secondsOfEvent[event.label] = 0;
+            if (!secondsOfEvent[event.eventStatusId.toString()]) {
+                secondsOfEvent[event.eventStatusId.toString()] = 0;
             }
 
-            secondsOfEvent[event.label] += seconds;
+            secondsOfEvent[event.eventStatusId.toString()] += seconds;
 
             // set bar color.
             if (currentPriority <= event.priority) {
@@ -135,6 +147,10 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         }
 
         let hasText: boolean = false;
+
+        let totalUptimeInSecondsInDayBasedOnBarRules: number =
+            OneUptimeDate.getSecondsBetweenDates(startOfTheDay, endOfTheDay);
+
         for (const key in secondsOfEvent) {
             if (todaysEvents.length === 1) {
                 break;
@@ -144,6 +160,41 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             toolTipText += `, ${key} for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
                 secondsOfEvent[key] || 0
             )}`;
+
+            // TODO: Add rules here.
+
+            const eventStatusId: string = key;
+
+            const isDowntimeEvent: boolean = Boolean(
+                props.downtimeEventStatusIds?.find((id: ObjectID) => {
+                    return id.toString() === eventStatusId;
+                })
+            );
+
+            if (isDowntimeEvent) {
+                // remove the seconds from total uptime.
+                const secondsOfDowntime: number = secondsOfEvent[key] || 0;
+                totalUptimeInSecondsInDayBasedOnBarRules -= secondsOfDowntime;
+            }
+        }
+
+        // now check bar rules and finalize the color of the bar.
+
+        const totalSecondsForTheDay: number =
+            OneUptimeDate.getSecondsBetweenDates(startOfTheDay, endOfTheDay);
+
+        const uptimePercentForTheDay: number =
+            (totalUptimeInSecondsInDayBasedOnBarRules / totalSecondsForTheDay) *
+            100;
+
+        for (const rules of props.barColorRules || []) {
+            if (
+                uptimePercentForTheDay >=
+                rules.uptimePercentGreaterThanOrEqualTo
+            ) {
+                color = rules.barColor;
+                break;
+            }
         }
 
         if (todaysEvents.length === 1) {

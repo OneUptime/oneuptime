@@ -9,6 +9,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
 
 export interface ComponentProps {
     monitorName: string;
@@ -25,6 +26,8 @@ export interface ComponentProps {
     showUptimePercent: boolean;
     uptimePrecision?: UptimePrecision | undefined;
     monitorStatuses: Array<MonitorStatus>;
+    statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule>;
+    downtimeMonitorStatus: Array<MonitorStatus>;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -116,6 +119,10 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                 <div>
                     <MonitorUptimeGraph
                         error={undefined}
+                        barColorRules={
+                            props.statusPageHistoryChartBarColorRules
+                        }
+                        downtimeMonitorStatus={props.downtimeMonitorStatus}
                         items={props.monitorStatusTimeline || []}
                         startDate={props.startDate}
                         endDate={props.endDate}
