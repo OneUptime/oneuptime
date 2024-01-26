@@ -30,29 +30,30 @@ export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationB
             // add ended scheduled maintenance state for each of these projects.
             // first fetch resolved state. Ended state order is -1 of resolved state.
 
-            if(!statusPage.projectId) {
+            if (!statusPage.projectId) {
                 continue;
             }
 
-            const monitorStatuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
-                query: {
-                    projectId: statusPage.projectId,
-                },
-                select: {
-                    _id: true,
-                    isOperationalState: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-            });
-    
-            const getNonOperationStatuses: Array<MonitorStatus> = monitorStatuses.filter((monitorStatus: MonitorStatus) => {
-                return !monitorStatus.isOperationalState;
-            }); 
+            const monitorStatuses: Array<MonitorStatus> =
+                await MonitorStatusService.findBy({
+                    query: {
+                        projectId: statusPage.projectId,
+                    },
+                    select: {
+                        _id: true,
+                        isOperationalState: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                });
 
+            const getNonOperationStatuses: Array<MonitorStatus> =
+                monitorStatuses.filter((monitorStatus: MonitorStatus) => {
+                    return !monitorStatus.isOperationalState;
+                });
 
             statusPage.downtimeMonitorStatuses = getNonOperationStatuses;
 
