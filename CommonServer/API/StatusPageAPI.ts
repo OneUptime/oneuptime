@@ -72,6 +72,8 @@ import ScheduledMaintenanceStateService from '../Services/ScheduledMaintenanceSt
 import BaseModel from 'Common/Models/BaseModel';
 import CommonAPI from './CommonAPI';
 import Phone from 'Common/Types/Phone';
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import StatusPageHistoryChartBarColorRuleService from '../Services/StatusPageHistoryChartBarColorRuleService';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -504,6 +506,10 @@ export default class StatusPageAPI extends BaseAPI<
                                 overviewPageDescription: true,
                                 showIncidentLabelsOnStatusPage: true,
                                 showScheduledEventLabelsOnStatusPage: true,
+                                downtimeMonitorStatuses: {
+                                    _id: true,
+                                },
+                                defaultBarColor: true,
                             },
                             props: {
                                 isRoot: true,
@@ -1059,11 +1065,39 @@ export default class StatusPageAPI extends BaseAPI<
                             );
                     }
 
+                    // get all status page bar chart rules
+                    const statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule> =
+                        await StatusPageHistoryChartBarColorRuleService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                            },
+                            select: {
+                                _id: true,
+                                barColor: true,
+                                order: true,
+                                statusPageId: true,
+                                uptimePercentGreaterThanOrEqualTo: true,
+                            },
+                            sort: {
+                                order: SortOrder.Ascending,
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
                     const response: JSONObject = {
                         scheduledMaintenanceEventsPublicNotes:
                             BaseModel.toJSONArray(
                                 scheduledMaintenanceEventsPublicNotes,
                                 ScheduledMaintenancePublicNote
+                            ),
+                        statusPageHistoryChartBarColorRules:
+                            BaseModel.toJSONArray(
+                                statusPageHistoryChartBarColorRules,
+                                StatusPageHistoryChartBarColorRule
                             ),
                         scheduledMaintenanceEvents: BaseModel.toJSONArray(
                             scheduledMaintenanceEvents,

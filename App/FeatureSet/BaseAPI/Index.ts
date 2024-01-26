@@ -23,6 +23,11 @@ import IncidentOwnerTeamService, {
     Service as IncidentOwnerTeamServiceType,
 } from 'CommonServer/Services/IncidentOwnerTeamService';
 
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import StatusPageHistoryChartBarColorRuleService, {
+    Service as StatusPageHistoryChartBarColorRuleServiceType,
+} from 'CommonServer/Services/StatusPageHistoryChartBarColorRuleService';
+
 import IncidentTemplate from 'Model/Models/IncidentTemplate';
 import IncidentTemplateService, {
     Service as IncidentTemplateServiceType,
@@ -461,6 +466,17 @@ app.use(
     new BaseAPI<ShortLink, ShortLinkServiceType>(
         ShortLink,
         ShortLinkService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<
+        StatusPageHistoryChartBarColorRule,
+        StatusPageHistoryChartBarColorRuleServiceType
+    >(
+        StatusPageHistoryChartBarColorRule,
+        StatusPageHistoryChartBarColorRuleService
     ).getRouter()
 );
 

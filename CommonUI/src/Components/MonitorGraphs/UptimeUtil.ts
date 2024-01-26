@@ -53,6 +53,7 @@ export default class UptimeUtil {
                 priority: monitorEvents[i]?.monitorStatus?.priority || 0,
                 color: monitorEvents[i]?.monitorStatus?.color || Green,
                 monitorId: monitorEvents[i]!.monitorId!,
+                eventStatusId: monitorEvents[i]!.monitorStatus!.id!,
             });
         }
 
@@ -120,6 +121,7 @@ export default class UptimeUtil {
                             label: tempLastEvent.label,
                             priority: tempLastEvent.priority,
                             color: tempLastEvent.color,
+                            eventStatusId: tempLastEvent.eventStatusId,
                         });
                     }
                 }
@@ -185,8 +187,8 @@ export default class UptimeUtil {
 
     public static calculateUptimePercentage(
         items: Array<MonitorStatusTimeline>,
-        monitorStatuses: Array<MonitorStatus>,
-        precision: UptimePrecision
+        precision: UptimePrecision,
+        downtimeMonitorStatuses: Array<MonitorStatus>
     ): number {
         const monitorEvents: Array<Event> =
             this.getNonOverlappingMonitorEvents(items);
@@ -228,17 +230,21 @@ export default class UptimeUtil {
 
         // get order of operational state.
 
-        const operationalStatePriority: number =
-            monitorStatuses.find((item: MonitorStatus) => {
-                return item.isOperationalState;
-            })?.priority || 0;
-
         // if the event belongs to less than operationalStatePriority, then add the seconds to the total seconds.
 
         let totalDowntime: number = 0;
 
         for (const monitorEvent of monitorEvents) {
-            if (monitorEvent.priority > operationalStatePriority) {
+            const isDowntimeEvent: boolean = Boolean(
+                downtimeMonitorStatuses.find((item: MonitorStatus) => {
+                    return (
+                        item.id?.toString() ===
+                        monitorEvent.eventStatusId.toString()
+                    );
+                })
+            );
+
+            if (isDowntimeEvent) {
                 totalDowntime += OneUptimeDate.getSecondsBetweenDates(
                     monitorEvent.startDate,
                     monitorEvent.endDate

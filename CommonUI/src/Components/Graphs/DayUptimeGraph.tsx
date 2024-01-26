@@ -9,6 +9,7 @@ import React, {
     useState,
 } from 'react';
 import Tooltip from '../Tooltip/Tooltip';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface Event {
     startDate: Date;
@@ -16,14 +17,22 @@ export interface Event {
     label: string;
     priority: number;
     color: Color;
+    eventStatusId: ObjectID; // this is the id of the event status. for example, monitor status id.
+}
+
+export interface BarChartRule {
+    barColor: Color;
+    uptimePercentGreaterThanOrEqualTo: number;
 }
 
 export interface ComponentProps {
     startDate: Date;
     endDate: Date;
     events: Array<Event>;
-    defaultLabel: string;
     height?: number | undefined;
+    barColorRules?: Array<BarChartRule> | undefined;
+    downtimeEventStatusIds?: Array<ObjectID> | undefined;
+    defaultBarColor: Color;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -41,15 +50,18 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     }, [props.startDate, props.endDate]);
 
     const getUptimeBar: Function = (dayNumber: number): ReactElement => {
-        let color: Color = Green;
+        let color: Color = props.defaultBarColor || Green;
+
         const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
             props.startDate,
             dayNumber
         );
+
         let toolTipText: string = `${OneUptimeDate.getDateAsLocalFormattedString(
             todaysDay,
             true
         )}`;
+
         const startOfTheDay: Date = OneUptimeDate.getStartOfDay(todaysDay);
         const endOfTheDay: Date = OneUptimeDate.getEndOfDay(todaysDay);
 
@@ -103,11 +115,14 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         let currentPriority: number = 1;
 
+        const eventLabels: Dictionary<string> = {};
+
         for (const event of todaysEvents) {
             const startDate: Date = OneUptimeDate.getGreaterDate(
                 event.startDate,
                 startOfTheDay
             );
+
             const endDate: Date = OneUptimeDate.getLesserDate(
                 event.endDate,
                 OneUptimeDate.getLesserDate(
@@ -121,40 +136,87 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
                 endDate
             );
 
-            if (!secondsOfEvent[event.label]) {
-                secondsOfEvent[event.label] = 0;
+            if (!secondsOfEvent[event.eventStatusId.toString()]) {
+                secondsOfEvent[event.eventStatusId.toString()] = 0;
             }
 
-            secondsOfEvent[event.label] += seconds;
+            secondsOfEvent[event.eventStatusId.toString()] += seconds;
+
+            eventLabels[event.eventStatusId.toString()] = event.label;
 
             // set bar color.
             if (currentPriority <= event.priority) {
                 currentPriority = event.priority;
-                color = event.color;
+
+                // if there are no rules then use the color of the event.
+
+                if (!props.barColorRules || props.barColorRules.length === 0) {
+                    color = event.color;
+                }
             }
         }
 
-        let hasText: boolean = false;
-        for (const key in secondsOfEvent) {
-            if (todaysEvents.length === 1) {
-                break;
-            }
+        let hasEvents: boolean = false;
 
-            hasText = true;
-            toolTipText += `, ${key} for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
+        let totalDowntimeInSeconds: number = 0;
+
+        let totalUptimeInSeconds: number = 0;
+
+        for (const key in secondsOfEvent) {
+            hasEvents = true;
+            toolTipText += `, ${
+                eventLabels[key]
+            } for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
                 secondsOfEvent[key] || 0
             )}`;
+
+            // TODO: Add rules here.
+
+            const eventStatusId: string = key;
+
+            const isDowntimeEvent: boolean = Boolean(
+                props.downtimeEventStatusIds?.find((id: ObjectID) => {
+                    return id.toString() === eventStatusId;
+                })
+            );
+
+            if (isDowntimeEvent) {
+                // remove the seconds from total uptime.
+                const secondsOfDowntime: number = secondsOfEvent[key] || 0;
+                totalDowntimeInSeconds += secondsOfDowntime;
+            } else {
+                totalUptimeInSeconds += secondsOfEvent[key] || 0;
+            }
+        }
+
+        // now check bar rules and finalize the color of the bar
+
+        const uptimePercentForTheDay: number =
+            (totalUptimeInSeconds /
+                (totalDowntimeInSeconds + totalUptimeInSeconds)) *
+            100;
+
+        for (const rules of props.barColorRules || []) {
+            if (
+                uptimePercentForTheDay >=
+                rules.uptimePercentGreaterThanOrEqualTo
+            ) {
+                color = rules.barColor;
+                break;
+            }
         }
 
         if (todaysEvents.length === 1) {
-            hasText = true;
-            toolTipText += ` - 100% ${
-                todaysEvents[0]?.label || 'Operational'
-            }.`;
+            hasEvents = true;
+            toolTipText = `${OneUptimeDate.getDateAsLocalFormattedString(
+                todaysDay,
+                true
+            )} - 100% ${todaysEvents[0]?.label || 'Operational'}.`;
         }
 
-        if (!hasText) {
-            toolTipText += ` - 100% ${props.defaultLabel || 'Operational'}.`;
+        if (!hasEvents) {
+            toolTipText += ` - No data for this day.`;
+            color = props.defaultBarColor || Green;
         }
 
         let className: string = 'h-20 w-20';

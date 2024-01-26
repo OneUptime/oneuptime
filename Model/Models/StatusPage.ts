@@ -35,6 +35,8 @@ import ProjectSmtpConfig from './ProjectSmtpConfig';
 import ColumnBillingAccessControl from 'Common/Types/Database/AccessControl/ColumnBillingAccessControl';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ProjectCallSMSConfig from './ProjectCallSMSConfig';
+import Color from 'Common/Types/Color';
+import MonitorStatus from './MonitorStatus';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -1561,4 +1563,88 @@ export default class StatusPage extends BaseModel {
         create: PlanSelect.Free,
     })
     public hidePoweredByOneUptimeBranding?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        title: 'Default Bar Color',
+        required: false,
+        unique: false,
+        type: TableColumnType.Color,
+        canReadOnRelationQuery: true,
+        description: 'Default color of the bar on the overview page',
+    })
+    @Column({
+        type: ColumnType.Color,
+        length: ColumnLength.Color,
+        unique: false,
+        nullable: true,
+        transformer: Color.getDatabaseTransformer(),
+    })
+    public defaultBarColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectStatusPage,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectStatusPage,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: MonitorStatus,
+        title: 'Downtime Monitor Statuses',
+        description:
+            'List of monitors statuses that are considered as "down" for this status page.',
+    })
+    @ManyToMany(
+        () => {
+            return MonitorStatus;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'StatusPageDownMonitorStatus',
+        inverseJoinColumn: {
+            name: 'monitorStatusId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'statusPageId',
+            referencedColumnName: '_id',
+        },
+    })
+    public downtimeMonitorStatuses?: Array<MonitorStatus> = undefined;
 }

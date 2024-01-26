@@ -27,10 +27,59 @@ import Protocol from 'Common/Types/API/Protocol';
 import CookieUtil from '../Utils/Cookie';
 import UpdateBy from '../Types/Database/UpdateBy';
 import ProjectService from './ProjectService';
+import CreateBy from '../Types/Database/CreateBy';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusService from './MonitorStatusService';
+import { Green } from 'Common/Types/BrandColors';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(StatusPage, postgresDatabase);
+    }
+
+    protected override async onBeforeCreate(
+        createBy: CreateBy<StatusPage>
+    ): Promise<OnCreate<StatusPage>> {
+        if (!createBy.data.projectId) {
+            throw new BadDataException('projectId is required');
+        }
+
+        if (
+            !createBy.data.downtimeMonitorStatuses ||
+            createBy.data.downtimeMonitorStatuses.length === 0
+        ) {
+            const monitorStatuses: Array<MonitorStatus> =
+                await MonitorStatusService.findBy({
+                    query: {
+                        projectId: createBy.data.projectId,
+                    },
+                    select: {
+                        _id: true,
+                        isOperationalState: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                });
+
+            const getNonOperationStatuses: Array<MonitorStatus> =
+                monitorStatuses.filter((monitorStatus: MonitorStatus) => {
+                    return !monitorStatus.isOperationalState;
+                });
+
+            createBy.data.downtimeMonitorStatuses = getNonOperationStatuses;
+        }
+
+        if (!createBy.data.defaultBarColor) {
+            createBy.data.defaultBarColor = Green;
+        }
+
+        return {
+            createBy,
+            carryForward: null,
+        };
     }
 
     protected override async onCreateSuccess(

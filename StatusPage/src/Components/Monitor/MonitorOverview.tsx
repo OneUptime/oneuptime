@@ -9,6 +9,8 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import Color from 'Common/Types/Color';
 
 export interface ComponentProps {
     monitorName: string;
@@ -24,7 +26,9 @@ export interface ComponentProps {
     className?: string | undefined;
     showUptimePercent: boolean;
     uptimePrecision?: UptimePrecision | undefined;
-    monitorStatuses: Array<MonitorStatus>;
+    statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule>;
+    downtimeMonitorStatuses: Array<MonitorStatus>;
+    defaultBarColor: Color;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -40,13 +44,20 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         }
 
         if (
-            props.currentStatus?.isOperationalState &&
+            !props.downtimeMonitorStatuses.find(
+                (downtimeStatus: MonitorStatus) => {
+                    return (
+                        props.currentStatus.id?.toString() ===
+                        downtimeStatus.id?.toString()
+                    );
+                }
+            ) &&
             props.showUptimePercent
         ) {
             const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
                 props.monitorStatusTimeline,
-                props.monitorStatuses,
-                precision
+                precision,
+                props.downtimeMonitorStatuses
             );
 
             return (
@@ -116,6 +127,11 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                 <div>
                     <MonitorUptimeGraph
                         error={undefined}
+                        barColorRules={
+                            props.statusPageHistoryChartBarColorRules
+                        }
+                        defaultBarColor={props.defaultBarColor}
+                        downtimeMonitorStatuses={props.downtimeMonitorStatuses}
                         items={props.monitorStatusTimeline || []}
                         startDate={props.startDate}
                         endDate={props.endDate}

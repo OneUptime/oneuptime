@@ -200,6 +200,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.ArrowCircleDown}
                 />
+
+                <SideMenuItem
+                    link={{
+                        title: 'Overview Page',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.CheckCircle}
+                />
             </SideMenuSection>
 
             <SideMenuSection title="Authentication Security">

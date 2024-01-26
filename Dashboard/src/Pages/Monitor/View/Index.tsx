@@ -49,7 +49,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
     const endDate: Date = OneUptimeDate.getCurrentDate();
-    const [monitorStatuses, setMonitorStatuses] = useState<
+    const [downTimeMonitorStatues, setDowntimeMonitorStatues] = useState<
         Array<MonitorStatus>
     >([]);
     const [currentMonitorStatus, setCurrentMonitorStatus] = useState<
@@ -67,8 +67,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
         const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
             statusTimelines,
-            monitorStatuses,
-            UptimePrecision.THREE_DECIMAL
+            UptimePrecision.THREE_DECIMAL,
+            downTimeMonitorStatues
         );
 
         return (
@@ -159,8 +159,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
             setMonitorType(item.monitorType);
             setCurrentMonitorStatus(item.currentMonitorStatus);
-            setMonitorStatuses(monitorStatuses.data);
-
+            setDowntimeMonitorStatues(
+                monitorStatuses.data.filter((status: MonitorStatus) => {
+                    return !status.isOperationalState;
+                })
+            );
             setStatusTimelines(monitorStatus.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
@@ -359,6 +362,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
                     isLoading={isLoading}
+                    defaultBarColor={Green}
+                    downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>
         </Fragment>

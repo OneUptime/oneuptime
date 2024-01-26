@@ -2,6 +2,7 @@ enum FieldType {
     ObjectID = 'ObjectID',
     Name = 'Name',
     File = 'File',
+    Percent = 'Percent',
     ImageFile = 'ImageFile',
     Hostname = 'Hostname',
     URL = 'URL',

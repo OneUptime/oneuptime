@@ -13,6 +13,7 @@ enum IconProp {
     CursorArrowRays = 'CursorArrowRays',
     ArrowUpDown = 'ArrowUpDown',
     Cube = 'Cube',
+    Swatch = 'Swatch',
     Squares = 'Squares',
     RectangleStack = 'RectangleStack',
     ChartBar = 'ChartBar',

@@ -11,6 +11,8 @@ import FieldType from '../Types/FieldType';
 import get from 'lodash/get';
 import ConfirmModal from '../Modal/ConfirmModal';
 import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
+import ColorInput from '../ColorViewer/ColorViewer';
+import Color from 'Common/Types/Color';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -110,6 +112,25 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 ' USD'
                                             ) : (
                                                 column.noValueMessage || '0 USD'
+                                            )
+                                        ) : column.type ===
+                                          FieldType.Percent ? (
+                                            props.item[column.key] ? (
+                                                props.item[column.key] + '%'
+                                            ) : (
+                                                column.noValueMessage || '0%'
+                                            )
+                                        ) : column.type === FieldType.Color ? (
+                                            props.item[column.key] ? (
+                                                <ColorInput
+                                                    value={
+                                                        props.item[
+                                                            column.key
+                                                        ] as Color
+                                                    }
+                                                />
+                                            ) : (
+                                                column.noValueMessage || '0%'
                                             )
                                         ) : column.type ===
                                           FieldType.Boolean ? (

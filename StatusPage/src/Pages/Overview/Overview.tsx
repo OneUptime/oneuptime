@@ -53,6 +53,7 @@ import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Section from '../../Components/Section/Section';
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -97,6 +98,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [monitorStatuses, setMonitorStatuses] = useState<
         Array<MonitorStatus>
     >([]);
+
+    const [
+        statusPageHistoryChartBarColorRules,
+        setStatusPageHistoryChartBarColorRules,
+    ] = useState<Array<StatusPageHistoryChartBarColorRule>>([]);
+
     const [statusPageResources, setStatusPageResources] = useState<
         Array<StatusPageResource>
     >([]);
@@ -176,6 +183,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
+
+            const statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule> =
+                BaseModel.fromJSONArray(
+                    (data[
+                        'statusPageHistoryChartBarColorRules'
+                    ] as JSONArray) || [],
+                    StatusPageHistoryChartBarColorRule
+                );
+
             const activeIncidents: Array<Incident> = BaseModel.fromJSONArray(
                 (data['activeIncidents'] as JSONArray) || [],
                 Incident
@@ -230,6 +246,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             setMonitorsInGroup(monitorsInGroup);
             setMonitorGroupCurrentStatuses(monitorGroupCurrentStatuses);
+
+            setStatusPageHistoryChartBarColorRules(
+                statusPageHistoryChartBarColorRules
+            );
 
             // save data. set()
             setScheduledMaintenanceEventsPublicNotes(
@@ -391,10 +411,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 resource.monitor?.name ||
                                 ''
                             }
+                            statusPageHistoryChartBarColorRules={
+                                statusPageHistoryChartBarColorRules
+                            }
+                            downtimeMonitorStatuses={
+                                statusPage?.downtimeMonitorStatuses || []
+                            }
                             description={resource.displayDescription || ''}
                             tooltip={resource.displayTooltip || ''}
                             currentStatus={currentStatus}
-                            monitorStatuses={monitorStatuses}
                             showUptimePercent={Boolean(
                                 resource.showUptimePercent
                             )}
@@ -415,6 +440,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             showHistoryChart={resource.showStatusHistoryChart}
                             showCurrentStatus={resource.showCurrentStatus}
                             uptimeGraphHeight={10}
+                            defaultBarColor={
+                                statusPage?.defaultBarColor || Green
+                            }
                         />
                     );
                 }
@@ -453,10 +481,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 resource.uptimePercentPrecision ||
                                 UptimePrecision.ONE_DECIMAL
                             }
+                            statusPageHistoryChartBarColorRules={
+                                statusPageHistoryChartBarColorRules
+                            }
                             description={resource.displayDescription || ''}
                             tooltip={resource.displayTooltip || ''}
                             currentStatus={currentStatus}
-                            monitorStatuses={monitorStatuses}
                             monitorStatusTimeline={[
                                 ...monitorStatusTimelines,
                             ].filter((timeline: MonitorStatusTimeline) => {
@@ -481,11 +511,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     }
                                 );
                             })}
+                            downtimeMonitorStatuses={
+                                statusPage?.downtimeMonitorStatuses || []
+                            }
                             startDate={startDate}
                             endDate={endDate}
                             showHistoryChart={resource.showStatusHistoryChart}
                             showCurrentStatus={resource.showCurrentStatus}
                             uptimeGraphHeight={10}
+                            defaultBarColor={
+                                statusPage?.defaultBarColor || Green
+                            }
                         />
                     );
                 }
