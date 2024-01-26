@@ -25,6 +25,7 @@ import StatusPageSubscriberService from './StatusPageSubscriberService';
 import StatusPageFooterLinkService from './StatusPageFooterLinkService';
 import StatusPageHeaderLinkService from './StatusPageHeaderLinkService';
 import StatusPagePrivateUserService from './StatusPagePrivateUserService';
+import StatusPageHistoryChartBarColorRuleService from './StatusPageHistoryChartBarColorRuleService';
 
 // On-Call Duty
 import OnCallDutyPolicyService from './OnCallDutyPolicyService';
@@ -229,6 +230,7 @@ const services: Array<BaseService> = [
     StatusPageService,
     StatusPageSsoService,
     StatusPageSubscriberService,
+    StatusPageHistoryChartBarColorRuleService,
 
     TeamMemberService,
     TeamPermissionService,
