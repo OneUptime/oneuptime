@@ -30,6 +30,7 @@ import ProjectService from './ProjectService';
 import CreateBy from '../Types/Database/CreateBy';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from './MonitorStatusService';
+import { Green } from 'Common/Types/BrandColors';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -69,6 +70,10 @@ export class Service extends DatabaseService<StatusPage> {
                 });
 
             createBy.data.downtimeMonitorStatuses = getNonOperationStatuses;
+        }
+
+        if(!createBy.data.defaultBarColor){
+            createBy.data.defaultBarColor = Green;
         }
 
         return {

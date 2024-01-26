@@ -509,6 +509,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 downtimeMonitorStatuses: {
                                     _id: true,
                                 },
+                                defaultBarColor: true,
                             },
                             props: {
                                 isRoot: true,

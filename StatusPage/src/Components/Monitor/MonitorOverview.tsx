@@ -10,6 +10,7 @@ import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownVie
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import Color from 'Common/Types/Color';
 
 export interface ComponentProps {
     monitorName: string;
@@ -27,6 +28,7 @@ export interface ComponentProps {
     uptimePrecision?: UptimePrecision | undefined;
     statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule>;
     downtimeMonitorStatuses: Array<MonitorStatus>;
+    defaultBarColor: Color;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -121,6 +123,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         barColorRules={
                             props.statusPageHistoryChartBarColorRules
                         }
+                        defaultBarColor={props.defaultBarColor}
                         downtimeMonitorStatuses={props.downtimeMonitorStatuses}
                         items={props.monitorStatusTimeline || []}
                         startDate={props.startDate}

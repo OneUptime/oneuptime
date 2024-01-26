@@ -420,7 +420,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             description={resource.displayDescription || ''}
                             tooltip={resource.displayTooltip || ''}
                             currentStatus={currentStatus}
-                            monitorStatuses={monitorStatuses}
                             showUptimePercent={Boolean(
                                 resource.showUptimePercent
                             )}
@@ -441,6 +440,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             showHistoryChart={resource.showStatusHistoryChart}
                             showCurrentStatus={resource.showCurrentStatus}
                             uptimeGraphHeight={10}
+                            defaultBarColor={statusPage?.defaultBarColor || Green}
                         />
                     );
                 }
@@ -485,7 +485,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             description={resource.displayDescription || ''}
                             tooltip={resource.displayTooltip || ''}
                             currentStatus={currentStatus}
-                            monitorStatuses={monitorStatuses}
                             monitorStatusTimeline={[
                                 ...monitorStatusTimelines,
                             ].filter((timeline: MonitorStatusTimeline) => {
@@ -518,6 +517,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             showHistoryChart={resource.showStatusHistoryChart}
                             showCurrentStatus={resource.showCurrentStatus}
                             uptimeGraphHeight={10}
+                            defaultBarColor={statusPage?.defaultBarColor || Green}
                         />
                     );
                 }

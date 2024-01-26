@@ -33,6 +33,7 @@ export interface ComponentProps {
     height?: number | undefined;
     barColorRules?: Array<BarChartRule> | undefined;
     downtimeEventStatusIds?: Array<ObjectID> | undefined;
+    defaultBarColor: Color;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -50,7 +51,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     }, [props.startDate, props.endDate]);
 
     const getUptimeBar: Function = (dayNumber: number): ReactElement => {
-        let color: Color = Green;
+
+
+        let color: Color = props.defaultBarColor || Green;
 
         const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
             props.startDate,
@@ -142,7 +145,12 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             // set bar color.
             if (currentPriority <= event.priority) {
                 currentPriority = event.priority;
-                color = event.color;
+
+                // if there are no rules then use the color of the event.
+
+                if(!props.barColorRules || props.barColorRules.length === 0){
+                    color = event.color;
+                }
             }
         }
 
@@ -205,7 +213,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         }
 
         if (!hasText) {
-            toolTipText += ` - 100% ${props.defaultLabel || 'Operational'}.`;
+            toolTipText += ` - No data for this day.`;
         }
 
         let className: string = 'h-20 w-20';

@@ -13,6 +13,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import UptimeUtil from './UptimeUtil';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
 import MonitorStatus from 'Model/Models/MonitorStatus';
+import Color from 'Common/Types/Color';
 
 export interface MonitorEvent extends Event {
     monitorId: ObjectID;
@@ -28,6 +29,7 @@ export interface ComponentProps {
     height?: number | undefined;
     barColorRules?: Array<StatusPageHistoryChartBarColorRule> | undefined;
     downtimeMonitorStatuses: Array<MonitorStatus> | undefined;
+    defaultBarColor: Color;
 }
 
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -79,6 +81,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
             startDate={props.startDate}
             endDate={props.endDate}
             events={events}
+            defaultBarColor={props.defaultBarColor}
             defaultLabel={'Operational'}
             height={props.height}
             barColorRules={barColorRules}

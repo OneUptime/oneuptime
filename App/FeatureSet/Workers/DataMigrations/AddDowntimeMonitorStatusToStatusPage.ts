@@ -4,6 +4,8 @@ import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from 'CommonServer/Services/MonitorStatusService';
+import { Green } from 'Common/Types/BrandColors';
+import Color from 'Common/Types/Color';
 
 export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationBase {
     public constructor() {
@@ -55,12 +57,11 @@ export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationB
                     return !monitorStatus.isOperationalState;
                 });
 
-            statusPage.downtimeMonitorStatuses = getNonOperationStatuses;
-
             await StatusPageService.updateOneById({
                 id: statusPage.id!,
                 data: {
-                    downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses,
+                    downtimeMonitorStatuses: getNonOperationStatuses as any,
+                    defaultBarColor: new Color(Green.toString()) as any
                 },
                 props: {
                     isRoot: true,

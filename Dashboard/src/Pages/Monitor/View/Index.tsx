@@ -362,6 +362,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
                     isLoading={isLoading}
+                    defaultBarColor={Green}
                     downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>
