@@ -1,4 +1,5 @@
 import AddDefaultGlobalConfig from './AddDefaultGlobalConfig';
+import AddDowntimeMonitorStatusToStatusPage from './AddDowntimeMonitorStatusToStatusPage';
 import AddEndedState from './AddEndedState';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
@@ -25,6 +26,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new UpdateGlobalConfigFromEnv(),
     new AddPostedAtToPublicNotes(),
     new MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage(),
+    new AddDowntimeMonitorStatusToStatusPage()
 ];
 
 export default DataMigrations;
