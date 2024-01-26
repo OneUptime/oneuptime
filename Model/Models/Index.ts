@@ -29,6 +29,7 @@ import StatusPageCustomField from './StatusPageCustomField';
 import StatusPageSSO from './StatusPageSso';
 import StatusPageOwnerTeam from './StatusPageOwnerTeam';
 import StatusPageOwnerUser from './StatusPageOwnerUser';
+import StatusPageHistoryChartBarColorRule from './StatusPageHistoryChartBarColorRule';
 
 // On-Call Duty
 import OnCallDutyPolicy from './OnCallDutyPolicy';
@@ -187,6 +188,7 @@ export default [
     StatusPageFooterLink,
     StatusPageHeaderLink,
     StatusPagePrivateUser,
+    StatusPageHistoryChartBarColorRule,
 
     ScheduledMaintenanceState,
     ScheduledMaintenance,

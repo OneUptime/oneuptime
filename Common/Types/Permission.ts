@@ -229,6 +229,11 @@ enum Permission {
     CanEditStatusPageResource = 'CanEditStatusPageResource',
     CanReadStatusPageResource = 'CanReadStatusPageResource',
 
+    CanCreateStatusPageHistoryChartBarColorRule = 'CanCreateStatusPageHistoryChartBarColorRule',
+    CanDeleteStatusPageHistoryChartBarColorRule = 'CanDeleteStatusPageHistoryChartBarColorRule',
+    CanEditStatusPageHistoryChartBarColorRule = 'CanEditStatusPageHistoryChartBarColorRule',
+    CanReadStatusPageHistoryChartBarColorRule = 'CanReadStatusPageHistoryChartBarColorRule',
+
     CanCreateWorkflow = 'CanCreateWorkflow',
     CanDeleteWorkflow = 'CanDeleteWorkflow',
     CanEditWorkflow = 'CanEditWorkflow',
@@ -1044,6 +1049,44 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+
+
+            {
+                permission: Permission.CanCreateStatusPageHistoryChartBarColorRule,
+                title: 'Can Create Status Page History Chart Bar Color Rule',
+                description:
+                    'This permission can create Status Page History Chart Bar Color Rule in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageHistoryChartBarColorRule,
+                title: 'Can Delete Status Page History Chart Bar Color Rule',
+                description:
+                    'This permission can delete Status Page History Chart Bar Color Rule in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageHistoryChartBarColorRule,
+                title: 'Can Edit Status Page History Chart Bar Color Rule',
+                description:
+                    'This permission can edit Status Page History Chart Bar Color Rule in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageHistoryChartBarColorRule,
+                title: 'Can Read Status Page History Chart Bar Color Rule',
+                description:
+                    'This permission can read Status Page History Chart Bar Color Rule in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
 
             {
                 permission: Permission.CanCreateWorkflow,
