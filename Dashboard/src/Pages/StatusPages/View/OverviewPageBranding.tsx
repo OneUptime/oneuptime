@@ -89,7 +89,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: `History Chart Bar Color Rules`,
+                    title: `Rules for Bar Colors of History Chart`,
                     description: 'Rules for history chart bar colors.',
                 }}
                 noItemsMessage={
@@ -163,7 +163,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <CardModelDetail<StatusPage>
                 name="Status Page > Branding > Default Bar Color"
                 cardProps={{
-                    title: 'Default History Chart Bar Color',
+                    title: 'Default Bar Color of the History Chart',
                     description:
                         'Bar color will be used for history chart when no data is set.',
                 }}
