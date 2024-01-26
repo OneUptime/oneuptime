@@ -495,7 +495,7 @@ export default class OneUptimeDate {
     }
 
     public static secondsToFormattedFriendlyTimeString(
-        seconds: number,
+        seconds: number
     ): string {
         const date: moment.Moment = moment.utc(seconds * 1000);
         const hours: string = date.format('HH');

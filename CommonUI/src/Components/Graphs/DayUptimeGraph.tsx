@@ -115,10 +115,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         let currentPriority: number = 1;
 
-            const eventLabels: Dictionary<string> = {};
+        const eventLabels: Dictionary<string> = {};
 
         for (const event of todaysEvents) {
-
             const startDate: Date = OneUptimeDate.getGreaterDate(
                 event.startDate,
                 startOfTheDay
@@ -159,16 +158,15 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         let hasEvents: boolean = false;
 
-        let totalDowntimeInSeconds: number =
-            0; 
+        let totalDowntimeInSeconds: number = 0;
 
-            let totalUptimeInSeconds: number = 0;
+        let totalUptimeInSeconds: number = 0;
 
         for (const key in secondsOfEvent) {
-            
-
             hasEvents = true;
-            toolTipText += `, ${eventLabels[key]} for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
+            toolTipText += `, ${
+                eventLabels[key]
+            } for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
                 secondsOfEvent[key] || 0
             )}`;
 
@@ -186,7 +184,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
                 // remove the seconds from total uptime.
                 const secondsOfDowntime: number = secondsOfEvent[key] || 0;
                 totalDowntimeInSeconds += secondsOfDowntime;
-            }else{  
+            } else {
                 totalUptimeInSeconds += secondsOfEvent[key] || 0;
             }
         }
@@ -194,7 +192,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         // now check bar rules and finalize the color of the bar
 
         const uptimePercentForTheDay: number =
-            (totalUptimeInSeconds / (totalDowntimeInSeconds + totalUptimeInSeconds)) *
+            (totalUptimeInSeconds /
+                (totalDowntimeInSeconds + totalUptimeInSeconds)) *
             100;
 
         for (const rules of props.barColorRules || []) {
@@ -212,16 +211,13 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             toolTipText = `${OneUptimeDate.getDateAsLocalFormattedString(
                 todaysDay,
                 true
-            )} - 100% ${
-                todaysEvents[0]?.label || 'Operational'
-            }.`;
+            )} - 100% ${todaysEvents[0]?.label || 'Operational'}.`;
         }
 
         if (!hasEvents) {
             toolTipText += ` - No data for this day.`;
             color = props.defaultBarColor || Green;
         }
-
 
         let className: string = 'h-20 w-20';
 
