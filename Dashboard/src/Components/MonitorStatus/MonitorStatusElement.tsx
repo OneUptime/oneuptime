@@ -3,7 +3,6 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 
 export interface ComponentProps {
     monitorStatus: MonitorStatus;
-    onNavigateComplete?: (() => void) | undefined;
 }
 
 const TeamElement: FunctionComponent<ComponentProps> = (

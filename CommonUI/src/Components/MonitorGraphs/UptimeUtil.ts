@@ -53,7 +53,7 @@ export default class UptimeUtil {
                 priority: monitorEvents[i]?.monitorStatus?.priority || 0,
                 color: monitorEvents[i]?.monitorStatus?.color || Green,
                 monitorId: monitorEvents[i]!.monitorId!,
-                eventStatusId: monitorEvents[i]!.monitorStatus?.id!,
+                eventStatusId: monitorEvents[i]!.monitorStatus!.id!,
             });
         }
 
@@ -235,13 +235,13 @@ export default class UptimeUtil {
         let totalDowntime: number = 0;
 
         for (const monitorEvent of monitorEvents) {
-            const isDowntimeEvent = downtimeMonitorStatuses.find(
-                (item: MonitorStatus) => {
+            const isDowntimeEvent: boolean = Boolean(
+                downtimeMonitorStatuses.find((item: MonitorStatus) => {
                     return (
                         item.id?.toString() ===
                         monitorEvent.eventStatusId.toString()
                     );
-                }
+                })
             );
 
             if (isDowntimeEvent) {

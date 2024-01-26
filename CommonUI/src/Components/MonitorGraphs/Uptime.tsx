@@ -46,13 +46,15 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         if (props.barColorRules) {
             setBarColorRules(
-                props.barColorRules.map((rule) => {
-                    return {
-                        barColor: rule.barColor!,
-                        uptimePercentGreaterThanOrEqualTo:
-                            rule.uptimePercentGreaterThanOrEqualTo!,
-                    };
-                })
+                props.barColorRules.map(
+                    (rule: StatusPageHistoryChartBarColorRule) => {
+                        return {
+                            barColor: rule.barColor!,
+                            uptimePercentGreaterThanOrEqualTo:
+                                rule.uptimePercentGreaterThanOrEqualTo!,
+                        };
+                    }
+                )
             );
         }
     }, [props.barColorRules]);

@@ -25,7 +25,6 @@ export interface ComponentProps {
     className?: string | undefined;
     showUptimePercent: boolean;
     uptimePrecision?: UptimePrecision | undefined;
-    monitorStatuses: Array<MonitorStatus>;
     statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule>;
     downtimeMonitorStatuses: Array<MonitorStatus>;
 }

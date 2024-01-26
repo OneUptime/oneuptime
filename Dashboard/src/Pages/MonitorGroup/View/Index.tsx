@@ -151,7 +151,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
             setCurrentGroupStatus(currentStatus);
             setStatusTimelines(statusTimelines.data);
             setDowntimeMonitorStatues(
-                monitorStatuses.data.filter((status) => {
+                monitorStatuses.data.filter((status: MonitorStatus) => {
                     return !status.isOperationalState;
                 })
             );

@@ -4,7 +4,6 @@ import MonitorStatusElement from './MonitorStatusElement';
 
 export interface ComponentProps {
     monitorStatuses: Array<MonitorStatus>;
-    onNavigateComplete?: (() => void) | undefined;
 }
 
 const MonitorStatusesElement: FunctionComponent<ComponentProps> = (
@@ -22,7 +21,6 @@ const MonitorStatusesElement: FunctionComponent<ComponentProps> = (
                         <span key={i}>
                             <MonitorStatusElement
                                 monitorStatus={monitorStatus}
-                                onNavigateComplete={props.onNavigateComplete}
                             />
                             {i !== props.monitorStatuses.length - 1 && (
                                 <span>,&nbsp;</span>
