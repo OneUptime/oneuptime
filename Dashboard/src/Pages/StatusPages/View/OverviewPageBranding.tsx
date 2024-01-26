@@ -57,7 +57,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-
             <ModelTable<StatusPageHistoryChartBarColorRule>
                 modelType={StatusPageHistoryChartBarColorRule}
                 id={`status-page-history-chart-bar-color-rules`}
@@ -76,11 +75,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 enableDragAndDrop={true}
                 dragDropIndexField="order"
                 singularName="Rule"
-                pluralName='Rules'
+                pluralName="Rules"
                 onBeforeCreate={(
                     item: StatusPageHistoryChartBarColorRule
                 ): Promise<StatusPageHistoryChartBarColorRule> => {
-
                     if (!props.currentProject || !props.currentProject._id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
@@ -89,7 +87,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     item.projectId = new ObjectID(props.currentProject._id);
 
                     return Promise.resolve(item);
-
                 }}
                 cardProps={{
                     title: `History Chart Bar Color Rules`,
@@ -138,7 +135,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         required: true,
                         placeholder: 'Select monitor statuses',
-                    }]}
+                    },
+                ]}
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
@@ -148,7 +146,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             uptimePercentGreaterThanOrEqualTo: true,
                         },
                         title: 'When Uptime Percent >=',
-                        type: FieldType.Text,
+                        type: FieldType.Percent,
                         isFilterable: false,
                     },
                     {

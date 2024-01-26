@@ -471,7 +471,10 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<StatusPageHistoryChartBarColorRule, StatusPageHistoryChartBarColorRuleServiceType>(
+    new BaseAPI<
+        StatusPageHistoryChartBarColorRule,
+        StatusPageHistoryChartBarColorRuleServiceType
+    >(
         StatusPageHistoryChartBarColorRule,
         StatusPageHistoryChartBarColorRuleService
     ).getRouter()
