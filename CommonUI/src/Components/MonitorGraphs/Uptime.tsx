@@ -82,7 +82,6 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
             endDate={props.endDate}
             events={events}
             defaultBarColor={props.defaultBarColor}
-            defaultLabel={'Operational'}
             height={props.height}
             barColorRules={barColorRules}
             downtimeEventStatusIds={

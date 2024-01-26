@@ -29,7 +29,6 @@ export interface ComponentProps {
     startDate: Date;
     endDate: Date;
     events: Array<Event>;
-    defaultLabel: string;
     height?: number | undefined;
     barColorRules?: Array<BarChartRule> | undefined;
     downtimeEventStatusIds?: Array<ObjectID> | undefined;
@@ -51,8 +50,6 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     }, [props.startDate, props.endDate]);
 
     const getUptimeBar: Function = (dayNumber: number): ReactElement => {
-
-
         let color: Color = props.defaultBarColor || Green;
 
         const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
@@ -118,11 +115,15 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         let currentPriority: number = 1;
 
+            const eventLabels: Dictionary<string> = {};
+
         for (const event of todaysEvents) {
+
             const startDate: Date = OneUptimeDate.getGreaterDate(
                 event.startDate,
                 startOfTheDay
             );
+
             const endDate: Date = OneUptimeDate.getLesserDate(
                 event.endDate,
                 OneUptimeDate.getLesserDate(
@@ -142,30 +143,32 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
             secondsOfEvent[event.eventStatusId.toString()] += seconds;
 
+            eventLabels[event.eventStatusId.toString()] = event.label;
+
             // set bar color.
             if (currentPriority <= event.priority) {
                 currentPriority = event.priority;
 
                 // if there are no rules then use the color of the event.
 
-                if(!props.barColorRules || props.barColorRules.length === 0){
+                if (!props.barColorRules || props.barColorRules.length === 0) {
                     color = event.color;
                 }
             }
         }
 
-        let hasText: boolean = false;
+        let hasEvents: boolean = false;
 
-        let totalUptimeInSecondsInDayBasedOnBarRules: number =
-            OneUptimeDate.getSecondsBetweenDates(startOfTheDay, endOfTheDay);
+        let totalDowntimeInSeconds: number =
+            0; 
+
+            let totalUptimeInSeconds: number = 0;
 
         for (const key in secondsOfEvent) {
-            if (todaysEvents.length === 1) {
-                break;
-            }
+            
 
-            hasText = true;
-            toolTipText += `, ${key} for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
+            hasEvents = true;
+            toolTipText += `, ${eventLabels[key]} for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
                 secondsOfEvent[key] || 0
             )}`;
 
@@ -182,17 +185,16 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             if (isDowntimeEvent) {
                 // remove the seconds from total uptime.
                 const secondsOfDowntime: number = secondsOfEvent[key] || 0;
-                totalUptimeInSecondsInDayBasedOnBarRules -= secondsOfDowntime;
+                totalDowntimeInSeconds += secondsOfDowntime;
+            }else{  
+                totalUptimeInSeconds += secondsOfEvent[key] || 0;
             }
         }
 
-        // now check bar rules and finalize the color of the bar.
-
-        const totalSecondsForTheDay: number =
-            OneUptimeDate.getSecondsBetweenDates(startOfTheDay, endOfTheDay);
+        // now check bar rules and finalize the color of the bar
 
         const uptimePercentForTheDay: number =
-            (totalUptimeInSecondsInDayBasedOnBarRules / totalSecondsForTheDay) *
+            (totalUptimeInSeconds / (totalDowntimeInSeconds + totalUptimeInSeconds)) *
             100;
 
         for (const rules of props.barColorRules || []) {
@@ -206,15 +208,20 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         }
 
         if (todaysEvents.length === 1) {
-            hasText = true;
-            toolTipText += ` - 100% ${
+            hasEvents = true;
+            toolTipText = `${OneUptimeDate.getDateAsLocalFormattedString(
+                todaysDay,
+                true
+            )} - 100% ${
                 todaysEvents[0]?.label || 'Operational'
             }.`;
         }
 
-        if (!hasText) {
+        if (!hasEvents) {
             toolTipText += ` - No data for this day.`;
+            color = props.defaultBarColor || Green;
         }
+
 
         let className: string = 'h-20 w-20';
 

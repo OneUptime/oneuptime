@@ -440,7 +440,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             showHistoryChart={resource.showStatusHistoryChart}
                             showCurrentStatus={resource.showCurrentStatus}
                             uptimeGraphHeight={10}
-                            defaultBarColor={statusPage?.defaultBarColor || Green}
+                            defaultBarColor={
+                                statusPage?.defaultBarColor || Green
+                            }
                         />
                     );
                 }
@@ -517,7 +519,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             showHistoryChart={resource.showStatusHistoryChart}
                             showCurrentStatus={resource.showCurrentStatus}
                             uptimeGraphHeight={10}
-                            defaultBarColor={statusPage?.defaultBarColor || Green}
+                            defaultBarColor={
+                                statusPage?.defaultBarColor || Green
+                            }
                         />
                     );
                 }

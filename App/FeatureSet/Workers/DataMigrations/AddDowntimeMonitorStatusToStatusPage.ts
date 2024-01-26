@@ -61,7 +61,7 @@ export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationB
                 id: statusPage.id!,
                 data: {
                     downtimeMonitorStatuses: getNonOperationStatuses as any,
-                    defaultBarColor: new Color(Green.toString()) as any
+                    defaultBarColor: new Color(Green.toString()) as any,
                 },
                 props: {
                     isRoot: true,

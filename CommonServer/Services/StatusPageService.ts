@@ -72,7 +72,7 @@ export class Service extends DatabaseService<StatusPage> {
             createBy.data.downtimeMonitorStatuses = getNonOperationStatuses;
         }
 
-        if(!createBy.data.defaultBarColor){
+        if (!createBy.data.defaultBarColor) {
             createBy.data.defaultBarColor = Green;
         }
 

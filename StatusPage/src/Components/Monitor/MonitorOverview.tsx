@@ -44,7 +44,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         }
 
         if (
-            props.currentStatus?.isOperationalState &&
+            !props.downtimeMonitorStatuses.find((downtimeStatus: MonitorStatus) => {
+                return props.currentStatus.id?.toString() === downtimeStatus.id?.toString();
+            }) && 
             props.showUptimePercent
         ) {
             const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
