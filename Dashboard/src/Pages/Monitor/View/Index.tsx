@@ -159,7 +159,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
             setMonitorType(item.monitorType);
             setCurrentMonitorStatus(item.currentMonitorStatus);
-            setDowntimeMonitorStatues(monitorStatuses.data.filter((status) => !status.isOperationalState));
+            setDowntimeMonitorStatues(
+                monitorStatuses.data.filter((status) => {
+                    return !status.isOperationalState;
+                })
+            );
             setStatusTimelines(monitorStatus.data);
         } catch (err) {
             setError(API.getFriendlyMessage(err));

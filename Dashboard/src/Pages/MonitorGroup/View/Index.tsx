@@ -61,7 +61,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
         const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
             statusTimelines,
             UptimePrecision.THREE_DECIMAL,
-            downTimeMonitorStatues,
+            downTimeMonitorStatues
         );
 
         return (
@@ -150,7 +150,11 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
 
             setCurrentGroupStatus(currentStatus);
             setStatusTimelines(statusTimelines.data);
-            setDowntimeMonitorStatues(monitorStatuses.data.filter((status) => !status.isOperationalState));
+            setDowntimeMonitorStatues(
+                monitorStatuses.data.filter((status) => {
+                    return !status.isOperationalState;
+                })
+            );
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }

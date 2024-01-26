@@ -235,10 +235,14 @@ export default class UptimeUtil {
         let totalDowntime: number = 0;
 
         for (const monitorEvent of monitorEvents) {
-
-            const isDowntimeEvent = downtimeMonitorStatuses.find((item: MonitorStatus) => {
-                return item.id?.toString() === monitorEvent.eventStatusId.toString();
-            });
+            const isDowntimeEvent = downtimeMonitorStatuses.find(
+                (item: MonitorStatus) => {
+                    return (
+                        item.id?.toString() ===
+                        monitorEvent.eventStatusId.toString()
+                    );
+                }
+            );
 
             if (isDowntimeEvent) {
                 totalDowntime += OneUptimeDate.getSecondsBetweenDates(

@@ -508,7 +508,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 showScheduledEventLabelsOnStatusPage: true,
                                 downtimeMonitorStatuses: {
                                     _id: true,
-                                }
+                                },
                             },
                             props: {
                                 isRoot: true,

@@ -80,9 +80,11 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
             defaultLabel={'Operational'}
             height={props.height}
             barColorRules={barColorRules}
-            downtimeEventStatusIds={props.downtimeMonitorStatuses?.map((status: MonitorStatus)=>{
-                return status.id!;
-            }) || []}
+            downtimeEventStatusIds={
+                props.downtimeMonitorStatuses?.map((status: MonitorStatus) => {
+                    return status.id!;
+                }) || []
+            }
         />
     );
 };

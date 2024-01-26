@@ -414,7 +414,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             statusPageHistoryChartBarColorRules={
                                 statusPageHistoryChartBarColorRules
                             }
-                            downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
+                            downtimeMonitorStatuses={
+                                statusPage?.downtimeMonitorStatuses || []
+                            }
                             description={resource.displayDescription || ''}
                             tooltip={resource.displayTooltip || ''}
                             currentStatus={currentStatus}
@@ -508,7 +510,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     }
                                 );
                             })}
-                            downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
+                            downtimeMonitorStatuses={
+                                statusPage?.downtimeMonitorStatuses || []
+                            }
                             startDate={startDate}
                             endDate={endDate}
                             showHistoryChart={resource.showStatusHistoryChart}
