@@ -26,7 +26,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new UpdateGlobalConfigFromEnv(),
     new AddPostedAtToPublicNotes(),
     new MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage(),
-    new AddDowntimeMonitorStatusToStatusPage()
+    new AddDowntimeMonitorStatusToStatusPage(),
 ];
 
 export default DataMigrations;
