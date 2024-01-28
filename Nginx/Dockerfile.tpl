@@ -1,4 +1,4 @@
-FROM nginx:1.25.3-alpine
+FROM nginx:1.25.3-alpine as nginx
 
 USER root
 
@@ -15,7 +15,8 @@ RUN apk add bash && apk add curl
 RUN apk add nginx-module-njs
 
 COPY ./Nginx/customssl.js /etc/nginx/customssl.js
-
 COPY ./Nginx/default.conf.template /etc/nginx/templates/default.conf.template 
-
 COPY ./Nginx/nginx.conf /etc/nginx/nginx.conf
+
+
+
