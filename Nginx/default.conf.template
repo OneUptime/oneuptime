@@ -1,9 +1,6 @@
-error_log   /var/log/nginx/error.log debug;
-
 upstream accounts {
     server ${SERVER_ACCOUNTS_HOSTNAME}:${ACCOUNTS_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
-
 
 upstream app {
     server ${SERVER_APP_HOSTNAME}:${APP_PORT} weight=10 max_fails=3 fail_timeout=30s; 
