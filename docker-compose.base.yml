@@ -257,10 +257,6 @@ services:
             PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
             INGESTOR_URL: http://${INGESTOR_HOSTNAME}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
-        depends_on:
-            - ingestor
-        links:
-            - ingestor
         logging:
             driver: "local"
             options:
@@ -279,10 +275,6 @@ services:
             PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
             INGESTOR_URL: http://${INGESTOR_HOSTNAME}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
-        depends_on:
-            - ingestor
-        links:
-            - ingestor
         logging:
             driver: "local"
             options:
