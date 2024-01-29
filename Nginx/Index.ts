@@ -2,7 +2,7 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 
-process.env['PORT'] = "7845";
+process.env['PORT'] = "7845"; // any random port number
 
 const APP_NAME: string = 'ingress';
 
