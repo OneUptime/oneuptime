@@ -36,7 +36,7 @@ Save it and run `source ~/.bashrc`
 
 - Hostpath Storage (skip if you're running on a multinode cluster)
 
-if you're using one node. Use Ceph if you have multiple nodes. **If you're using the miltinode k8s cluster, you can skip this step.**. Please read Ceph Installation guide at `HelmChart/Docs/CephRook.md` for more details 
+Use MicroCeph if you have multiple nodes. **If you're using the miltinode k8s cluster, you can skip this step.**. Please read Ceph Installation guide at `HelmChart/Docs/MicroCeph.md` for more details 
 
 ```
 microk8s enable hostpath-storage
@@ -68,16 +68,26 @@ microk8s enable dashboard
 
 and then you can run `microk8s dashboard-proxy` to access the dashboard.
 
-- Ingress 
-
-```
-microk8s enable ingress
-```
 
 - DNS
 
 ```
 microk8s enable dns
+```
+
+- Rook Ceph
+
+**Skip this step if you're NOT running on a multinode cluster**
+
+```
+microk8s enable rook-ceph
+sudo microk8s connect-external-ceph
+```
+
+After running the above command, check if you see the storageclass:
+
+```
+kubectl get storageclass
 ```
 
 ### Common Issues
