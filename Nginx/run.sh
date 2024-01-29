@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start the first process
-nginx -g "daemon off;" &
+nginx -c /etc/nginx/nginx.conf -g "daemon off;" &
 
 # Start the second process
 npm start &

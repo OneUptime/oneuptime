@@ -1,8 +1,7 @@
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
-
-process.env['PORT'] = "7845"; // any random port number
+import FetchCertificateJobs from './Jobs/FetchCertificates';
 
 const APP_NAME: string = 'ingress';
 
@@ -16,6 +15,8 @@ const init: () => Promise<void> = async (): Promise<void> => {
             PostgresAppInstance.getDatasourceOptions()
         );
 
+        // init the jobs
+        FetchCertificateJobs.init();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

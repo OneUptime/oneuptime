@@ -21,6 +21,7 @@ const BasicCron: Function = (
     });
 
     if (options.runOnStartup) {
+        logger.info(`Job ${jobName} - Start on Startup`);
         runFunction();
     }
 };

@@ -1,8 +1,4 @@
-import {
-    EVERY_FIVE_MINUTE,
-    EVERY_HOUR,
-    EVERY_MINUTE,
-} from 'Common/Utils/CronTime';
+import { EVERY_HOUR, EVERY_MINUTE } from 'Common/Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
@@ -342,8 +338,6 @@ RunCron(
         }
     }
 );
-
-
 
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',
