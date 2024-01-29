@@ -71,7 +71,7 @@ BasicCron(
             // Need to make sure StatusPageCerts dir exists.
 
             try {
-                await LocalFile.makeDirectory('/etc/nginx/certs');
+                await LocalFile.makeDirectory('/etc/nginx/certs/StatusPageCerts');
             } catch (err) {
                 // directory already exists, ignore.
                 logger.error('Create directory err');
@@ -80,12 +80,12 @@ BasicCron(
 
             // Write to disk.
             await LocalFile.write(
-                `/etc/nginx/certs/${cert.key}.crt`,
+                `/etc/nginx/certs/StatusPageCerts/${cert.key}.crt`,
                 crt
             );
 
             await LocalFile.write(
-                `/etc/nginx/certs/${cert.key}.key`,
+                `/etc/nginx/certs/StatusPageCerts/${cert.key}.key`,
                 key
             );
         }
@@ -150,7 +150,7 @@ BasicCron(
             }
 
             await SelfSignedSSL.generate(
-                '/etc/nginx/certs',
+                '/etc/nginx/certs/StatusPageCerts',
                 domain.fullDomain
             );
 
