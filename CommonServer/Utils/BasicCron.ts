@@ -1,7 +1,7 @@
-import logger from 'CommonServer/Utils/Logger';
+import logger from './Logger';
 import cron from 'node-cron';
 
-const RunCron: Function = (
+const BasicCron: Function = (
     jobName: string,
     options: {
         schedule: string;
@@ -25,4 +25,4 @@ const RunCron: Function = (
     }
 };
 
-export default RunCron;
+export default BasicCron;

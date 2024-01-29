@@ -1,5 +1,4 @@
 import API from 'Common/Utils/API';
-import RunCron from '../Utils/Cron';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import { INGESTOR_URL } from '../Config';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
@@ -7,8 +6,9 @@ import URL from 'Common/Types/API/URL';
 import logger from 'CommonServer/Utils/Logger';
 import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
 import Register from '../Services/Register';
+import BasicCron from 'CommonServer/Utils/BasicCron';
 
-RunCron(
+BasicCron(
     'Basic:Alive',
     {
         schedule: EVERY_MINUTE,

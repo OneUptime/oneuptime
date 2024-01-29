@@ -238,8 +238,6 @@ services:
         links:
             - redis
             - postgres
-        volumes:
-            - ./Certs:/usr/src/Certs
         logging:
             driver: "local"
             options:
@@ -334,12 +332,10 @@ services:
         networks:
           - oneuptime
         environment:
-            <<: *common-variables
+            <<: *common-server-variables
         ports:
             - '${ONEUPTIME_HTTP_PORT}:80'
             - '${ONEUPTIME_HTTPS_PORT}:443'
-        volumes:
-            - ./Certs:/etc/nginx/certs
         logging:
             driver: "local"
             options:
