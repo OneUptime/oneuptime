@@ -27,7 +27,6 @@ metalLb:
 ingress:
   service: 
     type: LoadBalancer
-    loadBalancerIP:
     externalIPs:
       # - 51.158.55.153
 
