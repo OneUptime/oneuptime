@@ -14,6 +14,10 @@ RUN apk add bash && apk add curl && apk add openssl
 # Install NJS module
 RUN apk add nginx-module-njs
 
+COPY ./Nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
+
+RUN chmod +x /etc/nginx/envsubst-on-templates.sh
+
 COPY ./Nginx/default.conf.template /etc/nginx/templates/default.conf.template 
 COPY ./Nginx/nginx.conf /etc/nginx/nginx.conf
 

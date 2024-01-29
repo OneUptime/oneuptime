@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Print out conf file
-envsubst < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+# Run envsubst on template
+/etc/nginx/envsubst-on-templates.sh
 
 # Start the first process
 nginx -c /etc/nginx/nginx.conf -g "daemon off;" &

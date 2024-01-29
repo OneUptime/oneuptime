@@ -35,11 +35,12 @@ upstream opentelemetry-collector-grpc {
 server {
 
     gzip on;
-    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80 http2;
+    listen 80;
+    http2  on;
 
     server_name oneuptime-opentelemetry-collector ${OTEL_COLLECTOR_HOST};
 
@@ -75,7 +76,7 @@ server {
 server {
 
     gzip on;
-    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
@@ -163,7 +164,7 @@ server {
 server {
 
     gzip on;
-    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
 
@@ -259,11 +260,12 @@ server {
 server {
 
     gzip on;
-    gzip_types      text/plain application/xml text/html application/javascript text/javascript text/css application/json;
+    gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
     
-    listen 80 http2;
+    listen 80;
+    http2  on;
 
     server_name localhost ${HOST}; #All domains
 
