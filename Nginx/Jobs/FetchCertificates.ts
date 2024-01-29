@@ -175,4 +175,3 @@ export default class Jobs {
         );
     }
 }
-
