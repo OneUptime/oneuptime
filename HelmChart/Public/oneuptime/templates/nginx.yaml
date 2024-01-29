@@ -4,7 +4,7 @@
 ---
 
 # OneUptime nginx Service
-{{- $nginxServiceArgs := dict "IsMetalLbEnabled" $.Values.metalLb.enabled "LoadBalancerIP" $.Values.ingress.service.loadBalancerIP "ServiceName" "nginx" "isHTTPSPortEnabled" true "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
+{{- $nginxServiceArgs := dict "IsMetalLbEnabled" $.Values.metalLb.enabled "ExternalIPs" $.Values.ingress.service.externalIPs "LoadBalancerIP" $.Values.ingress.service.loadBalancerIP "ServiceName" "nginx" "isHTTPSPortEnabled" true "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
 {{- include "oneuptime.service" $nginxServiceArgs }}
 ---
 

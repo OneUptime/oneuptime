@@ -27,7 +27,9 @@ metalLb:
 ingress:
   service: 
     type: LoadBalancer
-    loadBalancerIP: 
+    loadBalancerIP:
+    externalIPs:
+      # - 51.158.55.153
 
 postgresql: 
   clusterDomain: *global-cluster-domain

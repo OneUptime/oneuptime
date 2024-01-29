@@ -172,6 +172,12 @@ spec:
   {{- if $.LoadBalancerIP }}
   loadBalancerIP: {{ $.LoadBalancerIP }}
   {{- end }}
+  {{- if $.ExternalIPs }}
+  externalIPs:
+    {{- range $key, $val := $.ExternalIPs }}
+    - {{ $val }}
+    {{- end }}
+  {{- end }}
   ports:
     - port: {{ $.Port }}
       targetPort: {{ $.Port }}
