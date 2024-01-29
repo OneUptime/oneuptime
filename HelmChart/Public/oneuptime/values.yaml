@@ -22,13 +22,13 @@ metalLb:
   ipAdddressPool: 
     enabled: false
     addresses: 
-      # - 51.158.55.153/32
+      # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
 ingress:
   service: 
     type: LoadBalancer
     externalIPs:
-      # - 51.158.55.153
+      # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
 
 postgresql: 
   clusterDomain: *global-cluster-domain
