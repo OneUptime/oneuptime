@@ -23,6 +23,7 @@ import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -300,6 +301,34 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Created At',
                             fieldType: FieldType.DateTime,
+                        },
+                        {
+                            field: {
+                                shouldStatusPageSubscribersBeNotifiedOnEventCreated:
+                                    true,
+                            },
+                            title: 'Notify Status Page Subscribers',
+                            fieldType: FieldType.Boolean,
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <div className="">
+                                        <CheckboxViewer
+                                            isChecked={
+                                                item[
+                                                    'shouldStatusPageSubscribersBeNotifiedOnEventCreated'
+                                                ] as boolean
+                                            }
+                                            text={
+                                                item[
+                                                    'shouldStatusPageSubscribersBeNotifiedOnEventCreated'
+                                                ]
+                                                    ? 'Subscribers Notified'
+                                                    : 'Subscribers Not Notified'
+                                            }
+                                        />{' '}
+                                    </div>
+                                );
+                            },
                         },
                         {
                             field: {

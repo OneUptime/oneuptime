@@ -746,6 +746,34 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should subscribers be notified?',
+        description:
+            'Should subscribers be notified about this event creation?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public shouldStatusPageSubscribersBeNotifiedOnEventCreated?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectScheduledMaintenance,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectScheduledMaintenance,
+        ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
