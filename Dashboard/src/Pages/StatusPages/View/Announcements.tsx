@@ -53,12 +53,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         'Here are announcements for this status page. This will show up on the status page.',
                 }}
                 noItemsMessage={'No announcements found.'}
+                formSteps={[
+                    {
+                        title: 'Basic',
+                        id: 'basic',
+                    },
+                    {
+                        title: 'More',
+                        id: 'more',
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
                             title: true,
                         },
                         title: 'Announcement Title',
+                        stepId: 'basic',
                         description: 'Title of announcement',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
@@ -69,6 +80,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
+                        stepId: 'basic',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
                         description:
@@ -78,6 +90,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             showAnnouncementAt: true,
                         },
+                        stepId: 'more',
                         title: 'Start Showing Announcement At',
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
@@ -87,10 +100,24 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             endAnnouncementAt: true,
                         },
+                        stepId: 'more',
                         title: 'End Showing Announcement At',
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotified: true,
+                        },
+
+                        title: 'Notify Status Page Subscribers',
+                        stepId: 'more',
+                        description:
+                            'Should status page subscribers be notified?',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        defaultValue: true,
+                        required: false,
                     },
                 ]}
                 showRefreshButton={true}
@@ -116,6 +143,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'End Announcement At',
                         type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotified: true,
+                        },
+                        title: 'Notify Subscribers',
+                        type: FieldType.Boolean,
                     },
                 ]}
             />

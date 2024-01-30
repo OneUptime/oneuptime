@@ -32,6 +32,7 @@ RunCron(
             await StatusPageAnnouncementService.findBy({
                 query: {
                     isStatusPageSubscribersNotified: false,
+                    shouldStatusPageSubscribersBeNotified: true,
                     showAnnouncementAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),
