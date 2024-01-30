@@ -173,6 +173,19 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+                        },
+
+                        title: 'Notify Status Page Subscribers',
+                        stepId: 'more',
+                        description:
+                            'Should status page subscribers be notified?',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        defaultValue: true,
+                        required: false,
+                    },
+                    {
+                        field: {
                             postedAt: true,
                         },
                         title: 'Posted At',

@@ -43,6 +43,7 @@ RunCron(
             await IncidentPublicNoteService.findBy({
                 query: {
                     isStatusPageSubscribersNotifiedOnNoteCreated: false,
+                    shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),

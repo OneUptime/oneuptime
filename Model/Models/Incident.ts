@@ -760,10 +760,7 @@ export default class Incident extends BaseModel {
             Permission.CanReadProjectIncident,
         ],
         update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectIncident,
+           
         ],
     })
     @TableColumn({
