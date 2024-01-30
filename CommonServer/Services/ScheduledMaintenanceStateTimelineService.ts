@@ -96,7 +96,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                 },
             });
 
-        const scheduledMaintenanceService: ScheduledMaintenance | null =
+        const scheduledMaintenanceEvent: ScheduledMaintenance | null =
             await ScheduledMaintenanceService.findOneBy({
                 query: {
                     _id: createdItem.scheduledMaintenanceId?.toString(),
@@ -115,11 +115,11 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
         if (isOngoingState) {
             if (
-                scheduledMaintenanceService &&
-                scheduledMaintenanceService.monitors &&
-                scheduledMaintenanceService.monitors.length > 0
+                scheduledMaintenanceEvent &&
+                scheduledMaintenanceEvent.monitors &&
+                scheduledMaintenanceEvent.monitors.length > 0
             ) {
-                for (const monitor of scheduledMaintenanceService.monitors) {
+                for (const monitor of scheduledMaintenanceEvent.monitors) {
                     await MonitorService.updateOneById({
                         id: monitor.id!,
                         data: {
@@ -136,93 +136,100 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
         if (isResolvedState || isEndedState) {
             // resolve all the monitors.
+            await this.enableActiveMonitoringForMonitors(
+                scheduledMaintenanceEvent!
+            );
+        }
 
-            if (
-                scheduledMaintenanceService &&
-                scheduledMaintenanceService.monitors &&
-                scheduledMaintenanceService.monitors.length > 0
-            ) {
-                // get resolved monitor state.
-                const resolvedMonitorState: MonitorStatus | null =
-                    await MonitorStatusService.findOneBy({
-                        query: {
-                            projectId: scheduledMaintenanceService.projectId!,
-                            isOperationalState: true,
+        return createdItem;
+    }
+
+    public async enableActiveMonitoringForMonitors(
+        scheduledMaintenanceEvent: ScheduledMaintenance
+    ): Promise<void> {
+        if (
+            scheduledMaintenanceEvent &&
+            scheduledMaintenanceEvent.monitors &&
+            scheduledMaintenanceEvent.monitors.length > 0
+        ) {
+            // get resolved monitor state.
+            const resolvedMonitorState: MonitorStatus | null =
+                await MonitorStatusService.findOneBy({
+                    query: {
+                        projectId: scheduledMaintenanceEvent.projectId!,
+                        isOperationalState: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    select: {
+                        _id: true,
+                    },
+                });
+
+            // check if this monitor is not in this status already.
+
+            if (resolvedMonitorState) {
+                for (const monitor of scheduledMaintenanceEvent.monitors) {
+                    // check if the monitor is not in this status already.
+
+                    const dbMonitor: Monitor | null =
+                        await MonitorService.findOneById({
+                            id: monitor.id!,
+                            select: {
+                                currentMonitorStatusId: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    const hasMoreOngoingScheduledMaintenanceEvents: boolean =
+                        await this.hasThisMonitorMoreOngoingScheduledMaintenanceEvents(
+                            monitor.id!
+                        );
+
+                    if (hasMoreOngoingScheduledMaintenanceEvents) {
+                        // dont do anything because other events are active at the same time.
+                        continue;
+                    }
+
+                    await MonitorService.updateOneById({
+                        id: monitor.id!,
+                        data: {
+                            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:
+                                false, /// This will start active monitoring again.
                         },
                         props: {
                             isRoot: true,
                         },
-                        select: {
-                            _id: true,
-                        },
                     });
 
-                // check if this monitor is not in this status already.
-
-                if (resolvedMonitorState) {
-                    for (const monitor of scheduledMaintenanceService.monitors) {
-                        // check if the monitor is not in this status already.
-
-                        const dbMonitor: Monitor | null =
-                            await MonitorService.findOneById({
-                                id: monitor.id!,
-                                select: {
-                                    currentMonitorStatusId: true,
-                                },
-                                props: {
-                                    isRoot: true,
-                                },
-                            });
-
-                        const hasMoreOngoingScheduledMaintenanceEvents: boolean =
-                            await this.hasThisMonitorMoreOngoingScheduledMaintenanceEvents(
-                                monitor.id!
-                            );
-
-                        if (hasMoreOngoingScheduledMaintenanceEvents) {
-                            // dont do anything because other events are active at the same time.
-                            continue;
-                        }
-
-                        await MonitorService.updateOneById({
-                            id: monitor.id!,
-                            data: {
-                                disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:
-                                    false, /// This will start active monitoring again.
-                            },
-                            props: {
-                                isRoot: true,
-                            },
-                        });
-
-                        if (
-                            dbMonitor?.currentMonitorStatusId?.toString() ===
-                            resolvedMonitorState.id?.toString()
-                        ) {
-                            // if already in resolved state then skip.
-                            continue;
-                        }
-
-                        const monitorStatusTimeline: MonitorStatusTimeline =
-                            new MonitorStatusTimeline();
-                        monitorStatusTimeline.monitorId = monitor.id!;
-                        monitorStatusTimeline.projectId =
-                            scheduledMaintenanceService.projectId!;
-                        monitorStatusTimeline.monitorStatusId =
-                            resolvedMonitorState.id!;
-
-                        await MonitorStatusTimelineService.create({
-                            data: monitorStatusTimeline,
-                            props: {
-                                isRoot: true,
-                            },
-                        });
+                    if (
+                        dbMonitor?.currentMonitorStatusId?.toString() ===
+                        resolvedMonitorState.id?.toString()
+                    ) {
+                        // if already in resolved state then skip.
+                        continue;
                     }
+
+                    const monitorStatusTimeline: MonitorStatusTimeline =
+                        new MonitorStatusTimeline();
+                    monitorStatusTimeline.monitorId = monitor.id!;
+                    monitorStatusTimeline.projectId =
+                        scheduledMaintenanceEvent.projectId!;
+                    monitorStatusTimeline.monitorStatusId =
+                        resolvedMonitorState.id!;
+
+                    await MonitorStatusTimelineService.create({
+                        data: monitorStatusTimeline,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
                 }
             }
         }
-
-        return createdItem;
     }
 
     public async hasThisMonitorMoreOngoingScheduledMaintenanceEvents(

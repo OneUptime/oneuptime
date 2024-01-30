@@ -1,7 +1,7 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ScheduledMaintenance';
 import DatabaseService from './DatabaseService';
-import { OnCreate, OnUpdate } from '../Types/Database/Hooks';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
@@ -12,7 +12,7 @@ import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import ScheduledMaintenanceOwnerUserService from './ScheduledMaintenanceOwnerUserService';
 import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwnerUser';
 import Typeof from 'Common/Types/Typeof';
@@ -23,11 +23,55 @@ import User from 'Model/Models/User';
 import URL from 'Common/Types/API/URL';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DatabaseConfig from '../DatabaseConfig';
+import DeleteBy from '../Types/Database/DeleteBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
         this.hardDeleteItemsOlderThanInDays('createdAt', 120);
+    }
+
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
+            query: deleteBy.query,
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+                _id: true,
+                projectId: true,
+                monitors: {
+                    _id: true,
+                },
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return {
+            carryForward: {
+                scheduledMaintenanceEvents: scheduledMaintenanceEvents,
+            },
+            deleteBy: deleteBy,
+        };
+    }
+
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>,
+        _deletedItemIds: ObjectID[]
+    ): Promise<OnDelete<Model>> {
+        if (onDelete.carryForward?.scheduledMaintenanceEvents) {
+            for (const scheduledMaintenanceEvent of onDelete?.carryForward
+                ?.scheduledMaintenanceEvents || []) {
+                await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+                    scheduledMaintenanceEvent
+                );
+            }
+        }
+
+        return onDelete;
     }
 
     protected override async onBeforeCreate(
