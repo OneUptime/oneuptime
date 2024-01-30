@@ -74,7 +74,12 @@ export class Service extends DatabaseService<Model> {
         timeline.projectId = createdItem.projectId!;
         timeline.scheduledMaintenanceId = createdItem.id!;
         timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, you don't have to notify them for timeline event.
-        timeline.isStatusPageSubscribersNotified = true; // ignore notifying subscribers because you already notify for Scheduled Event, you don't have to notify them for timeline event.
+        timeline.shouldStatusPageSubscribersBeNotified = Boolean(
+            createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated
+        );
+        timeline.isStatusPageSubscribersNotified = Boolean(
+            createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated
+        ); // ignore notifying subscribers because you already notify for Scheduled Event, you don't have to notify them for timeline event.
         timeline.scheduledMaintenanceStateId =
             createdItem.currentScheduledMaintenanceStateId!;
 
@@ -276,31 +281,43 @@ export class Service extends DatabaseService<Model> {
             onUpdate.updateBy.props.tenantId
         ) {
             for (const itemId of updatedItemIds) {
-                await this.changeScheduledMaintenanceState(
-                    onUpdate.updateBy.props.tenantId as ObjectID,
-                    itemId,
-                    onUpdate.updateBy.data
+                await this.changeScheduledMaintenanceState({
+                    projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+                    scheduledMaintenanceId: itemId,
+                    scheduledMaintenanceStateId: onUpdate.updateBy.data
                         .currentScheduledMaintenanceStateId as ObjectID,
-                    true,
-                    true, // notifyOwners = true
-                    {
+                    shouldNotifyStatusPageSubscribers: true,
+                    isSubscribersNotified: false,
+                    notifyOwners: true, // notifyOwners = true
+                    props: {
                         isRoot: true,
-                    }
-                );
+                    },
+                });
             }
         }
 
         return onUpdate;
     }
 
-    public async changeScheduledMaintenanceState(
-        projectId: ObjectID,
-        scheduledMaintenanceId: ObjectID,
-        scheduledMaintenanceStateId: ObjectID,
-        notifyStatusPageSubscribers: boolean,
-        notifyOwners: boolean,
-        props: DatabaseCommonInteractionProps
-    ): Promise<void> {
+    public async changeScheduledMaintenanceState(data: {
+        projectId: ObjectID;
+        scheduledMaintenanceId: ObjectID;
+        scheduledMaintenanceStateId: ObjectID;
+        shouldNotifyStatusPageSubscribers: true;
+        isSubscribersNotified: false;
+        notifyOwners: boolean;
+        props: DatabaseCommonInteractionProps;
+    }): Promise<void> {
+        const {
+            projectId,
+            scheduledMaintenanceId,
+            scheduledMaintenanceStateId,
+            notifyOwners,
+            shouldNotifyStatusPageSubscribers,
+            isSubscribersNotified,
+            props,
+        } = data;
+
         if (!projectId) {
             throw new BadDataException('projectId is required');
         }
@@ -351,8 +368,9 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceStateId;
         statusTimeline.projectId = projectId;
         statusTimeline.isOwnerNotified = !notifyOwners;
-        statusTimeline.isStatusPageSubscribersNotified =
-            !notifyStatusPageSubscribers;
+        statusTimeline.isStatusPageSubscribersNotified = isSubscribersNotified;
+        statusTimeline.shouldStatusPageSubscribersBeNotified =
+            shouldNotifyStatusPageSubscribers;
 
         await ScheduledMaintenanceStateTimelineService.create({
             data: statusTimeline,

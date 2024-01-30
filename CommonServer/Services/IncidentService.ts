@@ -198,18 +198,23 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        await this.changeIncidentState(
-            createdItem.projectId,
-            createdItem.id,
-            createdItem.currentIncidentStateId,
-            false,
-            false,
-            createdItem.rootCause,
-            createdItem.createdStateLog,
-            {
+        await this.changeIncidentState({
+            projectId: createdItem.projectId,
+            incidentId: createdItem.id,
+            incidentStateId: createdItem.currentIncidentStateId,
+            shouldNotifyStatusPageSubscribers: Boolean(
+                createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
+            ),
+            isSubscribersNotified: Boolean(
+                createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
+            ), // we dont want to notify subscribers when incident state changes because they are already notified when the incident is created.
+            notifyOwners: false,
+            rootCause: createdItem.rootCause,
+            stateChangeLog: createdItem.createdStateLog,
+            props: {
                 isRoot: true,
-            }
-        );
+            },
+        });
 
         // add owners.
 
@@ -402,18 +407,21 @@ export class Service extends DatabaseService<Model> {
             onUpdate.updateBy.props.tenantId
         ) {
             for (const itemId of updatedItemIds) {
-                await this.changeIncidentState(
-                    onUpdate.updateBy.props.tenantId as ObjectID,
-                    itemId,
-                    onUpdate.updateBy.data.currentIncidentStateId as ObjectID,
-                    true,
-                    true, // notifyOwners = true
-                    'This status was changed when the incident was updated.',
-                    undefined,
-                    {
+                await this.changeIncidentState({
+                    projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+                    incidentId: itemId,
+                    incidentStateId: onUpdate.updateBy.data
+                        .currentIncidentStateId as ObjectID,
+                    notifyOwners: true,
+                    shouldNotifyStatusPageSubscribers: true,
+                    isSubscribersNotified: false,
+                    rootCause:
+                        'This status was changed when the incident was updated.',
+                    stateChangeLog: undefined,
+                    props: {
                         isRoot: true,
-                    }
-                );
+                    },
+                });
             }
         }
 
@@ -591,16 +599,29 @@ export class Service extends DatabaseService<Model> {
         return onDelete;
     }
 
-    public async changeIncidentState(
-        projectId: ObjectID,
-        incidentId: ObjectID,
-        incidentStateId: ObjectID,
-        notifyStatusPageSubscribers: boolean,
-        notifyOwners: boolean,
-        rootCause: string | undefined,
-        stateChangeLog: JSONObject | undefined,
-        props: DatabaseCommonInteractionProps | undefined
-    ): Promise<void> {
+    public async changeIncidentState(data: {
+        projectId: ObjectID;
+        incidentId: ObjectID;
+        incidentStateId: ObjectID;
+        shouldNotifyStatusPageSubscribers: boolean;
+        isSubscribersNotified: boolean;
+        notifyOwners: boolean;
+        rootCause: string | undefined;
+        stateChangeLog: JSONObject | undefined;
+        props: DatabaseCommonInteractionProps | undefined;
+    }): Promise<void> {
+        const {
+            projectId,
+            incidentId,
+            incidentStateId,
+            shouldNotifyStatusPageSubscribers,
+            isSubscribersNotified,
+            notifyOwners,
+            rootCause,
+            stateChangeLog,
+            props,
+        } = data;
+
         // get last monitor status timeline.
         const lastIncidentStatusTimeline: IncidentStateTimeline | null =
             await IncidentStateTimelineService.findOneBy({
@@ -636,8 +657,10 @@ export class Service extends DatabaseService<Model> {
         statusTimeline.incidentStateId = incidentStateId;
         statusTimeline.projectId = projectId;
         statusTimeline.isOwnerNotified = !notifyOwners;
-        statusTimeline.isStatusPageSubscribersNotified =
-            !notifyStatusPageSubscribers;
+        statusTimeline.shouldStatusPageSubscribersBeNotified =
+            shouldNotifyStatusPageSubscribers;
+
+        statusTimeline.isStatusPageSubscribersNotified = isSubscribersNotified;
 
         if (stateChangeLog) {
             statusTimeline.stateChangeLog = stateChangeLog;
