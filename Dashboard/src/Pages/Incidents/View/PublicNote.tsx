@@ -31,6 +31,7 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import OneUptimeDate from 'Common/Types/Date';
+import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -246,6 +247,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         contentClassName:
                             'mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3 text-right',
                     },
+                    
                     {
                         field: {
                             note: true,
@@ -254,8 +256,21 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         title: '',
                         type: FieldType.Markdown,
                         contentClassName:
-                            '-mt-3 space-y-6 text-sm text-gray-800',
+                            '-mt-3 space-y-1 text-sm text-gray-800',
                         colSpan: 2,
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+                        },
+                        title: '',
+                        type: FieldType.Boolean,
+                        colSpan: 2,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return  (<div className='-mt-5'><CheckboxViewer isChecked={item[
+                                'shouldStatusPageSubscribersBeNotifiedOnNoteCreated'
+                            ] as boolean} text='Status Page Subscribers Notified' /> </div> )
+                        }
                     },
                 ]}
             />

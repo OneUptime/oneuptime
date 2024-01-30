@@ -17,6 +17,7 @@ enum IconProp {
     Squares = 'Squares',
     RectangleStack = 'RectangleStack',
     ChartBar = 'ChartBar',
+    CircleClose = 'CircleClose',
     SquareStack = 'SquareStack',
     Calendar = 'Calendar',
     Help = 'Help',
