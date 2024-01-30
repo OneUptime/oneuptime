@@ -39,7 +39,7 @@
     "react-dom": "^18.1.0",
     "react-router-dom": "^6.21.1",
     "sass-loader": "^13.3.3",
-    "style-loader": "^3.3.3",
+    "style-loader": "^3.3.4",
     "ts-loader": "^9.5.1",
     "use-async-effect": "^2.2.6"
   },
