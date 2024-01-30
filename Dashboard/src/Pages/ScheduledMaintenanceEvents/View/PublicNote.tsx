@@ -31,6 +31,7 @@ import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ScheduledMaintenanceNoteTemplate from 'Model/Models/ScheduledMaintenanceNoteTemplate';
 import OneUptimeDate from 'Common/Types/Date';
+import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -180,6 +181,20 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+                                true,
+                        },
+
+                        title: 'Notify Status Page Subscribers',
+                        stepId: 'more',
+                        description:
+                            'Should status page subscribers be notified?',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        defaultValue: true,
+                        required: false,
+                    },
+                    {
+                        field: {
                             postedAt: true,
                         },
                         title: 'Posted At',
@@ -250,6 +265,35 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         contentClassName:
                             '-mt-3 space-y-6 text-sm text-gray-800',
                         colSpan: 2,
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+                                true,
+                        },
+                        title: '',
+                        type: FieldType.Boolean,
+                        colSpan: 2,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <div className="-mt-5">
+                                    <CheckboxViewer
+                                        isChecked={
+                                            item[
+                                                'shouldStatusPageSubscribersBeNotifiedOnNoteCreated'
+                                            ] as boolean
+                                        }
+                                        text={
+                                            item[
+                                                'shouldStatusPageSubscribersBeNotifiedOnNoteCreated'
+                                            ]
+                                                ? 'Status Page Subscribers Notified'
+                                                : 'Status Page Subscribers Not Notified'
+                                        }
+                                    />{' '}
+                                </div>
+                            );
+                        },
                     },
                 ]}
             />

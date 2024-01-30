@@ -379,6 +379,33 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
         ],
         update: [],
     })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should subscribers be notified?',
+        description: 'Should subscribers be notified about this note?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public shouldStatusPageSubscribersBeNotifiedOnNoteCreated?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenancePublicNote,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
+        update: [],
+    })
     @Index()
     @TableColumn({
         type: TableColumnType.Boolean,
