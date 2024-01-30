@@ -113,3 +113,11 @@ microk8s uninstall
 ### High Availability
 
 Microk8s in a multi-node configuration is highly available. You can add and remove nodes without downtime.
+
+#### Network High Availability
+
+Use a Load Balancer to distribute traffic across the nodes. The Load Balancer can be a physical device or a software solution like HAProxy. The Load Balancer should be configured to forward traffic to the nodes on ports 80, 443 and have the LoadBalancer IP as the destination IP for the traffic in DNS and MetalLB. 
+
+#### Storage High Availability
+
+Ceph takes care of storage high availability. Please read the docs at `HelmChart/Docs/MicroCeph.md` for more details.
