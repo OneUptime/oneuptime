@@ -397,7 +397,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     {
                         field: {
-                            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+                            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+                                true,
                         },
 
                         title: 'Notify Status Page Subscribers',
@@ -407,7 +408,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         fieldType: FormFieldSchemaType.Checkbox,
                         defaultValue: true,
                         required: false,
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}

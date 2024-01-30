@@ -745,7 +745,6 @@ export default class Incident extends BaseModel {
     })
     public isStatusPageSubscribersNotifiedOnIncidentCreated?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -759,9 +758,7 @@ export default class Incident extends BaseModel {
             Permission.ProjectMember,
             Permission.CanReadProjectIncident,
         ],
-        update: [
-           
-        ],
+        update: [],
     })
     @TableColumn({
         isDefaultValueColumn: true,

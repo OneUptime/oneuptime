@@ -363,7 +363,6 @@ export default class IncidentPublicNote extends BaseModel {
     })
     public isStatusPageSubscribersNotifiedOnNoteCreated?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

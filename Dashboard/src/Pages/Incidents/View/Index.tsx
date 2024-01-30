@@ -282,19 +282,31 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+                                shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+                                    true,
                             },
                             title: 'Notify Status Page Subscribers',
                             fieldType: FieldType.Boolean,
                             getElement: (item: JSONObject): ReactElement => {
-                                return  (<div className=''><CheckboxViewer isChecked={item[
-                                    'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
-                                ] as boolean} text={
-                                    item[
-                                        'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
-                                    ] ? 'Subscribers Notified': 'Subscribers Not Notified'
-                                } /> </div> )
-                            }
+                                return (
+                                    <div className="">
+                                        <CheckboxViewer
+                                            isChecked={
+                                                item[
+                                                    'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
+                                                ] as boolean
+                                            }
+                                            text={
+                                                item[
+                                                    'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
+                                                ]
+                                                    ? 'Subscribers Notified'
+                                                    : 'Subscribers Not Notified'
+                                            }
+                                        />{' '}
+                                    </div>
+                                );
+                            },
                         },
                         {
                             field: {
