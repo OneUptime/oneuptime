@@ -109,3 +109,7 @@ microk8s status --wait-ready
 ```bash
 microk8s uninstall
 ```
+
+### High Availability
+
+Microk8s in a multi-node configuration is highly available. You can add and remove nodes without downtime.
