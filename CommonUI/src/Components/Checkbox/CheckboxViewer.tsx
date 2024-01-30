@@ -17,7 +17,7 @@ const CheckboxViewer: FunctionComponent<ComponentProps> = (
             <div className='h-6 w-6'>
                 {props.isChecked ? <Icon className='h-5 w-5' icon={IconProp.CheckCircle} color={Green} /> : <Icon className='h-5 w-5' icon={IconProp.CircleClose} color={Red} />}
             </div>
-            <div className="ml-1 text-sm font-light">
+            <div className="text-sm text-gray-900 flex justify-left">
                 {props.text}
             </div>
         </div>

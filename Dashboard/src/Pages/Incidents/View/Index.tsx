@@ -26,6 +26,7 @@ import EventName from '../../../Utils/EventName';
 import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -285,6 +286,15 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Notify Status Page Subscribers',
                             fieldType: FieldType.Boolean,
+                            getElement: (item: JSONObject): ReactElement => {
+                                return  (<div className=''><CheckboxViewer isChecked={item[
+                                    'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
+                                ] as boolean} text={
+                                    item[
+                                        'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
+                                    ] ? 'Subscribers Notified': 'Subscribers Not Notified'
+                                } /> </div> )
+                            }
                         },
                         {
                             field: {

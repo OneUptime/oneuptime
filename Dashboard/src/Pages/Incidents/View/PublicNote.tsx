@@ -269,7 +269,11 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         getElement: (item: JSONObject): ReactElement => {
                             return  (<div className='-mt-5'><CheckboxViewer isChecked={item[
                                 'shouldStatusPageSubscribersBeNotifiedOnNoteCreated'
-                            ] as boolean} text='Status Page Subscribers Notified' /> </div> )
+                            ] as boolean} text={
+                                item[
+                                    'shouldStatusPageSubscribersBeNotifiedOnNoteCreated'
+                                ] ? 'Status Page Subscribers Notified': 'Status Page Subscribers Not Notified'
+                            } /> </div> )
                         }
                     },
                 ]}
