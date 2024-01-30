@@ -425,6 +425,33 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         ],
         update: [],
     })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should subscribers be notified?',
+        description: 'Should subscribers be notified about this state change?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public shouldStatusPageSubscribersBeNotified?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenanceStateTimeline,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenanceStateTimeline,
+        ],
+        update: [],
+    })
     @Index()
     @TableColumn({
         type: TableColumnType.Boolean,

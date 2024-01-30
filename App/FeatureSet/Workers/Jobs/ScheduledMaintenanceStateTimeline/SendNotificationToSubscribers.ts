@@ -40,6 +40,7 @@ RunCron(
             await ScheduledMaintenanceStateTimelineService.findBy({
                 query: {
                     isStatusPageSubscribersNotified: false,
+                    shouldStatusPageSubscribersBeNotified: true,
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getCurrentDate()
                     ),

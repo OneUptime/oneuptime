@@ -128,8 +128,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            shouldStatusPageSubscribersBeNotified:
-                                true,
+                            shouldStatusPageSubscribersBeNotified: true,
                         },
 
                         title: 'Notify Status Page Subscribers',
