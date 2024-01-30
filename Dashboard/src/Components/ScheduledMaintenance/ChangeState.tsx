@@ -18,6 +18,9 @@ import React, {
 } from 'react';
 import UserElement from '../User/User';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
+import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 export enum StateType {
     Ongoing,
@@ -34,9 +37,10 @@ export interface ComponentProps {
 const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [scheduledMaintenanceTimeline, setScheduledMaintenanceTimeline] =
         useState<ScheduledMaintenanceStateTimeline | undefined>(undefined);
+
+    const [showModal, setShowModal] = useState<boolean>(false);
 
     useEffect(() => {
         for (const event of props.scheduledMaintenanceTimeline) {
@@ -81,7 +85,6 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     return (
         <div className="-ml-3 mt-2">
             <Button
-                isLoading={isLoading}
                 buttonSize={ButtonSize.Small}
                 title={
                     props.stateType === StateType.Ongoing
@@ -99,7 +102,31 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                         : ButtonStyleType.SUCCESS_OUTLINE
                 }
                 onClick={async () => {
-                    setIsLoading(true);
+                    setShowModal(true);
+                }}
+            />
+            
+            {showModal && <ModelFormModal modelType={ScheduledMaintenanceStateTimeline}
+                name={
+                    props.stateType === StateType.Ongoing
+                        ? 'Mark as Ongoing'
+                        : 'Mark as Complete'
+                }
+                title={
+                    props.stateType === StateType.Ongoing
+                        ? 'Mark as Ongoing'
+                        : 'Mark as Complete'
+                }
+                description={
+                    props.stateType === StateType.Ongoing
+                        ? 'Mark this scheduled maintenance as ongoing.'
+                        : 'Mark this scheduled maintenance as complete.'
+                }
+                onClose={() => {
+                    setShowModal(false);
+                }}
+                submitButtonText="Save"
+                onBeforeCreate={async (model: ScheduledMaintenanceStateTimeline) => {
                     const projectId: ObjectID | undefined | null =
                         ProjectUtil.getCurrentProject()?.id;
 
@@ -150,23 +177,36 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                         );
                     }
 
-                    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-                        new ScheduledMaintenanceStateTimeline();
-                    scheduledMaintenanceStateTimeline.projectId = projectId;
-                    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
+
+                    model.projectId = projectId;
+                    model.scheduledMaintenanceId =
                         props.scheduledMaintenanceId;
-                    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
+                    model.scheduledMaintenanceStateId =
                         stateId;
 
-                    await ModelAPI.create({
-                        model: scheduledMaintenanceStateTimeline,
-                        modelType: ScheduledMaintenanceStateTimeline,
-                    });
+                    return model;
 
-                    props.onActionComplete();
-                    setIsLoading(false);
                 }}
-            />
+                onSuccess={() => {
+                    setShowModal(false);
+                    props.onActionComplete();
+                }}
+                formProps={{
+                    name: 'create-scheduled-maintenance-state-timeline',
+                    modelType: ScheduledMaintenanceStateTimeline,
+                    id: 'create-scheduled-maintenance-state-timeline',
+                    fields: [{
+                        field: {
+                            shouldStatusPageSubscribersBeNotified: true,
+                        },
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        description: 'Notify subscribers of this state change.',
+                        title: 'Notify Status Page Subscribers',
+                        required: false,
+                        defaultValue: true,
+                    }],
+                    formType: FormType.Create,
+                }} />}
         </div>
     );
 };

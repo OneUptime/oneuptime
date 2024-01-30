@@ -17,6 +17,9 @@ import React, {
     ReactElement,
 } from 'react';
 import UserElement from '../User/User';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 
 export enum IncidentType {
     Ack,
@@ -33,10 +36,12 @@ export interface ComponentProps {
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+
     const [incidentTimeline, setIncidentTimeline] = useState<
         IncidentStateTimeline | undefined
     >(undefined);
+
+    const [showModal, setShowModal] = useState<boolean>(false);
 
     useEffect(() => {
         for (const event of props.incidentTimeline) {
@@ -85,7 +90,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     return (
         <div className="-ml-3 mt-1">
             <Button
-                isLoading={isLoading}
                 buttonSize={ButtonSize.Small}
                 title={
                     props.incidentType === IncidentType.Ack
@@ -103,7 +107,31 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                         : ButtonStyleType.SUCCESS_OUTLINE
                 }
                 onClick={async () => {
-                    setIsLoading(true);
+                   setShowModal(true);
+                }}
+            />
+
+            {showModal && <ModelFormModal modelType={IncidentStateTimeline}
+                name={
+                    props.incidentType === IncidentType.Ack
+                        ? 'Acknowledge Incident'
+                        : 'Resolve Incident'
+                }
+                title={
+                    props.incidentType === IncidentType.Ack
+                        ? 'Acknowledge Incident'
+                        : 'Resolve Incident'
+                }
+                description={
+                    props.incidentType === IncidentType.Ack
+                        ? 'Mark this incident as acknowledged.'
+                        : 'Mark this incident as resolved.'
+                }
+                onClose={() => {
+                    setShowModal(false);
+                }}
+                submitButtonText="Save"
+                onBeforeCreate={async (model: IncidentStateTimeline) => {
                     const projectId: ObjectID | undefined | null =
                         ProjectUtil.getCurrentProject()?.id;
 
@@ -153,21 +181,34 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                         throw new BadDataException('Incident State not found.');
                     }
 
-                    const incidentStateTimeline: IncidentStateTimeline =
-                        new IncidentStateTimeline();
-                    incidentStateTimeline.projectId = projectId;
-                    incidentStateTimeline.incidentId = props.incidentId;
-                    incidentStateTimeline.incidentStateId = stateId;
 
-                    await ModelAPI.create({
-                        model: incidentStateTimeline,
-                        modelType: IncidentStateTimeline,
-                    });
+                    model.projectId = projectId;
+                    model.incidentId = props.incidentId;
+                    model.incidentStateId = stateId;
 
-                    props.onActionComplete();
-                    setIsLoading(false);
+                    return model;
+
                 }}
-            />
+                onSuccess={() => {
+                    setShowModal(false);
+                    props.onActionComplete();
+                }}
+                formProps={{
+                    name: 'create-scheduled-maintenance-state-timeline',
+                    modelType: IncidentStateTimeline,
+                    id: 'create-scheduled-maintenance-state-timeline',
+                    fields: [{
+                        field: {
+                            shouldStatusPageSubscribersBeNotified: true,
+                        },
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        description: 'Notify subscribers of this state change.',
+                        title: 'Notify Status Page Subscribers',
+                        required: false,
+                        defaultValue: true,
+                    }],
+                    formType: FormType.Create,
+                }} />}
         </div>
     );
 };
