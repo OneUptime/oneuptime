@@ -411,6 +411,34 @@ export default class IncidentStateTimeline extends BaseModel {
     })
     public isStatusPageSubscribersNotified?: boolean = undefined;
 
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateIncidentStateTimeline,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentStateTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should subscribers be notified?',
+        description: 'Should subscribers be notified about this announcement?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public shouldStatusPageSubscribersBeNotified?: boolean = undefined;
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

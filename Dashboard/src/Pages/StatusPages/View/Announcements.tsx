@@ -148,7 +148,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             shouldStatusPageSubscribersBeNotified: true,
                         },
-                        title: 'Notify Subscribers',
+                        title: 'Subscribers Notified',
                         type: FieldType.Boolean,
                     },
                 ]}

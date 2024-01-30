@@ -126,6 +126,19 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                             valueField: '_id',
                         },
                     },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotified:
+                                true,
+                        },
+
+                        title: 'Notify Status Page Subscribers',
+                        description:
+                            'Should status page subscribers be notified?',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        defaultValue: true,
+                        required: false,
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -170,6 +183,13 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Reported At',
                         type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotified: true,
+                        },
+                        title: 'Subscribers Notified',
+                        type: FieldType.Boolean,
                     },
                 ]}
             />
