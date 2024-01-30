@@ -36,7 +36,6 @@ export interface ComponentProps {
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [incidentTimeline, setIncidentTimeline] = useState<
         IncidentStateTimeline | undefined
     >(undefined);
@@ -107,108 +106,115 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                         : ButtonStyleType.SUCCESS_OUTLINE
                 }
                 onClick={async () => {
-                   setShowModal(true);
+                    setShowModal(true);
                 }}
             />
 
-            {showModal && <ModelFormModal modelType={IncidentStateTimeline}
-                name={
-                    props.incidentType === IncidentType.Ack
-                        ? 'Acknowledge Incident'
-                        : 'Resolve Incident'
-                }
-                title={
-                    props.incidentType === IncidentType.Ack
-                        ? 'Acknowledge Incident'
-                        : 'Resolve Incident'
-                }
-                description={
-                    props.incidentType === IncidentType.Ack
-                        ? 'Mark this incident as acknowledged.'
-                        : 'Mark this incident as resolved.'
-                }
-                onClose={() => {
-                    setShowModal(false);
-                }}
-                submitButtonText="Save"
-                onBeforeCreate={async (model: IncidentStateTimeline) => {
-                    const projectId: ObjectID | undefined | null =
-                        ProjectUtil.getCurrentProject()?.id;
-
-                    if (!projectId) {
-                        throw new BadDataException('ProjectId not found.');
+            {showModal && (
+                <ModelFormModal
+                    modelType={IncidentStateTimeline}
+                    name={
+                        props.incidentType === IncidentType.Ack
+                            ? 'Acknowledge Incident'
+                            : 'Resolve Incident'
                     }
+                    title={
+                        props.incidentType === IncidentType.Ack
+                            ? 'Acknowledge Incident'
+                            : 'Resolve Incident'
+                    }
+                    description={
+                        props.incidentType === IncidentType.Ack
+                            ? 'Mark this incident as acknowledged.'
+                            : 'Mark this incident as resolved.'
+                    }
+                    onClose={() => {
+                        setShowModal(false);
+                    }}
+                    submitButtonText="Save"
+                    onBeforeCreate={async (model: IncidentStateTimeline) => {
+                        const projectId: ObjectID | undefined | null =
+                            ProjectUtil.getCurrentProject()?.id;
 
-                    const incidentStates: ListResult<IncidentState> =
-                        await ModelAPI.getList<IncidentState>({
-                            modelType: IncidentState,
-                            query: {
-                                projectId: projectId,
-                            },
-                            limit: 99,
-                            skip: 0,
-                            select: {
-                                _id: true,
-                                isResolvedState: true,
-                                isAcknowledgedState: true,
-                                isCreatedState: true,
-                            },
-                            sort: {},
-                            requestOptions: {},
-                        });
-
-                    let stateId: ObjectID | null = null;
-
-                    for (const state of incidentStates.data) {
-                        if (
-                            props.incidentType === IncidentType.Ack &&
-                            state.isAcknowledgedState
-                        ) {
-                            stateId = state.id;
-                            break;
+                        if (!projectId) {
+                            throw new BadDataException('ProjectId not found.');
                         }
 
-                        if (
-                            props.incidentType === IncidentType.Resolve &&
-                            state.isResolvedState
-                        ) {
-                            stateId = state.id;
-                            break;
+                        const incidentStates: ListResult<IncidentState> =
+                            await ModelAPI.getList<IncidentState>({
+                                modelType: IncidentState,
+                                query: {
+                                    projectId: projectId,
+                                },
+                                limit: 99,
+                                skip: 0,
+                                select: {
+                                    _id: true,
+                                    isResolvedState: true,
+                                    isAcknowledgedState: true,
+                                    isCreatedState: true,
+                                },
+                                sort: {},
+                                requestOptions: {},
+                            });
+
+                        let stateId: ObjectID | null = null;
+
+                        for (const state of incidentStates.data) {
+                            if (
+                                props.incidentType === IncidentType.Ack &&
+                                state.isAcknowledgedState
+                            ) {
+                                stateId = state.id;
+                                break;
+                            }
+
+                            if (
+                                props.incidentType === IncidentType.Resolve &&
+                                state.isResolvedState
+                            ) {
+                                stateId = state.id;
+                                break;
+                            }
                         }
-                    }
 
-                    if (!stateId) {
-                        throw new BadDataException('Incident State not found.');
-                    }
+                        if (!stateId) {
+                            throw new BadDataException(
+                                'Incident State not found.'
+                            );
+                        }
 
+                        model.projectId = projectId;
+                        model.incidentId = props.incidentId;
+                        model.incidentStateId = stateId;
 
-                    model.projectId = projectId;
-                    model.incidentId = props.incidentId;
-                    model.incidentStateId = stateId;
-
-                    return model;
-
-                }}
-                onSuccess={() => {
-                    setShowModal(false);
-                    props.onActionComplete();
-                }}
-                formProps={{
-                    name: 'create-scheduled-maintenance-state-timeline',
-                    modelType: IncidentStateTimeline,
-                    id: 'create-scheduled-maintenance-state-timeline',
-                    fields: [{
-                        field: {
-                            shouldStatusPageSubscribersBeNotified: true,
-                        },
-                        fieldType: FormFieldSchemaType.Checkbox,
-                        description: 'Notify subscribers of this state change.',
-                        title: 'Notify Status Page Subscribers',
-                        required: false,
-                        defaultValue: true,
-                    }],
-                    formType: FormType.Create,
-                }} />}
+                        return model;
+                    }}
+                    onSuccess={() => {
+                        setShowModal(false);
+                        props.onActionComplete();
+                    }}
+                    formProps={{
+                        name: 'create-scheduled-maintenance-state-timeline',
+                        modelType: IncidentStateTimeline,
+                        id: 'create-scheduled-maintenance-state-timeline',
+                        fields: [
+                            {
+                                field: {
+                                    shouldStatusPageSubscribersBeNotified: true,
+                                },
+                                fieldType: FormFieldSchemaType.Checkbox,
+                                description:
+                                    'Notify subscribers of this state change.',
+                                title: 'Notify Status Page Subscribers',
+                                required: false,
+                                defaultValue: true,
+                            },
+                        ],
+                        formType: FormType.Create,
+                    }}
+                />
+            )}
         </div>
     );
 };

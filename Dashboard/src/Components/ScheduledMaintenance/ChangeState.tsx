@@ -105,108 +105,114 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                     setShowModal(true);
                 }}
             />
-            
-            {showModal && <ModelFormModal modelType={ScheduledMaintenanceStateTimeline}
-                name={
-                    props.stateType === StateType.Ongoing
-                        ? 'Mark as Ongoing'
-                        : 'Mark as Complete'
-                }
-                title={
-                    props.stateType === StateType.Ongoing
-                        ? 'Mark as Ongoing'
-                        : 'Mark as Complete'
-                }
-                description={
-                    props.stateType === StateType.Ongoing
-                        ? 'Mark this scheduled maintenance as ongoing.'
-                        : 'Mark this scheduled maintenance as complete.'
-                }
-                onClose={() => {
-                    setShowModal(false);
-                }}
-                submitButtonText="Save"
-                onBeforeCreate={async (model: ScheduledMaintenanceStateTimeline) => {
-                    const projectId: ObjectID | undefined | null =
-                        ProjectUtil.getCurrentProject()?.id;
 
-                    if (!projectId) {
-                        throw new BadDataException('ProjectId not found.');
+            {showModal && (
+                <ModelFormModal
+                    modelType={ScheduledMaintenanceStateTimeline}
+                    name={
+                        props.stateType === StateType.Ongoing
+                            ? 'Mark as Ongoing'
+                            : 'Mark as Complete'
                     }
+                    title={
+                        props.stateType === StateType.Ongoing
+                            ? 'Mark as Ongoing'
+                            : 'Mark as Complete'
+                    }
+                    description={
+                        props.stateType === StateType.Ongoing
+                            ? 'Mark this scheduled maintenance as ongoing.'
+                            : 'Mark this scheduled maintenance as complete.'
+                    }
+                    onClose={() => {
+                        setShowModal(false);
+                    }}
+                    submitButtonText="Save"
+                    onBeforeCreate={async (
+                        model: ScheduledMaintenanceStateTimeline
+                    ) => {
+                        const projectId: ObjectID | undefined | null =
+                            ProjectUtil.getCurrentProject()?.id;
 
-                    const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
-                        await ModelAPI.getList<ScheduledMaintenanceState>({
-                            modelType: ScheduledMaintenanceState,
-                            query: {
-                                projectId: projectId,
-                            },
-                            limit: LIMIT_PER_PROJECT,
-                            skip: 0,
-                            select: {
-                                _id: true,
-                                isResolvedState: true,
-                                isOngoingState: true,
-                                isScheduledState: true,
-                            },
-                            sort: {},
-                        });
-
-                    let stateId: ObjectID | null = null;
-
-                    for (const state of scheduledMaintenanceStates.data) {
-                        if (
-                            props.stateType === StateType.Ongoing &&
-                            state.isOngoingState
-                        ) {
-                            stateId = state.id;
-                            break;
+                        if (!projectId) {
+                            throw new BadDataException('ProjectId not found.');
                         }
 
-                        if (
-                            props.stateType === StateType.Completed &&
-                            state.isResolvedState
-                        ) {
-                            stateId = state.id;
-                            break;
+                        const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
+                            await ModelAPI.getList<ScheduledMaintenanceState>({
+                                modelType: ScheduledMaintenanceState,
+                                query: {
+                                    projectId: projectId,
+                                },
+                                limit: LIMIT_PER_PROJECT,
+                                skip: 0,
+                                select: {
+                                    _id: true,
+                                    isResolvedState: true,
+                                    isOngoingState: true,
+                                    isScheduledState: true,
+                                },
+                                sort: {},
+                            });
+
+                        let stateId: ObjectID | null = null;
+
+                        for (const state of scheduledMaintenanceStates.data) {
+                            if (
+                                props.stateType === StateType.Ongoing &&
+                                state.isOngoingState
+                            ) {
+                                stateId = state.id;
+                                break;
+                            }
+
+                            if (
+                                props.stateType === StateType.Completed &&
+                                state.isResolvedState
+                            ) {
+                                stateId = state.id;
+                                break;
+                            }
                         }
-                    }
 
-                    if (!stateId) {
-                        throw new BadDataException(
-                            'Scheduled Maintenance State not found.'
-                        );
-                    }
+                        if (!stateId) {
+                            throw new BadDataException(
+                                'Scheduled Maintenance State not found.'
+                            );
+                        }
 
+                        model.projectId = projectId;
+                        model.scheduledMaintenanceId =
+                            props.scheduledMaintenanceId;
+                        model.scheduledMaintenanceStateId = stateId;
 
-                    model.projectId = projectId;
-                    model.scheduledMaintenanceId =
-                        props.scheduledMaintenanceId;
-                    model.scheduledMaintenanceStateId =
-                        stateId;
-
-                    return model;
-
-                }}
-                onSuccess={() => {
-                    setShowModal(false);
-                    props.onActionComplete();
-                }}
-                formProps={{
-                    name: 'create-scheduled-maintenance-state-timeline',
-                    modelType: ScheduledMaintenanceStateTimeline,
-                    id: 'create-scheduled-maintenance-state-timeline',
-                    fields: [{
-                        field: {
-                            shouldStatusPageSubscribersBeNotified: true,
-                        },
-                        fieldType: FormFieldSchemaType.Checkbox,
-                        description: 'Notify subscribers of this state change.',
-                        title: 'Notify Status Page Subscribers',
-                        required: false,
-                        defaultValue: true,
-                    }],
-                    formType: FormType.Create,
-                }} />}
+                        return model;
+                    }}
+                    onSuccess={() => {
+                        setShowModal(false);
+                        props.onActionComplete();
+                    }}
+                    formProps={{
+                        name: 'create-scheduled-maintenance-state-timeline',
+                        modelType: ScheduledMaintenanceStateTimeline,
+                        id: 'create-scheduled-maintenance-state-timeline',
+                        fields: [
+                            {
+                                field: {
+                                    shouldStatusPageSubscribersBeNotified: true,
+                                },
+                                fieldType: FormFieldSchemaType.Checkbox,
+                                description:
+                                    'Notify subscribers of this state change.',
+                                title: 'Notify Status Page Subscribers',
+                                required: false,
+                                defaultValue: true,
+                            },
+                        ],
+                        formType: FormType.Create,
+                    }}
+                />
+            )}
         </div>
     );
 };
