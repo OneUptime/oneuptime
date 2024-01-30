@@ -59,16 +59,17 @@ RunCron(
                 continue;
             }
 
-            await ScheduledMaintenanceService.changeScheduledMaintenanceState(
-                event.projectId!,
-                event.id!,
-                scheduledMaintenanceState.id,
-                true,
-                true,
-                {
+            await ScheduledMaintenanceService.changeScheduledMaintenanceState({
+                projectId: event.projectId!,
+                scheduledMaintenanceId: event.id!,
+                scheduledMaintenanceStateId: scheduledMaintenanceState.id,
+                shouldNotifyStatusPageSubscribers: true,
+                isSubscribersNotified: false,
+                notifyOwners: true,
+                props: {
                     isRoot: true,
-                }
-            );
+                },
+            });
 
             // change attached monitor states.
             await ScheduledMaintenanceService.changeAttachedMonitorStates(
