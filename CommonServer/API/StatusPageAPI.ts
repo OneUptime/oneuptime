@@ -736,7 +736,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     monitorId: QueryHelper.in(
                                         monitorsOnStatusPageForTimeline
                                     ),
-                                    createdAt: QueryHelper.inBetween(
+                                    endsAt: QueryHelper.inBetweenOrNull(
                                         startDate,
                                         endDate
                                     ),
@@ -744,6 +744,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 select: {
                                     monitorId: true,
                                     createdAt: true,
+                                    endsAt: true,
                                     monitorStatus: {
                                         name: true,
                                         color: true,

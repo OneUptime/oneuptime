@@ -164,15 +164,22 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         for (const key in secondsOfEvent) {
             hasEvents = true;
-            toolTipText += `, ${
-                eventLabels[key]
-            } for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
-                secondsOfEvent[key] || 0
-            )}`;
-
-            // TODO: Add rules here.
 
             const eventStatusId: string = key;
+
+            // if this is downtime state then, include tooltip.
+
+            if (
+                (props.downtimeEventStatusIds?.filter((id: ObjectID) => {
+                    return id.toString() === eventStatusId.toString();
+                }).length || 0) > 0
+            ) {
+                toolTipText += `, ${
+                    eventLabels[key]
+                } for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
+                    secondsOfEvent[key] || 0
+                )}`;
+            }
 
             const isDowntimeEvent: boolean = Boolean(
                 props.downtimeEventStatusIds?.find((id: ObjectID) => {

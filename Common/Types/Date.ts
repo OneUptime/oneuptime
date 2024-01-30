@@ -79,6 +79,14 @@ export default class OneUptimeDate {
         return moment(date).fromNow();
     }
 
+    public static differenceBetweenTwoDatesAsFromattedString(
+        date1: Date,
+        date2: Date
+    ): string {
+        const seconds: number = this.getSecondsBetweenTwoDates(date1, date2);
+        return this.secondsToFormattedFriendlyTimeString(seconds);
+    }
+
     public static toTimeString(date: Date | string): string {
         if (typeof date === 'string') {
             date = this.fromString(date);
@@ -497,34 +505,104 @@ export default class OneUptimeDate {
     public static secondsToFormattedFriendlyTimeString(
         seconds: number
     ): string {
+        const startDate: moment.Moment = moment.utc(0);
         const date: moment.Moment = moment.utc(seconds * 1000);
-        const hours: string = date.format('HH');
-        const mins: string = date.format('mm');
-        const secs: string = date.format('ss');
 
-        let text: string = '';
-        let hasHours: boolean = false;
-        let hasMins: boolean = false;
-        if (hours !== '00') {
-            hasHours = true;
-            text += hours + ' hours ';
-        }
+        // get the difference between the two dates as friendly formatted string
 
-        if (mins !== '00' || hasHours) {
-            hasMins = true;
+        let formattedString: string = '';
 
-            if (hasHours) {
-                text += ', ';
+        // years between two dates
+        const years: number = date.diff(startDate, 'years');
+
+        if (years > 0) {
+            let text: string = 'years ';
+            if (years === 1) {
+                text = 'year ';
             }
 
-            text += mins + ' minutes ';
+            // add years to start date
+            startDate.add(years, 'years');
+
+            formattedString += years + ' ' + text;
         }
 
-        if (!(hasHours && hasMins)) {
-            text += secs + ' seconds. ';
+        const months: number = date.diff(startDate, 'months');
+
+        if (months > 0) {
+            let text: string = 'months ';
+
+            if (months === 1) {
+                text = 'month ';
+            }
+
+            // add months to start date
+            startDate.add(months, 'months');
+
+            formattedString += months + ' ' + text;
         }
 
-        return text;
+        const days: number = date.diff(startDate, 'days');
+
+        if (days > 0) {
+            let text: string = 'days ';
+
+            if (days === 1) {
+                text = 'day ';
+            }
+
+            // add days to start date
+            startDate.add(days, 'days');
+
+            formattedString += days + ' ' + text;
+        }
+
+        const hours: number = date.diff(startDate, 'hours');
+
+        if (hours > 0) {
+            let text: string = 'hours ';
+
+            if (hours === 1) {
+                text = 'hour ';
+            }
+
+            // add hours to start date
+            startDate.add(hours, 'hours');
+
+            formattedString += hours + ' ' + text;
+        }
+
+        const minutes: number = date.diff(startDate, 'minutes');
+
+        if (minutes > 0) {
+            let text: string = 'mins ';
+
+            if (minutes === 1) {
+                text = 'min ';
+            }
+
+            // add minutes to start date
+            startDate.add(minutes, 'minutes');
+
+            formattedString += minutes + ' ' + text;
+        }
+
+        const secondsLeft: number = date.diff(startDate, 'seconds');
+
+        if (secondsLeft > 0) {
+            let text: string = 'secs ';
+
+            if (secondsLeft === 1) {
+                text = 'sec ';
+            }
+
+            // add seconds to start date
+            startDate.add(secondsLeft, 'seconds');
+
+            formattedString += secondsLeft + ' ' + text;
+        }
+
+        return formattedString.trim();
     }
 
     public static getGreaterDate(a: Date, b: Date): Date {
@@ -810,7 +888,7 @@ export default class OneUptimeDate {
             momentDate.format(formatstring) +
             ' ' +
             (onlyShowDate ? '' : this.getCurrentTimezoneString())
-        );
+        ).trim();
     }
 
     public static getDayInSeconds(days?: number | undefined): number {

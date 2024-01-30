@@ -241,6 +241,23 @@ export default class QueryHelper {
         );
     }
 
+    public static inBetweenOrNull(
+        startValue: number | Date,
+        endValue: number | Date
+    ): FindOperator<any> {
+        const rid1: string = Text.generateRandomText(10);
+        const rid2: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `((${alias} >= :${rid1} and ${alias} <= :${rid2})) or (${alias} IS NULL)`;
+            },
+            {
+                [rid1]: startValue,
+                [rid2]: endValue,
+            }
+        );
+    }
+
     public static queryJson(value: JSONObject): FindOperator<any> {
         // seed random text
         const values: JSONObject = {};

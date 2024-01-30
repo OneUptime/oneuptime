@@ -1,5 +1,6 @@
 import AddDefaultGlobalConfig from './AddDefaultGlobalConfig';
 import AddDowntimeMonitorStatusToStatusPage from './AddDowntimeMonitorStatusToStatusPage';
+import AddEndDateToMonitorStatusTimeline from './AddEndDateToMonitorStatusTimeline';
 import AddEndedState from './AddEndedState';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
@@ -27,6 +28,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddPostedAtToPublicNotes(),
     new MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage(),
     new AddDowntimeMonitorStatusToStatusPage(),
+    new AddEndDateToMonitorStatusTimeline(),
 ];
 
 export default DataMigrations;

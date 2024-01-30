@@ -472,4 +472,28 @@ export default class MonitorStatusTimeline extends BaseModel {
         nullable: true,
     })
     public rootCause?: string = undefined;
+
+    @Index()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateMonitorStatusTimeline,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadMonitorStatusTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public endsAt?: Date = undefined;
 }

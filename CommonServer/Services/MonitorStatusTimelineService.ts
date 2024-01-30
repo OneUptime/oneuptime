@@ -12,6 +12,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import CreateBy from '../Types/Database/CreateBy';
 import UserService from './UserService';
 import User from 'Model/Models/User';
+import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -22,6 +23,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     protected override async onBeforeCreate(
         createBy: CreateBy<MonitorStatusTimeline>
     ): Promise<OnCreate<MonitorStatusTimeline>> {
+        if (!createBy.data.monitorId) {
+            throw new BadDataException('monitorId is null');
+        }
+
         if (
             (createBy.data.createdByUserId ||
                 createBy.data.createdByUser ||
@@ -57,7 +62,29 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             }
         }
 
-        return { createBy, carryForward: null };
+        const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+            await this.findOneBy({
+                query: {
+                    monitorId: createBy.data.monitorId,
+                },
+                sort: {
+                    createdAt: SortOrder.Descending,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
+        return {
+            createBy,
+            carryForward: {
+                lastMonitorStatusTimelineId:
+                    lastMonitorStatusTimeline?.id || null,
+            },
+        };
     }
 
     protected override async onCreateSuccess(
@@ -70,6 +97,21 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
         if (!createdItem.monitorStatusId) {
             throw new BadDataException('monitorStatusId is null');
+        }
+
+        // update the last status as ended.
+
+        if (onCreate.carryForward.lastMonitorStatusTimelineId) {
+            await this.updateOneById({
+                id: onCreate.carryForward.lastMonitorStatusTimelineId!,
+                data: {
+                    endsAt:
+                        createdItem.createdAt || OneUptimeDate.getCurrentDate(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
         }
 
         await MonitorService.updateOneBy({
