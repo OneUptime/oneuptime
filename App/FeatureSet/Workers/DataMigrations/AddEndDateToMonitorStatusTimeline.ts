@@ -7,6 +7,7 @@ import MonitorService from 'CommonServer/Services/MonitorService';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import MonitorStatusTimelineService from 'CommonServer/Services/MonitorStatusTimelineService';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 
 export default class AddEndDateToMonitorStatusTimeline extends DataMigrationBase {
     public constructor() {
@@ -51,6 +52,7 @@ export default class AddEndDateToMonitorStatusTimeline extends DataMigrationBase
                     await MonitorStatusTimelineService.findBy({
                         query: {
                             monitorId: monitor.id!,
+                            endsAt: QueryHelper.isNull(),
                         },
                         select: {
                             _id: true,
