@@ -281,6 +281,13 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
+                                shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+                            },
+                            title: 'Notify Status Page Subscribers',
+                            fieldType: FieldType.Boolean,
+                        },
+                        {
+                            field: {
                                 labels: {
                                     name: true,
                                     color: true,

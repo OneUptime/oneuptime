@@ -245,8 +245,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         id: 'owners',
                     },
                     {
-                        title: 'Labels',
-                        id: 'labels',
+                        title: 'More',
+                        id: 'more',
                     },
                 ]}
                 formFields={[
@@ -383,7 +383,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
 
                         title: 'Labels ',
-                        stepId: 'labels',
+                        stepId: 'more',
                         description:
                             'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -395,6 +395,19 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         required: false,
                         placeholder: 'Labels',
                     },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+                        },
+
+                        title: 'Notify Status Page Subscribers',
+                        stepId: 'more',
+                        description:
+                            'Should status page subscribers be notified when this incident is created?',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        defaultValue: true,
+                        required: false,
+                    }
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}

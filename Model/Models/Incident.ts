@@ -745,6 +745,39 @@ export default class Incident extends BaseModel {
     })
     public isStatusPageSubscribersNotifiedOnIncidentCreated?: boolean = undefined;
 
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectIncident,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectIncident,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectIncident,
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should subscribers be notified?',
+        description: 'Should subscribers be notified about this incident?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public shouldStatusPageSubscribersBeNotifiedOnIncidentCreated?: boolean = undefined;
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

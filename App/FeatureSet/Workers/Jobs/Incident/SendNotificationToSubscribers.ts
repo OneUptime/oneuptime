@@ -36,6 +36,7 @@ RunCron(
         const incidents: Array<Incident> = await IncidentService.findBy({
             query: {
                 isStatusPageSubscribersNotifiedOnIncidentCreated: false,
+                shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
                 createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
             },
             props: {
