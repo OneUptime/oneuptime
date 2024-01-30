@@ -751,7 +751,7 @@ export default class ScheduledMaintenance extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: true,
         type: TableColumnType.Boolean,
-        title: 'Should subscribers be notified?',
+        title: 'Should subscribers be notified when event is created?',
         description:
             'Should subscribers be notified about this event creation?',
     })
@@ -760,6 +760,64 @@ export default class ScheduledMaintenance extends BaseModel {
         default: true,
     })
     public shouldStatusPageSubscribersBeNotifiedOnEventCreated?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectScheduledMaintenance,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectScheduledMaintenance,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should subscribers be notified when event is changed to ongoing?',
+        description:
+            'Should subscribers be notified about this event event is changed to ongoing?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing?: boolean =
+        undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectScheduledMaintenance,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectScheduledMaintenance,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Should subscribers be notified when event is changed to ended?',
+        description:
+            'Should subscribers be notified about this event event is changed to ended?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded?: boolean =
+        undefined;
 
     @ColumnAccessControl({
         create: [

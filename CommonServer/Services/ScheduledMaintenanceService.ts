@@ -303,8 +303,8 @@ export class Service extends DatabaseService<Model> {
         projectId: ObjectID;
         scheduledMaintenanceId: ObjectID;
         scheduledMaintenanceStateId: ObjectID;
-        shouldNotifyStatusPageSubscribers: true;
-        isSubscribersNotified: false;
+        shouldNotifyStatusPageSubscribers: boolean;
+        isSubscribersNotified: boolean;
         notifyOwners: boolean;
         props: DatabaseCommonInteractionProps;
     }): Promise<void> {

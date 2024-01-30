@@ -32,6 +32,8 @@ RunCron(
                     _id: true,
                     projectId: true,
                     changeMonitorStatusToId: true,
+                    shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                        true,
                     monitors: {
                         _id: true,
                     },
@@ -63,7 +65,9 @@ RunCron(
                 projectId: event.projectId!,
                 scheduledMaintenanceId: event.id!,
                 scheduledMaintenanceStateId: scheduledMaintenanceState.id,
-                shouldNotifyStatusPageSubscribers: true,
+                shouldNotifyStatusPageSubscribers: Boolean(
+                    event.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded
+                ),
                 isSubscribersNotified: false,
                 notifyOwners: true,
                 props: {

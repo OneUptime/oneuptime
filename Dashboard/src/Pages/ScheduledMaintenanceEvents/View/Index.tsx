@@ -182,6 +182,12 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                     showDetailsInNumberOfColumns: 2,
                     modelType: ScheduledMaintenance,
                     id: 'model-detail-scheduledMaintenances',
+                    selectMoreFields: {
+                        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+                            true,
+                        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                            true,
+                    },
                     fields: [
                         {
                             field: {
@@ -311,21 +317,55 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Boolean,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
-                                    <div className="">
-                                        <CheckboxViewer
-                                            isChecked={
-                                                item[
-                                                    'shouldStatusPageSubscribersBeNotifiedOnEventCreated'
-                                                ] as boolean
-                                            }
-                                            text={
-                                                item[
-                                                    'shouldStatusPageSubscribersBeNotifiedOnEventCreated'
-                                                ]
-                                                    ? 'Subscribers Notified'
-                                                    : 'Subscribers Not Notified'
-                                            }
-                                        />{' '}
+                                    <div>
+                                        <div className="">
+                                            <CheckboxViewer
+                                                isChecked={
+                                                    item[
+                                                        'shouldStatusPageSubscribersBeNotifiedOnEventCreated'
+                                                    ] as boolean
+                                                }
+                                                text={
+                                                    item[
+                                                        'shouldStatusPageSubscribersBeNotifiedOnEventCreated'
+                                                    ]
+                                                        ? 'Event Created: Notify Subscribers'
+                                                        : 'Event Created: Do Not Notify Subscribers'
+                                                }
+                                            />{' '}
+                                        </div>
+                                        <div className="">
+                                            <CheckboxViewer
+                                                isChecked={
+                                                    item[
+                                                        'shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing'
+                                                    ] as boolean
+                                                }
+                                                text={
+                                                    item[
+                                                        'shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing'
+                                                    ]
+                                                        ? 'Event Ongoing: Notify Subscribers'
+                                                        : 'Event Ongoing: Do Not Notify Subscribers'
+                                                }
+                                            />{' '}
+                                        </div>
+                                        <div className="">
+                                            <CheckboxViewer
+                                                isChecked={
+                                                    item[
+                                                        'shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded'
+                                                    ] as boolean
+                                                }
+                                                text={
+                                                    item[
+                                                        'shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded'
+                                                    ]
+                                                        ? 'Event Ended: Notify Subscribers'
+                                                        : 'Event Ended: Do Not Notify Subscribers'
+                                                }
+                                            />{' '}
+                                        </div>
                                     </div>
                                 );
                             },

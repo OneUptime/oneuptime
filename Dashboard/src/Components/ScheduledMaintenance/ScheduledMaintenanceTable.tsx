@@ -231,10 +231,38 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                             true,
                     },
 
-                    title: 'Notify Status Page Subscribers',
+                    title: 'Notify Status Page Subscribers when event is Created',
                     stepId: 'more',
                     description:
                         'Should status page subscribers be notified when this event is created?',
+                    fieldType: FormFieldSchemaType.Checkbox,
+                    defaultValue: true,
+                    required: false,
+                },
+                {
+                    field: {
+                        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+                            true,
+                    },
+
+                    title: 'Notify Status Page Subscribers when event is changes to Ongoing',
+                    stepId: 'more',
+                    description:
+                        'Should status page subscribers be notified when this event state changes to Ongoing?',
+                    fieldType: FormFieldSchemaType.Checkbox,
+                    defaultValue: true,
+                    required: false,
+                },
+                {
+                    field: {
+                        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                            true,
+                    },
+
+                    title: 'Notify Status Page Subscribers when event is changes to Ended',
+                    stepId: 'more',
+                    description:
+                        'Should status page subscribers be notified when this event state changes to Ended?',
                     fieldType: FormFieldSchemaType.Checkbox,
                     defaultValue: true,
                     required: false,
