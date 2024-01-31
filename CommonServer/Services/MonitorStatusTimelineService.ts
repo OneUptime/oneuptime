@@ -168,16 +168,16 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                     );
                 }
 
-
-                // adjust times of other timeline events. get the state before this status timeline. 
+                // adjust times of other timeline events. get the state before this status timeline.
 
                 if (monitorStatusTimelineToBeDeleted?.startsAt) {
-
                     const beforeState: MonitorStatusTimeline | null =
                         await this.findOneBy({
                             query: {
                                 monitorId: monitorId,
-                                startsAt: QueryHelper.lessThan(monitorStatusTimelineToBeDeleted?.startsAt)
+                                startsAt: QueryHelper.lessThan(
+                                    monitorStatusTimelineToBeDeleted?.startsAt
+                                ),
                             },
                             sort: {
                                 createdAt: SortOrder.Descending,
@@ -196,7 +196,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                             await this.findOneBy({
                                 query: {
                                     monitorId: monitorId,
-                                    startsAt: QueryHelper.greaterThan(monitorStatusTimelineToBeDeleted?.startsAt)
+                                    startsAt: QueryHelper.greaterThan(
+                                        monitorStatusTimelineToBeDeleted?.startsAt
+                                    ),
                                 },
                                 sort: {
                                     createdAt: SortOrder.Ascending,
@@ -210,31 +212,31 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                                 },
                             });
 
-                            if(!afterState){
-                                // if there's nothing after then end date of before state is null. 
+                        if (!afterState) {
+                            // if there's nothing after then end date of before state is null.
 
-                                await this.updateOneById({
-                                    id: beforeState.id!,
-                                    data: {
-                                        endsAt: null as any
-                                    },
-                                    props: {
-                                        isRoot: true,
-                                    },
-                                });
-                            }else{
-                                // if there's something after then end date of before state is start date of after state. 
+                            await this.updateOneById({
+                                id: beforeState.id!,
+                                data: {
+                                    endsAt: null as any,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
+                        } else {
+                            // if there's something after then end date of before state is start date of after state.
 
-                                await this.updateOneById({
-                                    id: beforeState.id!,
-                                    data: {
-                                        endsAt: afterState.startsAt!
-                                    },
-                                    props: {
-                                        isRoot: true,
-                                    },
-                                });
-                            }
+                            await this.updateOneById({
+                                id: beforeState.id!,
+                                data: {
+                                    endsAt: afterState.startsAt!,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
+                        }
                     }
                 }
             }
