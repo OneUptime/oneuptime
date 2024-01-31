@@ -736,7 +736,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     monitorId: QueryHelper.in(
                                         monitorsOnStatusPageForTimeline
                                     ),
-                                    endsAt: QueryHelper.inBetweenOrNull(
+                                    endsAt: QueryHelper.inBetween(
                                         startDate,
                                         endDate
                                     ),
@@ -760,6 +760,35 @@ export default class StatusPageAPI extends BaseAPI<
                                     isRoot: true,
                                 },
                             });
+
+                        monitorStatusTimelines = monitorStatusTimelines.concat(
+                            await MonitorStatusTimelineService.findBy({
+                                query: {
+                                    monitorId: QueryHelper.in(
+                                        monitorsOnStatusPageForTimeline
+                                    ),
+                                    endsAt: QueryHelper.isNull(),
+                                },
+                                select: {
+                                    monitorId: true,
+                                    createdAt: true,
+                                    endsAt: true,
+                                    monitorStatus: {
+                                        name: true,
+                                        color: true,
+                                        priority: true,
+                                    } as any,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Ascending,
+                                },
+                                skip: 0,
+                                limit: LIMIT_MAX, // This can be optimized.
+                                props: {
+                                    isRoot: true,
+                                },
+                            })
+                        );
                     }
 
                     // check if status page has active incident.
