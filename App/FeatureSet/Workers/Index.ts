@@ -84,7 +84,11 @@ app.use(`/${APP_NAME.toLocaleLowerCase()}`, StatusPageCerts);
 const WorkersFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
         try {
-            await RunDatabaseMigrations();
+            // run async database migrations
+            RunDatabaseMigrations().catch((err) => {
+                logger.error('Error running database migrations');
+                logger.error(err);
+            });
 
             // create tables in analytics database
             await AnalyticsTableManagement.createTables();
