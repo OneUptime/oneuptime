@@ -28,19 +28,22 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<ScheduledMaintenanceStateTimeline>): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
-        if(!createBy.data.scheduledMaintenanceId) {
+    protected override async onBeforeCreate(
+        createBy: CreateBy<ScheduledMaintenanceStateTimeline>
+    ): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
+        if (!createBy.data.scheduledMaintenanceId) {
             throw new BadDataException('scheduledMaintenanceId is null');
         }
 
-        if(!createBy.data.startsAt){
+        if (!createBy.data.startsAt) {
             createBy.data.startsAt = OneUptimeDate.getCurrentDate();
         }
 
         const lastScheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline | null =
             await this.findOneBy({
                 query: {
-                    scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
+                    scheduledMaintenanceId:
+                        createBy.data.scheduledMaintenanceId,
                 },
                 sort: {
                     createdAt: SortOrder.Descending,
@@ -57,7 +60,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
             createBy,
             carryForward: {
                 lastScheduledMaintenanceStateTimelineId:
-                lastScheduledMaintenanceStateTimeline?.id || null,
+                    lastScheduledMaintenanceStateTimeline?.id || null,
             },
         };
     }
@@ -78,7 +81,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
         if (onCreate.carryForward.lastScheduledMaintenanceStateTimelineId) {
             await this.updateOneById({
-                id: onCreate.carryForward.lastScheduledMaintenanceStateTimelineId!,
+                id: onCreate.carryForward
+                    .lastScheduledMaintenanceStateTimelineId!,
                 data: {
                     endsAt:
                         createdItem.createdAt || OneUptimeDate.getCurrentDate(),

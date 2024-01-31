@@ -85,7 +85,7 @@ const WorkersFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
         try {
             // run async database migrations
-            RunDatabaseMigrations().catch((err) => {
+            RunDatabaseMigrations().catch((err: Error) => {
                 logger.error('Error running database migrations');
                 logger.error(err);
             });

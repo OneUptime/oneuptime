@@ -52,7 +52,6 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     protected override async onBeforeCreate(
         createBy: CreateBy<IncidentStateTimeline>
     ): Promise<OnCreate<IncidentStateTimeline>> {
-
         if (!createBy.data.incidentId) {
             throw new BadDataException('incidentId is null');
         }
@@ -113,7 +112,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             });
 
         return {
-            createBy, carryForward: {
+            createBy,
+            carryForward: {
                 lastIncidentStateTimelineId:
                     lastIncidentStateTimeline?.id || null,
             },
@@ -131,7 +131,6 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         if (!createdItem.incidentStateId) {
             throw new BadDataException('incidentStateId is null');
         }
-
 
         // update the last status as ended.
 

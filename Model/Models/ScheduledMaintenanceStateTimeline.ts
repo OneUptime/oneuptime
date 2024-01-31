@@ -467,7 +467,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     })
     public isOwnerNotified?: boolean = undefined;
 
-
     @Index()
     @ColumnAccessControl({
         create: [
@@ -495,7 +494,6 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         unique: false,
     })
     public endsAt?: Date = undefined;
-
 
     @Index()
     @ColumnAccessControl({

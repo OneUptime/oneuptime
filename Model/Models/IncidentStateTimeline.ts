@@ -519,7 +519,6 @@ export default class IncidentStateTimeline extends BaseModel {
     })
     public rootCause?: string = undefined;
 
-
     @Index()
     @ColumnAccessControl({
         create: [
@@ -547,7 +546,6 @@ export default class IncidentStateTimeline extends BaseModel {
         unique: false,
     })
     public endsAt?: Date = undefined;
-
 
     @Index()
     @ColumnAccessControl({

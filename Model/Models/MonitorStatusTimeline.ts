@@ -501,7 +501,6 @@ export default class MonitorStatusTimeline extends BaseModel {
     })
     public endsAt?: Date = undefined;
 
-
     @Index()
     @ColumnAccessControl({
         create: [
@@ -529,5 +528,4 @@ export default class MonitorStatusTimeline extends BaseModel {
         unique: false,
     })
     public startsAt?: Date = undefined;
-
 }
