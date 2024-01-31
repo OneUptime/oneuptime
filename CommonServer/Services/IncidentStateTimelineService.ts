@@ -16,6 +16,7 @@ import UserService from './UserService';
 import User from 'Model/Models/User';
 import Incident from 'Model/Models/Incident';
 import OneUptimeDate from 'Common/Types/Date';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -206,11 +207,12 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         deleteBy: DeleteBy<IncidentStateTimeline>
     ): Promise<OnDelete<IncidentStateTimeline>> {
         if (deleteBy.query._id) {
-            const incidentStateTimeline: IncidentStateTimeline | null =
+            const incidentStateTimelineToBeDeleted: IncidentStateTimeline | null =
                 await this.findOneById({
                     id: new ObjectID(deleteBy.query._id as string),
                     select: {
                         incidentId: true,
+                        startsAt: true,
                     },
                     props: {
                         isRoot: true,
@@ -218,7 +220,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
                 });
 
             const incidentId: ObjectID | undefined =
-                incidentStateTimeline?.incidentId;
+                incidentStateTimelineToBeDeleted?.incidentId;
 
             if (incidentId) {
                 const incidentStateTimeline: PositiveNumber =
@@ -235,6 +237,76 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
                     throw new BadDataException(
                         'Cannot delete the only state timeline. Incident should have at least one state in its timeline.'
                     );
+                }
+
+                if (incidentStateTimelineToBeDeleted?.startsAt) {
+                    const beforeState: IncidentStateTimeline | null =
+                        await this.findOneBy({
+                            query: {
+                                incidentId: incidentId,
+                                startsAt: QueryHelper.lessThan(
+                                    incidentStateTimelineToBeDeleted?.startsAt
+                                ),
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                            select: {
+                                _id: true,
+                                startsAt: true,
+                            },
+                        });
+
+                    if (beforeState) {
+                        const afterState: IncidentStateTimeline | null =
+                            await this.findOneBy({
+                                query: {
+                                    incidentId: incidentId,
+                                    startsAt: QueryHelper.greaterThan(
+                                        incidentStateTimelineToBeDeleted?.startsAt
+                                    ),
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Ascending,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                                select: {
+                                    _id: true,
+                                    startsAt: true,
+                                },
+                            });
+
+                        if (!afterState) {
+                            // if there's nothing after then end date of before state is null.
+
+                            await this.updateOneById({
+                                id: beforeState.id!,
+                                data: {
+                                    endsAt: null as any,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
+                        } else {
+                            // if there's something after then end date of before state is start date of after state.
+
+                            await this.updateOneById({
+                                id: beforeState.id!,
+                                data: {
+                                    endsAt: afterState.startsAt!,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
+                        }
+                    }
                 }
             }
 
