@@ -21,6 +21,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import OneUptimeDate from 'Common/Types/Date';
 
 const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -180,8 +181,34 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Reported At',
+                        title: 'Starts At',
                         type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Ends At',
+                        type: FieldType.DateTime,
+                        noValueMessage: 'Currently Active',
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Duration',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <p>
+                                    {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
+                                        item['createdAt'] as Date,
+                                        (item['endsAt'] as Date) ||
+                                            OneUptimeDate.getCurrentDate()
+                                    )}
+                                </p>
+                            );
+                        },
                     },
                     {
                         field: {

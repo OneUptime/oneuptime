@@ -12,6 +12,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import OneUptimeDate from 'Common/Types/Date';
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -122,8 +123,34 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Reported At',
+                        title: 'Starts At',
                         type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Ends At',
+                        type: FieldType.DateTime,
+                        noValueMessage: 'Currently Active',
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Duration',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <p>
+                                    {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
+                                        item['createdAt'] as Date,
+                                        (item['endsAt'] as Date) ||
+                                            OneUptimeDate.getCurrentDate()
+                                    )}
+                                </p>
+                            );
+                        },
                     },
                     {
                         field: {
