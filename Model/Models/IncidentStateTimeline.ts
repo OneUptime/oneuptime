@@ -518,4 +518,62 @@ export default class IncidentStateTimeline extends BaseModel {
         nullable: true,
     })
     public rootCause?: string = undefined;
+
+
+    @Index()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateIncidentStateTimeline,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentStateTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Ends At',
+        description: 'When did this status change end?',
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public endsAt?: Date = undefined;
+
+
+    @Index()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateIncidentStateTimeline,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentStateTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Starts At',
+        description: 'When did this status change start?',
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public startsAt?: Date = undefined;
 }

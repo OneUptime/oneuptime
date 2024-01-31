@@ -11,11 +11,11 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import CreateBy from '../Types/Database/CreateBy';
 import UserService from './UserService';
 import User from 'Model/Models/User';
 import Incident from 'Model/Models/Incident';
+import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -50,8 +50,17 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     }
 
     protected override async onBeforeCreate(
-        createBy: CreateBy<MonitorStatusTimeline>
-    ): Promise<OnCreate<MonitorStatusTimeline>> {
+        createBy: CreateBy<IncidentStateTimeline>
+    ): Promise<OnCreate<IncidentStateTimeline>> {
+
+        if (!createBy.data.incidentId) {
+            throw new BadDataException('incidentId is null');
+        }
+
+        if (!createBy.data.startsAt) {
+            createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+        }
+
         if (
             (createBy.data.createdByUserId ||
                 createBy.data.createdByUser ||
@@ -87,7 +96,28 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             }
         }
 
-        return { createBy, carryForward: null };
+        const lastIncidentStateTimeline: IncidentStateTimeline | null =
+            await this.findOneBy({
+                query: {
+                    incidentId: createBy.data.incidentId,
+                },
+                sort: {
+                    createdAt: SortOrder.Descending,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
+        return {
+            createBy, carryForward: {
+                lastIncidentStateTimelineId:
+                    lastIncidentStateTimeline?.id || null,
+            },
+        };
     }
 
     protected override async onCreateSuccess(
@@ -100,6 +130,22 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
         if (!createdItem.incidentStateId) {
             throw new BadDataException('incidentStateId is null');
+        }
+
+
+        // update the last status as ended.
+
+        if (onCreate.carryForward.lastIncidentStateTimelineId) {
+            await this.updateOneById({
+                id: onCreate.carryForward.lastIncidentStateTimelineId!,
+                data: {
+                    endsAt:
+                        createdItem.createdAt || OneUptimeDate.getCurrentDate(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
         }
 
         await IncidentService.updateOneBy({

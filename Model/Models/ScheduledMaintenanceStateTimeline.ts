@@ -466,4 +466,62 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
+
+
+    @Index()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenanceStateTimeline,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenanceStateTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Ends At',
+        description: 'When did this status change end?',
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public endsAt?: Date = undefined;
+
+
+    @Index()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenanceStateTimeline,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadScheduledMaintenanceStateTimeline,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Starts At',
+        description: 'When did this status change start?',
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public startsAt?: Date = undefined;
 }

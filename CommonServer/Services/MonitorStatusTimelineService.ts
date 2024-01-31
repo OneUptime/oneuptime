@@ -27,6 +27,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             throw new BadDataException('monitorId is null');
         }
 
+        if(!createBy.data.startsAt){
+            createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+        }
+
         if (
             (createBy.data.createdByUserId ||
                 createBy.data.createdByUser ||

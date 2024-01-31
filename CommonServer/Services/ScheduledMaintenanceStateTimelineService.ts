@@ -19,6 +19,8 @@ import MonitorStatusTimelineService from './MonitorStatusTimelineService';
 import MonitorService from './MonitorService';
 import Monitor from 'Model/Models/Monitor';
 import QueryHelper from '../Types/Database/QueryHelper';
+import CreateBy from '../Types/Database/CreateBy';
+import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -26,8 +28,42 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         this.hardDeleteItemsOlderThanInDays('createdAt', 120);
     }
 
+    protected override async onBeforeCreate(createBy: CreateBy<ScheduledMaintenanceStateTimeline>): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
+        if(!createBy.data.scheduledMaintenanceId) {
+            throw new BadDataException('scheduledMaintenanceId is null');
+        }
+
+        if(!createBy.data.startsAt){
+            createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+        }
+
+        const lastScheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline | null =
+            await this.findOneBy({
+                query: {
+                    scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
+                },
+                sort: {
+                    createdAt: SortOrder.Descending,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
+        return {
+            createBy,
+            carryForward: {
+                lastScheduledMaintenanceStateTimelineId:
+                lastScheduledMaintenanceStateTimeline?.id || null,
+            },
+        };
+    }
+
     protected override async onCreateSuccess(
-        _onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
+        onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
         createdItem: ScheduledMaintenanceStateTimeline
     ): Promise<ScheduledMaintenanceStateTimeline> {
         if (!createdItem.scheduledMaintenanceId) {
@@ -36,6 +72,21 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
         if (!createdItem.scheduledMaintenanceStateId) {
             throw new BadDataException('scheduledMaintenanceStateId is null');
+        }
+
+        // update the last status as ended.
+
+        if (onCreate.carryForward.lastScheduledMaintenanceStateTimelineId) {
+            await this.updateOneById({
+                id: onCreate.carryForward.lastScheduledMaintenanceStateTimelineId!,
+                data: {
+                    endsAt:
+                        createdItem.createdAt || OneUptimeDate.getCurrentDate(),
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
         }
 
         await ScheduledMaintenanceService.updateOneBy({
