@@ -13,6 +13,7 @@ import CreateBy from '../Types/Database/CreateBy';
 import UserService from './UserService';
 import User from 'Model/Models/User';
 import OneUptimeDate from 'Common/Types/Date';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -135,11 +136,12 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         deleteBy: DeleteBy<MonitorStatusTimeline>
     ): Promise<OnDelete<MonitorStatusTimeline>> {
         if (deleteBy.query._id) {
-            const monitorStatusTimeline: MonitorStatusTimeline | null =
+            const monitorStatusTimelineToBeDeleted: MonitorStatusTimeline | null =
                 await this.findOneById({
                     id: new ObjectID(deleteBy.query._id as string),
                     select: {
                         monitorId: true,
+                        startsAt: true,
                     },
                     props: {
                         isRoot: true,
@@ -147,7 +149,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                 });
 
             const monitorId: ObjectID | undefined =
-                monitorStatusTimeline?.monitorId;
+                monitorStatusTimelineToBeDeleted?.monitorId;
 
             if (monitorId) {
                 const monitorStatusTimeline: PositiveNumber =
@@ -164,6 +166,76 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                     throw new BadDataException(
                         'Cannot delete the only status timeline. Monitor should have at least one status timeline.'
                     );
+                }
+
+
+                // adjust times of other timeline events. get the state before this status timeline. 
+
+                if (monitorStatusTimelineToBeDeleted?.startsAt) {
+
+                    const beforeState: MonitorStatusTimeline | null =
+                        await this.findOneBy({
+                            query: {
+                                monitorId: monitorId,
+                                startsAt: QueryHelper.lessThan(monitorStatusTimelineToBeDeleted?.startsAt)
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                            select: {
+                                _id: true,
+                                startsAt: true,
+                            },
+                        });
+
+                    if (beforeState) {
+                        const afterState: MonitorStatusTimeline | null =
+                            await this.findOneBy({
+                                query: {
+                                    monitorId: monitorId,
+                                    startsAt: QueryHelper.greaterThan(monitorStatusTimelineToBeDeleted?.startsAt)
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Ascending,
+                                },
+                                props: {
+                                    isRoot: true,
+                                },
+                                select: {
+                                    _id: true,
+                                    startsAt: true,
+                                },
+                            });
+
+                            if(!afterState){
+                                // if there's nothing after then end date of before state is null. 
+
+                                await this.updateOneById({
+                                    id: beforeState.id!,
+                                    data: {
+                                        endsAt: null as any
+                                    },
+                                    props: {
+                                        isRoot: true,
+                                    },
+                                });
+                            }else{
+                                // if there's something after then end date of before state is start date of after state. 
+
+                                await this.updateOneById({
+                                    id: beforeState.id!,
+                                    data: {
+                                        endsAt: afterState.startsAt!
+                                    },
+                                    props: {
+                                        isRoot: true,
+                                    },
+                                });
+                            }
+                    }
                 }
             }
 
