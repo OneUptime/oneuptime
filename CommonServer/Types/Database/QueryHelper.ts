@@ -249,7 +249,7 @@ export default class QueryHelper {
         const rid2: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `((${alias} >= :${rid1} and ${alias} <= :${rid2})) or (${alias} IS NULL)`;
+                return `(((${alias} >= :${rid1} and ${alias} <= :${rid2})) or (${alias} IS NULL))`;
             },
             {
                 [rid1]: startValue,
