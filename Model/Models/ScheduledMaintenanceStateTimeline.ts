@@ -388,7 +388,12 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     public scheduledMaintenanceStateId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateScheduledMaintenanceStateTimeline,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

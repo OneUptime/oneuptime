@@ -17,6 +17,9 @@ import User from 'Model/Models/User';
 import Incident from 'Model/Models/Incident';
 import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from '../Types/Database/QueryHelper';
+import { JSONObject } from 'Common/Types/JSON';
+import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import IncidentPublicNoteService from './IncidentPublicNoteService';
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -111,6 +114,34 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
                     _id: true,
                 },
             });
+
+        const publicNote: string | undefined = (
+            createBy.miscDataProps as JSONObject
+        )['publicNote'] as string | undefined;
+
+        if (publicNote) {
+            const incidentPublicNote: IncidentPublicNote =
+                new IncidentPublicNote();
+            incidentPublicNote.incidentId = createBy.data.incidentId;
+            incidentPublicNote.note = publicNote;
+            incidentPublicNote.postedAt = createBy.data.startsAt;
+            incidentPublicNote.createdAt = createBy.data.startsAt;
+            incidentPublicNote.projectId = createBy.data.projectId!;
+            incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+                Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+            // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
+            if (
+                incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
+            ) {
+                createBy.data.isStatusPageSubscribersNotified = true;
+            }
+
+            await IncidentPublicNoteService.create({
+                data: incidentPublicNote,
+                props: createBy.props,
+            });
+        }
 
         return {
             createBy,

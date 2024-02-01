@@ -21,6 +21,9 @@ import Monitor from 'Model/Models/Monitor';
 import QueryHelper from '../Types/Database/QueryHelper';
 import CreateBy from '../Types/Database/CreateBy';
 import OneUptimeDate from 'Common/Types/Date';
+import { JSONObject } from 'Common/Types/JSON';
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
+import ScheduledMaintenancePublicNoteService from './ScheduledMaintenancePublicNoteService';
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -55,6 +58,35 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                     _id: true,
                 },
             });
+
+        const publicNote: string | undefined = (
+            createBy.miscDataProps as JSONObject
+        )['publicNote'] as string | undefined;
+
+        if (publicNote) {
+            const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
+                new ScheduledMaintenancePublicNote();
+            scheduledMaintenancePublicNote.scheduledMaintenanceId =
+                createBy.data.scheduledMaintenanceId;
+            scheduledMaintenancePublicNote.note = publicNote;
+            scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
+            scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
+            scheduledMaintenancePublicNote.projectId = createBy.data.projectId!;
+            scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+                Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+            // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
+            if (
+                scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
+            ) {
+                createBy.data.isStatusPageSubscribersNotified = true;
+            }
+
+            await ScheduledMaintenancePublicNoteService.create({
+                data: scheduledMaintenancePublicNote,
+                props: createBy.props,
+            });
+        }
 
         return {
             createBy,

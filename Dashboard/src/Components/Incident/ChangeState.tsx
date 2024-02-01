@@ -201,6 +201,18 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                         fields: [
                             {
                                 field: {
+                                    publicNote: true,
+                                } as any,
+                                fieldType: FormFieldSchemaType.Markdown,
+                                description:
+                                    'Post a public note about this state change to the status page.',
+                                title: 'Public Note',
+                                required: false,
+                                overrideFieldKey: 'publicNote',
+                                showEvenIfPermissionDoesNotExist: true,
+                            },
+                            {
+                                field: {
                                     shouldStatusPageSubscribersBeNotified: true,
                                 },
                                 fieldType: FormFieldSchemaType.Checkbox,

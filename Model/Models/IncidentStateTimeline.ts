@@ -389,7 +389,12 @@ export default class IncidentStateTimeline extends BaseModel {
     public incidentStateId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateIncidentStateTimeline,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
