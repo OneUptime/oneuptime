@@ -116,8 +116,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             });
 
         const publicNote: string | undefined = (
-            createBy.miscDataProps as JSONObject
-        )['publicNote'] as string | undefined;
+            createBy.miscDataProps as JSONObject | undefined
+        )?.['publicNote'] as string | undefined;
 
         if (publicNote) {
             const incidentPublicNote: IncidentPublicNote =
