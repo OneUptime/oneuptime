@@ -14,7 +14,7 @@ import SyslogImage from '../Images/SvgImages/syslog.svg';
 import PostgresSQLImage from '../Images/SvgImages/postgres.svg';
 import MySQLImage from '../Images/SvgImages/mysql.svg';
 import SystemdImage from '../Images/SvgImages/systemd.svg';
-import MoreImage from '../Images/SvgImages/more.svg';
+import MoreSourcesImage from '../Images/SvgImages/moresources.svg';
 
 import URL from 'Common/Types/API/URL';
 import Card from 'CommonUI/src/Components/Card/Card';
@@ -87,8 +87,6 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
                 ]}
             />
 
-
-
             <ImageTiles
                 title="Integrate with Fluentd"
                 description="OneUptime supports a native integration with Fluentd. Fluentd is an open source data collector for unified logging layer. Fluentd allows you to unify data collection and consumption for a better use and understanding of data."
@@ -119,13 +117,12 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
                         title: 'Systemd',
                     },
                     {
-                        image: MoreImage,
+                        image: MoreSourcesImage,
                         navigateToUrl: fluentdDocUrl,
                         title: '+ 1000 more sources',
-                    }
+                    },
                 ]}
             />
-
         </Card>
     );
 };
