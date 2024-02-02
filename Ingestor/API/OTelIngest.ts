@@ -77,6 +77,7 @@ class OpenTelemetryRequestMiddleware {
             }
 
             (req as TelemetryRequest).productType = productType;
+            next();
         } catch (err) {
             return next(err);
         }

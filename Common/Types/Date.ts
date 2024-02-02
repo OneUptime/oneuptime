@@ -8,6 +8,14 @@ import moment from 'moment-timezone';
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
+    public static getCurrentDateAsUnixNano(): number {
+        return this.toUnixNano(this.getCurrentDate());
+    }
+
+    public static toUnixNano(date: Date): number {
+        return date.getTime() * 1000000;
+    }
+
     public static moveDateToTheDayOfWeek(
         date: Date,
         moveToWeek: Date,

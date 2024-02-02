@@ -32,7 +32,6 @@ const init: () => Promise<void> = async (): Promise<void> => {
         // init the app
         await App(APP_NAME);
 
-        
         // connect to the database.
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()

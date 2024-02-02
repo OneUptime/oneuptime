@@ -99,6 +99,7 @@ const setDefaultHeaders: RequestHandler = (
     if (typeof req.body === Typeof.String) {
         req.body = JSONFunctions.parse(req.body);
     }
+
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Origin', req.headers['origin']);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
