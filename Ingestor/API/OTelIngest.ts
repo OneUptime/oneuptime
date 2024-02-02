@@ -19,15 +19,10 @@ import MetricSum from 'Model/AnalyticsModels/MetricSum';
 import MetricGauge from 'Model/AnalyticsModels/MetricGauge';
 import MetricHistogram from 'Model/AnalyticsModels/MetricHistogram';
 import LogService from 'CommonServer/Services/LogService';
-import ObjectID from 'Common/Types/ObjectID';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
-import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
-import TelemetryServiceService from 'CommonServer/Services/TelemetryServiceService';
-import TelemetryService from 'Model/Models/TelemetryService';
-import DiskSize from 'Common/Types/DiskSize';
-import UsageBillingService from 'CommonServer/Services/UsageBillingService';
 import { ProductType } from 'Model/Models/UsageBilling';
+import TelemetryIngest, { TelemetryRequest } from '../Middleware/TelemetryIngest';
 
 // Load proto file for OTel
 
@@ -51,40 +46,17 @@ const MetricsData: protobuf.Type = MetricsProto.lookupType('MetricsData');
 
 const router: ExpressRouter = Express.getRouter();
 
-export interface OtelRequest extends ExpressRequest {
-    serviceId: ObjectID; // Service ID
-    projectId: ObjectID; // Project ID
-}
 
 /**
  *
  *  Otel Middleware
  *
  */
-router.use(
-    '/otlp/*',
-    async (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
-        try {
-            // check header.
 
-            const serviceTokenInHeader: string | undefined = req.headers[
-                'x-oneuptime-service-token'
-            ] as string | undefined;
-
-            if (!serviceTokenInHeader) {
-                throw new BadRequestException(
-                    'Missing header: x-oneuptime-service-token'
-                );
-            }
-
-            // size of req.body in bytes.
-            const sizeInBytes: number = Buffer.byteLength(
-                JSON.stringify(req.body)
-            );
-
+class OpenTelemetryRequestMiddleware {
+    public static async getProductType (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) {
+        try{
             let productType: ProductType;
-
-            const sizeToGb: number = DiskSize.byteSizeToGB(sizeInBytes);
 
             if (req.baseUrl === '/otlp/v1/traces') {
                 req.body = TracesData.decode(req.body);
@@ -99,78 +71,20 @@ router.use(
                 throw new BadRequestException('Invalid URL: ' + req.baseUrl);
             }
 
-            const cachedServiceId: string | null = await GlobalCache.getString(
-                'service-token',
-                serviceTokenInHeader as string
-            );
-            const serviceProjectId: string | null = await GlobalCache.getString(
-                'service-project-id',
-                serviceTokenInHeader as string
-            );
+            (req as TelemetryRequest).productType = productType;
 
-            if (!cachedServiceId || !serviceProjectId) {
-                // load from the database and set the cache.
-                const service: TelemetryService | null =
-                    await TelemetryServiceService.findOneBy({
-                        query: {
-                            telemetryServiceToken: new ObjectID(
-                                serviceTokenInHeader as string
-                            ),
-                        },
-                        select: {
-                            _id: true,
-                            projectId: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-
-                if (!service) {
-                    throw new BadRequestException('Invalid service token');
-                }
-
-                await GlobalCache.setString(
-                    'service-token',
-                    serviceTokenInHeader as string,
-                    service._id?.toString() as string
-                );
-                await GlobalCache.setString(
-                    'service-project-id',
-                    serviceTokenInHeader as string,
-                    service.projectId?.toString() as string
-                );
-
-                (req as OtelRequest).serviceId = service.id as ObjectID;
-                (req as OtelRequest).projectId = service.projectId as ObjectID;
-            }
-
-            (req as OtelRequest).serviceId = ObjectID.fromString(
-                cachedServiceId as string
-            );
-            (req as OtelRequest).projectId = ObjectID.fromString(
-                serviceProjectId as string
-            );
-
-            // report to Usage Service.
-            UsageBillingService.updateUsageBilling({
-                projectId: (req as OtelRequest).projectId,
-                productType: productType,
-                usageCount: sizeToGb,
-            }).catch((err: Error) => {
-                logger.error('Failed to update usage billing for OTel');
-                logger.error(err);
-            });
-
-            next();
-        } catch (err) {
+        }catch(err){
             return next(err);
         }
     }
-);
+}
+
+
 
 router.post(
     '/otlp/v1/traces',
+    OpenTelemetryRequestMiddleware.getProductType, 
+    TelemetryIngest.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -195,8 +109,8 @@ router.post(
                     for (const span of spans) {
                         const dbSpan: Span = new Span();
 
-                        dbSpan.projectId = (req as OtelRequest).projectId;
-                        dbSpan.serviceId = (req as OtelRequest).serviceId;
+                        dbSpan.projectId = (req as TelemetryRequest).projectId;
+                        dbSpan.serviceId = (req as TelemetryRequest).serviceId;
 
                         dbSpan.spanId = span['spanId'] as string;
                         dbSpan.traceId = span['traceId'] as string;
@@ -241,6 +155,8 @@ router.post(
 
 router.post(
     '/otlp/v1/metrics',
+    OpenTelemetryRequestMiddleware.getProductType, 
+    TelemetryIngest.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -288,10 +204,10 @@ router.post(
                                 const dbMetricSum: MetricSum = new MetricSum();
 
                                 dbMetricSum.projectId = (
-                                    req as OtelRequest
+                                    req as TelemetryRequest
                                 ).projectId;
                                 dbMetricSum.serviceId = (
-                                    req as OtelRequest
+                                    req as TelemetryRequest
                                 ).serviceId;
 
                                 dbMetricSum.name = metricName;
@@ -339,10 +255,10 @@ router.post(
                                     new MetricGauge();
 
                                 dbMetricGauge.projectId = (
-                                    req as OtelRequest
+                                    req as TelemetryRequest
                                 ).projectId;
                                 dbMetricGauge.serviceId = (
-                                    req as OtelRequest
+                                    req as TelemetryRequest
                                 ).serviceId;
 
                                 dbMetricGauge.name = metricName;
@@ -390,10 +306,10 @@ router.post(
                                     new MetricHistogram();
 
                                 dbMetricHistogram.projectId = (
-                                    req as OtelRequest
+                                    req as TelemetryRequest
                                 ).projectId;
                                 dbMetricHistogram.serviceId = (
-                                    req as OtelRequest
+                                    req as TelemetryRequest
                                 ).serviceId;
 
                                 dbMetricHistogram.name = metricName;
@@ -481,6 +397,8 @@ router.post(
 
 router.post(
     '/otlp/v1/logs',
+    OpenTelemetryRequestMiddleware.getProductType, 
+    TelemetryIngest.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -526,8 +444,8 @@ router.post(
                         }
                         */
 
-                        dbLog.projectId = (req as OtelRequest).projectId;
-                        dbLog.serviceId = (req as OtelRequest).serviceId;
+                        dbLog.projectId = (req as TelemetryRequest).projectId;
+                        dbLog.serviceId = (req as TelemetryRequest).serviceId;
 
                         dbLog.timeUnixNano = log['timeUnixNano'] as number;
                         dbLog.time = OneUptimeDate.fromUnixNano(
