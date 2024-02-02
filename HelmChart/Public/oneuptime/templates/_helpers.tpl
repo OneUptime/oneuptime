@@ -3,6 +3,8 @@
   value: {{ $.Values.host }}
 - name: OTEL_COLLECTOR_HOST
   value: {{ $.Values.openTelemetryCollectorHost }}
+- name: FLUENTD_HOST
+  value: {{ $.Values.fluentdHost }}
 - name: HTTP_PROTOCOL
   value: {{ $.Values.httpProtocol }}
 - name: NODE_ENV

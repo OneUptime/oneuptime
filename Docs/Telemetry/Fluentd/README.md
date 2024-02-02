@@ -54,7 +54,7 @@ You can use the following configuration to send the telemetry data to the OneUpt
 <match **>
   @type http
 
-  endpoint https://oneuptime.com/ingestor/fluentd/v1/logs
+  endpoint https://oneuptime.com/fluentd/logs
   open_timeout 2
 
   headers {"x-oneuptime-service-token":"<YOUR_SERVICE_TOKEN>"}
@@ -90,7 +90,7 @@ An example of full configuration file is shown below:
 <match **>
   @type http
 
-  endpoint https://oneuptime.com/ingestor/fluentd/v1/logs
+  endpoint https://oneuptime.com/fluentd/logs
   open_timeout 2
 
   headers {"x-oneuptime-service-token":"<YOUR_SERVICE_TOKEN>"}
@@ -107,7 +107,7 @@ An example of full configuration file is shown below:
 </match>
 ```
 
-**If you're self hosting OneUptime**: If you're self hosting OneUptime you can replace the `endpoint_url` with the URL of your OneUptime instance. `http(s)://<YOUR_HOST>/ingestor/fluentd/v1/logs`
+**If you're self hosting OneUptime**: If you're self hosting OneUptime you can replace the `endpoint_url` with the URL of your OneUptime instance. `http(s)://<YOUR_HOST>/fluentd/logs`
 
 ## Usage
 
