@@ -1,4 +1,8 @@
-import { ExpressRequest, ExpressResponse, NextFunction } from 'CommonServer/Utils/Express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from 'CommonServer/Utils/Express';
 import { ProbeExpressRequest } from '../Types/Request';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
@@ -13,7 +17,7 @@ import logger from 'CommonServer/Utils/Logger';
 export interface TelemetryRequest extends ExpressRequest {
     serviceId: ObjectID; // Service ID
     projectId: ObjectID; // Project ID
-    productType: ProductType; // what is the product type of the request - logs, metrics or traces. 
+    productType: ProductType; // what is the product type of the request - logs, metrics or traces.
 }
 
 export default class TelemetryIngest {
@@ -85,7 +89,8 @@ export default class TelemetryIngest {
                 );
 
                 (req as TelemetryRequest).serviceId = service.id as ObjectID;
-                (req as TelemetryRequest).projectId = service.projectId as ObjectID;
+                (req as TelemetryRequest).projectId =
+                    service.projectId as ObjectID;
             }
 
             (req as TelemetryRequest).serviceId = ObjectID.fromString(

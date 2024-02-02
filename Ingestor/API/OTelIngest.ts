@@ -22,7 +22,9 @@ import LogService from 'CommonServer/Services/LogService';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
 import { ProductType } from 'Model/Models/UsageBilling';
-import TelemetryIngest, { TelemetryRequest } from '../Middleware/TelemetryIngest';
+import TelemetryIngest, {
+    TelemetryRequest,
+} from '../Middleware/TelemetryIngest';
 
 // Load proto file for OTel
 
@@ -46,7 +48,6 @@ const MetricsData: protobuf.Type = MetricsProto.lookupType('MetricsData');
 
 const router: ExpressRouter = Express.getRouter();
 
-
 /**
  *
  *  Otel Middleware
@@ -54,8 +55,12 @@ const router: ExpressRouter = Express.getRouter();
  */
 
 class OpenTelemetryRequestMiddleware {
-    public static async getProductType (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) {
-        try{
+    public static async getProductType(
+        req: ExpressRequest,
+        _res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> {
+        try {
             let productType: ProductType;
 
             if (req.baseUrl === '/otlp/v1/traces') {
@@ -72,18 +77,15 @@ class OpenTelemetryRequestMiddleware {
             }
 
             (req as TelemetryRequest).productType = productType;
-
-        }catch(err){
+        } catch (err) {
             return next(err);
         }
     }
 }
 
-
-
 router.post(
     '/otlp/v1/traces',
-    OpenTelemetryRequestMiddleware.getProductType, 
+    OpenTelemetryRequestMiddleware.getProductType,
     TelemetryIngest.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
@@ -155,7 +157,7 @@ router.post(
 
 router.post(
     '/otlp/v1/metrics',
-    OpenTelemetryRequestMiddleware.getProductType, 
+    OpenTelemetryRequestMiddleware.getProductType,
     TelemetryIngest.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
@@ -397,7 +399,7 @@ router.post(
 
 router.post(
     '/otlp/v1/logs',
-    OpenTelemetryRequestMiddleware.getProductType, 
+    OpenTelemetryRequestMiddleware.getProductType,
     TelemetryIngest.isAuthorizedServiceMiddleware,
     async (
         req: ExpressRequest,
