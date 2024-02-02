@@ -248,6 +248,24 @@ services:
             dockerfile: ./Ingestor/Dockerfile
 
 
+    # Fluentd. Required only for development. In  production its the responsibility of the customer to run fluentd and pipe logs to OneUptime.
+    # We run this container just for development, to see if logs are piped. 
+
+    fluentd:
+        ports:
+            - 24224:24224
+            - 24224:24224/udp
+        user: fluent
+        extends:
+            file: ./docker-compose.base.yml
+            service: fluentd
+        volumes:
+            - ./Fluentd/fluent.conf:/fluentd/etc/fluent.conf
+        build:
+            network: host
+            context: ./Fluentd
+            dockerfile: ./Dockerfile
+
     ingress:
         build:
             network: host

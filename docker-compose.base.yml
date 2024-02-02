@@ -292,6 +292,15 @@ services:
             options:
                 max-size: "1000m"
 
+    fluentd:
+        networks:
+          - oneuptime
+        restart: always
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
     ingestor:
         networks:
           - oneuptime
