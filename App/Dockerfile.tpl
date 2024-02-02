@@ -28,6 +28,9 @@ SHELL ["/bin/bash", "-c"]
 
 RUN mkdir /usr/src
 
+# Install global npm modules 
+RUN npm i -D webpack-cli
+
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
@@ -60,8 +63,25 @@ RUN npm install
 #   - 3002: OneUptime-backend
 EXPOSE 3002
 
+
+
+# -----------------
+# Install Accounts REact App 
+# -----------------
+
+COPY ./App/FeatureSet/Accounts/package*.json /usr/src/app/FeatureSet/Accounts/
+RUN cd /usr/src/app/FeatureSet/Accounts && npm install
+
+
+
+
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+
+RUN mkdir /usr/src/app/dev-env
+RUN touch /usr/src/app/dev-env/.env
+RUN npm i -D webpack-dev-server
+
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
@@ -69,5 +89,9 @@ COPY ./App /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app
+
+# Build Accounts. 
+RUN cd /usr/src/app/FeatureSet/Accounts && npm run build
+
 CMD [ "npm", "start" ]
 {{ end }}
