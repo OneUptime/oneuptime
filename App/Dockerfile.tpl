@@ -28,8 +28,7 @@ SHELL ["/bin/bash", "-c"]
 
 RUN mkdir /usr/src
 
-# Install global npm modules 
-RUN npm i -D webpack-cli
+
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
@@ -58,6 +57,9 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY ./App/package*.json /usr/src/app/
 RUN npm install
+
+# Install global npm modules 
+RUN npm i -D webpack-cli
 
 # Expose ports.
 #   - 3002: OneUptime-backend

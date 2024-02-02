@@ -183,9 +183,6 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${STATUS_PAGE_PORT}
-        depends_on:
-            - accounts
-            - app
         logging:
             driver: "local"
             options:
@@ -304,7 +301,6 @@ services:
 
     ingress:
         depends_on:
-            - accounts
             - app
             - dashboard
             - otel-collector

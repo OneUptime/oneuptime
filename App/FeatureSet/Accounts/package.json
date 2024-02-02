@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": false,
     "scripts": {
-        "dev": "printenv > /usr/src/app/dev-env/.env && echo 'HOST=localhost' >> /usr/src/app/dev-env/.env && echo 'USE_HTTPS=false' >> /usr/src/app/dev-env/.env && webpack-dev-server --port=3003 --mode=development",
+        "dev": "printenv > /usr/src/app/FeatureSet/Accounts/dev-env/.env && echo 'HOST=localhost' >> /usr/src/app/featureset/accounts/dev-env/.env && echo 'USE_HTTPS=false' >> /usr/src/app/featureset/accounts/dev-env/.env && webpack-dev-server --port=3003 --mode=development",
         "build": "webpack build --mode=production",
         "test": "",
         "compile": "tsc",
