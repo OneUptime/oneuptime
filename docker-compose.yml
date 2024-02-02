@@ -33,12 +33,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: otel-collector
-        
-    accounts:
-        image:  oneuptime/accounts:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: accounts
        
 
     dashboard:

@@ -148,18 +148,6 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
-        
-    accounts:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-ui-variables
-            PORT: ${ACCOUNTS_PORT}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
        
 
     admin-dashboard:
