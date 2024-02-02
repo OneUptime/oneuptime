@@ -9,13 +9,23 @@ import GoImage from '../Images/SvgImages/go.svg';
 import PythonImage from '../Images/SvgImages/python.svg';
 import JavaImage from '../Images/SvgImages/java.svg';
 import CSharpImage from '../Images/SvgImages/csharp.svg';
+import DockerImage from '../Images/SvgImages/docker.svg';
+import SyslogImage from '../Images/SvgImages/syslog.svg';
+import PostgresSQLImage from '../Images/SvgImages/postgres.svg';
+import MySQLImage from '../Images/SvgImages/mysql.svg';
+import SystemdImage from '../Images/SvgImages/systemd.svg';
+import MoreImage from '../Images/SvgImages/more.svg';
 
 import URL from 'Common/Types/API/URL';
 import Card from 'CommonUI/src/Components/Card/Card';
 
 const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
-    const docUrl: URL = URL.fromString(
+    const openTelemetryDocUrl: URL = URL.fromString(
         'https://github.com/OneUptime/oneuptime/tree/master/Docs/Telemetry/OpenTelemetry'
+    );
+
+    const fluentdDocUrl: URL = URL.fromString(
+        'https://github.com/OneUptime/oneuptime/tree/master/Docs/Telemetry/Fluentd'
     );
 
     return (
@@ -31,51 +41,91 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
                 tiles={[
                     {
                         image: JavaScriptImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'JavaScript',
                     },
                     {
                         image: TypeScriptImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'TypeScript',
                     },
                     {
                         image: ReactImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'React',
                     },
                     {
                         image: NodeImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'Node',
                     },
                     {
                         image: RustImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'Rust',
                     },
                     {
                         image: GoImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'Go',
                     },
                     {
                         image: PythonImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'Python',
                     },
                     {
                         image: JavaImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'Java',
                     },
                     {
                         image: CSharpImage,
-                        navigateToUrl: docUrl,
+                        navigateToUrl: openTelemetryDocUrl,
                         title: 'C#',
                     },
                 ]}
             />
+
+
+
+            <ImageTiles
+                title="Integrate with Fluentd"
+                description="OneUptime supports a native integration with Fluentd. Fluentd is an open source data collector for unified logging layer. Fluentd allows you to unify data collection and consumption for a better use and understanding of data."
+                tiles={[
+                    {
+                        image: DockerImage,
+                        navigateToUrl: fluentdDocUrl,
+                        title: 'Docker',
+                    },
+                    {
+                        image: SyslogImage,
+                        navigateToUrl: fluentdDocUrl,
+                        title: 'Syslog',
+                    },
+                    {
+                        image: PostgresSQLImage,
+                        navigateToUrl: fluentdDocUrl,
+                        title: 'PostgresSQL',
+                    },
+                    {
+                        image: MySQLImage,
+                        navigateToUrl: fluentdDocUrl,
+                        title: 'MySQL',
+                    },
+                    {
+                        image: SystemdImage,
+                        navigateToUrl: fluentdDocUrl,
+                        title: 'Systemd',
+                    },
+                    {
+                        image: MoreImage,
+                        navigateToUrl: fluentdDocUrl,
+                        title: '+ 1000 more sources',
+                    }
+                ]}
+            />
+
         </Card>
     );
 };

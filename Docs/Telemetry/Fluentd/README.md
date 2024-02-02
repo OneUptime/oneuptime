@@ -1,4 +1,4 @@
-# Ingest logs & telemetry data from Fluentd to OneUptime
+# Use Fluentd to send telemetry data to OneUptime
 
 ## Overview
 
