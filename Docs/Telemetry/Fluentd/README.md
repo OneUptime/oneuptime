@@ -71,6 +71,42 @@ You can use the following configuration to send the telemetry data to the OneUpt
 </match>
 ```
 
+
+An example of full configuration file is shown below:
+
+```yaml
+####
+## Source descriptions:
+##
+
+## built-in TCP input
+## @see https://docs.fluentd.org/input/forward
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+</source>
+
+<match **>
+  @type http
+
+  endpoint https://oneuptime.com/ingestor/fluentd/v1/logs
+  open_timeout 2
+
+  headers {"x-oneuptime-service-token":"<YOUR_SERVICE_TOKEN>"}
+
+  content_type application/json
+  json_array true
+
+  <format>
+    @type json
+  </format>
+  <buffer>
+    flush_interval 10s
+  </buffer>
+</match>
+```
+
 **If you're self hosting OneUptime**: If you're self hosting OneUptime you can replace the `endpoint_url` with the URL of your OneUptime instance. `http(s)://<YOUR_HOST>/ingestor/fluentd/v1/logs`
 
 ## Usage
