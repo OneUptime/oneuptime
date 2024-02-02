@@ -175,7 +175,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://ingestor/fluentd/v1/logs;
+        proxy_pass  http://ingestor/ingestor/fluentd/v1/logs;
     }
 
     location /status-page-identity-api/ {
