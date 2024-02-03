@@ -87,6 +87,32 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `internalSmtp.name` | Name to send emails from | `nil` |  |
 | `incidents.disableAutomaticCreation` | Disable incident creation (use this when your team is overloaded with incidents or in emergencies) | `false` |  |
 
+
+## Adding a Custom Domain to your Status Page
+
+**Step 1: Add a CNAME record to your DNS settings**
+
+If you would like to add a custom domain to your status page (something like status.yourcompany.com), you can do so by adding a CNAME record to your DNS settings. 
+
+```
+DNS Record Type: CNAME
+Host: status.yourcomapny.com
+Value: <your-oneuptime-host>
+```
+
+Please make sure oneuptime is hosted on a server which is publicly accessible.
+
+**Step 2: Add Custom Domain to your Project**
+
+Please go to your project settings and add the custom domain to your project. You can find the project settings by clicking "More" in the nav bar and by clicking "Project Settings". Please go to "Custom Domain" page and add your custom domain there. You will need to verify the domain. You can find the verification code in the "Custom Domain" page in your project settings. 
+
+
+**Step 3**: Add custom domain to your status page. 
+
+Please go to your status page settings and add the custom domain to your status page. You can find the status page settings by clicking on "View Status Page" in "Status Pages" page. You can add the custom domain in the "Custom Domain" page in your status page settings. 
+
+Once you have added the custom domain, you can access your status page using the custom domain.
+
 ## Chart Dependencies
 
 We use these charts as dependencies. You dont need to install them separately. Please read the readme for these individual charts to understand the configuration options.
