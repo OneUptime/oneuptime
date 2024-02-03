@@ -164,20 +164,6 @@ server {
         proxy_pass http://app/api/identity/status-page-sso/;
     }
 
-    location /fluentd/logs {
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
-
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        proxy_pass  http://ingestor/ingestor/fluentd/v1/logs;
-    }
-
     location /status-page-identity-api/ {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -439,6 +425,20 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_pass http://app/api/notification;
+    }
+
+    location /fluentd/logs {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme; 
+
+        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_pass  http://ingestor/ingestor/fluentd/v1/logs;
     }
 
     location /ingestor {
