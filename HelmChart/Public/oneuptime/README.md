@@ -107,7 +107,7 @@ Please make sure oneuptime is hosted on a server which is publicly accessible.
 Please go to your project settings and add the custom domain to your project. You can find the project settings by clicking "More" in the nav bar and by clicking "Project Settings". Please go to "Custom Domain" page and add your custom domain there. You will need to verify the domain. You can find the verification code in the "Custom Domain" page in your project settings. 
 
 
-**Step 3**: Add custom domain to your status page. 
+**Step 3: Add custom domain to your status page.**
 
 Please go to your status page settings and add the custom domain to your status page. You can find the status page settings by clicking on "View Status Page" in "Status Pages" page. You can add the custom domain in the "Custom Domain" page in your status page settings. 
 
