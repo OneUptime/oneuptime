@@ -41,7 +41,7 @@
         "react-router-dom": "^6.21.3",
         "reactflow": "^11.5.3",
         "stripe": "^11.0.0",
-        "style-loader": "^3.3.3",
+        "style-loader": "^3.3.4",
         "use-async-effect": "^2.2.6"
     },
     "devDependencies": {
