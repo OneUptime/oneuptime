@@ -8,6 +8,7 @@ export interface GanttChartTimeline {
     intervalUnit: string;
 }
 
+
 export interface ComponentProps {
     timeline: GanttChartTimeline;
 }
@@ -15,35 +16,26 @@ export interface ComponentProps {
 const Timeline: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const eachIntervalWidth = 80; // in pixels
-    const timelineWidth =
-        (props.timeline.end - props.timeline.start) * eachIntervalWidth;
 
-    const numberOfInterval =
-        (props.timeline.end - props.timeline.start) / props.timeline.interval;
+    const eachIntervalMinWidth = 80; // in pixels
+
+    const timelineWidth = (props.timeline.end - props.timeline.start) * eachIntervalWidth;
+
+    const numberOfInterval = (props.timeline.end - props.timeline.start) / props.timeline.interval;
 
     return (
-        <div
-            className="timeline flex h-10"
-            style={{
-                width: `${timelineWidth}`,
-            }}
-        >
+        <div className='timeline flex h-10' style={{
+            width: `${timelineWidth}`,
+
+        }}>
             {/** Render Timeline Intervals */}
-            {Array.from({ length: numberOfInterval }, (_, i) => {
-                return (
-                    <TimelineInterval
-                        key={i}
-                        timelineInterval={{
-                            width: eachIntervalWidth,
-                            intervalUnit: props.timeline.intervalUnit,
-                            intervalCount:
-                                props.timeline.start +
-                                i * props.timeline.interval,
-                        }}
-                    />
-                );
-            })}
+            {Array.from({ length: numberOfInterval }, (_, i) => (
+                <TimelineInterval key={i} timelineInterval={{
+                    width: eachIntervalWidth,
+                    intervalUnit: props.timeline.intervalUnit,
+                    intervalCount: props.timeline.start + (i * props.timeline.interval)
+                }} />
+            ))}
         </div>
     );
 };
