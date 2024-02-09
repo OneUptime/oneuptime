@@ -6,7 +6,6 @@ export interface GanttChartTimelineInterval {
     intervalCount: number;
 }
 
-
 export interface ComponentProps {
     timelineInterval: GanttChartTimelineInterval;
 }
@@ -14,19 +13,17 @@ export interface ComponentProps {
 const TimelineInterval: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     return (
-        <div className='timeline-interval h-10' style={{
-            width: `${props.timelineInterval.width}`,
-
-        }}>
-            <div className='flex-end' style={{
-                width: `${props.timelineInterval.width}`,
-
-            }}>
-                {props.timelineInterval.intervalCount} {props.timelineInterval.intervalUnit}
+        <div
+            className="timeline-interval h-10"
+            style={{
+                width: `${props.timelineInterval.width}px`,
+            }}
+        >
+            <div className="timeline-interval h-full flex justify-center border-r-2 border-indigo-600 border-solid">
+                {props.timelineInterval.intervalCount}{' '}
+                {props.timelineInterval.intervalUnit}
             </div>
-            {/* timeline */}
         </div>
     );
 };

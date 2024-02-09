@@ -2,8 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import RowLabel from './RowLabel';
 import Bar, { GanttChartBar } from '../Bar/Index';
 
-
-export interface GanttChartRow { 
+export interface GanttChartRow {
     id: string;
     title: string;
     description: string;
@@ -20,15 +19,16 @@ const Row: FunctionComponent<ComponentProps> = (
     return (
         // rectangle div with curved corners and text inside in tailwindcss
 
-        <div className='flex'>
+        <div className="flex">
             <div>
-                <RowLabel title={props.row.title} description={props.row.description} />
+                <RowLabel
+                    title={props.row.title}
+                    description={props.row.description}
+                />
             </div>
-            <div className='flex'>
+            <div className="flex">
                 {props.row.bars.map((bar: GanttChartBar) => {
-                    return (
-                        <Bar key={bar.id} bar={bar} />
-                    );
+                    return <Bar key={bar.id} bar={bar} />;
                 })}
             </div>
         </div>

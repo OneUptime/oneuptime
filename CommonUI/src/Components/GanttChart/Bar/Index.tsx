@@ -20,11 +20,17 @@ const Bar: FunctionComponent<ComponentProps> = (
     return (
         // rectangle div with curved corners and text inside in tailwindcss
 
-        <div className="h-10 rounded" style={{
-            width: `${props.bar.width}`,
-            backgroundColor: `${props.bar.color}`,
-        }}>
-            <BarLabel title={props.bar.title} titleColor={props.bar.titleColor} />
+        <div
+            className="h-10 rounded"
+            style={{
+                width: `${props.bar.width}`,
+                backgroundColor: `${props.bar.color}`,
+            }}
+        >
+            <BarLabel
+                title={props.bar.title}
+                titleColor={props.bar.titleColor}
+            />
         </div>
     );
 };

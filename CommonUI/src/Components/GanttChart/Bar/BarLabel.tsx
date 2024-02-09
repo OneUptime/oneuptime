@@ -12,9 +12,12 @@ const BarLabel: FunctionComponent<ComponentProps> = (
     return (
         // rectangle div with curved corners and text inside in tailwindcss
 
-        <div className='text-center' style={{
-            color: `${props.titleColor}`,
-        }}>
+        <div
+            className="text-center"
+            style={{
+                color: `${props.titleColor}`,
+            }}
+        >
             {props.title}
         </div>
     );
