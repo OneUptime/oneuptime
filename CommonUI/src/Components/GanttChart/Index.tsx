@@ -1,8 +1,12 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Timeline from './Timeline/Timeline';
+import Timeline, { GanttChartTimeline } from './Timeline/Timeline';
+import { GanttChartRow } from './Row/Index';
 
 export interface GanttChartProps {
     id: string;
+    containerWidth: number;
+    rows: GanttChartRow[];
+    timeline: GanttChartTimeline;
 }
 
 export interface ComponentProps {
@@ -10,17 +14,33 @@ export interface ComponentProps {
 }
 
 const GanttChart: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
+    props: ComponentProps
 ): ReactElement => {
+    let chartWidth: number = props.chart.containerWidth;
+    const eachIntervalDefaultWidth: number = 100; // in pixels
+    let eachIntervalWidth: number = eachIntervalDefaultWidth;
+    const numberOfInterval: number =
+        (props.chart.timeline.end - props.chart.timeline.start) /
+        props.chart.timeline.interval;
+    const totalIntervalWidth: number =
+        eachIntervalDefaultWidth * numberOfInterval;
+
+    if (chartWidth < totalIntervalWidth) {
+        chartWidth = totalIntervalWidth;
+    } else {
+        eachIntervalWidth = chartWidth / numberOfInterval;
+    }
+
     return (
-        <div>
+        <div
+            style={{
+                width: `${chartWidth}px`,
+            }}
+        >
             <Timeline
-                timeline={{
-                    start: 0,
-                    end: 100,
-                    interval: 10,
-                    intervalUnit: 'ms',
-                }}
+                timeline={props.chart.timeline}
+                eachIntervalWidth={eachIntervalWidth}
+                timelineWidth={chartWidth}
             />
         </div>
     );

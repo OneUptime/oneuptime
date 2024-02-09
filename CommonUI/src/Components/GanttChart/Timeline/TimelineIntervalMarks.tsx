@@ -24,7 +24,7 @@ const TimelineInterval: FunctionComponent<ComponentProps> = (
         >
             {Array.from(
                 { length: props.timelineIntervalMarks.numberOfMarks },
-                (_, i) => {
+                (_: number, i: number) => {
                     return (
                         <div
                             key={i}

@@ -6,17 +6,32 @@ import Card from 'CommonUI/src/Components/Card/Card';
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+    const [cardWidth, setCardWidth] = React.useState<number>(0);
+
     return (
         <Fragment>
             <Card
+                onCardWidthChange={(width: number) => {
+                    setCardWidth(width - 50 > 0 ? width - 50 : 0);
+                }}
                 title={'Traces'}
                 description={'Traces for the request operation.'}
             >
-                <GanttChart
-                    chart={{
-                        id: 'service-delete',
-                    }}
-                />
+                <div className="overflow-x-auto">
+                    <GanttChart
+                        chart={{
+                            id: 'chart',
+                            containerWidth: cardWidth,
+                            rows: [],
+                            timeline: {
+                                start: 0,
+                                end: 100,
+                                interval: 10,
+                                intervalUnit: 'ms',
+                            },
+                        }}
+                    />
+                </div>
             </Card>
         </Fragment>
     );

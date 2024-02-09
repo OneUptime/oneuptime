@@ -8,34 +8,43 @@ export interface GanttChartTimeline {
     intervalUnit: string;
 }
 
-
 export interface ComponentProps {
     timeline: GanttChartTimeline;
+    eachIntervalWidth: number;
+    timelineWidth: number;
 }
 
 const Timeline: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const eachIntervalMinWidth = 80; // in pixels
-
-    const timelineWidth = (props.timeline.end - props.timeline.start) * eachIntervalWidth;
-
-    const numberOfInterval = (props.timeline.end - props.timeline.start) / props.timeline.interval;
+    const numberOfInterval: number =
+        (props.timeline.end - props.timeline.start) / props.timeline.interval;
 
     return (
-        <div className='timeline flex h-10' style={{
-            width: `${timelineWidth}`,
-
-        }}>
+        <div
+            className="timeline flex h-5 border-b-2 border-l-2 border-gray-400"
+            style={{
+                width: `${props.timelineWidth}px`,
+            }}
+        >
             {/** Render Timeline Intervals */}
-            {Array.from({ length: numberOfInterval }, (_, i) => (
-                <TimelineInterval key={i} timelineInterval={{
-                    width: eachIntervalWidth,
-                    intervalUnit: props.timeline.intervalUnit,
-                    intervalCount: props.timeline.start + (i * props.timeline.interval)
-                }} />
-            ))}
+            {Array.from(
+                { length: numberOfInterval },
+                (_: number, i: number) => {
+                    return (
+                        <TimelineInterval
+                            key={i}
+                            timelineInterval={{
+                                width: props.eachIntervalWidth,
+                                intervalUnit: props.timeline.intervalUnit,
+                                intervalCount:
+                                    props.timeline.start +
+                                    (i + 1) * props.timeline.interval,
+                            }}
+                        />
+                    );
+                }
+            )}
         </div>
     );
 };
