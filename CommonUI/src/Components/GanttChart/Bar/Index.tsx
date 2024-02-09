@@ -2,11 +2,16 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Color from 'Common/Types/Color';
 import BarLabel from './BarLabel';
 
-export interface ComponentProps {
-    barColor: Color;
-    barTitle: string;
-    barTitleColor: Color;   
+export interface GanttChartBar {
+    id: string;
+    title: string;
+    titleColor: Color;
+    color: Color;
     width: number;
+}
+
+export interface ComponentProps {
+    bar: GanttChartBar;
 }
 
 const Bar: FunctionComponent<ComponentProps> = (
@@ -16,10 +21,10 @@ const Bar: FunctionComponent<ComponentProps> = (
         // rectangle div with curved corners and text inside in tailwindcss
 
         <div className="h-10 rounded" style={{
-            width: `${props.width}`,
-            backgroundColor: `${props.barColor}`,
+            width: `${props.bar.width}`,
+            backgroundColor: `${props.bar.color}`,
         }}>
-            <BarLabel title={props.barTitle} titleColor={props.barTitleColor} />
+            <BarLabel title={props.bar.title} titleColor={props.bar.titleColor} />
         </div>
     );
 };
