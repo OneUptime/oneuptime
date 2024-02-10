@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, Ref } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -23,39 +23,16 @@ export interface ComponentProps {
     className?: string | undefined;
     bodyClassName?: string | undefined;
     rightElement?: ReactElement | undefined;
-    onCardWidthChange?: undefined | ((width: number) => void);
 }
 
 const Card: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const cardRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-        if (!props.onCardWidthChange) {
-            return;
-        }
-
-        if (!cardRef.current) {
-            return;
-        }
-
-        const resizeObserver: ResizeObserver = new ResizeObserver(() => {
-            if (cardRef.current && props.onCardWidthChange) {
-                props.onCardWidthChange(cardRef.current.offsetWidth);
-            }
-        });
-
-        resizeObserver.observe(cardRef.current);
-
-        return () => {
-            return props.onCardWidthChange && resizeObserver.disconnect();
-        }; // clean up
-    }, []);
+    
 
     return (
         <React.Fragment>
-            <div ref={cardRef} className={props.className}>
+            <div className={props.className}>
                 <div className="shadow sm:overflow-hidden sm:rounded-md">
                     <div className="bg-white py-6 px-4 sm:p-6">
                         <div className="flex justify-between">
