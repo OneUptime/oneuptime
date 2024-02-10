@@ -32,7 +32,6 @@ const ChartContainer: FunctionComponent<ComponentProps> = (
         }; // clean up
     }, []);
 
-
     return (
         <div ref={divRef} className={'w-full'}>
             {props.children}

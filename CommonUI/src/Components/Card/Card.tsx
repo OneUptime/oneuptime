@@ -28,8 +28,6 @@ export interface ComponentProps {
 const Card: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    
-
     return (
         <React.Fragment>
             <div className={props.className}>
