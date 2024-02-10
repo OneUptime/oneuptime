@@ -23,8 +23,9 @@ const GanttChart: FunctionComponent<ComponentProps> = (
 
     const [chartWidth, setChartWidth] = React.useState<number>(0);
 
-    const [eachIntervalWidth, setEachIntervalWidth] = React.useState<number>(eachIntervalDefaultWidth);
-    
+    const [eachIntervalWidth, setEachIntervalWidth] = React.useState<number>(
+        eachIntervalDefaultWidth
+    );
 
     const numberOfInterval: number =
         (props.chart.timeline.end - props.chart.timeline.start) /
