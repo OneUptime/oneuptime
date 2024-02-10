@@ -11,7 +11,6 @@ export interface GanttChartTimeline {
 export interface ComponentProps {
     timeline: GanttChartTimeline;
     eachIntervalWidth: number;
-    timelineWidth: number;
 }
 
 const Timeline: FunctionComponent<ComponentProps> = (
@@ -22,11 +21,12 @@ const Timeline: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className="timeline flex h-5 border-b-2 border-l-2 border-gray-400"
-            style={{
-                width: `${props.timelineWidth}px`,
-            }}
+            className="timeline flex h-5 border-b-2 border-l-2 border-gray-400 w-full"
         >
+            <div className='w-1/4'>
+                {/** Row Category Spacer  */}
+            </div>
+
             {/** Render Timeline Intervals */}
             {Array.from(
                 { length: numberOfInterval },

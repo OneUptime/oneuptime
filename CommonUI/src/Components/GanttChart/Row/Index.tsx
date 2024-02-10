@@ -6,11 +6,12 @@ export interface GanttChartRow {
     id: string;
     title: string;
     description: string;
-    bars: GanttChartBar[];
 }
 
 export interface ComponentProps {
     row: GanttChartRow;
+    bars: GanttChartBar[];
+    isLastRow: boolean;
 }
 
 const Row: FunctionComponent<ComponentProps> = (
@@ -19,15 +20,15 @@ const Row: FunctionComponent<ComponentProps> = (
     return (
         // rectangle div with curved corners and text inside in tailwindcss
 
-        <div className="flex">
-            <div>
+        <div className={`flex w-full ${props.isLastRow ? '': 'border-b-2'} border-gray-300  border-l-2 border-l-gray-400 border-r-2 border-r-gray-400`}>
+            <div className='w-1/4 p-2 border-r-2 border-gray-300'>
                 <RowLabel
                     title={props.row.title}
                     description={props.row.description}
                 />
             </div>
             <div className="flex">
-                {props.row.bars.map((bar: GanttChartBar) => {
+                {props.bars.map((bar: GanttChartBar) => {
                     return <Bar key={bar.id} bar={bar} />;
                 })}
             </div>

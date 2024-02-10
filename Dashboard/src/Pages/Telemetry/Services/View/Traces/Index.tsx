@@ -6,7 +6,7 @@ import Card from 'CommonUI/src/Components/Card/Card';
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    
+
 
     return (
         <Fragment>
@@ -18,7 +18,17 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                     <GanttChart
                         chart={{
                             id: 'chart',
-                            rows: [],
+                            rows: [{
+                                id: 'row1',
+                                title: 'row1',
+                                description: 'row1 description',
+                            },
+                            {
+                                id: 'row2',
+                                title: 'row2',
+                                description: 'row2 description',
+                            }],
+                            bars: [],
                             timeline: {
                                 start: 0,
                                 end: 100,

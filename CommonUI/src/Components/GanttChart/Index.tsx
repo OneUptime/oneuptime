@@ -1,11 +1,14 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import Timeline, { GanttChartTimeline } from './Timeline/Timeline';
+import Timeline, { GanttChartTimeline } from './Timeline/Index';
 import { GanttChartRow } from './Row/Index';
 import ChartContainer from './ChartContainer';
+import { GanttChartBar } from './Bar/Index';
+import Rows from './Rows';
 
 export interface GanttChartProps {
     id: string;
     rows: GanttChartRow[];
+    bars: GanttChartBar[];
     timeline: GanttChartTimeline;
 }
 
@@ -51,8 +54,9 @@ const GanttChart: FunctionComponent<ComponentProps> = (
                 <Timeline
                     timeline={props.chart.timeline}
                     eachIntervalWidth={eachIntervalWidth}
-                    timelineWidth={chartWidth}
                 />
+
+                <Rows rows={props.chart.rows} bars={props.chart.bars} />
             </div>
         </ChartContainer>
     );
