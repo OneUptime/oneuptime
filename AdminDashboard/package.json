@@ -11,7 +11,7 @@
         "Model": "file:../Model",
         "react": "^18.2.0",
         "react-dom": "^18.1.0",
-        "react-router-dom": "^6.21.2",
+        "react-router-dom": "^6.21.3",
         "style-loader": "^3.3.4"
     },
     "scripts": {
