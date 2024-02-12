@@ -22,6 +22,7 @@ const GanttChart: FunctionComponent<ComponentProps> = (
     const eachIntervalDefaultWidth: number = 100; // in pixels
 
     const [chartWidth, setChartWidth] = React.useState<number>(0);
+    const [timelineWidth, setTimelineWidth] = React.useState<number>(2000);
 
     const [eachIntervalWidth, setEachIntervalWidth] = React.useState<number>(
         eachIntervalDefaultWidth
@@ -40,6 +41,9 @@ const GanttChart: FunctionComponent<ComponentProps> = (
         } else {
             setEachIntervalWidth(chartWidth / numberOfInterval);
         }
+
+        setTimelineWidth(chartWidth * 0.75); // 75 % of chart width, 25% for category spacer
+
     }, [chartWidth]);
 
     return (
@@ -61,7 +65,7 @@ const GanttChart: FunctionComponent<ComponentProps> = (
                     }
                 />
 
-                <Rows rows={props.chart.rows} bars={props.chart.bars} />
+                <Rows timelineWidth={timelineWidth} chartTimelineEnd={props.chart.timeline.end} chartTimelineStart={props.chart.timeline.start} rows={props.chart.rows} bars={props.chart.bars} />
             </div>
         </ChartContainer>
     );

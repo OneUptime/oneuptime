@@ -6,25 +6,37 @@ export interface GanttChartBar {
     id: string;
     title: string;
     titleColor: Color;
-    color: Color;
-    width: number;
+    barColor: Color;
+    barTimelineStart: number;
+    barTimelineEnd: number; 
+    rowId: string;
 }
 
 export interface ComponentProps {
     bar: GanttChartBar;
+    chartTimelineStart: number; 
+    chartTimelineEnd: number;
+    timelineWidth: number; 
 }
 
 const Bar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    // calculate bar width. 
+    const barWidth = (props.bar.barTimelineEnd - props.bar.barTimelineStart) / (props.chartTimelineEnd - props.chartTimelineStart) * props.timelineWidth;
+    const barLeftPosition = (props.bar.barTimelineStart - props.chartTimelineStart) / (props.chartTimelineEnd - props.chartTimelineStart) * props.timelineWidth;
+
+
     return (
         // rectangle div with curved corners and text inside in tailwindcss
 
         <div
-            className="h-10 rounded"
+            className="h-5 rounded"
             style={{
-                width: `${props.bar.width}`,
-                backgroundColor: `${props.bar.color}`,
+                marginLeft: `${barLeftPosition}`,
+                width: `${barWidth}`,
+                backgroundColor: `${props.bar.barColor.toString()}`,
             }}
         >
             <BarLabel

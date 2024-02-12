@@ -2,6 +2,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../../../PageComponentProps';
 import GanttChart from 'CommonUI/src/Components/GanttChart/Index';
 import Card from 'CommonUI/src/Components/Card/Card';
+import { Black, White } from 'Common/Types/BrandColors';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -28,7 +29,18 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                                     description: 'row2 description',
                                 },
                             ],
-                            bars: [],
+                            bars: [
+                                {
+                                    id: "bar-1",
+                                    title: "Bar 1",
+                                    titleColor: White,
+                                    barColor: Black,
+                                    barTimelineStart: 20,
+                                    barTimelineEnd: 80,
+                                    rowId: "row1"
+                                }
+                                
+                            ],
                             timeline: {
                                 start: 0,
                                 end: 100,

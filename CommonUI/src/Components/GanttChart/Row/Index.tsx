@@ -12,6 +12,9 @@ export interface ComponentProps {
     row: GanttChartRow;
     bars: GanttChartBar[];
     isLastRow: boolean;
+    chartTimelineStart: number;
+    chartTimelineEnd: number;
+    timelineWidth: number;
 }
 
 const Row: FunctionComponent<ComponentProps> = (
@@ -33,7 +36,7 @@ const Row: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex">
                 {props.bars.map((bar: GanttChartBar) => {
-                    return <Bar key={bar.id} bar={bar} />;
+                    return <Bar key={bar.id} bar={bar} chartTimelineEnd={props.chartTimelineEnd} chartTimelineStart={props.chartTimelineStart} timelineWidth={props.timelineWidth} />;
                 })}
             </div>
         </div>

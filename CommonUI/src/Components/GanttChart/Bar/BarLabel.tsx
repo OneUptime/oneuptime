@@ -15,7 +15,7 @@ const BarLabel: FunctionComponent<ComponentProps> = (
         <div
             className="text-center"
             style={{
-                color: `${props.titleColor}`,
+                color: `${props.titleColor.toString()}`,
             }}
         >
             {props.title}
