@@ -25,7 +25,7 @@ const Row: FunctionComponent<ComponentProps> = (
                 props.isLastRow ? '' : 'border-b-2'
             } border-gray-200  border-l-2 border-l-gray-400 border-r-2 border-r-gray-400`}
         >
-            <div className="w-1/4 p-2 border-r-2 border-gray-200">
+            <div className="w-1/4 p-2 border-r-2 border-gray-300">
                 <RowLabel
                     title={props.row.title}
                     description={props.row.description}

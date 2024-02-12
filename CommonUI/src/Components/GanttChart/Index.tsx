@@ -53,9 +53,12 @@ const GanttChart: FunctionComponent<ComponentProps> = (
                     width: `${chartWidth}px`,
                 }}
             >
+                {/** Remve 25% because of category spacer */}
                 <Timeline
                     timeline={props.chart.timeline}
-                    eachIntervalWidth={eachIntervalWidth}
+                    eachIntervalWidth={
+                        eachIntervalWidth - 0.25 * eachIntervalWidth
+                    }
                 />
 
                 <Rows rows={props.chart.rows} bars={props.chart.bars} />

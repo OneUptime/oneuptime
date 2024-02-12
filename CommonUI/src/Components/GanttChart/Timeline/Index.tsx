@@ -20,8 +20,10 @@ const Timeline: FunctionComponent<ComponentProps> = (
         (props.timeline.end - props.timeline.start) / props.timeline.interval;
 
     return (
-        <div className="timeline flex h-5 border-b-2 border-l-2 border-gray-400 w-full">
-            <div className="w-1/4">{/** Row Category Spacer  */}</div>
+        <div className="timeline flex h-5 border-b-2 border-l-2 border-t-2 border-gray-400 w-full">
+            <div className="w-1/4 border-r-2 border-gray-400">
+                {/** Row Category Spacer  */}
+            </div>
 
             {/** Render Timeline Intervals */}
             {Array.from(
