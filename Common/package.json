@@ -20,7 +20,7 @@
         "ts-jest": "^27.1.4"
     },
     "dependencies": {
-        "@types/crypto-js": "^4.1.1",
+        "@types/crypto-js": "^4.2.2",
         "@types/uuid": "^8.3.4",
         "axios": "^1.6.4",
         "crypto-js": "^4.1.1",
