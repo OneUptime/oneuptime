@@ -1,7 +1,7 @@
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
-import Query from './Query';
-import Select from './Select';
+import Query from '../BaseDatabase/Query';
+import Select from '../BaseDatabase/Select';
 import API from '../API/API';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
@@ -15,7 +15,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
-import Sort from './Sort';
+import Sort from '../BaseDatabase/Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
 
@@ -35,7 +35,7 @@ export interface RequestOptions {
 export default class ModelAPI {
     public static async create<TAnalyticsBaseModel extends AnalyticsBaseModel>(
         model: TAnalyticsBaseModel,
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         requestOptions?: RequestOptions | undefined
     ): Promise<
         HTTPResponse<
@@ -56,7 +56,7 @@ export default class ModelAPI {
 
     public static async update<TAnalyticsBaseModel extends AnalyticsBaseModel>(
         model: TAnalyticsBaseModel,
-        modelType: { new (): TAnalyticsBaseModel }
+        modelType: { new(): TAnalyticsBaseModel }
     ): Promise<
         HTTPResponse<
             | JSONObject
@@ -71,7 +71,7 @@ export default class ModelAPI {
     public static async updateById<
         TAnalyticsBaseModel extends AnalyticsBaseModel
     >(
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         id: ObjectID,
         data: JSONObject,
         apiUrlOverride?: URL,
@@ -132,7 +132,7 @@ export default class ModelAPI {
         TAnalyticsBaseModel extends AnalyticsBaseModel
     >(
         model: TAnalyticsBaseModel,
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         formType: FormType,
         miscDataProps?: JSONObject,
         requestOptions?: RequestOptions | undefined
@@ -191,7 +191,7 @@ export default class ModelAPI {
     }
 
     public static async getList<TAnalyticsBaseModel extends AnalyticsBaseModel>(
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         query: Query<TAnalyticsBaseModel>,
         limit: number,
         skip: number,
@@ -261,7 +261,7 @@ export default class ModelAPI {
     }
 
     public static async count<TAnalyticsBaseModel extends AnalyticsBaseModel>(
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         query: Query<TAnalyticsBaseModel>,
         requestOptions?: RequestOptions | undefined
     ): Promise<number> {
@@ -334,7 +334,7 @@ export default class ModelAPI {
     }
 
     public static async getItem<TAnalyticsBaseModel extends AnalyticsBaseModel>(
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         id: ObjectID,
         select: Select<TAnalyticsBaseModel>,
         requestOptions?: RequestOptions | undefined
@@ -370,7 +370,7 @@ export default class ModelAPI {
     }
 
     public static async post<TAnalyticsBaseModel extends AnalyticsBaseModel>(
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         apiUrl: URL,
         select?: Select<TAnalyticsBaseModel> | undefined,
         requestOptions?: RequestOptions | undefined
@@ -400,7 +400,7 @@ export default class ModelAPI {
     public static async deleteItem<
         TAnalyticsBaseModel extends AnalyticsBaseModel
     >(
-        modelType: { new (): TAnalyticsBaseModel },
+        modelType: { new(): TAnalyticsBaseModel },
         id: ObjectID,
         requestOptions?: RequestOptions | undefined
     ): Promise<void> {
@@ -443,11 +443,11 @@ export default class ModelAPI {
     >(
         result:
             | HTTPResponse<
-                  | TAnalyticsBaseModel
-                  | JSONObject
-                  | JSONArray
-                  | Array<TAnalyticsBaseModel>
-              >
+                | TAnalyticsBaseModel
+                | JSONObject
+                | JSONArray
+                | Array<TAnalyticsBaseModel>
+            >
             | HTTPErrorResponse
     ): void {
         if (result.statusCode === 406) {
