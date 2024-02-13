@@ -3,7 +3,7 @@ import Permission, {
     PermissionHelper,
     UserPermission,
 } from 'Common/Types/Permission';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import PaymentRequiredException from 'Common/Types/Exception/PaymentRequiredException';
