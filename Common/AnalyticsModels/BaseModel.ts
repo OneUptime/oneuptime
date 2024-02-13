@@ -10,6 +10,7 @@ import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 import Route from '../Types/API/Route';
 import { EnableRealtimeEventsOn } from '../Utils/Realtime';
+import Text from '../Types/Text';
 
 export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
 
@@ -30,8 +31,11 @@ export default class AnalyticsBaseModel extends CommonModel {
     }) {
         super({
             tableColumns: data.tableColumns,
-            tableName: data.tableName,
         });
+
+
+
+
         const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
 
@@ -193,6 +197,14 @@ export default class AnalyticsBaseModel extends CommonModel {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
 
+    private _tableName : string = '';
+    public get tableName() : string {
+        return this._tableName;
+    }
+    public set tableName(v : string) {
+        this._tableName = v;
+    }
+
     private _crudApiPath!: Route;
     public get crudApiPath(): Route {
         return this._crudApiPath;
@@ -283,5 +295,9 @@ export default class AnalyticsBaseModel extends CommonModel {
 
     public set updatedAt(v: Date | undefined) {
         this.setColumnValue('updatedAt', v);
+    }
+
+    public getAPIDocumentationPath(): string {
+        return Text.pascalCaseToDashes(this.tableName);
     }
 }
