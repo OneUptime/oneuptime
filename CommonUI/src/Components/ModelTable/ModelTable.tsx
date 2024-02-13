@@ -69,6 +69,7 @@ export enum ShowTableAs {
     OrderedStatesList,
 }
 
+
 export interface ComponentProps<TBaseModel extends BaseModel | AnalyticsBaseModel> {
     modelType: { new (): TBaseModel };
     id: string;
@@ -1444,10 +1445,15 @@ const ModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             currentDeleteableItem &&
                             currentDeleteableItem['_id']
                         ) {
+
+                            if(props.modelType instanceof BaseModel){
+                                
+                            }
+
                             deleteItem(
                                 BaseModel.fromJSON(
                                     currentDeleteableItem,
-                                    props.modelType
+                                    props.modelType as new () => BaseModel
                                 )
                             );
                             setShowDeleteConfirmModal(false);

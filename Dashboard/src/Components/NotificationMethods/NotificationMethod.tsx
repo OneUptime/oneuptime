@@ -4,7 +4,7 @@ import { JSONObject } from 'Common/Types/JSON';
 
 export interface ComponentProps {
     item: JSONObject;
-    modelType: { new (): BaseModel };
+    modelType: BaseModelType;
 }
 
 const NotificationMethodView: FunctionComponent<ComponentProps> = (

@@ -11,6 +11,8 @@ import CommonModel from './CommonModel';
 import Route from '../Types/API/Route';
 import { EnableRealtimeEventsOn } from '../Utils/Realtime';
 
+export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
+
 export default class AnalyticsBaseModel extends CommonModel {
     public constructor(data: {
         tableName: string;

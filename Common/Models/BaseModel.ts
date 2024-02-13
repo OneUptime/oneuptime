@@ -39,6 +39,8 @@ import { getColumnBillingAccessControlForAllColumns } from '../Types/Database/Ac
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import JSONFunctions from '../Types/JSONFunctions';
 
+export type BaseModelType = { new (): BaseModel };
+
 export type DbTypes =
     | string
     | number
@@ -534,7 +536,7 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSON(
         model: BaseModel,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONObject {
         const json: JSONObject = this.toJSONObject(model, modelType);
         return JSONFunctions.serialize(json);
@@ -542,7 +544,7 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSONObject(
         model: BaseModel,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONObject {
         const json: JSONObject = {};
 
@@ -589,7 +591,7 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSONObjectArray(
         list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONArray {
         const array: JSONArray = [];
 
@@ -602,7 +604,7 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSONArray(
         list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONArray {
         const array: JSONArray = [];
 

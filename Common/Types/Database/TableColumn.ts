@@ -18,7 +18,7 @@ export interface TableColumnMetadata {
     manyToOneRelationColumn?: string;
     type: TableColumnType;
     canReadOnRelationQuery?: boolean;
-    modelType?: { new (): BaseModel };
+    modelType?: BaseModelType;
     forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
 }
 

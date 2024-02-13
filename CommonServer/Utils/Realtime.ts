@@ -131,7 +131,7 @@ export default abstract class Realtime {
         if (data.model instanceof BaseModel) {
             jsonObject = BaseModel.toJSON(
                 data.model,
-                data.modelType as { new (): BaseModel }
+                data.modelType as BaseModelType
             );
         }
 

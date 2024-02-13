@@ -18,8 +18,8 @@ export interface ComponentProps {
     title: string;
     description: string;
     modelId: ObjectID;
-    modelType: { new (): BaseModel };
-    customFieldType: { new (): BaseModel };
+    modelType: BaseModelType;
+    customFieldType: BaseModelType;
     projectId: ObjectID;
     name: string;
 }

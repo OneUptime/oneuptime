@@ -189,7 +189,7 @@ export default class Response {
         if (model instanceof BaseModel) {
             jsonArray = BaseModel.toJSONArray(
                 list as Array<BaseModel>,
-                modelType as { new (): BaseModel }
+                modelType as BaseModelType
             );
         }
 
@@ -219,7 +219,7 @@ export default class Response {
         if (item && item instanceof BaseModel) {
             response = BaseModel.toJSON(
                 item,
-                modelType as { new (): BaseModel }
+                modelType as BaseModelType
             );
         }
 

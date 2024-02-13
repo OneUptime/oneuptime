@@ -52,7 +52,7 @@ export default interface Field<TEntity> {
     dropdownOptions?: Array<DropdownOption> | undefined;
     fetchDropdownOptions?: (() => Promise<Array<DropdownOption>>) | undefined;
     dropdownModal?: {
-        type: { new (): BaseModel };
+        type: BaseModelType;
         labelField: string;
         valueField: string;
     };
