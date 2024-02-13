@@ -6,6 +6,7 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import Monitor from 'Model/Models/Monitor';
+import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
 
 RunCron(
     'HardDelete:HardDeleteItemsInDatabase',
@@ -30,6 +31,16 @@ RunCron(
             });
 
         for (const monitor of incomingRequestMonitors) {
+            if (!monitor.monitorSteps) {
+                continue;
+            }
+
+            const processRequest: boolean = shouldProcessRequest(monitor);
+
+            if (!processRequest) {
+                continue;
+            }
+
             const incomingRequest: IncomingMonitorRequest = {
                 monitorId: monitor.id!,
                 requestHeaders: undefined,
@@ -45,3 +56,36 @@ RunCron(
         }
     }
 );
+
+const shouldProcessRequest: Function = (monitor: Monitor): boolean => {
+    // check if any criteria has request time step. If yes, then process the request. If no then skip the request.
+    // We dont want Incoming Request Monitor to process the request if there is no criteria that checks for incoming request.
+    // Those monitors criteria should be checked if the request is receievd from the API and not through the worker.
+
+    let shouldWeProcessRequest: boolean = false;
+
+    for (const steps of monitor.monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        if (steps.data?.monitorCriteria.data?.monitorCriteriaInstanceArray) {
+            for (const criteria of steps.data?.monitorCriteria.data
+                ?.monitorCriteriaInstanceArray || []) {
+                for (const filters of criteria.data?.filters || []) {
+                    if (filters.checkOn === CheckOn.IncomingRequest) {
+                        shouldWeProcessRequest = true;
+                        break;
+                    }
+                }
+
+                if (shouldWeProcessRequest) {
+                    break;
+                }
+            }
+        }
+
+        if (shouldWeProcessRequest) {
+            break;
+        }
+    }
+
+    return shouldWeProcessRequest;
+};
