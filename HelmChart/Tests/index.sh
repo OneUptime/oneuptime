@@ -21,7 +21,21 @@ sudo microk8s kubectl get pods
 sudo microk8s helm install oneuptime ../../HelmChart/Public/oneuptime -f ../../HelmChart/Public/oneuptime/values.yaml -f ./ci-values.yaml
 
 # Wait for OneUptime to be ready
-sudo microk8s kubectl wait pod --all --for=condition=Ready --namespace=default --timeout=10000s
+timeout 10m bash -c '
+    endtime=$((SECONDS+600))
+    while [ $SECONDS -lt $endtime ]; do
+        if sudo microk8s kubectl wait pod --all --for=condition=Ready --namespace=default --timeout=15s; then
+            echo "All pods are ready"
+            exit 0
+        fi
+        echo "Some pods are not ready yet"
+        sleep 15s
+    done
+    echo "Timeout reached. Some pods failed to start"
+    echo "Printing logs of failed pods:"
+    sudo microk8s kubectl logs -l app=oneuptime --all-containers --namespace=default
+    exit 1
+'
 
 # Once it's ready. Run helm test. 
 # sudo microk8s helm test oneuptime
