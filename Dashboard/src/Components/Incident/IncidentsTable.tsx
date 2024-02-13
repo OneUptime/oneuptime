@@ -13,7 +13,7 @@ import IncidentState from 'Model/Models/IncidentState';
 import Label from 'Model/Models/Label';
 import LabelsElement from '../../Components/Label/Labels';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import Query from 'CommonUI/src/Utils/ModelAPI/Query';
+import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
 import Route from 'Common/Types/API/Route';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';

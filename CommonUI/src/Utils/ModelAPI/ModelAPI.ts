@@ -1,7 +1,7 @@
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
-import Query from './Query';
-import Select from './Select';
+import Query from '../BaseDatabase/Query';
+import Select from '../BaseDatabase/Select';
 import API from '../../Utils/API/API';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
@@ -15,7 +15,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
-import Sort from './Sort';
+import Sort from '../BaseDatabase/Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
 

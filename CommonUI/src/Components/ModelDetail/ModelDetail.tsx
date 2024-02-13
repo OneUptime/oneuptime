@@ -2,7 +2,7 @@ import React, { ReactElement, useEffect, useState } from 'react';
 import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
-import Select from '../../Utils/ModelAPI/Select';
+import Select from '../../Utils/BaseDatabase/Select';
 import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';

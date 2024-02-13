@@ -9,7 +9,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
     return (
         <Fragment>
             <ModelTable<Span>
-                modelType={Log}
+                modelType={Span}
                 id="logs-table"
                 isDeleteable={false}
                 isEditable={false}

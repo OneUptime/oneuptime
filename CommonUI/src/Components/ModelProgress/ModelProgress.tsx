@@ -1,7 +1,7 @@
 import BaseModel from 'Common/Models/BaseModel';
 import React, { ReactElement, useEffect, useState } from 'react';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
-import Query from '../../Utils/ModelAPI/Query';
+import Query from '../../Utils/BaseDatabase/Query';
 import Card from '../Card/Card';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';

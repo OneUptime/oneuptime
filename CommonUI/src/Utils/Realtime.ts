@@ -1,7 +1,6 @@
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import BaseModel from 'Common/Models/BaseModel';
-import AnalyticsQuery from './AnalyticsModelAPI/Query';
-import Query from './ModelAPI/Query';
+import Query from './BaseDatabase/Query';
 import RealtimeUtil, {
     EventName,
     ListenToModelEventJSON,
@@ -13,26 +12,18 @@ import { HOST, HTTP_PROTOCOL } from '../Config';
 import URL from 'Common/Types/API/URL';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
-import AnalyticsSelect from './AnalyticsModelAPI/Select';
-import Select from './ModelAPI/Select';
+import Select from './BaseDatabase/Select';
 import { JSONObject } from 'Common/Types/JSON';
 import { RealtimeRoute } from 'Common/ServiceRoute';
 
-export interface ListenToAnalyticsModelEvent<Model extends AnalyticsBaseModel> {
-    modelType: { new (): Model };
-    query: AnalyticsQuery<Model>;
-    eventType: ModelEventType;
-    tenantId: ObjectID;
-    select: AnalyticsSelect<Model>;
-}
-
-export interface ListenToModelEvent<Model extends BaseModel> {
+export interface ListenToModelEvent<Model extends AnalyticsBaseModel | BaseModel> {
     modelType: { new (): Model };
     query: Query<Model>;
-    tenantId: ObjectID;
     eventType: ModelEventType;
+    tenantId: ObjectID;
     select: Select<Model>;
 }
+
 
 export default abstract class Reatime {
     private static socket: Socket;
@@ -90,7 +81,7 @@ export default abstract class Reatime {
     }
 
     public static listenToAnalyticsModelEvent<Model extends AnalyticsBaseModel>(
-        listenToModelEvent: ListenToAnalyticsModelEvent<Model>,
+        listenToModelEvent: ListenToModelEvent<Model>,
         onEvent: (model: Model) => void
     ): () => void {
         if (!this.socket) {

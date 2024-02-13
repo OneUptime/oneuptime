@@ -1,6 +1,6 @@
 import React from 'react';
 import BaseModel from 'Common/Models/BaseModel';
-import Select from '../../Utils/ModelAPI/Select';
+import Select from '../../Utils/BaseDatabase/Select';
 import { ModelField } from '../../Components/Forms/ModelForm';
 import TableMetaData from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';

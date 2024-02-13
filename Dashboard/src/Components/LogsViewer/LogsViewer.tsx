@@ -13,7 +13,7 @@ import Realtime from 'CommonUI/src/Utils/Realtime';
 import { ModelEventType } from 'Common/Utils/Realtime';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { FilterOption } from 'CommonUI/src/Components/LogsViewer/LogsFilters';
-import Query from 'CommonUI/src/Utils/AnalyticsModelAPI/Query';
+import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
 import Search from 'Common/Types/BaseDatabase/Search';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 

@@ -11,7 +11,7 @@ import ModelAPI, {
     ModelAPIHttpResponse,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
-import Select from '../../Utils/ModelAPI/Select';
+import Select from '../../Utils/BaseDatabase/Select';
 import Dictionary from 'Common/Types/Dictionary';
 import useAsyncEffect from 'use-async-effect';
 import ObjectID from 'Common/Types/ObjectID';
@@ -43,13 +43,14 @@ import {
 import AccessControlModel from 'Common/Models/AccessControlModel';
 import Pill, { PillSize } from '../Pill/Pill';
 import Color from 'Common/Types/Color';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 
 export enum FormType {
     Create,
     Update,
 }
 
-export interface ModelField<TBaseModel extends BaseModel>
+export interface ModelField<TBaseModel extends BaseModel| AnalyticsBaseModel>
     extends Field<TBaseModel> {
     overrideField?:
         | {

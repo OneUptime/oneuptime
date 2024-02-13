@@ -12,7 +12,7 @@ import ModelAPI, {
     ListResult,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
-import Select from '../../Utils/ModelAPI/Select';
+import Select from '../../Utils/BaseDatabase/Select';
 import { ButtonStyleType } from '../Button/Button';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 
@@ -31,7 +31,7 @@ import Permission, {
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
-import Query from '../../Utils/ModelAPI/Query';
+import Query from '../../Utils/BaseDatabase/Query';
 import Search from 'Common/Types/BaseDatabase/Search';
 import Typeof from 'Common/Types/Typeof';
 import Navigation from '../../Utils/Navigation';
@@ -61,6 +61,7 @@ import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
 import { ListDetailProps } from '../List/ListRow';
 import User from '../../Utils/User';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 
 export enum ShowTableAs {
     Table,
@@ -68,7 +69,7 @@ export enum ShowTableAs {
     OrderedStatesList,
 }
 
-export interface ComponentProps<TBaseModel extends BaseModel> {
+export interface ComponentProps<TBaseModel extends BaseModel | AnalyticsBaseModel> {
     modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
@@ -142,9 +143,9 @@ enum ModalType {
     Edit,
 }
 
-const ModelTable: <TBaseModel extends BaseModel>(
-    props: ComponentProps<TBaseModel>
-) => ReactElement = <TBaseModel extends BaseModel>(
+const ModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
+    props: ComponentProps<TBaseModel |AnalyticsBaseModel>
+) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     let showTableAs: ShowTableAs | undefined = props.showTableAs;
@@ -252,11 +253,14 @@ const ModelTable: <TBaseModel extends BaseModel>(
         setIsLoading(true);
 
         try {
+
+
             await modelAPI.deleteItem<TBaseModel>({
                 modelType: props.modelType,
                 id: item.id,
                 requestOptions: props.deleteRequestOptions,
             });
+        
 
             props.onItemDeleted && props.onItemDeleted(item);
 
@@ -280,10 +284,12 @@ const ModelTable: <TBaseModel extends BaseModel>(
             _id: true,
         };
 
-        const slugifyColumn: string | null = model.getSlugifyColumn();
+        if(model instanceof BaseModel){
+            const slugifyColumn: string | null = model.getSlugifyColumn();
 
-        if (slugifyColumn) {
-            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
+            if (slugifyColumn) {
+                (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
+            }
         }
 
         const userPermissions: Array<Permission> = getUserPermissions();
@@ -303,7 +309,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 if (column.tooltipText) {
                     tooltipText = (item: JSONObject): string => {
                         return column.tooltipText!(
-                            BaseModel.fromJSONObject(item, props.modelType)
+                             BaseModel.fromJSONObject(item, props.modelType) : 
                         );
                     };
                 }
