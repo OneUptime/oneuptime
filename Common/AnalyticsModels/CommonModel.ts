@@ -14,6 +14,7 @@ import BadDataException from '../Types/Exception/BadDataException';
 import { JSONArray, JSONObject, JSONValue } from '../Types/JSON';
 import JSONFunctions from '../Types/JSONFunctions';
 import ObjectID from '../Types/ObjectID';
+import Text from '../Types/Text';
 
 export type RecordValue =
     | ObjectID
@@ -45,6 +46,16 @@ export default class CommonModel {
     public set tableColumns(v: Array<AnalyticsTableColumn>) {
         this._tableColumns = v;
     }
+
+    
+    private _tableName : string = '';
+    public get tableName() : string {
+        return this._tableName;
+    }
+    public set tableName(v : string) {
+        this._tableName = v;
+    }
+    
 
     public setColumnValue(
         columnName: string,
@@ -95,8 +106,9 @@ export default class CommonModel {
         throw new BadDataException('Column ' + columnName + ' does not exist');
     }
 
-    public constructor(data: { tableColumns: Array<AnalyticsTableColumn> }) {
+    public constructor(data: { tableName: string,  tableColumns: Array<AnalyticsTableColumn> }) {
         this.tableColumns = data.tableColumns;
+        this.tableName = data.tableName;
     }
 
     public getColumnValue<T extends RecordValue>(
@@ -229,5 +241,9 @@ export default class CommonModel {
         });
 
         return json;
+    }
+
+    public getAPIDocumentationPath(): string {
+        return Text.pascalCaseToDashes(this.tableName);
     }
 }

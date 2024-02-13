@@ -28,10 +28,10 @@ export default class AnalyticsBaseModel extends CommonModel {
     }) {
         super({
             tableColumns: data.tableColumns,
+            tableName: data.tableName,
         });
         const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
-        this.tableName = data.tableName;
 
         if (data.tableEngine) {
             this.tableEngine = data.tableEngine;
@@ -129,14 +129,6 @@ export default class AnalyticsBaseModel extends CommonModel {
     }
     public set accessControl(v: TableAccessControl | undefined) {
         this._accessControl = v;
-    }
-
-    private _tableName: string = '';
-    public get tableName(): string {
-        return this._tableName;
-    }
-    public set tableName(v: string) {
-        this._tableName = v;
     }
 
     private _tableEngine: AnalyticsTableEngine = AnalyticsTableEngine.MergeTree;
