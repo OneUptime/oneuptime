@@ -33,8 +33,7 @@ export default class AnalyticsBaseModel extends CommonModel {
             tableColumns: data.tableColumns,
         });
 
-
-
+        this.tableName = data.tableName;
 
         const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
