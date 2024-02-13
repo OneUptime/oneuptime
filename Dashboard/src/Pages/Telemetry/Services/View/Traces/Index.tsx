@@ -38,6 +38,24 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                                     barTimelineStart: 20,
                                     barTimelineEnd: 80,
                                     rowId: "row1"
+                                },
+                                {
+                                    id: "bar-2",
+                                    title: "Bar 2",
+                                    titleColor: White,
+                                    barColor: Black,
+                                    barTimelineStart: 90,
+                                    barTimelineEnd: 100,
+                                    rowId: "row1"
+                                },
+                                {
+                                    id: "bar-3",
+                                    title: "Bar 3",
+                                    titleColor: White,
+                                    barColor: Black,
+                                    barTimelineStart: 45,
+                                    barTimelineEnd: 65,
+                                    rowId: "row2"
                                 }
                                 
                             ],

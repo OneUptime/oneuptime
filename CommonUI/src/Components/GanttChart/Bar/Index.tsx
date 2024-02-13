@@ -32,7 +32,7 @@ const Bar: FunctionComponent<ComponentProps> = (
         // rectangle div with curved corners and text inside in tailwindcss
 
         <div
-            className="chart-bar h-8 pt-1 pb-1 mt-2.5 mb-2.5 rounded"
+            className="chart-bar h-8 pt-1 pb-1 mt-2.5 mb-2.5 rounded absolute cursor-pointer"
             style={{
                 marginLeft: `${barLeftPosition}px`,
                 width: `${barWidth}px`,
