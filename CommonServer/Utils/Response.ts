@@ -11,13 +11,13 @@ import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import EmptyResponse from 'Common/Types/API/EmptyResponse';
 import FileModel from 'Common/Models/FileModel';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusCode from 'Common/Types/API/StatusCode';
 import { DEFAULT_LIMIT } from 'Common/Types/Database/LimitMax';
-import AnalyticsDataModel from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsDataModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
 
 export default class Response {
     private static logResponse(
@@ -196,7 +196,7 @@ export default class Response {
         if (model instanceof AnalyticsDataModel) {
             jsonArray = AnalyticsDataModel.toJSONArray(
                 list as Array<AnalyticsDataModel>,
-                modelType as { new (): AnalyticsDataModel }
+                modelType as AnalyticsBaseModelType
             );
         }
 
@@ -226,7 +226,7 @@ export default class Response {
         if (item && item instanceof AnalyticsDataModel) {
             response = AnalyticsDataModel.toJSON(
                 item,
-                modelType as { new (): AnalyticsDataModel }
+                modelType as AnalyticsBaseModelType
             );
         }
 

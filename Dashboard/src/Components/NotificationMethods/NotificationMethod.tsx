@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 
 export interface ComponentProps {

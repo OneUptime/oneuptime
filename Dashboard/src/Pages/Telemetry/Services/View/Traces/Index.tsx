@@ -1,16 +1,12 @@
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../../../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Span from 'Model/AnalyticsModels/Span';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
         <Fragment>
-            <ModelTable<Span>
+            {/* <ModelTable<Span>
                 modelType={Span}
                 id="traces-table"
                 isDeleteable={false}
@@ -38,7 +34,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                     }
                 ]}
-            />
+            /> */}
         </Fragment>
     );
 };

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import BaseModel from '../../Models/BaseModel';
+import BaseModel, { BaseModelType } from '../../Models/BaseModel';
 import Dictionary from '../Dictionary';
 import { ReflectionMetadataType } from '../Reflection';
 import TableColumnType from './TableColumnType';

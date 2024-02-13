@@ -3,7 +3,7 @@ import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from '../../../Types/SelectEntityField';
 import { DropdownOption } from '../../Dropdown/Dropdown';
-import BaseModel from 'Common/Models/BaseModel';
+import { BaseModelType } from 'Common/Models/BaseModel';
 import MimeType from 'Common/Types/File/MimeType';
 import FormValues from './FormValues';
 import { RadioButton } from '../../RadioButtons/GroupRadioButtons';
