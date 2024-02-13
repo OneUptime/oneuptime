@@ -9,8 +9,8 @@ import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
+import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
 import logger from './Logger';
 
 export default abstract class Realtime {
@@ -138,7 +138,7 @@ export default abstract class Realtime {
         if (data.model instanceof AnalyticsBaseModel) {
             jsonObject = AnalyticsBaseModel.toJSON(
                 data.model,
-                data.modelType as { new (): AnalyticsBaseModel }
+                data.modelType as AnalyticsBaseModelType
             );
         }
 
