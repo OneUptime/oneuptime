@@ -18,13 +18,11 @@ import ProjectUtil from '../Project';
 import Sort from '../BaseDatabase/Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
+import BaseListResult from '../BaseDatabase/ListResult';
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
-    extends JSONObject {
-    data: Array<TAnalyticsBaseModel>;
-    count: number;
-    skip: number;
-    limit: number;
+    extends BaseListResult<TAnalyticsBaseModel> {
+   
 }
 
 export interface RequestOptions {
@@ -399,11 +397,14 @@ export default class ModelAPI {
 
     public static async deleteItem<
         TAnalyticsBaseModel extends AnalyticsBaseModel
-    >(
+    >(data: {
         modelType: { new(): TAnalyticsBaseModel },
         id: ObjectID,
         requestOptions?: RequestOptions | undefined
-    ): Promise<void> {
+    }): Promise<void> {
+
+        const { modelType, id, requestOptions } = data;
+
         const apiPath: Route | null = new modelType().crudApiPath;
         if (!apiPath) {
             throw new BadDataException(

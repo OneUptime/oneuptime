@@ -18,6 +18,7 @@ import ProjectUtil from '../Project';
 import Sort from '../BaseDatabase/Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
+import BaseListResult from '../BaseDatabase/ListResult';
 
 export class ModelAPIHttpResponse<
     TBaseModel extends BaseModel
@@ -25,11 +26,8 @@ export class ModelAPIHttpResponse<
     public miscData?: JSONObject | undefined;
 }
 
-export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
-    data: Array<TBaseModel>;
-    count: number;
-    skip: number;
-    limit: number;
+export interface ListResult<TBaseModel extends BaseModel> extends BaseListResult<TBaseModel> {
+
 }
 
 export interface RequestOptions {
