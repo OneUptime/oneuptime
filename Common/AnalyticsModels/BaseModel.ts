@@ -330,6 +330,22 @@ export default class AnalyticsBaseModel extends CommonModel {
         return dictionary;
     }
 
+    public getReadPermissions(): Array<Permission>{
+        return this.accessControl?.read || [];
+    }
+
+    public getCreatePermissions(): Array<Permission>{
+        return this.accessControl?.create || [];
+    }
+
+    public getUpdatePermissions(): Array<Permission>{
+        return this.accessControl?.update || [];
+    }
+
+    public getDeletePermissions(): Array<Permission>{
+        return this.accessControl?.delete || [];
+    }
+
 
     public hasCreatePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>,

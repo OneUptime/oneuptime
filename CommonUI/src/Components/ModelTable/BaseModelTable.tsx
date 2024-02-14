@@ -84,6 +84,7 @@ export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBase
         requestOptions?: RequestOptions | undefined,
     }) => Promise<ListResult<TBaseModel>>;
     getRelationSelect: (() => Select<TBaseModel>);
+    toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
 }
 
 export interface BaseTableProps<TBaseModel extends BaseModel | AnalyticsBaseModel> {
@@ -1016,7 +1017,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 dragDropIdField={'_id'}
                 dragDropIndexField={props.dragDropIndexField}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={props.callbacks.toJSONArray(data)}
                 filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
@@ -1092,7 +1093,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             <OrderedStatesList
                 error={error}
                 isLoading={isLoading}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={props.callbacks.toJSONArray(data)}
                 id={props.id}
                 titleField={props.orderedStatesListProps?.titleField || ''}
                 descriptionField={
@@ -1160,7 +1161,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 dragDropIndexField={props.dragDropIndexField}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={props.callbacks.toJSONArray(data)}
                 id={props.id}
                 fields={fields}
                 itemsOnPage={itemsOnPage}
@@ -1248,9 +1249,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                                         props.columns.length > 0 && (
                                             <ErrorMessage
                                                 error={`You are not authorized to view this list. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                                    model.readRecordPermissions
-                                                        ? model.readRecordPermissions
-                                                        : []
+                                                    model.getReadPermissions()
                                                 ).join(', ')}`}
                                             />
                                         )}
@@ -1279,9 +1278,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                                 props.columns.length > 0 && (
                                     <ErrorMessage
                                         error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                            model.readRecordPermissions
-                                                ? model.readRecordPermissions
-                                                : []
+                                            model.getReadPermissions()
                                         ).join(', ')}`}
                                     />
                                 )}

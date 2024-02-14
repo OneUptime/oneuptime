@@ -28,6 +28,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 {...props}
                 callbacks={{
 
+                    toJSONArray: (items: TBaseModel[]): JSONObject[] => {
+                        return BaseModel.toJSONObjectArray(items, props.modelType);
+                    },
+
                     getList: async (data: {
                         modelType: {new (): TBaseModel};
                         query: Query<TBaseModel>,

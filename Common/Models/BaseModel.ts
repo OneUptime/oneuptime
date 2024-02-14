@@ -458,6 +458,22 @@ export default class BaseModel extends BaseEntity {
         return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
     }
 
+    public getReadPermissions(): Array<Permission>{
+        return this.readRecordPermissions;
+    }
+
+    public getCreatePermissions(): Array<Permission>{
+        return this.createRecordPermissions;
+    }
+
+    public getUpdatePermissions(): Array<Permission>{
+        return this.updateRecordPermissions;
+    }
+
+    public getDeletePermissions(): Array<Permission>{
+        return this.deleteRecordPermissions;
+    }
+
     public hasReadPermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string

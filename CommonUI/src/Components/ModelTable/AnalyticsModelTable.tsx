@@ -26,6 +26,10 @@ const ModelTable: <TBaseModel extends AnalyticsBaseModel>(
                 {...props}
                 callbacks={{
 
+                    toJSONArray: (items: TBaseModel[]): JSONObject[] => {
+                        return AnalyticsBaseModel.toJSONArray(items, props.modelType);
+                    },
+
                     getList: async (data: {
                         modelType: {new (): TBaseModel};
                         query: Query<TBaseModel>,
