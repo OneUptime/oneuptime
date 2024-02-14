@@ -19,6 +19,7 @@ import Sort from '../BaseDatabase/Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
 import BaseListResult from '../BaseDatabase/ListResult';
+import BaseRequestOptions from '../BaseDatabase/RequestOptions';
 
 export class ModelAPIHttpResponse<
     TBaseModel extends BaseModel
@@ -30,10 +31,8 @@ export interface ListResult<TBaseModel extends BaseModel> extends BaseListResult
 
 }
 
-export interface RequestOptions {
+export interface RequestOptions extends BaseRequestOptions {
     isMultiTenantRequest?: boolean | undefined;
-    requestHeaders?: Dictionary<string> | undefined;
-    overrideRequestUrl?: URL | undefined;
 }
 
 export default class ModelAPI {

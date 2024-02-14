@@ -4,13 +4,16 @@ import BadDataException from '../Types/Exception/BadDataException';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
-import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
+import { ColumnAccessControl, TableAccessControl } from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 import Route from '../Types/API/Route';
 import { EnableRealtimeEventsOn } from '../Utils/Realtime';
 import Text from '../Types/Text';
+import Dictionary from '../Types/Dictionary';
+import ModelPermission from '../Types/BaseDatabase/ModelPermission';
+import Permission, { UserTenantAccessPermission } from '../Types/Permission';
 
 export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
 
@@ -298,5 +301,91 @@ export default class AnalyticsBaseModel extends CommonModel {
 
     public getAPIDocumentationPath(): string {
         return Text.pascalCaseToDashes(this.tableName);
+    }
+
+    public getColumnAccessControlFor(
+        columnName: string
+    ): ColumnAccessControl | null {
+        const tableColumn =  this.tableColumns.find((column: AnalyticsTableColumn) => {
+            return column.key === columnName;
+        });
+
+        if(!tableColumn || !tableColumn.accessControl) {
+            return null;
+        }
+
+        return tableColumn.accessControl;
+    }
+
+    public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
+        
+        const dictionary: Dictionary<ColumnAccessControl> = {};
+
+        for (const column of this.tableColumns) {
+            if (column.accessControl) {
+                dictionary[column.key] = column.accessControl;
+            }
+        }
+
+        return dictionary;
+    }
+
+
+    public hasCreatePermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> = this.accessControl?.create || [];
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl | null =
+                this.getColumnAccessControlFor(columnName);
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.create;
+            }
+        }
+
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    public hasReadPermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> = this.accessControl?.read || [];
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl | null =
+                this.getColumnAccessControlFor(columnName);
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.read;
+            }
+        }
+
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    public hasDeletePermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>
+    ): boolean {
+        const modelPermission: Array<Permission> = this.accessControl?.delete || [];
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    public hasUpdatePermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> = this.accessControl?.update || [];
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl | null =
+                this.getColumnAccessControlFor(columnName);
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.update;
+            }
+        }
+
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
     }
 }

@@ -1,4 +1,4 @@
-import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import React, { ReactElement, useEffect, useState } from 'react';
 import Columns from './Columns';
 import Table from '../Table/Table';
@@ -9,12 +9,8 @@ import Card, {
     ComponentProps as CardComponentProps,
 } from '../Card/Card';
 
-import AnalyticsModelAPI from '../../Utils/AnalyticsModelAPI/AnalyticsModelAPI';
-
-import ModelAPI, {
-    ListResult,
-    RequestOptions,
-} from '../../Utils/ModelAPI/ModelAPI';
+import RequestOptions from '../../Utils/BaseDatabase/RequestOptions';
+import ListResult from '../../Utils/BaseDatabase/ListResult';
 import Select from '../../Utils/BaseDatabase/Select';
 import { ButtonStyleType } from '../Button/Button';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
@@ -64,7 +60,8 @@ import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
 import { ListDetailProps } from '../List/ListRow';
 import User from '../../Utils/User';
-import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import Sort from '../../Utils/BaseDatabase/Sort';
 
 export enum ShowTableAs {
     Table,
@@ -75,7 +72,18 @@ export enum ShowTableAs {
 export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBaseModel> {
     deleteItem: (item: TBaseModel) => Promise<void>;
     getModelFromJSON: (item: JSONObject) => TBaseModel;
+    getJSONFromModel: (item: TBaseModel) => JSONObject;
     getSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
+    getList: (data: {
+        modelType: {new (): TBaseModel};
+        query: Query<TBaseModel>,
+        limit: number,
+        skip: number,
+        sort: Sort<TBaseModel>,
+        select: Select<TBaseModel>,
+        requestOptions?: RequestOptions | undefined,
+    }) => Promise<ListResult<TBaseModel>>;
+    getRelationSelect: (() => Select<TBaseModel>);
 }
 
 export interface BaseTableProps<TBaseModel extends BaseModel | AnalyticsBaseModel> {
@@ -456,10 +464,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     continue;
                 }
 
-                const query: Query<BaseModel> = column.filterQuery || {};
+                const query: Query<TBaseModel> = column.filterQuery || {};
 
-                const listResult: ListResult<BaseModel> =
-                    await modelAPI.getList<BaseModel>({
+                const listResult: ListResult<TBaseModel> = await props.callbacks.getList({
                         modelType: column.filterEntityType,
                         query: query,
                         limit: LIMIT_PER_PROJECT,
@@ -467,9 +474,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         select: {
                             [column.filterDropdownField.label]: true,
                             [column.filterDropdownField.value]: true,
-                        },
+                        } as any,
                         sort: {},
                     });
+
+                    
 
                 classicColumn.filterDropdownOptions = [];
                 for (const item of listResult.data) {
@@ -486,7 +495,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 if (column.tooltipText) {
                     classicColumn.tooltipText = (item: JSONObject): string => {
                         return column.tooltipText!(
-                            BaseModel.fromJSONObject(item, props.modelType)
+                            props.callbacks.getModelFromJSON(item)
                         );
                     };
                 }
@@ -519,7 +528,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         try {
             const listResult: ListResult<TBaseModel> =
-                await modelAPI.getList<TBaseModel>({
+                await props.callbacks.getList({
                     modelType: props.modelType,
                     query: {
                         ...query,
@@ -529,7 +538,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     skip: (currentPageNumber - 1) * itemsOnPage,
                     select: {
                         ...getSelect(),
-                        ...getRelationSelect(),
+                        ...props.callbacks.getRelationSelect(),
                     },
                     sort: sortBy
                         ? {
@@ -611,36 +620,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return selectFields;
     };
 
-    const getRelationSelect: Function = (): Select<TBaseModel> => {
-        const relationSelect: Select<TBaseModel> = {};
-
-        for (const column of props.columns || []) {
-            const key: string | null = column.field
-                ? (Object.keys(column.field)[0] as string)
-                : null;
-
-            if (key && model.isFileColumn(key)) {
-                (relationSelect as JSONObject)[key] = {
-                    file: true,
-                    _id: true,
-                    type: true,
-                    name: true,
-                };
-            } else if (key && model.isEntityColumn(key)) {
-                if (!(relationSelect as JSONObject)[key]) {
-                    (relationSelect as JSONObject)[key] = {};
-                }
-
-                (relationSelect as JSONObject)[key] = {
-                    ...((relationSelect as JSONObject)[key] as JSONObject),
-                    ...(column.field as any)[key],
-                };
-            }
-        }
-
-        return relationSelect;
-    };
-
+     
     const setHeaderButtons: Function = (): void => {
         // add header buttons.
         let headerbuttons: Array<CardButtonSchema> = [];

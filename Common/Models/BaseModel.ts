@@ -23,9 +23,6 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission, {
-    instanceOfUserTenantAccessPermission,
-    PermissionHelper,
-    UserPermission,
     UserTenantAccessPermission,
 } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/BaseDatabase/AccessControl';
@@ -38,6 +35,7 @@ import Text from '../Types/Text';
 import { getColumnBillingAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnBillingAccessControl';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import JSONFunctions from '../Types/JSONFunctions';
+import ModelPermission from '../Types/BaseDatabase/ModelPermission';
 
 export type BaseModelType = { new (): BaseModel };
 
@@ -457,7 +455,7 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
     }
 
     public hasReadPermissions(
@@ -474,14 +472,14 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
     }
 
     public hasDeletePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>
     ): boolean {
         const modelPermission: Array<Permission> = this.deleteRecordPermissions;
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
     }
 
     public hasUpdatePermissions(
@@ -498,41 +496,13 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
     }
 
     public getAPIDocumentationPath(): string {
         return Text.pascalCaseToDashes(this.tableName as string);
     }
 
-    private hasPermissions(
-        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
-        modelPermissions: Array<Permission>
-    ): boolean {
-        let userPermissions: Array<Permission> = [];
-
-        if (
-            instanceOfUserTenantAccessPermission(userProjectPermissions) &&
-            userProjectPermissions.permissions &&
-            Array.isArray(userProjectPermissions.permissions)
-        ) {
-            userPermissions = userProjectPermissions.permissions.map(
-                (item: UserPermission) => {
-                    return item.permission;
-                }
-            );
-        } else {
-            userPermissions = userProjectPermissions as Array<Permission>;
-        }
-
-        return Boolean(
-            userPermissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    modelPermissions,
-                    userPermissions
-                )
-        );
-    }
 
     public static toJSON(
         model: BaseModel,

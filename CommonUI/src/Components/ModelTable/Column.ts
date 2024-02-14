@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import { ReactElement } from 'react';
@@ -9,7 +9,7 @@ import Query from '../../Utils/BaseDatabase/Query';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from '../Types/FieldType';
 import { DropdownOption } from '../Dropdown/Dropdown';
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
 
 export interface ActionButton {
     buttonText: string;
@@ -27,7 +27,7 @@ export default interface Columns<TEntity extends BaseModel | AnalyticsBaseModel>
     description?: string | undefined;
     type: FieldType;
     isFilterable?: boolean | undefined;
-    filterEntityType?: { new (): TEntity } | undefined;
+    filterEntityType?: BaseModelType | AnalyticsBaseModelType | undefined;
     filterQuery?: Query<TEntity> | undefined;
     tooltipText?: ((item: TEntity) => string) | undefined;
     filterDropdownField?:

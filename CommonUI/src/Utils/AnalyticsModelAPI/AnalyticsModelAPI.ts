@@ -19,16 +19,14 @@ import Sort from '../BaseDatabase/Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
 import BaseListResult from '../BaseDatabase/ListResult';
+import RequestOptions from '../BaseDatabase/RequestOptions';
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
     extends BaseListResult<TAnalyticsBaseModel> {
    
 }
 
-export interface RequestOptions {
-    requestHeaders?: Dictionary<string> | undefined;
-    overrideRequestUrl?: URL | undefined;
-}
+
 
 export default class ModelAPI {
     public static async create<TAnalyticsBaseModel extends AnalyticsBaseModel>(

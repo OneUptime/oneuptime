@@ -23,6 +23,10 @@ const ModelTable: <TBaseModel extends AnalyticsBaseModel>(
                 {...props}
                 callbacks={{
 
+                    getRelationSelect: (): Select<TBaseModel> => {
+                        return {};
+                    },
+
                     getSelect: (select: Select<TBaseModel>): Select<TBaseModel> => {
                         return select;
                     },
