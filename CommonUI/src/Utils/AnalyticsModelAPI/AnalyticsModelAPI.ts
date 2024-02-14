@@ -23,10 +23,7 @@ import RequestOptions from '../BaseDatabase/RequestOptions';
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
     extends BaseListResult<TAnalyticsBaseModel> {
-   
 }
-
-
 
 export default class ModelAPI {
     public static async create<TAnalyticsBaseModel extends AnalyticsBaseModel>(
@@ -186,7 +183,7 @@ export default class ModelAPI {
         throw apiResult;
     }
 
-    public static async getList<TAnalyticsBaseModel extends AnalyticsBaseModel>(
+    public static async getList<TAnalyticsBaseModel extends AnalyticsBaseModel>(data: {
         modelType: { new(): TAnalyticsBaseModel },
         query: Query<TAnalyticsBaseModel>,
         limit: number,
@@ -194,7 +191,10 @@ export default class ModelAPI {
         select: Select<TAnalyticsBaseModel>,
         sort: Sort<TAnalyticsBaseModel>,
         requestOptions?: RequestOptions
-    ): Promise<ListResult<TAnalyticsBaseModel>> {
+    }): Promise<ListResult<TAnalyticsBaseModel>> {
+
+        const { modelType, query, limit, skip, select, sort, requestOptions } = data;
+
         const model: TAnalyticsBaseModel = new modelType();
         const apiPath: Route | null = model.crudApiPath;
         if (!apiPath) {

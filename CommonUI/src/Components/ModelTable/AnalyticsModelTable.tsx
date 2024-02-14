@@ -5,6 +5,9 @@ import React, { ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import Select from "../../Utils/BaseDatabase/Select";
+import Query from "../../Utils/BaseDatabase/Query";
+import Sort from "../../Utils/BaseDatabase/Sort";
+import RequestOptions from "../../Utils/BaseDatabase/RequestOptions";
 
 export interface ComponentProps<TBaseModel extends AnalyticsBaseModel> extends BaseTableProps<TBaseModel> {
     modelAPI?: typeof ModelAPI | undefined;
@@ -22,6 +25,26 @@ const ModelTable: <TBaseModel extends AnalyticsBaseModel>(
             <BaseModelTable
                 {...props}
                 callbacks={{
+
+                    getList: async (data: {
+                        modelType: {new (): TBaseModel};
+                        query: Query<TBaseModel>,
+                        limit: number,
+                        skip: number,
+                        sort: Sort<TBaseModel>,
+                        select: Select<TBaseModel>,
+                        requestOptions?: RequestOptions,
+                    }) => {
+                        return await modelAPI.getList<TBaseModel>({
+                            modelType: data.modelType,
+                            query: data.query,
+                            limit: data.limit,
+                            skip: data.skip,
+                            sort: data.sort,
+                            select: data.select,
+                            requestOptions: data.requestOptions,
+                        });
+                    },
 
                     getRelationSelect: (): Select<TBaseModel> => {
                         return {};
