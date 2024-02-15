@@ -462,6 +462,22 @@ export default class BaseModel extends BaseEntity {
         return this.readRecordPermissions;
     }
 
+    public getReadBillingPlan(): PlanSelect | null {
+        return this.readBillingPlan;
+    }
+
+    public getCreateBillingPlan(): PlanSelect | null {
+        return this.createBillingPlan;
+    }
+
+    public getUpdateBillingPlan(): PlanSelect | null {
+        return this.updateBillingPlan;
+    }
+
+    public getDeleteBillingPlan(): PlanSelect | null {
+        return this.deleteBillingPlan;
+    }
+
     public getCreatePermissions(): Array<Permission>{
         return this.createRecordPermissions;
     }

@@ -75,7 +75,6 @@ export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBase
     getJSONFromModel: (item: TBaseModel) => JSONObject;
     getSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
     getList: (data: {
-        modelType: {new (): TBaseModel};
         query: Query<TBaseModel>,
         limit: number,
         skip: number,
@@ -85,6 +84,10 @@ export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBase
     }) => Promise<ListResult<TBaseModel>>;
     getRelationSelect: (() => Select<TBaseModel>);
     toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
+    updateById: (data: {
+        id: ObjectID,
+        data: JSONObject,
+    }) => Promise<void>;
 }
 
 export interface BaseTableProps<TBaseModel extends BaseModel | AnalyticsBaseModel> {
@@ -468,7 +471,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 const query: Query<TBaseModel> = column.filterQuery || {};
 
                 const listResult: ListResult<TBaseModel> = await props.callbacks.getList({
-                        modelType: column.filterEntityType,
                         query: query,
                         limit: LIMIT_PER_PROJECT,
                         skip: 0,
@@ -530,7 +532,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         try {
             const listResult: ListResult<TBaseModel> =
                 await props.callbacks.getList({
-                    modelType: props.modelType,
                     query: {
                         ...query,
                         ...props.query,
@@ -841,12 +842,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     ) => {
                         try {
                             const baseModel: TBaseModel =
-                                BaseModel.fromJSONObject(item, props.modelType);
+                            props.callbacks.getModelFromJSON(item);
 
                             if (props.onBeforeView) {
-                                item = BaseModel.toJSONObject(
+                                item = props.callbacks.getJSONFromModel(
                                     await props.onBeforeView(baseModel),
-                                    props.modelType
                                 );
                             }
 
@@ -898,14 +898,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeEdit) {
-                                item = BaseModel.toJSONObject(
+                                item = props.callbacks.getJSONFromModel(
                                     await props.onBeforeEdit(
-                                        BaseModel.fromJSONObject(
-                                            item,
-                                            props.modelType
+                                        props.callbacks.getModelFromJSON(
+                                            item
                                         )
-                                    ),
-                                    props.modelType
+                                    )
                                 );
                             }
 
@@ -933,14 +931,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeDelete) {
-                                item = BaseModel.toJSONObject(
+                                item = props.callbacks.getJSONFromModel(
                                     await props.onBeforeDelete(
-                                        BaseModel.fromJSONObject(
-                                            item,
-                                            props.modelType
+                                        props.callbacks.getModelFromJSON(
+                                            item
                                         )
-                                    ),
-                                    props.modelType
+                                    )
                                 );
                             }
 
@@ -1029,8 +1025,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                     setIsLoading(true);
 
-                    await modelAPI.updateById({
-                        modelType: props.modelType,
+                    await props.callbacks.updateById({
                         id: new ObjectID(id),
                         data: {
                             [props.dragDropIndexField]: newOrder,
@@ -1147,8 +1142,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                     setIsLoading(true);
 
-                    await modelAPI.updateById({
-                        modelType: props.modelType,
+                    await props.callbacks.updateById({
                         id: new ObjectID(id),
                         data: {
                             [props.dragDropIndexField]: newOrder,
@@ -1190,30 +1184,30 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         let showPlan: boolean = Boolean(
             BILLING_ENABLED &&
                 plan &&
-                new props.modelType().readBillingPlan &&
+                new props.modelType().getReadBillingPlan() &&
                 !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-                    new props.modelType().readBillingPlan!,
+                    new props.modelType().getReadBillingPlan()!,
                     plan,
                     getAllEnvVars()
                 )
         );
 
-        let planName: string = new props.modelType().readBillingPlan!;
+        let planName: string = new props.modelType().getReadBillingPlan()!;
 
         if (props.isCreateable && !showPlan) {
             // if createable then read create billing permissions.
             showPlan = Boolean(
                 BILLING_ENABLED &&
                     plan &&
-                    new props.modelType().createBillingPlan &&
+                    new props.modelType().getCreateBillingPlan() &&
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-                        new props.modelType().createBillingPlan!,
+                        new props.modelType().getCreateBillingPlan()!,
                         plan,
                         getAllEnvVars()
                     )
             );
 
-            planName = new props.modelType().createBillingPlan!;
+            planName = new props.modelType().getCreateBillingPlan()!;
         }
 
         return (

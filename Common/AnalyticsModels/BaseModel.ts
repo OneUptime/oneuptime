@@ -14,6 +14,7 @@ import Text from '../Types/Text';
 import Dictionary from '../Types/Dictionary';
 import ModelPermission from '../Types/BaseDatabase/ModelPermission';
 import Permission, { UserTenantAccessPermission } from '../Types/Permission';
+import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
 
 export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
 
@@ -344,6 +345,27 @@ export default class AnalyticsBaseModel extends CommonModel {
 
     public getDeletePermissions(): Array<Permission>{
         return this.accessControl?.delete || [];
+    }
+
+    public getReadBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.read || null;
+    }
+
+    public getCreateBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.create || null;
+    }
+
+    public getUpdateBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.update || null;
+    }
+
+    public getDeleteBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.delete || null;
+    }
+
+    public isEntityColumn(_columnName: string): boolean {
+        // Analytics model does not suppprt entity columns.
+        return false;
     }
 
 

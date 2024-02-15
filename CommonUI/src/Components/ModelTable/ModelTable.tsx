@@ -1,6 +1,6 @@
 import React, { ReactElement } from "react";
 import BaseModelTable, { BaseTableProps } from "./BaseModelTable";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/BaseModel";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
@@ -8,7 +8,6 @@ import Dictionary from "Common/Types/Dictionary";
 import Select from "../../Utils/BaseDatabase/Select";
 import Query from "../../Utils/BaseDatabase/Query";
 import Sort from "../../Utils/BaseDatabase/Sort";
-import { AnalyticsBaseModelType } from "Common/AnalyticsModels/BaseModel";
 
 export interface ComponentProps<TBaseModel extends BaseModel> extends BaseTableProps<TBaseModel> {
     modelAPI?: typeof ModelAPI | undefined;
@@ -28,21 +27,38 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 {...props}
                 callbacks={{
 
+                    getJSONFromModel: (item: TBaseModel): JSONObject => {
+                        return BaseModel.toJSONObject(item, props.modelType);
+                    },
+
+                    updateById: async (args: {
+                        id: ObjectID,
+                        data: JSONObject,
+                    }) => {
+
+                        const {id, data } = args;
+
+                        await modelAPI.updateById({
+                            modelType: props.modelType,
+                            id: new ObjectID(id),
+                            data: data,
+                        });
+                    },
+
                     toJSONArray: (items: TBaseModel[]): JSONObject[] => {
                         return BaseModel.toJSONObjectArray(items, props.modelType);
                     },
 
                     getList: async (data: {
-                        modelType: {new (): TBaseModel};
                         query: Query<TBaseModel>,
                         limit: number,
                         skip: number,
                         sort: Sort<TBaseModel>,
                         select: Select<TBaseModel>,
-                        requestOptions?: RequestOptions,
+                        requestOptions?: RequestOptions | undefined,
                     }) => {
                         return await modelAPI.getList<TBaseModel>({
-                            modelType: data.modelType,
+                            modelType: props.modelType,
                             query: data.query,
                             limit: data.limit,
                             skip: data.skip,
