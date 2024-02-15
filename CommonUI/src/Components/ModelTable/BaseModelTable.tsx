@@ -13,10 +13,8 @@ import RequestOptions from '../../Utils/BaseDatabase/RequestOptions';
 import ListResult from '../../Utils/BaseDatabase/ListResult';
 import Select from '../../Utils/BaseDatabase/Select';
 import { ButtonStyleType } from '../Button/Button';
-import ModelFormModal from '../ModelFormModal/ModelFormModal';
-
 import IconProp from 'Common/Types/Icon/IconProp';
-import { FormType, ModelField } from '../Forms/ModelForm';
+import { ModelField } from '../Forms/ModelForm';
 
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import FieldType from '../Types/FieldType';
@@ -87,6 +85,13 @@ export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBase
         id: ObjectID,
         data: JSONObject,
     }) => Promise<void>;
+    showCreateEditModal: (data: {
+        modalType: ModalType,
+        modelIdToEdit?: ObjectID | undefined,
+        onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined,
+        onSuccess?: ((item: TBaseModel) => void) | undefined,
+        onClose?: (() => void) | undefined,
+    }) => ReactElement;
 }
 
 export interface BaseTableProps<TBaseModel extends BaseModel | AnalyticsBaseModel> {
@@ -161,7 +166,7 @@ export interface ComponentProps<TBaseModel extends BaseModel | AnalyticsBaseMode
     callbacks: BaseTableCallbacks<TBaseModel>;
 }
 
-enum ModalType {
+export enum ModalType {
     Create,
     Edit,
 }
@@ -1340,94 +1345,53 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <>
             <div className="mb-5 mt-5">{getCardComponent()}</div>
 
-            {showModel ? (
-                <ModelFormModal<TBaseModel>
-                    modelAPI={props.modelAPI}
-                    title={
-                        modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${
-                                  props.singularName || model.singularName
-                              }`
-                            : `Edit ${props.singularName || model.singularName}`
-                    }
-                    modalWidth={props.createEditModalWidth}
-                    name={
-                        modalType === ModalType.Create
-                            ? `${props.name} > ${
-                                  props.createVerb || 'Create'
-                              } New ${props.singularName || model.singularName}`
-                            : `${props.name} > Edit ${
-                                  props.singularName || model.singularName
-                              }`
-                    }
-                    initialValues={
-                        modalType === ModalType.Create
-                            ? props.createInitialValues
-                            : undefined
-                    }
-                    onClose={() => {
-                        setShowModal(false);
-                    }}
-                    submitButtonText={
-                        modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${
-                                  props.singularName || model.singularName
-                              }`
-                            : `Save Changes`
-                    }
-                    onSuccess={async (item: TBaseModel): Promise<void> => {
-                        setShowModal(false);
-                        setCurrentPageNumber(1);
-                        fetchItems();
-                        if (props.onCreateSuccess) {
-                            await props.onCreateSuccess(item);
-                        }
-
-                        return Promise.resolve();
-                    }}
-                    onBeforeCreate={async (
-                        item: TBaseModel,
-                        miscDataProps: JSONObject
-                    ) => {
-                        if (
-                            showTableAs === ShowTableAs.OrderedStatesList &&
-                            props.orderedStatesListProps?.orderField &&
+            {showModel ? props.callbacks.showCreateEditModal({
+                onClose: () => {
+                    setShowModal(false);
+                },
+                modalType: modalType,
+                onBeforeCreate: async (
+                    item: TBaseModel,
+                    miscDataProps: JSONObject
+                ) => {
+                    if (
+                        showTableAs === ShowTableAs.OrderedStatesList &&
+                        props.orderedStatesListProps?.orderField &&
+                        orderedStatesListNewItemOrder
+                    ) {
+                        item.setColumnValue(
+                            props.orderedStatesListProps.orderField,
                             orderedStatesListNewItemOrder
-                        ) {
-                            item.setColumnValue(
-                                props.orderedStatesListProps.orderField,
-                                orderedStatesListNewItemOrder
-                            );
-                        }
-
-                        if (props.onBeforeCreate) {
-                            item = await props.onBeforeCreate(
-                                item,
-                                miscDataProps
-                            );
-                        }
-
-                        return item;
-                    }}
-                    modelType={props.modelType}
-                    formProps={{
-                        name: `create-${props.modelType.name}-from`,
-                        modelType: props.modelType,
-                        id: `create-${props.modelType.name}-from`,
-                        fields: props.formFields || [],
-                        steps: props.formSteps || [],
-                        formType:
-                            modalType === ModalType.Create
-                                ? FormType.Create
-                                : FormType.Update,
-                    }}
-                    modelIdToEdit={
-                        currentEditableItem
-                            ? new ObjectID(currentEditableItem['_id'] as string)
-                            : undefined
+                        );
                     }
-                />
-            ) : (
+
+                    if (props.onBeforeCreate) {
+                        item = await props.onBeforeCreate(
+                            item,
+                            miscDataProps
+                        );
+                    }
+
+                    return item;
+                },
+                onSuccess: async (item: TBaseModel): Promise<void> => {
+                    setShowModal(false);
+                    setCurrentPageNumber(1);
+                    fetchItems();
+                    if (props.onCreateSuccess) {
+                        await props.onCreateSuccess(item);
+                    }
+
+                    return Promise.resolve();
+                },
+                modelIdToEdit: 
+                    currentEditableItem
+                        ? new ObjectID(currentEditableItem['_id'] as string)
+                        : undefined
+                ,
+
+
+            }) : (
                 <></>
             )}
 

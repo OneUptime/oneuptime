@@ -1,5 +1,5 @@
 import React, { ReactElement } from "react";
-import BaseModelTable, { BaseTableProps } from "./BaseModelTable";
+import BaseModelTable, { BaseTableProps, ModalType, ShowTableAs } from "./BaseModelTable";
 import BaseModel from "Common/Models/BaseModel";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
@@ -8,6 +8,8 @@ import Dictionary from "Common/Types/Dictionary";
 import Select from "../../Utils/BaseDatabase/Select";
 import Query from "../../Utils/BaseDatabase/Query";
 import Sort from "../../Utils/BaseDatabase/Sort";
+import ModelFormModal from "../ModelFormModal/ModelFormModal";
+import { FormType } from "../Forms/ModelForm";
 
 export interface ComponentProps<TBaseModel extends BaseModel> extends BaseTableProps<TBaseModel> {
     modelAPI?: typeof ModelAPI | undefined;
@@ -78,6 +80,70 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
                         return select;
                     },
+
+                    showCreateModal: (data: {
+                        modalType: ModalType,
+                        modelIdToEdit?: ObjectID | undefined,
+                        onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined,
+                        onSuccess?: ((item: TBaseModel) => void) | undefined,
+                        onClose?: (() => void) | undefined,
+                    }): ReactElement => {
+
+                        const { modalType, modelIdToEdit, onBeforeCreate, onSuccess, onClose } = data;
+
+                        return (
+                            <ModelFormModal<TBaseModel>
+                                modelAPI={props.modelAPI}
+                                title={
+                                    modalType === ModalType.Create
+                                        ? `${props.createVerb || 'Create'} New ${
+                                              props.singularName || model.singularName
+                                          }`
+                                        : `Edit ${props.singularName || model.singularName}`
+                                }
+                                modalWidth={props.createEditModalWidth}
+                                name={
+                                    modalType === ModalType.Create
+                                        ? `${props.name} > ${
+                                              props.createVerb || 'Create'
+                                          } New ${props.singularName || model.singularName}`
+                                        : `${props.name} > Edit ${
+                                              props.singularName || model.singularName
+                                          }`
+                                }
+                                initialValues={
+                                    modalType === ModalType.Create
+                                        ? props.createInitialValues
+                                        : undefined
+                                }
+                                onClose={onClose}
+                                submitButtonText={
+                                    modalType === ModalType.Create
+                                        ? `${props.createVerb || 'Create'} ${
+                                              props.singularName || model.singularName
+                                          }`
+                                        : `Save Changes`
+                                }
+                                onSuccess={onSuccess}
+                                onBeforeCreate={onBeforeCreate}
+                                modelType={props.modelType}
+                                formProps={{
+                                    name: `create-${props.modelType.name}-from`,
+                                    modelType: props.modelType,
+                                    id: `create-${props.modelType.name}-from`,
+                                    fields: props.formFields || [],
+                                    steps: props.formSteps || [],
+                                    formType:
+                                        modalType === ModalType.Create
+                                            ? FormType.Create
+                                            : FormType.Update,
+                                }}
+                                modelIdToEdit={
+                                    modelIdToEdit
+                                }
+                            />
+                        )
+                    }
 
                     getModelFromJSON: (item: JSONObject): TBaseModel => {
                         return BaseModel.fromJSON(item, props.modelType) as TBaseModel;
