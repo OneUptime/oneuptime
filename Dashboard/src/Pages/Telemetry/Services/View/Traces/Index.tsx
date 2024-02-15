@@ -5,10 +5,14 @@ import Span from 'Model/AnalyticsModels/Span';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../../../Utils/Navigation';
+import ObjectID from 'Common/Types/ObjectID';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
     return (
         <Fragment>
             <AnalyticsModelTable<Span>
@@ -17,7 +21,9 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={false}
-                name="Status Pages"
+                singularName='Trace'
+                pluralName='Traces'
+                name="Traces"
                 isViewable={true}
                 cardProps={{
                     title: 'Traces',
@@ -26,6 +32,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 }}
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
+                    serviceId: modelId
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
