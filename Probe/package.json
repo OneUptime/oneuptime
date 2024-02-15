@@ -18,7 +18,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/ping": "^0.4.4",
-    "axios": "^1.6.5",
+    "axios": "^1.6.6",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.8",
