@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    MouseEventHandler,
+    ReactElement,
+    useState,
+} from 'react';
 import Color from 'Common/Types/Color';
 import BarLabel from './BarLabel';
 
@@ -24,15 +29,21 @@ const Bar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [isHovered, setIsHovered] = useState(false);
 
-    // calculate bar width. 
-    const barWidth = (props.bar.barTimelineEnd - props.bar.barTimelineStart) / (props.chartTimelineEnd - props.chartTimelineStart) * props.timelineWidth;
-    const barLeftPosition = (props.bar.barTimelineStart - props.chartTimelineStart) / (props.chartTimelineEnd - props.chartTimelineStart) * props.timelineWidth;
+    // calculate bar width.
+    const barWidth: number =
+        ((props.bar.barTimelineEnd - props.bar.barTimelineStart) /
+            (props.chartTimelineEnd - props.chartTimelineStart)) *
+        props.timelineWidth;
+    const barLeftPosition: number =
+        ((props.bar.barTimelineStart - props.chartTimelineStart) /
+            (props.chartTimelineEnd - props.chartTimelineStart)) *
+        props.timelineWidth;
 
-    const handleMouseEnter = () => {
+    const handleMouseEnter: MouseEventHandler = (): void => {
         setIsHovered(true);
     };
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave: MouseEventHandler = (): void => {
         setIsHovered(false);
     };
 
@@ -55,8 +66,12 @@ const Bar: FunctionComponent<ComponentProps> = (
                 />
                 {isHovered && (
                     <div className="bar-tooltip bg-white shadow rounded p-2 w-fit">
-                        <div className="bar-tooltip-title text-sm text-gray-700 font-medium">Static Title</div>
-                        <div className="bar-tooltip-description text-gray-400 text-xs">Description on hover</div>
+                        <div className="bar-tooltip-title text-sm text-gray-700 font-medium">
+                            Static Title
+                        </div>
+                        <div className="bar-tooltip-description text-gray-400 text-xs">
+                            Description on hover
+                        </div>
                     </div>
                 )}
             </div>

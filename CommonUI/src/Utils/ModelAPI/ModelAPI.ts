@@ -27,9 +27,8 @@ export class ModelAPIHttpResponse<
     public miscData?: JSONObject | undefined;
 }
 
-export interface ListResult<TBaseModel extends BaseModel> extends BaseListResult<TBaseModel> {
-
-}
+export interface ListResult<TBaseModel extends BaseModel>
+    extends BaseListResult<TBaseModel> {}
 
 export interface RequestOptions extends BaseRequestOptions {
     isMultiTenantRequest?: boolean | undefined;

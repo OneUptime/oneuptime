@@ -1,7 +1,11 @@
-import Permission, { PermissionHelper, UserPermission, UserTenantAccessPermission, instanceOfUserTenantAccessPermission } from "../Permission";
+import Permission, {
+    PermissionHelper,
+    UserPermission,
+    UserTenantAccessPermission,
+    instanceOfUserTenantAccessPermission,
+} from '../Permission';
 
-export default class ModelPermission { 
-
+export default class ModelPermission {
     public static hasPermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         modelPermissions: Array<Permission>

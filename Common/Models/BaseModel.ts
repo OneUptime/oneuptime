@@ -22,9 +22,7 @@ import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission, {
-    UserTenantAccessPermission,
-} from '../Types/Permission';
+import Permission, { UserTenantAccessPermission } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/BaseDatabase/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
@@ -459,10 +457,13 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
-    public getReadPermissions(): Array<Permission>{
+    public getReadPermissions(): Array<Permission> {
         return this.readRecordPermissions;
     }
 
@@ -482,15 +483,15 @@ export default class BaseModel extends BaseEntity {
         return this.deleteBillingPlan;
     }
 
-    public getCreatePermissions(): Array<Permission>{
+    public getCreatePermissions(): Array<Permission> {
         return this.createRecordPermissions;
     }
 
-    public getUpdatePermissions(): Array<Permission>{
+    public getUpdatePermissions(): Array<Permission> {
         return this.updateRecordPermissions;
     }
 
-    public getDeletePermissions(): Array<Permission>{
+    public getDeletePermissions(): Array<Permission> {
         return this.deleteRecordPermissions;
     }
 
@@ -508,14 +509,20 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public hasDeletePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>
     ): boolean {
         const modelPermission: Array<Permission> = this.deleteRecordPermissions;
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public hasUpdatePermissions(
@@ -532,13 +539,15 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public getAPIDocumentationPath(): string {
         return Text.pascalCaseToDashes(this.tableName as string);
     }
-
 
     public static toJSON(
         model: BaseModel,

@@ -43,7 +43,6 @@ const GanttChart: FunctionComponent<ComponentProps> = (
         }
 
         setTimelineWidth(chartWidth * 0.75); // 75 % of chart width, 25% for category spacer
-
     }, [chartWidth]);
 
     return (
@@ -65,7 +64,13 @@ const GanttChart: FunctionComponent<ComponentProps> = (
                     }
                 />
 
-                <Rows timelineWidth={timelineWidth} chartTimelineEnd={props.chart.timeline.end} chartTimelineStart={props.chart.timeline.start} rows={props.chart.rows} bars={props.chart.bars} />
+                <Rows
+                    timelineWidth={timelineWidth}
+                    chartTimelineEnd={props.chart.timeline.end}
+                    chartTimelineStart={props.chart.timeline.start}
+                    rows={props.chart.rows}
+                    bars={props.chart.bars}
+                />
             </div>
         </ChartContainer>
     );

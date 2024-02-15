@@ -9,7 +9,9 @@ import Query from '../../Utils/BaseDatabase/Query';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from '../Types/FieldType';
 import { DropdownOption } from '../Dropdown/Dropdown';
-import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel, {
+    AnalyticsBaseModelType,
+} from 'Common/AnalyticsModels/BaseModel';
 
 export interface ActionButton {
     buttonText: string;
@@ -17,7 +19,9 @@ export interface ActionButton {
     onClick: (id: ObjectID) => void;
 }
 
-export default interface Columns<TEntity extends BaseModel | AnalyticsBaseModel> {
+export default interface Columns<
+    TEntity extends BaseModel | AnalyticsBaseModel
+> {
     field?: SelectEntityField<TEntity>;
     selectedProperty?: string;
     title: string;

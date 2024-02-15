@@ -36,7 +36,15 @@ const Row: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex">
                 {props.bars.map((bar: GanttChartBar) => {
-                    return <Bar key={bar.id} bar={bar} chartTimelineEnd={props.chartTimelineEnd} chartTimelineStart={props.chartTimelineStart} timelineWidth={props.timelineWidth} />;
+                    return (
+                        <Bar
+                            key={bar.id}
+                            bar={bar}
+                            chartTimelineEnd={props.chartTimelineEnd}
+                            chartTimelineStart={props.chartTimelineStart}
+                            timelineWidth={props.timelineWidth}
+                        />
+                    );
                 })}
             </div>
         </div>

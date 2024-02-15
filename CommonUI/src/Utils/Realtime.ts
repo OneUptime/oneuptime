@@ -16,14 +16,15 @@ import Select from './BaseDatabase/Select';
 import { JSONObject } from 'Common/Types/JSON';
 import { RealtimeRoute } from 'Common/ServiceRoute';
 
-export interface ListenToModelEvent<Model extends AnalyticsBaseModel | BaseModel> {
+export interface ListenToModelEvent<
+    Model extends AnalyticsBaseModel | BaseModel
+> {
     modelType: { new (): Model };
     query: Query<Model>;
     eventType: ModelEventType;
     tenantId: ObjectID;
     select: Select<Model>;
 }
-
 
 export default abstract class Reatime {
     private static socket: Socket;

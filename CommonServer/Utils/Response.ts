@@ -17,7 +17,9 @@ import FileModel from 'Common/Models/FileModel';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusCode from 'Common/Types/API/StatusCode';
 import { DEFAULT_LIMIT } from 'Common/Types/Database/LimitMax';
-import AnalyticsDataModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsDataModel, {
+    AnalyticsBaseModelType,
+} from 'Common/AnalyticsModels/BaseModel';
 
 export default class Response {
     private static logResponse(
@@ -217,10 +219,7 @@ export default class Response {
         let response: JSONObject = {};
 
         if (item && item instanceof BaseModel) {
-            response = BaseModel.toJSON(
-                item,
-                modelType as BaseModelType
-            );
+            response = BaseModel.toJSON(item, modelType as BaseModelType);
         }
 
         if (item && item instanceof AnalyticsDataModel) {

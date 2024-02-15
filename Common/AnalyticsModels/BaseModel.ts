@@ -4,7 +4,10 @@ import BadDataException from '../Types/Exception/BadDataException';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
-import { ColumnAccessControl, TableAccessControl } from '../Types/BaseDatabase/AccessControl';
+import {
+    ColumnAccessControl,
+    TableAccessControl,
+} from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
@@ -40,7 +43,6 @@ export default class AnalyticsBaseModel extends CommonModel {
         this.tableName = data.tableName;
 
         const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
-
 
         if (data.tableEngine) {
             this.tableEngine = data.tableEngine;
@@ -200,11 +202,11 @@ export default class AnalyticsBaseModel extends CommonModel {
         this._allowAccessIfSubscriptionIsUnpaid = v;
     }
 
-    private _tableName : string = '';
-    public get tableName() : string {
+    private _tableName: string = '';
+    public get tableName(): string {
         return this._tableName;
     }
-    public set tableName(v : string) {
+    public set tableName(v: string) {
         this._tableName = v;
     }
 
@@ -307,11 +309,12 @@ export default class AnalyticsBaseModel extends CommonModel {
     public getColumnAccessControlFor(
         columnName: string
     ): ColumnAccessControl | null {
-        const tableColumn =  this.tableColumns.find((column: AnalyticsTableColumn) => {
-            return column.key === columnName;
-        });
+        const tableColumn: AnalyticsTableColumn | undefined =
+            this.tableColumns.find((column: AnalyticsTableColumn) => {
+                return column.key === columnName;
+            });
 
-        if(!tableColumn || !tableColumn.accessControl) {
+        if (!tableColumn || !tableColumn.accessControl) {
             return null;
         }
 
@@ -319,7 +322,6 @@ export default class AnalyticsBaseModel extends CommonModel {
     }
 
     public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
-        
         const dictionary: Dictionary<ColumnAccessControl> = {};
 
         for (const column of this.tableColumns) {
@@ -331,19 +333,19 @@ export default class AnalyticsBaseModel extends CommonModel {
         return dictionary;
     }
 
-    public getReadPermissions(): Array<Permission>{
+    public getReadPermissions(): Array<Permission> {
         return this.accessControl?.read || [];
     }
 
-    public getCreatePermissions(): Array<Permission>{
+    public getCreatePermissions(): Array<Permission> {
         return this.accessControl?.create || [];
     }
 
-    public getUpdatePermissions(): Array<Permission>{
+    public getUpdatePermissions(): Array<Permission> {
         return this.accessControl?.update || [];
     }
 
-    public getDeletePermissions(): Array<Permission>{
+    public getDeletePermissions(): Array<Permission> {
         return this.accessControl?.delete || [];
     }
 
@@ -376,15 +378,15 @@ export default class AnalyticsBaseModel extends CommonModel {
 
     public isFileColumn(_columnName: string): boolean {
         // Analytics model does not suppprt file columns.
-        return false; 
+        return false;
     }
-
 
     public hasCreatePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
-        let modelPermission: Array<Permission> = this.accessControl?.create || [];
+        let modelPermission: Array<Permission> =
+            this.accessControl?.create || [];
 
         if (columnName) {
             const columnAccessControl: ColumnAccessControl | null =
@@ -394,7 +396,10 @@ export default class AnalyticsBaseModel extends CommonModel {
             }
         }
 
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public hasReadPermissions(
@@ -411,21 +416,29 @@ export default class AnalyticsBaseModel extends CommonModel {
             }
         }
 
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public hasDeletePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>
     ): boolean {
-        const modelPermission: Array<Permission> = this.accessControl?.delete || [];
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        const modelPermission: Array<Permission> =
+            this.accessControl?.delete || [];
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public hasUpdatePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
-        let modelPermission: Array<Permission> = this.accessControl?.update || [];
+        let modelPermission: Array<Permission> =
+            this.accessControl?.update || [];
 
         if (columnName) {
             const columnAccessControl: ColumnAccessControl | null =
@@ -435,6 +448,9 @@ export default class AnalyticsBaseModel extends CommonModel {
             }
         }
 
-        return ModelPermission.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 }

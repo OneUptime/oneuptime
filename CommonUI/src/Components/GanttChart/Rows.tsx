@@ -25,7 +25,7 @@ const Rows: FunctionComponent<ComponentProps> = (
                         key={row.id}
                         row={row}
                         bars={props.bars.filter((bar: GanttChartBar) => {
-                            return  bar.rowId === row.id;
+                            return bar.rowId === row.id;
                         })}
                     />
                 );

@@ -31,33 +31,32 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                             ],
                             bars: [
                                 {
-                                    id: "bar-1",
-                                    title: "Bar 1",
+                                    id: 'bar-1',
+                                    title: 'Bar 1',
                                     titleColor: White,
                                     barColor: Black,
                                     barTimelineStart: 20,
                                     barTimelineEnd: 80,
-                                    rowId: "row1"
+                                    rowId: 'row1',
                                 },
                                 {
-                                    id: "bar-2",
-                                    title: "Bar 2",
+                                    id: 'bar-2',
+                                    title: 'Bar 2',
                                     titleColor: White,
                                     barColor: Black,
                                     barTimelineStart: 90,
                                     barTimelineEnd: 100,
-                                    rowId: "row1"
+                                    rowId: 'row1',
                                 },
                                 {
-                                    id: "bar-3",
-                                    title: "Bar 3",
+                                    id: 'bar-3',
+                                    title: 'Bar 3',
                                     titleColor: White,
                                     barColor: Black,
                                     barTimelineStart: 45,
                                     barTimelineEnd: 65,
-                                    rowId: "row2"
-                                }
-                                
+                                    rowId: 'row2',
+                                },
                             ],
                             timeline: {
                                 start: 0,

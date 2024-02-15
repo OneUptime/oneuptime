@@ -10,7 +10,9 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
-import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel, {
+    AnalyticsBaseModelType,
+} from 'Common/AnalyticsModels/BaseModel';
 import logger from './Logger';
 
 export default abstract class Realtime {

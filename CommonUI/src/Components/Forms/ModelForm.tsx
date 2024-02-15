@@ -50,7 +50,7 @@ export enum FormType {
     Update,
 }
 
-export interface ModelField<TBaseModel extends BaseModel| AnalyticsBaseModel>
+export interface ModelField<TBaseModel extends BaseModel | AnalyticsBaseModel>
     extends Field<TBaseModel> {
     overrideField?:
         | {

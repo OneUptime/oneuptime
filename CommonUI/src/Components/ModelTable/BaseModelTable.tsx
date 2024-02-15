@@ -67,34 +67,40 @@ export enum ShowTableAs {
     OrderedStatesList,
 }
 
-export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBaseModel> {
+export interface BaseTableCallbacks<
+    TBaseModel extends BaseModel | AnalyticsBaseModel
+> {
     deleteItem: (item: TBaseModel) => Promise<void>;
     getModelFromJSON: (item: JSONObject) => TBaseModel;
     getJSONFromModel: (item: TBaseModel) => JSONObject;
     addSlugToSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
     getList: (data: {
-        query: Query<TBaseModel>,
-        limit: number,
-        skip: number,
-        sort: Sort<TBaseModel>,
-        select: Select<TBaseModel>,
-        requestOptions?: RequestOptions | undefined,
+        query: Query<TBaseModel>;
+        limit: number;
+        skip: number;
+        sort: Sort<TBaseModel>;
+        select: Select<TBaseModel>;
+        requestOptions?: RequestOptions | undefined;
     }) => Promise<ListResult<TBaseModel>>;
     toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
-    updateById: (data: {
-        id: ObjectID,
-        data: JSONObject,
-    }) => Promise<void>;
+    updateById: (data: { id: ObjectID; data: JSONObject }) => Promise<void>;
     showCreateEditModal: (data: {
-        modalType: ModalType,
-        modelIdToEdit?: ObjectID | undefined,
-        onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined,
-        onSuccess?: ((item: TBaseModel) => void) | undefined,
-        onClose?: (() => void) | undefined,
+        modalType: ModalType;
+        modelIdToEdit?: ObjectID | undefined;
+        onBeforeCreate?:
+            | ((
+                  item: TBaseModel,
+                  miscDataProps: JSONObject
+              ) => Promise<TBaseModel>)
+            | undefined;
+        onSuccess?: ((item: TBaseModel) => void) | undefined;
+        onClose?: (() => void) | undefined;
     }) => ReactElement;
 }
 
-export interface BaseTableProps<TBaseModel extends BaseModel | AnalyticsBaseModel> {
+export interface BaseTableProps<
+    TBaseModel extends BaseModel | AnalyticsBaseModel
+> {
     modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
@@ -162,7 +168,9 @@ export interface BaseTableProps<TBaseModel extends BaseModel | AnalyticsBaseMode
     name: string;
 }
 
-export interface ComponentProps<TBaseModel extends BaseModel | AnalyticsBaseModel> extends BaseTableProps<TBaseModel> {
+export interface ComponentProps<
+    TBaseModel extends BaseModel | AnalyticsBaseModel
+> extends BaseTableProps<TBaseModel> {
     callbacks: BaseTableCallbacks<TBaseModel>;
 }
 
@@ -176,7 +184,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const model: TBaseModel = new props.modelType();
 
     let showTableAs: ShowTableAs | undefined = props.showTableAs;
@@ -189,7 +196,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const [viewId, setViewId] = useState<string | null>(null);
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
-    
+
     const [actionButtonSchema, setActionButtonSchema] = useState<
         Array<ActionButtonSchema>
     >([]);
@@ -274,7 +281,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
     }, [tableColumns]);
 
-    const getRelationSelect = (): Select<TBaseModel> => {
+    const getRelationSelect: Function = (): Select<TBaseModel> => {
         const relationSelect: Select<TBaseModel> = {};
 
         for (const column of props.columns || []) {
@@ -312,7 +319,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setIsLoading(true);
 
         try {
-
             await props.callbacks.deleteItem(item);
 
             props.onItemDeleted && props.onItemDeleted(item);
@@ -355,7 +361,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                 if (column.tooltipText) {
                     tooltipText = (item: JSONObject): string => {
-
                         return column.tooltipText!(
                             props.callbacks.getModelFromJSON(item)
                         );
@@ -504,7 +509,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                 const query: Query<TBaseModel> = column.filterQuery || {};
 
-                const listResult: ListResult<TBaseModel> = await props.callbacks.getList({
+                const listResult: ListResult<TBaseModel> =
+                    await props.callbacks.getList({
                         query: query,
                         limit: LIMIT_PER_PROJECT,
                         skip: 0,
@@ -514,8 +520,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         } as any,
                         sort: {},
                     });
-
-                    
 
                 classicColumn.filterDropdownOptions = [];
                 for (const item of listResult.data) {
@@ -637,10 +641,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
 
         for (const moreField of selectMoreFields) {
-            if (
-                model.hasColumn(moreField) &&
-                model.isEntityColumn(moreField)
-            ) {
+            if (model.hasColumn(moreField) && model.isEntityColumn(moreField)) {
                 (selectFields as Dictionary<boolean>)[moreField] = (
                     props.selectMoreFields as any
                 )[moreField];
@@ -656,7 +657,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return selectFields;
     };
 
-     
     const setHeaderButtons: Function = (): void => {
         // add header buttons.
         let headerbuttons: Array<CardButtonSchema> = [];
@@ -876,11 +876,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     ) => {
                         try {
                             const baseModel: TBaseModel =
-                            props.callbacks.getModelFromJSON(item);
+                                props.callbacks.getModelFromJSON(item);
 
                             if (props.onBeforeView) {
                                 item = props.callbacks.getJSONFromModel(
-                                    await props.onBeforeView(baseModel),
+                                    await props.onBeforeView(baseModel)
                                 );
                             }
 
@@ -934,9 +934,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             if (props.onBeforeEdit) {
                                 item = props.callbacks.getJSONFromModel(
                                     await props.onBeforeEdit(
-                                        props.callbacks.getModelFromJSON(
-                                            item
-                                        )
+                                        props.callbacks.getModelFromJSON(item)
                                     )
                                 );
                             }
@@ -967,9 +965,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             if (props.onBeforeDelete) {
                                 item = props.callbacks.getJSONFromModel(
                                     await props.onBeforeDelete(
-                                        props.callbacks.getModelFromJSON(
-                                            item
-                                        )
+                                        props.callbacks.getModelFromJSON(item)
                                     )
                                 );
                             }
@@ -1339,59 +1335,55 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    
-
     return (
         <>
             <div className="mb-5 mt-5">{getCardComponent()}</div>
 
-            {showModel ? props.callbacks.showCreateEditModal({
-                onClose: () => {
-                    setShowModal(false);
-                },
-                modalType: modalType,
-                onBeforeCreate: async (
-                    item: TBaseModel,
-                    miscDataProps: JSONObject
-                ) => {
-                    if (
-                        showTableAs === ShowTableAs.OrderedStatesList &&
-                        props.orderedStatesListProps?.orderField &&
-                        orderedStatesListNewItemOrder
-                    ) {
-                        item.setColumnValue(
-                            props.orderedStatesListProps.orderField,
+            {showModel ? (
+                props.callbacks.showCreateEditModal({
+                    onClose: () => {
+                        setShowModal(false);
+                    },
+                    modalType: modalType,
+                    onBeforeCreate: async (
+                        item: TBaseModel,
+                        miscDataProps: JSONObject
+                    ) => {
+                        if (
+                            showTableAs === ShowTableAs.OrderedStatesList &&
+                            props.orderedStatesListProps?.orderField &&
                             orderedStatesListNewItemOrder
-                        );
-                    }
+                        ) {
+                            item.setColumnValue(
+                                props.orderedStatesListProps.orderField,
+                                orderedStatesListNewItemOrder
+                            );
+                        }
 
-                    if (props.onBeforeCreate) {
-                        item = await props.onBeforeCreate(
-                            item,
-                            miscDataProps
-                        );
-                    }
+                        if (props.onBeforeCreate) {
+                            item = await props.onBeforeCreate(
+                                item,
+                                miscDataProps
+                            );
+                        }
 
-                    return item;
-                },
-                onSuccess: async (item: TBaseModel): Promise<void> => {
-                    setShowModal(false);
-                    setCurrentPageNumber(1);
-                    fetchItems();
-                    if (props.onCreateSuccess) {
-                        await props.onCreateSuccess(item);
-                    }
+                        return item;
+                    },
+                    onSuccess: async (item: TBaseModel): Promise<void> => {
+                        setShowModal(false);
+                        setCurrentPageNumber(1);
+                        fetchItems();
+                        if (props.onCreateSuccess) {
+                            await props.onCreateSuccess(item);
+                        }
 
-                    return Promise.resolve();
-                },
-                modelIdToEdit: 
-                    currentEditableItem
+                        return Promise.resolve();
+                    },
+                    modelIdToEdit: currentEditableItem
                         ? new ObjectID(currentEditableItem['_id'] as string)
-                        : undefined
-                ,
-
-
-            }) : (
+                        : undefined,
+                })
+            ) : (
                 <></>
             )}
 
@@ -1413,7 +1405,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             currentDeleteableItem['_id']
                         ) {
                             deleteItem(
-                                props.callbacks.getModelFromJSON(currentDeleteableItem)
+                                props.callbacks.getModelFromJSON(
+                                    currentDeleteableItem
+                                )
                             );
                             setShowDeleteConfirmModal(false);
                         }

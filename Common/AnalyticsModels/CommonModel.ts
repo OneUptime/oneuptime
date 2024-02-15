@@ -46,10 +46,6 @@ export default class CommonModel {
         this._tableColumns = v;
     }
 
-    
-    
-    
-
     public setColumnValue(
         columnName: string,
         value: JSONValue | Array<CommonModel>
@@ -234,6 +230,4 @@ export default class CommonModel {
 
         return json;
     }
-
-    
 }
