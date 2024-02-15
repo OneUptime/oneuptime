@@ -25,7 +25,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         'Traces are the individual spans that make up a request. They are the building blocks of a trace and represent the work done by a single service.',
                 }}
                 query={{
-                    projectId: DashboardNavigation.getProjectId(), 
+                    projectId: DashboardNavigation.getProjectId(),
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
@@ -40,7 +40,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Fragment>

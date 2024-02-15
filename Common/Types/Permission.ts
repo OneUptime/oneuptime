@@ -2399,10 +2399,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
-
             {
                 permission: Permission.CanCreateTelemetryServiceTraces,
                 title: 'Can Create Telemetry Service Traces',

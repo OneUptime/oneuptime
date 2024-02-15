@@ -48,9 +48,11 @@ const Home: FunctionComponent<PageComponentProps> = (
                         order: 1,
                     },
                 }}
-                fetchRequestOptions={{
-                    isMultiTenantRequest: true,
-                } as RequestOptions}
+                fetchRequestOptions={
+                    {
+                        isMultiTenantRequest: true,
+                    } as RequestOptions
+                }
                 selectMoreFields={{
                     projectId: true,
                 }}

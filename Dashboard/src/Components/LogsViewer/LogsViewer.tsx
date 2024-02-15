@@ -78,7 +78,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                     sort: {
                         time: SortOrder.Descending,
                     },
-                    requestOptions: {}
+                    requestOptions: {},
                 });
 
             // reverse the logs so that the newest logs are at the bottom

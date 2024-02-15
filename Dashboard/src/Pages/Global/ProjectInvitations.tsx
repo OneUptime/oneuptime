@@ -47,12 +47,16 @@ const Home: FunctionComponent<PageComponentProps> = (
                     userId: User.getUserId(),
                     hasAcceptedInvitation: false,
                 }}
-                fetchRequestOptions={{
-                    isMultiTenantRequest: true,
-                } as RequestOptions}
-                deleteRequestOptions={{
-                    isMultiTenantRequest: true,
-                } as RequestOptions}
+                fetchRequestOptions={
+                    {
+                        isMultiTenantRequest: true,
+                    } as RequestOptions
+                }
+                deleteRequestOptions={
+                    {
+                        isMultiTenantRequest: true,
+                    } as RequestOptions
+                }
                 isEditable={false}
                 showRefreshButton={true}
                 isCreateable={false}
