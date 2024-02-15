@@ -81,7 +81,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                         return select;
                     },
 
-                    showCreateModal: (data: {
+                    showCreateEditModal: (data: {
                         modalType: ModalType,
                         modelIdToEdit?: ObjectID | undefined,
                         onBeforeCreate?: ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>) | undefined,
@@ -143,7 +143,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                                 }
                             />
                         )
-                    }
+                    },
 
                     getModelFromJSON: (item: JSONObject): TBaseModel => {
                         return BaseModel.fromJSON(item, props.modelType) as TBaseModel;

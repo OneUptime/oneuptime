@@ -26,11 +26,11 @@ export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
 }
 
 export default class ModelAPI {
-    public static async create<TAnalyticsBaseModel extends AnalyticsBaseModel>(
+    public static async create<TAnalyticsBaseModel extends AnalyticsBaseModel>(data: {
         model: TAnalyticsBaseModel,
         modelType: { new(): TAnalyticsBaseModel },
         requestOptions?: RequestOptions | undefined
-    ): Promise<
+    }): Promise<
         HTTPResponse<
             | JSONObject
             | JSONArray
@@ -38,13 +38,16 @@ export default class ModelAPI {
             | Array<TAnalyticsBaseModel>
         >
     > {
-        return await ModelAPI.createOrUpdate(
+
+        const { model, modelType, requestOptions } = data;
+
+        return await ModelAPI.createOrUpdate({
             model,
             modelType,
-            FormType.Create,
-            {},
+            formType: FormType.Create,
+            miscDataProps: {},
             requestOptions
-        );
+        });
     }
 
     public static async update<TAnalyticsBaseModel extends AnalyticsBaseModel>(
@@ -58,18 +61,18 @@ export default class ModelAPI {
             | Array<TAnalyticsBaseModel>
         >
     > {
-        return await ModelAPI.createOrUpdate(model, modelType, FormType.Update);
+        return await ModelAPI.createOrUpdate({model, modelType, formType: FormType.Update});
     }
 
     public static async updateById<
         TAnalyticsBaseModel extends AnalyticsBaseModel
-    >(
+    >(args: {
         modelType: { new(): TAnalyticsBaseModel },
         id: ObjectID,
         data: JSONObject,
         apiUrlOverride?: URL,
         requestOptions?: RequestOptions
-    ): Promise<
+    }): Promise<
         HTTPResponse<
             | JSONObject
             | JSONArray
@@ -77,6 +80,9 @@ export default class ModelAPI {
             | Array<TAnalyticsBaseModel>
         >
     > {
+
+        const { modelType, id, data, apiUrlOverride, requestOptions } = args;
+
         const model: AnalyticsBaseModel = new modelType();
         let apiUrl: URL | null = apiUrlOverride || null;
 
@@ -125,13 +131,16 @@ export default class ModelAPI {
 
     public static async createOrUpdate<
         TAnalyticsBaseModel extends AnalyticsBaseModel
-    >(
+    >(data: {
         model: TAnalyticsBaseModel,
         modelType: { new(): TAnalyticsBaseModel },
         formType: FormType,
         miscDataProps?: JSONObject,
         requestOptions?: RequestOptions | undefined
-    ): Promise<HTTPResponse<TAnalyticsBaseModel>> {
+    }): Promise<HTTPResponse<TAnalyticsBaseModel>> {
+
+        const { model, modelType, formType, miscDataProps, requestOptions } = data;
+
         let apiUrl: URL | null = requestOptions?.overrideRequestUrl || null;
 
         if (!apiUrl) {
@@ -192,7 +201,7 @@ export default class ModelAPI {
         skip: number,
         select: Select<TAnalyticsBaseModel>,
         sort: Sort<TAnalyticsBaseModel>,
-        requestOptions?: RequestOptions
+        requestOptions?: RequestOptions | undefined
     }): Promise<ListResult<TAnalyticsBaseModel>> {
 
         const { modelType, query, limit, skip, select, sort, requestOptions } = data;
