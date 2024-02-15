@@ -7,4 +7,5 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
         super({ modelType: Span, database: clickhouseDatabase });
     }
 }
+
 export default new SpanService();
