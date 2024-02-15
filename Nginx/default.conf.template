@@ -39,8 +39,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80;
-    http2  on;
+    listen 80 http2;
 
     server_name oneuptime-opentelemetry-collector ${OTEL_COLLECTOR_HOST};
 
@@ -80,8 +79,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80;
-    http2  on;
+    listen 80 http2;
 
     server_name oneuptime-fluentd-collector ${FLUENTD_HOST};
 
@@ -300,8 +298,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
     
-    listen 80;
-    http2  on;
+    listen 80 http2;
 
     server_name localhost ${HOST}; #All domains
 
