@@ -114,7 +114,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW
+                                        PageMap.TELEMETRY_SERVICES_VIEW
                                     ] as Route
                                 }
                             />
@@ -131,7 +131,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_DELETE
+                                        PageMap.TELEMETRY_SERVICES_VIEW_DELETE
                                     ] as Route
                                 }
                             />
@@ -148,14 +148,13 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_LOGS
+                                        PageMap.TELEMETRY_SERVICES_VIEW_LOGS
                                     ] as Route
                                 }
                             />
                         </Suspense>
                     }
                 />
-
 
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
@@ -167,7 +166,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_TRACE
+                                        PageMap.TELEMETRY_SERVICES_VIEW_TRACE
                                     ] as Route
                                 }
                             />
@@ -185,7 +184,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                        PageMap.TELEMETRY_SERVICES_VIEW_TRACES
                                     ] as Route
                                 }
                             />
@@ -203,7 +202,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_METRICS
+                                        PageMap.TELEMETRY_SERVICES_VIEW_METRICS
                                     ] as Route
                                 }
                             />
@@ -221,8 +220,8 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap
-                                        .TELEMETRY_SERVICES_VIEW_DASHBOARDS
+                                        PageMap
+                                            .TELEMETRY_SERVICES_VIEW_DASHBOARDS
                                     ] as Route
                                 }
                             />
@@ -240,7 +239,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
+                                        PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS
                                     ] as Route
                                 }
                             />
@@ -258,8 +257,8 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                    PageMap
-                                        .TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                                        PageMap
+                                            .TELEMETRY_SERVICES_VIEW_DOCUMENTATION
                                     ] as Route
                                 }
                             />

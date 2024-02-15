@@ -10,7 +10,6 @@ import ObjectID from 'Common/Types/ObjectID';
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
@@ -21,10 +20,10 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={false}
-                singularName='Trace'
-                pluralName='Traces'
+                singularName="Trace"
+                pluralName="Traces"
                 name="Traces"
-                isViewable={true}
+                isViewable={false}
                 cardProps={{
                     title: 'Traces',
                     description:
@@ -32,7 +31,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 }}
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
-                    serviceId: modelId
+                    serviceId: modelId,
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
