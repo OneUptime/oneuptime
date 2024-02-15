@@ -15,7 +15,7 @@ export interface ComponentProps<TBaseModel extends AnalyticsBaseModel>
     modelAPI?: typeof ModelAPI | undefined;
 }
 
-const ModelTable: <TBaseModel extends AnalyticsBaseModel>(
+const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
     props: ComponentProps<TBaseModel>
 ) => ReactElement = <TBaseModel extends AnalyticsBaseModel>(
     props: ComponentProps<TBaseModel>
@@ -109,4 +109,4 @@ const ModelTable: <TBaseModel extends AnalyticsBaseModel>(
     );
 };
 
-export default ModelTable;
+export default AnalyticsModelTable;
