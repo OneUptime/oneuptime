@@ -206,6 +206,10 @@ export default class BaseModel extends BaseEntity {
         return dictionary[columnName] as TableColumnMetadata;
     }
 
+    public hasColumn(columnName: string): boolean {
+        return Boolean(getTableColumn(this, columnName));
+    }
+
     public getColumnBillingAccessControl(
         columnName: string
     ): ColumnBillingAccessControl {

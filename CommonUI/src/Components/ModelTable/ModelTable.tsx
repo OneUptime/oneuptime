@@ -68,38 +68,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
                         });
                     },
 
-                    getRelationSelect: (): Select<TBaseModel> => {
-                        const relationSelect: Select<TBaseModel> = {};
                 
-                        for (const column of props.columns || []) {
-                            const key: string | null = column.field
-                                ? (Object.keys(column.field)[0] as string)
-                                : null;
-                
-                            if (key && model.isFileColumn(key)) {
-                                (relationSelect as JSONObject)[key] = {
-                                    file: true,
-                                    _id: true,
-                                    type: true,
-                                    name: true,
-                                };
-                            } else if (key && model.isEntityColumn(key)) {
-                                if (!(relationSelect as JSONObject)[key]) {
-                                    (relationSelect as JSONObject)[key] = {};
-                                }
-                
-                                (relationSelect as JSONObject)[key] = {
-                                    ...((relationSelect as JSONObject)[key] as JSONObject),
-                                    ...(column.field as any)[key],
-                                };
-                            }
-                        }
-                
-                        return relationSelect;
-                    },
-                
-
-                    getSelect: (select: Select<TBaseModel>): Select<TBaseModel> => {
+                    addSlugToSelect: (select: Select<TBaseModel>): Select<TBaseModel> => {
                         const slugifyColumn: string | null = (model as  BaseModel).getSlugifyColumn();
 
                         if (slugifyColumn) {

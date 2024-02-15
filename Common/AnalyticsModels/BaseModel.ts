@@ -368,6 +368,17 @@ export default class AnalyticsBaseModel extends CommonModel {
         return false;
     }
 
+    public hasColumn(columnName: string): boolean {
+        return this.tableColumns.some((column: AnalyticsTableColumn) => {
+            return column.key === columnName;
+        });
+    }
+
+    public isFileColumn(_columnName: string): boolean {
+        // Analytics model does not suppprt file columns.
+        return false; 
+    }
+
 
     public hasCreatePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>,

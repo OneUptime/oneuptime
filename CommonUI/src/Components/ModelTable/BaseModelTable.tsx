@@ -73,7 +73,7 @@ export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBase
     deleteItem: (item: TBaseModel) => Promise<void>;
     getModelFromJSON: (item: JSONObject) => TBaseModel;
     getJSONFromModel: (item: TBaseModel) => JSONObject;
-    getSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
+    addSlugToSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
     getList: (data: {
         query: Query<TBaseModel>,
         limit: number,
@@ -82,7 +82,6 @@ export interface BaseTableCallbacks<TBaseModel extends BaseModel | AnalyticsBase
         select: Select<TBaseModel>,
         requestOptions?: RequestOptions | undefined,
     }) => Promise<ListResult<TBaseModel>>;
-    getRelationSelect: (() => Select<TBaseModel>);
     toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
     updateById: (data: {
         id: ObjectID,
@@ -270,6 +269,36 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
     }, [tableColumns]);
 
+    const getRelationSelect = (): Select<TBaseModel> => {
+        const relationSelect: Select<TBaseModel> = {};
+
+        for (const column of props.columns || []) {
+            const key: string | null = column.field
+                ? (Object.keys(column.field)[0] as string)
+                : null;
+
+            if (key && model.isFileColumn(key)) {
+                (relationSelect as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true,
+                };
+            } else if (key && model.isEntityColumn(key)) {
+                if (!(relationSelect as JSONObject)[key]) {
+                    (relationSelect as JSONObject)[key] = {};
+                }
+
+                (relationSelect as JSONObject)[key] = {
+                    ...((relationSelect as JSONObject)[key] as JSONObject),
+                    ...(column.field as any)[key],
+                };
+            }
+        }
+
+        return relationSelect;
+    };
+
     const deleteItem: Function = async (item: TBaseModel) => {
         if (!item.id) {
             throw new BadDataException('item.id cannot be null');
@@ -303,7 +332,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             _id: true,
         };
 
-        selectFields = props.callbacks.getSelect(selectFields);
+        selectFields = props.callbacks.addSlugToSelect(selectFields);
 
         const userPermissions: Array<Permission> = getUserPermissions();
 
@@ -540,7 +569,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     skip: (currentPageNumber - 1) * itemsOnPage,
                     select: {
                         ...getSelect(),
-                        ...props.callbacks.getRelationSelect(),
+                        ...getRelationSelect(),
                     },
                     sort: sortBy
                         ? {
@@ -576,7 +605,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 : null;
 
             if (key) {
-                if (model.getTableColumnMetadata(key)) {
+                if (model.hasColumn(key)) {
                     (selectFields as Dictionary<boolean>)[key] = true;
                 } else {
                     throw new BadDataException(
@@ -604,13 +633,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         for (const moreField of selectMoreFields) {
             if (
-                model.getTableColumnMetadata(moreField) &&
+                model.hasColumn(moreField) &&
                 model.isEntityColumn(moreField)
             ) {
                 (selectFields as Dictionary<boolean>)[moreField] = (
                     props.selectMoreFields as any
                 )[moreField];
-            } else if (model.getTableColumnMetadata(moreField)) {
+            } else if (model.hasColumn(moreField)) {
                 (selectFields as Dictionary<boolean>)[moreField] = true;
             } else {
                 throw new BadDataException(
@@ -1304,6 +1333,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             </div>
         );
     };
+
+    
 
     return (
         <>
