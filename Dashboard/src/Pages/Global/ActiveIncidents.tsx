@@ -15,6 +15,7 @@ import Color from 'Common/Types/Color';
 import ProjectElement from '../../Components/Project/Project';
 import Project from 'Model/Models/Project';
 import BaseModel from 'Common/Models/BaseModel';
+import { RequestOptions } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -49,7 +50,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                 }}
                 fetchRequestOptions={{
                     isMultiTenantRequest: true,
-                }}
+                } as RequestOptions}
                 selectMoreFields={{
                     projectId: true,
                 }}

@@ -11,7 +11,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI, { RequestOptions } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
@@ -49,10 +49,10 @@ const Home: FunctionComponent<PageComponentProps> = (
                 }}
                 fetchRequestOptions={{
                     isMultiTenantRequest: true,
-                }}
+                } as RequestOptions}
                 deleteRequestOptions={{
                     isMultiTenantRequest: true,
-                }}
+                } as RequestOptions}
                 isEditable={false}
                 showRefreshButton={true}
                 isCreateable={false}
