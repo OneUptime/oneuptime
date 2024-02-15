@@ -9,9 +9,8 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import BaseModel from 'Common/Models/BaseModel';
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
-import ModelTable, {
-    ShowTableAs,
-} from 'CommonUI/src/Components/ModelTable/ModelTable';
+import { ShowTableAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';

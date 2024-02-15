@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect, useState } from 'react';
-import Query from '../../Utils/ModelAPI/Query';
+import Query from '../../Utils/BaseDatabase/Query';
 import BaseModel from 'Common/Models/BaseModel';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
@@ -8,7 +8,7 @@ import ModelAPI, {
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Select from '../../Utils/ModelAPI/Select';
+import Select from '../../Utils/BaseDatabase/Select';
 import Input from '../Input/Input';
 import StaticModelList from '../ModelList/StaticModelList';
 import API from '../../Utils/API/API';

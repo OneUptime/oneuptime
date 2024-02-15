@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import BaseModel from '../../Models/BaseModel';
+import BaseModel, { BaseModelType } from '../../Models/BaseModel';
 import Dictionary from '../Dictionary';
 import { ReflectionMetadataType } from '../Reflection';
 import TableColumnType from './TableColumnType';
@@ -18,7 +18,7 @@ export interface TableColumnMetadata {
     manyToOneRelationColumn?: string;
     type: TableColumnType;
     canReadOnRelationQuery?: boolean;
-    modelType?: { new (): BaseModel };
+    modelType?: BaseModelType;
     forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
 }
 

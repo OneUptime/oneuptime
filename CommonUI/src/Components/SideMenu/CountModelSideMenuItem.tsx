@@ -2,7 +2,7 @@ import Link from 'Common/Types/Link';
 import React, { ReactElement, useEffect, useState } from 'react';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import BaseModel from 'Common/Models/BaseModel';
-import Query from '../../Utils/ModelAPI/Query';
+import Query from '../../Utils/BaseDatabase/Query';
 import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
 import API from '../../Utils/API/API';

@@ -15,7 +15,7 @@ import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import ObjectID from 'Common/Types/ObjectID';
-import Query from 'CommonUI/src/Utils/ModelAPI/Query';
+import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import OnCallPolicyView from '../OnCallPolicy';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';

@@ -1,8 +1,8 @@
 import React, { ReactElement, useState } from 'react';
 import Modal from '../Modal/Modal';
-import Query from '../../Utils/ModelAPI/Query';
+import Query from '../../Utils/BaseDatabase/Query';
 import BaseModel from 'Common/Models/BaseModel';
-import Select from '../../Utils/ModelAPI/Select';
+import Select from '../../Utils/BaseDatabase/Select';
 import ModelList from '../ModelList/ModelList';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

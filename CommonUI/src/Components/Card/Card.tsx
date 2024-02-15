@@ -30,7 +30,7 @@ const Card: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <section className={props.className}>
+            <div className={props.className}>
                 <div className="shadow sm:overflow-hidden sm:rounded-md">
                     <div className="bg-white py-6 px-4 sm:p-6">
                         <div className="flex justify-between">
@@ -98,7 +98,7 @@ const Card: FunctionComponent<ComponentProps> = (
                         )}
                     </div>
                 </div>
-            </section>
+            </div>
         </React.Fragment>
     );
 };

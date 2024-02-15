@@ -3,7 +3,9 @@ import Permission, {
     PermissionHelper,
     UserPermission,
 } from 'Common/Types/Permission';
-import BaseModel from 'Common/AnalyticsModels/BaseModel';
+import BaseModel, {
+    AnalyticsBaseModelType,
+} from 'Common/AnalyticsModels/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import PaymentRequiredException from 'Common/Types/Exception/PaymentRequiredException';
@@ -312,7 +314,7 @@ export default class ModelPermission {
     }
 
     private static checkQueryPermission<TBaseModel extends BaseModel>(
-        modelType: { new (): BaseModel },
+        modelType: AnalyticsBaseModelType,
         query: Query<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): void {
@@ -510,7 +512,7 @@ export default class ModelPermission {
     }
 
     private static checkSelectPermission<TBaseModel extends BaseModel>(
-        modelType: { new (): BaseModel },
+        modelType: AnalyticsBaseModelType,
         select: Select<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): void {
@@ -563,7 +565,7 @@ export default class ModelPermission {
     }
 
     private static getModelPermissions(
-        modelType: { new (): BaseModel },
+        modelType: AnalyticsBaseModelType,
         type: DatabaseRequestType
     ): Array<Permission> {
         let modelPermissions: Array<Permission> = [];
@@ -589,7 +591,7 @@ export default class ModelPermission {
     }
 
     private static isPublicPermissionAllowed(
-        modelType: { new (): BaseModel },
+        modelType: AnalyticsBaseModelType,
         type: DatabaseRequestType
     ): boolean {
         let isPublicAllowed: boolean = false;
@@ -600,7 +602,7 @@ export default class ModelPermission {
     }
 
     public static checkIfUserIsLoggedIn(
-        modelType: { new (): BaseModel },
+        modelType: AnalyticsBaseModelType,
         props: DatabaseCommonInteractionProps,
         type: DatabaseRequestType
     ): void {
@@ -622,7 +624,7 @@ export default class ModelPermission {
     }
 
     private static checkModelLevelPermissions(
-        modelType: { new (): BaseModel },
+        modelType: AnalyticsBaseModelType,
         props: DatabaseCommonInteractionProps,
         type: DatabaseRequestType
     ): void {

@@ -4,9 +4,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import OnCallDutyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import ModelTable, {
-    ShowTableAs,
-} from 'CommonUI/src/Components/ModelTable/ModelTable';
+import { ShowTableAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';

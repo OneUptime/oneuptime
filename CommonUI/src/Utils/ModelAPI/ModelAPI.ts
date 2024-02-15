@@ -1,7 +1,7 @@
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
-import Query from './Query';
-import Select from './Select';
+import Query from '../BaseDatabase/Query';
+import Select from '../BaseDatabase/Select';
 import API from '../../Utils/API/API';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
@@ -15,9 +15,11 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
-import Sort from './Sort';
+import Sort from '../BaseDatabase/Sort';
 import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
+import BaseListResult from '../BaseDatabase/ListResult';
+import BaseRequestOptions from '../BaseDatabase/RequestOptions';
 
 export class ModelAPIHttpResponse<
     TBaseModel extends BaseModel
@@ -25,17 +27,11 @@ export class ModelAPIHttpResponse<
     public miscData?: JSONObject | undefined;
 }
 
-export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
-    data: Array<TBaseModel>;
-    count: number;
-    skip: number;
-    limit: number;
-}
+export interface ListResult<TBaseModel extends BaseModel>
+    extends BaseListResult<TBaseModel> {}
 
-export interface RequestOptions {
+export interface RequestOptions extends BaseRequestOptions {
     isMultiTenantRequest?: boolean | undefined;
-    requestHeaders?: Dictionary<string> | undefined;
-    overrideRequestUrl?: URL | undefined;
 }
 
 export default class ModelAPI {

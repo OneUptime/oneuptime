@@ -29,16 +29,25 @@ const TelemetryServiceViewDelete: LazyExoticComponent<
 > = lazy(() => {
     return import('../Pages/Telemetry/Services/View/Delete');
 });
+
 const TelemetryServiceViewLogs: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
     return import('../Pages/Telemetry/Services/View/Logs/Index');
 });
+
 const TelemetryServiceViewTraces: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
     return import('../Pages/Telemetry/Services/View/Traces/Index');
 });
+
+const TelemetryServiceViewTrace: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Telemetry/Services/View/Traces/View/Index');
+});
+
 const TelemetryServiceViewMetrics: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -146,6 +155,25 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                         </Suspense>
                     }
                 />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.TELEMETRY_SERVICES_VIEW_TRACE
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <TelemetryServiceViewTrace
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.TELEMETRY_SERVICES_VIEW_TRACE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
                         PageMap.TELEMETRY_SERVICES_VIEW_TRACES

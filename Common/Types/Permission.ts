@@ -49,6 +49,13 @@ enum Permission {
     CanEditTelemetryServiceLog = 'CanEditTelemetryServiceLog',
     CanReadTelemetryServiceLog = 'CanReadTelemetryServiceLog',
 
+    // Spans
+
+    CanCreateTelemetryServiceTraces = 'CanCreateTelemetryServiceTraces',
+    CanDeleteTelemetryServiceTraces = 'CanDeleteTelemetryServiceTraces',
+    CanEditTelemetryServiceTraces = 'CanEditTelemetryServiceTraces',
+    CanReadTelemetryServiceTraces = 'CanReadTelemetryServiceTraces',
+
     // Billing Permissions (Owner Permission)
     CanManageProjectBilling = 'CanManageProjectBilling',
 
@@ -2388,6 +2395,39 @@ export class PermissionHelper {
                 title: 'Can Read Telemetry Service Log',
                 description:
                     'This permission can read Telemetry Service Log of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateTelemetryServiceTraces,
+                title: 'Can Create Telemetry Service Traces',
+                description:
+                    'This permission can create Telemetry Service Traces this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteTelemetryServiceTraces,
+                title: 'Can Delete Telemetry Service Traces',
+                description:
+                    'This permission can delete Telemetry Service Traces of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditTelemetryServiceTraces,
+                title: 'Can Edit Telemetry Service Traces',
+                description:
+                    'This permission can edit Telemetry Service Traces of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadTelemetryServiceTraces,
+                title: 'Can Read Telemetry Service Traces',
+                description:
+                    'This permission can read Telemetry Service Traces of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

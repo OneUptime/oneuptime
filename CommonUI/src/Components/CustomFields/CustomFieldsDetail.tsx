@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import Card from '../Card/Card';
 import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -18,8 +18,8 @@ export interface ComponentProps {
     title: string;
     description: string;
     modelId: ObjectID;
-    modelType: { new (): BaseModel };
-    customFieldType: { new (): BaseModel };
+    modelType: BaseModelType;
+    customFieldType: BaseModelType;
     projectId: ObjectID;
     name: string;
 }

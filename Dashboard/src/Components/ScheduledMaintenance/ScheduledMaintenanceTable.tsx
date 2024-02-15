@@ -11,7 +11,7 @@ import MonitorsElement from '../Monitor/Monitors';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import Label from 'Model/Models/Label';
 import LabelsElement from '../Label/Labels';
-import Query from 'CommonUI/src/Utils/ModelAPI/Query';
+import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
 import Route from 'Common/Types/API/Route';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../StatusPage/StatusPagesLabel';

@@ -10,7 +10,7 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import Query from 'CommonUI/src/Utils/ModelAPI/Query';
+import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
 import Route from 'Common/Types/API/Route';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import DashboardNavigation from '../../Utils/Navigation';

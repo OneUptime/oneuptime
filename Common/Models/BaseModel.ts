@@ -22,12 +22,7 @@ import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission, {
-    instanceOfUserTenantAccessPermission,
-    PermissionHelper,
-    UserPermission,
-    UserTenantAccessPermission,
-} from '../Types/Permission';
+import Permission, { UserTenantAccessPermission } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/BaseDatabase/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
@@ -38,6 +33,9 @@ import Text from '../Types/Text';
 import { getColumnBillingAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnBillingAccessControl';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import JSONFunctions from '../Types/JSONFunctions';
+import ModelPermission from '../Types/BaseDatabase/ModelPermission';
+
+export type BaseModelType = { new (): BaseModel };
 
 export type DbTypes =
     | string
@@ -204,6 +202,10 @@ export default class BaseModel extends BaseEntity {
         const dictionary: Dictionary<TableColumnMetadata> =
             getTableColumns(this);
         return dictionary[columnName] as TableColumnMetadata;
+    }
+
+    public hasColumn(columnName: string): boolean {
+        return Boolean(getTableColumn(this, columnName));
     }
 
     public getColumnBillingAccessControl(
@@ -455,7 +457,42 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
+    }
+
+    public getReadPermissions(): Array<Permission> {
+        return this.readRecordPermissions;
+    }
+
+    public getReadBillingPlan(): PlanSelect | null {
+        return this.readBillingPlan;
+    }
+
+    public getCreateBillingPlan(): PlanSelect | null {
+        return this.createBillingPlan;
+    }
+
+    public getUpdateBillingPlan(): PlanSelect | null {
+        return this.updateBillingPlan;
+    }
+
+    public getDeleteBillingPlan(): PlanSelect | null {
+        return this.deleteBillingPlan;
+    }
+
+    public getCreatePermissions(): Array<Permission> {
+        return this.createRecordPermissions;
+    }
+
+    public getUpdatePermissions(): Array<Permission> {
+        return this.updateRecordPermissions;
+    }
+
+    public getDeletePermissions(): Array<Permission> {
+        return this.deleteRecordPermissions;
     }
 
     public hasReadPermissions(
@@ -472,14 +509,20 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public hasDeletePermissions(
         userProjectPermissions: UserTenantAccessPermission | Array<Permission>
     ): boolean {
         const modelPermission: Array<Permission> = this.deleteRecordPermissions;
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public hasUpdatePermissions(
@@ -496,45 +539,19 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return this.hasPermissions(userProjectPermissions, modelPermission);
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 
     public getAPIDocumentationPath(): string {
         return Text.pascalCaseToDashes(this.tableName as string);
     }
 
-    private hasPermissions(
-        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
-        modelPermissions: Array<Permission>
-    ): boolean {
-        let userPermissions: Array<Permission> = [];
-
-        if (
-            instanceOfUserTenantAccessPermission(userProjectPermissions) &&
-            userProjectPermissions.permissions &&
-            Array.isArray(userProjectPermissions.permissions)
-        ) {
-            userPermissions = userProjectPermissions.permissions.map(
-                (item: UserPermission) => {
-                    return item.permission;
-                }
-            );
-        } else {
-            userPermissions = userProjectPermissions as Array<Permission>;
-        }
-
-        return Boolean(
-            userPermissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    modelPermissions,
-                    userPermissions
-                )
-        );
-    }
-
     public static toJSON(
         model: BaseModel,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONObject {
         const json: JSONObject = this.toJSONObject(model, modelType);
         return JSONFunctions.serialize(json);
@@ -542,7 +559,7 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSONObject(
         model: BaseModel,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONObject {
         const json: JSONObject = {};
 
@@ -589,7 +606,7 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSONObjectArray(
         list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONArray {
         const array: JSONArray = [];
 
@@ -602,7 +619,7 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSONArray(
         list: Array<BaseModel>,
-        modelType: { new (): BaseModel }
+        modelType: BaseModelType
     ): JSONArray {
         const array: JSONArray = [];
 

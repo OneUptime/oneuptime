@@ -6,6 +6,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
 import Route from 'Common/Types/API/Route';
+import Permission from 'Common/Types/Permission';
 
 export class SpanEvent extends NestedModel {
     public constructor() {
@@ -115,6 +116,32 @@ export default class Span extends AnalyticsBaseModel {
             singularName: 'Span',
             pluralName: 'Spans',
             crudApiPath: new Route('/span'),
+            accessControl: {
+                read: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanReadTelemetryServiceTraces,
+                ],
+                create: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanCreateTelemetryServiceTraces,
+                ],
+                update: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanEditTelemetryServiceTraces,
+                ],
+                delete: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanDeleteTelemetryServiceTraces,
+                ],
+            },
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',
@@ -123,6 +150,21 @@ export default class Span extends AnalyticsBaseModel {
                     required: true,
                     type: TableColumnType.ObjectID,
                     isTenantId: true,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -131,6 +173,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'ID of the Service which created the log',
                     required: true,
                     type: TableColumnType.ObjectID,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -139,6 +196,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'When did the span start?',
                     required: true,
                     type: TableColumnType.Date,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -147,6 +219,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'When did the span end?',
                     required: true,
                     type: TableColumnType.Date,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -155,6 +242,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'When did the span start?',
                     required: false,
                     type: TableColumnType.LongNumber,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -163,6 +265,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'When did the span end?',
                     required: false,
                     type: TableColumnType.LongNumber,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -171,6 +288,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'ID of the trace',
                     required: true,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -179,6 +311,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'ID of the span',
                     required: true,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -187,6 +334,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'ID of the parent span',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -195,6 +357,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Trace State',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -204,6 +381,21 @@ export default class Span extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.NestedModel,
                     nestedModelType: KeyValueNestedModel,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -213,6 +405,21 @@ export default class Span extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.NestedModel,
                     nestedModelType: SpanEvent,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -222,6 +429,21 @@ export default class Span extends AnalyticsBaseModel {
                     required: false,
                     type: TableColumnType.NestedModel,
                     nestedModelType: SpanLink,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -230,6 +452,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Status Code',
                     required: false,
                     type: TableColumnType.Number,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -238,6 +475,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Status Message',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -246,6 +498,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Name of the span',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
 
                 new AnalyticsTableColumn({
@@ -254,6 +521,21 @@ export default class Span extends AnalyticsBaseModel {
                     description: 'Kind of the span',
                     required: false,
                     type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
                 }),
             ],
             primaryKeys: [

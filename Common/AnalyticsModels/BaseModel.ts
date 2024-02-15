@@ -4,12 +4,22 @@ import BadDataException from '../Types/Exception/BadDataException';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
-import { TableAccessControl } from '../Types/BaseDatabase/AccessControl';
+import {
+    ColumnAccessControl,
+    TableAccessControl,
+} from '../Types/BaseDatabase/AccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
 import ObjectID from '../Types/ObjectID';
 import CommonModel from './CommonModel';
 import Route from '../Types/API/Route';
 import { EnableRealtimeEventsOn } from '../Utils/Realtime';
+import Text from '../Types/Text';
+import Dictionary from '../Types/Dictionary';
+import ModelPermission from '../Types/BaseDatabase/ModelPermission';
+import Permission, { UserTenantAccessPermission } from '../Types/Permission';
+import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
+
+export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
 
 export default class AnalyticsBaseModel extends CommonModel {
     public constructor(data: {
@@ -29,9 +39,10 @@ export default class AnalyticsBaseModel extends CommonModel {
         super({
             tableColumns: data.tableColumns,
         });
-        const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
         this.tableName = data.tableName;
+
+        const columns: Array<AnalyticsTableColumn> = [...data.tableColumns];
 
         if (data.tableEngine) {
             this.tableEngine = data.tableEngine;
@@ -131,14 +142,6 @@ export default class AnalyticsBaseModel extends CommonModel {
         this._accessControl = v;
     }
 
-    private _tableName: string = '';
-    public get tableName(): string {
-        return this._tableName;
-    }
-    public set tableName(v: string) {
-        this._tableName = v;
-    }
-
     private _tableEngine: AnalyticsTableEngine = AnalyticsTableEngine.MergeTree;
     public get tableEngine(): AnalyticsTableEngine {
         return this._tableEngine;
@@ -197,6 +200,14 @@ export default class AnalyticsBaseModel extends CommonModel {
     }
     public set allowAccessIfSubscriptionIsUnpaid(v: boolean) {
         this._allowAccessIfSubscriptionIsUnpaid = v;
+    }
+
+    private _tableName: string = '';
+    public get tableName(): string {
+        return this._tableName;
+    }
+    public set tableName(v: string) {
+        this._tableName = v;
     }
 
     private _crudApiPath!: Route;
@@ -289,5 +300,157 @@ export default class AnalyticsBaseModel extends CommonModel {
 
     public set updatedAt(v: Date | undefined) {
         this.setColumnValue('updatedAt', v);
+    }
+
+    public getAPIDocumentationPath(): string {
+        return Text.pascalCaseToDashes(this.tableName);
+    }
+
+    public getColumnAccessControlFor(
+        columnName: string
+    ): ColumnAccessControl | null {
+        const tableColumn: AnalyticsTableColumn | undefined =
+            this.tableColumns.find((column: AnalyticsTableColumn) => {
+                return column.key === columnName;
+            });
+
+        if (!tableColumn || !tableColumn.accessControl) {
+            return null;
+        }
+
+        return tableColumn.accessControl;
+    }
+
+    public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
+        const dictionary: Dictionary<ColumnAccessControl> = {};
+
+        for (const column of this.tableColumns) {
+            if (column.accessControl) {
+                dictionary[column.key] = column.accessControl;
+            }
+        }
+
+        return dictionary;
+    }
+
+    public getReadPermissions(): Array<Permission> {
+        return this.accessControl?.read || [];
+    }
+
+    public getCreatePermissions(): Array<Permission> {
+        return this.accessControl?.create || [];
+    }
+
+    public getUpdatePermissions(): Array<Permission> {
+        return this.accessControl?.update || [];
+    }
+
+    public getDeletePermissions(): Array<Permission> {
+        return this.accessControl?.delete || [];
+    }
+
+    public getReadBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.read || null;
+    }
+
+    public getCreateBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.create || null;
+    }
+
+    public getUpdateBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.update || null;
+    }
+
+    public getDeleteBillingPlan(): PlanSelect | null {
+        return this.tableBillingAccessControl?.delete || null;
+    }
+
+    public isEntityColumn(_columnName: string): boolean {
+        // Analytics model does not suppprt entity columns.
+        return false;
+    }
+
+    public hasColumn(columnName: string): boolean {
+        return this.tableColumns.some((column: AnalyticsTableColumn) => {
+            return column.key === columnName;
+        });
+    }
+
+    public isFileColumn(_columnName: string): boolean {
+        // Analytics model does not suppprt file columns.
+        return false;
+    }
+
+    public hasCreatePermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> =
+            this.accessControl?.create || [];
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl | null =
+                this.getColumnAccessControlFor(columnName);
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.create;
+            }
+        }
+
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
+    }
+
+    public hasReadPermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> = this.accessControl?.read || [];
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl | null =
+                this.getColumnAccessControlFor(columnName);
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.read;
+            }
+        }
+
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
+    }
+
+    public hasDeletePermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>
+    ): boolean {
+        const modelPermission: Array<Permission> =
+            this.accessControl?.delete || [];
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
+    }
+
+    public hasUpdatePermissions(
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> =
+            this.accessControl?.update || [];
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl | null =
+                this.getColumnAccessControlFor(columnName);
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.update;
+            }
+        }
+
+        return ModelPermission.hasPermissions(
+            userProjectPermissions,
+            modelPermission
+        );
     }
 }

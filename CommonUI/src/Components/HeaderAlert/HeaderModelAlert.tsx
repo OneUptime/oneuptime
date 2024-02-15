@@ -1,6 +1,6 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 import BaseModel from 'Common/Models/BaseModel';
-import Query from '../../Utils/ModelAPI/Query';
+import Query from '../../Utils/BaseDatabase/Query';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';

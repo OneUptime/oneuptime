@@ -426,6 +426,11 @@ import LogService, {
     LogService as LogServiceType,
 } from 'CommonServer/Services/LogService';
 
+import Span from 'Model/AnalyticsModels/Span';
+import SpanService, {
+    SpanService as SpanServiceType,
+} from 'CommonServer/Services/SpanService';
+
 import UsageBilling from 'Model/Models/UsageBilling';
 import UsageBillingService, {
     Service as UsageBillingServiceType,
@@ -451,6 +456,11 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAnalyticsAPI<Span, SpanServiceType>(Span, SpanService).getRouter()
 );
 
 app.use(

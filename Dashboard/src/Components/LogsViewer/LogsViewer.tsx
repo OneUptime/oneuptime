@@ -13,7 +13,7 @@ import Realtime from 'CommonUI/src/Utils/Realtime';
 import { ModelEventType } from 'Common/Utils/Realtime';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { FilterOption } from 'CommonUI/src/Components/LogsViewer/LogsFilters';
-import Query from 'CommonUI/src/Utils/AnalyticsModelAPI/Query';
+import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
 import Search from 'Common/Types/BaseDatabase/Search';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 
@@ -61,12 +61,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
         try {
             const listResult: ListResult<Log> =
-                await AnalyticsModelAPI.getList<Log>(
-                    Log,
-                    query,
-                    LIMIT_PER_PROJECT,
-                    0,
-                    {
+                await AnalyticsModelAPI.getList<Log>({
+                    modelType: Log,
+                    query: query,
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
                         body: true,
                         time: true,
                         projectId: true,
@@ -75,11 +75,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                         traceId: true,
                         severityText: true,
                     },
-                    {
+                    sort: {
                         time: SortOrder.Descending,
                     },
-                    {}
-                );
+                    requestOptions: {},
+                });
 
             // reverse the logs so that the newest logs are at the bottom
             listResult.data.reverse();
