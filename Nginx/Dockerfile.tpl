@@ -1,6 +1,5 @@
 FROM nginx:1.25.3-alpine 
 
-USER root
 
 ARG GIT_SHA
 ARG APP_VERSION
