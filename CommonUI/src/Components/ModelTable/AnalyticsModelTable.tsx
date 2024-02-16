@@ -1,4 +1,6 @@
-import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel, {
+    AnalyticsBaseModelType,
+} from 'Common/AnalyticsModels/BaseModel';
 import BaseModelTable, { BaseTableProps, ModalType } from './BaseModelTable';
 import ModelAPI from '../../Utils/AnalyticsModelAPI/AnalyticsModelAPI';
 import React, { ReactElement } from 'react';

@@ -58,7 +58,9 @@ import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
 import { ListDetailProps } from '../List/ListRow';
 import User from '../../Utils/User';
-import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel, {
+    AnalyticsBaseModelType,
+} from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
 
 export enum ShowTableAs {
@@ -572,7 +574,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         try {
             const listResult: ListResult<TBaseModel> =
                 await props.callbacks.getList({
-                    modelType: props.modelType as (BaseModelType | AnalyticsBaseModelType),
+                    modelType: props.modelType as
+                        | BaseModelType
+                        | AnalyticsBaseModelType,
                     query: {
                         ...query,
                         ...props.query,
