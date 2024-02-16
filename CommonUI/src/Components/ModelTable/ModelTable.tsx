@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import BaseModelTable, { BaseTableProps, ModalType } from './BaseModelTable';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
@@ -10,6 +10,7 @@ import Query from '../../Utils/BaseDatabase/Query';
 import Sort from '../../Utils/BaseDatabase/Sort';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
+import { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
 
 export interface ComponentProps<TBaseModel extends BaseModel>
     extends BaseTableProps<TBaseModel> {
@@ -50,6 +51,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 },
 
                 getList: async (data: {
+                    modelType: BaseModelType | AnalyticsBaseModelType;
                     query: Query<TBaseModel>;
                     limit: number;
                     skip: number;
@@ -58,7 +60,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                     requestOptions?: RequestOptions | undefined;
                 }) => {
                     return await modelAPI.getList<TBaseModel>({
-                        modelType: props.modelType,
+                        modelType: data.modelType as { new (): TBaseModel },
                         query: data.query,
                         limit: data.limit,
                         skip: data.skip,

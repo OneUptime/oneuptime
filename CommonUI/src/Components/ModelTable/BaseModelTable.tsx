@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import React, { ReactElement, useEffect, useState } from 'react';
 import Columns from './Columns';
 import Table from '../Table/Table';
@@ -58,7 +58,7 @@ import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
 import { ListDetailProps } from '../List/ListRow';
 import User from '../../Utils/User';
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
 
 export enum ShowTableAs {
@@ -75,6 +75,7 @@ export interface BaseTableCallbacks<
     getJSONFromModel: (item: TBaseModel) => JSONObject;
     addSlugToSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
     getList: (data: {
+        modelType: BaseModelType | AnalyticsBaseModelType;
         query: Query<TBaseModel>;
         limit: number;
         skip: number;
@@ -511,6 +512,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                 const listResult: ListResult<TBaseModel> =
                     await props.callbacks.getList({
+                        modelType: column.filterEntityType,
                         query: query,
                         limit: LIMIT_PER_PROJECT,
                         skip: 0,
@@ -570,6 +572,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         try {
             const listResult: ListResult<TBaseModel> =
                 await props.callbacks.getList({
+                    modelType: props.modelType as (BaseModelType | AnalyticsBaseModelType),
                     query: {
                         ...query,
                         ...props.query,

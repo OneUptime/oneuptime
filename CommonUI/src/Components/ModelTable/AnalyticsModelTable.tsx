@@ -1,4 +1,4 @@
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import AnalyticsBaseModel, { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
 import BaseModelTable, { BaseTableProps, ModalType } from './BaseModelTable';
 import ModelAPI from '../../Utils/AnalyticsModelAPI/AnalyticsModelAPI';
 import React, { ReactElement } from 'react';
@@ -9,6 +9,7 @@ import Query from '../../Utils/BaseDatabase/Query';
 import Sort from '../../Utils/BaseDatabase/Sort';
 import RequestOptions from '../../Utils/BaseDatabase/RequestOptions';
 import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
+import { BaseModelType } from 'Common/Models/BaseModel';
 
 export interface ComponentProps<TBaseModel extends AnalyticsBaseModel>
     extends BaseTableProps<TBaseModel> {
@@ -66,6 +67,7 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
                 },
 
                 getList: async (data: {
+                    modelType: BaseModelType | AnalyticsBaseModelType;
                     query: Query<TBaseModel>;
                     limit: number;
                     skip: number;
@@ -74,7 +76,7 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
                     requestOptions?: RequestOptions | undefined;
                 }) => {
                     return await modelAPI.getList<TBaseModel>({
-                        modelType: props.modelType,
+                        modelType: data.modelType as { new (): TBaseModel },
                         query: data.query,
                         limit: data.limit,
                         skip: data.skip,
