@@ -4,7 +4,7 @@
 echo "domain = $DOMAIN" >> /harakaapp/config/dkim_sign.ini
 echo "$DOMAIN" > /harakaapp/config/host_list
 echo "$DOMAIN" > /harakaapp/config/me
-echo "$SMTP_USERNAME=$SMTP_PASSWORD" >> /harakaapp/config/auth_flat_file.ini
+echo "$SMTP_EMAIL=$SMTP_PASSWORD" >> /harakaapp/config/auth_flat_file.ini
 
 openssl req -x509 -nodes -days 2190 -newkey rsa:2048 -keyout /harakaapp/config/tls_key.pem -out /harakaapp/config/tls_cert.pem -subj "/C=US/ST=Massachusetts/L=Boston/O=Hackerbay/CN=$DOMAIN"
 
