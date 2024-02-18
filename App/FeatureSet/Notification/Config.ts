@@ -8,8 +8,6 @@ import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import EmailServer from 'Common/Types/Email/EmailServer';
 import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
 
-export const InternalSmtpUsername: string = 'oneuptime';
-
 export const InternalSmtpPassword: string =
     process.env['INTERNAL_SMTP_PASSWORD'] || '';
 

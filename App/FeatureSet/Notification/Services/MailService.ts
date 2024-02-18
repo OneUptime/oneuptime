@@ -22,7 +22,6 @@ import {
     InternalSmtpPassword,
     InternalSmtpPort,
     InternalSmtpSecure,
-    InternalSmtpUsername,
     getEmailServerType,
     getGlobalSMTPConfig,
     SendGridConfig,
@@ -120,7 +119,7 @@ export default class MailService {
     public static getInternalEmailServer(): EmailServer {
         return {
             id: undefined,
-            username: InternalSmtpUsername,
+            username: InternalSmtpEmail.toString(),
             password: InternalSmtpPassword,
             host: InternalSmtpHost,
             port: InternalSmtpPort,
