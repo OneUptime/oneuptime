@@ -28,12 +28,13 @@ timeout 10m bash -c '
             echo "All pods are ready"
             exit 0
         fi
-        echo "Some pods are not ready yet"
+        echo "Some pods are not ready yet. Getting logs of failed pods: "
+        sudo microk8s kubectl logs -l appname=oneuptime --all-containers --namespace=default
         sleep 15s
     done
     echo "Timeout reached. Some pods failed to start"
     echo "Printing logs of failed pods:"
-    sudo microk8s kubectl logs -l app=oneuptime --all-containers --namespace=default
+    sudo microk8s kubectl logs -l appname=oneuptime --all-containers --namespace=default
     exit 1
 '
 

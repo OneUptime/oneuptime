@@ -221,6 +221,7 @@ spec:
       labels:
         app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
         date: "{{ now | unixEpoch }}"
+        appname: oneuptime
     spec:
       {{- if $.Volumes }}
       volumes:
