@@ -33,7 +33,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
                     serviceId: modelId,
-                    parentSpanId: new IsNull()
+                    parentSpanId: new IsNull(),
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}

@@ -19,9 +19,14 @@ export default class ObjectID extends DatabaseProperty {
 
         if (id instanceof ObjectID) {
             this.id = id.toString();
-        }else if(typeof id === 'string'){
+        } else if (typeof id === 'string') {
             this.id = id;
-        }else if (typeof id === 'object' && id && id['_type'] === ObjectType.ObjectID && id['value']) {
+        } else if (
+            typeof id === 'object' &&
+            id &&
+            id['_type'] === ObjectType.ObjectID &&
+            id['value']
+        ) {
             this.id = id['value']?.toString() || '';
         }
     }

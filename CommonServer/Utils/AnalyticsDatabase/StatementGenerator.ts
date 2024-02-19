@@ -388,10 +388,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                         type: tableColumn.type,
                     }}`
                 );
-            }  else if (value instanceof IsNull) {
-                whereStatement.append(
-                    SQL`AND ${key} IS NULL`
-                );
+            } else if (value instanceof IsNull) {
+                whereStatement.append(SQL`AND ${key} IS NULL`);
             } else {
                 whereStatement.append(
                     SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
