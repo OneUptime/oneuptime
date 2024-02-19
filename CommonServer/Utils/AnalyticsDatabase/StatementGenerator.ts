@@ -22,6 +22,7 @@ import LessThan from 'Common/Types/BaseDatabase/LessThan';
 import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
+import IsNull from 'Common/Types/BaseDatabase/IsNull';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
@@ -386,6 +387,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                         value: value.endValue,
                         type: tableColumn.type,
                     }}`
+                );
+            }  else if (value instanceof IsNull) {
+                whereStatement.append(
+                    SQL`AND ${key} IS NULL`
                 );
             } else {
                 whereStatement.append(

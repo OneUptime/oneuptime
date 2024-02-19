@@ -98,4 +98,4 @@ Llama/Models/llama*
 
 Llama/__pycache__/*
 
-Examples/otel-dotnet/obj
+Examples/otel-dotnet/obj/*

@@ -6,6 +6,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import IsNull from 'Common/Types/BaseDatabase/IsNull';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -32,6 +33,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
                     serviceId: modelId,
+                    parentSpanId: new IsNull()
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
