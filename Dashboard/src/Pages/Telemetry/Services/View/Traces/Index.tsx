@@ -24,7 +24,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 singularName="Trace"
                 pluralName="Traces"
                 name="Traces"
-                isViewable={false}
+                isViewable={true}
                 cardProps={{
                     title: 'Traces',
                     description:
