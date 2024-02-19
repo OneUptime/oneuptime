@@ -30,7 +30,7 @@
         "posthog-js": "^1.102.1",
         "reflect-metadata": "^0.2.1",
         "slugify": "^1.6.5",
-        "typeorm": "^0.3.18",
+        "typeorm": "^0.3.20",
         "uuid": "^8.3.2"
     }
 }
