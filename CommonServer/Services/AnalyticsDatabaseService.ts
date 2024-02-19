@@ -186,7 +186,7 @@ export default class AnalyticsDatabaseService<
             const jsonItems: Array<JSONObject> =
                 this.convertSelectReturnedDataToJson(
                     strResult,
-                    findStatement.columns
+                    findStatement.columns,
                 );
 
             let items: Array<TBaseModel> =

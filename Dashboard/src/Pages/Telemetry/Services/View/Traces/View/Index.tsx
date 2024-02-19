@@ -19,7 +19,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
 
     const [error, setError] = React.useState<string | null>(null);
 
@@ -82,7 +82,20 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 limit: LIMIT_PER_PROJECT,
             });
 
-            const spans: Span[] = [parentSpan, ...childSpans.data];
+            let spans: Span[] = [parentSpan, ...childSpans.data];
+
+            // filter by unique span id. 
+
+            spans = spans.filter((span: Span, index: number, self: Span[]) => {
+                return (
+                    index ===
+                    self.findIndex((s: Span) => {
+                        return s.spanId?.toString() === span.spanId?.toString();
+                    })
+                );
+            });
+
+
 
             setSpans(spans);
 
@@ -101,20 +114,24 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     React.useEffect(() => {
         // convert spans to gantt chart
 
-        // get lowest startTimeUnixNano from all spans
-        const timelineStartTimeUnixNano: number = spans.reduce(
-            (prev: number, current: Span) => {
-                return Math.min(prev, current.startTimeUnixNano!);
-            },
-            Number.MAX_SAFE_INTEGER
-        );
+        if(spans.length === 0) {
+            return;
+        }
 
-        const timelineEndTimeUnixNano: number = spans.reduce(
-            (prev: number, current: Span) => {
-                return Math.max(prev, current.endTimeUnixNano!);
-            },
-            Number.MIN_SAFE_INTEGER
-        );
+
+        let timelineStartTimeUnixNano: number = spans[0]!.startTimeUnixNano!;
+
+        let timelineEndTimeUnixNano: number = spans[spans.length - 1]!.endTimeUnixNano!;
+
+        for(const span of spans) {
+            if(span.startTimeUnixNano! < timelineStartTimeUnixNano) {
+                timelineStartTimeUnixNano = span.startTimeUnixNano!;
+            }
+
+            if(span.endTimeUnixNano! > timelineEndTimeUnixNano) {
+                timelineEndTimeUnixNano = span.endTimeUnixNano!;
+            }
+        }
 
         const ganttChart: GanttChartProps = {
             id: 'chart',
@@ -141,7 +158,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             timeline: {
                 start: 0,
                 end: timelineEndTimeUnixNano - timelineStartTimeUnixNano,
-                interval: 10,
+                interval: 1000000,
                 intervalUnit: 'ms',
             },
         };

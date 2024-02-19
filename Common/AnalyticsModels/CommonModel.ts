@@ -90,6 +90,14 @@ export default class CommonModel {
                 value = parseFloat(value);
             }
 
+            // long number
+            if (
+                column.type === TableColumnType.LongNumber &&
+                typeof value === 'string'
+            ) {
+                value = parseInt(value);
+            }
+
             return (this.data[columnName] = value as any);
         }
         throw new BadDataException('Column ' + columnName + ' does not exist');
