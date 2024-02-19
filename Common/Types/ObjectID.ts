@@ -14,14 +14,16 @@ export default class ObjectID extends DatabaseProperty {
         this._id = v;
     }
 
-    public constructor(id: string | ObjectID) {
+    public constructor(id: string | ObjectID | JSONObject) {
         super();
 
         if (id instanceof ObjectID) {
-            id = id.toString();
+            this.id = id.toString();
+        }else if(typeof id === 'string'){
+            this.id = id;
+        }else if (typeof id === 'object' && id && id['_type'] === ObjectType.ObjectID && id['value']) {
+            this.id = id['value']?.toString() || '';
         }
-
-        this.id = id;
     }
 
     public get value(): string {

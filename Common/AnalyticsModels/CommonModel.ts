@@ -56,9 +56,9 @@ export default class CommonModel {
         if (column) {
             if (
                 column.type === TableColumnType.ObjectID &&
-                typeof value === 'string'
+                (typeof value === 'string' || typeof value === 'object')
             ) {
-                value = new ObjectID(value);
+                value = new ObjectID(value as string | JSONObject);
             }
 
             if (

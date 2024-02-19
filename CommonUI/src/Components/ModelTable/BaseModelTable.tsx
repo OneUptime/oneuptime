@@ -916,10 +916,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                                 props.onViewComplete(baseModel);
                             }
 
+                            const id: string = baseModel.id?.toString() || '';
+
                             return Navigation.navigate(
                                 new Route(
                                     props.viewPageRoute.toString()
-                                ).addRoute('/' + item['_id'])
+                                ).addRoute('/' + id)
                             );
                         } catch (err) {
                             onError(err as Error);
