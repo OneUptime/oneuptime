@@ -343,12 +343,15 @@ export default class ModelAPI {
         return headers;
     }
 
-    public static async getItem<TAnalyticsBaseModel extends AnalyticsBaseModel>(
+    public static async getItem<TAnalyticsBaseModel extends AnalyticsBaseModel>(data: {
         modelType: { new (): TAnalyticsBaseModel },
         id: ObjectID,
         select: Select<TAnalyticsBaseModel>,
         requestOptions?: RequestOptions | undefined
-    ): Promise<TAnalyticsBaseModel | null> {
+    }): Promise<TAnalyticsBaseModel | null> {
+
+        const { modelType, id, select, requestOptions } = data;
+
         const apiPath: Route | null = new modelType().crudApiPath;
         if (!apiPath) {
             throw new BadDataException(

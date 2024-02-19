@@ -158,7 +158,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
 
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
-                        PageMap.TELEMETRY_SERVICES_VIEW_TRACE
+                        PageMap.TELEMETRY_SERVICES_VIEW_TRACE, 2
                     )}
                     element={
                         <Suspense fallback={Loader}>

@@ -16,6 +16,13 @@ export default class OneUptimeDate {
         return date.getTime() * 1000000;
     }
 
+    public static getMillisecondsBetweenTwoUnixNanoDates(
+        startDate: number,
+        endDate: number
+    ): number {
+        return endDate - startDate;
+    }
+
     public static moveDateToTheDayOfWeek(
         date: Date,
         moveToWeek: Date,
