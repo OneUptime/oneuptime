@@ -15,6 +15,7 @@ export interface GanttChartBar {
     barTimelineStart: number;
     barTimelineEnd: number;
     rowId: string;
+    tooltip?: ReactElement;
 }
 
 export interface ComponentProps {
@@ -64,14 +65,9 @@ const Bar: FunctionComponent<ComponentProps> = (
                     title={props.bar.title}
                     titleColor={props.bar.titleColor}
                 />
-                {isHovered && (
+                {isHovered && props.bar.tooltip && (
                     <div className="bar-tooltip bg-white shadow rounded p-2 w-fit">
-                        <div className="bar-tooltip-title text-sm text-gray-700 font-medium">
-                            Static Title
-                        </div>
-                        <div className="bar-tooltip-description text-gray-400 text-xs">
-                            Description on hover
-                        </div>
+                        {props.bar.tooltip}
                     </div>
                 )}
             </div>

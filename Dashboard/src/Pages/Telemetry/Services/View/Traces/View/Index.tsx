@@ -15,6 +15,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import API from 'CommonUI/src/Utils/API/API';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import OneUptimeDate from 'Common/Types/Date';
 
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -84,7 +85,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             let spans: Span[] = [parentSpan, ...childSpans.data];
 
-            // filter by unique span id. 
+            // filter by unique span id.
 
             spans = spans.filter((span: Span, index: number, self: Span[]) => {
                 return (
@@ -94,8 +95,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     })
                 );
             });
-
-
 
             setSpans(spans);
 
@@ -114,31 +113,38 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     React.useEffect(() => {
         // convert spans to gantt chart
 
-        if(spans.length === 0) {
+        if (spans.length === 0) {
             return;
         }
 
-
         let timelineStartTimeUnixNano: number = spans[0]!.startTimeUnixNano!;
 
-        let timelineEndTimeUnixNano: number = spans[spans.length - 1]!.endTimeUnixNano!;
+        let timelineEndTimeUnixNano: number =
+            spans[spans.length - 1]!.endTimeUnixNano!;
 
-        for(const span of spans) {
-            if(span.startTimeUnixNano! < timelineStartTimeUnixNano) {
+        for (const span of spans) {
+            if (span.startTimeUnixNano! < timelineStartTimeUnixNano) {
                 timelineStartTimeUnixNano = span.startTimeUnixNano!;
             }
 
-            if(span.endTimeUnixNano! > timelineEndTimeUnixNano) {
+            if (span.endTimeUnixNano! > timelineEndTimeUnixNano) {
                 timelineEndTimeUnixNano = span.endTimeUnixNano!;
             }
         }
 
         const startTimeline: number = 0;
-        const endTimeline: number = timelineEndTimeUnixNano - timelineStartTimeUnixNano;
 
-        const intervalTemp: number = Math.round(endTimeline/100) * 10;
+        const divisibilityFactor: number = 1000; // 1000 to convert from nanoseconds to ms
+        const intervalUnit: string = 'ms';
 
-        const numberOfDigitsInIntervalTemp: number = intervalTemp.toString().length;
+        const endTimeline: number =
+            (timelineEndTimeUnixNano - timelineStartTimeUnixNano) /
+            divisibilityFactor; // divide by 1000 to convert from nanoseconds to ms
+
+        const intervalTemp: number = Math.round(endTimeline / 100) * 10;
+
+        const numberOfDigitsInIntervalTemp: number =
+            intervalTemp.toString().length;
 
         const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
 
@@ -158,22 +164,67 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     titleColor: White!,
                     barColor: Black!,
                     barTimelineStart:
-                        span.startTimeUnixNano! - timelineStartTimeUnixNano,
+                        (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
+                        divisibilityFactor,
                     barTimelineEnd:
-                        span.endTimeUnixNano! - timelineStartTimeUnixNano,
+                        (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
+                        divisibilityFactor,
                     rowId: span.spanId!,
+                    tooltip: getBarTooltip(span, divisibilityFactor),
                 };
             }),
             timeline: {
                 start: startTimeline,
                 end: endTimeline,
                 interval: interval,
-                intervalUnit: 'ms',
+                intervalUnit: intervalUnit,
             },
         };
 
         setGanttChart(ganttChart);
     }, [spans]);
+
+    const getBarTooltip: Function = (
+        span: Span,
+        divisibilityFactor: number
+    ): ReactElement => {
+        return (
+            <div className="px-1">
+                <div className="bar-tooltip-title text-sm text-gray-700 font-medium my-2">
+                    {span.name}
+                </div>
+                <div className="bar-tooltip-description text-gray-600 text-xs space-y-1 my-2">
+                    <div className="flex space-x-1">
+                        <div>Start:</div>{' '}
+                        <div>
+                            {OneUptimeDate.getDateAsFormattedString(
+                                span.startTime!
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex space-x-1">
+                        <div>End:</div>{' '}
+                        <div>
+                            {OneUptimeDate.getDateAsFormattedString(
+                                span.endTime!
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex space-x-1">
+                        <div>Duration:</div>{' '}
+                        <div>
+                            {Math.round(
+                                (span.endTimeUnixNano! -
+                                    span.startTimeUnixNano!) /
+                                    divisibilityFactor
+                            )}{' '}
+                            ms
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     if (isLoading) {
         return <PageLoader isVisible={true} />;
