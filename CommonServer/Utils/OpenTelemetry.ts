@@ -3,18 +3,29 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-
-
-const sdk = new opentelemetry.NodeSDK({
-  traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }) as any,
-  instrumentations: [getNodeAutoInstrumentations()],
-});
+import logger from './Logger';
 
 if(process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] && process.env['OTEL_EXPORTER_OTLP_HEADERS']){
-    sdk.start();
-}
+    const sdk = new opentelemetry.NodeSDK({
+        traceExporter: new OTLPTraceExporter({
+            url: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
+            headers: {
+                [process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[0] as any]: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[1]
+            }
+        }),
+        metricReader: new PeriodicExportingMetricReader({
+          exporter: new OTLPMetricExporter({
+            url: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
+            headers: {
+                [process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[0] as any]: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[1]
+            }
+          }),
+        }) as any,
+        instrumentations: [getNodeAutoInstrumentations()],
+      });
 
-export default sdk;
+    
+      sdk.start();
+
+    logger.info('OpenTelemetry Started');
+}
