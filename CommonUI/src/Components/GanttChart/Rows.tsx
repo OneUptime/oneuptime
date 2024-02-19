@@ -22,7 +22,7 @@ const Rows: FunctionComponent<ComponentProps> = (
                         chartTimelineEnd={props.chartTimelineEnd}
                         timelineWidth={props.timelineWidth}
                         isLastRow={i === props.rows.length - 1}
-                        key={row.id}
+                        key={i}
                         row={row}
                         bars={props.bars.filter((bar: GanttChartBar) => {
                             return bar.rowId === row.id;

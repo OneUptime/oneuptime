@@ -98,16 +98,27 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         });
     }, []);
 
-    if (isLoading) {
-        return <PageLoader isVisible={true} />;
-    }
-
-    if (error) {
-        return <ErrorMessage error={error} />;
-    }
+   
 
     React.useEffect(() => {
         // convert spans to gantt chart
+
+        // get lowest startTimeUnixNano from all spans
+        let timelineStartTimeUnixNano: number = spans.reduce(
+            (prev: number, current: Span) => {
+                return Math.min(prev, current.startTimeUnixNano!);
+            },
+            Number.MAX_SAFE_INTEGER
+        );
+
+
+        let timelineEndTimeUnixNano: number = spans.reduce(
+            (prev: number, current: Span) => {
+                return Math.max(prev, current.endTimeUnixNano!);
+            },
+            Number.MIN_SAFE_INTEGER
+        );
+        
 
         const ganttChart: GanttChartProps = {
             id: 'chart',
@@ -124,17 +135,15 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     title: span.name!,
                     titleColor: White!,
                     barColor: Black!,
-                    barTimelineStart: span.startTimeUnixNano!,
-                    barTimelineEnd: span.endTimeUnixNano!,
+                    barTimelineStart: span.startTimeUnixNano! - timelineStartTimeUnixNano,
+                    barTimelineEnd: span.endTimeUnixNano! - timelineStartTimeUnixNano,
                     rowId: span.spanId!,
                 };
             }),
             timeline: {
-                start: spans[0] ? spans[0].startTimeUnixNano! : 0,
+                start: 0,
                 end:
-                    spans && spans[spans.length - 1]
-                        ? spans[spans.length - 1]!.endTimeUnixNano!
-                        : 0,
+                    timelineEndTimeUnixNano - timelineStartTimeUnixNano,
                 interval: 10,
                 intervalUnit: 'ms',
             },
@@ -142,6 +151,14 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         setGanttChart(ganttChart);
     }, [spans]);
+
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
+    }
+
+    if (error) {
+        return <ErrorMessage error={error} />;
+    }
 
     return (
         <Fragment>
