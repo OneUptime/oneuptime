@@ -98,27 +98,23 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         });
     }, []);
 
-   
-
     React.useEffect(() => {
         // convert spans to gantt chart
 
         // get lowest startTimeUnixNano from all spans
-        let timelineStartTimeUnixNano: number = spans.reduce(
+        const timelineStartTimeUnixNano: number = spans.reduce(
             (prev: number, current: Span) => {
                 return Math.min(prev, current.startTimeUnixNano!);
             },
             Number.MAX_SAFE_INTEGER
         );
 
-
-        let timelineEndTimeUnixNano: number = spans.reduce(
+        const timelineEndTimeUnixNano: number = spans.reduce(
             (prev: number, current: Span) => {
                 return Math.max(prev, current.endTimeUnixNano!);
             },
             Number.MIN_SAFE_INTEGER
         );
-        
 
         const ganttChart: GanttChartProps = {
             id: 'chart',
@@ -135,15 +131,16 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     title: span.name!,
                     titleColor: White!,
                     barColor: Black!,
-                    barTimelineStart: span.startTimeUnixNano! - timelineStartTimeUnixNano,
-                    barTimelineEnd: span.endTimeUnixNano! - timelineStartTimeUnixNano,
+                    barTimelineStart:
+                        span.startTimeUnixNano! - timelineStartTimeUnixNano,
+                    barTimelineEnd:
+                        span.endTimeUnixNano! - timelineStartTimeUnixNano,
                     rowId: span.spanId!,
                 };
             }),
             timeline: {
                 start: 0,
-                end:
-                    timelineEndTimeUnixNano - timelineStartTimeUnixNano,
+                end: timelineEndTimeUnixNano - timelineStartTimeUnixNano,
                 interval: 10,
                 intervalUnit: 'ms',
             },
