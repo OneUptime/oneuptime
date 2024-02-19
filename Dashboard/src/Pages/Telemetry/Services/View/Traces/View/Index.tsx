@@ -16,7 +16,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
-const ServiceDelete: FunctionComponent<PageComponentProps> = (
+const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -161,4 +161,4 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default ServiceDelete;
+export default TraceView;
