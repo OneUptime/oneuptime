@@ -133,6 +133,15 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             }
         }
 
+        const startTimeline: number = 0;
+        const endTimeline: number = timelineEndTimeUnixNano - timelineStartTimeUnixNano;
+
+        const intervalTemp: number = Math.round(endTimeline/100) * 10;
+
+        const numberOfDigitsInIntervalTemp: number = intervalTemp.toString().length;
+
+        const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
+
         const ganttChart: GanttChartProps = {
             id: 'chart',
             rows: spans.map((span: Span) => {
@@ -156,9 +165,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 };
             }),
             timeline: {
-                start: 0,
-                end: timelineEndTimeUnixNano - timelineStartTimeUnixNano,
-                interval: 1000000,
+                start: startTimeline,
+                end: endTimeline,
+                interval: interval,
                 intervalUnit: 'ms',
             },
         };
