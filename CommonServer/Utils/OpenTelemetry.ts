@@ -1,13 +1,22 @@
-import opentelemetry from '@opentelemetry/sdk-node';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import {
+    MetricReader,
+    PeriodicExportingMetricReader,
+    ConsoleMetricExporter,
+} from '@opentelemetry/sdk-metrics';
+
 
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
-
-const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK({
-    traceExporter: new opentelemetry.tracing.ConsoleSpanExporter(),
+const sdk = new NodeSDK({
+    traceExporter: new ConsoleSpanExporter(),
+    metricReader: new PeriodicExportingMetricReader({
+        exporter: new ConsoleMetricExporter(),
+    }),
     instrumentations: [getNodeAutoInstrumentations()],
 });
+
+sdk.start();
 
 export default sdk;
