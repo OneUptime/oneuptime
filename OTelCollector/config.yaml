@@ -25,9 +25,9 @@ exporters:
       authenticator: headers_setter
 
 service:
-  telemetry:
-    logs:
-      level: "debug"
+  # telemetry:
+  #   logs:
+  #     level: "debug"
   extensions: [ headers_setter ]
   pipelines:
     traces:
