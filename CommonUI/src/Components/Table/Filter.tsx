@@ -58,6 +58,7 @@ const Filter: FunctionComponent<ComponentProps> = (
         return <></>;
     }
 
+
     return (
         <div id={props.id}>
             <div className="relative">
@@ -84,6 +85,16 @@ const Filter: FunctionComponent<ComponentProps> = (
                                 return column.isFilterable && column.key;
                             })
                             .map((column: Column, i: number) => {
+
+
+                                let inputType: InputType = InputType.TEXT;
+
+                                if(column.type === FieldType.Date) {
+                                    inputType = InputType.DATE;
+                                }else if(column.type === FieldType.DateTime) {
+                                    inputType = InputType.DATETIME_LOCAL;
+                                }
+
                                 return (
                                     <div
                                         key={i}
@@ -331,12 +342,7 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                     ).toString()}
                                                     placeholder={`Filter by ${column.title}`}
                                                     type={
-                                                        column.type ===
-                                                            FieldType.Date ||
-                                                        column.type ===
-                                                            FieldType.DateTime
-                                                            ? InputType.DATE
-                                                            : InputType.TEXT
+                                                        inputType
                                                     }
                                                 />
                                             )}

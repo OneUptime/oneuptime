@@ -1,18 +1,23 @@
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../../../PageComponentProps';
 import AnalyticsModelTable from 'CommonUI/src/Components/ModelTable/AnalyticsModelTable';
-import Span from 'Model/AnalyticsModels/Span';
+import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+    const spanKindDropdownOptions: Array<DropdownOption> =
+        DropdownUtil.getDropdownOptionsFromEnum(SpanKind, true);
 
     return (
         <Fragment>
@@ -46,10 +51,35 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
+                            spanId: true,
+                        },
+                        title: 'Span ID',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
                             name: true,
                         },
-                        title: 'Name',
+                        title: 'Span Name',
                         type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            kind: true,
+                        },
+                        title: 'Kind',
+                        type: FieldType.Text,
+                        filterDropdownOptions: spanKindDropdownOptions,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            startTime: true,
+                        },
+                        title: 'Seen At',
+                        type: FieldType.DateTime,
                         isFilterable: true,
                     },
                 ]}

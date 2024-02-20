@@ -8,7 +8,7 @@ import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import Span from 'Model/AnalyticsModels/Span';
+import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
 import Log from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 import SpanService from 'CommonServer/Services/SpanService';
@@ -94,6 +94,15 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
+            if (
+                !(req as TelemetryRequest).projectId ||
+                !(req as TelemetryRequest).serviceId
+            ) {
+                throw new BadRequestException(
+                    'Invalid request - projectId or serviceId not found in request.'
+                );
+            }
+
             const traceData: JSONObject = req.body.toJSON();
             const resourceSpans: JSONArray = traceData[
                 'resourceSpans'
@@ -131,7 +140,8 @@ router.post(
                             span['endTimeUnixNano'] as number
                         );
                         dbSpan.name = span['name'] as string;
-                        dbSpan.kind = span['kind'] as string;
+                        dbSpan.kind =
+                            (span['kind'] as SpanKind) || SpanKind.Internal;
 
                         dbSpan.attributes = OTelIngestService.getKeyValues(
                             span['attributes'] as JSONArray
@@ -166,6 +176,15 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
+            if (
+                !(req as TelemetryRequest).projectId ||
+                !(req as TelemetryRequest).serviceId
+            ) {
+                throw new BadRequestException(
+                    'Invalid request - projectId or serviceId not found in request.'
+                );
+            }
+
             req.body = req.body.toJSON();
 
             const resourceMetrics: JSONArray = req.body[
@@ -408,7 +427,14 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            logger.info('OTel Ingestor API called');
+            if (
+                !(req as TelemetryRequest).projectId ||
+                !(req as TelemetryRequest).serviceId
+            ) {
+                throw new BadRequestException(
+                    'Invalid request - projectId or serviceId not found in request.'
+                );
+            }
 
             req.body = req.body.toJSON();
 

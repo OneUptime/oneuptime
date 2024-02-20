@@ -8,6 +8,14 @@ import NestedModel from 'Common/AnalyticsModels/NestedModel';
 import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
 
+export enum SpanKind {
+    Server = 'SPAN_KIND_SERVER',
+    Client = 'SPAN_KIND_CLIENT',
+    Producer = 'SPAN_KIND_PRODUCER',
+    Consumer = 'SPAN_KIND_CONSUMER',
+    Internal = 'SPAN_KIND_INTERNAL',
+}
+
 export class SpanEvent extends NestedModel {
     public constructor() {
         super({
@@ -572,11 +580,11 @@ export default class Span extends AnalyticsBaseModel {
         this.setColumnValue('name', v);
     }
 
-    public get kind(): string | undefined {
-        return this.getColumnValue('kind') as string | undefined;
+    public get kind(): SpanKind | undefined {
+        return this.getColumnValue('kind') as SpanKind | undefined;
     }
 
-    public set kind(v: string | undefined) {
+    public set kind(v: SpanKind | undefined) {
         this.setColumnValue('kind', v);
     }
 
