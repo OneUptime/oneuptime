@@ -10,14 +10,24 @@ OneUptime replaces multiple tools with one integrated platform:
 
 -   **Uptime Monitoring**: Monitor the availability and response time of your online services from multiple locations around the world. Get notified via email, SMS, Slack, or other channels when something goes wrong. Replace tools like Pingdom.
 
-<div style="width:10px">
 ![Monitors](/App/FeatureSet/Home/Static/img/monitor.png?raw=true)
-</div>
 
 -   **Status Page**: Communicate with your customers and stakeholders during downtime or maintenance. Create a custom-branded status page that shows the current status and history of your services. Replace tools like StatusPage.io.
+
+![Status Pages](/App/FeatureSet/Home/Static/img/status-pages.png?raw=true)
+
 -   **Incident Management**: Manage incidents from start to finish with a collaborative workflow. Create incident reports, assign tasks, update stakeholders, and document resolutions. Replace tools like Incident.io.
+
+![Incident Management](/App/FeatureSet/Home/Static/img/incidents.png?raw=true)
+
 -   **On-call Rotation and Alerts**: Schedule on-call shifts for your team and define escalation policies. Ensure that the right person is notified at the right time when an incident occurs. Replace tools like PagerDuty.
+
+![On Call and Alerts](/App/FeatureSet/Home/Static/img/on-call-policies.png?raw=true)
+
 -   **Logs Management**: Collect, store, and analyze logs from your online services. Search, filter, and visualize log data to gain insights and troubleshoot issues. Replace tools like Loggly.
+
+![Logs Management](/App/FeatureSet/Home/Static/img/log-management.png?raw=true)
+
 -   **Performance Monitoring** (Coming soon): Measure and optimize the performance of your online services. Track key metrics such as response time, throughput, error rate, and user satisfaction. Replace tools like NewRelic.
 -   **Error Tracking** (Coming soon): Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
 -   **Reliability Autopilot** (Coming soon): Scan your code and fix performance issues and errors automatically. Get recommendations for improving the reliability of your online services.
