@@ -161,6 +161,35 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         });
     }, []);
 
+
+    const getDivisibilityFactor: Function = (totalTimelineTimeInUnixNano: number): {
+        divisibilityFactor: number;
+        intervalUnit: string;
+    } => {
+
+        let intervalUnit: string = 'ms';
+        let divisibilityFactor: number = 1000; // default is in milliseconds
+
+        if(totalTimelineTimeInUnixNano < 1000){
+            intervalUnit = 'ns';
+            divisibilityFactor = 1; // this is in nanoseconds
+        } else if(totalTimelineTimeInUnixNano < 1000000){
+            intervalUnit = 'μs';
+            divisibilityFactor = 1000; // this is in microseconds
+        } else if(totalTimelineTimeInUnixNano < 1000000000){
+            intervalUnit = 'ms';
+            divisibilityFactor = 1000000; // this is in microseconds
+        } else if (totalTimelineTimeInUnixNano < 1000000000000){
+            intervalUnit = 's';
+            divisibilityFactor =  1000000000; // this is in seconds
+        }
+
+        return {
+            divisibilityFactor: divisibilityFactor,
+            intervalUnit: intervalUnit
+        }; 
+    }
+
     React.useEffect(() => {
         // convert spans to gantt chart
 
@@ -185,8 +214,12 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const startTimeline: number = 0;
 
-        const divisibilityFactor: number = 1000; // 1000 to convert from nanoseconds to ms
-        const intervalUnit: string = 'ms';
+        const divisibilityFactorAndIntervalUnit: {
+            divisibilityFactor: number;
+            intervalUnit: string;
+        } = getDivisibilityFactor((timelineEndTimeUnixNano - timelineStartTimeUnixNano)); 
+
+        const divisibilityFactor: number = divisibilityFactorAndIntervalUnit.divisibilityFactor;
 
         const endTimeline: number =
             (timelineEndTimeUnixNano - timelineStartTimeUnixNano) /
@@ -233,7 +266,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 start: startTimeline,
                 end: Math.ceil(endTimeline / interval) * interval,
                 interval: interval,
-                intervalUnit: intervalUnit,
+                intervalUnit: divisibilityFactorAndIntervalUnit.intervalUnit,
             },
         };
 

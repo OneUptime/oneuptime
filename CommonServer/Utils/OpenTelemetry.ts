@@ -28,8 +28,6 @@ if (
 
     const otlpEndpoint: string = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
 
-    logger.info(otlpEndpoint);
-
     sdk = new opentelemetry.NodeSDK({
         traceExporter: new OTLPTraceExporter({
             url: otlpEndpoint + '/v1/traces',
