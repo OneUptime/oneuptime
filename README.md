@@ -19,7 +19,7 @@ Monitor the availability and response time of your online services from multiple
 
 Communicate with your customers and stakeholders during downtime or maintenance. Create a custom-branded status page that shows the current status and history of your services. Replace tools like StatusPage.io.
 
-![Status Pages](/App/FeatureSet/Home/Static/img/status-pages.png?raw=true)
+![Status Pages](/App/FeatureSet/Home/Static/img/readme/statuspages.png?raw=true)
 
 #### Incident Management
 
