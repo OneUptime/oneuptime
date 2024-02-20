@@ -9,6 +9,9 @@ OneUptime is a comprehensive solution for monitoring and managing your online se
 OneUptime replaces multiple tools with one integrated platform:
 
 -   **Uptime Monitoring**: Monitor the availability and response time of your online services from multiple locations around the world. Get notified via email, SMS, Slack, or other channels when something goes wrong. Replace tools like Pingdom.
+
+![Monitors](/App/FeatureSet/Home/Static/img/monitor.png?raw=true)
+
 -   **Status Page**: Communicate with your customers and stakeholders during downtime or maintenance. Create a custom-branded status page that shows the current status and history of your services. Replace tools like StatusPage.io.
 -   **Incident Management**: Manage incidents from start to finish with a collaborative workflow. Create incident reports, assign tasks, update stakeholders, and document resolutions. Replace tools like Incident.io.
 -   **On-call Rotation and Alerts**: Schedule on-call shifts for your team and define escalation policies. Ensure that the right person is notified at the right time when an incident occurs. Replace tools like PagerDuty.
