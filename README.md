@@ -2,7 +2,7 @@
 <h1 align="center"><img alt="oneuptime logo" width=50% src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/App/FeatureSet/Home/Static/img/OneUptimePNG/7.png"/></h1>
 <!-- markdownlint-enable MD033 -->
 
-**OneUptime: The Complete Open-Source Observability Platform**
+## OneUptime: The Complete Open-Source Observability Platform
 
 OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors.
 
