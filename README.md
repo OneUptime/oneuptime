@@ -13,7 +13,7 @@ OneUptime replaces multiple tools with one integrated platform:
 
 Monitor the availability and response time of your online services from multiple locations around the world. Get notified via email, SMS, Slack, or other channels when something goes wrong. Replace tools like Pingdom.
 
-![Monitors](/App/FeatureSet/Home/Static/img/monitor.png?raw=true)
+<img alt="Monitors" style="border-radius: 15px; box-shadow: 10px 10px 5px grey;" src="/App/FeatureSet/Home/Static/img/monitor.png?raw=true" />
 
 #### Status Pages
 
