@@ -32,7 +32,6 @@ import zlib from 'zlib';
 import CookieParser from 'cookie-parser';
 import './OpenTelemetry';
 
-
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
 

@@ -4,28 +4,43 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import logger from './Logger';
+import Dictionary from 'Common/Types/Dictionary';
 
-if(process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] && process.env['OTEL_EXPORTER_OTLP_HEADERS']){
-    const sdk = new opentelemetry.NodeSDK({
+let sdk: opentelemetry.NodeSDK | null = null; 
+
+if (
+    process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] &&
+    process.env['OTEL_EXPORTER_OTLP_HEADERS']
+) {
+    const headersStrings: Array<string> =
+        process.env['OTEL_EXPORTER_OTLP_HEADERS'].split(';');
+
+    const headers: Dictionary<string> = {};
+
+    for (const headerString of headersStrings) {
+        const header: Array<string> = headerString.split('=');
+        if (header.length === 2) {
+            headers[header[0]!.toString()] = header[1]!.toString();
+        }
+    }
+
+    sdk = new opentelemetry.NodeSDK({
         traceExporter: new OTLPTraceExporter({
             url: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
-            headers: {
-                [process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[0] as any]: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[1]
-            }
+            headers: headers,
         }),
         metricReader: new PeriodicExportingMetricReader({
-          exporter: new OTLPMetricExporter({
-            url: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
-            headers: {
-                [process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[0] as any]: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'].split("=")[1]
-            }
-          }),
+            exporter: new OTLPMetricExporter({
+                url: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
+                headers: headers,
+            }),
         }) as any,
         instrumentations: [getNodeAutoInstrumentations()],
-      });
+    });
 
-    
-      sdk.start();
+    sdk.start();
 
-    logger.info('OpenTelemetry Started');
+    logger.info('Instrumentation initialized');
 }
+
+export default sdk;
