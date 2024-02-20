@@ -7,6 +7,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -39,6 +40,8 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={'No traces found for this service.'}
                 showRefreshButton={true}
                 showFilterButton={true}
+                sortBy="startTime"
+                sortOrder={SortOrder.Descending}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
