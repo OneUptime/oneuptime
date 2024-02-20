@@ -31,7 +31,7 @@ const Bar: FunctionComponent<ComponentProps> = (
     const [isHovered, setIsHovered] = useState(false);
 
     // calculate bar width.
-    const barWidth: number =
+    let barWidth: number =
         ((props.bar.barTimelineEnd - props.bar.barTimelineStart) /
             (props.chartTimelineEnd - props.chartTimelineStart)) *
         props.timelineWidth;
@@ -39,6 +39,10 @@ const Bar: FunctionComponent<ComponentProps> = (
         ((props.bar.barTimelineStart - props.chartTimelineStart) /
             (props.chartTimelineEnd - props.chartTimelineStart)) *
         props.timelineWidth;
+
+    if (barWidth > 1) {
+        barWidth -= 1; // we do this because the bar width is calculated based on the timeline width, and we want to remove 1px from the width to account for the 1px margin on the left and right of the bar.
+    }
 
     const handleMouseEnter: MouseEventHandler = (): void => {
         setIsHovered(true);
@@ -52,7 +56,7 @@ const Bar: FunctionComponent<ComponentProps> = (
         // rectangle div with curved corners and text inside in tailwindcss
         <div>
             <div
-                className="chart-bar h-8 pt-1 pb-1 mt-2.5 mb-2.5 rounded absolute cursor-pointer"
+                className="chart-bar h-8 pt-1 pb-1 mt-2.5 mb-2.5 rounded absolute cursor-pointer ml-1 mr-1"
                 style={{
                     marginLeft: `${barLeftPosition}px`,
                     width: `${barWidth}px`,

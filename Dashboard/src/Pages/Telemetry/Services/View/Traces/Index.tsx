@@ -10,6 +10,8 @@ import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import { JSONObject } from 'Common/Types/JSON';
+import SpanUtil from '../../../../../Utils/SpanUtil';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -51,9 +53,9 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
-                            spanId: true,
+                            traceId: true,
                         },
-                        title: 'Span ID',
+                        title: 'Trace ID',
                         type: FieldType.Text,
                         isFilterable: true,
                     },
@@ -61,7 +63,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         field: {
                             name: true,
                         },
-                        title: 'Span Name',
+                        title: 'Root Span Name',
                         type: FieldType.Text,
                         isFilterable: true,
                     },
@@ -69,10 +71,18 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         field: {
                             kind: true,
                         },
-                        title: 'Kind',
+                        title: 'Root Span Kind',
                         type: FieldType.Text,
                         filterDropdownOptions: spanKindDropdownOptions,
                         isFilterable: true,
+                        getElement: (span: JSONObject): ReactElement => {
+                            const spanKind: SpanKind = span['kind'] as SpanKind;
+
+                            const spanKindText: string =
+                                SpanUtil.getSpanKindFriendlyName(spanKind);
+
+                            return <span>{spanKindText}</span>;
+                        },
                     },
                     {
                         field: {

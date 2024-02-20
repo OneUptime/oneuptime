@@ -4,7 +4,6 @@ import GanttChart, {
     GanttChartProps,
 } from 'CommonUI/src/Components/GanttChart/Index';
 import Card from 'CommonUI/src/Components/Card/Card';
-import { Black, White } from 'Common/Types/BrandColors';
 import ObjectID from 'Common/Types/ObjectID';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ListResult from 'CommonUI/src/Utils/BaseDatabase/ListResult';
@@ -15,6 +14,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import API from 'CommonUI/src/Utils/API/API';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import SpanUtil from '../../../../../../Utils/SpanUtil';
 import OneUptimeDate from 'Common/Types/Date';
 
 const TraceView: FunctionComponent<PageComponentProps> = (
@@ -50,6 +50,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     traceId: true,
                     parentSpanId: true,
                     spanId: true,
+                    kind: true,
                 },
             });
 
@@ -72,6 +73,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     traceId: true,
                     parentSpanId: true,
                     spanId: true,
+                    kind: true,
                 },
                 query: {
                     traceId: parentSpan?.traceId,
@@ -102,6 +104,54 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
+    };
+
+    const getBarTooltip: Function = (
+        span: Span,
+        divisibilityFactor: number
+    ): ReactElement => {
+        return (
+            <div className="px-1">
+                <div className="bar-tooltip-title text-sm text-gray-700 font-medium my-2">
+                    {span.name}
+                </div>
+                <div className="bar-tooltip-description text-gray-600 text-xs space-y-1 my-2">
+                    <div className="flex space-x-1">
+                        <div>Start:</div>{' '}
+                        <div>
+                            {OneUptimeDate.getDateAsFormattedString(
+                                span.startTime!
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex space-x-1">
+                        <div>End:</div>{' '}
+                        <div>
+                            {OneUptimeDate.getDateAsFormattedString(
+                                span.endTime!
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex space-x-1">
+                        <div>Duration:</div>{' '}
+                        <div>
+                            {Math.round(
+                                (span.endTimeUnixNano! -
+                                    span.startTimeUnixNano!) /
+                                    divisibilityFactor
+                            )}{' '}
+                            ms
+                        </div>
+                    </div>
+                    <div className="flex space-x-1">
+                        <div>Span Kind:</div>{' '}
+                        <div>
+                            {SpanUtil.getSpanKindFriendlyName(span.kind!)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     React.useEffect(() => {
@@ -158,11 +208,13 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 };
             }),
             bars: spans.map((span: Span) => {
+                const spanColor = SpanUtil.getGanttChartBarColor(span);
+
                 return {
                     id: span.spanId!,
                     title: span.name!,
-                    titleColor: White!,
-                    barColor: Black!,
+                    titleColor: spanColor.titleColor,
+                    barColor: spanColor.barColor,
                     barTimelineStart:
                         (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
                         divisibilityFactor,
@@ -175,7 +227,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             }),
             timeline: {
                 start: startTimeline,
-                end: endTimeline,
+                end: Math.ceil(endTimeline / interval) * interval,
                 interval: interval,
                 intervalUnit: intervalUnit,
             },
@@ -183,48 +235,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         setGanttChart(ganttChart);
     }, [spans]);
-
-    const getBarTooltip: Function = (
-        span: Span,
-        divisibilityFactor: number
-    ): ReactElement => {
-        return (
-            <div className="px-1">
-                <div className="bar-tooltip-title text-sm text-gray-700 font-medium my-2">
-                    {span.name}
-                </div>
-                <div className="bar-tooltip-description text-gray-600 text-xs space-y-1 my-2">
-                    <div className="flex space-x-1">
-                        <div>Start:</div>{' '}
-                        <div>
-                            {OneUptimeDate.getDateAsFormattedString(
-                                span.startTime!
-                            )}
-                        </div>
-                    </div>
-                    <div className="flex space-x-1">
-                        <div>End:</div>{' '}
-                        <div>
-                            {OneUptimeDate.getDateAsFormattedString(
-                                span.endTime!
-                            )}
-                        </div>
-                    </div>
-                    <div className="flex space-x-1">
-                        <div>Duration:</div>{' '}
-                        <div>
-                            {Math.round(
-                                (span.endTimeUnixNano! -
-                                    span.startTimeUnixNano!) /
-                                    divisibilityFactor
-                            )}{' '}
-                            ms
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     if (isLoading) {
         return <PageLoader isVisible={true} />;

@@ -26,7 +26,7 @@ if (
         }
     }
 
-    const otlpEndpoint = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
+    const otlpEndpoint: string = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
 
     logger.info(otlpEndpoint);
 
