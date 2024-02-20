@@ -16,6 +16,7 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import SpanUtil from '../../../../../../Utils/SpanUtil';
 import OneUptimeDate from 'Common/Types/Date';
+import Color from 'Common/Types/Color';
 
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -208,7 +209,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 };
             }),
             bars: spans.map((span: Span) => {
-                const spanColor = SpanUtil.getGanttChartBarColor(span);
+                const spanColor: {
+                    barColor: Color;
+                    titleColor: Color;
+                } = SpanUtil.getGanttChartBarColor(span);
 
                 return {
                     id: span.spanId!,
