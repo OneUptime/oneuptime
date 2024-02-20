@@ -6,41 +6,45 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import logger from './Logger';
 import Dictionary from 'Common/Types/Dictionary';
 
-let sdk: opentelemetry.NodeSDK | null = null; 
+let sdk: opentelemetry.NodeSDK | null = null;
 
 if (
-    process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] &&
-    process.env['OTEL_EXPORTER_OTLP_HEADERS']
+  process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] &&
+  process.env['OTEL_EXPORTER_OTLP_HEADERS']
 ) {
-    const headersStrings: Array<string> =
-        process.env['OTEL_EXPORTER_OTLP_HEADERS'].split(';');
+  const headersStrings: Array<string> =
+    process.env['OTEL_EXPORTER_OTLP_HEADERS'].split(';');
 
-    const headers: Dictionary<string> = {};
+  const headers: Dictionary<string> = {};
 
-    for (const headerString of headersStrings) {
-        const header: Array<string> = headerString.split('=');
-        if (header.length === 2) {
-            headers[header[0]!.toString()] = header[1]!.toString();
-        }
+  for (const headerString of headersStrings) {
+    const header: Array<string> = headerString.split('=');
+    if (header.length === 2) {
+      headers[header[0]!.toString()] = header[1]!.toString();
     }
+  }
 
-    sdk = new opentelemetry.NodeSDK({
-        traceExporter: new OTLPTraceExporter({
-            url: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
-            headers: headers,
-        }),
-        metricReader: new PeriodicExportingMetricReader({
-            exporter: new OTLPMetricExporter({
-                url: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
-                headers: headers,
-            }),
-        }) as any,
-        instrumentations: [getNodeAutoInstrumentations()],
-    });
+  const otlpEndpoint = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
 
-    sdk.start();
+  logger.info(otlpEndpoint);
 
-    logger.info('Instrumentation initialized');
+  sdk = new opentelemetry.NodeSDK({
+    traceExporter: new OTLPTraceExporter({
+      url: otlpEndpoint + '/v1/traces',
+      headers: headers,
+    }),
+    metricReader: new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter({
+        url: otlpEndpoint + '/v1/metrics',
+        headers: headers,
+      }),
+    }) as any,
+    instrumentations: [getNodeAutoInstrumentations()],
+  });
+
+  sdk.start();
+
+  logger.info('Instrumentation initialized');
 }
 
 export default sdk;
