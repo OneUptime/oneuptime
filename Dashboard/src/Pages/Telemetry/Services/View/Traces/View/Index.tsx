@@ -109,7 +109,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
     const getBarTooltip: Function = (
         span: Span,
-        divisibilityFactor: number
+        divisibilityFactorAndIntervalUnit:{
+            divisibilityFactor: number;
+            intervalUnit: string;
+        }
     ): ReactElement => {
         return (
             <div className="px-1">
@@ -139,9 +142,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                             {Math.round(
                                 (span.endTimeUnixNano! -
                                     span.startTimeUnixNano!) /
-                                    divisibilityFactor
+                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
                             )}{' '}
-                            ms
+                            {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
                     </div>
                     <div className="flex space-x-1">
@@ -259,7 +262,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
                         divisibilityFactor,
                     rowId: span.spanId!,
-                    tooltip: getBarTooltip(span, divisibilityFactor),
+                    tooltip: getBarTooltip(span, divisibilityFactorAndIntervalUnit),
                 };
             }),
             timeline: {
