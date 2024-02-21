@@ -4,9 +4,14 @@ import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import logger from './Logger';
 import Dictionary from 'Common/Types/Dictionary';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import {
+    LoggerProvider,
+    BatchLogRecordProcessor,
+} from '@opentelemetry/sdk-logs';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { SeverityNumber } from '@opentelemetry/api-logs';
 
 let sdk: opentelemetry.NodeSDK | null = null;
 
@@ -28,6 +33,26 @@ if (
 
     const otlpEndpoint: string = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
 
+    const logExporter = new OTLPLogExporter({
+        url: otlpEndpoint + '/v1/logs',
+        headers: headers,
+    });
+
+    const loggerProvider = new LoggerProvider();
+
+    loggerProvider.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter));
+
+    const logger = loggerProvider.getLogger('default', '1.0.0');
+
+    // Emit a log
+    logger.emit({
+        severityNumber: SeverityNumber.INFO,
+        severityText: 'info',
+        body: 'this is a log body',
+        attributes: { 'log.type': 'custom' },
+    });
+
+
     sdk = new opentelemetry.NodeSDK({
         traceExporter: new OTLPTraceExporter({
             url: otlpEndpoint + '/v1/traces',
@@ -46,9 +71,14 @@ if (
         ],
     });
 
-    sdk.start();
+    process.on('SIGTERM', () => {
+        sdk!.shutdown()
+            .then(() => console.log('Tracing terminated'))
+            .catch((error) => console.log('Error terminating tracing', error))
+            .finally(() => process.exit(0));
+    });
 
-    logger.info('Instrumentation initialized');
+    sdk.start();
 }
 
 export default sdk;
