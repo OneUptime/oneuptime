@@ -2,19 +2,14 @@ import * as opentelemetry from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import Dictionary from 'Common/Types/Dictionary';
 import {
-    LoggerProvider,
     BatchLogRecordProcessor,
-    ConsoleLogRecordExporter,
-    SimpleLogRecordProcessor,
 } from '@opentelemetry/sdk-logs';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
-import { Logger, SeverityNumber } from '@opentelemetry/api-logs';
-import { WinstonInstrumentation } from '@opentelemetry/instrumentation-winston';
 import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+
 
 let sdk: opentelemetry.NodeSDK | null = null;
 
@@ -22,6 +17,8 @@ if (
     process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] &&
     process.env['OTEL_EXPORTER_OTLP_HEADERS']
 ) {
+
+
     const headersStrings: Array<string> =
         process.env['OTEL_EXPORTER_OTLP_HEADERS'].split(';');
 
@@ -41,25 +38,6 @@ if (
         headers: headers,
     });
 
-    const loggerProvider: LoggerProvider = new LoggerProvider();
-
-    loggerProvider.addLogRecordProcessor(
-        new BatchLogRecordProcessor(logExporter)
-    );
-
-    loggerProvider.addLogRecordProcessor(
-        new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())
-    );
-
-    const logger: Logger = loggerProvider.getLogger('default', '1.0.0');
-
-    // Emit a log
-    logger.emit({
-        severityNumber: SeverityNumber.INFO,
-        severityText: 'info',
-        body: 'this is a log body',
-        attributes: { 'log.type': 'custom' },
-    });
 
     sdk = new opentelemetry.NodeSDK({
         idGenerator: new AWSXRayIdGenerator(),
@@ -75,17 +53,7 @@ if (
         }) as any,
         logRecordProcessor: new BatchLogRecordProcessor(logExporter) as any,
         instrumentations: [
-            new HttpInstrumentation(),
-            new ExpressInstrumentation(),
-            new WinstonInstrumentation({
-                // Optional hook to insert additional context to log metadata.
-                // Called after trace context is injected to metadata.
-                logHook: (_span, record) => {
-                    console.log("HOOK CALLED");
-                    record['resource.service.name'] = "App";
-                },
-            }),
-            // getNodeAutoInstrumentations(),
+            getNodeAutoInstrumentations(),
         ],
     });
 
@@ -94,8 +62,6 @@ if (
             return process.exit(0);
         });
     });
-
-    sdk.start();
 }
 
 export default sdk;

@@ -44,6 +44,13 @@ const Bar: FunctionComponent<ComponentProps> = (
         barWidth -= 1; // we do this because the bar width is calculated based on the timeline width, and we want to remove 1px from the width to account for the 1px margin on the left and right of the bar.
     }
 
+    if (barWidth < 5) {
+        barWidth = 5;
+    }
+
+    const eachCharacterWidth: number = 8;
+    const showLabelOutsideBar: boolean = barWidth < props.bar.title.length * eachCharacterWidth;
+
     const handleMouseEnter: MouseEventHandler = (): void => {
         setIsHovered(true);
     };
@@ -54,7 +61,9 @@ const Bar: FunctionComponent<ComponentProps> = (
 
     return (
         // rectangle div with curved corners and text inside in tailwindcss
-        <div>
+        <div className='flex absolute' style={{
+            marginLeft: `${barLeftPosition}px`
+        }}>
             <div
                 className="chart-bar h-8 pt-1 pb-1 mt-2.5 mb-2.5 rounded absolute cursor-pointer ml-1 mr-1"
                 style={{
@@ -65,16 +74,22 @@ const Bar: FunctionComponent<ComponentProps> = (
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
-                <BarLabel
+                {!showLabelOutsideBar && <BarLabel
                     title={props.bar.title}
                     titleColor={props.bar.titleColor}
-                />
+                />}
                 {isHovered && props.bar.tooltip && (
-                    <div className="bar-tooltip bg-white shadow rounded p-2 w-fit">
+                    <div className="bar-tooltip bg-white shadow rounded p-2 w-fit z-40 absolute">
                         {props.bar.tooltip}
                     </div>
                 )}
             </div>
+            {showLabelOutsideBar && <div className='h-8 pt-1 pb-1 mt-2.5 mb-2.5' style={{
+                marginLeft: `${barLeftPosition + barWidth + 10}px`
+            }}><BarLabel
+                    title={props.bar.title}
+                    titleColor={props.bar.barColor}
+                /></div>}
         </div>
     );
 };

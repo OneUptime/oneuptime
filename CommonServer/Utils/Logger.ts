@@ -1,13 +1,7 @@
-import { createLogger, Logger, transports, format } from 'winston';
+import { createLogger, Logger, transports } from 'winston';
 
-const { combine, timestamp, errors, prettyPrint } = format;
 
 const logger: Logger = createLogger({
-    format: combine(
-        errors({ stack: true }), // <-- use errors format
-        timestamp(),
-        prettyPrint()
-    ),
     transports: [new transports.Console()],
 });
 
