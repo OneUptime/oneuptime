@@ -810,7 +810,7 @@ export default class AnalyticsDatabaseService<
                     throw new BadDataException(`${requiredField} is required`);
                 }
             } else if (
-                !(data as any)[requiredField] &&
+                ((data as any)[requiredField] === null || (data as any)[requiredField] === undefined) &&
                 !data.isDefaultValueColumn(requiredField)
             ) {
                 throw new BadDataException(`${requiredField} is required`);

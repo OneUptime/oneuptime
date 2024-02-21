@@ -108,6 +108,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                         spanId: true,
                         traceId: true,
                         severityText: true,
+                        severityNumber: true,
                     },
                 },
                 (model: Log) => {

@@ -11,7 +11,7 @@ import TelemetryIngest, {
 import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
 import { JSONObject } from 'Common/Types/JSON';
-import Log from 'Model/AnalyticsModels/Log';
+import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import LogService from 'CommonServer/Services/LogService';
 import OneUptimeDate from 'Common/Types/Date';
 
@@ -55,13 +55,13 @@ router.post(
 
                 dbLog.projectId = (req as TelemetryRequest).projectId;
                 dbLog.serviceId = (req as TelemetryRequest).serviceId;
-                dbLog.severityNumber = '0';
+                dbLog.severityNumber = 0;
                 const currentTimeAndDate: Date = OneUptimeDate.getCurrentDate();
                 dbLog.timeUnixNano =
                     OneUptimeDate.toUnixNano(currentTimeAndDate);
                 dbLog.time = currentTimeAndDate;
 
-                dbLog.severityText = 'Information';
+                dbLog.severityText = LogSeverity.Unspecified;
 
                 if (typeof logItem !== 'string') {
                     logItem = JSON.stringify(logItem);

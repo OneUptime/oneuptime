@@ -9,7 +9,7 @@ import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
-import Log from 'Model/AnalyticsModels/Log';
+import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 import SpanService from 'CommonServer/Services/SpanService';
 import MetricSumService from 'CommonServer/Services/MetricSumService';
@@ -480,8 +480,53 @@ router.post(
                         dbLog.time = OneUptimeDate.fromUnixNano(
                             log['timeUnixNano'] as number
                         );
-                        dbLog.severityNumber = log['severityNumber'] as string;
-                        dbLog.severityText = log['severityText'] as string;
+
+                        let logSeverityNumber: number = log['severityNumber'] as number || 0; // 0 is Unspecified by default.
+
+                        if(typeof logSeverityNumber === 'string') {
+
+                            if(logSeverityNumber === 'SEVERITY_NUMBER_TRACE') {
+                                logSeverityNumber = 1;
+                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_DEBUG') {
+                                logSeverityNumber = 5;
+                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_INFO') {
+                                logSeverityNumber = 9;
+                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_WARN') {
+                                logSeverityNumber = 13;
+                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_ERROR') {
+                                logSeverityNumber = 17;
+                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_FATAL') {
+                                logSeverityNumber = 21;
+                            } else {
+                                logSeverityNumber = parseInt(logSeverityNumber);
+                            }
+                        }
+
+                        dbLog.severityNumber = logSeverityNumber;
+
+                        let logSeverity: LogSeverity = LogSeverity.Unspecified;
+
+
+                        // these numbers are from the opentelemetry/api-logs package
+                        if(logSeverityNumber < 0 || logSeverityNumber > 24) {
+                            logSeverity = LogSeverity.Unspecified;
+                            logSeverityNumber = 0;
+                        }else if (logSeverityNumber >=  1 && logSeverityNumber <= 4) {
+                            logSeverity = LogSeverity.Trace;
+                        }else if (logSeverityNumber >=  5 && logSeverityNumber <= 8) {
+                            logSeverity = LogSeverity.Debug;
+                        } else if (logSeverityNumber >=  9 && logSeverityNumber <= 12) {
+                            logSeverity = LogSeverity.Information;
+                        } else if (logSeverityNumber >=  13 && logSeverityNumber <= 16) {
+                            logSeverity = LogSeverity.Warning;
+                        } else if (logSeverityNumber >=  17 && logSeverityNumber <= 20) {
+                            logSeverity = LogSeverity.Error;
+                        } else if (logSeverityNumber >=  21 && logSeverityNumber <= 24) {
+                            logSeverity = LogSeverity.Fatal;
+                        }
+
+
+                        dbLog.severityText = logSeverity;
 
                         const logBody: JSONObject = log['body'] as JSONObject;
 

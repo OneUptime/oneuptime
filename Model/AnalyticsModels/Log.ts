@@ -8,9 +8,13 @@ import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
 
 export enum LogSeverity {
+    Unspecified = 'Unspecified',
     Information = 'Information',
     Warning = 'Warning',
     Error = 'Error',
+    Trace = 'Trace',
+    Debug = 'Debug',
+    Fatal = 'Fatal',
 }
 
 export default class Log extends AnalyticsBaseModel {
@@ -172,7 +176,7 @@ export default class Log extends AnalyticsBaseModel {
                     title: 'Severity Number',
                     description: 'Log Severity Number',
                     required: true,
-                    type: TableColumnType.Text,
+                    type: TableColumnType.Number,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -327,19 +331,19 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('timeUnixNano', v);
     }
 
-    public get severityText(): string | undefined {
-        return this.getColumnValue('severityText') as string | undefined;
+    public get severityText(): LogSeverity | undefined {
+        return this.getColumnValue('severityText') as LogSeverity | undefined;
     }
 
-    public set severityText(v: string | undefined) {
+    public set severityText(v: LogSeverity | undefined) {
         this.setColumnValue('severityText', v);
     }
 
-    public get severityNumber(): string | undefined {
-        return this.getColumnValue('severityNumber') as string | undefined;
+    public get severityNumber(): number | undefined {
+        return this.getColumnValue('severityNumber') as number | undefined;
     }
 
-    public set severityNumber(v: string | undefined) {
+    public set severityNumber(v: number | undefined) {
         this.setColumnValue('severityNumber', v);
     }
 

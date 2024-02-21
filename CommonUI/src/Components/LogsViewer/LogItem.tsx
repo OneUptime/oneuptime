@@ -1,10 +1,12 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import Log from 'Model/AnalyticsModels/Log';
+import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 
 export interface ComponentProps {
     log: Log;
 }
+
+
 
 const LogItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
@@ -17,9 +19,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     let bodyColor: string = 'text-slate-200';
 
-    if (props.log.severityText === 'Warning') {
+    if (props.log.severityText === LogSeverity.Warning || props.log.severityText === LogSeverity.Trace || props.log.severityText === LogSeverity.Debug) {
         bodyColor = 'text-amber-400';
-    } else if (props.log.severityText === 'Error') {
+    } else if (props.log.severityText === LogSeverity.Error) {
         bodyColor = 'text-rose-400';
     }
 
@@ -44,21 +46,38 @@ const LogItem: FunctionComponent<ComponentProps> = (
                         &nbsp;{' '}
                     </div>
                 )}
-                {props.log.severityText === 'Information' && (
+                {props.log.severityText === LogSeverity.Information && (
                     <div className="text-sky-400 courier-prime flex-none">
                         [INFO] &nbsp;
                     </div>
                 )}
-                {props.log.severityText === 'Warning' && (
+                {props.log.severityText === LogSeverity.Warning && (
                     <div className="text-amber-400 courier-prime flex-none">
                         [WARN] &nbsp;
                     </div>
                 )}
-                {props.log.severityText === 'Error' && (
-                    <div className="text-rose-400 courier-prime flex-none">
-                        [EROR] &nbsp;
+                {props.log.severityText === LogSeverity.Trace && (
+                    <div className="text-amber-400 courier-prime flex-none">
+                        [TRACE] &nbsp;
                     </div>
                 )}
+                {props.log.severityText === LogSeverity.Debug && (
+                    <div className="text-amber-400 courier-prime flex-none">
+                        [DEBUG] &nbsp;
+                    </div>
+                )}
+                {props.log.severityText === LogSeverity.Error && (
+                    <div className="text-rose-400 courier-prime flex-none">
+                        [ERROR] &nbsp;
+                    </div>
+                )}
+                {props.log.severityText === LogSeverity.Fatal && (
+                    <div className="text-rose-400 courier-prime flex-none">
+                        [FATAL] &nbsp;
+                    </div>
+                )}
+                
+
                 <div className={`${bodyColor} courier-prime`}>
                     {props.log.body?.toString()}
                 </div>
@@ -79,7 +98,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     &nbsp;{' '}
                 </div>
             )}
-            {props.log.severityText === 'Information' && (
+            {props.log.severityText === LogSeverity.Information && (
                 <div className="flex">
                     <div className="font-medium text-slate-200 courier-prime mr-2">
                         SEVERITY:
@@ -89,7 +108,17 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     </div>
                 </div>
             )}
-            {props.log.severityText === 'Warning' && (
+            {props.log.severityText === LogSeverity.Unspecified && (
+                <div className="flex">
+                    <div className="font-medium text-slate-200 courier-prime mr-2">
+                        SEVERITY:
+                    </div>
+                    <div className="text-sky-400 courier-prime">
+                        [UNKNOWN] &nbsp;
+                    </div>
+                </div>
+            )}
+            {props.log.severityText === LogSeverity.Warning && (
                 <div className="flex">
                     <div className="font-medium text-slate-200 courier-prime mr-2">
                         SEVERITY:
@@ -99,13 +128,43 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     </div>
                 </div>
             )}
-            {props.log.severityText === 'Error' && (
+            {props.log.severityText === LogSeverity.Trace && (
+                <div className="flex">
+                    <div className="font-medium text-slate-200 courier-prime mr-2">
+                        SEVERITY:
+                    </div>
+                    <div className="text-amber-400 courier-prime">
+                        [TRACE] &nbsp;
+                    </div>
+                </div>
+            )}
+            {props.log.severityText === LogSeverity.Debug && (
+                <div className="flex">
+                    <div className="font-medium text-slate-200 courier-prime mr-2">
+                        SEVERITY:
+                    </div>
+                    <div className="text-amber-400 courier-prime">
+                        [DEBUG] &nbsp;
+                    </div>
+                </div>
+            )}
+            {props.log.severityText === LogSeverity.Error && (
                 <div className="flex">
                     <div className="font-medium text-slate-200 courier-prime mr-2">
                         SEVERITY:
                     </div>
                     <div className="text-rose-400 courier-prime">
-                        [EROR] &nbsp;
+                        [ERROR] &nbsp;
+                    </div>
+                </div>
+            )}
+             {props.log.severityText === LogSeverity.Fatal && (
+                <div className="flex">
+                    <div className="font-medium text-slate-200 courier-prime mr-2">
+                        SEVERITY:
+                    </div>
+                    <div className="text-rose-400 courier-prime">
+                        [FATAL] &nbsp;
                     </div>
                 </div>
             )}

@@ -5,7 +5,6 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import Dictionary from 'Common/Types/Dictionary';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import {
     LoggerProvider,
     BatchLogRecordProcessor,
@@ -14,6 +13,7 @@ import {
 } from '@opentelemetry/sdk-logs';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { Logger, SeverityNumber } from '@opentelemetry/api-logs';
+import { WinstonInstrumentation } from '@opentelemetry/instrumentation-winston';
 
 let sdk: opentelemetry.NodeSDK | null = null;
 
@@ -71,11 +71,12 @@ if (
                 headers: headers,
             }),
         }) as any,
-        // logRecordProcessor: new BatchLogRecordProcessor(logExporter) as any
+        logRecordProcessor: new BatchLogRecordProcessor(logExporter) as any,
         instrumentations: [
             new HttpInstrumentation(),
             new ExpressInstrumentation(),
-            getNodeAutoInstrumentations(),
+            new WinstonInstrumentation(),
+            // getNodeAutoInstrumentations(),
         ],
     });
 
@@ -89,3 +90,4 @@ if (
 }
 
 export default sdk;
+
