@@ -14,6 +14,7 @@ import {
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { Logger, SeverityNumber } from '@opentelemetry/api-logs';
 import { WinstonInstrumentation } from '@opentelemetry/instrumentation-winston';
+import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
 
 let sdk: opentelemetry.NodeSDK | null = null;
 
@@ -61,9 +62,10 @@ if (
     });
 
     sdk = new opentelemetry.NodeSDK({
+        idGenerator: new AWSXRayIdGenerator(),
         traceExporter: new OTLPTraceExporter({
             url: otlpEndpoint + '/v1/traces',
-            headers: headers,
+            headers: headers
         }),
         metricReader: new PeriodicExportingMetricReader({
             exporter: new OTLPMetricExporter({
@@ -75,7 +77,14 @@ if (
         instrumentations: [
             new HttpInstrumentation(),
             new ExpressInstrumentation(),
-            new WinstonInstrumentation(),
+            new WinstonInstrumentation({
+                // Optional hook to insert additional context to log metadata.
+                // Called after trace context is injected to metadata.
+                logHook: (_span, record) => {
+                    console.log("HOOK CALLED");
+                    record['resource.service.name'] = "App";
+                },
+            }),
             // getNodeAutoInstrumentations(),
         ],
     });
