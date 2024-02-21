@@ -75,7 +75,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 <p className="text-sm text-gray-500">
                     {!props.isLoading && (
                         <span>
-                            {props.totalItemsCount}{' '}
+                            {props.totalItemsCount.toLocaleString()}{' '}
                             {props.totalItemsCount > 1
                                 ? props.pluralLabel
                                 : props.singularLabel}{' '}
