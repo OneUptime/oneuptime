@@ -164,8 +164,8 @@ const executePendingNotificationLog: Function = async (
     } catch (err: any) {
         logger.error(
             `Error executing pending notification log: ${pendingNotificationLog._id}`,
-            err
         );
+        logger.error(err);
 
         await UserOnCallLogService.updateOneById({
             id: pendingNotificationLog.id!,
