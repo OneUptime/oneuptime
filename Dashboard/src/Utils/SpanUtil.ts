@@ -51,7 +51,7 @@ export default class SpanUtil {
         } else if (span.kind === SpanKind.Consumer) {
             return {
                 barColor: Cyan,
-                titleColor: Black,
+                titleColor: White,
             };
         }
         return {
