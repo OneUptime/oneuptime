@@ -117,32 +117,6 @@ export default class OneUptimeTelemetry {
                 });
             }
 
-            const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK({
-                idGenerator: new AWSXRayIdGenerator(),
-                traceExporter: traceExporter,
-                metricReader: metricReader as any,
-                instrumentations: [getNodeAutoInstrumentations()],
-                resource: this.getResource({
-                    serviceName: data.serviceName,
-                }),
-            });
-
-            process.on('SIGTERM', () => {
-                sdk.shutdown().finally(() => {
-                    return process.exit(0);
-                });
-            });
-
-            sdk.start();
-
-            this.sdk = sdk;
-        }
-
-        return this.sdk;
-    }
-
-    public static getLogger(): Logger {
-        if (!this.logger) {
             const loggerProvider = new LoggerProvider();
 
             if (this.getOltpLogsEndpoint()) {
@@ -163,8 +137,38 @@ export default class OneUptimeTelemetry {
             logs.setGlobalLoggerProvider(loggerProvider);
 
             this.logger = logs.getLogger('default');
+
+            const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK({
+                idGenerator: new AWSXRayIdGenerator(),
+                traceExporter: traceExporter,
+                metricReader: metricReader as any,
+                logRecordProcessor: loggerProvider as any,
+                instrumentations: [getNodeAutoInstrumentations()],
+                resource: this.getResource({
+                    serviceName: data.serviceName,
+                }),
+            });
+            
+
+            process.on('SIGTERM', () => {
+                sdk.shutdown().finally(() => {
+                    return process.exit(0);
+                });
+            });
+
+            sdk.start();
+
+            this.sdk = sdk;
         }
 
-        return this.logger;
+        return this.sdk;
+    }
+
+    public static getLogger(): Logger {
+        if (!this.logger) {
+            this.init({ serviceName: 'default' });
+        }
+
+        return this.logger!;
     }
 }
