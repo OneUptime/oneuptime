@@ -109,7 +109,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
     const getBarTooltip: Function = (
         span: Span,
-        divisibilityFactorAndIntervalUnit:{
+        divisibilityFactorAndIntervalUnit: {
             divisibilityFactor: number;
             intervalUnit: string;
         }
@@ -164,34 +164,34 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         });
     }, []);
 
-
-    const getDivisibilityFactor: Function = (totalTimelineTimeInUnixNano: number): {
+    const getDivisibilityFactor: Function = (
+        totalTimelineTimeInUnixNano: number
+    ): {
         divisibilityFactor: number;
         intervalUnit: string;
     } => {
-
         let intervalUnit: string = 'ms';
         let divisibilityFactor: number = 1000; // default is in milliseconds
 
-        if(totalTimelineTimeInUnixNano < 1000){
+        if (totalTimelineTimeInUnixNano < 1000) {
             intervalUnit = 'ns';
             divisibilityFactor = 1; // this is in nanoseconds
-        } else if(totalTimelineTimeInUnixNano < 1000000){
+        } else if (totalTimelineTimeInUnixNano < 1000000) {
             intervalUnit = 'μs';
             divisibilityFactor = 1000; // this is in microseconds
-        } else if(totalTimelineTimeInUnixNano < 1000000000){
+        } else if (totalTimelineTimeInUnixNano < 1000000000) {
             intervalUnit = 'ms';
             divisibilityFactor = 1000000; // this is in microseconds
-        } else if (totalTimelineTimeInUnixNano < 1000000000000){
+        } else if (totalTimelineTimeInUnixNano < 1000000000000) {
             intervalUnit = 's';
-            divisibilityFactor =  1000000000; // this is in seconds
+            divisibilityFactor = 1000000000; // this is in seconds
         }
 
         return {
             divisibilityFactor: divisibilityFactor,
-            intervalUnit: intervalUnit
-        }; 
-    }
+            intervalUnit: intervalUnit,
+        };
+    };
 
     React.useEffect(() => {
         // convert spans to gantt chart
@@ -220,9 +220,12 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         const divisibilityFactorAndIntervalUnit: {
             divisibilityFactor: number;
             intervalUnit: string;
-        } = getDivisibilityFactor((timelineEndTimeUnixNano - timelineStartTimeUnixNano)); 
+        } = getDivisibilityFactor(
+            timelineEndTimeUnixNano - timelineStartTimeUnixNano
+        );
 
-        const divisibilityFactor: number = divisibilityFactorAndIntervalUnit.divisibilityFactor;
+        const divisibilityFactor: number =
+            divisibilityFactorAndIntervalUnit.divisibilityFactor;
 
         const endTimeline: number =
             (timelineEndTimeUnixNano - timelineStartTimeUnixNano) /
@@ -262,7 +265,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
                         divisibilityFactor,
                     rowId: span.spanId!,
-                    tooltip: getBarTooltip(span, divisibilityFactorAndIntervalUnit),
+                    tooltip: getBarTooltip(
+                        span,
+                        divisibilityFactorAndIntervalUnit
+                    ),
                 };
             }),
             timeline: {

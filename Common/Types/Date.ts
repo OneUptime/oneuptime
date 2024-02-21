@@ -8,8 +8,6 @@ import moment from 'moment-timezone';
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
-
-
     public getNanoSecondsFromSeconds(seconds: number): number {
         return seconds * 1000 * 1000 * 1000;
     }

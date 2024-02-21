@@ -1,14 +1,11 @@
 export default class Text {
-
-
     public static convertBase64ToHex(base64: string): string {
-
-        if(!base64) {
+        if (!base64) {
             return base64;
         }
 
-        const raw = Buffer.from(base64, 'base64').toString();
-        let result = '';
+        const raw: string = Buffer.from(base64, 'base64').toString();
+        let result: string = '';
         for (let i: number = 0; i < raw.length; i++) {
             const hex: string = raw.charCodeAt(i).toString(16);
             result += hex.length === 2 ? hex : '0' + hex;

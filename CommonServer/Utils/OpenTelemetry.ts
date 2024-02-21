@@ -9,9 +9,11 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import {
     LoggerProvider,
     BatchLogRecordProcessor,
+    ConsoleLogRecordExporter,
+    SimpleLogRecordProcessor,
 } from '@opentelemetry/sdk-logs';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
-import { SeverityNumber } from '@opentelemetry/api-logs';
+import { Logger, SeverityNumber } from '@opentelemetry/api-logs';
 
 let sdk: opentelemetry.NodeSDK | null = null;
 
@@ -33,16 +35,22 @@ if (
 
     const otlpEndpoint: string = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
 
-    const logExporter = new OTLPLogExporter({
+    const logExporter: OTLPLogExporter = new OTLPLogExporter({
         url: otlpEndpoint + '/v1/logs',
         headers: headers,
     });
 
-    const loggerProvider = new LoggerProvider();
+    const loggerProvider: LoggerProvider = new LoggerProvider();
 
-    loggerProvider.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter));
+    loggerProvider.addLogRecordProcessor(
+        new BatchLogRecordProcessor(logExporter)
+    );
 
-    const logger = loggerProvider.getLogger('default', '1.0.0');
+    loggerProvider.addLogRecordProcessor(
+        new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())
+    );
+
+    const logger: Logger = loggerProvider.getLogger('default', '1.0.0');
 
     // Emit a log
     logger.emit({
@@ -51,7 +59,6 @@ if (
         body: 'this is a log body',
         attributes: { 'log.type': 'custom' },
     });
-
 
     sdk = new opentelemetry.NodeSDK({
         traceExporter: new OTLPTraceExporter({
@@ -64,6 +71,7 @@ if (
                 headers: headers,
             }),
         }) as any,
+        // logRecordProcessor: new BatchLogRecordProcessor(logExporter) as any
         instrumentations: [
             new HttpInstrumentation(),
             new ExpressInstrumentation(),
@@ -72,10 +80,9 @@ if (
     });
 
     process.on('SIGTERM', () => {
-        sdk!.shutdown()
-            .then(() => console.log('Tracing terminated'))
-            .catch((error) => console.log('Error terminating tracing', error))
-            .finally(() => process.exit(0));
+        sdk!.shutdown().finally(() => {
+            return process.exit(0);
+        });
     });
 
     sdk.start();
