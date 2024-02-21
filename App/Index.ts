@@ -1,4 +1,4 @@
-import OpenTelemetrySDK from 'CommonServer/Utils/OpenTelemetry';
+import OneUptimeTelemetry from 'CommonServer/Utils/OpenTelemetry';
 import 'ejs';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
@@ -45,7 +45,10 @@ const init: () => Promise<void> = async (): Promise<void> => {
         // init workflow
         await Workflow.init();
 
-        OpenTelemetrySDK?.start();
+        OneUptimeTelemetry.init({
+            serviceName: APP_NAME,
+        });
+
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

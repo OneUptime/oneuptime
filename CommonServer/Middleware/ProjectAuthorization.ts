@@ -19,7 +19,6 @@ import GlobalConfigService from '../Services/GlobalConfigService';
 import User from 'Model/Models/User';
 import UserService from '../Services/UserService';
 import GlobalConfig from 'Model/Models/GlobalConfig';
-import logger from '../Utils/Logger';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -64,8 +63,6 @@ export default class ProjectMiddleware {
     ): Promise<void> {
         try {
             const tenantId: ObjectID | null = this.getProjectId(req);
-
-            logger.info('tenantId', tenantId);
 
             const apiKey: ObjectID | null = this.getApiKey(req);
 
