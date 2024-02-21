@@ -383,7 +383,8 @@ router.post(
                                 dbMetricsHistogram.push(dbMetricHistogram);
                             }
                         } else {
-                            logger.warn('Unknown metric type', metric);
+                            logger.warn('Unknown metric type');
+                            logger.warn(metric);
                         }
                     }
                 }
