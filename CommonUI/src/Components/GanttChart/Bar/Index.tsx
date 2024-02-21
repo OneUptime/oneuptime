@@ -35,7 +35,7 @@ const Bar: FunctionComponent<ComponentProps> = (
         ((props.bar.barTimelineEnd - props.bar.barTimelineStart) /
             (props.chartTimelineEnd - props.chartTimelineStart)) *
         props.timelineWidth;
-        
+
     const barLeftPosition: number =
         ((props.bar.barTimelineStart - props.chartTimelineStart) /
             (props.chartTimelineEnd - props.chartTimelineStart)) *

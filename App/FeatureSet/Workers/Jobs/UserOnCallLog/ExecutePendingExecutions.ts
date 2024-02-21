@@ -163,7 +163,7 @@ const executePendingNotificationLog: Function = async (
         }
     } catch (err: any) {
         logger.error(
-            `Error executing pending notification log: ${pendingNotificationLog._id}`,
+            `Error executing pending notification log: ${pendingNotificationLog._id}`
         );
         logger.error(err);
 

@@ -1,25 +1,34 @@
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
-import { ConsoleMetricExporter, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import {
+    ConsoleMetricExporter,
+    PeriodicExportingMetricReader,
+} from '@opentelemetry/sdk-metrics';
 import Dictionary from 'Common/Types/Dictionary';
 import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
-import { BatchLogRecordProcessor, ConsoleLogRecordExporter, LoggerProvider, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
+import {
+    BatchLogRecordProcessor,
+    ConsoleLogRecordExporter,
+    LoggerProvider,
+    SimpleLogRecordProcessor,
+} from '@opentelemetry/sdk-logs';
 import URL from 'Common/Types/API/URL';
-import { ConsoleSpanExporter, SpanExporter } from '@opentelemetry/sdk-trace-node';
+import {
+    ConsoleSpanExporter,
+    SpanExporter,
+} from '@opentelemetry/sdk-trace-node';
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { Logger, logs } from "@opentelemetry/api-logs";
+import { Logger, logs } from '@opentelemetry/api-logs';
 
 export default class OneUptimeTelemetry {
-
     public static sdk: opentelemetry.NodeSDK | null = null;
     public static logger: Logger | null = null;
 
     public static getHeaders(): Dictionary<string> {
-
         if (!process.env['OTEL_EXPORTER_OTLP_HEADERS']) {
             return {};
         }
@@ -37,11 +46,9 @@ export default class OneUptimeTelemetry {
         }
 
         return headers;
-
     }
 
     public static getOtlpEndpoint(): URL | null {
-
         if (!process.env['OTEL_EXPORTER_OTLP_ENDPOINT']) {
             return null;
         }
@@ -79,25 +86,20 @@ export default class OneUptimeTelemetry {
         return URL.fromString(oltpEndpoint.toString() + '/v1/traces');
     }
 
-    public static getResource(data: {
-        serviceName: string,
-    }): Resource {
+    public static getResource(data: { serviceName: string }): Resource {
         return new Resource({
             [SemanticResourceAttributes.SERVICE_NAME]: data.serviceName,
-        })
+        });
     }
 
-    public static init(data: {
-        serviceName: string,
-    }): opentelemetry.NodeSDK {
-
+    public static init(data: { serviceName: string }): opentelemetry.NodeSDK {
         if (!this.sdk) {
-
             let traceExporter: SpanExporter = new ConsoleSpanExporter();
 
-            let metricReader: PeriodicExportingMetricReader = new PeriodicExportingMetricReader({
-                exporter: new ConsoleMetricExporter(),
-            });
+            let metricReader: PeriodicExportingMetricReader =
+                new PeriodicExportingMetricReader({
+                    exporter: new ConsoleMetricExporter(),
+                });
 
             if (this.getOltpTracesEndpoint()) {
                 traceExporter = new OTLPTraceExporter({
@@ -115,7 +117,7 @@ export default class OneUptimeTelemetry {
                 });
             }
 
-            let sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK({
+            const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK({
                 idGenerator: new AWSXRayIdGenerator(),
                 traceExporter: traceExporter,
                 metricReader: metricReader as any,
@@ -134,12 +136,11 @@ export default class OneUptimeTelemetry {
             sdk.start();
 
             this.sdk = sdk;
-
         }
 
         return this.sdk;
     }
-    
+
     public static getLogger(): Logger {
         if (!this.logger) {
             const loggerProvider = new LoggerProvider();
@@ -150,12 +151,14 @@ export default class OneUptimeTelemetry {
                     headers: this.getHeaders(),
                 });
 
-                loggerProvider.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter));
+                loggerProvider.addLogRecordProcessor(
+                    new BatchLogRecordProcessor(logExporter)
+                );
             }
 
-            loggerProvider.addLogRecordProcessor(new SimpleLogRecordProcessor(new ConsoleLogRecordExporter()));
-
-
+            loggerProvider.addLogRecordProcessor(
+                new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())
+            );
 
             logs.setGlobalLoggerProvider(loggerProvider);
 

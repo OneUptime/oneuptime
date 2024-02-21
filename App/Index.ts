@@ -48,7 +48,6 @@ const init: () => Promise<void> = async (): Promise<void> => {
         OneUptimeTelemetry.init({
             serviceName: APP_NAME,
         });
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
