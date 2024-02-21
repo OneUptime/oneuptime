@@ -481,21 +481,31 @@ router.post(
                             log['timeUnixNano'] as number
                         );
 
-                        let logSeverityNumber: number = log['severityNumber'] as number || 0; // 0 is Unspecified by default.
+                        let logSeverityNumber: number =
+                            (log['severityNumber'] as number) || 0; // 0 is Unspecified by default.
 
-                        if(typeof logSeverityNumber === 'string') {
-
-                            if(logSeverityNumber === 'SEVERITY_NUMBER_TRACE') {
+                        if (typeof logSeverityNumber === 'string') {
+                            if (logSeverityNumber === 'SEVERITY_NUMBER_TRACE') {
                                 logSeverityNumber = 1;
-                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_DEBUG') {
+                            } else if (
+                                logSeverityNumber === 'SEVERITY_NUMBER_DEBUG'
+                            ) {
                                 logSeverityNumber = 5;
-                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_INFO') {
+                            } else if (
+                                logSeverityNumber === 'SEVERITY_NUMBER_INFO'
+                            ) {
                                 logSeverityNumber = 9;
-                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_WARN') {
+                            } else if (
+                                logSeverityNumber === 'SEVERITY_NUMBER_WARN'
+                            ) {
                                 logSeverityNumber = 13;
-                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_ERROR') {
+                            } else if (
+                                logSeverityNumber === 'SEVERITY_NUMBER_ERROR'
+                            ) {
                                 logSeverityNumber = 17;
-                            } else if(logSeverityNumber === 'SEVERITY_NUMBER_FATAL') {
+                            } else if (
+                                logSeverityNumber === 'SEVERITY_NUMBER_FATAL'
+                            ) {
                                 logSeverityNumber = 21;
                             } else {
                                 logSeverityNumber = parseInt(logSeverityNumber);
@@ -506,25 +516,41 @@ router.post(
 
                         let logSeverity: LogSeverity = LogSeverity.Unspecified;
 
-
                         // these numbers are from the opentelemetry/api-logs package
-                        if(logSeverityNumber < 0 || logSeverityNumber > 24) {
+                        if (logSeverityNumber < 0 || logSeverityNumber > 24) {
                             logSeverity = LogSeverity.Unspecified;
                             logSeverityNumber = 0;
-                        }else if (logSeverityNumber >=  1 && logSeverityNumber <= 4) {
+                        } else if (
+                            logSeverityNumber >= 1 &&
+                            logSeverityNumber <= 4
+                        ) {
                             logSeverity = LogSeverity.Trace;
-                        }else if (logSeverityNumber >=  5 && logSeverityNumber <= 8) {
+                        } else if (
+                            logSeverityNumber >= 5 &&
+                            logSeverityNumber <= 8
+                        ) {
                             logSeverity = LogSeverity.Debug;
-                        } else if (logSeverityNumber >=  9 && logSeverityNumber <= 12) {
+                        } else if (
+                            logSeverityNumber >= 9 &&
+                            logSeverityNumber <= 12
+                        ) {
                             logSeverity = LogSeverity.Information;
-                        } else if (logSeverityNumber >=  13 && logSeverityNumber <= 16) {
+                        } else if (
+                            logSeverityNumber >= 13 &&
+                            logSeverityNumber <= 16
+                        ) {
                             logSeverity = LogSeverity.Warning;
-                        } else if (logSeverityNumber >=  17 && logSeverityNumber <= 20) {
+                        } else if (
+                            logSeverityNumber >= 17 &&
+                            logSeverityNumber <= 20
+                        ) {
                             logSeverity = LogSeverity.Error;
-                        } else if (logSeverityNumber >=  21 && logSeverityNumber <= 24) {
+                        } else if (
+                            logSeverityNumber >= 21 &&
+                            logSeverityNumber <= 24
+                        ) {
                             logSeverity = LogSeverity.Fatal;
                         }
-
 
                         dbLog.severityText = logSeverity;
 

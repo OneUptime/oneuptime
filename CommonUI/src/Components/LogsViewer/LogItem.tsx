@@ -6,8 +6,6 @@ export interface ComponentProps {
     log: Log;
 }
 
-
-
 const LogItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -19,7 +17,11 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     let bodyColor: string = 'text-slate-200';
 
-    if (props.log.severityText === LogSeverity.Warning || props.log.severityText === LogSeverity.Trace || props.log.severityText === LogSeverity.Debug) {
+    if (
+        props.log.severityText === LogSeverity.Warning ||
+        props.log.severityText === LogSeverity.Trace ||
+        props.log.severityText === LogSeverity.Debug
+    ) {
         bodyColor = 'text-amber-400';
     } else if (props.log.severityText === LogSeverity.Error) {
         bodyColor = 'text-rose-400';
@@ -76,7 +78,6 @@ const LogItem: FunctionComponent<ComponentProps> = (
                         [FATAL] &nbsp;
                     </div>
                 )}
-                
 
                 <div className={`${bodyColor} courier-prime`}>
                     {props.log.body?.toString()}
@@ -158,7 +159,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     </div>
                 </div>
             )}
-             {props.log.severityText === LogSeverity.Fatal && (
+            {props.log.severityText === LogSeverity.Fatal && (
                 <div className="flex">
                     <div className="font-medium text-slate-200 courier-prime mr-2">
                         SEVERITY:

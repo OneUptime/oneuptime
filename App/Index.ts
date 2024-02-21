@@ -1,4 +1,3 @@
-
 import OpenTelemetrySDK from 'CommonServer/Utils/OpenTelemetry';
 import 'ejs';
 import Redis from 'CommonServer/Infrastructure/Redis';
@@ -15,7 +14,6 @@ import './FeatureSet/BaseAPI/Index';
 import './FeatureSet/ApiReference/Index';
 import Workers from './FeatureSet/Workers/Index';
 import Workflow from './FeatureSet/Workflow/Index';
-
 
 // home should be in the end.
 import './FeatureSet/Home/Index';
@@ -48,7 +46,6 @@ const init: () => Promise<void> = async (): Promise<void> => {
         await Workflow.init();
 
         OpenTelemetrySDK?.start();
-        
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
