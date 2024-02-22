@@ -392,7 +392,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             } else if (value instanceof Includes) {
                 whereStatement.append(
                     SQL`AND ${key} IN (${{
-                        value: value.values,
+                        value: value,
                         type: tableColumn.type,
                     }})`
                 );

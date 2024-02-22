@@ -4,6 +4,7 @@ import { RecordValue } from 'Common/AnalyticsModels/CommonModel';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
 import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
+import Includes from 'Common/Types/BaseDatabase/Includes';
 import LessThan from 'Common/Types/BaseDatabase/LessThan';
 import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import Search from 'Common/Types/BaseDatabase/Search';
@@ -94,6 +95,16 @@ export class Statement implements BaseQueryParams {
             v.value instanceof GreaterThanOrEqual
         ) {
             finalValue = v.value.value;
+        } else if (
+            v.value instanceof Includes
+        ) {
+
+            if(v.type === TableColumnType.Text){
+                finalValue = v.value.values.map((val) => `'${val}'`).join(',');
+            }else{
+                finalValue = v.value.values;
+            }
+           
         } else if (v.value instanceof Date) {
             finalValue = OneUptimeDate.toDatabaseDate(v.value);
         } else {
