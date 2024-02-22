@@ -103,11 +103,9 @@ export class Statement implements BaseQueryParams {
             finalValue = v.value.value;
         } else if (v.value instanceof Includes) {
             if (v.type === TableColumnType.Text) {
-                finalValue = v.value.values
-                    .map((val: string | ObjectID) => {
-                        return `'${val.toString()}'`;
-                    })
-                    .join(',');
+                finalValue = v.value.values.map((val: string | ObjectID) => {
+                    return `'${val.toString()}'`;
+                });
             } else {
                 finalValue = v.value.values;
             }

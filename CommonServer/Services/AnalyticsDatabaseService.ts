@@ -331,7 +331,6 @@ export default class AnalyticsDatabaseService<
         `);
         /* eslint-enable prettier/prettier */
 
-
         logger.info(`${this.model.tableName} Find Statement`);
         logger.info(statement);
 
