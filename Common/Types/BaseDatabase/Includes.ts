@@ -31,11 +31,12 @@ export default class Includes extends SerializableObject {
 
     public static override fromJSON(json: JSONObject): Includes {
         if (json['_type'] === ObjectType.Includes) {
+            const valuesArray: Array<string> = [];
 
-            const valuesArray: Array<string> = []; 
-
-            for(const value of json['value'] as Array<string> || []) {
-                valuesArray.push(JSONFunctions.deserializeValue(value) as string);
+            for (const value of (json['value'] as Array<string>) || []) {
+                valuesArray.push(
+                    JSONFunctions.deserializeValue(value) as string
+                );
             }
 
             return new Includes(valuesArray);

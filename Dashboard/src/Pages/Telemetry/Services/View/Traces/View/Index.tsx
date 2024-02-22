@@ -22,6 +22,9 @@ import DashboardLogsViewer from '../../../../../../Components/LogsViewer/LogsVie
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+    const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
+
     const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);
     const telemetryServiceId: ObjectID = Navigation.getLastParamAsObjectID(0);
 
@@ -255,6 +258,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     description: span.spanId!,
                 };
             }),
+            onBarSelectChange(barIds: Array<string>) {
+                setSelectedSpans(barIds);
+            },
             bars: spans.map((span: Span) => {
                 const spanColor: {
                     barColor: Color;
@@ -319,6 +325,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     noLogsMessage="No logs found for this trace."
                     telemetryServiceIds={[telemetryServiceId]}
                     traceIds={[traceId]}
+                    spanIds={selectedSpans}
                     enableRealtime={false}
                 />
             )}

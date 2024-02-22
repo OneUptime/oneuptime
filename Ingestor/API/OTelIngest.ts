@@ -140,9 +140,9 @@ router.post(
                             span['endTimeUnixNano'] as number
                         );
 
-                        dbSpan.durationUnixNano = span[
-                            'endTimeUnixNano'
-                        ] as number - (span['startTimeUnixNano'] as number);
+                        dbSpan.durationUnixNano =
+                            (span['endTimeUnixNano'] as number) -
+                            (span['startTimeUnixNano'] as number);
 
                         dbSpan.name = span['name'] as string;
                         dbSpan.kind =

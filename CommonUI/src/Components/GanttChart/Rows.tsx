@@ -8,6 +8,8 @@ export interface ComponentProps {
     chartTimelineStart: number;
     chartTimelineEnd: number;
     timelineWidth: number;
+    selectedBarIds: string[];
+    onBarSelectChange: (barIds: string[]) => void;
 }
 
 const Rows: FunctionComponent<ComponentProps> = (
@@ -27,6 +29,8 @@ const Rows: FunctionComponent<ComponentProps> = (
                         bars={props.bars.filter((bar: GanttChartBar) => {
                             return bar.rowId === row.id;
                         })}
+                        selectedBarIds={props.selectedBarIds}
+                        onBarSelectChange={props.onBarSelectChange}
                     />
                 );
             })}

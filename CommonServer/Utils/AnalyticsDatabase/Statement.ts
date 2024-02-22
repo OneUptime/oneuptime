@@ -37,8 +37,8 @@ export class Statement implements BaseQueryParams {
                     typeof param === 'string'
                         ? 'Identifier'
                         : Statement.toColumnType(param);
-                
-                        return prev + `{p${i - 1}:${dataType}}` + curr;
+
+                return prev + `{p${i - 1}:${dataType}}` + curr;
             }
         );
 
@@ -105,11 +105,13 @@ export class Statement implements BaseQueryParams {
         ) {
             finalValue = v.value.value;
         } else if (v.value instanceof Includes) {
-            if (v.type === TableColumnType.Text || v.type === TableColumnType.ObjectID) {
-                
+            if (
+                v.type === TableColumnType.Text ||
+                v.type === TableColumnType.ObjectID
+            ) {
                 finalValue = v.value.values.map((val: string | ObjectID) => {
                     return `${val.toString()}`;
-                })
+                });
             } else {
                 finalValue = v.value.values;
             }
@@ -152,7 +154,9 @@ export class Statement implements BaseQueryParams {
         })}`;
     }
 
-    private static toColumnType(statementParam: StatementParameter | string): string {
+    private static toColumnType(
+        statementParam: StatementParameter | string
+    ): string {
         // ensure we have a mapping for all types (a missing mapping will
         // be a compile error)
         const columnTypes: Dictionary<string> = {
@@ -169,11 +173,13 @@ export class Statement implements BaseQueryParams {
             [TableColumnType.LongNumber]: 'Int128',
         };
 
-        if((statementParam as StatementParameter).value instanceof Includes){
+        if ((statementParam as StatementParameter).value instanceof Includes) {
             return 'Array(String)';
         }
 
-        return columnTypes[(statementParam as StatementParameter).type] || 'String';
+        return (
+            columnTypes[(statementParam as StatementParameter).type] || 'String'
+        );
     }
 }
 

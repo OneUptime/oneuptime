@@ -15,6 +15,8 @@ export interface ComponentProps {
     chartTimelineStart: number;
     chartTimelineEnd: number;
     timelineWidth: number;
+    selectedBarIds: string[];
+    onBarSelectChange: (barIds: string[]) => void;
 }
 
 const Row: FunctionComponent<ComponentProps> = (
@@ -43,6 +45,28 @@ const Row: FunctionComponent<ComponentProps> = (
                             chartTimelineEnd={props.chartTimelineEnd}
                             chartTimelineStart={props.chartTimelineStart}
                             timelineWidth={props.timelineWidth}
+                            areOtherBarsSelected={props.selectedBarIds.length > 0}
+                            onSelect={(barId: string) => {
+                                // check if the bar is already selected
+                                if (props.selectedBarIds.includes(barId)) {
+                                    return;
+                                }
+
+                                props.onBarSelectChange([...props.selectedBarIds, barId]);
+                            }}
+                            onDeselect={(barId: string) => {
+
+                                // check if the bar is already selected
+                                if (!props.selectedBarIds.includes(barId)) {
+                                    return;
+                                }
+                                
+                                props.onBarSelectChange(
+                                    props.selectedBarIds.filter((id: string) => {
+                                        return id !== barId;
+                                    })
+                                );
+                            }}
                         />
                     );
                 })}

@@ -267,7 +267,6 @@ export default class Span extends AnalyticsBaseModel {
                     },
                 }),
 
-
                 new AnalyticsTableColumn({
                     key: 'durationUnixNano',
                     title: 'Duration in Unix Nano',
@@ -588,7 +587,6 @@ export default class Span extends AnalyticsBaseModel {
         this.setColumnValue('startTimeUnixNano', v);
     }
 
-
     public get durationUnixNano(): number | undefined {
         return this.getColumnValue('durationUnixNano') as number | undefined;
     }
@@ -652,8 +650,6 @@ export default class Span extends AnalyticsBaseModel {
     public set endTime(v: Date | undefined) {
         this.setColumnValue('endTime', v);
     }
-
-    
 
     public get traceId(): string | undefined {
         return this.getColumnValue('traceId') as string | undefined;
