@@ -197,9 +197,6 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${STATUS_PAGE_PORT}
-        depends_on:
-            - accounts
-            - app
         logging:
             driver: "local"
             options:
@@ -236,12 +233,6 @@ services:
             INTERNAL_SMTP_PASSWORD: ${INTERNAL_SMTP_PASSWORD}
             OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
             OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${APP_OTEL_EXPORTER_OTLP_HEADERS}
-        depends_on:
-            - redis
-            - postgres
-        links:
-            - redis
-            - postgres
         logging:
             driver: "local"
             options:
@@ -316,13 +307,6 @@ services:
         environment:
             <<: *common-server-variables
             PORT: ${INGESTOR_PORT}
-        depends_on:
-            - redis
-            - postgres
-            
-        links:
-            - redis
-            - postgres
         logging:
             driver: "local"
             options:
@@ -332,11 +316,6 @@ services:
 
 
     ingress:
-        depends_on:
-            - accounts
-            - app
-            - dashboard
-            - otel-collector
         restart: always
         networks:
           - oneuptime
