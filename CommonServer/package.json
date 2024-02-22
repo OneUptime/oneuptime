@@ -22,6 +22,8 @@
         "@opentelemetry/exporter-metrics-otlp-proto": "^0.48.0",
         "@opentelemetry/exporter-trace-otlp-proto": "^0.48.0",
         "@opentelemetry/id-generator-aws-xray": "^1.2.1",
+        "@opentelemetry/instrumentation-express": "^0.35.0",
+        "@opentelemetry/instrumentation-http": "^0.48.0",
         "@opentelemetry/sdk-logs": "^0.48.0",
         "@opentelemetry/sdk-metrics": "^1.21.0",
         "@opentelemetry/sdk-node": "^0.45.1",
