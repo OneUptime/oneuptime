@@ -23,6 +23,7 @@ import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
+import Includes from 'Common/Types/BaseDatabase/Includes';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
@@ -385,6 +386,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                         type: tableColumn.type,
                     }} AND ${key} <= ${{
                         value: value.endValue,
+                        type: tableColumn.type,
+                    }}`
+                );
+            } else if (value instanceof Includes) {
+                whereStatement.append(
+                    SQL`AND ${key} IN ${{
+                        value: value,
                         type: tableColumn.type,
                     }}`
                 );

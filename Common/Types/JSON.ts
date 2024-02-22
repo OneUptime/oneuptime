@@ -25,6 +25,7 @@ import { CheckOn, FilterType } from './Monitor/CriteriaFilter';
 import CallRequest from './Call/CallRequest';
 import PositiveNumber from './PositiveNumber';
 import StartAndEndTime from './Time/StartAndEndTime';
+import Includes from './BaseDatabase/Includes';
 
 export enum ObjectType {
     ObjectID = 'ObjectID',
@@ -61,6 +62,7 @@ export enum ObjectType {
     InBetween = 'InBetween',
     NotNull = 'NotNull',
     IsNull = 'IsNull',
+    Includes = 'Includes',
 }
 
 export type JSONValue =
@@ -136,7 +138,9 @@ export type JSONValue =
     | undefined
     | null
     | StartAndEndTime
-    | Array<StartAndEndTime>;
+    | Array<StartAndEndTime>
+    | Includes
+    | Array<Includes>;
 
 export interface JSONObject {
     [x: string]: JSONValue;

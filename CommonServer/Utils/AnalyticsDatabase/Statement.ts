@@ -4,10 +4,12 @@ import { RecordValue } from 'Common/AnalyticsModels/CommonModel';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import GreaterThan from 'Common/Types/BaseDatabase/GreaterThan';
 import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
+import Includes from 'Common/Types/BaseDatabase/Includes';
 import LessThan from 'Common/Types/BaseDatabase/LessThan';
 import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import Search from 'Common/Types/BaseDatabase/Search';
 import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
 import { inspect } from 'util';
 
@@ -30,10 +32,12 @@ export class Statement implements BaseQueryParams {
         let query: string = this.strings.reduce(
             (prev: string, curr: string, i: integer) => {
                 const param: StatementParameter | string = this.values[i - 1]!;
+
                 const dataType: string =
                     typeof param === 'string'
                         ? 'Identifier'
-                        : Statement.toColumnType(param.type);
+                        : Statement.toColumnType(param);
+
                 return prev + `{p${i - 1}:${dataType}}` + curr;
             }
         );
@@ -58,42 +62,73 @@ export class Statement implements BaseQueryParams {
         const returnObject: Record<string, unknown> = {};
 
         for (const v of this.values) {
-            let finalValue: any = v;
-
-            // if of type date, convert to database date
-
-            if (typeof v === 'string') {
-                finalValue = v;
-            } else if (v.value instanceof ObjectID) {
-                finalValue = v.value.toString();
-            } else if (v.value instanceof Search) {
-                finalValue = `%${v.value.toString()}%`;
-            } else if (
-                v.value instanceof LessThan ||
-                v.value instanceof LessThanOrEqual ||
-                v.value instanceof GreaterThan ||
-                v.value instanceof GreaterThanOrEqual
-            ) {
-                finalValue = v.value.value;
-            } else if (v.value instanceof Date) {
-                finalValue = OneUptimeDate.toDatabaseDate(v.value);
-            } else {
-                finalValue = v.value;
-            }
-
-            // serialize to date.
-
-            if (typeof v !== 'string' && v.type === TableColumnType.Date) {
-                finalValue = OneUptimeDate.fromString(finalValue as string);
-                finalValue = OneUptimeDate.toDatabaseDate(finalValue);
-            }
-
+            const finalValue: RecordValue | Array<RecordValue> =
+                this.serializseValue(v);
             returnObject[`p${index}`] = finalValue;
-
             index++;
         }
 
         return returnObject;
+    }
+
+    public serializseValue(
+        v: StatementParameter | string
+    ): RecordValue | Array<RecordValue> {
+        let finalValue: RecordValue | Array<RecordValue> = v as RecordValue;
+
+        // if of type date, convert to database date
+
+        if (typeof v === 'string') {
+            finalValue = v;
+        } else if (Array.isArray(v.value)) {
+            const tempArr: Array<RecordValue> = [];
+
+            for (const val of v.value) {
+                tempArr.push(
+                    this.serializseValue({
+                        type: v.type,
+                        value: val,
+                    }) as RecordValue
+                );
+            }
+
+            finalValue = tempArr;
+        } else if (v.value instanceof ObjectID) {
+            finalValue = v.value.toString();
+        } else if (v.value instanceof Search) {
+            finalValue = `%${v.value.toString()}%`;
+        } else if (
+            v.value instanceof LessThan ||
+            v.value instanceof LessThanOrEqual ||
+            v.value instanceof GreaterThan ||
+            v.value instanceof GreaterThanOrEqual
+        ) {
+            finalValue = v.value.value;
+        } else if (v.value instanceof Includes) {
+            if (
+                v.type === TableColumnType.Text ||
+                v.type === TableColumnType.ObjectID
+            ) {
+                finalValue = v.value.values.map((val: string | ObjectID) => {
+                    return `${val.toString()}`;
+                });
+            } else {
+                finalValue = v.value.values;
+            }
+        } else if (v.value instanceof Date) {
+            finalValue = OneUptimeDate.toDatabaseDate(v.value);
+        } else {
+            finalValue = v.value;
+        }
+
+        // serialize to date.
+
+        if (typeof v !== 'string' && v.type === TableColumnType.Date) {
+            finalValue = OneUptimeDate.fromString(finalValue as string);
+            finalValue = OneUptimeDate.toDatabaseDate(finalValue);
+        }
+
+        return finalValue;
     }
 
     /**
@@ -119,10 +154,12 @@ export class Statement implements BaseQueryParams {
         })}`;
     }
 
-    private static toColumnType(type: TableColumnType): string {
+    private static toColumnType(
+        statementParam: StatementParameter | string
+    ): string {
         // ensure we have a mapping for all types (a missing mapping will
         // be a compile error)
-        return {
+        const columnTypes: Dictionary<string> = {
             [TableColumnType.Text]: 'String',
             [TableColumnType.ObjectID]: 'String',
             [TableColumnType.Boolean]: 'Bool',
@@ -134,7 +171,15 @@ export class Statement implements BaseQueryParams {
             [TableColumnType.ArrayNumber]: 'Array(Int32)',
             [TableColumnType.ArrayText]: 'Array(String)',
             [TableColumnType.LongNumber]: 'Int128',
-        }[type];
+        };
+
+        if ((statementParam as StatementParameter).value instanceof Includes) {
+            return 'Array(String)';
+        }
+
+        return (
+            columnTypes[(statementParam as StatementParameter).type] || 'String'
+        );
     }
 }
 

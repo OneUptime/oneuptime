@@ -11,17 +11,14 @@ import Express, {
     ExpressUrlEncoded,
     ExpressApplication,
     RequestHandler,
-    OneUptimeRequest,
     ExpressStatic,
 } from './Express';
 // Connect common api's.
 import CommonAPI from '../API/Index';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import { JSONObject } from 'Common/Types/JSON';
-import OneUptimeDate from 'Common/Types/Date';
 import LocalCache from '../Infrastructure/LocalCache';
 import Exception from 'Common/Types/Exception/Exception';
-import ObjectID from 'Common/Types/ObjectID';
 import StatusCode from 'Common/Types/API/StatusCode';
 import Typeof from 'Common/Types/Typeof';
 import Response from './Response';
@@ -50,46 +47,6 @@ const urlEncodedMiddleware: Function = ExpressUrlEncoded({
     limit: '50mb',
     extended: true,
 }); // 50 MB limit.
-
-const logRequest: RequestHandler = (
-    req: ExpressRequest,
-    _res: ExpressResponse,
-    next: NextFunction
-): void => {
-    (req as OneUptimeRequest).id = ObjectID.generate();
-    (req as OneUptimeRequest).requestStartedAt = OneUptimeDate.getCurrentDate();
-
-    let requestBody: string =
-        req.body && req.headers['content-encoding'] !== 'gzip'
-            ? JSON.stringify(req.body)
-            : 'EMPTY';
-
-    if (req.headers['content-encoding'] === 'gzip') {
-        requestBody = 'GZIP';
-    }
-
-    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
-    const method: string = oneUptimeRequest.method;
-    const path: string = oneUptimeRequest.originalUrl.toString();
-
-    const logLine: JSONObject = {
-        RequestID: `${oneUptimeRequest.id}`,
-
-        PodName: `${process.env['POD_NAME'] || 'NONE'}`,
-
-        HTTPMethod: `${method}`,
-
-        Path: `${path.toString()}`,
-
-        Host: `${oneUptimeRequest.hostname}`,
-
-        RequestBody: `${requestBody}`,
-    };
-
-    logger.info(logLine);
-    next();
-};
 
 const setDefaultHeaders: RequestHandler = (
     req: ExpressRequest,
@@ -159,8 +116,6 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         urlEncodedMiddleware(req, res, next);
     }
 });
-
-app.use(logRequest);
 
 const init: Function = async (
     appName: string,

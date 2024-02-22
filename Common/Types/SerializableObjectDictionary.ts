@@ -27,6 +27,7 @@ import InBetween from './BaseDatabase/InBetween';
 import NotNull from './BaseDatabase/NotNull';
 import IsNull from './BaseDatabase/IsNull';
 import OneUptimeDate from './Date';
+import Includes from './BaseDatabase/Includes';
 
 const SerializableObjectDictionary: Dictionary<any> = {
     [ObjectType.Phone]: Phone,
@@ -54,6 +55,7 @@ const SerializableObjectDictionary: Dictionary<any> = {
     [ObjectType.Hostname]: Hostname,
     [ObjectType.HashedString]: HashedString,
     [ObjectType.InBetween]: InBetween,
+    [ObjectType.Includes]: Includes,
     [ObjectType.NotNull]: NotNull,
     [ObjectType.IsNull]: IsNull,
 };

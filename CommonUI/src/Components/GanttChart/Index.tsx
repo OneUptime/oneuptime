@@ -10,6 +10,7 @@ export interface GanttChartProps {
     rows: GanttChartRow[];
     bars: GanttChartBar[];
     timeline: GanttChartTimeline;
+    onBarSelectChange: (barIds: string[]) => void;
 }
 
 export interface ComponentProps {
@@ -20,6 +21,8 @@ const GanttChart: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const eachIntervalDefaultWidth: number = 100; // in pixels
+
+    const [selectedBarIds, setSelectedBarIds] = React.useState<string[]>([]);
 
     const [chartWidth, setChartWidth] = React.useState<number>(0);
     const [timelineWidth, setTimelineWidth] = React.useState<number>(2000);
@@ -70,6 +73,11 @@ const GanttChart: FunctionComponent<ComponentProps> = (
                     chartTimelineStart={props.chart.timeline.start}
                     rows={props.chart.rows}
                     bars={props.chart.bars}
+                    selectedBarIds={selectedBarIds}
+                    onBarSelectChange={(barIds: string[]) => {
+                        setSelectedBarIds(barIds);
+                        props.chart.onBarSelectChange(barIds);
+                    }}
                 />
             </div>
         </ChartContainer>

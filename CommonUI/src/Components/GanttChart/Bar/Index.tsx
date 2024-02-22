@@ -23,12 +23,17 @@ export interface ComponentProps {
     chartTimelineStart: number;
     chartTimelineEnd: number;
     timelineWidth: number;
+    areOtherBarsSelected: boolean;
+    onSelect: (barId: string) => void;
+    onDeselect: (barId: string) => void;
 }
 
 const Bar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [isHovered, setIsHovered] = useState(false);
+
+    const [isSelected, setIsSelected] = useState(false);
 
     // calculate bar width.
     let barWidth: number =
@@ -61,6 +66,12 @@ const Bar: FunctionComponent<ComponentProps> = (
         setIsHovered(false);
     };
 
+    let barOpacity: number = 1;
+
+    if (props.areOtherBarsSelected && !isSelected) {
+        barOpacity = 0.5;
+    }
+
     return (
         // rectangle div with curved corners and text inside in tailwindcss
         <div
@@ -75,9 +86,18 @@ const Bar: FunctionComponent<ComponentProps> = (
                     marginLeft: `${barLeftPosition}px`,
                     width: `${barWidth}px`,
                     backgroundColor: `${props.bar.barColor.toString()}`,
+                    opacity: barOpacity,
                 }}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
+                onClick={() => {
+                    if (isSelected) {
+                        props.onDeselect(props.bar.id);
+                    } else {
+                        props.onSelect(props.bar.id);
+                    }
+                    setIsSelected(!isSelected);
+                }}
             >
                 {!showLabelOutsideBar && (
                     <BarLabel
@@ -96,6 +116,7 @@ const Bar: FunctionComponent<ComponentProps> = (
                     className="h-8 pt-1 pb-1 mt-2.5 mb-2.5"
                     style={{
                         marginLeft: `${barLeftPosition + barWidth + 10}px`,
+                        opacity: barOpacity,
                     }}
                 >
                     <BarLabel

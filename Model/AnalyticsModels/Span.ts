@@ -268,6 +268,29 @@ export default class Span extends AnalyticsBaseModel {
                 }),
 
                 new AnalyticsTableColumn({
+                    key: 'durationUnixNano',
+                    title: 'Duration in Unix Nano',
+                    description: 'How long did the span last?',
+                    required: false,
+                    type: TableColumnType.LongNumber,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanReadTelemetryServiceTraces,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CanCreateTelemetryServiceTraces,
+                        ],
+                        update: [],
+                    },
+                }),
+
+                new AnalyticsTableColumn({
                     key: 'endTimeUnixNano',
                     title: 'End Time',
                     description: 'When did the span end?',
@@ -562,6 +585,14 @@ export default class Span extends AnalyticsBaseModel {
 
     public set startTimeUnixNano(v: number | undefined) {
         this.setColumnValue('startTimeUnixNano', v);
+    }
+
+    public get durationUnixNano(): number | undefined {
+        return this.getColumnValue('durationUnixNano') as number | undefined;
+    }
+
+    public set durationUnixNano(v: number | undefined) {
+        this.setColumnValue('durationUnixNano', v);
     }
 
     public get endTimeUnixNano(): number | undefined {

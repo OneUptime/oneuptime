@@ -8,6 +8,8 @@ export interface ComponentProps {
     logs: Array<Log>;
     onFilterChanged: (filterOptions: FilterOption) => void;
     isLoading: boolean;
+    showFilters?: boolean | undefined;
+    noLogsMessage?: string | undefined;
 }
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
@@ -54,18 +56,20 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <div className="mb-5">
-                <LogsFilters
-                    onAutoScrollChanged={(autoscroll: boolean) => {
-                        setAutoScroll(autoscroll);
+            {props.showFilters && (
+                <div className="mb-5">
+                    <LogsFilters
+                        onAutoScrollChanged={(autoscroll: boolean) => {
+                            setAutoScroll(autoscroll);
 
-                        if (autoScroll) {
-                            scrollToBottom();
-                        }
-                    }}
-                    onFilterChanged={props.onFilterChanged}
-                />
-            </div>
+                            if (autoScroll) {
+                                scrollToBottom();
+                            }
+                        }}
+                        onFilterChanged={props.onFilterChanged}
+                    />
+                </div>
+            )}
             {!props.isLoading && (
                 <div
                     ref={logsViewerRef}
@@ -80,7 +84,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
                     {props.logs.length === 0 && (
                         <div className={`text-slate-200 courier-prime`}>
-                            No logs found for this service.
+                            {props.noLogsMessage ||
+                                'No logs found for this service.'}
                         </div>
                     )}
                 </div>

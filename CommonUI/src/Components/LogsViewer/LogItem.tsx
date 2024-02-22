@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
+import CopyTextButton from '../CopyTextButton/CopyTextButton';
 
 export interface ComponentProps {
     log: Log;
@@ -16,6 +17,15 @@ const LogItem: FunctionComponent<ComponentProps> = (
     }, []);
 
     let bodyColor: string = 'text-slate-200';
+
+    const getCopyButton: Function = (textToBeCopied: string) => {
+        return (
+            <CopyTextButton
+                textToBeCopied={textToBeCopied}
+                className="ml-5 font-medium px-3 my-0.5 py-0.5 text-xs bg-slate-900 text-slate-300 rounded hover:bg-slate-600 border-slate-700 border-solid border-0"
+            />
+        );
+    };
 
     if (
         props.log.severityText === LogSeverity.Warning ||
@@ -88,7 +98,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className="text-slate-200 cursor-pointer hover:border-slate-700 px-2 border-transparent border-2 rounded-md"
+            className="text-slate-200 cursor-pointer hover:border-slate-700 px-2 border-transparent border-2 rounded-md mb-1"
             onClick={() => {
                 setIsCollapsed(true);
             }}
@@ -187,6 +197,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     <div className={`${bodyColor} courier-prime`}>
                         {props.log.traceId?.toString()}
                     </div>
+                    {getCopyButton(props.log.traceId?.toString() || '')}
                 </div>
             )}
 
@@ -198,6 +209,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     <div className={`${bodyColor} courier-prime`}>
                         {props.log.spanId?.toString()}
                     </div>
+                    {getCopyButton(props.log.spanId?.toString() || '')}
                 </div>
             )}
         </div>
