@@ -1,10 +1,7 @@
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
-import {
-    ConsoleMetricExporter,
-    PeriodicExportingMetricReader,
-} from '@opentelemetry/sdk-metrics';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import Dictionary from 'Common/Types/Dictionary';
 import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -17,10 +14,7 @@ import {
     SimpleLogRecordProcessor,
 } from '@opentelemetry/sdk-logs';
 import URL from 'Common/Types/API/URL';
-import {
-    ConsoleSpanExporter,
-    SpanExporter,
-} from '@opentelemetry/sdk-trace-node';
+import { SpanExporter } from '@opentelemetry/sdk-trace-node';
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { Logger, logs } from '@opentelemetry/api-logs';
@@ -102,7 +96,8 @@ export default class OneUptimeTelemetry {
 
             let traceExporter: SpanExporter | undefined = undefined;
 
-            let metricReader: PeriodicExportingMetricReader | undefined = undefined;
+            let metricReader: PeriodicExportingMetricReader | undefined =
+                undefined;
 
             if (this.getOltpTracesEndpoint()) {
                 traceExporter = new OTLPTraceExporter({
@@ -144,27 +139,30 @@ export default class OneUptimeTelemetry {
 
             this.logger = logs.getLogger('default');
 
-            const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> = {
-                idGenerator: new AWSXRayIdGenerator(),
-                instrumentations: [
-                    new HttpInstrumentation(),
-                    new ExpressInstrumentation(),
-                ],
-                resource: this.getResource({
-                    serviceName: data.serviceName,
-                }),
-                logRecordProcessor: loggerProvider as any,
-            };
+            const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
+                {
+                    idGenerator: new AWSXRayIdGenerator(),
+                    instrumentations: [
+                        new HttpInstrumentation(),
+                        new ExpressInstrumentation(),
+                    ],
+                    resource: this.getResource({
+                        serviceName: data.serviceName,
+                    }),
+                    logRecordProcessor: loggerProvider as any,
+                };
 
-            if(traceExporter) {
+            if (traceExporter) {
                 nodeSdkConfiguration.traceExporter = traceExporter;
             }
 
-            if(metricReader) {
+            if (metricReader) {
                 nodeSdkConfiguration.metricReader = metricReader as any;
             }
 
-            const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK(nodeSdkConfiguration);
+            const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK(
+                nodeSdkConfiguration
+            );
 
             process.on('SIGTERM', () => {
                 sdk.shutdown().finally(() => {

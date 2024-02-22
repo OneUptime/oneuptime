@@ -28,7 +28,6 @@ describe('BearerTokenAuthorization', () => {
         it('calls next without arguments if token is valid', () => {
             const jsonObj: JSONObject = { test: 'test' };
             const req: OneUptimeRequest = {
-                
                 headers: {
                     authorization: `Bearer ${JSONWebToken.signJsonPayload(
                         jsonObj,
@@ -47,7 +46,6 @@ describe('BearerTokenAuthorization', () => {
         });
         it('calls next with exception if token is empty', () => {
             const req: OneUptimeRequest = {
-                
                 headers: {
                     authorization: '',
                 },
@@ -65,7 +63,6 @@ describe('BearerTokenAuthorization', () => {
         });
         it('calls next with exception if token is invalid', () => {
             const req: OneUptimeRequest = {
-                
                 headers: {
                     authorization: 'Bearer ',
                 },
@@ -82,9 +79,7 @@ describe('BearerTokenAuthorization', () => {
             );
         });
         it('calls next with exception if token header is not present', () => {
-            const req: OneUptimeRequest = {
-                
-            } as OneUptimeRequest;
+            const req: OneUptimeRequest = {} as OneUptimeRequest;
             const res: ExpressResponse = {} as ExpressResponse;
             const next: jest.Mock = jest.fn();
             void BearerTokenAuthorization.isAuthorizedBearerToken(
