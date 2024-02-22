@@ -122,6 +122,8 @@ export class Statement implements BaseQueryParams {
             finalValue = OneUptimeDate.toDatabaseDate(finalValue);
         }
 
+        debugger;
+
         return finalValue;
     }
 
