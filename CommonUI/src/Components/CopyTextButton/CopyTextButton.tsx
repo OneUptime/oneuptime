@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, MouseEventHandler, ReactElement } from 'react';
 import Clipboard from '../../Utils/Clipboard';
 
 export interface ComponentProps {
@@ -11,12 +11,14 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [copied, setCopied] = React.useState(false);
 
-    const handleCopy = () => {
+    const handleCopy: MouseEventHandler<HTMLDivElement> = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        event.preventDefault();
+        event.stopPropagation();
         Clipboard.copyToClipboard(props.textToBeCopied);
         setCopied(true);
         setTimeout(() => {
             setCopied(false);
-        }, 5000);
+        }, 1000);
     };
 
     return (<div className={`cursor-pointer ${props.className}`} onClick={handleCopy}>

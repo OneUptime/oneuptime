@@ -18,8 +18,8 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     let bodyColor: string = 'text-slate-200';
 
-    const getCopyButton = (textToBeCopied: string) => { 
-        return <CopyTextButton textToBeCopied={textToBeCopied} className="ml-2" />;
+    const getCopyButton: Function = (textToBeCopied: string) => { 
+        return <CopyTextButton textToBeCopied={textToBeCopied} className="ml-5 font-medium px-3 my-0.5 py-0.5 text-xs bg-slate-900 text-slate-300 rounded hover:bg-slate-600 border-slate-700 border-solid border-0" />;
     }
 
 
@@ -34,7 +34,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
     }
 
 
-    if (isCollapsed) {
+    if (isCollapsed) { 
         return (
             <div
                 className="text-slate-200 flex cursor-pointer hover:border-slate-700 px-2 border-transparent border-2 rounded-md"
@@ -95,7 +95,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className="text-slate-200 cursor-pointer hover:border-slate-700 px-2 border-transparent border-2 rounded-md"
+            className="text-slate-200 cursor-pointer hover:border-slate-700 px-2 border-transparent border-2 rounded-md mb-1"
             onClick={() => {
                 setIsCollapsed(true);
             }}
