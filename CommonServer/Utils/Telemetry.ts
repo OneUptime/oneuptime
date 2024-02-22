@@ -31,12 +31,12 @@ export default class OneUptimeTelemetry {
     public static logger: Logger | null = null;
 
     public static getHeaders(): Dictionary<string> {
-        if (!process.env['OTEL_EXPORTER_OTLP_HEADERS']) {
+        if (!process.env['OPENTELEMETRY_EXPORTER_OTLP_HEADERS']) {
             return {};
         }
 
         const headersStrings: Array<string> =
-            process.env['OTEL_EXPORTER_OTLP_HEADERS'].split(';');
+            process.env['OPENTELEMETRY_EXPORTER_OTLP_HEADERS'].split(';');
 
         const headers: Dictionary<string> = {};
 
@@ -51,11 +51,11 @@ export default class OneUptimeTelemetry {
     }
 
     public static getOtlpEndpoint(): URL | null {
-        if (!process.env['OTEL_EXPORTER_OTLP_ENDPOINT']) {
+        if (!process.env['OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT']) {
             return null;
         }
 
-        return URL.fromString(process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] || '');
+        return URL.fromString(process.env['OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT'] || '');
     }
 
     public static getOltpLogsEndpoint(): URL | null {
@@ -113,6 +113,8 @@ export default class OneUptimeTelemetry {
                 traceExporter = new OTLPTraceExporter({
                     url: this.getOltpTracesEndpoint()!.toString(),
                     headers: headers,
+                    compression: CompressionAlgorithm.GZIP,
+
                 });
             }
 
@@ -121,6 +123,7 @@ export default class OneUptimeTelemetry {
                     exporter: new OTLPMetricExporter({
                         url: this.getOltpMetricsEndpoint()!.toString(),
                         headers: headers,
+                        compression: CompressionAlgorithm.GZIP,
                     }),
                 });
             }
@@ -131,7 +134,7 @@ export default class OneUptimeTelemetry {
                 const logExporter: OTLPLogExporter = new OTLPLogExporter({
                     url: this.getOltpLogsEndpoint()!.toString(),
                     headers: headers,
-                    compression: CompressionAlgorithm.GZIP, 
+                    compression: CompressionAlgorithm.GZIP,
                 });
 
                 loggerProvider.addLogRecordProcessor(

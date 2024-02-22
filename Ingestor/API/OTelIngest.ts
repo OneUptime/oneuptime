@@ -62,9 +62,7 @@ class OpenTelemetryRequestMiddleware {
     ): Promise<void> {
         try {
             let productType: ProductType;
-
-            debugger;
-
+            
             const isProtobuf: boolean = req.body instanceof Uint8Array;
 
             if (req.url.includes('/otlp/v1/traces')) {
