@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
+import CopyTextButton from '../CopyTextButton/CopyTextButton';
 
 export interface ComponentProps {
     log: Log;
@@ -17,6 +18,11 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     let bodyColor: string = 'text-slate-200';
 
+    const getCopyButton = (textToBeCopied: string) => { 
+        return <CopyTextButton textToBeCopied={textToBeCopied} className="ml-2" />;
+    }
+
+
     if (
         props.log.severityText === LogSeverity.Warning ||
         props.log.severityText === LogSeverity.Trace ||
@@ -26,6 +32,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
     } else if (props.log.severityText === LogSeverity.Error) {
         bodyColor = 'text-rose-400';
     }
+
 
     if (isCollapsed) {
         return (
@@ -187,6 +194,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     <div className={`${bodyColor} courier-prime`}>
                         {props.log.traceId?.toString()}
                     </div>
+                    {getCopyButton(props.log.traceId?.toString() || '')}
                 </div>
             )}
 
@@ -198,6 +206,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     <div className={`${bodyColor} courier-prime`}>
                         {props.log.spanId?.toString()}
                     </div>
+                    {getCopyButton(props.log.spanId?.toString() || '')}
                 </div>
             )}
         </div>
