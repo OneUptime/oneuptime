@@ -117,7 +117,7 @@ export default class OneUptimeTelemetry {
                 });
             }
 
-            const loggerProvider = new LoggerProvider();
+            const loggerProvider: LoggerProvider = new LoggerProvider();
 
             if (this.getOltpLogsEndpoint()) {
                 const logExporter: OTLPLogExporter = new OTLPLogExporter({
@@ -148,7 +148,6 @@ export default class OneUptimeTelemetry {
                     serviceName: data.serviceName,
                 }),
             });
-            
 
             process.on('SIGTERM', () => {
                 sdk.shutdown().finally(() => {

@@ -20,7 +20,6 @@ import Workflow from './FeatureSet/Workflow/Index';
 // home should be in the end.
 import './FeatureSet/Home/Index';
 
-
 const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
@@ -45,8 +44,6 @@ const init: () => Promise<void> = async (): Promise<void> => {
 
         // init workflow
         await Workflow.init();
-
-       
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
