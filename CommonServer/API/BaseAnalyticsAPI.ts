@@ -264,7 +264,7 @@ export default class BaseAnalyticsAPI<
 
         const count: PositiveNumber = await this.service.countBy({
             query,
-             props: databaseProps,
+            props: databaseProps,
         });
 
         return Response.sendEntityArrayResponse(

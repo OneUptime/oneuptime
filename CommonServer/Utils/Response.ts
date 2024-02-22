@@ -6,7 +6,7 @@ import {
     ExpressRequest,
     OneUptimeResponse,
 } from './Express';
-import { JSONObject, JSONArray, JSONObjectOrArray } from 'Common/Types/JSON';
+import { JSONObject, JSONArray } from 'Common/Types/JSON';
 import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -22,20 +22,13 @@ import AnalyticsDataModel, {
 } from 'Common/AnalyticsModels/BaseModel';
 
 export default class Response {
-
     public static sendEmptyResponse(
         _req: ExpressRequest,
         res: ExpressResponse
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-
-
-
         oneUptimeResponse.status(200).send({} as EmptyResponse);
-
-
     }
 
     public static sendCustomResponse(
@@ -45,7 +38,6 @@ export default class Response {
         body: JSONObject | string,
         headers: Dictionary<string>
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
         if (headers) {
@@ -54,12 +46,7 @@ export default class Response {
             }
         }
 
-
-
-
         oneUptimeResponse.status(statusCode).send(body);
-
-
     }
 
     public static async sendFileResponse(
@@ -78,8 +65,6 @@ export default class Response {
         // readstream.pipe(res);
 
         oneUptimeResponse.send(file.file);
-
-
     }
 
     public static render(
@@ -88,11 +73,7 @@ export default class Response {
         path: string,
         vars: JSONObject
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
-
-
-
 
         oneUptimeResponse.render(path, vars);
     }
@@ -102,7 +83,6 @@ export default class Response {
         res: ExpressResponse,
         error: Exception
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
         oneUptimeResponse.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log response data;
@@ -111,11 +91,7 @@ export default class Response {
 
         logger.error(error);
 
-
-
-
         oneUptimeResponse.status(status).send({ message });
-
     }
 
     public static sendEntityArrayResponse(
@@ -123,7 +99,7 @@ export default class Response {
         res: ExpressResponse,
         list: Array<BaseModel | AnalyticsDataModel>,
         count: PositiveNumber | number,
-        modelType: { new(): BaseModel | AnalyticsDataModel }
+        modelType: { new (): BaseModel | AnalyticsDataModel }
     ): void {
         if (!(count instanceof PositiveNumber)) {
             count = new PositiveNumber(count);
@@ -154,11 +130,11 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         item: BaseModel | AnalyticsDataModel | null,
-        modelType: { new(): BaseModel | AnalyticsDataModel },
+        modelType: { new (): BaseModel | AnalyticsDataModel },
         options?:
             | {
-                miscData?: JSONObject;
-            }
+                  miscData?: JSONObject;
+              }
             | undefined
     ): void {
         let response: JSONObject = {};
@@ -197,9 +173,6 @@ export default class Response {
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
-
-
-
 
         const listData: ListData = new ListData({
             data: [],
@@ -240,7 +213,6 @@ export default class Response {
         } else {
             oneUptimeResponse.status(200).send(listData);
             oneUptimeResponse.logBody = listData.toJSON(); // To be used in 'auditLog' middleware to log response data;
-
         }
     }
 
@@ -255,10 +227,6 @@ export default class Response {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-
-
-
-
         if (oneUptimeRequest.query['output-type'] === 'csv') {
             const csv: string = JsonToCsv.ToCsv([item as JSONObject]);
             oneUptimeResponse.status(200).send(csv);
@@ -270,7 +238,6 @@ export default class Response {
         oneUptimeResponse
             .status(options?.statusCode ? options?.statusCode.toNumber() : 200)
             .send(item);
-
     }
 
     public static sendTextResponse(
@@ -278,16 +245,10 @@ export default class Response {
         res: ExpressResponse,
         text: string
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
-
-
-
-
 
         oneUptimeResponse.logBody = { text: text as string };
         oneUptimeResponse.status(200).send(text);
-
     }
 
     public static sendHtmlResponse(
@@ -295,16 +256,11 @@ export default class Response {
         res: ExpressResponse,
         html: string
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
-
-
-
 
         oneUptimeResponse.logBody = { html: html as string };
         oneUptimeResponse.writeHead(200, { 'Content-Type': 'text/html' });
         oneUptimeResponse.end(html);
-
     }
 
     public static sendXmlResponse(
@@ -312,17 +268,11 @@ export default class Response {
         res: ExpressResponse,
         xml: string
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
-
-
-
-
 
         oneUptimeResponse.logBody = { xml: xml as string };
         oneUptimeResponse.writeHead(200, { 'Content-Type': 'text/xml' });
         oneUptimeResponse.end(xml);
-
     }
 
     public static sendJavaScriptResponse(
@@ -330,12 +280,10 @@ export default class Response {
         res: ExpressResponse,
         javascript: string
     ): void {
-
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
         oneUptimeResponse.logBody = { javascript: javascript as string };
         oneUptimeResponse.writeHead(200, { 'Content-Type': 'text/javascript' });
         oneUptimeResponse.end(javascript);
-
     }
 }

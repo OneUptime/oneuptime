@@ -48,8 +48,6 @@ const urlEncodedMiddleware: Function = ExpressUrlEncoded({
     extended: true,
 }); // 50 MB limit.
 
-
-
 const setDefaultHeaders: RequestHandler = (
     req: ExpressRequest,
     res: ExpressResponse,

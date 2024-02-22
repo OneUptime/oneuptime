@@ -25,7 +25,7 @@ export class Statement implements BaseQueryParams {
     public constructor(
         private strings: string[] = [''],
         private values: Array<StatementParameter | string> = []
-    ) { }
+    ) {}
 
     public get query(): string {
         let query: string = this.strings.reduce(
@@ -67,7 +67,6 @@ export class Statement implements BaseQueryParams {
         return returnObject;
     }
 
-
     public serializseValue(v: StatementParameter | string) {
         let finalValue: any = v;
 
@@ -75,16 +74,17 @@ export class Statement implements BaseQueryParams {
 
         if (typeof v === 'string') {
             finalValue = v;
-        } else if (Array.isArray(v.value)){
-            const tempArr = []; 
+        } else if (Array.isArray(v.value)) {
+            const tempArr = [];
 
-            for(const val of v.value){
-                tempArr.push(this.serializseValue({type: v.type, value: val}));
+            for (const val of v.value) {
+                tempArr.push(
+                    this.serializseValue({ type: v.type, value: val })
+                );
             }
 
             finalValue = tempArr;
-        }
-        else if (v.value instanceof ObjectID) {
+        } else if (v.value instanceof ObjectID) {
             finalValue = v.value.toString();
         } else if (v.value instanceof Search) {
             finalValue = `%${v.value.toString()}%`;
@@ -95,16 +95,16 @@ export class Statement implements BaseQueryParams {
             v.value instanceof GreaterThanOrEqual
         ) {
             finalValue = v.value.value;
-        } else if (
-            v.value instanceof Includes
-        ) {
-
-            if(v.type === TableColumnType.Text){
-                finalValue = v.value.values.map((val) => `'${val}'`).join(',');
-            }else{
+        } else if (v.value instanceof Includes) {
+            if (v.type === TableColumnType.Text) {
+                finalValue = v.value.values
+                    .map(val => {
+                        return `'${val}'`;
+                    })
+                    .join(',');
+            } else {
                 finalValue = v.value.values;
             }
-           
         } else if (v.value instanceof Date) {
             finalValue = OneUptimeDate.toDatabaseDate(v.value);
         } else {
