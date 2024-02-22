@@ -7,7 +7,7 @@ import SerializableObject from '../SerializableObject';
 export type IncludesType = Array<string> | Array<ObjectID>;
 
 export default class Includes extends SerializableObject {
-    private _values!: IncludesType;
+    private _values: IncludesType = [];
 
     public get values(): IncludesType {
         return this._values;
@@ -31,10 +31,14 @@ export default class Includes extends SerializableObject {
 
     public static override fromJSON(json: JSONObject): Includes {
         if (json['_type'] === ObjectType.Includes) {
-            const deserizedValue: IncludesType = JSONFunctions.deserializeValue(
-                json['value']
-            ) as IncludesType;
-            return new Includes(deserizedValue);
+
+            const valuesArray: Array<string> = []; 
+
+            for(const value of json['value'] as Array<string> || []) {
+                valuesArray.push(JSONFunctions.deserializeValue(value) as string);
+            }
+
+            return new Includes(valuesArray);
         }
 
         throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
