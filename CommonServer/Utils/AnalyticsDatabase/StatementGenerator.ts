@@ -405,7 +405,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             }
         }
 
-        debugger;
+        
 
         return whereStatement;
     }
