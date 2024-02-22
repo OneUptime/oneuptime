@@ -9,6 +9,7 @@ import LessThan from 'Common/Types/BaseDatabase/LessThan';
 import LessThanOrEqual from 'Common/Types/BaseDatabase/LessThanOrEqual';
 import Search from 'Common/Types/BaseDatabase/Search';
 import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
 import { inspect } from 'util';
 
@@ -31,11 +32,13 @@ export class Statement implements BaseQueryParams {
         let query: string = this.strings.reduce(
             (prev: string, curr: string, i: integer) => {
                 const param: StatementParameter | string = this.values[i - 1]!;
+
                 const dataType: string =
                     typeof param === 'string'
                         ? 'Identifier'
-                        : Statement.toColumnType(param.type);
-                return prev + `{p${i - 1}:${dataType}}` + curr;
+                        : Statement.toColumnType(param);
+                
+                        return prev + `{p${i - 1}:${dataType}}` + curr;
             }
         );
 
@@ -102,10 +105,10 @@ export class Statement implements BaseQueryParams {
         ) {
             finalValue = v.value.value;
         } else if (v.value instanceof Includes) {
-            if (v.type === TableColumnType.Text) {
+            if (v.type === TableColumnType.Text || v.type === TableColumnType.ObjectID) {
                 finalValue = v.value.values.map((val: string | ObjectID) => {
-                    return `'${val.toString()}'`;
-                });
+                    return `${val.toString()}`;
+                })
             } else {
                 finalValue = v.value.values;
             }
@@ -121,8 +124,6 @@ export class Statement implements BaseQueryParams {
             finalValue = OneUptimeDate.fromString(finalValue as string);
             finalValue = OneUptimeDate.toDatabaseDate(finalValue);
         }
-
-        debugger;
 
         return finalValue;
     }
@@ -150,10 +151,10 @@ export class Statement implements BaseQueryParams {
         })}`;
     }
 
-    private static toColumnType(type: TableColumnType): string {
+    private static toColumnType(statementParam: StatementParameter | string): string {
         // ensure we have a mapping for all types (a missing mapping will
         // be a compile error)
-        return {
+        const columnTypes: Dictionary<string> = {
             [TableColumnType.Text]: 'String',
             [TableColumnType.ObjectID]: 'String',
             [TableColumnType.Boolean]: 'Bool',
@@ -165,7 +166,13 @@ export class Statement implements BaseQueryParams {
             [TableColumnType.ArrayNumber]: 'Array(Int32)',
             [TableColumnType.ArrayText]: 'Array(String)',
             [TableColumnType.LongNumber]: 'Int128',
-        }[type];
+        };
+
+        if((statementParam as StatementParameter).value instanceof Includes){
+            return 'Array(String)';
+        }
+
+        return columnTypes[(statementParam as StatementParameter).type] || 'String';
     }
 }
 
