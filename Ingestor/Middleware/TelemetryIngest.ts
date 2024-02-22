@@ -34,7 +34,6 @@ export default class TelemetryIngest {
             ] as string | undefined;
 
             if (!serviceTokenInHeader) {
-                
                 throw new BadRequestException(
                     'Missing header: x-oneuptime-service-token'
                 );
