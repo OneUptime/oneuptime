@@ -7,7 +7,8 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import Dictionary from 'Common/Types/Dictionary';
 import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import {
     BatchLogRecordProcessor,
@@ -23,6 +24,7 @@ import {
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { Logger, logs } from '@opentelemetry/api-logs';
+import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
 
 export default class OneUptimeTelemetry {
     public static sdk: opentelemetry.NodeSDK | null = null;
@@ -93,7 +95,13 @@ export default class OneUptimeTelemetry {
     }
 
     public static init(data: { serviceName: string }): opentelemetry.NodeSDK {
+
         if (!this.sdk) {
+
+            const headers: Dictionary<string> = this.getHeaders();
+
+            console.log(headers);
+
             let traceExporter: SpanExporter = new ConsoleSpanExporter();
 
             let metricReader: PeriodicExportingMetricReader =
@@ -104,7 +112,7 @@ export default class OneUptimeTelemetry {
             if (this.getOltpTracesEndpoint()) {
                 traceExporter = new OTLPTraceExporter({
                     url: this.getOltpTracesEndpoint()!.toString(),
-                    headers: this.getHeaders(),
+                    headers: headers,
                 });
             }
 
@@ -112,7 +120,7 @@ export default class OneUptimeTelemetry {
                 metricReader = new PeriodicExportingMetricReader({
                     exporter: new OTLPMetricExporter({
                         url: this.getOltpMetricsEndpoint()!.toString(),
-                        headers: this.getHeaders(),
+                        headers: headers,
                     }),
                 });
             }
@@ -122,7 +130,8 @@ export default class OneUptimeTelemetry {
             if (this.getOltpLogsEndpoint()) {
                 const logExporter: OTLPLogExporter = new OTLPLogExporter({
                     url: this.getOltpLogsEndpoint()!.toString(),
-                    headers: this.getHeaders(),
+                    headers: headers,
+                    compression: CompressionAlgorithm.GZIP, 
                 });
 
                 loggerProvider.addLogRecordProcessor(
@@ -143,7 +152,10 @@ export default class OneUptimeTelemetry {
                 traceExporter: traceExporter,
                 metricReader: metricReader as any,
                 logRecordProcessor: loggerProvider as any,
-                instrumentations: [getNodeAutoInstrumentations()],
+                instrumentations: [
+                    new HttpInstrumentation(),
+                    new ExpressInstrumentation()
+                ],
                 resource: this.getResource({
                     serviceName: data.serviceName,
                 }),
