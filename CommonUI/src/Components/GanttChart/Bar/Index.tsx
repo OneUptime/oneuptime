@@ -66,10 +66,9 @@ const Bar: FunctionComponent<ComponentProps> = (
         setIsHovered(false);
     };
 
+    let barOpacity: number = 1;
 
-    let barOpacity: number = 1; 
-
-    if(props.areOtherBarsSelected && !isSelected) {
+    if (props.areOtherBarsSelected && !isSelected) {
         barOpacity = 0.5;
     }
 
@@ -79,7 +78,6 @@ const Bar: FunctionComponent<ComponentProps> = (
             className="flex absolute"
             style={{
                 marginLeft: `${barLeftPosition}px`,
-                
             }}
         >
             <div

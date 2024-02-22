@@ -22,7 +22,6 @@ import DashboardLogsViewer from '../../../../../../Components/LogsViewer/LogsVie
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
     const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);

@@ -45,26 +45,32 @@ const Row: FunctionComponent<ComponentProps> = (
                             chartTimelineEnd={props.chartTimelineEnd}
                             chartTimelineStart={props.chartTimelineStart}
                             timelineWidth={props.timelineWidth}
-                            areOtherBarsSelected={props.selectedBarIds.length > 0}
+                            areOtherBarsSelected={
+                                props.selectedBarIds.length > 0
+                            }
                             onSelect={(barId: string) => {
                                 // check if the bar is already selected
                                 if (props.selectedBarIds.includes(barId)) {
                                     return;
                                 }
 
-                                props.onBarSelectChange([...props.selectedBarIds, barId]);
+                                props.onBarSelectChange([
+                                    ...props.selectedBarIds,
+                                    barId,
+                                ]);
                             }}
                             onDeselect={(barId: string) => {
-
                                 // check if the bar is already selected
                                 if (!props.selectedBarIds.includes(barId)) {
                                     return;
                                 }
-                                
+
                                 props.onBarSelectChange(
-                                    props.selectedBarIds.filter((id: string) => {
-                                        return id !== barId;
-                                    })
+                                    props.selectedBarIds.filter(
+                                        (id: string) => {
+                                            return id !== barId;
+                                        }
+                                    )
                                 );
                             }}
                         />
