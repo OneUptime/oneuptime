@@ -59,7 +59,8 @@ export class Statement implements BaseQueryParams {
         const returnObject: Record<string, unknown> = {};
 
         for (const v of this.values) {
-            const finalValue: any = this.serializseValue(v);
+            const finalValue: RecordValue | Array<RecordValue> =
+                this.serializseValue(v);
             returnObject[`p${index}`] = finalValue;
             index++;
         }
@@ -67,19 +68,24 @@ export class Statement implements BaseQueryParams {
         return returnObject;
     }
 
-    public serializseValue(v: StatementParameter | string) {
-        let finalValue: any = v;
+    public serializseValue(
+        v: StatementParameter | string
+    ): RecordValue | Array<RecordValue> {
+        let finalValue: RecordValue | Array<RecordValue> = v as RecordValue;
 
         // if of type date, convert to database date
 
         if (typeof v === 'string') {
             finalValue = v;
         } else if (Array.isArray(v.value)) {
-            const tempArr = [];
+            const tempArr: Array<RecordValue> = [];
 
             for (const val of v.value) {
                 tempArr.push(
-                    this.serializseValue({ type: v.type, value: val })
+                    this.serializseValue({
+                        type: v.type,
+                        value: val,
+                    }) as RecordValue
                 );
             }
 
@@ -98,8 +104,8 @@ export class Statement implements BaseQueryParams {
         } else if (v.value instanceof Includes) {
             if (v.type === TableColumnType.Text) {
                 finalValue = v.value.values
-                    .map(val => {
-                        return `'${val}'`;
+                    .map((val: string | ObjectID) => {
+                        return `'${val.toString()}'`;
                     })
                     .join(',');
             } else {

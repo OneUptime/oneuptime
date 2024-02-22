@@ -79,7 +79,7 @@ export default class Response {
     }
 
     public static sendErrorResponse(
-        req: ExpressRequest,
+        _req: ExpressRequest,
         res: ExpressResponse,
         error: Exception
     ): void {

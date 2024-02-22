@@ -31,7 +31,7 @@ export default class Includes extends SerializableObject {
 
     public static override fromJSON(json: JSONObject): Includes {
         if (json['_type'] === ObjectType.Includes) {
-            const deserizedValue = JSONFunctions.deserializeValue(
+            const deserizedValue: IncludesType = JSONFunctions.deserializeValue(
                 json['value']
             ) as IncludesType;
             return new Includes(deserizedValue);

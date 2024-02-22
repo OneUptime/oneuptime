@@ -158,7 +158,7 @@ export default class JSONFunctions {
         } else if (typeof val === Typeof.Object) {
             return this.deserialize(val as JSONObject);
         } else if (Array.isArray(val)) {
-            const arr = [];
+            const arr: Array<JSONValue> = [];
 
             for (const v of val) {
                 arr.push(this.deserializeValue(v));
