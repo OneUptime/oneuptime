@@ -55,7 +55,9 @@ export default class OneUptimeTelemetry {
             return null;
         }
 
-        return URL.fromString(process.env['OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT'] || '');
+        return URL.fromString(
+            process.env['OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT'] || ''
+        );
     }
 
     public static getOltpLogsEndpoint(): URL | null {
@@ -95,12 +97,8 @@ export default class OneUptimeTelemetry {
     }
 
     public static init(data: { serviceName: string }): opentelemetry.NodeSDK {
-
         if (!this.sdk) {
-
             const headers: Dictionary<string> = this.getHeaders();
-
-            console.log(headers);
 
             let traceExporter: SpanExporter = new ConsoleSpanExporter();
 
@@ -114,7 +112,6 @@ export default class OneUptimeTelemetry {
                     url: this.getOltpTracesEndpoint()!.toString(),
                     headers: headers,
                     compression: CompressionAlgorithm.GZIP,
-
                 });
             }
 
@@ -157,7 +154,7 @@ export default class OneUptimeTelemetry {
                 logRecordProcessor: loggerProvider as any,
                 instrumentations: [
                     new HttpInstrumentation(),
-                    new ExpressInstrumentation()
+                    new ExpressInstrumentation(),
                 ],
                 resource: this.getResource({
                     serviceName: data.serviceName,

@@ -62,17 +62,16 @@ class OpenTelemetryRequestMiddleware {
     ): Promise<void> {
         try {
             let productType: ProductType;
-            
+
             const isProtobuf: boolean = req.body instanceof Uint8Array;
 
             if (req.url.includes('/otlp/v1/traces')) {
-
                 if (isProtobuf) {
                     req.body = TracesData.decode(req.body);
                 }
                 productType = ProductType.Traces;
             } else if (req.url.includes('/otlp/v1/logs')) {
-                if(isProtobuf) {
+                if (isProtobuf) {
                     req.body = LogsData.decode(req.body);
                 }
                 productType = ProductType.Logs;
@@ -112,7 +111,9 @@ router.post(
                 );
             }
 
-            const traceData: JSONObject = req.body.toJSON ? req.body.toJSON() : req.body;
+            const traceData: JSONObject = req.body.toJSON
+                ? req.body.toJSON()
+                : req.body;
             const resourceSpans: JSONArray = traceData[
                 'resourceSpans'
             ] as JSONArray;
@@ -230,7 +231,7 @@ router.post(
                             (metric['sum'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['sum'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -280,7 +281,7 @@ router.post(
                             (metric['gauge'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['gauge'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -331,7 +332,7 @@ router.post(
                             (metric['histogram'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['histogram'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -449,10 +450,6 @@ router.post(
                 throw new BadRequestException(
                     'Invalid request - projectId or serviceId not found in request.'
                 );
-            }
-
-            if(req.body instanceof Uint8Array) {
-
             }
 
             req.body = req.body.toJSON ? req.body.toJSON() : req.body;

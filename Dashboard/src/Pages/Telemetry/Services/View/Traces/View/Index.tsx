@@ -25,7 +25,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
     const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);
-    const telemetryServiceId: ObjectID = Navigation.getLastParamAsObjectID(0);
+    const telemetryServiceId: ObjectID = Navigation.getLastParamAsObjectID(2);
 
     const [error, setError] = React.useState<string | null>(null);
 
