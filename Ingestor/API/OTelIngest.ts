@@ -63,14 +63,23 @@ class OpenTelemetryRequestMiddleware {
         try {
             let productType: ProductType;
 
+            const isProtobuf: boolean = req.body instanceof Uint8Array;
+
             if (req.url.includes('/otlp/v1/traces')) {
-                req.body = TracesData.decode(req.body);
+
+                if (isProtobuf) {
+                    req.body = TracesData.decode(req.body);
+                }
                 productType = ProductType.Traces;
             } else if (req.url.includes('/otlp/v1/logs')) {
-                req.body = LogsData.decode(req.body);
+                if(isProtobuf) {
+                    req.body = LogsData.decode(req.body);
+                }
                 productType = ProductType.Logs;
             } else if (req.url.includes('/otlp/v1/metrics')) {
-                req.body = MetricsData.decode(req.body);
+                if (isProtobuf) {
+                    req.body = MetricsData.decode(req.body);
+                }
                 productType = ProductType.Metrics;
             } else {
                 throw new BadRequestException('Invalid URL: ' + req.baseUrl);
@@ -103,7 +112,7 @@ router.post(
                 );
             }
 
-            const traceData: JSONObject = req.body.toJSON();
+            const traceData: JSONObject = req.body.toJSON ? req.body.toJSON() : req.body;
             const resourceSpans: JSONArray = traceData[
                 'resourceSpans'
             ] as JSONArray;
@@ -190,7 +199,7 @@ router.post(
                 );
             }
 
-            req.body = req.body.toJSON();
+            req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
             const resourceMetrics: JSONArray = req.body[
                 'resourceMetrics'
@@ -221,7 +230,7 @@ router.post(
                             (metric['sum'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['sum'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -271,7 +280,7 @@ router.post(
                             (metric['gauge'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['gauge'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -322,7 +331,7 @@ router.post(
                             (metric['histogram'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['histogram'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -442,7 +451,11 @@ router.post(
                 );
             }
 
-            req.body = req.body.toJSON();
+            if(req.body instanceof Uint8Array) {
+
+            }
+
+            req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
             const resourceLogs: JSONArray = req.body[
                 'resourceLogs'
