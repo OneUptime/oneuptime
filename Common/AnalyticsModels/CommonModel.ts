@@ -5,6 +5,7 @@ import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import GreaterThan from '../Types/BaseDatabase/GreaterThan';
 import GreaterThanOrEqual from '../Types/BaseDatabase/GreaterThanOrEqual';
 import InBetween from '../Types/BaseDatabase/InBetween';
+import Includes from '../Types/BaseDatabase/Includes';
 import LessThan from '../Types/BaseDatabase/LessThan';
 import LessThanOrEqual from '../Types/BaseDatabase/LessThanOrEqual';
 import NotEqual from '../Types/BaseDatabase/NotEqual';
@@ -25,13 +26,16 @@ export type RecordValue =
     | NotEqual
     | GreaterThan
     | InBetween
+    | Includes
     | Date
     | LessThan
     | LessThanOrEqual
     | GreaterThanOrEqual
     | Array<number>
     | Array<string>
-    | Array<CommonModel>;
+    | Array<ObjectID>
+    | Array<CommonModel>
+    | CommonModel;
 
 export type Record = Array<RecordValue | Record>;
 

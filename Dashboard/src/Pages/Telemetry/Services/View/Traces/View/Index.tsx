@@ -17,17 +17,21 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import SpanUtil from '../../../../../../Utils/SpanUtil';
 import OneUptimeDate from 'Common/Types/Date';
 import Color from 'Common/Types/Color';
+import DashboardLogsViewer from '../../../../../../Components/LogsViewer/LogsViewer';
 
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
+    const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);
+    const telemetryServiceId: ObjectID = Navigation.getLastParamAsObjectID(0);
 
     const [error, setError] = React.useState<string | null>(null);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
     const [spans, setSpans] = React.useState<Span[]>([]);
+
+    const [traceId, setTraceId] = React.useState<string | null>(null);
 
     const [ganttChart, setGanttChart] = React.useState<GanttChartProps | null>(
         null
@@ -40,7 +44,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             // get trace with this id and then get all the parentSpanId with this traceid.
 
             const parentSpan: Span | null = await ModelAPI.getItem<Span>({
-                id: modelId,
+                id: oneuptimeSpanId,
                 modelType: Span,
                 select: {
                     startTime: true,
@@ -63,6 +67,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             // now get all the spans with the traceId
 
+            const traceId: string = parentSpan.traceId!;
+
+            setTraceId(traceId);
+
             const childSpans: ListResult<Span> = await ModelAPI.getList<Span>({
                 modelType: Span,
                 select: {
@@ -77,7 +85,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     kind: true,
                 },
                 query: {
-                    traceId: parentSpan?.traceId,
+                    traceId: traceId,
                 },
                 sort: {
                     startTimeUnixNano: SortOrder.Ascending,
@@ -304,6 +312,16 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     )}
                 </div>
             </Card>
+
+            {traceId && (
+                <DashboardLogsViewer
+                    id={'traces-logs-viewer'}
+                    noLogsMessage="No logs found for this trace."
+                    telemetryServiceIds={[telemetryServiceId]}
+                    traceIds={[traceId]}
+                    enableRealtime={false}
+                />
+            )}
         </Fragment>
     );
 };

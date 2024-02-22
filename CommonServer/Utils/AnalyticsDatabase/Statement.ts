@@ -24,7 +24,7 @@ export class Statement implements BaseQueryParams {
     public constructor(
         private strings: string[] = [''],
         private values: Array<StatementParameter | string> = []
-    ) {}
+    ) { }
 
     public get query(): string {
         let query: string = this.strings.reduce(
@@ -58,42 +58,56 @@ export class Statement implements BaseQueryParams {
         const returnObject: Record<string, unknown> = {};
 
         for (const v of this.values) {
-            let finalValue: any = v;
-
-            // if of type date, convert to database date
-
-            if (typeof v === 'string') {
-                finalValue = v;
-            } else if (v.value instanceof ObjectID) {
-                finalValue = v.value.toString();
-            } else if (v.value instanceof Search) {
-                finalValue = `%${v.value.toString()}%`;
-            } else if (
-                v.value instanceof LessThan ||
-                v.value instanceof LessThanOrEqual ||
-                v.value instanceof GreaterThan ||
-                v.value instanceof GreaterThanOrEqual
-            ) {
-                finalValue = v.value.value;
-            } else if (v.value instanceof Date) {
-                finalValue = OneUptimeDate.toDatabaseDate(v.value);
-            } else {
-                finalValue = v.value;
-            }
-
-            // serialize to date.
-
-            if (typeof v !== 'string' && v.type === TableColumnType.Date) {
-                finalValue = OneUptimeDate.fromString(finalValue as string);
-                finalValue = OneUptimeDate.toDatabaseDate(finalValue);
-            }
-
+            const finalValue: any = this.serializseValue(v);
             returnObject[`p${index}`] = finalValue;
-
             index++;
         }
 
         return returnObject;
+    }
+
+
+    public serializseValue(v: StatementParameter | string) {
+        let finalValue: any = v;
+
+        // if of type date, convert to database date
+
+        if (typeof v === 'string') {
+            finalValue = v;
+        } else if (Array.isArray(v.value)){
+            const tempArr = []; 
+
+            for(const val of v.value){
+                tempArr.push(this.serializseValue({type: v.type, value: val}));
+            }
+
+            finalValue = tempArr;
+        }
+        else if (v.value instanceof ObjectID) {
+            finalValue = v.value.toString();
+        } else if (v.value instanceof Search) {
+            finalValue = `%${v.value.toString()}%`;
+        } else if (
+            v.value instanceof LessThan ||
+            v.value instanceof LessThanOrEqual ||
+            v.value instanceof GreaterThan ||
+            v.value instanceof GreaterThanOrEqual
+        ) {
+            finalValue = v.value.value;
+        } else if (v.value instanceof Date) {
+            finalValue = OneUptimeDate.toDatabaseDate(v.value);
+        } else {
+            finalValue = v.value;
+        }
+
+        // serialize to date.
+
+        if (typeof v !== 'string' && v.type === TableColumnType.Date) {
+            finalValue = OneUptimeDate.fromString(finalValue as string);
+            finalValue = OneUptimeDate.toDatabaseDate(finalValue);
+        }
+
+        return finalValue;
     }
 
     /**

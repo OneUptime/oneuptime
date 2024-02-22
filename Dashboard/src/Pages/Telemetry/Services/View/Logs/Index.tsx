@@ -11,7 +11,12 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Fragment>
-            <DashboardLogsViewer telemetryServiceIds={[modelId]} id="logs" />
+            <DashboardLogsViewer
+                showFilters={true}
+                telemetryServiceIds={[modelId]}
+                enableRealtime={false}
+                id="logs"
+            />
         </Fragment>
     );
 };

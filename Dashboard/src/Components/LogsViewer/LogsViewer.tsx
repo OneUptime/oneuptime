@@ -16,10 +16,17 @@ import { FilterOption } from 'CommonUI/src/Components/LogsViewer/LogsFilters';
 import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
 import Search from 'Common/Types/BaseDatabase/Search';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
+import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
+import Includes from 'Common/Types/BaseDatabase/Includes';
 
 export interface ComponentProps {
     id: string;
     telemetryServiceIds: Array<ObjectID>;
+    enableRealtime?: boolean;
+    traceIds?: Array<string>;
+    spanIds?: Array<string>;
+    showFilters?: boolean | undefined;
+    noLogsMessage?: string | undefined;
 }
 
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
@@ -30,18 +37,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [filterOptions, setFilterOptions] = React.useState<FilterOption>({});
 
-    useEffect(() => {
-        fetchItems().catch((err: unknown) => {
-            setError(API.getFriendlyMessage(err));
-        });
-    }, [filterOptions]);
+    const select: Select<Log> = {
+        body: true,
+        time: true,
+        projectId: true,
+        serviceId: true,
+        spanId: true,
+        traceId: true,
+        severityText: true,
+    };
 
-    const fetchItems: Function = async () => {
-        setError('');
-        setIsLoading(true);
-
+    const getQuery: Function = (): Query<Log> => {
         const query: Query<Log> = {
-            serviceId: props.telemetryServiceIds[0],
+            serviceId: new Includes(props.telemetryServiceIds),
         };
 
         if (filterOptions.searchText) {
@@ -59,22 +67,35 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             query.severityText = filterOptions.logSeverity;
         }
 
+        if (props.traceIds && props.traceIds.length > 0) {
+            query.traceId = new Includes(props.traceIds);
+        }
+
+        if (props.spanIds && props.spanIds.length > 0) {
+            query.spanId = new Includes(props.spanIds);
+        }
+
+        return query;
+    };
+
+    useEffect(() => {
+        fetchItems().catch((err: unknown) => {
+            setError(API.getFriendlyMessage(err));
+        });
+    }, [filterOptions]);
+
+    const fetchItems: Function = async () => {
+        setError('');
+        setIsLoading(true);
+
         try {
             const listResult: ListResult<Log> =
                 await AnalyticsModelAPI.getList<Log>({
                     modelType: Log,
-                    query: query,
+                    query: getQuery(),
                     limit: LIMIT_PER_PROJECT,
                     skip: 0,
-                    select: {
-                        body: true,
-                        time: true,
-                        projectId: true,
-                        serviceId: true,
-                        spanId: true,
-                        traceId: true,
-                        severityText: true,
-                    },
+                    select: select,
                     sort: {
                         time: SortOrder.Descending,
                     },
@@ -93,6 +114,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
 
     useEffect(() => {
+        if (!props.enableRealtime) {
+            return;
+        }
+
         const disconnectFunction: () => void =
             Realtime.listenToAnalyticsModelEvent(
                 {
@@ -100,16 +125,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                     query: {},
                     eventType: ModelEventType.Create,
                     tenantId: ProjectUtil.getCurrentProjectId()!,
-                    select: {
-                        body: true,
-                        time: true,
-                        projectId: true,
-                        serviceId: true,
-                        spanId: true,
-                        traceId: true,
-                        severityText: true,
-                        severityNumber: true,
-                    },
+                    select: select,
                 },
                 (model: Log) => {
                     setLogs((logs: Array<Log>) => {
@@ -135,6 +151,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                     setFilterOptions(filterOptions);
                 }}
                 logs={logs}
+                showFilters={props.showFilters}
+                noLogsMessage={props.noLogsMessage}
             />
         </div>
     );

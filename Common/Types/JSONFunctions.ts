@@ -157,6 +157,14 @@ export default class JSONFunctions {
             return val;
         } else if (typeof val === Typeof.Object) {
             return this.deserialize(val as JSONObject);
+        } else if (Array.isArray(val)) {
+            const arr = [];
+
+            for (const v of val) {
+                arr.push(this.deserializeValue(v));
+            }
+
+            return arr;
         }
 
         return val;
