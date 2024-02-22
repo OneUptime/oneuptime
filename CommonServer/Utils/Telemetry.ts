@@ -100,12 +100,9 @@ export default class OneUptimeTelemetry {
         if (!this.sdk) {
             const headers: Dictionary<string> = this.getHeaders();
 
-            let traceExporter: SpanExporter = new ConsoleSpanExporter();
+            let traceExporter: SpanExporter | undefined = undefined;
 
-            let metricReader: PeriodicExportingMetricReader =
-                new PeriodicExportingMetricReader({
-                    exporter: new ConsoleMetricExporter(),
-                });
+            let metricReader: PeriodicExportingMetricReader | undefined = undefined;
 
             if (this.getOltpTracesEndpoint()) {
                 traceExporter = new OTLPTraceExporter({
@@ -147,11 +144,8 @@ export default class OneUptimeTelemetry {
 
             this.logger = logs.getLogger('default');
 
-            const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK({
+            const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> = {
                 idGenerator: new AWSXRayIdGenerator(),
-                traceExporter: traceExporter,
-                metricReader: metricReader as any,
-                logRecordProcessor: loggerProvider as any,
                 instrumentations: [
                     new HttpInstrumentation(),
                     new ExpressInstrumentation(),
@@ -159,7 +153,18 @@ export default class OneUptimeTelemetry {
                 resource: this.getResource({
                     serviceName: data.serviceName,
                 }),
-            });
+                logRecordProcessor: loggerProvider as any,
+            };
+
+            if(traceExporter) {
+                nodeSdkConfiguration.traceExporter = traceExporter;
+            }
+
+            if(metricReader) {
+                nodeSdkConfiguration.metricReader = metricReader as any;
+            }
+
+            const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK(nodeSdkConfiguration);
 
             process.on('SIGTERM', () => {
                 sdk.shutdown().finally(() => {

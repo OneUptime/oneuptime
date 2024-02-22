@@ -1,6 +1,5 @@
 import BearerTokenAuthorization from '../../Middleware/BearerTokenAuthorization';
 import { OneUptimeRequest, ExpressResponse } from '../../Utils/Express';
-import ObjectID from 'Common/Types/ObjectID';
 import JSONWebToken from '../../Utils/JsonWebToken';
 import { JSONObject } from 'Common/Types/JSON';
 
@@ -9,7 +8,6 @@ describe('BearerTokenAuthorization', () => {
         it('adds decoded token data to request', () => {
             const jsonObj: JSONObject = { test: 'test' };
             const req: OneUptimeRequest = {
-                id: ObjectID.generate(),
                 headers: {
                     authorization: `Bearer ${JSONWebToken.signJsonPayload(
                         jsonObj,
@@ -30,7 +28,7 @@ describe('BearerTokenAuthorization', () => {
         it('calls next without arguments if token is valid', () => {
             const jsonObj: JSONObject = { test: 'test' };
             const req: OneUptimeRequest = {
-                id: ObjectID.generate(),
+                
                 headers: {
                     authorization: `Bearer ${JSONWebToken.signJsonPayload(
                         jsonObj,
@@ -49,7 +47,7 @@ describe('BearerTokenAuthorization', () => {
         });
         it('calls next with exception if token is empty', () => {
             const req: OneUptimeRequest = {
-                id: ObjectID.generate(),
+                
                 headers: {
                     authorization: '',
                 },
@@ -67,7 +65,7 @@ describe('BearerTokenAuthorization', () => {
         });
         it('calls next with exception if token is invalid', () => {
             const req: OneUptimeRequest = {
-                id: ObjectID.generate(),
+                
                 headers: {
                     authorization: 'Bearer ',
                 },
@@ -85,7 +83,7 @@ describe('BearerTokenAuthorization', () => {
         });
         it('calls next with exception if token header is not present', () => {
             const req: OneUptimeRequest = {
-                id: ObjectID.generate(),
+                
             } as OneUptimeRequest;
             const res: ExpressResponse = {} as ExpressResponse;
             const next: jest.Mock = jest.fn();
