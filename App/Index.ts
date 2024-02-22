@@ -1,4 +1,6 @@
-import OneUptimeTelemetry from 'CommonServer/Utils/OpenTelemetry';
+process.env['SERVICE_NAME'] = 'app';
+
+import 'CommonServer/Utils/Telemetry';
 import 'ejs';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
@@ -18,12 +20,11 @@ import Workflow from './FeatureSet/Workflow/Index';
 // home should be in the end.
 import './FeatureSet/Home/Index';
 
-const APP_NAME: string = 'app';
 
 const init: () => Promise<void> = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME);
+        await App(process.env['SERVICE_NAME']);
 
         // connect to the database.
         await PostgresAppInstance.connect(
@@ -45,9 +46,7 @@ const init: () => Promise<void> = async (): Promise<void> => {
         // init workflow
         await Workflow.init();
 
-        OneUptimeTelemetry.init({
-            serviceName: APP_NAME,
-        });
+       
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

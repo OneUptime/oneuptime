@@ -166,9 +166,13 @@ export default class OneUptimeTelemetry {
 
     public static getLogger(): Logger {
         if (!this.logger) {
-            this.init({ serviceName: 'default' });
+            throw new Error('Logger not initialized');
         }
 
         return this.logger!;
     }
 }
+
+OneUptimeTelemetry.init({
+    serviceName: process.env['SERVICE_NAME'] || 'oneuptime',
+});

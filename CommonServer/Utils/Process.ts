@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import logger from './Logger';
+
 process.on('exit', () => {
     logger.info('Server Shutting Shutdown');
 });

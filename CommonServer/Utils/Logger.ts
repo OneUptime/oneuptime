@@ -1,5 +1,5 @@
 import { SeverityNumber } from '@opentelemetry/api-logs';
-import OneUptimeTelemetry from './OpenTelemetry';
+import OneUptimeTelemetry from './Telemetry';
 import Exception from 'Common/Types/Exception/Exception';
 import { JSONObject } from 'Common/Types/JSON';
 
