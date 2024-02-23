@@ -12,8 +12,8 @@ import {
     OpenTelemetryExporterOtlpEndpoint,
     OpenTelemetryExporterOtlpHeaders,
 } from '../Config';
-import {FetchInstrumentation} from '@opentelemetry/instrumentation-fetch';
-import { XMLHttpRequestInstrumentation } from "@opentelemetry/instrumentation-xml-http-request";
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
+import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
 
 const providerConfig: TracerConfig = {
     resource: new Resource({
@@ -46,6 +46,6 @@ provider.register({
 registerInstrumentations({
     instrumentations: [
         new FetchInstrumentation(),
-        new XMLHttpRequestInstrumentation()
+        new XMLHttpRequestInstrumentation(),
     ],
 });
