@@ -16,19 +16,17 @@ import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
 import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
 
 export default class Telemetry {
-    public static init(data: {
-        serviceName: string;
-    }): void {
-
+    public static init(data: { serviceName: string }): void {
         if (OpenTelemetryExporterOtlpEndpoint) {
-
             const providerConfig: TracerConfig = {
                 resource: new Resource({
                     [SemanticResourceAttributes.SERVICE_NAME]: data.serviceName,
                 }),
             };
 
-            const provider: WebTracerProvider = new WebTracerProvider(providerConfig);
+            const provider: WebTracerProvider = new WebTracerProvider(
+                providerConfig
+            );
 
             provider.addSpanProcessor(
                 new BatchSpanProcessor(
@@ -40,7 +38,6 @@ export default class Telemetry {
                     })
                 )
             );
-
 
             provider.register({
                 contextManager: new ZoneContextManager(),

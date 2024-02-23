@@ -26,8 +26,9 @@ import DashboardNavigation from '../../../../../../Utils/Navigation';
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-    const [telemetryServices, setTelemetryServices] = React.useState<TelemetryService[]>([]);
+    const [telemetryServices, setTelemetryServices] = React.useState<
+        TelemetryService[]
+    >([]);
 
     const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
@@ -52,24 +53,23 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             // get trace with this id and then get all the parentSpanId with this traceid.
 
-            const telemetryServices = await ModelAPI.getList<TelemetryService>({
+            const telemetryServices: ListResult<TelemetryService> = await ModelAPI.getList<TelemetryService>({
                 query: {
-                    projectId: DashboardNavigation.getProjectId()!
+                    projectId: DashboardNavigation.getProjectId()!,
                 },
                 limit: LIMIT_PER_PROJECT,
                 skip: 0,
                 modelType: TelemetryService,
                 sort: {
-                    name: SortOrder.Ascending
+                    name: SortOrder.Ascending,
                 },
                 select: {
-                    name: true, 
-                    _id: true
-                }
+                    name: true,
+                    _id: true,
+                },
             });
 
             setTelemetryServices(telemetryServices.data);
-
 
             const select: Select<Span> = {
                 startTime: true,
@@ -82,13 +82,15 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 spanId: true,
                 kind: true,
                 serviceId: true,
+                durationUnixNano: true,
             };
 
-            const parentSpan: Span | null = await AnalyticsModelAPI.getItem<Span>({
-                id: oneuptimeSpanId,
-                modelType: Span,
-                select: select,
-            });
+            const parentSpan: Span | null =
+                await AnalyticsModelAPI.getItem<Span>({
+                    id: oneuptimeSpanId,
+                    modelType: Span,
+                    select: select,
+                });
 
             if (parentSpan === null) {
                 setError('Span not found');
@@ -102,18 +104,19 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             setTraceId(traceId);
 
-            const childSpans: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
-                modelType: Span,
-                select: select,
-                query: {
-                    traceId: traceId,
-                },
-                sort: {
-                    startTimeUnixNano: SortOrder.Ascending,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-            });
+            const childSpans: ListResult<Span> =
+                await AnalyticsModelAPI.getList<Span>({
+                    modelType: Span,
+                    select: select,
+                    query: {
+                        traceId: traceId,
+                    },
+                    sort: {
+                        startTimeUnixNano: SortOrder.Ascending,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                });
 
             let spans: Span[] = [parentSpan, ...childSpans.data];
 
@@ -136,21 +139,31 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         }
     };
 
-    const getBarTooltip: Function = (
-        span: Span,
+    const getBarTooltip: Function = (data: {
+        span: Span;
+        timelineStartTimeUnixNano: number;
         divisibilityFactorAndIntervalUnit: {
             divisibilityFactor: number;
             intervalUnit: string;
-        }
-    ): ReactElement => {
+        };
+    }): ReactElement => {
+        const {
+            span,
+            timelineStartTimeUnixNano,
+            divisibilityFactorAndIntervalUnit,
+        } = data;
+
         return (
-            <div className="px-1">
+            <div className="px-1 min-w-56">
                 <div className="bar-tooltip-title text-sm text-gray-700 font-medium my-2">
                     {span.name}
                 </div>
                 <div className="bar-tooltip-description text-gray-600 text-xs space-y-1 my-2">
                     <div className="flex space-x-1">
-                        <div>Start:</div>{' '}
+                        <div>Span ID:</div> <div>{span.spanId?.toString()}</div>
+                    </div>
+                    <div className="flex space-x-1">
+                        <div>Seen at:</div>{' '}
                         <div>
                             {OneUptimeDate.getDateAsFormattedString(
                                 span.startTime!
@@ -158,19 +171,32 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         </div>
                     </div>
                     <div className="flex space-x-1">
+                        <div>Start:</div>{' '}
+                        <div>
+                            {Math.round(
+                                (span.startTimeUnixNano! -
+                                    timelineStartTimeUnixNano) /
+                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
+                            )}{' '}
+                            {divisibilityFactorAndIntervalUnit.intervalUnit}
+                        </div>
+                    </div>
+                    <div className="flex space-x-1">
                         <div>End:</div>{' '}
                         <div>
-                            {OneUptimeDate.getDateAsFormattedString(
-                                span.endTime!
-                            )}
+                            {Math.round(
+                                (span.endTimeUnixNano! -
+                                    timelineStartTimeUnixNano) /
+                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
+                            )}{' '}
+                            {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
                     </div>
                     <div className="flex space-x-1">
                         <div>Duration:</div>{' '}
                         <div>
                             {Math.round(
-                                (span.endTimeUnixNano! -
-                                    span.startTimeUnixNano!) /
+                                span.durationUnixNano! /
                                     divisibilityFactorAndIntervalUnit.divisibilityFactor
                             )}{' '}
                             {divisibilityFactorAndIntervalUnit.intervalUnit}
@@ -273,7 +299,14 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 return {
                     id: span.spanId!,
                     title: span.name!,
-                    description: telemetryServices.find((service) => service._id && service._id.toString() === span.serviceId?.toString())?.name || '',
+                    description:
+                        telemetryServices.find((service: TelemetryService) => {
+                            return (
+                                service._id &&
+                                service._id.toString() ===
+                                    span.serviceId?.toString()
+                            );
+                        })?.name || '',
                 };
             }),
             onBarSelectChange(barIds: Array<string>) {
@@ -297,10 +330,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
                         divisibilityFactor,
                     rowId: span.spanId!,
-                    tooltip: getBarTooltip(
+                    tooltip: getBarTooltip({
                         span,
-                        divisibilityFactorAndIntervalUnit
-                    ),
+                        timelineStartTimeUnixNano,
+                        divisibilityFactorAndIntervalUnit,
+                    }),
                 };
             }),
             timeline: {
