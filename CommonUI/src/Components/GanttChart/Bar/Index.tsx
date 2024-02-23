@@ -88,7 +88,6 @@ const Bar: FunctionComponent<ComponentProps> = (
             <div
                 className="chart-bar h-8 pt-1 pb-1 mt-2.5 mb-2.5 rounded absolute cursor-pointer ml-1 mr-1"
                 style={{
-                    marginLeft: `${barLeftPosition}px`,
                     width: `${barWidth}px`,
                     backgroundColor: `${props.bar.barColor.toString()}`,
                     opacity: barOpacity,
