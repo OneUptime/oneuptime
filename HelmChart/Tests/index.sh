@@ -20,7 +20,9 @@ sudo microk8s kubectl get pods
 # Install OneUptime 
 sudo microk8s helm install oneuptime ../../HelmChart/Public/oneuptime -f ../../HelmChart/Public/oneuptime/values.yaml -f ./ci-values.yaml
 
-sleep 10m
+
+echo "OneUptime is installed. Waiting for it to be ready. Checking status in 15 mins once things settle down..."
+sleep 15m
 
 # Wait for OneUptime to be ready
 timeout 30m bash -c '
