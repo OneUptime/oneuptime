@@ -1,16 +1,26 @@
 export default class Text {
-    public static convertBase64ToHex(base64: string): string {
-        if (!base64) {
-            return base64;
+    public static convertBase64ToHex(textInBase64: string): string {
+        if (!textInBase64) {
+            return textInBase64;
         }
 
-        const raw: string = Buffer.from(base64, 'base64').toString();
+        if(!this.isBase64(textInBase64)) {
+            return textInBase64;
+        }
+
+        const raw: string = Buffer.from(textInBase64, 'base64').toString();
         let result: string = '';
         for (let i: number = 0; i < raw.length; i++) {
             const hex: string = raw.charCodeAt(i).toString(16);
             result += hex.length === 2 ? hex : '0' + hex;
         }
         return result.toUpperCase();
+    }
+
+
+    public static isBase64(text: string): boolean {
+        const regex: RegExp = /^[a-zA-Z0-9+/]*={0,2}$/;
+        return regex.test(text);
     }
 
     public static generateRandomText(length?: number): string {

@@ -9,7 +9,10 @@ import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { Resource } from '@opentelemetry/resources';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { OpenTelemetryExporterOtlpEndpoint, OpenTelemetryExporterOtlpHeaders } from '../Config';
+import {
+    OpenTelemetryExporterOtlpEndpoint,
+    OpenTelemetryExporterOtlpHeaders,
+} from '../Config';
 
 const providerConfig: TracerConfig = {
     resource: new Resource({
@@ -17,18 +20,19 @@ const providerConfig: TracerConfig = {
     }),
 };
 
-const provider = new WebTracerProvider(providerConfig);
+const provider: WebTracerProvider = new WebTracerProvider(providerConfig);
 
 // we will use ConsoleSpanExporter to check the generated spans in dev console
 // provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
 
-
 if (OpenTelemetryExporterOtlpEndpoint) {
     provider.addSpanProcessor(
-        new BatchSpanProcessor(new OTLPTraceExporter({
-            url: OpenTelemetryExporterOtlpEndpoint?.toString(),
-            headers: OpenTelemetryExporterOtlpHeaders
-        })),
+        new BatchSpanProcessor(
+            new OTLPTraceExporter({
+                url: OpenTelemetryExporterOtlpEndpoint?.toString() + '/v1/traces',
+                headers: OpenTelemetryExporterOtlpHeaders,
+            })
+        )
     );
 }
 
