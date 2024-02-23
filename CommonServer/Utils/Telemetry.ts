@@ -20,7 +20,7 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { Logger, logs } from '@opentelemetry/api-logs';
 import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
 
-export default class OneUptimeTelemetry {
+export default class Telemetry {
     public static sdk: opentelemetry.NodeSDK | null = null;
     public static logger: Logger | null = null;
 
@@ -187,6 +187,6 @@ export default class OneUptimeTelemetry {
     }
 }
 
-OneUptimeTelemetry.init({
+Telemetry.init({
     serviceName: process.env['SERVICE_NAME'] || 'oneuptime',
 });

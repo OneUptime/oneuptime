@@ -8,13 +8,8 @@ export default class Text {
             return textInBase64;
         }
 
-        const raw: string = Buffer.from(textInBase64, 'base64').toString();
-        let result: string = '';
-        for (let i: number = 0; i < raw.length; i++) {
-            const hex: string = raw.charCodeAt(i).toString(16);
-            result += hex.length === 2 ? hex : '0' + hex;
-        }
-        return result;
+        const hex: string = Buffer.from(textInBase64, 'base64').toString('hex');
+        return hex;
     }
 
     public static isBase64(text: string): boolean {

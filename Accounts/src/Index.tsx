@@ -3,6 +3,12 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { BrowserRouter } from 'react-router-dom';
 
+import Telemetry from 'CommonUI/src/Utils/Telemetry';
+
+Telemetry.init({
+    serviceName: 'Accounts',
+});
+
 const root: any = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
 );

@@ -8,7 +8,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ListResult from 'CommonUI/src/Utils/BaseDatabase/ListResult';
 import Span from 'Model/AnalyticsModels/Span';
-import ModelAPI from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
+import AnalyticsModelAPI from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import API from 'CommonUI/src/Utils/API/API';
@@ -18,10 +18,17 @@ import SpanUtil from '../../../../../../Utils/SpanUtil';
 import OneUptimeDate from 'Common/Types/Date';
 import Color from 'Common/Types/Color';
 import DashboardLogsViewer from '../../../../../../Components/LogsViewer/LogsViewer';
+import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
+import TelemetryService from 'Model/Models/TelemetryService';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import DashboardNavigation from '../../../../../../Utils/Navigation';
 
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+    const [telemetryServices, setTelemetryServices] = React.useState<TelemetryService[]>([]);
+
     const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
     const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);
@@ -45,20 +52,42 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             // get trace with this id and then get all the parentSpanId with this traceid.
 
-            const parentSpan: Span | null = await ModelAPI.getItem<Span>({
+            const telemetryServices = await ModelAPI.getList<TelemetryService>({
+                query: {
+                    projectId: DashboardNavigation.getProjectId()!
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                modelType: TelemetryService,
+                sort: {
+                    name: SortOrder.Ascending
+                },
+                select: {
+                    name: true, 
+                    _id: true
+                }
+            });
+
+            setTelemetryServices(telemetryServices.data);
+
+
+            const select: Select<Span> = {
+                startTime: true,
+                endTime: true,
+                startTimeUnixNano: true,
+                endTimeUnixNano: true,
+                name: true,
+                traceId: true,
+                parentSpanId: true,
+                spanId: true,
+                kind: true,
+                serviceId: true,
+            };
+
+            const parentSpan: Span | null = await AnalyticsModelAPI.getItem<Span>({
                 id: oneuptimeSpanId,
                 modelType: Span,
-                select: {
-                    startTime: true,
-                    endTime: true,
-                    startTimeUnixNano: true,
-                    endTimeUnixNano: true,
-                    name: true,
-                    traceId: true,
-                    parentSpanId: true,
-                    spanId: true,
-                    kind: true,
-                },
+                select: select,
             });
 
             if (parentSpan === null) {
@@ -73,19 +102,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             setTraceId(traceId);
 
-            const childSpans: ListResult<Span> = await ModelAPI.getList<Span>({
+            const childSpans: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
                 modelType: Span,
-                select: {
-                    startTime: true,
-                    endTime: true,
-                    startTimeUnixNano: true,
-                    endTimeUnixNano: true,
-                    name: true,
-                    traceId: true,
-                    parentSpanId: true,
-                    spanId: true,
-                    kind: true,
-                },
+                select: select,
                 query: {
                     traceId: traceId,
                 },
@@ -254,7 +273,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 return {
                     id: span.spanId!,
                     title: span.name!,
-                    description: span.spanId!,
+                    description: telemetryServices.find((service) => service._id && service._id.toString() === span.serviceId?.toString())?.name || '',
                 };
             }),
             onBarSelectChange(barIds: Array<string>) {

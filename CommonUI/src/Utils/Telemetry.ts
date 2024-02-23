@@ -15,37 +15,43 @@ import {
 import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
 import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
 
-const providerConfig: TracerConfig = {
-    resource: new Resource({
-        [SemanticResourceAttributes.SERVICE_NAME]: 'my-react-app',
-    }),
-};
+export default class Telemetry {
+    public static init(data: {
+        serviceName: string;
+    }): void {
 
-const provider: WebTracerProvider = new WebTracerProvider(providerConfig);
+        if (OpenTelemetryExporterOtlpEndpoint) {
 
-// we will use ConsoleSpanExporter to check the generated spans in dev console
-// provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
+            const providerConfig: TracerConfig = {
+                resource: new Resource({
+                    [SemanticResourceAttributes.SERVICE_NAME]: data.serviceName,
+                }),
+            };
 
-if (OpenTelemetryExporterOtlpEndpoint) {
-    provider.addSpanProcessor(
-        new BatchSpanProcessor(
-            new OTLPTraceExporter({
-                url:
-                    OpenTelemetryExporterOtlpEndpoint?.toString() +
-                    '/v1/traces',
-                headers: OpenTelemetryExporterOtlpHeaders,
-            })
-        )
-    );
+            const provider: WebTracerProvider = new WebTracerProvider(providerConfig);
+
+            provider.addSpanProcessor(
+                new BatchSpanProcessor(
+                    new OTLPTraceExporter({
+                        url:
+                            OpenTelemetryExporterOtlpEndpoint?.toString() +
+                            '/v1/traces',
+                        headers: OpenTelemetryExporterOtlpHeaders,
+                    })
+                )
+            );
+
+
+            provider.register({
+                contextManager: new ZoneContextManager(),
+            });
+
+            registerInstrumentations({
+                instrumentations: [
+                    new FetchInstrumentation(),
+                    new XMLHttpRequestInstrumentation(),
+                ],
+            });
+        }
+    }
 }
-
-provider.register({
-    contextManager: new ZoneContextManager(),
-});
-
-registerInstrumentations({
-    instrumentations: [
-        new FetchInstrumentation(),
-        new XMLHttpRequestInstrumentation(),
-    ],
-});
