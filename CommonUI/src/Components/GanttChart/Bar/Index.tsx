@@ -72,8 +72,7 @@ const Bar: FunctionComponent<ComponentProps> = (
         barOpacity = 0.5;
     }
 
-
-    if(isHovered){
+    if (isHovered) {
         barOpacity = 1;
     }
 

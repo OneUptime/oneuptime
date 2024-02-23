@@ -53,21 +53,22 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             // get trace with this id and then get all the parentSpanId with this traceid.
 
-            const telemetryServices: ListResult<TelemetryService> = await ModelAPI.getList<TelemetryService>({
-                query: {
-                    projectId: DashboardNavigation.getProjectId()!,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                modelType: TelemetryService,
-                sort: {
-                    name: SortOrder.Ascending,
-                },
-                select: {
-                    name: true,
-                    _id: true,
-                },
-            });
+            const telemetryServices: ListResult<TelemetryService> =
+                await ModelAPI.getList<TelemetryService>({
+                    query: {
+                        projectId: DashboardNavigation.getProjectId()!,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    modelType: TelemetryService,
+                    sort: {
+                        name: SortOrder.Ascending,
+                    },
+                    select: {
+                        name: true,
+                        _id: true,
+                    },
+                });
 
             setTelemetryServices(telemetryServices.data);
 

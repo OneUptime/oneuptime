@@ -45,7 +45,6 @@ const GanttChart: FunctionComponent<ComponentProps> = (
             setEachIntervalWidth(chartWidth / numberOfInterval);
         }
 
-
         const timelineWidth: number = chartWidth * 0.75; // 75 % of chart width, 25% for category spacer
 
         setTimelineWidth(timelineWidth); // 75 % of chart width, 25% for category spacer
