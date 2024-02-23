@@ -20,6 +20,7 @@ import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
+import Dictionary from 'Common/Types/Dictionary';
 
 export const getAllEnvVars: Function = (): JSONObject => {
     const envVars: JSONObject = window?.process?.env || process?.env || {};
@@ -155,3 +156,29 @@ export const AnalyticsHost: string = env('ANALYTICS_HOST');
 
 export const GitSha: string = env('GIT_SHA') || '';
 export const AppVersion: string = env('APP_VERSION') || '';
+
+
+export const OpenTelemetryExporterOtlpEndpoint = env('OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT') ? URL.fromString(env('OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT').toString()) : null;
+
+const getOpenTelemetryExporterOtlpHeaders: Function = (): Dictionary<string> => {
+    if (!env('OPENTELEMETRY_EXPORTER_OTLP_HEADERS')) {
+        return {};
+    }
+
+    const headersStrings: Array<string> =
+        env('OPENTELEMETRY_EXPORTER_OTLP_HEADERS').toString().split(';');
+
+    const headers: Dictionary<string> = {};
+
+    for (const headerString of headersStrings) {
+        const header: Array<string> = headerString.split('=');
+        if (header.length === 2) {
+            headers[header[0]!.toString()] = header[1]!.toString();
+        }
+    }
+
+    return headers;
+}
+
+export const OpenTelemetryExporterOtlpHeaders: Dictionary<string> = getOpenTelemetryExporterOtlpHeaders();
+
