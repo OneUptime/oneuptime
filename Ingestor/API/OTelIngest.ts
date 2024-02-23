@@ -135,9 +135,15 @@ router.post(
                         dbSpan.projectId = (req as TelemetryRequest).projectId;
                         dbSpan.serviceId = (req as TelemetryRequest).serviceId;
 
-                        dbSpan.spanId = Text.convertBase64ToHex(span['spanId'] as string);
-                        dbSpan.traceId = Text.convertBase64ToHex(span['traceId'] as string);
-                        dbSpan.parentSpanId = Text.convertBase64ToHex(span['parentSpanId'] as string);
+                        dbSpan.spanId = Text.convertBase64ToHex(
+                            span['spanId'] as string
+                        );
+                        dbSpan.traceId = Text.convertBase64ToHex(
+                            span['traceId'] as string
+                        );
+                        dbSpan.parentSpanId = Text.convertBase64ToHex(
+                            span['parentSpanId'] as string
+                        );
                         dbSpan.startTimeUnixNano = span[
                             'startTimeUnixNano'
                         ] as number;
@@ -575,8 +581,12 @@ router.post(
 
                         dbLog.body = logBody['stringValue'] as string;
 
-                        dbLog.traceId = Text.convertBase64ToHex(log['traceId'] as string);
-                        dbLog.spanId = Text.convertBase64ToHex(log['spanId'] as string);
+                        dbLog.traceId = Text.convertBase64ToHex(
+                            log['traceId'] as string
+                        );
+                        dbLog.spanId = Text.convertBase64ToHex(
+                            log['spanId'] as string
+                        );
 
                         // We need to convert this to date.
                         dbLog.attributes = OTelIngestService.getKeyValues(

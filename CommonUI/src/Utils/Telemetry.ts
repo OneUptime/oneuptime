@@ -1,5 +1,4 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { getWebAutoInstrumentations } from '@opentelemetry/auto-instrumentations-web';
 import {
     BatchSpanProcessor,
     TracerConfig,
@@ -13,6 +12,8 @@ import {
     OpenTelemetryExporterOtlpEndpoint,
     OpenTelemetryExporterOtlpHeaders,
 } from '../Config';
+import {FetchInstrumentation} from '@opentelemetry/instrumentation-fetch';
+import { XMLHttpRequestInstrumentation } from "@opentelemetry/instrumentation-xml-http-request";
 
 const providerConfig: TracerConfig = {
     resource: new Resource({
@@ -29,7 +30,9 @@ if (OpenTelemetryExporterOtlpEndpoint) {
     provider.addSpanProcessor(
         new BatchSpanProcessor(
             new OTLPTraceExporter({
-                url: OpenTelemetryExporterOtlpEndpoint?.toString() + '/v1/traces',
+                url:
+                    OpenTelemetryExporterOtlpEndpoint?.toString() +
+                    '/v1/traces',
                 headers: OpenTelemetryExporterOtlpHeaders,
             })
         )
@@ -42,12 +45,7 @@ provider.register({
 
 registerInstrumentations({
     instrumentations: [
-        // getWebAutoInstrumentations initializes all the package.
-        // it's possible to configure each instrumentation if needed.
-        getWebAutoInstrumentations({
-            '@opentelemetry/instrumentation-fetch': {
-                enabled: true,
-            },
-        }),
+        new FetchInstrumentation(),
+        new XMLHttpRequestInstrumentation()
     ],
 });

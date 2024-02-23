@@ -4,7 +4,7 @@ export default class Text {
             return textInBase64;
         }
 
-        if(!this.isBase64(textInBase64)) {
+        if (!this.isBase64(textInBase64)) {
             return textInBase64;
         }
 
@@ -14,9 +14,8 @@ export default class Text {
             const hex: string = raw.charCodeAt(i).toString(16);
             result += hex.length === 2 ? hex : '0' + hex;
         }
-        return result.toUpperCase();
+        return result;
     }
-
 
     public static isBase64(text: string): boolean {
         const regex: RegExp = /^[a-zA-Z0-9+/]*={0,2}$/;
