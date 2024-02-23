@@ -118,7 +118,7 @@ const Bar: FunctionComponent<ComponentProps> = (
                 <div
                     className="h-8 pt-1 pb-1 mt-2.5 mb-2.5"
                     style={{
-                        marginLeft: `${barLeftPosition + barWidth + 10}px`,
+                        marginLeft: `${barWidth + 15}px`,
                         opacity: barOpacity,
                     }}
                 >
