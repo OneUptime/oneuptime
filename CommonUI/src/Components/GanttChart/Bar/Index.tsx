@@ -66,10 +66,15 @@ const Bar: FunctionComponent<ComponentProps> = (
         setIsHovered(false);
     };
 
-    let barOpacity: number = 1;
+    let barOpacity: number = 0.9;
 
     if (props.areOtherBarsSelected && !isSelected) {
         barOpacity = 0.5;
+    }
+
+
+    if(isHovered){
+        barOpacity = 1;
     }
 
     return (
@@ -106,7 +111,7 @@ const Bar: FunctionComponent<ComponentProps> = (
                     />
                 )}
                 {isHovered && props.bar.tooltip && (
-                    <div className="bar-tooltip bg-white shadow rounded p-2 w-fit z-40 absolute">
+                    <div className="bar-tooltip cursor-pointer bg-white shadow rounded p-2 w-fit z-40 absolute">
                         {props.bar.tooltip}
                     </div>
                 )}

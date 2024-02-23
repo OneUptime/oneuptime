@@ -154,7 +154,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         } = data;
 
         return (
-            <div className="px-1 min-w-56">
+            <div className="px-1 min-w-56 cursor-default">
                 <div className="bar-tooltip-title text-sm text-gray-700 font-medium my-2">
                     {span.name}
                 </div>
