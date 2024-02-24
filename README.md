@@ -44,9 +44,14 @@ Integrate OneUptime with your existing tools and automate your workflows. Integr
 
 ![Workflows](/App/FeatureSet/Home/Static/img/readme/workflows.png?raw=true)
 
+#### Application Performance Monitoring
+
+Measure and optimize the performance of your online apps and services. Track key metrics such as traces, response time, throughput, error rate, and user satisfaction. Replace tools like NewRelic and DataDog.
+
+![APM](/App/FeatureSet/Home/Static/img/readme/apm.png?raw=true)
+
 #### Coming Soon
 
--   **Performance Monitoring**: Measure and optimize the performance of your online services. Track key metrics such as response time, throughput, error rate, and user satisfaction. Replace tools like NewRelic.
 -   **Error Tracking**: Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
 -   **Reliability Autopilot**: Scan your code and fix performance issues and errors automatically. Get recommendations for improving the reliability of your online services.
 
