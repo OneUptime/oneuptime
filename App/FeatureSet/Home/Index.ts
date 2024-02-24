@@ -495,12 +495,9 @@ app.get(
     }
 );
 
-app.get(
-    '/product/apm',
-    (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/apm`);
-    }
-);
+app.get('/product/apm', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.render(`${ViewsPath}/apm`);
+});
 
 app.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(200).send({ status: 'ok' });
