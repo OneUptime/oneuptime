@@ -16,9 +16,11 @@
     "dependencies": {
         "@monaco-editor/react": "^4.4.6",
         "@opentelemetry/api": "^1.7.0",
-        "@opentelemetry/auto-instrumentations-web": "^0.36.0",
         "@opentelemetry/context-zone": "^1.21.0",
         "@opentelemetry/exporter-trace-otlp-http": "^0.48.0",
+        "@opentelemetry/instrumentation": "^0.48.0",
+        "@opentelemetry/instrumentation-fetch": "^0.48.0",
+        "@opentelemetry/instrumentation-xml-http-request": "^0.48.0",
         "@opentelemetry/resources": "^1.21.0",
         "@opentelemetry/sdk-trace-web": "^1.21.0",
         "@opentelemetry/semantic-conventions": "^1.21.0",
