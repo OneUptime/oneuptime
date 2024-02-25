@@ -83,19 +83,16 @@ export default class AnalyticsDatabaseService<
     public async doesColumnExistInDatabase(columnName: string) {
         const database = ClickhouseAppInstance;
         const databaseClient = database.getDataSource() as ClickhouseClient;
-        const databaseName: string = database.getDatasourceOptions().database!;
-
-        const statement = `SELECT name FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
 
         const dbResult: ExecResult<Stream> = await databaseClient.exec({
-            query: statement,
+            query: this.statementGenerator.toDoesColumnExistStatement(columnName)
         });
 
         const strResult: string = await StreamUtil.convertStreamToText(
             dbResult.stream
         );
 
-        return strResult;
+        return Boolean(strResult.trim());
     }
 
     public async getColumnTypeInDatabase(
@@ -164,22 +161,15 @@ export default class AnalyticsDatabaseService<
     ): Promise<void> {
         const database = ClickhouseAppInstance;
         const databaseClient = database.getDataSource() as ClickhouseClient;
-        const statement = this.statementGenerator.toColumnsCreateStatement(
-            [column],
-            false
-        );
-        await databaseClient.exec(statement);
+        
+        await databaseClient.exec(this.statementGenerator.toAddColumnStatement(column));
     }
 
     public async dropColumnInDatabase(columnName: string): Promise<void> {
         const database = ClickhouseAppInstance;
         const databaseClient = database.getDataSource() as ClickhouseClient;
-        const databaseName: string = database.getDatasourceOptions().database!;
-        const statement = `ALTER TABLE ${databaseName}.${this.model.tableName} DROP COLUMN ${columnName} `;
 
-        await databaseClient.exec({
-            query: statement,
-        });
+        await databaseClient.exec(this.statementGenerator.toDropColumnStatement(columnName));
     }
 
     public async findBy(

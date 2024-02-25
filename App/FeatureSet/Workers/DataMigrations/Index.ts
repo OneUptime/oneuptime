@@ -1,5 +1,6 @@
 import AddDefaultGlobalConfig from './AddDefaultGlobalConfig';
 import AddDowntimeMonitorStatusToStatusPage from './AddDowntimeMonitorStatusToStatusPage';
+import AddDurationColumnToSpanTable from './AddDurationColumnToSpanTable';
 import AddEndDateToIncidentStateTimeline from './AddEndDateToIncidentStateTimeline';
 import AddEndDateToMonitorStatusTimeline from './AddEndDateToMonitorStatusTimeline';
 import AddEndDateToScheduledEventsStateTimeline from './AddEndDateToScheduledEventsStateTimeline';
@@ -39,6 +40,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddStartDateToIncidentStateTimeline(),
     new AddStartDateToMonitorStatusTimeline(),
     new AddStartDateToScheduledEventsStateTimeline(),
+    new AddDurationColumnToSpanTable()
 ];
 
 export default DataMigrations;

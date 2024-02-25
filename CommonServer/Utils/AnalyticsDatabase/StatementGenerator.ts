@@ -538,6 +538,47 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }[type];
     }
 
+    public toDoesColumnExistStatement(columnName: string): string {
+        const statement: string = `
+            SELECT name
+            FROM system.columns
+            WHERE database = ${this.database.getDatasourceOptions().database!}
+            AND table = ${this.model.tableName}
+            AND name = ${columnName}
+        `;
+
+        logger.info(`${this.model.tableName} Does Column Exist Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
+    public toAddColumnStatement(column: AnalyticsTableColumn): Statement {
+        
+        const statement: Statement = SQL`
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName}
+            ADD COLUMN 
+        `.append(this.toColumnsCreateStatement([column], false));
+
+        logger.info(`${this.model.tableName} Add Column Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
+
+    public toDropColumnStatement(columnName: string): Statement {
+        const statement: Statement = SQL`
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName}
+            DROP COLUMN ${columnName}
+        `;
+
+        logger.info(`${this.model.tableName} Drop Column Statement`);
+        logger.info(statement);
+
+        return statement;
+    }
+
     public toTableCreateStatement(): Statement {
         const databaseName: string =
             this.database.getDatasourceOptions().database!;
