@@ -22,7 +22,7 @@ export default class ChangeLogSeverityColumnTypeFromTextToNumber extends DataMig
         const columnType: TableColumnType | null =
             await LogService.getColumnTypeInDatabase(logSeverityNumberColumn);
 
-        if (!columnType || columnType === TableColumnType.Number) {
+        if (!columnType || columnType === TableColumnType.Text) {
             await LogService.dropColumnInDatabase('severityNumber');
             await LogService.addColumnInDatabase(logSeverityNumberColumn);
         }
