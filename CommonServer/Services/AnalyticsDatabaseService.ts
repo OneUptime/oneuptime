@@ -53,14 +53,14 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
     public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -80,16 +80,15 @@ export default class AnalyticsDatabaseService<
         });
     }
 
-
     public async doesColumnExistInDatabase(columnName: string) {
         const database = ClickhouseAppInstance;
         const databaseClient = database.getDataSource() as ClickhouseClient;
         const databaseName: string = database.getDatasourceOptions().database!;
-        
+
         const statement = `SELECT name FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
 
         const dbResult: ExecResult<Stream> = await databaseClient.exec({
-            query: statement
+            query: statement,
         });
 
         const strResult: string = await StreamUtil.convertStreamToText(
@@ -99,9 +98,9 @@ export default class AnalyticsDatabaseService<
         return strResult;
     }
 
-
-    public async getColumnTypeInDatabase(columnName: string): Promise<TableColumnType | null> {
-
+    public async getColumnTypeInDatabase(
+        columnName: string
+    ): Promise<TableColumnType | null> {
         if (!columnName) {
             return null;
         }
@@ -116,7 +115,7 @@ export default class AnalyticsDatabaseService<
         const statement = `SELECT type FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
 
         const dbResult: ExecResult<Stream> = await databaseClient.exec({
-            query: statement
+            query: statement,
         });
 
         const strResult: string = await StreamUtil.convertStreamToText(
@@ -160,12 +159,15 @@ export default class AnalyticsDatabaseService<
         }
     }
 
-
-    public async addColumnInDatabase(column: AnalyticsTableColumn): Promise<void> {
-
+    public async addColumnInDatabase(
+        column: AnalyticsTableColumn
+    ): Promise<void> {
         const database = ClickhouseAppInstance;
         const databaseClient = database.getDataSource() as ClickhouseClient;
-        const statement = this.statementGenerator.toColumnsCreateStatement([column], false);
+        const statement = this.statementGenerator.toColumnsCreateStatement(
+            [column],
+            false
+        );
         await databaseClient.exec(statement);
     }
 
@@ -176,7 +178,7 @@ export default class AnalyticsDatabaseService<
         const statement = `ALTER TABLE ${databaseName}.${this.model.tableName} DROP COLUMN ${columnName} `;
 
         await databaseClient.exec({
-            query: statement
+            query: statement,
         });
     }
 
@@ -342,18 +344,18 @@ export default class AnalyticsDatabaseService<
         if (countBy.limit) {
             statement.append(SQL`
             LIMIT ${{
-                    value: Number(countBy.limit),
-                    type: TableColumnType.Number,
-                }}
+                value: Number(countBy.limit),
+                type: TableColumnType.Number,
+            }}
             `);
         }
 
         if (countBy.skip) {
             statement.append(SQL`
             OFFSET ${{
-                    value: Number(countBy.skip),
-                    type: TableColumnType.Number,
-                }}
+                value: Number(countBy.skip),
+                type: TableColumnType.Number,
+            }}
             `);
         }
         logger.info(`${this.model.tableName} Count Statement`);
@@ -559,8 +561,8 @@ export default class AnalyticsDatabaseService<
             statement instanceof Statement
                 ? statement
                 : {
-                    query: statement, // TODO remove and only accept Statements
-                }
+                      query: statement, // TODO remove and only accept Statements
+                  }
         );
     }
 
@@ -662,16 +664,16 @@ export default class AnalyticsDatabaseService<
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                    createBy: {
-                        data: data,
-                        props: createBy.props,
-                    },
-                    carryForward: [],
-                }
+                      createBy: {
+                          data: data,
+                          props: createBy.props,
+                      },
+                      carryForward: [],
+                  }
                 : await this._onBeforeCreate({
-                    data: data,
-                    props: createBy.props,
-                });
+                      data: data,
+                      props: createBy.props,
+                  });
 
             data = onCreate.createBy.data;
 
@@ -773,7 +775,8 @@ export default class AnalyticsDatabaseService<
                     await Promise.allSettled(promises);
                 } else {
                     logger.warn(
-                        `Realtime is not initialized. Skipping emitModelEvent for ${this.getModel().tableName
+                        `Realtime is not initialized. Skipping emitModelEvent for ${
+                            this.getModel().tableName
                         }`
                     );
                 }

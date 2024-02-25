@@ -119,9 +119,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return statement;
     }
 
-
-
-
     public toCreateStatement(data: { item: Array<TBaseModel> }): string {
         if (!data.item) {
             throw new BadDataException('Item cannot be null');
