@@ -53,14 +53,14 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
     public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -78,6 +78,52 @@ export default class AnalyticsDatabaseService<
             modelType: this.modelType,
             database: this.database,
         });
+    }
+
+
+    public async doesColumnExistInDatabase(columnName: string) {
+        const database = ClickhouseAppInstance;
+        const databaseClient = database.getDataSource() as ClickhouseClient;
+        const databaseName: string = database.getDatasourceOptions().database!;
+        
+        const statement = `SELECT name FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
+
+        const dbResult: ExecResult<Stream> = await databaseClient.exec({
+            query: statement
+        });
+
+        const strResult: string = await StreamUtil.convertStreamToText(
+            dbResult.stream
+        );
+
+        return strResult;
+    }
+
+
+    public async getColumnTypeInDatabase(columnName: string): Promise<TableColumnType | null> {
+
+        if (!columnName) {
+            return null;
+        }
+
+        if (!this.doesColumnExistInDatabase(columnName)) {
+            return null;
+        }
+
+        const database = ClickhouseAppInstance;
+        const databaseClient = database.getDataSource() as ClickhouseClient;
+        const databaseName: string = database.getDatasourceOptions().database!;
+        const statement = `SELECT type FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
+
+        const dbResult: ExecResult<Stream> = await databaseClient.exec({
+            query: statement
+        });
+
+        const strResult: string = await StreamUtil.convertStreamToText(
+            dbResult.stream
+        );
+
+        return strResult as TableColumnType;
     }
 
     public async countBy(
@@ -112,6 +158,26 @@ export default class AnalyticsDatabaseService<
             await this.onCountError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+
+    public async addColumnInDatabase(column: AnalyticsTableColumn): Promise<void> {
+
+        const database = ClickhouseAppInstance;
+        const databaseClient = database.getDataSource() as ClickhouseClient;
+        const statement = this.statementGenerator.toColumnsCreateStatement([column], false);
+        await databaseClient.exec(statement);
+    }
+
+    public async dropColumnInDatabase(columnName: string): Promise<void> {
+        const database = ClickhouseAppInstance;
+        const databaseClient = database.getDataSource() as ClickhouseClient;
+        const databaseName: string = database.getDatasourceOptions().database!;
+        const statement = `ALTER TABLE ${databaseName}.${this.model.tableName} DROP COLUMN ${columnName} `;
+
+        await databaseClient.exec({
+            query: statement
+        });
     }
 
     public async findBy(
@@ -276,18 +342,18 @@ export default class AnalyticsDatabaseService<
         if (countBy.limit) {
             statement.append(SQL`
             LIMIT ${{
-                value: Number(countBy.limit),
-                type: TableColumnType.Number,
-            }}
+                    value: Number(countBy.limit),
+                    type: TableColumnType.Number,
+                }}
             `);
         }
 
         if (countBy.skip) {
             statement.append(SQL`
             OFFSET ${{
-                value: Number(countBy.skip),
-                type: TableColumnType.Number,
-            }}
+                    value: Number(countBy.skip),
+                    type: TableColumnType.Number,
+                }}
             `);
         }
         logger.info(`${this.model.tableName} Count Statement`);
@@ -493,8 +559,8 @@ export default class AnalyticsDatabaseService<
             statement instanceof Statement
                 ? statement
                 : {
-                      query: statement, // TODO remove and only accept Statements
-                  }
+                    query: statement, // TODO remove and only accept Statements
+                }
         );
     }
 
@@ -596,16 +662,16 @@ export default class AnalyticsDatabaseService<
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                      createBy: {
-                          data: data,
-                          props: createBy.props,
-                      },
-                      carryForward: [],
-                  }
+                    createBy: {
+                        data: data,
+                        props: createBy.props,
+                    },
+                    carryForward: [],
+                }
                 : await this._onBeforeCreate({
-                      data: data,
-                      props: createBy.props,
-                  });
+                    data: data,
+                    props: createBy.props,
+                });
 
             data = onCreate.createBy.data;
 
@@ -707,8 +773,7 @@ export default class AnalyticsDatabaseService<
                     await Promise.allSettled(promises);
                 } else {
                     logger.warn(
-                        `Realtime is not initialized. Skipping emitModelEvent for ${
-                            this.getModel().tableName
+                        `Realtime is not initialized. Skipping emitModelEvent for ${this.getModel().tableName
                         }`
                     );
                 }
