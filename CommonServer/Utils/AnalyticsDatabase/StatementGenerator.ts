@@ -451,6 +451,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         };
     }
 
+
+    public getColumnTypesStatement(columnName: string): string {
+        return `SELECT type FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${this.database.getDatasourceOptions().database}' AND name = '${columnName}'`
+    }
+
     public async toRenameColumnStatement(
         oldColumnName: string,
         newColumnName: string
@@ -515,6 +520,23 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return columns;
     }
 
+    public toTableColumnType(clickhouseType: string): TableColumnType | undefined {
+        return {
+            'String': TableColumnType.Text,
+            'Int32': TableColumnType.Number,
+            'Int64': TableColumnType.LongNumber,
+            'Int128': TableColumnType.LongNumber,
+            'Float32': TableColumnType.Decimal,
+            'Float64': TableColumnType.Decimal,
+            'DateTime': TableColumnType.Date,
+            'Array(String)': TableColumnType.ArrayText,
+            'Array(Int32)': TableColumnType.ArrayNumber,
+            'JSON': TableColumnType.JSON,
+            'Nested': TableColumnType.NestedModel,
+            'Bool': TableColumnType.Boolean,
+        }[clickhouseType];
+    }
+
     public toColumnType(type: TableColumnType): Statement {
         return {
             [TableColumnType.Text]: SQL`String`,
@@ -554,16 +576,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         logger.info(`${this.model.tableName} Add Column Statement`);
         logger.info(statement);
 
+        debugger;
+
         return statement;
     }
 
-    public toDropColumnStatement(columnName: string): Statement {
-        const statement: Statement = SQL`
+    public toDropColumnStatement(columnName: string): string {
+        const statement: string = `
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
             this.model.tableName
-        }
-            DROP COLUMN ${columnName}
-        `;
+        } DROP COLUMN IF EXISTS ${columnName}`;
 
         logger.info(`${this.model.tableName} Drop Column Statement`);
         logger.info(statement);

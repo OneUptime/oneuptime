@@ -11,6 +11,7 @@ import AddPostedAtToPublicNotes from './AddPostedAtToPublicNotes';
 import AddStartDateToIncidentStateTimeline from './AddStartDateToIncidentStateTimeline';
 import AddStartDateToMonitorStatusTimeline from './AddStartDateToMonitorStatusTimeline';
 import AddStartDateToScheduledEventsStateTimeline from './AddStartDateToScheduledEventsStateTimeline';
+import ChangeLogSeverityColumnTypeFromTextToNumber from './ChangeLogSeverityColumnTypeFromTextToNumber';
 import DataMigrationBase from './DataMigrationBase';
 import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotificationRule';
 import MigrateDefaultUserNotificationSetting from './MigrateDefaultUserSettingNotification';
@@ -41,6 +42,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddStartDateToMonitorStatusTimeline(),
     new AddStartDateToScheduledEventsStateTimeline(),
     new AddDurationColumnToSpanTable(),
+    new ChangeLogSeverityColumnTypeFromTextToNumber()
 ];
 
 export default DataMigrations;

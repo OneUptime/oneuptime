@@ -96,19 +96,19 @@ export default class AnalyticsDatabaseService<
     }
 
     public async getColumnTypeInDatabase(
-        columnName: string
+        column: AnalyticsTableColumn
     ): Promise<TableColumnType | null> {
-        if (!columnName) {
+        if (!column) {
             return null;
         }
+
+        const columnName: string = column.key;
 
         if (!this.doesColumnExistInDatabase(columnName)) {
             return null;
         }
 
-        const database: ClickhouseDatabase = ClickhouseAppInstance;
-        const databaseName: string = database.getDatasourceOptions().database!;
-        const statement: string = `SELECT type FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
+        const statement: string = this.statementGenerator.getColumnTypesStatement(columnName);
 
         const dbResult: ExecResult<Stream> = await this.execute(statement);
 
@@ -116,7 +116,7 @@ export default class AnalyticsDatabaseService<
             dbResult.stream
         );
 
-        return strResult as TableColumnType;
+        return this.statementGenerator.toTableColumnType(strResult.trim()) as TableColumnType || null;
     }
 
     public async countBy(
