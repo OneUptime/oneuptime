@@ -451,6 +451,19 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         };
     }
 
+    public async toRenameColumnStatement(
+        oldColumnName: string,
+        newColumnName: string
+    ): Promise<Statement> {
+        const statement: string = `ALTER TABLE ${
+            this.database.getDatasourceOptions().database
+        }.${
+            this.model.tableName
+        } RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
+
+        return SQL`${statement}`;
+    }
+
     public toColumnsCreateStatement(
         tableColumns: Array<AnalyticsTableColumn>,
         isNestedModel: boolean = false
@@ -470,10 +483,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 columns.append(SQL`    `);
             }
 
-            let requiredStatement: Statement | null = column.required
-                ? SQL`NOT NULL`
-                : SQL`NULL`;
-
             let nestedModelColumns: Statement | null = null;
 
             if (column.type === TableColumnType.NestedModel) {
@@ -487,19 +496,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     .append(SQL`\n`)
                     .append(indent)
                     .append(SQL`)`);
-
-                requiredStatement = null;
-            }
-
-            if (isNestedModel) {
-                requiredStatement = null;
-            }
-
-            if (
-                column.type === TableColumnType.ArrayNumber ||
-                column.type === TableColumnType.ArrayText
-            ) {
-                requiredStatement = null;
             }
 
             // special case - ClickHouse does not support using an a query parameter
@@ -513,9 +509,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 .append(this.toColumnType(column.type));
             if (nestedModelColumns) {
                 columns.append(SQL` `).append(nestedModelColumns);
-            }
-            if (requiredStatement) {
-                columns.append(SQL` `).append(requiredStatement);
             }
         }
 
@@ -539,13 +532,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toDoesColumnExistStatement(columnName: string): string {
-        const statement: string = `
-            SELECT name
-            FROM system.columns
-            WHERE database = ${this.database.getDatasourceOptions().database!}
-            AND table = ${this.model.tableName}
-            AND name = ${columnName}
-        `;
+        const statement: string = `SELECT name FROM system.columns WHERE table = '${
+            this.model.tableName
+        }' AND database = '${this.database.getDatasourceOptions()
+            .database!}' AND name = '${columnName}'`;
 
         logger.info(`${this.model.tableName} Does Column Exist Statement`);
         logger.info(statement);
@@ -554,10 +544,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toAddColumnStatement(column: AnalyticsTableColumn): Statement {
-        
         const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName}
-            ADD COLUMN 
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
+            this.model.tableName
+        }
+            ADD COLUMN IF NOT EXISTS
         `.append(this.toColumnsCreateStatement([column], false));
 
         logger.info(`${this.model.tableName} Add Column Statement`);
@@ -566,10 +557,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         return statement;
     }
 
-
     public toDropColumnStatement(columnName: string): Statement {
         const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName}
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
+            this.model.tableName
+        }
             DROP COLUMN ${columnName}
         `;
 

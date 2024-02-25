@@ -80,19 +80,19 @@ export default class AnalyticsDatabaseService<
         });
     }
 
-    public async doesColumnExistInDatabase(columnName: string) {
-        const database = ClickhouseAppInstance;
-        const databaseClient = database.getDataSource() as ClickhouseClient;
+    public async doesColumnExistInDatabase(
+        columnName: string
+    ): Promise<boolean> {
+        const statement: string =
+            this.statementGenerator.toDoesColumnExistStatement(columnName);
 
-        const dbResult: ExecResult<Stream> = await databaseClient.exec({
-            query: this.statementGenerator.toDoesColumnExistStatement(columnName)
-        });
+        const dbResult: ExecResult<Stream> = await this.execute(statement);
 
         const strResult: string = await StreamUtil.convertStreamToText(
             dbResult.stream
         );
 
-        return Boolean(strResult.trim());
+        return strResult.trim().length > 0;
     }
 
     public async getColumnTypeInDatabase(
@@ -106,14 +106,11 @@ export default class AnalyticsDatabaseService<
             return null;
         }
 
-        const database = ClickhouseAppInstance;
-        const databaseClient = database.getDataSource() as ClickhouseClient;
+        const database: ClickhouseDatabase = ClickhouseAppInstance;
         const databaseName: string = database.getDatasourceOptions().database!;
-        const statement = `SELECT type FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
+        const statement: string = `SELECT type FROM system.columns WHERE table = '${this.model.tableName}' AND database = '${databaseName}' AND name = '${columnName}'`;
 
-        const dbResult: ExecResult<Stream> = await databaseClient.exec({
-            query: statement,
-        });
+        const dbResult: ExecResult<Stream> = await this.execute(statement);
 
         const strResult: string = await StreamUtil.convertStreamToText(
             dbResult.stream
@@ -159,17 +156,15 @@ export default class AnalyticsDatabaseService<
     public async addColumnInDatabase(
         column: AnalyticsTableColumn
     ): Promise<void> {
-        const database = ClickhouseAppInstance;
-        const databaseClient = database.getDataSource() as ClickhouseClient;
-        
-        await databaseClient.exec(this.statementGenerator.toAddColumnStatement(column));
+        const statement: Statement =
+            this.statementGenerator.toAddColumnStatement(column);
+        await this.execute(statement);
     }
 
     public async dropColumnInDatabase(columnName: string): Promise<void> {
-        const database = ClickhouseAppInstance;
-        const databaseClient = database.getDataSource() as ClickhouseClient;
-
-        await databaseClient.exec(this.statementGenerator.toDropColumnStatement(columnName));
+        await this.execute(
+            this.statementGenerator.toDropColumnStatement(columnName)
+        );
     }
 
     public async findBy(

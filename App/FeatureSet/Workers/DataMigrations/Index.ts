@@ -40,7 +40,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddStartDateToIncidentStateTimeline(),
     new AddStartDateToMonitorStatusTimeline(),
     new AddStartDateToScheduledEventsStateTimeline(),
-    new AddDurationColumnToSpanTable()
+    new AddDurationColumnToSpanTable(),
 ];
 
 export default DataMigrations;
