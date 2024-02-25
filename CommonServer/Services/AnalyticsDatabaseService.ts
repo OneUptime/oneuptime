@@ -108,7 +108,8 @@ export default class AnalyticsDatabaseService<
             return null;
         }
 
-        const statement: string = this.statementGenerator.getColumnTypesStatement(columnName);
+        const statement: string =
+            this.statementGenerator.getColumnTypesStatement(columnName);
 
         const dbResult: ExecResult<Stream> = await this.execute(statement);
 
@@ -116,7 +117,11 @@ export default class AnalyticsDatabaseService<
             dbResult.stream
         );
 
-        return this.statementGenerator.toTableColumnType(strResult.trim()) as TableColumnType || null;
+        return (
+            (this.statementGenerator.toTableColumnType(
+                strResult.trim()
+            ) as TableColumnType) || null
+        );
     }
 
     public async countBy(

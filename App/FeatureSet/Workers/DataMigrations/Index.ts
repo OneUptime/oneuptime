@@ -42,7 +42,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddStartDateToMonitorStatusTimeline(),
     new AddStartDateToScheduledEventsStateTimeline(),
     new AddDurationColumnToSpanTable(),
-    new ChangeLogSeverityColumnTypeFromTextToNumber()
+    new ChangeLogSeverityColumnTypeFromTextToNumber(),
 ];
 
 export default DataMigrations;

@@ -11,8 +11,6 @@ export default class ChangeLogSeverityColumnTypeFromTextToNumber extends DataMig
 
     public override async migrate(): Promise<void> {
 
-        debugger;
-
         const logSeverityNumberColumn: AnalyticsTableColumn | undefined =
             new Log().tableColumns.find((column: AnalyticsTableColumn) => {
                 return column.key === 'severityNumber';
