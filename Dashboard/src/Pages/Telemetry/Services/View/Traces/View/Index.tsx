@@ -341,15 +341,15 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         };
     };
 
-
-    const getRowsFromBars: Function = (bars: Array<GanttChartBar>): Array<GanttChartRow> => {
+    const getRowsFromBars: Function = (
+        bars: Array<GanttChartBar>
+    ): Array<GanttChartRow> => {
         return bars.map((bars: GanttChartBar) => {
-
-            const span = spans.find((span: Span) => {
+            const span: Span | undefined = spans.find((span: Span) => {
                 return span.spanId === bars.id;
             });
 
-            if(!span) {
+            if (!span) {
                 return {
                     id: bars.id,
                     title: bars.title,
@@ -370,7 +370,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     })?.name || '',
             };
         });
-    }
+    };
 
     React.useEffect(() => {
         // convert spans to gantt chart
@@ -417,7 +417,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
 
-
         const bars: Array<GanttChartBar> = getBars({
             rootSpan: spans[0]!,
             allSpans: spans,
@@ -426,7 +425,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             divisibilityFactorAndIntervalUnit:
                 divisibilityFactorAndIntervalUnit.intervalUnit,
         });
-
 
         const ganttChart: GanttChartProps = {
             id: 'chart',
