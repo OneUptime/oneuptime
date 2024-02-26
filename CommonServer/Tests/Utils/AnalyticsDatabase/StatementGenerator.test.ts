@@ -228,8 +228,8 @@ describe('StatementGenerator', () => {
 
             /* eslint-disable prettier/prettier */
             expectStatement(statement, SQL`
-                column_1 String NOT NULL,
-                column_2 Int32 NULL
+                column_1 String,
+                column_2 Int32
             `);
             /* eslint-enable prettier/prettier */
         });
@@ -278,7 +278,7 @@ describe('StatementGenerator', () => {
 
             /* eslint-disable prettier/prettier */
             expectStatement(statement, SQL`
-                column_1 String NOT NULL,
+                column_1 String,
                 column_2 Nested (
                     nested_column_1 String,
                     nested_column_2 Int32
