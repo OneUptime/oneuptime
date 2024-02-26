@@ -43,7 +43,7 @@ const LogsFilters: FunctionComponent<ComponentProps> = (
     );
 
     return (
-        <div className="shadow sm:overflow-hidden sm:rounded-md">
+        <div className="shadow sm:rounded-md">
             <div className="bg-white py-6 px-4 sm:p-6">
                 <div>
                     <div className="flex space-x-2 justify-between">
