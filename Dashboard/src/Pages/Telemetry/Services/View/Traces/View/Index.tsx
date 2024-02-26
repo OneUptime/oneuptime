@@ -22,6 +22,8 @@ import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import TelemetryService from 'Model/Models/TelemetryService';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import DashboardNavigation from '../../../../../../Utils/Navigation';
+import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
+import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
 
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -214,6 +216,96 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         );
     };
 
+    const spanToBar: Function = (data: {
+        span: Span;
+        timelineStartTimeUnixNano: number;
+        divisibilityFactor: number;
+        divisibilityFactorAndIntervalUnit: string;
+    }): GanttChartBar => {
+        const {
+            span,
+            timelineStartTimeUnixNano,
+            divisibilityFactor,
+            divisibilityFactorAndIntervalUnit,
+        } = data;
+
+        const spanColor: {
+            barColor: Color;
+            titleColor: Color;
+        } = SpanUtil.getGanttChartBarColor(span);
+
+        return {
+            id: span.spanId!,
+            title: span.name!,
+            titleColor: spanColor.titleColor,
+            barColor: spanColor.barColor,
+            barTimelineStart:
+                (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
+                divisibilityFactor,
+            barTimelineEnd:
+                (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
+                divisibilityFactor,
+            rowId: span.spanId!,
+            tooltip: getBarTooltip({
+                span,
+                timelineStartTimeUnixNano,
+                divisibilityFactorAndIntervalUnit,
+            }),
+        };
+    };
+
+    const getBars: Function = (data: {
+        rootSpan: Span;
+        allSpans: Span[];
+        timelineStartTimeUnixNano: number;
+        divisibilityFactor: number;
+        divisibilityFactorAndIntervalUnit: string;
+    }): Array<GanttChartBar> => {
+        const {
+            rootSpan,
+            allSpans,
+            timelineStartTimeUnixNano,
+            divisibilityFactor,
+            divisibilityFactorAndIntervalUnit,
+        } = data;
+
+        if (!rootSpan) {
+            return [];
+        }
+
+        let finalSpans: Array<GanttChartBar> = [
+            spanToBar({
+                span: rootSpan,
+                timelineStartTimeUnixNano,
+                divisibilityFactor,
+                divisibilityFactorAndIntervalUnit,
+            }),
+        ];
+
+        const currentSpan: Span = rootSpan;
+
+        const currentSpanId: string | undefined = currentSpan.spanId;
+
+        const childSpans: Array<Span> = allSpans.filter((span: Span) => {
+            return span.parentSpanId?.toString() === currentSpanId?.toString();
+        });
+
+        for (const span of childSpans) {
+            finalSpans = [
+                ...finalSpans,
+                ...getBars({
+                    rootSpan: span,
+                    allSpans,
+                    timelineStartTimeUnixNano,
+                    divisibilityFactor,
+                    divisibilityFactorAndIntervalUnit,
+                }),
+            ];
+        }
+
+        return finalSpans;
+    };
+
     React.useEffect(() => {
         fetchItems().catch((err: Error) => {
             setError(API.getFriendlyMessage(err));
@@ -248,6 +340,37 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             intervalUnit: intervalUnit,
         };
     };
+
+
+    const getRowsFromBars: Function = (bars: Array<GanttChartBar>): Array<GanttChartRow> => {
+        return bars.map((bars: GanttChartBar) => {
+
+            const span = spans.find((span: Span) => {
+                return span.spanId === bars.id;
+            });
+
+            if(!span) {
+                return {
+                    id: bars.id,
+                    title: bars.title,
+                    description: '',
+                };
+            }
+
+            return {
+                id: span.spanId!,
+                title: span.name!,
+                description:
+                    telemetryServices.find((service: TelemetryService) => {
+                        return (
+                            service._id &&
+                            service._id.toString() ===
+                                span.serviceId?.toString()
+                        );
+                    })?.name || '',
+            };
+        });
+    }
 
     React.useEffect(() => {
         // convert spans to gantt chart
@@ -294,50 +417,24 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
 
+
+        const bars: Array<GanttChartBar> = getBars({
+            rootSpan: spans[0]!,
+            allSpans: spans,
+            timelineStartTimeUnixNano,
+            divisibilityFactor,
+            divisibilityFactorAndIntervalUnit:
+                divisibilityFactorAndIntervalUnit.intervalUnit,
+        });
+
+
         const ganttChart: GanttChartProps = {
             id: 'chart',
-            rows: spans.map((span: Span) => {
-                return {
-                    id: span.spanId!,
-                    title: span.name!,
-                    description:
-                        telemetryServices.find((service: TelemetryService) => {
-                            return (
-                                service._id &&
-                                service._id.toString() ===
-                                    span.serviceId?.toString()
-                            );
-                        })?.name || '',
-                };
-            }),
+            rows: getRowsFromBars(bars),
             onBarSelectChange(barIds: Array<string>) {
                 setSelectedSpans(barIds);
             },
-            bars: spans.map((span: Span) => {
-                const spanColor: {
-                    barColor: Color;
-                    titleColor: Color;
-                } = SpanUtil.getGanttChartBarColor(span);
-
-                return {
-                    id: span.spanId!,
-                    title: span.name!,
-                    titleColor: spanColor.titleColor,
-                    barColor: spanColor.barColor,
-                    barTimelineStart:
-                        (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
-                        divisibilityFactor,
-                    barTimelineEnd:
-                        (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
-                        divisibilityFactor,
-                    rowId: span.spanId!,
-                    tooltip: getBarTooltip({
-                        span,
-                        timelineStartTimeUnixNano,
-                        divisibilityFactorAndIntervalUnit,
-                    }),
-                };
-            }),
+            bars: bars,
             timeline: {
                 start: startTimeline,
                 end: Math.ceil(endTimeline / interval) * interval,
