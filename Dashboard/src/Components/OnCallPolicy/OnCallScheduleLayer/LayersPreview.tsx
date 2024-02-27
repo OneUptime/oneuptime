@@ -43,8 +43,10 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         setCalendarEvents(getCalendarEvents(startTime, endTime));
     }, [props.layers, props.allLayerUsers, startTime, endTime]);
 
-    type GetCalendarEventsFunction = 
-        (calendarStartTime: Date, calendarEndTime: Date) => Array<CalendarEvent>;
+    type GetCalendarEventsFunction = (
+        calendarStartTime: Date,
+        calendarEndTime: Date
+    ) => Array<CalendarEvent>;
 
     const getCalendarEvents: GetCalendarEventsFunction = (
         calendarStartTime: Date,

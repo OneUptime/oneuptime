@@ -15,7 +15,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import API from 'CommonUI/src/Utils/API/API';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import {PromiseVoidFunction} from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -28,41 +28,37 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadMonitorsIds: PromiseVoidFunction =
-        async (): Promise<void> => {
-            setIsLoading(true);
+    const loadMonitorsIds: PromiseVoidFunction = async (): Promise<void> => {
+        setIsLoading(true);
 
-            try {
-                const monitorGroupResources: ListResult<MonitorGroupResource> =
-                    await ModelAPI.getList({
-                        modelType: MonitorGroupResource,
-                        query: {
-                            monitorGroupId: modelId.toString(),
-                        },
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                            monitorId: true,
-                        },
-                        sort: {},
-                    });
+        try {
+            const monitorGroupResources: ListResult<MonitorGroupResource> =
+                await ModelAPI.getList({
+                    modelType: MonitorGroupResource,
+                    query: {
+                        monitorGroupId: modelId.toString(),
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                        monitorId: true,
+                    },
+                    sort: {},
+                });
 
-                const monitorIds: Array<ObjectID> =
-                    monitorGroupResources.data.map(
-                        (
-                            monitorGroupResource: MonitorGroupResource
-                        ): ObjectID => {
-                            return monitorGroupResource.monitorId!;
-                        }
-                    );
+            const monitorIds: Array<ObjectID> = monitorGroupResources.data.map(
+                (monitorGroupResource: MonitorGroupResource): ObjectID => {
+                    return monitorGroupResource.monitorId!;
+                }
+            );
 
-                setMonitorIds(monitorIds);
-            } catch (err) {
-                setError(API.getFriendlyMessage(err));
-            }
+            setMonitorIds(monitorIds);
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
 
-            setIsLoading(false);
-        };
+        setIsLoading(false);
+    };
 
     useEffect(() => {
         loadMonitorsIds().catch(() => {});

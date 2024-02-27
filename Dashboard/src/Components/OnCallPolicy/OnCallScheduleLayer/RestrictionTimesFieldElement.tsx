@@ -41,97 +41,94 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         }
     }, [props.value]);
 
-    const getDailyRestriction: GetReactElementFunction =
-        (): ReactElement => {
-            // show start time to end time input fields
+    const getDailyRestriction: GetReactElementFunction = (): ReactElement => {
+        // show start time to end time input fields
 
-            return (
-                <div className="flex space-x-3">
-                    <div>
-                        <FieldLabelElement title="From:" />
-                        <Input
-                            type={InputType.TIME}
-                            value={OneUptimeDate.toString(
-                                restrictionTimes?.dayRestrictionTimes?.startTime
-                            )}
-                            onChange={(value: any) => {
-                                let date: Date = OneUptimeDate.getCurrentDate();
+        return (
+            <div className="flex space-x-3">
+                <div>
+                    <FieldLabelElement title="From:" />
+                    <Input
+                        type={InputType.TIME}
+                        value={OneUptimeDate.toString(
+                            restrictionTimes?.dayRestrictionTimes?.startTime
+                        )}
+                        onChange={(value: any) => {
+                            let date: Date = OneUptimeDate.getCurrentDate();
 
-                                if (value instanceof Date) {
-                                    date = value;
-                                }
+                            if (value instanceof Date) {
+                                date = value;
+                            }
 
-                                if (typeof value === Typeof.String) {
-                                    date = OneUptimeDate.fromString(value);
-                                }
+                            if (typeof value === Typeof.String) {
+                                date = OneUptimeDate.fromString(value);
+                            }
 
-                                let tempRestrictionTimes:
-                                    | RestrictionTimes
-                                    | undefined = restrictionTimes;
+                            let tempRestrictionTimes:
+                                | RestrictionTimes
+                                | undefined = restrictionTimes;
 
-                                if (!tempRestrictionTimes) {
-                                    tempRestrictionTimes =
-                                        new RestrictionTimes();
-                                }
+                            if (!tempRestrictionTimes) {
+                                tempRestrictionTimes = new RestrictionTimes();
+                            }
 
-                                if (!tempRestrictionTimes.dayRestrictionTimes) {
-                                    tempRestrictionTimes.dayRestrictionTimes = {
-                                        startTime: date,
-                                        endTime: date,
-                                    };
-                                }
+                            if (!tempRestrictionTimes.dayRestrictionTimes) {
+                                tempRestrictionTimes.dayRestrictionTimes = {
+                                    startTime: date,
+                                    endTime: date,
+                                };
+                            }
 
-                                tempRestrictionTimes.dayRestrictionTimes.startTime =
-                                    date;
+                            tempRestrictionTimes.dayRestrictionTimes.startTime =
+                                date;
 
-                                updateRestrictionTimes(tempRestrictionTimes);
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <FieldLabelElement title="To:" />
-                        <Input
-                            type={InputType.TIME}
-                            value={OneUptimeDate.toString(
-                                restrictionTimes?.dayRestrictionTimes?.endTime
-                            )}
-                            onChange={(value: any) => {
-                                let date: Date = OneUptimeDate.getCurrentDate();
-
-                                if (value instanceof Date) {
-                                    date = value;
-                                }
-
-                                if (typeof value === Typeof.String) {
-                                    date = OneUptimeDate.fromString(value);
-                                }
-
-                                let tempRestrictionTimes:
-                                    | RestrictionTimes
-                                    | undefined = restrictionTimes;
-
-                                if (!tempRestrictionTimes) {
-                                    tempRestrictionTimes =
-                                        new RestrictionTimes();
-                                }
-
-                                if (!tempRestrictionTimes.dayRestrictionTimes) {
-                                    tempRestrictionTimes.dayRestrictionTimes = {
-                                        startTime: date,
-                                        endTime: date,
-                                    };
-                                }
-
-                                tempRestrictionTimes.dayRestrictionTimes.endTime =
-                                    date;
-
-                                updateRestrictionTimes(tempRestrictionTimes);
-                            }}
-                        />
-                    </div>
+                            updateRestrictionTimes(tempRestrictionTimes);
+                        }}
+                    />
                 </div>
-            );
-        };
+                <div>
+                    <FieldLabelElement title="To:" />
+                    <Input
+                        type={InputType.TIME}
+                        value={OneUptimeDate.toString(
+                            restrictionTimes?.dayRestrictionTimes?.endTime
+                        )}
+                        onChange={(value: any) => {
+                            let date: Date = OneUptimeDate.getCurrentDate();
+
+                            if (value instanceof Date) {
+                                date = value;
+                            }
+
+                            if (typeof value === Typeof.String) {
+                                date = OneUptimeDate.fromString(value);
+                            }
+
+                            let tempRestrictionTimes:
+                                | RestrictionTimes
+                                | undefined = restrictionTimes;
+
+                            if (!tempRestrictionTimes) {
+                                tempRestrictionTimes = new RestrictionTimes();
+                            }
+
+                            if (!tempRestrictionTimes.dayRestrictionTimes) {
+                                tempRestrictionTimes.dayRestrictionTimes = {
+                                    startTime: date,
+                                    endTime: date,
+                                };
+                            }
+
+                            tempRestrictionTimes.dayRestrictionTimes.endTime =
+                                date;
+
+                            updateRestrictionTimes(tempRestrictionTimes);
+                        }}
+                    />
+                </div>
+            </div>
+        );
+    };
 
     const getWeeklyTimeRestrictions: GetReactElementFunction =
         (): ReactElement => {
@@ -358,7 +355,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         );
     };
 
-    type UpdateRestrictionTimesFunction = (restrictionTimes: RestrictionTimes) => void;
+    type UpdateRestrictionTimesFunction = (
+        restrictionTimes: RestrictionTimes
+    ) => void;
 
     const updateRestrictionTimes: UpdateRestrictionTimesFunction = (
         restrictionTimes: RestrictionTimes

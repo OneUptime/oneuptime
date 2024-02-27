@@ -74,6 +74,7 @@ import Sort from '../../Utils/BaseDatabase/Sort';
 import { FormProps } from '../Forms/BasicForm';
 import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 import { GetReactElementFunction } from '../../Types/Functions';
+import SelectEntityField from '../../Types/SelectEntityField';
 
 export enum ShowTableAs {
     Table,
@@ -730,8 +731,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
                     : 'py-0 pr-0 pl-1 mt-1',
                 buttonStyle: ButtonStyleType.ICON,
-                onClick: () => {
-                    fetchItems();
+                onClick: async () => {
+                    await fetchItems();
                 },
                 disabled: isTableFilterFetchLoading,
                 icon: IconProp.Refresh,
@@ -1071,8 +1072,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     setSortBy(sortBy);
                     setSortOrder(sortOrder);
                 }}
-                onTableFilterRefreshClick={() => {
-                    getFilterDropdownItems();
+                onTableFilterRefreshClick={async () => {
+                    await getFilterDropdownItems();
                 }}
                 singularLabel={
                     props.singularName || model.singularName || 'Item'
@@ -1104,7 +1105,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         },
                     });
 
-                    fetchItems();
+                    await fetchItems();
                 }}
                 disablePagination={props.disablePagination || false}
                 isTableFilterLoading={isTableFilterFetchLoading}
@@ -1117,8 +1118,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 }}
                 showFilter={showTableFilter}
                 noItemsMessage={props.noItemsMessage || ''}
-                onRefreshClick={() => {
-                    fetchItems();
+                onRefreshClick={async () => {
+                    await fetchItems();
                 }}
                 actionButtons={actionButtonSchema}
             />
@@ -1145,7 +1146,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
             for (const column of props.columns) {
                 const key: string | undefined = Object.keys(
-                    column.field as Object
+                    column.field as SelectEntityField<TBaseModel>
                 )[0];
 
                 if (key === props.orderedStatesListProps.titleField) {
@@ -1421,7 +1422,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     onSuccess: async (item: TBaseModel): Promise<void> => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
-                        fetchItems();
+                        await fetchItems();
                         if (props.onCreateSuccess) {
                             await props.onCreateSuccess(item);
                         }

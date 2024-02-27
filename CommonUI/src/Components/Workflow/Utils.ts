@@ -15,30 +15,31 @@ type LoadComponentsAndCategoriesFunction = () => {
     categories: Array<ComponentCategory>;
 };
 
-export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction = (): {
-    components: Array<ComponentMetadata>;
-    categories: Array<ComponentCategory>;
-} => {
-    let initComponents: Array<ComponentMetadata> = [];
-    const initCategories: Array<ComponentCategory> = [...Categories];
+export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
+    (): {
+        components: Array<ComponentMetadata>;
+        categories: Array<ComponentCategory>;
+    } => {
+        let initComponents: Array<ComponentMetadata> = [];
+        const initCategories: Array<ComponentCategory> = [...Categories];
 
-    initComponents = initComponents.concat(Components);
+        initComponents = initComponents.concat(Components);
 
-    for (const model of Entities) {
-        initComponents = initComponents.concat(
-            BaseModelComponentFactory.getComponents(new model())
-        );
-        initCategories.push({
-            name: new model().singularName || 'Model',
-            description: `Interact with ${
-                new model().singularName
-            } in your workflow.`,
-            icon: new model().icon || IconProp.Database,
-        });
-    }
+        for (const model of Entities) {
+            initComponents = initComponents.concat(
+                BaseModelComponentFactory.getComponents(new model())
+            );
+            initCategories.push({
+                name: new model().singularName || 'Model',
+                description: `Interact with ${
+                    new model().singularName
+                } in your workflow.`,
+                icon: new model().icon || IconProp.Database,
+            });
+        }
 
-    return { components: initComponents, categories: initCategories };
-};
+        return { components: initComponents, categories: initCategories };
+    };
 
 export const componentInputTypeToFormFieldType: Function = (
     componentInputType: ComponentInputType,

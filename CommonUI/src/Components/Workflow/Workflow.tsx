@@ -128,7 +128,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [selectedNodeData, setSelectedNodeData] =
         useState<NodeDataProp | null>(null);
 
-        type OnNodeClickFunction = (data: NodeDataProp) => void;
+    type OnNodeClickFunction = (data: NodeDataProp) => void;
 
     const onNodeClick: OnNodeClickFunction = (data: NodeDataProp) => {
         // if placeholder node is clicked then show modal.

@@ -54,7 +54,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
     type GetTableFunction = (props: GetTableFunctionProps) => ReactElement;
 
-    const getModelTable: GetTableFunction = (options: GetTableFunctionProps): ReactElement => {
+    const getModelTable: GetTableFunction = (
+        options: GetTableFunctionProps
+    ): ReactElement => {
         return (
             <ModelTable<UserNotificationRule>
                 modelType={UserNotificationRule}

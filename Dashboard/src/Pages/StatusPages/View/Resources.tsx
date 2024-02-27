@@ -82,39 +82,38 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         fetchGroups();
     }, []);
 
-    const getFooterForMonitor: GetReactElementFunction =
-        (): ReactElement => {
-            if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
-                if (!addMonitorGroup) {
-                    return (
-                        <Link
-                            onClick={() => {
-                                setAddMonitorGroup(true);
-                            }}
-                            className="mt-1 text-sm text-gray-500 underline"
-                        >
-                            <div>
-                                <p> Add a Monitor Group instead. </p>
-                            </div>
-                        </Link>
-                    );
-                }
+    const getFooterForMonitor: GetReactElementFunction = (): ReactElement => {
+        if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
+            if (!addMonitorGroup) {
                 return (
                     <Link
                         onClick={() => {
-                            setAddMonitorGroup(false);
+                            setAddMonitorGroup(true);
                         }}
                         className="mt-1 text-sm text-gray-500 underline"
                     >
                         <div>
-                            <p> Add a Monitor instead. </p>
+                            <p> Add a Monitor Group instead. </p>
                         </div>
                     </Link>
                 );
             }
+            return (
+                <Link
+                    onClick={() => {
+                        setAddMonitorGroup(false);
+                    }}
+                    className="mt-1 text-sm text-gray-500 underline"
+                >
+                    <div>
+                        <p> Add a Monitor instead. </p>
+                    </div>
+                </Link>
+            );
+        }
 
-            return <></>;
-        };
+        return <></>;
+    };
 
     let formFields: Array<ModelField<StatusPageResource>> = [
         {

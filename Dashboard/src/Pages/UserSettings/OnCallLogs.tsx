@@ -22,10 +22,7 @@ import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import {
-    ErrorFunction,
-    VoidFunction,
-} from 'Common/Types/FunctionsTypes';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionsTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

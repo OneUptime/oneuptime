@@ -86,8 +86,8 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
                 <ConfirmModal
                     description={`Are you sure you want to reset ${tableColumnName}?`}
                     title={`Reset ${tableColumnName}`}
-                    onSubmit={() => {
-                        resetKey();
+                    onSubmit={async () => {
+                        await resetKey();
                     }}
                     isLoading={isLoading}
                     onClose={() => {

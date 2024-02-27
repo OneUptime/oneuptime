@@ -61,9 +61,9 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
     };
 
     useEffect(() => {
-        setIsLoading(true);
-        fetchCount();
-        setIsLoading(false);
+        fetchCount().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, []);
 
     return (

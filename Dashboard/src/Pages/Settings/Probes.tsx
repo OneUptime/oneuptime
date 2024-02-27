@@ -7,10 +7,7 @@ import React, {
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Probe from 'Model/Models/Probe';
-import {
-    ErrorFunction,
-    VoidFunction,
-} from 'Common/Types/FunctionsTypes';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionsTypes';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';

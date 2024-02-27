@@ -35,9 +35,7 @@ type BarTooltipFunctionProps = {
     };
 };
 
-type GetBarTooltipFunction = (
-    data: BarTooltipFunctionProps
-) => ReactElement;
+type GetBarTooltipFunction = (data: BarTooltipFunctionProps) => ReactElement;
 
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -232,9 +230,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type SpanToBarFunction = (
-        data: SpanToBarFunctionProps
-    ) => GanttChartBar;
+    type SpanToBarFunction = (data: SpanToBarFunctionProps) => GanttChartBar;
 
     const spanToBar: SpanToBarFunction = (
         data: SpanToBarFunctionProps
@@ -282,9 +278,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type GetBarsFunction = (
-        data: GetBarsFunctionProps
-    ) => Array<GanttChartBar>;
+    type GetBarsFunction = (data: GetBarsFunctionProps) => Array<GanttChartBar>;
 
     const getBars: GetBarsFunction = (
         data: GetBarsFunctionProps

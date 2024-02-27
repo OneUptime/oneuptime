@@ -20,7 +20,9 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
 
     type SubmitFormFunction = (event: Event) => Promise<void>;
 
-    const submitForm: SubmitFormFunction = async (event: Event): Promise<void> => {
+    const submitForm: SubmitFormFunction = async (
+        event: Event
+    ): Promise<void> => {
         event.preventDefault();
         // We don't want to let default form submission happen here,
         // which would refresh the page.

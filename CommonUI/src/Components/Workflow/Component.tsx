@@ -49,7 +49,13 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         width: '0.75rem',
     };
 
-    const getPortPosition: Function = (
+    type GetPortPositionFunction = (
+        portCount: number,
+        totalPorts: number,
+        isLabel: boolean | undefined
+    ) => React.CSSProperties;
+
+    const getPortPosition: GetPortPositionFunction = (
         portCount: number,
         totalPorts: number,
         isLabel: boolean | undefined

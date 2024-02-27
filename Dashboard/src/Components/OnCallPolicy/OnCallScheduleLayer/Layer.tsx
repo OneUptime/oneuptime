@@ -43,7 +43,9 @@ const Layer: FunctionComponent<ComponentProps> = (
         props.layer
     );
 
-    type UpdateLayerFunction = (updatedLayer: OnCallDutyPolicyScheduleLayer) => void;
+    type UpdateLayerFunction = (
+        updatedLayer: OnCallDutyPolicyScheduleLayer
+    ) => void;
 
     const updateLayer: UpdateLayerFunction = (
         updatedLayer: OnCallDutyPolicyScheduleLayer

@@ -19,10 +19,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import AdminModelAPI from '../../../Utils/ModelAPI';
-import {
-    ErrorFunction,
-    VoidFunction,
-} from 'Common/Types/FunctionsTypes';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionsTypes';
 
 const Settings: FunctionComponent = (): ReactElement => {
     const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
