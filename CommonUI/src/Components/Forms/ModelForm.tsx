@@ -44,6 +44,7 @@ import Pill, { PillSize } from '../Pill/Pill';
 import Color from 'Common/Types/Color';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import { FormErrors, FormProps } from './BasicForm';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export enum FormType {
     Create,
@@ -119,7 +120,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
-    const getSelectFields: Function = (): Select<TBaseModel> => {
+    type GetSelectFieldsFunction = () => Select<TBaseModel>;
+
+    const getSelectFields: GetSelectFieldsFunction = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
         for (const field of props.fields) {
             const key: string | null = field.field
@@ -359,7 +362,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
         setItemToEdit(item as TBaseModel);
     };
 
-    const fetchDropdownOptions: Function = async (
+    type FetchDropdownOptionsFunction = (
+        fields: Fields<TBaseModel>
+    ) => Promise<Fields<TBaseModel>>;
+
+    const fetchDropdownOptions: FetchDropdownOptionsFunction = async (
         fields: Fields<TBaseModel>
     ): Promise<Fields<TBaseModel>> => {
         setIsFetchingDropdownOptions(true);
@@ -584,13 +591,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
         }
     }, []);
 
-    const getmiscDataProps: Function = (values: JSONObject): JSONObject => {
+    type GetMiscDataPropsFunction = (values: FormValues<JSONObject>) => JSONObject;
+
+    const getMiscDataProps: GetMiscDataPropsFunction = (values: FormValues<JSONObject>): JSONObject => {
         const result: JSONObject = {};
 
         for (const field of fields) {
             if (field.overrideFieldKey && values[field.overrideFieldKey]) {
                 result[field.overrideFieldKey] =
-                    values[field.overrideFieldKey] || null;
+                    values[field.overrideFieldKey] as JSONObject || null;
             }
         }
 
@@ -626,7 +635,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 (valuesToSend as any)['_id'] = props.modelIdToEdit.toString();
             }
 
-            const miscDataProps: JSONObject = getmiscDataProps(values);
+            const miscDataProps: JSONObject = getMiscDataProps(values);
 
             // remove those props from valuesToSend
             for (const key in miscDataProps) {

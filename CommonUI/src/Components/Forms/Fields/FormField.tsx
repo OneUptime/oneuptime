@@ -32,6 +32,7 @@ import {
     GetReactElementFunction,
     GetReactElementOrStringFunction,
 } from '../../../Types/Functions';
+import GenericObject from 'Common/Types/GenericObject';
 
 export interface ComponentProps<T extends GenericObject> {
     field: Field<T>;

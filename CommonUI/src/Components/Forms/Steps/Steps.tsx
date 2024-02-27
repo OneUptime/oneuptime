@@ -2,6 +2,7 @@ import React, { ReactElement } from 'react';
 import { FormStep, FormStepState } from '../Types/FormStep';
 import Step from './Step';
 import FormValues from '../Types/FormValues';
+import GenericObject from 'Common/Types/GenericObject';
 
 export interface ComponentProps<T> {
     steps: Array<FormStep<T>>;

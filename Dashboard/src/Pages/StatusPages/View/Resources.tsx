@@ -80,7 +80,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        fetchGroups().catch((err) => {
+        fetchGroups().catch((err: Error) => {
             setError(API.getFriendlyMessage(err));
         });
     }, []);

@@ -68,7 +68,9 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         return select;
     };
 
-    const getRelationSelect: Function = (): Select<TBaseModel> => {
+    type GetRelationSelectFunction = () => Select<TBaseModel>;
+
+    const getRelationSelect: GetRelationSelectFunction = (): Select<TBaseModel> => {
         const relationSelect: Select<TBaseModel> = {};
 
         for (const field of props.fields || []) {
