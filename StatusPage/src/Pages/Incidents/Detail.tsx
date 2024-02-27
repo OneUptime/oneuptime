@@ -43,7 +43,7 @@ import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Label from 'Model/Models/Label';
 import Dictionary from 'Common/Types/Dictionary';
 
-export const getIncidentEventItem: Function = (
+type GetIncidentEventItemFunctionProps = {
     incident: Incident,
     incidentPublicNotes: Array<IncidentPublicNote>,
     incidentStateTimelines: Array<IncidentStateTimeline>,
@@ -51,7 +51,24 @@ export const getIncidentEventItem: Function = (
     monitorsInGroup: Dictionary<Array<ObjectID>>,
     isPreviewPage: boolean,
     isSummary: boolean
-): EventItemComponentProps => {
+};
+
+type GetIncidentEventItemFunctionType = (
+   props: GetIncidentEventItemFunctionProps
+) => EventItemComponentProps;
+
+export const getIncidentEventItem: GetIncidentEventItemFunctionType = (props: GetIncidentEventItemFunctionProps): EventItemComponentProps => {
+
+    const {
+        incident,
+        incidentPublicNotes,
+        incidentStateTimelines,
+        statusPageResources,
+        monitorsInGroup,
+        isPreviewPage,
+        isSummary,
+    } = props;
+
     const timeline: Array<TimelineItem> = [];
 
     let currentStateStatus: string = '';
@@ -329,14 +346,15 @@ const Detail: FunctionComponent<PageComponentProps> = (
         }
 
         setParsedData(
-            getIncidentEventItem(
+            getIncidentEventItem({
                 incident,
                 incidentPublicNotes,
                 incidentStateTimelines,
                 statusPageResources,
                 monitorsInGroup,
-                StatusPageUtil.isPreviewPage()
-            )
+                isPreviewPage: StatusPageUtil.isPreviewPage(),
+                isSummary: false,
+            })
         );
     }, [isLoading, incident]);
 
