@@ -43,15 +43,31 @@ import Monitor from 'Model/Models/Monitor';
 import Label from 'Model/Models/Label';
 import BaseModel from 'Common/Models/BaseModel';
 
-export const getScheduledEventEventItem: Function = (
-    scheduledMaintenance: ScheduledMaintenance,
-    scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>,
-    scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>,
-    statusPageResources: Array<StatusPageResource>,
-    monitorsInGroup: Dictionary<Array<ObjectID>>,
-    isPreviewPage: boolean,
-    isSummary: boolean
-): EventItemComponentProps => {
+export type GetScheduledEventEventItemFunctionProps = {
+    scheduledMaintenance: ScheduledMaintenance;
+    scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>;
+    scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>;
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+    isPreviewPage: boolean;
+    isSummary: boolean;
+};
+
+export type GetScheduledEventEventItemFunction = (
+    props: GetScheduledEventEventItemFunctionProps
+) => EventItemComponentProps;
+
+export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (props: GetScheduledEventEventItemFunctionProps): EventItemComponentProps => {
+
+    const {
+        scheduledMaintenance,
+        scheduledMaintenanceEventsPublicNotes,
+        scheduledMaintenanceStateTimelines,
+        statusPageResources,
+        monitorsInGroup,
+        isPreviewPage,
+        isSummary,
+    } = props;
     /// get timeline.
 
     let currentStateStatus: string = '';
@@ -88,7 +104,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenance.id?.toString() &&
             scheduledMaintenancePublicNote?.note
         ) {
             timeline.push({
@@ -108,7 +124,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
         if (
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenance.id?.toString() &&
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
         ) {
             timeline.push({
@@ -122,12 +138,12 @@ export const getScheduledEventEventItem: Function = (
                     .scheduledMaintenanceState.isScheduledState
                     ? IconProp.Clock
                     : scheduledMaintenanceEventstateTimeline
-                          .scheduledMaintenanceState.isOngoingState
-                    ? IconProp.Settings
-                    : scheduledMaintenanceEventstateTimeline
-                          .scheduledMaintenanceState.isResolvedState
-                    ? IconProp.CheckCircle
-                    : IconProp.ArrowCircleRight,
+                        .scheduledMaintenanceState.isOngoingState
+                        ? IconProp.Settings
+                        : scheduledMaintenanceEventstateTimeline
+                            .scheduledMaintenanceState.isResolvedState
+                            ? IconProp.CheckCircle
+                            : IconProp.ArrowCircleRight,
                 iconColor:
                     scheduledMaintenanceEventstateTimeline
                         .scheduledMaintenanceState.color || Grey,
@@ -218,22 +234,22 @@ export const getScheduledEventEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[
-                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                        ] as Route)
-                      : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-                  scheduledMaintenance.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[
+                        PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                    ] as Route)
+                    : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+                scheduledMaintenance.id!
+            ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
         eventTypeColor: Yellow,
         eventSecondDescription: scheduledMaintenance.startsAt
             ? 'Scheduled at ' +
-              OneUptimeDate.getDateAsLocalFormattedString(
-                  scheduledMaintenance.startsAt!
-              )
+            OneUptimeDate.getDateAsLocalFormattedString(
+                scheduledMaintenance.startsAt!
+            )
             : '',
         labels:
             scheduledMaintenance.labels?.map((label: Label) => {
@@ -323,7 +339,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -373,13 +389,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return;
         }
         setParsedData(
-            getScheduledEventEventItem(
-                scheduledMaintenanceEvent,
+            getScheduledEventEventItem({
+                scheduledMaintenance: scheduledMaintenanceEvent,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
                 monitorsInGroup,
-                Boolean(StatusPageUtil.isPreviewPage())
+                isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
+                isSummary: false
+            }
             )
         );
     }, [isLoading]);
@@ -413,8 +431,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                              ] as Route)
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                            ] as Route)
                             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                     ),
                 },
@@ -423,11 +441,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                              ] as Route)
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                            ] as Route)
                             : (RouteMap[
-                                  PageMap.SCHEDULED_EVENT_DETAIL
-                              ] as Route),
+                                PageMap.SCHEDULED_EVENT_DETAIL
+                            ] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),
                 },

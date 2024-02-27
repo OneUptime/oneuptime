@@ -69,6 +69,7 @@ import AnalyticsBaseModel, {
 import Sort from '../../Utils/BaseDatabase/Sort';
 import { FormProps } from '../Forms/BasicForm';
 import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { GetReactElementFunctionType } from '../../Types/FunctionTypes';
 
 export enum ShowTableAs {
     Table,
@@ -1319,17 +1320,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             title={getCardTitle(props.cardProps.title)}
                         >
                             {tableColumns.length === 0 &&
-                                props.columns.length > 0 && (
+                                props.columns.length > 0 ? (
                                     <ErrorMessage
                                         error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
                                             model.getReadPermissions()
                                         ).join(', ')}`}
                                     />
-                                )}
+                                ): <></>}
                             {!(
                                 tableColumns.length === 0 &&
                                 props.columns.length > 0
-                            ) && getTable()}
+                            ) ? getTable(): <></>}
                         </Card>
                     )}
 
