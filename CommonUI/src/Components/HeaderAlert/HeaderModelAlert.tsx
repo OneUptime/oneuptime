@@ -30,10 +30,13 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
     const [count, setCount] = useState<number>(0);
 
     useEffect(() => {
-        fetchCount();
+        fetchCount().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, [props.refreshToggle]);
 
     const fetchCount: PromiseVoidFunction = async (): Promise<void> => {
+        
         setError('');
         setIsLoading(true);
 
@@ -58,7 +61,9 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         setIsLoading(true);
-        fetchCount();
+        fetchCount().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
         setIsLoading(false);
     }, []);
 

@@ -64,9 +64,9 @@ const ModelDelete: <TBaseModel extends BaseModel>(
                 <ConfirmModal
                     description={`Are you sure you want to delete this ${model.singularName?.toLowerCase()}?`}
                     title={`Delete ${model.singularName}`}
-                    onSubmit={() => {
+                    onSubmit={async () => {
                         setShowModal(false);
-                        deleteItem();
+                        await deleteItem();
                     }}
                     onClose={() => {
                         setShowModal(false);
