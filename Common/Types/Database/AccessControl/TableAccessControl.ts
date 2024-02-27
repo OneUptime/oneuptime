@@ -1,7 +1,8 @@
 import { TableAccessControl } from '../../BaseDatabase/AccessControl';
+import GenericFunction from "../../GenericFunction";
 
 export default (accessControl: TableAccessControl) => {
-    return (ctr: Function) => {
+    return (ctr: GenericFunction) => {
         if (accessControl.create) {
             ctr.prototype.createRecordPermissions = accessControl.create;
         }

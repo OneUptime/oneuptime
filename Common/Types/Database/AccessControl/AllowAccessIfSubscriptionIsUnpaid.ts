@@ -1,5 +1,7 @@
+import GenericFunction from "../../GenericFunction";
+
 export default () => {
-    return (ctr: Function) => {
+    return (ctr: GenericFunction) => {
         ctr.prototype.allowAccessIfSubscriptionIsUnpaid = true;
     };
 };

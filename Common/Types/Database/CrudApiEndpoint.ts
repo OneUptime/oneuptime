@@ -1,7 +1,8 @@
 import Route from '../API/Route';
+import GenericFunction from "../GenericFunction";
 
 export default (apiPath: Route) => {
-    return (ctr: Function) => {
+    return (ctr: GenericFunction) => {
         ctr.prototype.crudApiPath = apiPath;
     };
 };
