@@ -25,7 +25,9 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
 
     type PopulateWithEnvVarsFunction = (text: string) => string;
 
-    const populateWithEnvVars: PopulateWithEnvVarsFunction = (text: string): string => {
+    const populateWithEnvVars: PopulateWithEnvVarsFunction = (
+        text: string
+    ): string => {
         text = text.replace('{{serverUrl}}', HOME_URL.toString());
         text = text.replace('{{workflowId}}', props.workflowId.toString());
 

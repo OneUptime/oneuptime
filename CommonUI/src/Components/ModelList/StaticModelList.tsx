@@ -35,7 +35,6 @@ const StaticModelList: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     type GetRowFunction = (
         model: TBaseModel,
         isSelected: boolean,
@@ -123,9 +122,13 @@ const StaticModelList: <TBaseModel extends BaseModel>(
         );
     };
 
-    type GetBodyFunction = (provided?: DroppableProvided | undefined) => ReactElement;
+    type GetBodyFunction = (
+        provided?: DroppableProvided | undefined
+    ) => ReactElement;
 
-    const getBody: GetBodyFunction = (provided?: DroppableProvided): ReactElement => {
+    const getBody: GetBodyFunction = (
+        provided?: DroppableProvided
+    ): ReactElement => {
         return (
             <div ref={provided?.innerRef} {...provided?.droppableProps}>
                 {props.list &&

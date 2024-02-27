@@ -12,7 +12,6 @@ import Typeof from 'Common/Types/Typeof';
 import { JSONValue } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
 
-
 const router: ExpressRouter = Express.getRouter();
 
 router.get(

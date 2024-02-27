@@ -35,7 +35,9 @@ const getComponentMetadata: GetComponentMetadataFunction = (
 
 type GetComponentCategoryFunction = (name?: string) => ComponentCategory;
 
-const getComponentCategory: GetComponentCategoryFunction = (name?: string): ComponentCategory => {
+const getComponentCategory: GetComponentCategoryFunction = (
+    name?: string
+): ComponentCategory => {
     return {
         name: name || faker.datatype.uuid(),
         description: `Description for ${name}`,

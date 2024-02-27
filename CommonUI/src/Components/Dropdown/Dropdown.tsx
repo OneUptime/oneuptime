@@ -20,8 +20,8 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?:
-    | undefined
-    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+        | undefined
+        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -33,21 +33,19 @@ export interface ComponentProps {
 const Dropdown: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    type GetDropdownOptionFromValueFunctionProps = undefined
+    type GetDropdownOptionFromValueFunctionProps =
+        | undefined
         | DropdownValue
         | DropdownOption
         | Array<DropdownOption>
         | Array<DropdownValue>;
 
     type GetDropdownOptionFromValueFunction = (
-        value:
-            GetDropdownOptionFromValueFunctionProps
+        value: GetDropdownOptionFromValueFunctionProps
     ) => DropdownOption | Array<DropdownOption>;
 
     const getDropdownOptionFromValue: GetDropdownOptionFromValueFunction = (
-        value:
-            GetDropdownOptionFromValueFunctionProps
+        value: GetDropdownOptionFromValueFunctionProps
     ): DropdownOption | Array<DropdownOption> => {
         if (
             Array.isArray(value) &&
@@ -73,10 +71,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                         | DropdownOption
                         | undefined
                         | Array<DropdownOption> = props.options.find(
-                            (option: DropdownOption) => {
-                                return option.value === item;
-                            }
-                        ) as DropdownOption | Array<DropdownOption>;
+                        (option: DropdownOption) => {
+                            return option.value === item;
+                        }
+                    ) as DropdownOption | Array<DropdownOption>;
 
                     if (option) {
                         options.push(option as DropdownOption);
@@ -115,9 +113,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className={`${props.className ||
+            className={`${
+                props.className ||
                 'relative mt-2 mb-1 rounded-md w-full overflow-visible'
-                }`}
+            }`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();

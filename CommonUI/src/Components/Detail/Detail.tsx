@@ -30,11 +30,11 @@ export interface ComponentProps {
 const Detail: (props: ComponentProps) => ReactElement = (
     props: ComponentProps
 ): ReactElement => {
-
-
     type GetMarkdownViewerFunction = (text: string) => ReactElement | null;
 
-    const getMarkdownViewer: GetMarkdownViewerFunction = (text: string): ReactElement | null => {
+    const getMarkdownViewer: GetMarkdownViewerFunction = (
+        text: string
+    ): ReactElement | null => {
         if (!text) {
             return null;
         }
@@ -88,19 +88,25 @@ const Detail: (props: ComponentProps) => ReactElement = (
 
     type GetColorFieldFunction = (color: Color) => ReactElement;
 
-    const getColorField: GetColorFieldFunction = (color: Color): ReactElement => {
+    const getColorField: GetColorFieldFunction = (
+        color: Color
+    ): ReactElement => {
         return <ColorViewer value={color} />;
     };
 
     type GetUSDCentsFieldFunction = (usdCents: number) => ReactElement;
 
-    const getUSDCentsField: GetUSDCentsFieldFunction = (usdCents: number): ReactElement => {
+    const getUSDCentsField: GetUSDCentsFieldFunction = (
+        usdCents: number
+    ): ReactElement => {
         return <div className="text-gray-900">{usdCents / 100} USD</div>;
     };
 
     type GetMinutesFieldFunction = (minutes: number) => ReactElement;
 
-    const getMinutesField: GetMinutesFieldFunction = (minutes: number): ReactElement => {
+    const getMinutesField: GetMinutesFieldFunction = (
+        minutes: number
+    ): ReactElement => {
         return (
             <div className="text-gray-900">
                 {minutes} {minutes > 1 ? 'minutes' : 'minute'}
@@ -110,7 +116,10 @@ const Detail: (props: ComponentProps) => ReactElement = (
 
     type GetFieldFunction = (field: Field, index: number) => ReactElement;
 
-    const getField: GetFieldFunction = (field: Field, index: number): ReactElement => {
+    const getField: GetFieldFunction = (
+        field: Field,
+        index: number
+    ): ReactElement => {
         const fieldKey: string = field.key;
 
         if (!props.item) {

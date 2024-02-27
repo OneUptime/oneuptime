@@ -23,7 +23,6 @@ export interface CategoryCheckboxProps
 const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     props: CategoryCheckboxProps
 ): ReactElement => {
-
     type SanitizeInitialValuesFunction = (
         value?: Array<CategoryCheckboxValue | BaseModel>
     ) => Array<CategoryCheckboxValue>;

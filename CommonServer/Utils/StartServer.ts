@@ -38,7 +38,6 @@ app.set('port', process.env['PORT']);
 app.set('view engine', 'ejs');
 app.use(CookieParser());
 
-
 const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
     limit: '50mb',
     extended: true,

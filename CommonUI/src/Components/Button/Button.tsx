@@ -86,7 +86,9 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     type HandleKeyboardFunction = (event: KeyboardEventProp) => void;
 
-    const handleKeyboard: HandleKeyboardFunction = (event: KeyboardEventProp): void => {
+    const handleKeyboard: HandleKeyboardFunction = (
+        event: KeyboardEventProp
+    ): void => {
         if (
             event.target instanceof HTMLBodyElement &&
             event.key &&

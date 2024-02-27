@@ -20,10 +20,11 @@ export interface ComponentProps {
 const ListBody: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
 
-    const getBody: GetBodyFunction = (provided?: DroppableProvided): ReactElement => {
+    const getBody: GetBodyFunction = (
+        provided?: DroppableProvided
+    ): ReactElement => {
         return (
             <div
                 ref={provided?.innerRef}

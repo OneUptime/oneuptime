@@ -42,26 +42,27 @@ import RunModal from './RunModal';
 
 type GetPlaceholderTriggerNodeFunction = () => Node;
 
-export const getPlaceholderTriggerNode: GetPlaceholderTriggerNodeFunction = (): Node => {
-    return {
-        id: ObjectID.generate().toString(),
-        type: 'node',
-        position: { x: 100, y: 100 },
-        data: {
-            metadata: {
-                iconProp: IconProp.Bolt,
-                componentType: ComponentType.Trigger,
-                title: 'Trigger',
-                description: 'Please click here to add trigger',
+export const getPlaceholderTriggerNode: GetPlaceholderTriggerNodeFunction =
+    (): Node => {
+        return {
+            id: ObjectID.generate().toString(),
+            type: 'node',
+            position: { x: 100, y: 100 },
+            data: {
+                metadata: {
+                    iconProp: IconProp.Bolt,
+                    componentType: ComponentType.Trigger,
+                    title: 'Trigger',
+                    description: 'Please click here to add trigger',
+                },
+                metadataId: '',
+                internalId: '',
+                nodeType: NodeType.PlaceholderNode,
+                id: '',
+                error: '',
             },
-            metadataId: '',
-            internalId: '',
-            nodeType: NodeType.PlaceholderNode,
-            id: '',
-            error: '',
-        },
+        };
     };
-};
 
 const nodeTypes: NodeTypes = {
     node: WorkflowComponent,
@@ -340,7 +341,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     type AddToGraphFunction = (componentMetadata: ComponentMetadata) => void;
 
-    const addToGraph: AddToGraphFunction = (componentMetadata: ComponentMetadata) => {
+    const addToGraph: AddToGraphFunction = (
+        componentMetadata: ComponentMetadata
+    ) => {
         const metaDataId: string = componentMetadata.id;
 
         let hasFoundExistingId: boolean = true;
