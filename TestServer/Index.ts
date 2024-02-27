@@ -4,6 +4,7 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import MainAPI from './API/Main';
 import SettingsAPI from './API/Settings';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const app: ExpressApplication = Express.getExpressApp();
 

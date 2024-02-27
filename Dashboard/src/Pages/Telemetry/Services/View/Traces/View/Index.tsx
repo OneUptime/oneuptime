@@ -334,7 +334,14 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         });
     }, []);
 
-    const getDivisibilityFactor: Function = (
+    type GetDivisibilityFactorFunction = (
+        totalTimelineTimeInUnixNano: number
+    ) => {
+        divisibilityFactor: number;
+        intervalUnit: string;
+    };
+
+    const getDivisibilityFactor: GetDivisibilityFactorFunction = (
         totalTimelineTimeInUnixNano: number
     ): {
         divisibilityFactor: number;

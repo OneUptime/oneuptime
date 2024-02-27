@@ -25,6 +25,7 @@ import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicySche
 import LayersPreview from './LayersPreview';
 import Card from 'CommonUI/src/Components/Card/Card';
 import BaseModel from 'Common/Models/BaseModel';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -115,7 +116,9 @@ const Layers: FunctionComponent<ComponentProps> = (
         setIsAddButtonLoading(false);
     };
 
-    const deleteLayer: Function = async (
+    type DeleteLayerFunction = (item: OnCallDutyPolicyScheduleLayer) => void;
+
+    const deleteLayer: DeleteLayerFunction = async (
         item: OnCallDutyPolicyScheduleLayer
     ) => {
         if (!item.id) {

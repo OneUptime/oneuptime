@@ -2,7 +2,7 @@ import App from 'CommonServer/Utils/StartServer';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 export const APP_NAME: string = 'status-page';
-
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 const app: ExpressApplication = Express.getExpressApp();
 
 const init: PromiseVoidFunction = async (): Promise<void> => {

@@ -3,14 +3,14 @@ import { JSONObject } from 'Common/Types/JSON';
 export default class GlobalEvents {
     public static addEventListener(
         name: string,
-        eventFunction: (this: Window, ev: WindowEventMap) => any
+        eventFunction: (event: CustomEvent) => any
     ): void {
         window.addEventListener(name as any, eventFunction);
     }
 
     public static removeEventListener(
         name: string,
-        eventFunction: (this: Window, ev: WindowEventMap) => any
+        eventFunction: (event: CustomEvent) => any
     ): void {
         window.removeEventListener(name as any, eventFunction);
     }

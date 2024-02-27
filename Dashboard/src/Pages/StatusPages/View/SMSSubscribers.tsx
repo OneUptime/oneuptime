@@ -50,7 +50,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         options: [],
     });
 
-    const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
+    const fetchCheckboxOptionsAndCategories: PromiseVoidPromiseVoidFunction =
         async (): Promise<void> => {
             const result: CategoryCheckboxOptionsAndCategories =
                 await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(

@@ -66,7 +66,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     const [isLaoding, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>(undefined);
 
-    const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
+    const fetchCheckboxOptionsAndCategories: PromiseVoidPromiseVoidFunction =
         async (): Promise<void> => {
             try {
                 setIsLoading(true);

@@ -300,7 +300,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
     }, [tableColumns]);
 
-    const getRelationSelect: Function = (): Select<TBaseModel> => {
+    type GetRelationSelectFunction = () => Select<TBaseModel>;
+
+    const getRelationSelect: GetRelationSelectFunction = (): Select<TBaseModel> => {
         const relationSelect: Select<TBaseModel> = {};
 
         for (const column of props.columns || []) {
@@ -330,7 +332,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return relationSelect;
     };
 
-    const deleteItem: Function = async (item: TBaseModel) => {
+    type DeleteItemFunction = (item: TBaseModel) => Promise<void>;
+
+    const deleteItem: DeleteItemFunction = async (item: TBaseModel) => {
         if (!item.id) {
             throw new BadDataException('item.id cannot be null');
         }
@@ -481,7 +485,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setColumns(columns);
     };
 
-    const getFilterDropdownItems: PromiseVoidFunction =
+    const getFilterDropdownItems: PromiseVoidPromiseVoidFunction =
         async (): Promise<void> => {
             setTableFilterError('');
             setIsTableFilterFetchLoading(true);
@@ -629,7 +633,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
     }, [showTableFilter]);
 
-    const getSelect: Function = (): Select<TBaseModel> => {
+    type GetSelectFunction = () => Select<TBaseModel>;
+
+    const getSelect: GetSelectFunction = (): Select<TBaseModel> => {
         const selectFields: Select<TBaseModel> = {
             _id: true,
         };

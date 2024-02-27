@@ -11,7 +11,7 @@ import IncomingRequestAPI from './API/IncomingRequest';
 import OTelIngestAPI from './API/OTelIngest';
 import FluentIngestAPI from './API/FluentIngest';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
-
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import Realtime from 'CommonServer/Utils/Realtime';
 

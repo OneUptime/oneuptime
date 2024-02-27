@@ -48,7 +48,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         severityText: true,
     };
 
-    const getQuery: Function = (): Query<Log> => {
+    type GetQueryFunction = () => Query<Log>;
+
+    const getQuery: GetQueryFunction = (): Query<Log> => {
         const query: Query<Log> = {
             serviceId: new Includes(props.telemetryServiceIds),
         };

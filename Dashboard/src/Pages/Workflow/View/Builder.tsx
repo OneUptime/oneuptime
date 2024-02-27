@@ -22,6 +22,7 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import IconProp from 'Common/Types/Icon/IconProp';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, {
     NodeDataProp,

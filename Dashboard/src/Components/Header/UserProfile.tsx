@@ -33,7 +33,9 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
         User.getProfilePicId()
     );
 
-    const setPicture: Function = (event: CustomEvent): void => {
+    type SetPictureFunction = (event: CustomEvent) => void;
+
+    const setPicture: SetPictureFunction = (event: CustomEvent): void => {
         // get data from event.
         const id: ObjectID = event.detail.id as ObjectID;
 

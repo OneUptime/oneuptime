@@ -34,6 +34,7 @@ import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupEl
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

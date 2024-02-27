@@ -40,7 +40,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadMonitorStatuses: PromiseVoidFunction =
+    const loadMonitorStatuses: PromiseVoidPromiseVoidFunction =
         async (): Promise<void> => {
             setIsLoading(true);
 
