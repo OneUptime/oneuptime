@@ -59,7 +59,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             setCategoryCheckboxOptionsAndCategories(result);
         };
 
-    const fetchStatusPage: Function = async (): Promise<void> => {
+    const fetchStatusPage:  PromiseVoidFunctionType = async (): Promise<void> => {
         try {
             setIsLoading(true);
 

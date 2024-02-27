@@ -24,6 +24,7 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import DashboardNavigation from '../../../../../../Utils/Navigation';
 import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -62,7 +63,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    const fetchItems: Function = async (): Promise<void> => {
+    const fetchItems:  PromiseVoidFunctionType = async (): Promise<void> => {
         try {
             setIsLoading(true);
 
@@ -224,12 +225,17 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         );
     };
 
-    const spanToBar: Function = (data: {
+
+    type SpanToBarFunctionProps = {
         span: Span;
         timelineStartTimeUnixNano: number;
         divisibilityFactor: number;
         divisibilityFactorAndIntervalUnit: string;
-    }): GanttChartBar => {
+    };
+
+    type SpanToBarFunctionType = (data: SpanToBarFunctionProps) => GanttChartBar;
+
+    const spanToBar: SpanToBarFunctionType = (data: SpanToBarFunctionProps): GanttChartBar => {
         const {
             span,
             timelineStartTimeUnixNano,
@@ -265,13 +271,17 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         };
     };
 
-    const getBars: Function = (data: {
+    type GetBarsFunctionProps = {
         rootSpan: Span;
         allSpans: Span[];
         timelineStartTimeUnixNano: number;
         divisibilityFactor: number;
         divisibilityFactorAndIntervalUnit: string;
-    }): Array<GanttChartBar> => {
+    };
+
+    type GetBarsFunctionType = (data: GetBarsFunctionProps) => Array<GanttChartBar>;
+
+    const getBars: GetBarsFunctionType = (data: GetBarsFunctionProps): Array<GanttChartBar> => {
         const {
             rootSpan,
             allSpans,
@@ -352,7 +362,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         };
     };
 
-    const getRowsFromBars: Function = (
+    type GetRowsFromBarsFunctionType = (bars: Array<GanttChartBar>) => Array<GanttChartRow>;
+
+    const getRowsFromBars: GetRowsFromBarsFunctionType = (
         bars: Array<GanttChartBar>
     ): Array<GanttChartRow> => {
         return bars.map((bars: GanttChartBar) => {

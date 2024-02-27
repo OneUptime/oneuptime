@@ -294,11 +294,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        loadPage();
+        loadPage().catch((err: Error) => {
+            setError(err.message);
+        });
     }, []);
 
     useEffect(() => {
-        loadPage();
+        loadPage().catch((err: Error) => {
+            setError(err.message);
+        });
     }, [
         StatusPageUtil.getStatusPageId()?.toString() || '',
         StatusPageUtil.isPreviewPage(),

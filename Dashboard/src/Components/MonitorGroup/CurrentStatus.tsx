@@ -26,7 +26,7 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadCurrentStatus: Function = async (): Promise<void> => {
+    const loadCurrentStatus:  PromiseVoidFunctionType = async (): Promise<void> => {
         setIsLoading(true);
 
         try {

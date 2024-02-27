@@ -26,6 +26,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
+import { VoidFunctionType } from 'Common/Types/FunctionTypes';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -215,7 +216,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunctionType
                             ) => {
                                 setShowSingleSignOnUrlId(
                                     (item['_id'] as string) || ''
