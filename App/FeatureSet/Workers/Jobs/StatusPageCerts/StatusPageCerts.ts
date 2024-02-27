@@ -427,7 +427,12 @@ const checkCnameValidation: CheckCnameValidationFunction = async (
     }
 };
 
-const isSslProvisioned: Function = async (
+type IsSSLProvisionedFunction = (
+    fulldomain: string,
+    token: string
+) => Promise<boolean>;
+
+const isSslProvisioned: IsSSLProvisionedFunction = async (
     fulldomain: string,
     token: string
 ): Promise<boolean> => {

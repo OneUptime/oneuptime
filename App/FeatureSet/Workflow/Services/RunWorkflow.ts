@@ -397,7 +397,7 @@ export default class RunWorkflow {
     public async runComponent(
         args: JSONObject,
         node: NodeDataProp,
-        onError: Function
+        onError: VoidFunction
     ): Promise<RunReturnType> {
         // takes in args and returns values.
         const ComponentCode: ComponentCode | undefined =
@@ -406,7 +406,7 @@ export default class RunWorkflow {
         if (ComponentCode) {
             const instance: ComponentCode = ComponentCode;
             return await instance.run(args, {
-                log: (data: string | JSONObject | JSONArray) => {
+                log: (data: string | JSONObject | JSONArray | Error) => {
                     this.log(data);
                 },
                 workflowId: this.workflowId!,
@@ -491,7 +491,7 @@ export default class RunWorkflow {
         };
     }
 
-    public log(data: string | JSONObject | JSONArray | Exception): void {
+    public log(data: string | JSONObject | JSONArray | Error): void {
         if (!this.logs) {
             this.logs = [];
         }

@@ -19,6 +19,7 @@ import APIException from '../../Types/Exception/ApiException';
 import Dictionary from '../../Types/Dictionary';
 import Headers from '../../Types/API/Headers';
 import { JSONObject } from '../../Types/JSON';
+import GenericObject from '../../Types/GenericObject';
 
 const DEFAULT_HEADERS: Headers = {
     'Access-Control-Allow-Origin': '*',
@@ -202,12 +203,12 @@ describe('getErrorResponse', () => {
         const status: number = 500;
         const headers: Headers = { 'X-PoweredBy': 'coffee' };
 
-        const response: AxiosResponse<typeof data, {}> = createAxiosResponse({
+        const response: AxiosResponse<typeof data, GenericObject> = createAxiosResponse({
             data,
             headers,
             status,
         });
-        const axiosError: AxiosError<typeof data, {}> = createAxiosError({
+        const axiosError: AxiosError<typeof data, GenericObject> = createAxiosError({
             response,
         });
 
@@ -226,9 +227,9 @@ describe('getErrorResponse', () => {
 
     test('should throw if response error has no response', () => {
         // NOTE: Passing undefined will initialize the default parameter
-        const axiosError: AxiosError<null, {}> = createAxiosError({
+        const axiosError: AxiosError<null, GenericObject> = createAxiosError({
             response: null!,
-        }) as AxiosError<null, {}>;
+        }) as AxiosError<null, GenericObject>;
 
         // Use bracket notation property access to access private method
         expect(() => {
@@ -247,7 +248,7 @@ describe('fetch', () => {
         const mockedParsedResponse: HTTPResponse<typeof responseData> =
             new HTTPResponse(status, responseData, DEFAULT_HEADERS);
 
-        const mockedAxiosResponse: AxiosResponse<typeof responseData, {}> =
+        const mockedAxiosResponse: AxiosResponse<typeof responseData, GenericObject> =
             createAxiosResponse({
                 status,
                 data: responseData,
@@ -281,14 +282,14 @@ describe('fetch', () => {
             message: 'Not Found',
         };
 
-        const mockedAxiosError: AxiosError<undefined, {}> = createAxiosError({
+        const mockedAxiosError: AxiosError<undefined, GenericObject> = createAxiosError({
             response: createAxiosResponse({
                 status,
                 statusText,
                 data,
             }),
             message: 'An error occurred',
-        }) as AxiosError<undefined, {}>;
+        }) as AxiosError<undefined, GenericObject>;
 
         mockedAxios.mockRejectedValueOnce(mockedAxiosError);
 

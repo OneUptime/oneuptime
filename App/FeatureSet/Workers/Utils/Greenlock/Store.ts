@@ -5,9 +5,21 @@ import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertific
 import logger from 'CommonServer/Utils/Logger';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
+type SaveCertificateFunction = (
+    id: string,
+    blob: string,
+    isKeyPair: boolean
+) => Promise<null>;
+
+type GetCertificateFunction = (
+    id: string,
+    isKeyPair: boolean
+) => Promise<null | string>;
+
+
 module.exports = {
     create: (_opts: any) => {
-        const saveCertificate: Function = async (
+        const saveCertificate: SaveCertificateFunction = async (
             id: string,
             blob: string,
             isKeyPair: boolean
@@ -58,7 +70,7 @@ module.exports = {
             return null;
         };
 
-        const getCertificate: Function = async (
+        const getCertificate: GetCertificateFunction = async (
             id: string,
             isKeyPair: boolean
         ): Promise<null | string> => {
@@ -89,7 +101,9 @@ module.exports = {
             return cert.blob;
         };
 
-        const saveKeypair: Function = async (
+        type SaveKeyPairFunction = (id: string, blob: string) => Promise<null>;
+
+        const saveKeypair: SaveKeyPairFunction = async (
             id: string,
             blob: string
         ): Promise<null> => {
@@ -97,7 +111,9 @@ module.exports = {
             return await saveCertificate(id, blob, true);
         };
 
-        const getKeypair: Function = async (
+        type GetKeypairFunction = (id: string) => Promise<null | string>;
+
+        const getKeypair: GetKeypairFunction = async (
             id: string
         ): Promise<null | string> => {
             logger.info('Get Keypair: ' + id);

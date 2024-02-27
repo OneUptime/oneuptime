@@ -19,6 +19,7 @@ import Workflow from './FeatureSet/Workflow/Index';
 
 // home should be in the end.
 import './FeatureSet/Home/Index';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
