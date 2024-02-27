@@ -69,9 +69,9 @@ import AnalyticsBaseModel, {
 import Sort from '../../Utils/BaseDatabase/Sort';
 import { FormProps } from '../Forms/BasicForm';
 import {
-    PromiseVoidFunction, 
+    PromiseVoidFunction,
     ErrorFunction,
-    VoidFunction
+    VoidFunction,
 } from 'Common/Types/FunctionsTypes';
 import { GetReactElementFunction } from '../../Types/Functions';
 import SelectEntityField from '../../Types/SelectEntityField';
@@ -104,11 +104,11 @@ export interface BaseTableCallbacks<
         modalType: ModalType;
         modelIdToEdit?: ObjectID | undefined;
         onBeforeCreate?:
-        | ((
-            item: TBaseModel,
-            miscDataProps: JSONObject
-        ) => Promise<TBaseModel>)
-        | undefined;
+            | ((
+                  item: TBaseModel,
+                  miscDataProps: JSONObject
+              ) => Promise<TBaseModel>)
+            | undefined;
         onSuccess?: ((item: TBaseModel) => void) | undefined;
         onClose?: (() => void) | undefined;
     }) => ReactElement;
@@ -117,14 +117,14 @@ export interface BaseTableCallbacks<
 export interface BaseTableProps<
     TBaseModel extends BaseModel | AnalyticsBaseModel
 > {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
-    | undefined
-    | ((pageNumber: number, itemsOnPage: number) => void);
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-    | undefined
-    | ((data: Array<TBaseModel>, totalCount: number) => void);
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     showCreateForm?: undefined | boolean;
     columns: Columns<TBaseModel>;
@@ -149,8 +149,8 @@ export interface BaseTableProps<
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     createInitialValues?: FormValues<TBaseModel> | undefined;
     onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+        | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
+        | undefined;
     onCreateSuccess?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
@@ -182,8 +182,8 @@ export interface BaseTableProps<
     };
     onViewComplete?: ((item: TBaseModel) => void) | undefined;
     createEditFromRef?:
-    | undefined
-    | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
+        | undefined
+        | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     name: string;
 }
 
@@ -203,678 +203,770 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-        const model: TBaseModel = new props.modelType();
+    const model: TBaseModel = new props.modelType();
 
-        let showTableAs: ShowTableAs | undefined = props.showTableAs;
+    let showTableAs: ShowTableAs | undefined = props.showTableAs;
 
-        if (!showTableAs) {
-            showTableAs = ShowTableAs.Table;
+    if (!showTableAs) {
+        showTableAs = ShowTableAs.Table;
+    }
+
+    const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
+    const [viewId, setViewId] = useState<string | null>(null);
+    const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
+    const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
+
+    const [actionButtonSchema, setActionButtonSchema] = useState<
+        Array<ActionButtonSchema>
+    >([]);
+
+    useEffect(() => {
+        if (props.showCreateForm) {
+            setShowModal(true);
+            setModalType(ModalType.Create);
+        }
+    }, [props.showCreateForm]);
+
+    const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
+        useState<number | null>(null);
+
+    const [onBeforeFetchData, setOnBeforeFetchData] = useState<
+        JSONObject | undefined
+    >(undefined);
+    const [data, setData] = useState<Array<TBaseModel>>([]);
+    const [query, setQuery] = useState<Query<TBaseModel>>({});
+    const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
+    const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    const [error, setError] = useState<string>('');
+    const [tableFilterError, setTableFilterError] = useState<string>('');
+
+    const [showModel, setShowModal] = useState<boolean>(false);
+    const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
+    const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
+    const [sortBy, setSortBy] = useState<string>(props.sortBy || '');
+    const [sortOrder, setSortOrder] = useState<SortOrder>(
+        props.sortOrder || SortOrder.Ascending
+    );
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] =
+        useState<boolean>(false);
+    const [currentEditableItem, setCurrentEditableItem] =
+        useState<JSONObject | null>(null);
+    const [currentDeleteableItem, setCurrentDeleteableItem] =
+        useState<JSONObject | null>(null);
+
+    const [itemsOnPage, setItemsOnPage] = useState<number>(
+        props.initialItemsOnPage || 10
+    );
+
+    const [fields, setFields] = useState<Array<Field>>([]);
+
+    const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] =
+        useState(false);
+
+    const [errorModalText, setErrorModalText] = useState<string>('');
+
+    useEffect(() => {
+        if (!showModel) {
+            props.onCreateEditModalClose && props.onCreateEditModalClose();
+        }
+    }, [showModel]);
+
+    useEffect(() => {
+        const detailFields: Array<Field> = [];
+        for (const column of tableColumns) {
+            if (!column.key) {
+                // if its an action column, ignore.
+                continue;
+            }
+
+            detailFields.push({
+                title: column.title,
+                description: column.description || '',
+                key: column.key || '',
+                fieldType: column.type,
+                colSpan: column.colSpan,
+                contentClassName: column.contentClassName,
+                alignItem: column.alignItem,
+                getElement: column.getElement
+                    ? (item: JSONObject): ReactElement => {
+                          return column.getElement!(item, onBeforeFetchData);
+                      }
+                    : undefined,
+            });
+
+            setFields(detailFields);
+        }
+    }, [tableColumns]);
+
+    const getRelationSelect: Function = (): Select<TBaseModel> => {
+        const relationSelect: Select<TBaseModel> = {};
+
+        for (const column of props.columns || []) {
+            const key: string | null = column.field
+                ? (Object.keys(column.field)[0] as string)
+                : null;
+
+            if (key && model.isFileColumn(key)) {
+                (relationSelect as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true,
+                };
+            } else if (key && model.isEntityColumn(key)) {
+                if (!(relationSelect as JSONObject)[key]) {
+                    (relationSelect as JSONObject)[key] = {};
+                }
+
+                (relationSelect as JSONObject)[key] = {
+                    ...((relationSelect as JSONObject)[key] as JSONObject),
+                    ...(column.field as any)[key],
+                };
+            }
         }
 
-        const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
-        const [viewId, setViewId] = useState<string | null>(null);
-        const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
-        const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
+        return relationSelect;
+    };
 
-        const [actionButtonSchema, setActionButtonSchema] = useState<
-            Array<ActionButtonSchema>
-        >([]);
+    const deleteItem: Function = async (item: TBaseModel) => {
+        if (!item.id) {
+            throw new BadDataException('item.id cannot be null');
+        }
 
-        useEffect(() => {
-            if (props.showCreateForm) {
-                setShowModal(true);
-                setModalType(ModalType.Create);
+        setIsLoading(true);
+
+        try {
+            await props.callbacks.deleteItem(item);
+
+            props.onItemDeleted && props.onItemDeleted(item);
+
+            if (data.length === 1 && currentPageNumber > 1) {
+                setCurrentPageNumber(currentPageNumber - 1);
             }
-        }, [props.showCreateForm]);
+            await fetchItems();
+        } catch (err) {
+            setErrorModalText(API.getFriendlyMessage(err));
+        }
 
-        const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
-            useState<number | null>(null);
+        setIsLoading(false);
+    };
 
-        const [onBeforeFetchData, setOnBeforeFetchData] = useState<
-            JSONObject | undefined
-        >(undefined);
-        const [data, setData] = useState<Array<TBaseModel>>([]);
-        const [query, setQuery] = useState<Query<TBaseModel>>({});
-        const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
-        const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
-        const [isLoading, setIsLoading] = useState<boolean>(true);
+    const serializeToTableColumns: VoidFunction = (): void => {
+        // Convert ModelColumns to TableColumns.
 
-        const [error, setError] = useState<string>('');
-        const [tableFilterError, setTableFilterError] = useState<string>('');
+        const columns: Array<TableColumn> = [];
 
-        const [showModel, setShowModal] = useState<boolean>(false);
-        const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
-        const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
-        const [sortBy, setSortBy] = useState<string>(props.sortBy || '');
-        const [sortOrder, setSortOrder] = useState<SortOrder>(
-            props.sortOrder || SortOrder.Ascending
-        );
-        const [showDeleteConfirmModal, setShowDeleteConfirmModal] =
-            useState<boolean>(false);
-        const [currentEditableItem, setCurrentEditableItem] =
-            useState<JSONObject | null>(null);
-        const [currentDeleteableItem, setCurrentDeleteableItem] =
-            useState<JSONObject | null>(null);
+        let selectFields: Select<TBaseModel> = {
+            _id: true,
+        };
 
-        const [itemsOnPage, setItemsOnPage] = useState<number>(
-            props.initialItemsOnPage || 10
-        );
+        selectFields = props.callbacks.addSlugToSelect(selectFields);
 
-        const [fields, setFields] = useState<Array<Field>>([]);
+        const userPermissions: Array<Permission> = getUserPermissions();
 
-        const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] =
-            useState(false);
+        const accessControl: Dictionary<ColumnAccessControl> =
+            model.getColumnAccessControlForAllColumns();
 
-        const [errorModalText, setErrorModalText] = useState<string>('');
+        for (const column of props.columns || []) {
+            const hasPermission: boolean =
+                hasPermissionToReadColumn(column) || User.isMasterAdmin();
+            const key: string | null = getColumnKey(column);
 
-        useEffect(() => {
-            if (!showModel) {
-                props.onCreateEditModalClose && props.onCreateEditModalClose();
-            }
-        }, [showModel]);
+            if (hasPermission) {
+                let tooltipText: ((item: JSONObject) => string) | undefined =
+                    undefined;
 
-        useEffect(() => {
-            const detailFields: Array<Field> = [];
-            for (const column of tableColumns) {
-                if (!column.key) {
-                    // if its an action column, ignore.
-                    continue;
+                if (column.tooltipText) {
+                    tooltipText = (item: JSONObject): string => {
+                        return column.tooltipText!(
+                            props.callbacks.getModelFromJSON(item)
+                        );
+                    };
                 }
 
-                detailFields.push({
-                    title: column.title,
-                    description: column.description || '',
-                    key: column.key || '',
-                    fieldType: column.type,
-                    colSpan: column.colSpan,
-                    contentClassName: column.contentClassName,
-                    alignItem: column.alignItem,
-                    getElement: column.getElement
-                        ? (item: JSONObject): ReactElement => {
-                            return column.getElement!(item, onBeforeFetchData);
-                        }
-                        : undefined,
+                // get filter options if they were already loaded.
+
+                let filterDropdownOptions: Array<DropdownOption> | undefined =
+                    undefined;
+
+                const columnKey: string | null = column.selectedProperty
+                    ? key + '.' + column.selectedProperty
+                    : key;
+
+                const existingTableColumn: TableColumn | undefined =
+                    tableColumns.find((i: TableColumn) => {
+                        return i.key === columnKey;
+                    });
+
+                if (column.filterDropdownOptions) {
+                    filterDropdownOptions = column.filterDropdownOptions;
+                }
+
+                if (
+                    tableColumns &&
+                    existingTableColumn &&
+                    existingTableColumn.filterDropdownOptions
+                ) {
+                    filterDropdownOptions =
+                        existingTableColumn.filterDropdownOptions;
+                }
+
+                columns.push({
+                    ...column,
+                    disableSort: column.disableSort || shouldDisableSort(key),
+                    key: columnKey,
+                    tooltipText,
+                    filterDropdownOptions: filterDropdownOptions,
                 });
 
-                setFields(detailFields);
-            }
-        }, [tableColumns]);
-
-        const getRelationSelect: Function = (): Select<TBaseModel> => {
-            const relationSelect: Select<TBaseModel> = {};
-
-            for (const column of props.columns || []) {
-                const key: string | null = column.field
-                    ? (Object.keys(column.field)[0] as string)
-                    : null;
-
-                if (key && model.isFileColumn(key)) {
-                    (relationSelect as JSONObject)[key] = {
-                        file: true,
-                        _id: true,
-                        type: true,
-                        name: true,
-                    };
-                } else if (key && model.isEntityColumn(key)) {
-                    if (!(relationSelect as JSONObject)[key]) {
-                        (relationSelect as JSONObject)[key] = {};
-                    }
-
-                    (relationSelect as JSONObject)[key] = {
-                        ...((relationSelect as JSONObject)[key] as JSONObject),
-                        ...(column.field as any)[key],
-                    };
+                if (key) {
+                    (selectFields as Dictionary<boolean>)[key] = true;
                 }
             }
+        }
 
-            return relationSelect;
-        };
+        const selectMoreFields: Array<string> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields)
+            : [];
 
-        const deleteItem: Function = async (item: TBaseModel) => {
-            if (!item.id) {
-                throw new BadDataException('item.id cannot be null');
+        for (const moreField of selectMoreFields) {
+            let hasPermissionToSelectField: boolean = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions = accessControl[moreField as string]?.read || [];
+
+            if (
+                accessControl[moreField]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermissionToSelectField = false;
             }
 
-            setIsLoading(true);
+            if (hasPermissionToSelectField) {
+                (selectFields as Dictionary<boolean>)[moreField] = true;
+            } else {
+                Logger.warn(
+                    'User does not have read permissions to read - ' + moreField
+                );
+            }
+        }
+
+        const permissions: Array<Permission> | null =
+            PermissionUtil.getAllPermissions();
+
+        if (
+            (permissions &&
+                ((props.isDeleteable &&
+                    model.hasDeletePermissions(permissions)) ||
+                    (props.isEditable &&
+                        model.hasUpdatePermissions(permissions)) ||
+                    (props.isViewable &&
+                        model.hasReadPermissions(permissions)))) ||
+            (props.actionButtons && props.actionButtons.length > 0) ||
+            props.showViewIdButton
+        ) {
+            columns.push({
+                title: 'Actions',
+                type: FieldType.Actions,
+            });
+        }
+
+        setActionSchema();
+        setHeaderButtons();
+
+        setColumns(columns);
+    };
+
+    const getFilterDropdownItems: PromiseVoidFunction =
+        async (): Promise<void> => {
+            setTableFilterError('');
+            setIsTableFilterFetchLoading(true);
+
+            const classicColumns: Array<TableColumn> = [...tableColumns];
 
             try {
-                await props.callbacks.deleteItem(item);
+                for (const column of props.columns) {
+                    const key: string | null = getColumnKey(column);
 
-                props.onItemDeleted && props.onItemDeleted(item);
+                    const classicColumn: TableColumn | undefined =
+                        classicColumns.find((i: TableColumn) => {
+                            return i.key === key;
+                        });
 
-                if (data.length === 1 && currentPageNumber > 1) {
-                    setCurrentPageNumber(currentPageNumber - 1);
-                }
-                await fetchItems();
-            } catch (err) {
-                setErrorModalText(API.getFriendlyMessage(err));
-            }
+                    if (!classicColumn) {
+                        continue;
+                    }
 
-            setIsLoading(false);
-        };
+                    if (!key) {
+                        continue;
+                    }
 
-        const serializeToTableColumns: VoidFunction = (): void => {
-            // Convert ModelColumns to TableColumns.
+                    if (!column.filterEntityType) {
+                        continue;
+                    }
 
-            const columns: Array<TableColumn> = [];
+                    if (!column.isFilterable) {
+                        continue;
+                    }
 
-            let selectFields: Select<TBaseModel> = {
-                _id: true,
-            };
+                    if (!column.filterDropdownField) {
+                        Logger.warn(
+                            `Cannot filter on ${key} because column.dropdownField is not set.`
+                        );
+                        continue;
+                    }
 
-            selectFields = props.callbacks.addSlugToSelect(selectFields);
+                    const hasPermission: boolean =
+                        hasPermissionToReadColumn(column);
 
-            const userPermissions: Array<Permission> = getUserPermissions();
+                    if (!hasPermission) {
+                        continue;
+                    }
 
-            const accessControl: Dictionary<ColumnAccessControl> =
-                model.getColumnAccessControlForAllColumns();
+                    const query: Query<TBaseModel> = column.filterQuery || {};
 
-            for (const column of props.columns || []) {
-                const hasPermission: boolean =
-                    hasPermissionToReadColumn(column) || User.isMasterAdmin();
-                const key: string | null = getColumnKey(column);
+                    const listResult: ListResult<TBaseModel> =
+                        await props.callbacks.getList({
+                            modelType: column.filterEntityType,
+                            query: query,
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            select: {
+                                [column.filterDropdownField.label]: true,
+                                [column.filterDropdownField.value]: true,
+                            } as any,
+                            sort: {},
+                        });
 
-                if (hasPermission) {
-                    let tooltipText: ((item: JSONObject) => string) | undefined =
-                        undefined;
+                    classicColumn.filterDropdownOptions = [];
+                    for (const item of listResult.data) {
+                        classicColumn.filterDropdownOptions.push({
+                            value: item.getColumnValue(
+                                column.filterDropdownField.value
+                            ) as string,
+                            label: item.getColumnValue(
+                                column.filterDropdownField.label
+                            ) as string,
+                        });
+                    }
 
                     if (column.tooltipText) {
-                        tooltipText = (item: JSONObject): string => {
+                        classicColumn.tooltipText = (
+                            item: JSONObject
+                        ): string => {
                             return column.tooltipText!(
                                 props.callbacks.getModelFromJSON(item)
                             );
                         };
                     }
 
-                    // get filter options if they were already loaded.
-
-                    let filterDropdownOptions: Array<DropdownOption> | undefined =
-                        undefined;
-
-                    const columnKey: string | null = column.selectedProperty
-                        ? key + '.' + column.selectedProperty
-                        : key;
-
-                    const existingTableColumn: TableColumn | undefined =
-                        tableColumns.find((i: TableColumn) => {
-                            return i.key === columnKey;
-                        });
-
-                    if (column.filterDropdownOptions) {
-                        filterDropdownOptions = column.filterDropdownOptions;
-                    }
-
-                    if (
-                        tableColumns &&
-                        existingTableColumn &&
-                        existingTableColumn.filterDropdownOptions
-                    ) {
-                        filterDropdownOptions =
-                            existingTableColumn.filterDropdownOptions;
-                    }
-
-                    columns.push({
-                        ...column,
-                        disableSort: column.disableSort || shouldDisableSort(key),
-                        key: columnKey,
-                        tooltipText,
-                        filterDropdownOptions: filterDropdownOptions,
-                    });
-
-                    if (key) {
-                        (selectFields as Dictionary<boolean>)[key] = true;
-                    }
-                }
-            }
-
-            const selectMoreFields: Array<string> = props.selectMoreFields
-                ? Object.keys(props.selectMoreFields)
-                : [];
-
-            for (const moreField of selectMoreFields) {
-                let hasPermissionToSelectField: boolean = true;
-                let fieldPermissions: Array<Permission> = [];
-                fieldPermissions = accessControl[moreField as string]?.read || [];
-
-                if (
-                    accessControl[moreField]?.read &&
-                    !PermissionHelper.doesPermissionsIntersect(
-                        userPermissions,
-                        fieldPermissions
-                    )
-                ) {
-                    hasPermissionToSelectField = false;
+                    classicColumn.colSpan = column.colSpan;
+                    classicColumn.alignItem = column.alignItem;
+                    classicColumn.contentClassName = column.contentClassName;
                 }
 
-                if (hasPermissionToSelectField) {
-                    (selectFields as Dictionary<boolean>)[moreField] = true;
-                } else {
-                    Logger.warn(
-                        'User does not have read permissions to read - ' + moreField
-                    );
-                }
-            }
-
-            const permissions: Array<Permission> | null =
-                PermissionUtil.getAllPermissions();
-
-            if (
-                (permissions &&
-                    ((props.isDeleteable &&
-                        model.hasDeletePermissions(permissions)) ||
-                        (props.isEditable &&
-                            model.hasUpdatePermissions(permissions)) ||
-                        (props.isViewable &&
-                            model.hasReadPermissions(permissions)))) ||
-                (props.actionButtons && props.actionButtons.length > 0) ||
-                props.showViewIdButton
-            ) {
-                columns.push({
-                    title: 'Actions',
-                    type: FieldType.Actions,
-                });
-            }
-
-            setActionSchema();
-            setHeaderButtons();
-
-            setColumns(columns);
-        };
-
-        const getFilterDropdownItems: PromiseVoidFunction =
-            async (): Promise<void> => {
-                setTableFilterError('');
-                setIsTableFilterFetchLoading(true);
-
-                const classicColumns: Array<TableColumn> = [...tableColumns];
-
-                try {
-                    for (const column of props.columns) {
-                        const key: string | null = getColumnKey(column);
-
-                        const classicColumn: TableColumn | undefined =
-                            classicColumns.find((i: TableColumn) => {
-                                return i.key === key;
-                            });
-
-                        if (!classicColumn) {
-                            continue;
-                        }
-
-                        if (!key) {
-                            continue;
-                        }
-
-                        if (!column.filterEntityType) {
-                            continue;
-                        }
-
-                        if (!column.isFilterable) {
-                            continue;
-                        }
-
-                        if (!column.filterDropdownField) {
-                            Logger.warn(
-                                `Cannot filter on ${key} because column.dropdownField is not set.`
-                            );
-                            continue;
-                        }
-
-                        const hasPermission: boolean =
-                            hasPermissionToReadColumn(column);
-
-                        if (!hasPermission) {
-                            continue;
-                        }
-
-                        const query: Query<TBaseModel> = column.filterQuery || {};
-
-                        const listResult: ListResult<TBaseModel> =
-                            await props.callbacks.getList({
-                                modelType: column.filterEntityType,
-                                query: query,
-                                limit: LIMIT_PER_PROJECT,
-                                skip: 0,
-                                select: {
-                                    [column.filterDropdownField.label]: true,
-                                    [column.filterDropdownField.value]: true,
-                                } as any,
-                                sort: {},
-                            });
-
-                        classicColumn.filterDropdownOptions = [];
-                        for (const item of listResult.data) {
-                            classicColumn.filterDropdownOptions.push({
-                                value: item.getColumnValue(
-                                    column.filterDropdownField.value
-                                ) as string,
-                                label: item.getColumnValue(
-                                    column.filterDropdownField.label
-                                ) as string,
-                            });
-                        }
-
-                        if (column.tooltipText) {
-                            classicColumn.tooltipText = (
-                                item: JSONObject
-                            ): string => {
-                                return column.tooltipText!(
-                                    props.callbacks.getModelFromJSON(item)
-                                );
-                            };
-                        }
-
-                        classicColumn.colSpan = column.colSpan;
-                        classicColumn.alignItem = column.alignItem;
-                        classicColumn.contentClassName = column.contentClassName;
-                    }
-
-                    setColumns(classicColumns);
-                } catch (err) {
-                    setTableFilterError(API.getFriendlyMessage(err));
-                }
-
-                setIsTableFilterFetchLoading(false);
-            };
-
-        const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-            setError('');
-            setIsLoading(true);
-
-            if (props.onFetchInit) {
-                props.onFetchInit(currentPageNumber, itemsOnPage);
-            }
-
-            if (props.onBeforeFetch) {
-                const jobject: JSONObject = await props.onBeforeFetch();
-                setOnBeforeFetchData(jobject);
-            }
-
-            try {
-                const listResult: ListResult<TBaseModel> =
-                    await props.callbacks.getList({
-                        modelType: props.modelType as
-                            | BaseModelType
-                            | AnalyticsBaseModelType,
-                        query: {
-                            ...query,
-                            ...props.query,
-                        },
-                        limit: itemsOnPage,
-                        skip: (currentPageNumber - 1) * itemsOnPage,
-                        select: {
-                            ...getSelect(),
-                            ...getRelationSelect(),
-                        },
-                        sort: sortBy
-                            ? {
-                                [sortBy as any]: sortOrder,
-                            }
-                            : {},
-                        requestOptions: props.fetchRequestOptions,
-                    });
-
-                setTotalItemsCount(listResult.count);
-                setData(listResult.data);
+                setColumns(classicColumns);
             } catch (err) {
-                setError(API.getFriendlyMessage(err));
+                setTableFilterError(API.getFriendlyMessage(err));
             }
 
-            setIsLoading(false);
+            setIsTableFilterFetchLoading(false);
         };
 
-        useEffect(() => {
-            if (showTableFilter) {
-                getFilterDropdownItems();
-            }
-        }, [showTableFilter]);
+    const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+        setError('');
+        setIsLoading(true);
 
-        const getSelect: Function = (): Select<TBaseModel> => {
-            const selectFields: Select<TBaseModel> = {
-                _id: true,
-            };
+        if (props.onFetchInit) {
+            props.onFetchInit(currentPageNumber, itemsOnPage);
+        }
 
-            for (const column of props.columns || []) {
-                const key: string | null = column.field
-                    ? (Object.keys(column.field)[0] as string)
-                    : null;
+        if (props.onBeforeFetch) {
+            const jobject: JSONObject = await props.onBeforeFetch();
+            setOnBeforeFetchData(jobject);
+        }
 
-                if (key) {
-                    if (model.hasColumn(key)) {
-                        (selectFields as Dictionary<boolean>)[key] = true;
-                    } else {
-                        throw new BadDataException(
-                            `${key} column not found on ${model.singularName}`
-                        );
-                    }
-                }
-            }
-
-            const selectMoreFields: Array<string> = props.selectMoreFields
-                ? Object.keys(props.selectMoreFields)
-                : [];
-
-            if (props.dragDropIndexField) {
-                selectMoreFields.push(props.dragDropIndexField);
-            }
-
-            if (
-                props.dragDropIdField &&
-                !Object.keys(selectFields).includes(props.dragDropIdField) &&
-                !selectMoreFields.includes(props.dragDropIdField)
-            ) {
-                selectMoreFields.push(props.dragDropIdField);
-            }
-
-            for (const moreField of selectMoreFields) {
-                if (model.hasColumn(moreField) && model.isEntityColumn(moreField)) {
-                    (selectFields as Dictionary<boolean>)[moreField] = (
-                        props.selectMoreFields as any
-                    )[moreField];
-                } else if (model.hasColumn(moreField)) {
-                    (selectFields as Dictionary<boolean>)[moreField] = true;
-                } else {
-                    throw new BadDataException(
-                        `${moreField} column not found on ${model.singularName}`
-                    );
-                }
-            }
-
-            return selectFields;
-        };
-
-        const setHeaderButtons: VoidFunction = (): void => {
-            // add header buttons.
-            let headerbuttons: Array<CardButtonSchema> = [];
-
-            if (props.cardProps?.buttons && props.cardProps?.buttons.length > 0) {
-                headerbuttons = [...props.cardProps.buttons];
-            }
-
-            const permissions: Array<Permission> | null =
-                PermissionUtil.getAllPermissions();
-
-            let hasPermissionToCreate: boolean = false;
-
-            if (permissions) {
-                hasPermissionToCreate =
-                    model.hasCreatePermissions(permissions) || User.isMasterAdmin();
-            }
-
-            // because ordered list add button is inside the table and not on the card header.
-            if (
-                props.isCreateable &&
-                hasPermissionToCreate &&
-                showTableAs !== ShowTableAs.OrderedStatesList
-            ) {
-                headerbuttons.push({
-                    title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                        }`,
-                    buttonStyle: ButtonStyleType.NORMAL,
-                    className:
-                        props.showFilterButton || props.showRefreshButton
-                            ? 'mr-1'
-                            : '',
-                    onClick: () => {
-                        setModalType(ModalType.Create);
-                        setShowModal(true);
+        try {
+            const listResult: ListResult<TBaseModel> =
+                await props.callbacks.getList({
+                    modelType: props.modelType as
+                        | BaseModelType
+                        | AnalyticsBaseModelType,
+                    query: {
+                        ...query,
+                        ...props.query,
                     },
-                    icon: IconProp.Add,
-                });
-            }
-
-            if (props.showRefreshButton) {
-                headerbuttons.push({
-                    title: '',
-                    className: props.showFilterButton
-                        ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
-                        : 'py-0 pr-0 pl-1 mt-1',
-                    buttonStyle: ButtonStyleType.ICON,
-                    onClick: async () => {
-                        await fetchItems();
+                    limit: itemsOnPage,
+                    skip: (currentPageNumber - 1) * itemsOnPage,
+                    select: {
+                        ...getSelect(),
+                        ...getRelationSelect(),
                     },
-                    disabled: isTableFilterFetchLoading,
-                    icon: IconProp.Refresh,
+                    sort: sortBy
+                        ? {
+                              [sortBy as any]: sortOrder,
+                          }
+                        : {},
+                    requestOptions: props.fetchRequestOptions,
                 });
-            }
 
-            if (props.showFilterButton) {
-                headerbuttons.push({
-                    title: '',
-                    buttonStyle: ButtonStyleType.ICON,
-                    className: props.showRefreshButton
-                        ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
-                        : 'py-0 pr-0 pl-1 mt-1',
-                    onClick: () => {
-                        const newValue: boolean = !showTableFilter;
+            setTotalItemsCount(listResult.count);
+            setData(listResult.data);
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
 
-                        setQuery({});
+        setIsLoading(false);
+    };
 
-                        setShowTableFilter(newValue);
-                    },
-                    disabled: isTableFilterFetchLoading,
-                    icon: IconProp.Filter,
-                });
-            }
+    useEffect(() => {
+        if (showTableFilter) {
+            getFilterDropdownItems();
+        }
+    }, [showTableFilter]);
 
-            setCardButtons(headerbuttons);
+    const getSelect: Function = (): Select<TBaseModel> => {
+        const selectFields: Select<TBaseModel> = {
+            _id: true,
         };
 
-        useEffect(() => {
-            fetchItems();
-        }, [
-            currentPageNumber,
-            sortBy,
-            sortOrder,
-            itemsOnPage,
-            query,
-            props.refreshToggle,
-        ]);
-
-        type ShouldDisableSortFunction = (columnName: string) => boolean;
-
-        const shouldDisableSort: ShouldDisableSortFunction = (
-            columnName: string
-        ): boolean => {
-            return model.isEntityColumn(columnName);
-        };
-
-        type GetColumnKeyFunction = (
-            column: ModelTableColumn<TBaseModel>
-        ) => string | null;
-
-        const getColumnKey: GetColumnKeyFunction = (
-            column: ModelTableColumn<TBaseModel>
-        ): string | null => {
+        for (const column of props.columns || []) {
             const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            return key;
-        };
-
-        type HasPermissionToReadColumnFunction = (
-            column: ModelTableColumn<TBaseModel>
-        ) => boolean;
-
-        const hasPermissionToReadColumn: HasPermissionToReadColumnFunction = (
-            column: ModelTableColumn<TBaseModel>
-        ): boolean => {
-            const accessControl: Dictionary<ColumnAccessControl> =
-                model.getColumnAccessControlForAllColumns();
-
-            const userPermissions: Array<Permission> = getUserPermissions();
-
-            const key: string | null = getColumnKey(column);
-
-            // check permissions.
-            let hasPermission: boolean = false;
-
-            if (!key) {
-                hasPermission = true;
-            }
-
             if (key) {
-                hasPermission = true;
-                let fieldPermissions: Array<Permission> = [];
-                fieldPermissions = accessControl[key as string]?.read || [];
-
-                if (
-                    accessControl[key]?.read &&
-                    !PermissionHelper.doesPermissionsIntersect(
-                        userPermissions,
-                        fieldPermissions
-                    )
-                ) {
-                    hasPermission = false;
-                }
-            }
-
-            return hasPermission;
-        };
-
-        type GetUserPermissionsFunction = () => Array<Permission>;
-
-        const getUserPermissions: GetUserPermissionsFunction =
-            (): Array<Permission> => {
-                let userPermissions: Array<Permission> =
-                    PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
-                if (
-                    PermissionUtil.getProjectPermissions() &&
-                    PermissionUtil.getProjectPermissions()?.permissions &&
-                    PermissionUtil.getProjectPermissions()!.permissions.length > 0
-                ) {
-                    userPermissions = userPermissions.concat(
-                        PermissionUtil.getProjectPermissions()!.permissions.map(
-                            (i: UserPermission) => {
-                                return i.permission;
-                            }
-                        )
+                if (model.hasColumn(key)) {
+                    (selectFields as Dictionary<boolean>)[key] = true;
+                } else {
+                    throw new BadDataException(
+                        `${key} column not found on ${model.singularName}`
                     );
                 }
+            }
+        }
 
-                userPermissions.push(Permission.Public);
+        const selectMoreFields: Array<string> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields)
+            : [];
 
-                return userPermissions;
-            };
+        if (props.dragDropIndexField) {
+            selectMoreFields.push(props.dragDropIndexField);
+        }
 
-        useEffect(() => {
-            serializeToTableColumns();
-        }, []);
+        if (
+            props.dragDropIdField &&
+            !Object.keys(selectFields).includes(props.dragDropIdField) &&
+            !selectMoreFields.includes(props.dragDropIdField)
+        ) {
+            selectMoreFields.push(props.dragDropIdField);
+        }
 
-        useEffect(() => {
-            serializeToTableColumns();
-        }, [data]);
+        for (const moreField of selectMoreFields) {
+            if (model.hasColumn(moreField) && model.isEntityColumn(moreField)) {
+                (selectFields as Dictionary<boolean>)[moreField] = (
+                    props.selectMoreFields as any
+                )[moreField];
+            } else if (model.hasColumn(moreField)) {
+                (selectFields as Dictionary<boolean>)[moreField] = true;
+            } else {
+                throw new BadDataException(
+                    `${moreField} column not found on ${model.singularName}`
+                );
+            }
+        }
 
-        const setActionSchema: VoidFunction = () => {
-            const permissions: Array<Permission> =
-                PermissionUtil.getAllPermissions();
+        return selectFields;
+    };
 
-            const actionsSchema: Array<ActionButtonSchema> = [];
+    const setHeaderButtons: VoidFunction = (): void => {
+        // add header buttons.
+        let headerbuttons: Array<CardButtonSchema> = [];
 
-            if (props.showViewIdButton) {
+        if (props.cardProps?.buttons && props.cardProps?.buttons.length > 0) {
+            headerbuttons = [...props.cardProps.buttons];
+        }
+
+        const permissions: Array<Permission> | null =
+            PermissionUtil.getAllPermissions();
+
+        let hasPermissionToCreate: boolean = false;
+
+        if (permissions) {
+            hasPermissionToCreate =
+                model.hasCreatePermissions(permissions) || User.isMasterAdmin();
+        }
+
+        // because ordered list add button is inside the table and not on the card header.
+        if (
+            props.isCreateable &&
+            hasPermissionToCreate &&
+            showTableAs !== ShowTableAs.OrderedStatesList
+        ) {
+            headerbuttons.push({
+                title: `${props.createVerb || 'Create'} ${
+                    props.singularName || model.singularName
+                }`,
+                buttonStyle: ButtonStyleType.NORMAL,
+                className:
+                    props.showFilterButton || props.showRefreshButton
+                        ? 'mr-1'
+                        : '',
+                onClick: () => {
+                    setModalType(ModalType.Create);
+                    setShowModal(true);
+                },
+                icon: IconProp.Add,
+            });
+        }
+
+        if (props.showRefreshButton) {
+            headerbuttons.push({
+                title: '',
+                className: props.showFilterButton
+                    ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
+                    : 'py-0 pr-0 pl-1 mt-1',
+                buttonStyle: ButtonStyleType.ICON,
+                onClick: async () => {
+                    await fetchItems();
+                },
+                disabled: isTableFilterFetchLoading,
+                icon: IconProp.Refresh,
+            });
+        }
+
+        if (props.showFilterButton) {
+            headerbuttons.push({
+                title: '',
+                buttonStyle: ButtonStyleType.ICON,
+                className: props.showRefreshButton
+                    ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
+                    : 'py-0 pr-0 pl-1 mt-1',
+                onClick: () => {
+                    const newValue: boolean = !showTableFilter;
+
+                    setQuery({});
+
+                    setShowTableFilter(newValue);
+                },
+                disabled: isTableFilterFetchLoading,
+                icon: IconProp.Filter,
+            });
+        }
+
+        setCardButtons(headerbuttons);
+    };
+
+    useEffect(() => {
+        fetchItems();
+    }, [
+        currentPageNumber,
+        sortBy,
+        sortOrder,
+        itemsOnPage,
+        query,
+        props.refreshToggle,
+    ]);
+
+    type ShouldDisableSortFunction = (columnName: string) => boolean;
+
+    const shouldDisableSort: ShouldDisableSortFunction = (
+        columnName: string
+    ): boolean => {
+        return model.isEntityColumn(columnName);
+    };
+
+    type GetColumnKeyFunction = (
+        column: ModelTableColumn<TBaseModel>
+    ) => string | null;
+
+    const getColumnKey: GetColumnKeyFunction = (
+        column: ModelTableColumn<TBaseModel>
+    ): string | null => {
+        const key: string | null = column.field
+            ? (Object.keys(column.field)[0] as string)
+            : null;
+
+        return key;
+    };
+
+    type HasPermissionToReadColumnFunction = (
+        column: ModelTableColumn<TBaseModel>
+    ) => boolean;
+
+    const hasPermissionToReadColumn: HasPermissionToReadColumnFunction = (
+        column: ModelTableColumn<TBaseModel>
+    ): boolean => {
+        const accessControl: Dictionary<ColumnAccessControl> =
+            model.getColumnAccessControlForAllColumns();
+
+        const userPermissions: Array<Permission> = getUserPermissions();
+
+        const key: string | null = getColumnKey(column);
+
+        // check permissions.
+        let hasPermission: boolean = false;
+
+        if (!key) {
+            hasPermission = true;
+        }
+
+        if (key) {
+            hasPermission = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions = accessControl[key as string]?.read || [];
+
+            if (
+                accessControl[key]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermission = false;
+            }
+        }
+
+        return hasPermission;
+    };
+
+    type GetUserPermissionsFunction = () => Array<Permission>;
+
+    const getUserPermissions: GetUserPermissionsFunction =
+        (): Array<Permission> => {
+            let userPermissions: Array<Permission> =
+                PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+            if (
+                PermissionUtil.getProjectPermissions() &&
+                PermissionUtil.getProjectPermissions()?.permissions &&
+                PermissionUtil.getProjectPermissions()!.permissions.length > 0
+            ) {
+                userPermissions = userPermissions.concat(
+                    PermissionUtil.getProjectPermissions()!.permissions.map(
+                        (i: UserPermission) => {
+                            return i.permission;
+                        }
+                    )
+                );
+            }
+
+            userPermissions.push(Permission.Public);
+
+            return userPermissions;
+        };
+
+    useEffect(() => {
+        serializeToTableColumns();
+    }, []);
+
+    useEffect(() => {
+        serializeToTableColumns();
+    }, [data]);
+
+    const setActionSchema: VoidFunction = () => {
+        const permissions: Array<Permission> =
+            PermissionUtil.getAllPermissions();
+
+        const actionsSchema: Array<ActionButtonSchema> = [];
+
+        if (props.showViewIdButton) {
+            actionsSchema.push({
+                title: 'Show ID',
+                buttonStyleType: ButtonStyleType.OUTLINE,
+                onClick: async (
+                    item: JSONObject,
+                    onCompleteAction: VoidFunction,
+                    onError: ErrorFunction
+                ) => {
+                    try {
+                        setViewId(item['_id'] as string);
+                        setShowViewIdModal(true);
+                        onCompleteAction();
+                    } catch (err) {
+                        onError(err as Error);
+                    }
+                },
+            });
+        }
+
+        // add actions buttons from props.
+        if (props.actionButtons) {
+            for (const moreSchema of props.actionButtons) {
+                actionsSchema.push(moreSchema);
+            }
+        }
+
+        if (permissions) {
+            if (
+                props.isViewable &&
+                (model.hasReadPermissions(permissions) || User.isMasterAdmin())
+            ) {
                 actionsSchema.push({
-                    title: 'Show ID',
+                    title:
+                        props.viewButtonText ||
+                        `View ${props.singularName || model.singularName}`,
+                    buttonStyleType: ButtonStyleType.NORMAL,
+                    onClick: async (
+                        item: JSONObject,
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
+                    ) => {
+                        try {
+                            const baseModel: TBaseModel =
+                                props.callbacks.getModelFromJSON(item);
+
+                            if (props.onBeforeView) {
+                                item = props.callbacks.getJSONFromModel(
+                                    await props.onBeforeView(baseModel)
+                                );
+                            }
+
+                            if (props.onViewPage) {
+                                const route: Route = await props.onViewPage(
+                                    baseModel
+                                );
+
+                                onCompleteAction();
+
+                                if (props.onViewComplete) {
+                                    props.onViewComplete(baseModel);
+                                }
+
+                                return Navigation.navigate(route);
+                            }
+
+                            if (!props.viewPageRoute) {
+                                throw new BadDataException(
+                                    'props.viewPageRoute not found'
+                                );
+                            }
+
+                            onCompleteAction();
+                            if (props.onViewComplete) {
+                                props.onViewComplete(baseModel);
+                            }
+
+                            const id: string = baseModel.id?.toString() || '';
+
+                            return Navigation.navigate(
+                                new Route(
+                                    props.viewPageRoute.toString()
+                                ).addRoute('/' + id)
+                            );
+                        } catch (err) {
+                            onError(err as Error);
+                        }
+                    },
+                });
+            }
+
+            if (props.isEditable && model.hasUpdatePermissions(permissions)) {
+                actionsSchema.push({
+                    title: props.editButtonText || 'Edit',
                     buttonStyleType: ButtonStyleType.OUTLINE,
                     onClick: async (
                         item: JSONObject,
@@ -882,8 +974,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         onError: ErrorFunction
                     ) => {
                         try {
-                            setViewId(item['_id'] as string);
-                            setShowViewIdModal(true);
+                            if (props.onBeforeEdit) {
+                                item = props.callbacks.getJSONFromModel(
+                                    await props.onBeforeEdit(
+                                        props.callbacks.getModelFromJSON(item)
+                                    )
+                                );
+                            }
+
+                            setModalType(ModalType.Edit);
+                            setShowModal(true);
+                            setCurrentEditableItem(item);
+
                             onCompleteAction();
                         } catch (err) {
                             onError(err as Error);
@@ -892,370 +994,268 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 });
             }
 
-            // add actions buttons from props.
-            if (props.actionButtons) {
-                for (const moreSchema of props.actionButtons) {
-                    actionsSchema.push(moreSchema);
-                }
-            }
-
-            if (permissions) {
-                if (
-                    props.isViewable &&
-                    (model.hasReadPermissions(permissions) || User.isMasterAdmin())
-                ) {
-                    actionsSchema.push({
-                        title:
-                            props.viewButtonText ||
-                            `View ${props.singularName || model.singularName}`,
-                        buttonStyleType: ButtonStyleType.NORMAL,
-                        onClick: async (
-                            item: JSONObject,
-                            onCompleteAction: VoidFunction,
-                            onError: ErrorFunction
-                        ) => {
-                            try {
-                                const baseModel: TBaseModel =
-                                    props.callbacks.getModelFromJSON(item);
-
-                                if (props.onBeforeView) {
-                                    item = props.callbacks.getJSONFromModel(
-                                        await props.onBeforeView(baseModel)
-                                    );
-                                }
-
-                                if (props.onViewPage) {
-                                    const route: Route = await props.onViewPage(
-                                        baseModel
-                                    );
-
-                                    onCompleteAction();
-
-                                    if (props.onViewComplete) {
-                                        props.onViewComplete(baseModel);
-                                    }
-
-                                    return Navigation.navigate(route);
-                                }
-
-                                if (!props.viewPageRoute) {
-                                    throw new BadDataException(
-                                        'props.viewPageRoute not found'
-                                    );
-                                }
-
-                                onCompleteAction();
-                                if (props.onViewComplete) {
-                                    props.onViewComplete(baseModel);
-                                }
-
-                                const id: string = baseModel.id?.toString() || '';
-
-                                return Navigation.navigate(
-                                    new Route(
-                                        props.viewPageRoute.toString()
-                                    ).addRoute('/' + id)
-                                );
-                            } catch (err) {
-                                onError(err as Error);
-                            }
-                        },
-                    });
-                }
-
-                if (props.isEditable && model.hasUpdatePermissions(permissions)) {
-                    actionsSchema.push({
-                        title: props.editButtonText || 'Edit',
-                        buttonStyleType: ButtonStyleType.OUTLINE,
-                        onClick: async (
-                            item: JSONObject,
-                            onCompleteAction: VoidFunction,
-                            onError: ErrorFunction
-                        ) => {
-                            try {
-                                if (props.onBeforeEdit) {
-                                    item = props.callbacks.getJSONFromModel(
-                                        await props.onBeforeEdit(
-                                            props.callbacks.getModelFromJSON(item)
-                                        )
-                                    );
-                                }
-
-                                setModalType(ModalType.Edit);
-                                setShowModal(true);
-                                setCurrentEditableItem(item);
-
-                                onCompleteAction();
-                            } catch (err) {
-                                onError(err as Error);
-                            }
-                        },
-                    });
-                }
-
-                if (props.isDeleteable && model.hasDeletePermissions(permissions)) {
-                    actionsSchema.push({
-                        title: props.deleteButtonText || 'Delete',
-                        icon: IconProp.Trash,
-                        buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-                        onClick: async (
-                            item: JSONObject,
-                            onCompleteAction: VoidFunction,
-                            onError: ErrorFunction
-                        ) => {
-                            try {
-                                if (props.onBeforeDelete) {
-                                    item = props.callbacks.getJSONFromModel(
-                                        await props.onBeforeDelete(
-                                            props.callbacks.getModelFromJSON(item)
-                                        )
-                                    );
-                                }
-
-                                setShowDeleteConfirmModal(true);
-                                setCurrentDeleteableItem(item);
-                                onCompleteAction();
-                            } catch (err) {
-                                onError(err as Error);
-                            }
-                        },
-                    });
-                }
-            }
-
-            setActionButtonSchema(actionsSchema);
-        };
-
-        const getTable: GetReactElementFunction = (): ReactElement => {
-            return (
-                <Table
-                    onFilterChanged={(filterData: FilterData) => {
-                        const newQuery: Query<TBaseModel> = {};
-
-                        for (const key in filterData) {
-                            if (
-                                filterData[key] &&
-                                typeof filterData[key] === Typeof.String
-                            ) {
-                                newQuery[key as keyof TBaseModel] = (
-                                    filterData[key] || ''
-                                ).toString();
-                            }
-
-                            if (typeof filterData[key] === Typeof.Boolean) {
-                                newQuery[key as keyof TBaseModel] = Boolean(
-                                    filterData[key]
-                                );
-                            }
-
-                            if (filterData[key] instanceof Date) {
-                                newQuery[key as keyof TBaseModel] = filterData[key];
-                            }
-
-                            if (filterData[key] instanceof Search) {
-                                newQuery[key as keyof TBaseModel] = filterData[key];
-                            }
-
-                            if (filterData[key] instanceof InBetween) {
-                                newQuery[key as keyof TBaseModel] = filterData[key];
-                            }
-
-                            if (Array.isArray(filterData[key])) {
-                                newQuery[key as keyof TBaseModel] = filterData[key];
-                            }
-                        }
-
-                        setQuery(newQuery);
-                    }}
-                    onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
-                        setSortBy(sortBy);
-                        setSortOrder(sortOrder);
-                    }}
-                    onTableFilterRefreshClick={async () => {
-                        await getFilterDropdownItems();
-                    }}
-                    singularLabel={
-                        props.singularName || model.singularName || 'Item'
-                    }
-                    pluralLabel={props.pluralName || model.pluralName || 'Items'}
-                    error={error}
-                    currentPageNumber={currentPageNumber}
-                    isLoading={isLoading}
-                    enableDragAndDrop={props.enableDragAndDrop}
-                    dragDropIdField={'_id'}
-                    dragDropIndexField={props.dragDropIndexField}
-                    totalItemsCount={totalItemsCount}
-                    data={props.callbacks.toJSONArray(data)}
-                    filterError={tableFilterError}
-                    id={props.id}
-                    columns={tableColumns}
-                    itemsOnPage={itemsOnPage}
-                    onDragDrop={async (id: string, newOrder: number) => {
-                        if (!props.dragDropIndexField) {
-                            return;
-                        }
-
-                        setIsLoading(true);
-
-                        await props.callbacks.updateById({
-                            id: new ObjectID(id),
-                            data: {
-                                [props.dragDropIndexField]: newOrder,
-                            },
-                        });
-
-                        await fetchItems();
-                    }}
-                    disablePagination={props.disablePagination || false}
-                    isTableFilterLoading={isTableFilterFetchLoading}
-                    onNavigateToPage={async (
-                        pageNumber: number,
-                        itemsOnPage: number
-                    ) => {
-                        setCurrentPageNumber(pageNumber);
-                        setItemsOnPage(itemsOnPage);
-                    }}
-                    showFilter={showTableFilter}
-                    noItemsMessage={props.noItemsMessage || ''}
-                    onRefreshClick={async () => {
-                        await fetchItems();
-                    }}
-                    actionButtons={actionButtonSchema}
-                />
-            );
-        };
-
-        const getOrderedStatesList: GetReactElementFunction =
-            (): ReactElement => {
-                if (!props.orderedStatesListProps) {
-                    throw new BadDataException(
-                        'props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList'
-                    );
-                }
-
-                let getTitleElement:
-                    | ((
+            if (props.isDeleteable && model.hasDeletePermissions(permissions)) {
+                actionsSchema.push({
+                    title: props.deleteButtonText || 'Delete',
+                    icon: IconProp.Trash,
+                    buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+                    onClick: async (
                         item: JSONObject,
-                        onBeforeFetchData?: JSONObject | undefined
-                    ) => ReactElement)
-                    | undefined = undefined;
-                let getDescriptionElement:
-                    | ((item: JSONObject) => ReactElement)
-                    | undefined = undefined;
-
-                for (const column of props.columns) {
-                    const key: string | undefined = Object.keys(
-                        column.field as SelectEntityField<TBaseModel>
-                    )[0];
-
-                    if (key === props.orderedStatesListProps.titleField) {
-                        getTitleElement = column.getElement;
-                    }
-
-                    if (key === props.orderedStatesListProps.descriptionField) {
-                        getDescriptionElement = column.getElement;
-                    }
-                }
-
-                return (
-                    <OrderedStatesList
-                        error={error}
-                        isLoading={isLoading}
-                        data={props.callbacks.toJSONArray(data)}
-                        id={props.id}
-                        titleField={props.orderedStatesListProps?.titleField || ''}
-                        descriptionField={
-                            props.orderedStatesListProps?.descriptionField || ''
-                        }
-                        orderField={props.orderedStatesListProps?.orderField || ''}
-                        shouldAddItemInTheBeginning={
-                            props.orderedStatesListProps.shouldAddItemInTheBeginning
-                        }
-                        shouldAddItemInTheEnd={
-                            props.orderedStatesListProps.shouldAddItemInTheEnd
-                        }
-                        noItemsMessage={props.noItemsMessage || ''}
-                        onRefreshClick={() => {
-                            fetchItems();
-                        }}
-                        onCreateNewItem={
-                            props.isCreateable
-                                ? (order: number) => {
-                                    setOrderedStatesListNewItemOrder(order);
-                                    setModalType(ModalType.Create);
-                                    setShowModal(true);
-                                }
-                                : undefined
-                        }
-                        singularLabel={
-                            props.singularName || model.singularName || 'Item'
-                        }
-                        actionButtons={actionButtonSchema}
-                        getTitleElement={getTitleElement}
-                        getDescriptionElement={getDescriptionElement}
-                    />
-                );
-            };
-
-        const getList: GetReactElementFunction = (): ReactElement => {
-            return (
-                <List
-                    singularLabel={
-                        props.singularName || model.singularName || 'Item'
-                    }
-                    pluralLabel={props.pluralName || model.pluralName || 'Items'}
-                    error={error}
-                    currentPageNumber={currentPageNumber}
-                    listDetailOptions={props.listDetailOptions}
-                    enableDragAndDrop={props.enableDragAndDrop}
-                    onDragDrop={async (id: string, newOrder: number) => {
-                        if (!props.dragDropIndexField) {
-                            return;
-                        }
-
-                        setIsLoading(true);
-
-                        await props.callbacks.updateById({
-                            id: new ObjectID(id),
-                            data: {
-                                [props.dragDropIndexField]: newOrder,
-                            },
-                        });
-
-                        fetchItems();
-                    }}
-                    dragDropIdField={'_id'}
-                    dragDropIndexField={props.dragDropIndexField}
-                    isLoading={isLoading}
-                    totalItemsCount={totalItemsCount}
-                    data={props.callbacks.toJSONArray(data)}
-                    id={props.id}
-                    fields={fields}
-                    itemsOnPage={itemsOnPage}
-                    disablePagination={props.disablePagination || false}
-                    onNavigateToPage={async (
-                        pageNumber: number,
-                        itemsOnPage: number
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
                     ) => {
-                        setCurrentPageNumber(pageNumber);
-                        setItemsOnPage(itemsOnPage);
-                    }}
-                    noItemsMessage={props.noItemsMessage || ''}
-                    onRefreshClick={() => {
-                        fetchItems();
-                    }}
-                    actionButtons={actionButtonSchema}
-                />
+                        try {
+                            if (props.onBeforeDelete) {
+                                item = props.callbacks.getJSONFromModel(
+                                    await props.onBeforeDelete(
+                                        props.callbacks.getModelFromJSON(item)
+                                    )
+                                );
+                            }
+
+                            setShowDeleteConfirmModal(true);
+                            setCurrentDeleteableItem(item);
+                            onCompleteAction();
+                        } catch (err) {
+                            onError(err as Error);
+                        }
+                    },
+                });
+            }
+        }
+
+        setActionButtonSchema(actionsSchema);
+    };
+
+    const getTable: GetReactElementFunction = (): ReactElement => {
+        return (
+            <Table
+                onFilterChanged={(filterData: FilterData) => {
+                    const newQuery: Query<TBaseModel> = {};
+
+                    for (const key in filterData) {
+                        if (
+                            filterData[key] &&
+                            typeof filterData[key] === Typeof.String
+                        ) {
+                            newQuery[key as keyof TBaseModel] = (
+                                filterData[key] || ''
+                            ).toString();
+                        }
+
+                        if (typeof filterData[key] === Typeof.Boolean) {
+                            newQuery[key as keyof TBaseModel] = Boolean(
+                                filterData[key]
+                            );
+                        }
+
+                        if (filterData[key] instanceof Date) {
+                            newQuery[key as keyof TBaseModel] = filterData[key];
+                        }
+
+                        if (filterData[key] instanceof Search) {
+                            newQuery[key as keyof TBaseModel] = filterData[key];
+                        }
+
+                        if (filterData[key] instanceof InBetween) {
+                            newQuery[key as keyof TBaseModel] = filterData[key];
+                        }
+
+                        if (Array.isArray(filterData[key])) {
+                            newQuery[key as keyof TBaseModel] = filterData[key];
+                        }
+                    }
+
+                    setQuery(newQuery);
+                }}
+                onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
+                    setSortBy(sortBy);
+                    setSortOrder(sortOrder);
+                }}
+                onTableFilterRefreshClick={async () => {
+                    await getFilterDropdownItems();
+                }}
+                singularLabel={
+                    props.singularName || model.singularName || 'Item'
+                }
+                pluralLabel={props.pluralName || model.pluralName || 'Items'}
+                error={error}
+                currentPageNumber={currentPageNumber}
+                isLoading={isLoading}
+                enableDragAndDrop={props.enableDragAndDrop}
+                dragDropIdField={'_id'}
+                dragDropIndexField={props.dragDropIndexField}
+                totalItemsCount={totalItemsCount}
+                data={props.callbacks.toJSONArray(data)}
+                filterError={tableFilterError}
+                id={props.id}
+                columns={tableColumns}
+                itemsOnPage={itemsOnPage}
+                onDragDrop={async (id: string, newOrder: number) => {
+                    if (!props.dragDropIndexField) {
+                        return;
+                    }
+
+                    setIsLoading(true);
+
+                    await props.callbacks.updateById({
+                        id: new ObjectID(id),
+                        data: {
+                            [props.dragDropIndexField]: newOrder,
+                        },
+                    });
+
+                    await fetchItems();
+                }}
+                disablePagination={props.disablePagination || false}
+                isTableFilterLoading={isTableFilterFetchLoading}
+                onNavigateToPage={async (
+                    pageNumber: number,
+                    itemsOnPage: number
+                ) => {
+                    setCurrentPageNumber(pageNumber);
+                    setItemsOnPage(itemsOnPage);
+                }}
+                showFilter={showTableFilter}
+                noItemsMessage={props.noItemsMessage || ''}
+                onRefreshClick={async () => {
+                    await fetchItems();
+                }}
+                actionButtons={actionButtonSchema}
+            />
+        );
+    };
+
+    const getOrderedStatesList: GetReactElementFunction = (): ReactElement => {
+        if (!props.orderedStatesListProps) {
+            throw new BadDataException(
+                'props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList'
             );
-        };
+        }
 
-        const getCardTitle: Function = (
-            title: ReactElement | string
-        ): ReactElement => {
-            const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
+        let getTitleElement:
+            | ((
+                  item: JSONObject,
+                  onBeforeFetchData?: JSONObject | undefined
+              ) => ReactElement)
+            | undefined = undefined;
+        let getDescriptionElement:
+            | ((item: JSONObject) => ReactElement)
+            | undefined = undefined;
 
-            let showPlan: boolean = Boolean(
-                BILLING_ENABLED &&
+        for (const column of props.columns) {
+            const key: string | undefined = Object.keys(
+                column.field as SelectEntityField<TBaseModel>
+            )[0];
+
+            if (key === props.orderedStatesListProps.titleField) {
+                getTitleElement = column.getElement;
+            }
+
+            if (key === props.orderedStatesListProps.descriptionField) {
+                getDescriptionElement = column.getElement;
+            }
+        }
+
+        return (
+            <OrderedStatesList
+                error={error}
+                isLoading={isLoading}
+                data={props.callbacks.toJSONArray(data)}
+                id={props.id}
+                titleField={props.orderedStatesListProps?.titleField || ''}
+                descriptionField={
+                    props.orderedStatesListProps?.descriptionField || ''
+                }
+                orderField={props.orderedStatesListProps?.orderField || ''}
+                shouldAddItemInTheBeginning={
+                    props.orderedStatesListProps.shouldAddItemInTheBeginning
+                }
+                shouldAddItemInTheEnd={
+                    props.orderedStatesListProps.shouldAddItemInTheEnd
+                }
+                noItemsMessage={props.noItemsMessage || ''}
+                onRefreshClick={() => {
+                    fetchItems();
+                }}
+                onCreateNewItem={
+                    props.isCreateable
+                        ? (order: number) => {
+                              setOrderedStatesListNewItemOrder(order);
+                              setModalType(ModalType.Create);
+                              setShowModal(true);
+                          }
+                        : undefined
+                }
+                singularLabel={
+                    props.singularName || model.singularName || 'Item'
+                }
+                actionButtons={actionButtonSchema}
+                getTitleElement={getTitleElement}
+                getDescriptionElement={getDescriptionElement}
+            />
+        );
+    };
+
+    const getList: GetReactElementFunction = (): ReactElement => {
+        return (
+            <List
+                singularLabel={
+                    props.singularName || model.singularName || 'Item'
+                }
+                pluralLabel={props.pluralName || model.pluralName || 'Items'}
+                error={error}
+                currentPageNumber={currentPageNumber}
+                listDetailOptions={props.listDetailOptions}
+                enableDragAndDrop={props.enableDragAndDrop}
+                onDragDrop={async (id: string, newOrder: number) => {
+                    if (!props.dragDropIndexField) {
+                        return;
+                    }
+
+                    setIsLoading(true);
+
+                    await props.callbacks.updateById({
+                        id: new ObjectID(id),
+                        data: {
+                            [props.dragDropIndexField]: newOrder,
+                        },
+                    });
+
+                    fetchItems();
+                }}
+                dragDropIdField={'_id'}
+                dragDropIndexField={props.dragDropIndexField}
+                isLoading={isLoading}
+                totalItemsCount={totalItemsCount}
+                data={props.callbacks.toJSONArray(data)}
+                id={props.id}
+                fields={fields}
+                itemsOnPage={itemsOnPage}
+                disablePagination={props.disablePagination || false}
+                onNavigateToPage={async (
+                    pageNumber: number,
+                    itemsOnPage: number
+                ) => {
+                    setCurrentPageNumber(pageNumber);
+                    setItemsOnPage(itemsOnPage);
+                }}
+                noItemsMessage={props.noItemsMessage || ''}
+                onRefreshClick={() => {
+                    fetchItems();
+                }}
+                actionButtons={actionButtonSchema}
+            />
+        );
+    };
+
+    const getCardTitle: Function = (
+        title: ReactElement | string
+    ): ReactElement => {
+        const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
+
+        let showPlan: boolean = Boolean(
+            BILLING_ENABLED &&
                 plan &&
                 new props.modelType().getReadBillingPlan() &&
                 !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
@@ -1263,14 +1263,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     plan,
                     getAllEnvVars()
                 )
-            );
+        );
 
-            let planName: string = new props.modelType().getReadBillingPlan()!;
+        let planName: string = new props.modelType().getReadBillingPlan()!;
 
-            if (props.isCreateable && !showPlan) {
-                // if createable then read create billing permissions.
-                showPlan = Boolean(
-                    BILLING_ENABLED &&
+        if (props.isCreateable && !showPlan) {
+            // if createable then read create billing permissions.
+            showPlan = Boolean(
+                BILLING_ENABLED &&
                     plan &&
                     new props.modelType().getCreateBillingPlan() &&
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
@@ -1278,95 +1278,61 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         plan,
                         getAllEnvVars()
                     )
-                );
-
-                planName = new props.modelType().getCreateBillingPlan()!;
-            }
-
-            return (
-                <span>
-                    {title}
-                    {showPlan && (
-                        <span
-                            style={{
-                                marginLeft: '5px',
-                            }}
-                        >
-                            <Pill text={`${planName} Plan`} color={Yellow} />
-                        </span>
-                    )}
-                </span>
             );
-        };
 
-        const getCardComponent: GetReactElementFunction = (): ReactElement => {
-            if (showTableAs === ShowTableAs.List) {
-                return (
-                    <div>
-                        {props.cardProps && (
-                            <Card
-                                bodyClassName="-ml-6 -mr-6 bg-gray-50 border-top"
-                                {...props.cardProps}
-                                buttons={cardButtons}
-                                title={getCardTitle(props.cardProps.title)}
-                            >
-                                <div className="mt-6 border-t border-gray-200">
-                                    <div className="ml-6 mr-6  pt-6">
-                                        {tableColumns.length === 0 &&
-                                            props.columns.length > 0 && (
-                                                <ErrorMessage
-                                                    error={`You are not authorized to view this list. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                                        model.getReadPermissions()
-                                                    ).join(', ')}`}
-                                                />
-                                            )}
-                                        {!(
-                                            tableColumns.length === 0 &&
-                                            props.columns.length > 0
-                                        ) && getList()}
-                                    </div>
+            planName = new props.modelType().getCreateBillingPlan()!;
+        }
+
+        return (
+            <span>
+                {title}
+                {showPlan && (
+                    <span
+                        style={{
+                            marginLeft: '5px',
+                        }}
+                    >
+                        <Pill text={`${planName} Plan`} color={Yellow} />
+                    </span>
+                )}
+            </span>
+        );
+    };
+
+    const getCardComponent: GetReactElementFunction = (): ReactElement => {
+        if (showTableAs === ShowTableAs.List) {
+            return (
+                <div>
+                    {props.cardProps && (
+                        <Card
+                            bodyClassName="-ml-6 -mr-6 bg-gray-50 border-top"
+                            {...props.cardProps}
+                            buttons={cardButtons}
+                            title={getCardTitle(props.cardProps.title)}
+                        >
+                            <div className="mt-6 border-t border-gray-200">
+                                <div className="ml-6 mr-6  pt-6">
+                                    {tableColumns.length === 0 &&
+                                        props.columns.length > 0 && (
+                                            <ErrorMessage
+                                                error={`You are not authorized to view this list. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                                    model.getReadPermissions()
+                                                ).join(', ')}`}
+                                            />
+                                        )}
+                                    {!(
+                                        tableColumns.length === 0 &&
+                                        props.columns.length > 0
+                                    ) && getList()}
                                 </div>
-                            </Card>
-                        )}
+                            </div>
+                        </Card>
+                    )}
 
-                        {!props.cardProps && getList()}
-                    </div>
-                );
-            } else if (showTableAs === ShowTableAs.Table) {
-                return (
-                    <div>
-                        {props.cardProps && (
-                            <Card
-                                {...props.cardProps}
-                                buttons={cardButtons}
-                                title={getCardTitle(props.cardProps.title)}
-                            >
-                                {tableColumns.length === 0 &&
-                                    props.columns.length > 0 ? (
-                                    <ErrorMessage
-                                        error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                            model.getReadPermissions()
-                                        ).join(', ')}`}
-                                    />
-                                ) : (
-                                    <></>
-                                )}
-                                {!(
-                                    tableColumns.length === 0 &&
-                                    props.columns.length > 0
-                                ) ? (
-                                    getTable()
-                                ) : (
-                                    <></>
-                                )}
-                            </Card>
-                        )}
-
-                        {!props.cardProps && getTable()}
-                    </div>
-                );
-            }
-
+                    {!props.cardProps && getList()}
+                </div>
+            );
+        } else if (showTableAs === ShowTableAs.Table) {
             return (
                 <div>
                     {props.cardProps && (
@@ -1375,149 +1341,184 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
-                            {getOrderedStatesList()}
+                            {tableColumns.length === 0 &&
+                            props.columns.length > 0 ? (
+                                <ErrorMessage
+                                    error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                        model.getReadPermissions()
+                                    ).join(', ')}`}
+                                />
+                            ) : (
+                                <></>
+                            )}
+                            {!(
+                                tableColumns.length === 0 &&
+                                props.columns.length > 0
+                            ) ? (
+                                getTable()
+                            ) : (
+                                <></>
+                            )}
                         </Card>
                     )}
 
-                    {!props.cardProps && getOrderedStatesList()}
+                    {!props.cardProps && getTable()}
                 </div>
             );
-        };
+        }
 
         return (
-            <>
-                <div className="mb-5 mt-5">{getCardComponent()}</div>
-
-                {showModel ? (
-                    props.callbacks.showCreateEditModal({
-                        onClose: () => {
-                            setShowModal(false);
-                        },
-                        modalType: modalType,
-                        onBeforeCreate: async (
-                            item: TBaseModel,
-                            miscDataProps: JSONObject
-                        ) => {
-                            if (
-                                showTableAs === ShowTableAs.OrderedStatesList &&
-                                props.orderedStatesListProps?.orderField &&
-                                orderedStatesListNewItemOrder
-                            ) {
-                                item.setColumnValue(
-                                    props.orderedStatesListProps.orderField,
-                                    orderedStatesListNewItemOrder
-                                );
-                            }
-
-                            if (props.onBeforeCreate) {
-                                item = await props.onBeforeCreate(
-                                    item,
-                                    miscDataProps
-                                );
-                            }
-
-                            return item;
-                        },
-                        onSuccess: async (item: TBaseModel): Promise<void> => {
-                            setShowModal(false);
-                            setCurrentPageNumber(1);
-                            await fetchItems();
-                            if (props.onCreateSuccess) {
-                                await props.onCreateSuccess(item);
-                            }
-
-                            return Promise.resolve();
-                        },
-                        modelIdToEdit: currentEditableItem
-                            ? new ObjectID(currentEditableItem['_id'] as string)
-                            : undefined,
-                    })
-                ) : (
-                    <></>
+            <div>
+                {props.cardProps && (
+                    <Card
+                        {...props.cardProps}
+                        buttons={cardButtons}
+                        title={getCardTitle(props.cardProps.title)}
+                    >
+                        {getOrderedStatesList()}
+                    </Card>
                 )}
 
-                {showDeleteConfirmModal && (
-                    <ConfirmModal
-                        title={`Delete ${props.singularName || model.singularName}`}
-                        description={`Are you sure you want to delete this ${(
-                            props.singularName ||
-                            model.singularName ||
-                            'item'
-                        )?.toLowerCase()}?`}
-                        onClose={() => {
-                            setShowDeleteConfirmModal(false);
-                        }}
-                        submitButtonText={'Delete'}
-                        onSubmit={() => {
-                            if (
-                                currentDeleteableItem &&
-                                currentDeleteableItem['_id']
-                            ) {
-                                deleteItem(
-                                    props.callbacks.getModelFromJSON(
-                                        currentDeleteableItem
-                                    )
-                                );
-                                setShowDeleteConfirmModal(false);
-                            }
-                        }}
-                        submitButtonType={ButtonStyleType.DANGER}
-                    />
-                )}
-
-                {errorModalText && (
-                    <ConfirmModal
-                        title={`Error`}
-                        description={`${errorModalText}`}
-                        submitButtonText={'Close'}
-                        onSubmit={() => {
-                            setErrorModalText('');
-                        }}
-                        submitButtonType={ButtonStyleType.NORMAL}
-                    />
-                )}
-
-                {showViewIdModal && (
-                    <ConfirmModal
-                        title={`${props.singularName || model.singularName || ''
-                            } ID`}
-                        description={
-                            <div>
-                                <span>
-                                    ID of this{' '}
-                                    {props.singularName || model.singularName || ''}
-                                    : {viewId}
-                                </span>
-                                <br />
-                                <br />
-
-                                <span>
-                                    You can use this ID to interact with{' '}
-                                    {props.singularName || model.singularName || ''}{' '}
-                                    via the OneUptime API. Click the button below to
-                                    go to API Documentation.
-                                </span>
-                            </div>
-                        }
-                        onClose={() => {
-                            setShowViewIdModal(false);
-                        }}
-                        submitButtonText={'Go to API Docs'}
-                        onSubmit={() => {
-                            setShowViewIdModal(false);
-                            Navigation.navigate(
-                                URL.fromString(API_DOCS_URL.toString()).addRoute(
-                                    '/' + model.getAPIDocumentationPath()
-                                ),
-                                { openInNewTab: true }
-                            );
-                        }}
-                        submitButtonType={ButtonStyleType.NORMAL}
-                        closeButtonType={ButtonStyleType.OUTLINE}
-                    />
-                )}
-            </>
+                {!props.cardProps && getOrderedStatesList()}
+            </div>
         );
     };
+
+    return (
+        <>
+            <div className="mb-5 mt-5">{getCardComponent()}</div>
+
+            {showModel ? (
+                props.callbacks.showCreateEditModal({
+                    onClose: () => {
+                        setShowModal(false);
+                    },
+                    modalType: modalType,
+                    onBeforeCreate: async (
+                        item: TBaseModel,
+                        miscDataProps: JSONObject
+                    ) => {
+                        if (
+                            showTableAs === ShowTableAs.OrderedStatesList &&
+                            props.orderedStatesListProps?.orderField &&
+                            orderedStatesListNewItemOrder
+                        ) {
+                            item.setColumnValue(
+                                props.orderedStatesListProps.orderField,
+                                orderedStatesListNewItemOrder
+                            );
+                        }
+
+                        if (props.onBeforeCreate) {
+                            item = await props.onBeforeCreate(
+                                item,
+                                miscDataProps
+                            );
+                        }
+
+                        return item;
+                    },
+                    onSuccess: async (item: TBaseModel): Promise<void> => {
+                        setShowModal(false);
+                        setCurrentPageNumber(1);
+                        await fetchItems();
+                        if (props.onCreateSuccess) {
+                            await props.onCreateSuccess(item);
+                        }
+
+                        return Promise.resolve();
+                    },
+                    modelIdToEdit: currentEditableItem
+                        ? new ObjectID(currentEditableItem['_id'] as string)
+                        : undefined,
+                })
+            ) : (
+                <></>
+            )}
+
+            {showDeleteConfirmModal && (
+                <ConfirmModal
+                    title={`Delete ${props.singularName || model.singularName}`}
+                    description={`Are you sure you want to delete this ${(
+                        props.singularName ||
+                        model.singularName ||
+                        'item'
+                    )?.toLowerCase()}?`}
+                    onClose={() => {
+                        setShowDeleteConfirmModal(false);
+                    }}
+                    submitButtonText={'Delete'}
+                    onSubmit={() => {
+                        if (
+                            currentDeleteableItem &&
+                            currentDeleteableItem['_id']
+                        ) {
+                            deleteItem(
+                                props.callbacks.getModelFromJSON(
+                                    currentDeleteableItem
+                                )
+                            );
+                            setShowDeleteConfirmModal(false);
+                        }
+                    }}
+                    submitButtonType={ButtonStyleType.DANGER}
+                />
+            )}
+
+            {errorModalText && (
+                <ConfirmModal
+                    title={`Error`}
+                    description={`${errorModalText}`}
+                    submitButtonText={'Close'}
+                    onSubmit={() => {
+                        setErrorModalText('');
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                />
+            )}
+
+            {showViewIdModal && (
+                <ConfirmModal
+                    title={`${
+                        props.singularName || model.singularName || ''
+                    } ID`}
+                    description={
+                        <div>
+                            <span>
+                                ID of this{' '}
+                                {props.singularName || model.singularName || ''}
+                                : {viewId}
+                            </span>
+                            <br />
+                            <br />
+
+                            <span>
+                                You can use this ID to interact with{' '}
+                                {props.singularName || model.singularName || ''}{' '}
+                                via the OneUptime API. Click the button below to
+                                go to API Documentation.
+                            </span>
+                        </div>
+                    }
+                    onClose={() => {
+                        setShowViewIdModal(false);
+                    }}
+                    submitButtonText={'Go to API Docs'}
+                    onSubmit={() => {
+                        setShowViewIdModal(false);
+                        Navigation.navigate(
+                            URL.fromString(API_DOCS_URL.toString()).addRoute(
+                                '/' + model.getAPIDocumentationPath()
+                            ),
+                            { openInNewTab: true }
+                        );
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                    closeButtonType={ButtonStyleType.OUTLINE}
+                />
+            )}
+        </>
+    );
+};
 
 export default BaseModelTable;

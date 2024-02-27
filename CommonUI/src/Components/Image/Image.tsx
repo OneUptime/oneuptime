@@ -31,9 +31,11 @@ export class ImageFunctions {
 const Image: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-type GetImageElementFunction = (url: string) => ReactElement;
+    type GetImageElementFunction = (url: string) => ReactElement;
 
-    const getImageElement: GetImageElementFunction = (url: string): ReactElement => {
+    const getImageElement: GetImageElementFunction = (
+        url: string
+    ): ReactElement => {
         return (
             <img
                 onClick={() => {
