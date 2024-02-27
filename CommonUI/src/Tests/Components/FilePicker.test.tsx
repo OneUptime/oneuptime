@@ -49,7 +49,9 @@ interface DataTransfer {
     };
 }
 
-const mockCreateResponse: Function = async (
+type MockCreateResponseFunction = (file: File) => Promise<HTTPResponse<FileModel>>;
+
+const mockCreateResponse: MockCreateResponseFunction = async (
     file: File
 ): Promise<HTTPResponse<FileModel>> => {
     return new HTTPResponse(
@@ -65,7 +67,9 @@ const mockCreateResponse: Function = async (
     );
 };
 
-const mockFileModel: Function = async (file: File): Promise<FileModel> => {
+type MockFileModelFunctionType = (file: File) => Promise<FileModel>;
+
+const mockFileModel: MockFileModelFunctionType = async (file: File): Promise<FileModel> => {
     const fileModel: FileModel = new FileModel(new ObjectID('123'));
     fileModel.name = file.name;
     fileModel.type = file.type as MimeType;
@@ -75,7 +79,9 @@ const mockFileModel: Function = async (file: File): Promise<FileModel> => {
     return fileModel;
 };
 
-const mockFile: Function = (): File => {
+type MockFileFunctionType = () => File;
+
+const mockFile: MockFileFunctionType = (): File => {
     const mockArrayBuffer: jest.Mock = jest.fn();
     mockArrayBuffer.mockResolvedValue(new ArrayBuffer(10)); // Mocked array buffer of size 10
 
