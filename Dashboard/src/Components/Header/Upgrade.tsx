@@ -17,7 +17,7 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
     const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
 
-    const getFooter: Function = (): ReactElement => {
+    const getFooter: GetReactElementFunctionType = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }

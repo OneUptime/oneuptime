@@ -34,9 +34,9 @@ type BarTooltipFunctionProps = {
     };
 };
 
-type GetBarTooltipFunctionType = (data: BarTooltipFunctionProps) => ReactElement;
-
-
+type GetBarTooltipFunctionType = (
+    data: BarTooltipFunctionProps
+) => ReactElement;
 
 const TraceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -155,9 +155,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         }
     };
 
-
-
-    const getBarTooltip: GetBarTooltipFunctionType = (data: BarTooltipFunctionProps): ReactElement => {
+    const getBarTooltip: GetBarTooltipFunctionType = (
+        data: BarTooltipFunctionProps
+    ): ReactElement => {
         const {
             span,
             timelineStartTimeUnixNano,
@@ -187,7 +187,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                             {Math.round(
                                 (span.startTimeUnixNano! -
                                     timelineStartTimeUnixNano) /
-                                divisibilityFactorAndIntervalUnit.divisibilityFactor
+                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
                             )}{' '}
                             {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
@@ -198,7 +198,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                             {Math.round(
                                 (span.endTimeUnixNano! -
                                     timelineStartTimeUnixNano) /
-                                divisibilityFactorAndIntervalUnit.divisibilityFactor
+                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
                             )}{' '}
                             {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
@@ -208,7 +208,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         <div>
                             {Math.round(
                                 span.durationUnixNano! /
-                                divisibilityFactorAndIntervalUnit.divisibilityFactor
+                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
                             )}{' '}
                             {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
@@ -376,7 +376,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         return (
                             service._id &&
                             service._id.toString() ===
-                            span.serviceId?.toString()
+                                span.serviceId?.toString()
                         );
                     })?.name || '',
             };

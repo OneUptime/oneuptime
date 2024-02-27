@@ -1002,7 +1002,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setActionButtonSchema(actionsSchema);
     };
 
-    const getTable: Function = (): ReactElement => {
+    const getTable: GetReactElementFunctionType = (): ReactElement => {
         return (
             <Table
                 onFilterChanged={(filterData: FilterData) => {
@@ -1101,7 +1101,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getOrderedStatesList: Function = (): ReactElement => {
+    const getOrderedStatesList: GetReactElementFunctionType = (): ReactElement => {
         if (!props.orderedStatesListProps) {
             throw new BadDataException(
                 'props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList'
@@ -1172,7 +1172,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getList: Function = (): ReactElement => {
+    const getList: GetReactElementFunctionType = (): ReactElement => {
         return (
             <List
                 singularLabel={
@@ -1274,7 +1274,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getCardComponent: Function = (): ReactElement => {
+    const getCardComponent: GetReactElementFunctionType = (): ReactElement => {
         if (showTableAs === ShowTableAs.List) {
             return (
                 <div>

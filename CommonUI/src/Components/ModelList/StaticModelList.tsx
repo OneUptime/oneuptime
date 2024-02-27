@@ -12,6 +12,7 @@ import {
     DroppableProvided,
 } from 'react-beautiful-dnd';
 import Icon from '../Icon/Icon';
+import { GetReactElementFunctionType } from '../../Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     list: Array<TBaseModel>;
@@ -172,7 +173,7 @@ const StaticModelList: <TBaseModel extends BaseModel>(
         );
     };
 
-    const getComponent: Function = (): ReactElement => {
+    const getComponent: GetReactElementFunctionType = (): ReactElement => {
         if (props.enableDragAndDrop) {
             return (
                 <Droppable droppableId={props.dragAndDropScope || ''}>

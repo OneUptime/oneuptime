@@ -20,6 +20,7 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import AdminModelAPI from '../../Utils/ModelAPI';
+import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
 
 const Projects: FunctionComponent = (): ReactElement => {
     const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
@@ -155,7 +156,7 @@ const Projects: FunctionComponent = (): ReactElement => {
 
     const [fields, setFields] = useState<Array<Field<Project>>>([]);
 
-    const getFooter: Function = (): ReactElement => {
+    const getFooter: GetReactElementFunctionType = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }

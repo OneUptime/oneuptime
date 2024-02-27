@@ -28,6 +28,7 @@ import CategoryCheckbox from '../../CategoryCheckbox/Index';
 import Typeof from 'Common/Types/Typeof';
 import Modal from '../../Modal/Modal';
 import Link from '../../Link/Link';
+import { GetReactElementFunctionType, GetReactElementOrStringFunctionType } from '../../../Types/FunctionTypes';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -75,7 +76,7 @@ const FormField: <T extends Object>(
         }
     };
 
-    const getFormField: Function = (): ReactElement => {
+    const getFormField: GetReactElementFunctionType = (): ReactElement => {
         const [
             showMultiSelectCheckboxCategoryModal,
             setShowMultiSelectCheckboxCategoryModal,
@@ -192,7 +193,7 @@ const FormField: <T extends Object>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
-        const getFieldDescription: Function = (): ReactElement | string => {
+        const getFieldDescription: GetReactElementOrStringFunctionType = (): ReactElement | string => {
             if (
                 props.field.fieldType ===
                     FormFieldSchemaType.MultiSelectDropdown &&

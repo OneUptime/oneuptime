@@ -81,7 +81,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         fetchGroups();
     }, []);
 
-    const getFooterForMonitor: Function = (): ReactElement => {
+    const getFooterForMonitor: GetReactElementFunctionType = (): ReactElement => {
         if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
             if (!addMonitorGroup) {
                 return (

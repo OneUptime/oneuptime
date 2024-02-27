@@ -155,7 +155,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const addLayerButton: Function = (): ReactElement => {
+    const addLayerButton: GetReactElementFunctionType = (): ReactElement => {
         return (
             <div className="-ml-3 mt-5">
                 <Button

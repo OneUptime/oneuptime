@@ -10,6 +10,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ProjectUser from '../../../Utils/ProjectUser';
 import UserElement from '../../User/User';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;
@@ -24,7 +25,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
     const [reloadList, setReloadList] = useState<boolean>(false);
 
-    const getAddUserButton: Function = (): ReactElement => {
+    const getAddUserButton: GetReactElementFunctionType = (): ReactElement => {
         return (
             <div className="flex w-full justify-center mt-5">
                 <Button

@@ -28,7 +28,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
-    const getModelTable: Function = (): ReactElement => {
+    const getModelTable: GetReactElementFunctionType = (): ReactElement => {
         return (
             <ModelTable<OnCallDutyPolicyExecutionLogTimeline>
                 modelType={OnCallDutyPolicyExecutionLogTimeline}
