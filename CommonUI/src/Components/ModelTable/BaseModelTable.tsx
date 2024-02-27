@@ -630,7 +630,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     useEffect(() => {
         if (showTableFilter) {
-            getFilterDropdownItems();
+            getFilterDropdownItems().catch((err: Error) => {
+                setTableFilterError(API.getFriendlyMessage(err));
+            });
         }
     }, [showTableFilter]);
 
@@ -769,7 +771,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
 
     useEffect(() => {
-        fetchItems();
+        fetchItems().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, [
         currentPageNumber,
         sortBy,
@@ -1182,8 +1186,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     props.orderedStatesListProps.shouldAddItemInTheEnd
                 }
                 noItemsMessage={props.noItemsMessage || ''}
-                onRefreshClick={() => {
-                    fetchItems();
+                onRefreshClick={async () => {
+                    await fetchItems();
                 }}
                 onCreateNewItem={
                     props.isCreateable
@@ -1229,7 +1233,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         },
                     });
 
-                    fetchItems();
+                    await fetchItems();
                 }}
                 dragDropIdField={'_id'}
                 dragDropIndexField={props.dragDropIndexField}
@@ -1248,15 +1252,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     setItemsOnPage(itemsOnPage);
                 }}
                 noItemsMessage={props.noItemsMessage || ''}
-                onRefreshClick={() => {
-                    fetchItems();
+                onRefreshClick={async () => {
+                    await fetchItems();
                 }}
                 actionButtons={actionButtonSchema}
             />
         );
     };
 
-    const getCardTitle: Function = (
+    type GetCardTitleFunction = (title: ReactElement | string) => ReactElement;
+
+    const getCardTitle: GetCardTitleFunction = (
         title: ReactElement | string
     ): ReactElement => {
         const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();

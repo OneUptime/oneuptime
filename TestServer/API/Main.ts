@@ -21,7 +21,7 @@ router.get(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await returnResponse(req, res, next);
+        returnResponse(req, res, next);
     }
 );
 
@@ -32,7 +32,7 @@ router.post(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await returnResponse(req, res, next);
+        returnResponse(req, res, next);
     }
 );
 

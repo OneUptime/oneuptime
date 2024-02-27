@@ -165,8 +165,8 @@ const Layers: FunctionComponent<ComponentProps> = (
                 <Button
                     title="Add New Layer"
                     isLoading={isAddbuttonLoading}
-                    onClick={() => {
-                        addLayer();
+                    onClick={async () => {
+                        await addLayer();
                     }}
                     icon={IconProp.Add}
                 />

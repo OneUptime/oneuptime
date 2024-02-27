@@ -14,7 +14,9 @@ describe('Card', () => {
         description: 'description',
     };
 
-    const renderComponent: Function = (props: ComponentProps): void => {
+    type RenderComponentFunction = (props: ComponentProps) => void;
+
+    const renderComponent: RenderComponentFunction = (props: ComponentProps): void => {
         render(<Card {...props} />);
     };
 

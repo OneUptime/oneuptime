@@ -60,7 +60,7 @@ router.post(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await processIncomingRequest(req, res, next);
+        processIncomingRequest(req, res, next);
     }
 );
 
@@ -71,7 +71,7 @@ router.get(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await processIncomingRequest(req, res, next);
+        processIncomingRequest(req, res, next);
     }
 );
 

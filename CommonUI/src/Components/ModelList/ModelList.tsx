@@ -63,11 +63,15 @@ const ModelList: <TBaseModel extends BaseModel>(
     }, [selectedList]);
 
     useEffect(() => {
-        fetchItems().catch();
+        fetchItems().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, [props.refreshToggle]);
 
     useEffect(() => {
-        fetchItems().catch();
+        fetchItems().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, []);
 
     useEffect(() => {
@@ -256,13 +260,13 @@ const ModelList: <TBaseModel extends BaseModel>(
                                 },
                             });
 
-                            fetchItems();
+                            await fetchItems();
                         }}
                         titleField={props.titleField}
                         onDelete={
                             props.isDeleteable
                                 ? async (item: TBaseModel) => {
-                                      deleteItem(item);
+                                      await deleteItem(item);
                                   }
                                 : undefined
                         }

@@ -47,7 +47,9 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         JSONObject | undefined
     >(undefined);
 
-    const getSelectFields: Function = (): Select<TBaseModel> => {
+    type GetSelectFields = () => Select<TBaseModel>;
+
+    const getSelectFields: GetSelectFields = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
         for (const field of props.fields) {
             const key: string | null = field.field

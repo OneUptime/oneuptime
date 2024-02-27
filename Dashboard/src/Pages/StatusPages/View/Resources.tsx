@@ -80,7 +80,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        fetchGroups();
+        fetchGroups().catch((err) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, []);
 
     const getFooterForMonitor: GetReactElementFunction = (): ReactElement => {

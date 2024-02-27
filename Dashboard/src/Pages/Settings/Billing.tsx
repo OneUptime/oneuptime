@@ -47,6 +47,7 @@ import ResellerPlan from 'Model/Models/ResellerPlan';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Icon from 'CommonUI/src/Components/Icon/Icon';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps extends PageComponentProps {}
 
