@@ -442,11 +442,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     field.fieldType === FormFieldSchemaType.Dropdown &&
                     (values as any)[fieldName]
                 ) {
-                    (values as any)[fieldName] = field.dropdownOptions?.filter(
-                        (option: DropdownOption) => {
-                            return option.value === (values as any)[fieldName];
-                        }
-                    )[0];
+                    const dropdownOption: DropdownOption | undefined =
+                        field.dropdownOptions?.find(
+                            (option: DropdownOption) => {
+                                return (
+                                    option.value === (values as any)[fieldName]
+                                );
+                            }
+                        );
+
+                    (values as any)[fieldName] = dropdownOption?.value || null;
                 }
 
                 if (
@@ -454,11 +459,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         FormFieldSchemaType.MultiSelectDropdown &&
                     (values as any)[fieldName]
                 ) {
-                    (values as any)[fieldName] = field.dropdownOptions?.filter(
+                    const dropdownOptions: Array<DropdownOption> =
+                        field.dropdownOptions?.filter(
+                            (option: DropdownOption) => {
+                                return (values as any)[fieldName].includes(
+                                    option.value
+                                );
+                            }
+                        ) || [];
+
+                    (values as any)[fieldName] = dropdownOptions.map(
                         (option: DropdownOption) => {
-                            return (values as any)[fieldName].includes(
-                                option.value
-                            );
+                            return option.value;
                         }
                     );
                 }

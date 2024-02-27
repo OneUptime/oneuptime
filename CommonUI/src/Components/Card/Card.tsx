@@ -31,7 +31,7 @@ const Card: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <div className={props.className}>
-                <div className="shadow sm:overflow-hidden sm:rounded-md">
+                <div className="shadow sm:rounded-md">
                     <div className="bg-white py-6 px-4 sm:p-6">
                         <div className="flex justify-between">
                             <div>
