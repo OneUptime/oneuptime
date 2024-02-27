@@ -11,6 +11,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import URL from 'Common/Types/API/URL';
 import API from 'CommonUI/src/Utils/API/API';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const VerifyEmail: () => JSX.Element = () => {
     const apiUrl: URL = VERIFY_EMAIL_API_URL;

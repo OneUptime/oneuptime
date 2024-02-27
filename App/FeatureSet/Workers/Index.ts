@@ -73,6 +73,7 @@ import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement'
 
 import './Jobs/Workflow/TimeoutJobs';
 import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const APP_NAME: string = 'api/workers';
 
@@ -101,7 +102,7 @@ const WorkersFeatureSet: FeatureSet = {
 
                     logger.info('Running Job: ' + name);
 
-                    const funcToRun: Function =
+                    const funcToRun: PromiseVoidFunction =
                         JobDictionary.getJobFunction(name);
 
                     if (funcToRun) {

@@ -24,7 +24,9 @@ export const InternalSmtpEmail: Email = new Email(
 export const InternalSmtpFromName: string =
     process.env['INTERNAL_SMTP_FROM_NAME'] || 'OneUptime';
 
-export const getGlobalSMTPConfig: Function =
+type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
+
+export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
     async (): Promise<EmailServer | null> => {
         const globalConfig: GlobalConfig | null =
             await GlobalConfigService.findOneBy({
@@ -71,7 +73,9 @@ export const getGlobalSMTPConfig: Function =
         };
     };
 
-export const getEmailServerType: Function =
+type GetEmailServerTypeFunction = () => Promise<EmailServerType>;
+
+export const getEmailServerType: GetEmailServerTypeFunction =
     async (): Promise<EmailServerType> => {
         const globalConfig: GlobalConfig | null =
             await GlobalConfigService.findOneBy({
@@ -99,7 +103,9 @@ export interface SendGridConfig {
     fromEmail: Email;
 }
 
-export const getSendgridConfig: Function =
+type GetSendgridConfigFunction = () => Promise<SendGridConfig | null>;
+
+export const getSendgridConfig: GetSendgridConfigFunction =
     async (): Promise<SendGridConfig | null> => {
         const globalConfig: GlobalConfig | null =
             await GlobalConfigService.findOneBy({
@@ -135,7 +141,9 @@ export const getSendgridConfig: Function =
         return null;
     };
 
-export const getTwilioConfig: Function =
+    type GetTwilioConfigFunction = () => Promise<TwilioConfig | null>;
+
+export const getTwilioConfig: GetTwilioConfigFunction =
     async (): Promise<TwilioConfig | null> => {
         const globalConfig: GlobalConfig | null =
             await GlobalConfigService.findOneBy({
