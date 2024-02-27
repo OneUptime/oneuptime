@@ -1,6 +1,7 @@
 import DomainCommon from 'Common/Types/Domain';
 import dns from 'dns';
 import logger from '../Utils/Logger';
+import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
 
 export default class Domain extends DomainCommon {
     public static verifyTxtRecord(
@@ -8,7 +9,7 @@ export default class Domain extends DomainCommon {
         verificationText: string
     ): Promise<boolean> {
         return new Promise(
-            (resolve: Function, reject: PromiseRejectErrorFunction) => {
+            (resolve: (isVerfified: boolean) => void, reject: PromiseRejectErrorFunction) => {
                 dns.resolveTxt(
                     domain.toString(),
                     (

@@ -162,49 +162,50 @@ export class Service extends DatabaseService<Model> {
             scheduleId: ObjectID | null
         ) => Promise<void>;
 
-        const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction = async (
-            userId: ObjectID,
-            teamId: ObjectID | null,
-            scheduleId: ObjectID | null
-        ): Promise<void> => {
-            // no users in this rule. Skipping.
-            let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-            log.statusMessage = 'Sending notification to user.';
-            log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
-            log.alertSentToUserId = userId;
-            if (teamId) {
-                log.userBelongsToTeamId = teamId;
-            }
-
-            if (scheduleId) {
-                log.onCallDutyScheduleId = scheduleId;
-            }
-
-            log = await OnCallDutyPolicyExecutionLogTimelineService.create({
-                data: log,
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            await UserNotificationRuleService.startUserNotificationRulesExecution(
-                userId,
-                {
-                    userNotificationEventType:
-                        options.userNotificationEventType!,
-                    triggeredByIncidentId:
-                        options.triggeredByIncidentId || undefined,
-                    onCallPolicyExecutionLogId:
-                        options.onCallPolicyExecutionLogId,
-                    onCallPolicyId: options.onCallPolicyId,
-                    onCallPolicyEscalationRuleId: ruleId,
-                    userBelongsToTeamId: teamId || undefined,
-                    onCallDutyPolicyExecutionLogTimelineId: log.id!,
-                    projectId: options.projectId,
-                    onCallScheduleId: scheduleId || undefined,
+        const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction =
+            async (
+                userId: ObjectID,
+                teamId: ObjectID | null,
+                scheduleId: ObjectID | null
+            ): Promise<void> => {
+                // no users in this rule. Skipping.
+                let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
+                log.statusMessage = 'Sending notification to user.';
+                log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
+                log.alertSentToUserId = userId;
+                if (teamId) {
+                    log.userBelongsToTeamId = teamId;
                 }
-            );
-        };
+
+                if (scheduleId) {
+                    log.onCallDutyScheduleId = scheduleId;
+                }
+
+                log = await OnCallDutyPolicyExecutionLogTimelineService.create({
+                    data: log,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                await UserNotificationRuleService.startUserNotificationRulesExecution(
+                    userId,
+                    {
+                        userNotificationEventType:
+                            options.userNotificationEventType!,
+                        triggeredByIncidentId:
+                            options.triggeredByIncidentId || undefined,
+                        onCallPolicyExecutionLogId:
+                            options.onCallPolicyExecutionLogId,
+                        onCallPolicyId: options.onCallPolicyId,
+                        onCallPolicyEscalationRuleId: ruleId,
+                        userBelongsToTeamId: teamId || undefined,
+                        onCallDutyPolicyExecutionLogTimelineId: log.id!,
+                        projectId: options.projectId,
+                        onCallScheduleId: scheduleId || undefined,
+                    }
+                );
+            };
 
         const uniqueUserIds: Array<ObjectID> = [];
 

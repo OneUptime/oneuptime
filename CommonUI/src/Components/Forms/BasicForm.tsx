@@ -37,7 +37,9 @@ import GenericObject from 'Common/Types/GenericObject';
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
 
-type DefaultValidateFunctionType = (values: FormValues<JSONObject>) => JSONObject;
+type DefaultValidateFunctionType = (
+    values: FormValues<JSONObject>
+) => JSONObject;
 
 export const DefaultValidateFunction: DefaultValidateFunctionType = (
     _values: FormValues<JSONObject>
