@@ -17,6 +17,7 @@ import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalat
 import ObjectID from 'Common/Types/ObjectID';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BaseModel from 'Common/Models/BaseModel';
+import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     onCallPolicyExecutionLogId: ObjectID;
