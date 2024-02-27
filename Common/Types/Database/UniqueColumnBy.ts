@@ -9,14 +9,23 @@ export default (columnName: string | Array<string>): ReflectionMetadataType => {
     return Reflect.metadata(uniqueColumnBy, columnName);
 };
 
-export const getUniqueColumnBy: Function = <T extends BaseModel>(
+type GetUniqueColumnByFunction = <T extends BaseModel>(
+    target: T,
+    propertyKey: string
+) => string;
+
+export const getUniqueColumnBy: GetUniqueColumnByFunction = <T extends BaseModel>(
     target: T,
     propertyKey: string
 ): string => {
     return Reflect.getMetadata(uniqueColumnBy, target, propertyKey) as string;
 };
 
-export const getUniqueColumnsBy: Function = <T extends BaseModel>(
+type GetUniqueColumnsByFunction = <T extends BaseModel>(
+    target: T
+) => Dictionary<string>;
+
+export const getUniqueColumnsBy: GetUniqueColumnsByFunction = <T extends BaseModel>(
     target: T
 ): Dictionary<string> => {
     const dictonary: Dictionary<string> = {};

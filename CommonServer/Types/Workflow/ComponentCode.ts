@@ -8,7 +8,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 
 export interface RunOptions {
-    log: Function;
+    log: (item: string | JSONObject | Error) => void;
     workflowLogId: ObjectID;
     workflowId: ObjectID;
     projectId: ObjectID;

@@ -1,14 +1,26 @@
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import logger from './Logger';
 import cron from 'node-cron';
 
-const BasicCron: Function = (
-    jobName: string,
+type BasicCronProps = {
+    jobName: string;
     options: {
         schedule: string;
         runOnStartup: boolean;
     },
-    runFunction: Function
+    runFunction: PromiseVoidFunction
+}
+
+type BasicCronFunction = (
+    props: BasicCronProps
+) => void;
+
+const BasicCron: BasicCronFunction = (
+    props: BasicCronProps
 ): void => {
+
+    const { jobName, options, runFunction } = props;
+
     cron.schedule(options.schedule, async () => {
         try {
             logger.info(`Job ${jobName} Start`);
