@@ -11,15 +11,15 @@ type RouterFunction = (
 ) => void | Promise<void>;
 
 type Route = {
-    method: String;
-    uri: String;
+    method: string;
+    uri: string;
     middleware: RouterFunction;
     handlerFunction: RouterFunction;
 };
 
-const mockRouterForMethod: Function = (method: String) => {
+const mockRouterForMethod: Function = (method: string) => {
     return (
-        uri: String,
+        uri: string,
         middleware: RouterFunction,
         handlerFunction: RouterFunction
     ): void => {
@@ -38,7 +38,7 @@ type MockRouter = {
     put: jest.Mock;
     delete: jest.Mock;
     routes: Route[];
-    match: (method: String, uri: String) => Route;
+    match: (method: string, uri: string) => Route;
 };
 
 export const mockRouter: MockRouter = {
@@ -47,7 +47,7 @@ export const mockRouter: MockRouter = {
     put: jest.fn().mockImplementation(mockRouterForMethod('put')),
     delete: jest.fn().mockImplementation(mockRouterForMethod('delete')),
     routes: [] as any as Route[],
-    match: (method: String, uri: String) => {
+    match: (method: string, uri: string) => {
         const route: Route | undefined = mockRouter.routes.find(
             (route: Route) => {
                 return (

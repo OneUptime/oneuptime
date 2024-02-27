@@ -46,7 +46,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
         useState<boolean>(true);
 
-    const refreshIncidentCount: () => void = () => {
+    const refreshIncidentCount: VoidFunctionType = () => {
         setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
     };
 

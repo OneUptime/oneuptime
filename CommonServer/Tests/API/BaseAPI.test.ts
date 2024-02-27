@@ -209,7 +209,7 @@ describe('BaseAPI', () => {
             ['GET', '/mock/:id/get-item', 'getItem'],
             ['PUT', '/mock/:id', 'updateItem'],
             ['DELETE', '/mock/:id', 'deleteItem'],
-        ] as [String, String, String][];
+        ] as [string, string, string][];
 
         for (const [method, uri, shouldBeCalled] of checkRoutes) {
             describe(`${method} ${uri}`, () => {
@@ -802,7 +802,7 @@ describe('BaseAPI', () => {
 
     describe('getEntityName', () => {
         it('should return the name of the entity', () => {
-            const entityName: String = baseApiInstance.getEntityName();
+            const entityName: string = baseApiInstance.getEntityName();
             expect(entityName).toBe('mockConstructor');
         });
     });

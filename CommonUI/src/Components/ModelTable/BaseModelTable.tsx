@@ -48,7 +48,6 @@ import { FilterData } from '../Table/Filter';
 import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import { VoidFunctionType } from 'Common/Types/FunctionTypes';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from '../../Config';
 import SubscriptionPlan, {
@@ -769,11 +768,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.refreshToggle,
     ]);
 
-    const shouldDisableSort: Function = (columnName: string): boolean => {
+    type ShouldDisableSortFunctionType = (columnName: string) => boolean;
+
+    const shouldDisableSort: ShouldDisableSortFunctionType = (columnName: string): boolean => {
         return model.isEntityColumn(columnName);
     };
 
-    const getColumnKey: Function = (
+    type GetColumnKeyFunctionType = (column: ModelTableColumn<TBaseModel>) => string | null;
+
+    const getColumnKey: GetColumnKeyFunctionType = (
         column: ModelTableColumn<TBaseModel>
     ): string | null => {
         const key: string | null = column.field
@@ -783,7 +786,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return key;
     };
 
-    const hasPermissionToReadColumn: Function = (
+    type HasPermissionToReadColumnFunctionType = (column: ModelTableColumn<TBaseModel>) => boolean;
+
+    const hasPermissionToReadColumn: HasPermissionToReadColumnFunctionType = (
         column: ModelTableColumn<TBaseModel>
     ): boolean => {
         const accessControl: Dictionary<ColumnAccessControl> =
@@ -819,7 +824,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return hasPermission;
     };
 
-    const getUserPermissions: Function = (): Array<Permission> => {
+    type GetUserPermissionsFunctionType = () => Array<Permission>;
+
+    const getUserPermissions: GetUserPermissionsFunctionType = (): Array<Permission> => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -849,7 +856,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         serializeToTableColumns();
     }, [data]);
 
-    const setActionSchema: () => void = () => {
+    const setActionSchema: VoidFunctionType = () => {
         const permissions: Array<Permission> =
             PermissionUtil.getAllPermissions();
 
