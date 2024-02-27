@@ -398,7 +398,12 @@ RunCron(
     }
 );
 
-const checkCnameValidation: Function = async (
+type CheckCnameValidationFunction = (
+    fulldomain: string,
+    token: string
+) => Promise<boolean>;
+
+const checkCnameValidation: CheckCnameValidationFunction = async (
     fulldomain: string,
     token: string
 ): Promise<boolean> => {

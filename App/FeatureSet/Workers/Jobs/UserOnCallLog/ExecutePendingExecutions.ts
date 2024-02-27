@@ -59,7 +59,9 @@ RunCron(
     }
 );
 
-const executePendingNotificationLog: Function = async (
+type ExecutePendingNotificationLogFunction = (pendingNotificationLog: UserOnCallLog) => Promise<void>;
+
+const executePendingNotificationLog: ExecutePendingNotificationLogFunction = async (
     pendingNotificationLog: UserOnCallLog
 ): Promise<void> => {
     try {

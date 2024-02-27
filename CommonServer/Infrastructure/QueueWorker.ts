@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 import TimeoutException from 'Common/Types/Exception/TimeoutException';
 import { RedisHostname, RedisPassword, RedisPort } from '../EnvironmentConfig';
 import { QueueJob, QueueName } from './Queue';
+import { PromiseRejectErrorFunction, PromiseVoidFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 
 export default class QueueWorker {
     public static getWorker(
@@ -27,11 +28,14 @@ export default class QueueWorker {
 
     public static async runJobWithTimeout(
         timeout: number,
-        jobCallback: Function
+        jobCallback: PromiseVoidFunction
     ): Promise<void> {
-        const timeoutPromise: Function = (ms: number): Promise<void> => {
+
+        type TimeoutPromise = (ms: number) => Promise<void>;
+
+        const timeoutPromise: TimeoutPromise = (ms: number): Promise<void> => {
             return new Promise(
-                (_resolve: Function, reject: PromiseRejectErrorFunction) => {
+                (_resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
                     setTimeout(() => {
                         return reject(new TimeoutException('Job Timeout'));
                     }, ms);
