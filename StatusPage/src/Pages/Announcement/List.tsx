@@ -100,7 +100,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
-    const getAnouncementsParsedData: Function = (
+    type GetAnnouncementsParsedDataFunctionType = (
+        announcements: Array<StatusPageAnnouncement>
+    ) => EventHistoryListComponentProps;
+
+    const getAnouncementsParsedData: GetAnnouncementsParsedDataFunctionType = (
         announcements: Array<StatusPageAnnouncement>
     ): EventHistoryListComponentProps => {
         const eventHistoryListComponentProps: EventHistoryListComponentProps = {
@@ -122,10 +126,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
 
             days[dayString]?.items.push(
-                getAnnouncementEventItem(
+                getAnnouncementEventItem({
                     announcement,
-                    Boolean(StatusPageUtil.isPreviewPage()),
-                    true
+                    isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
+                    isSummary: true
+                }
                 )
             );
         }
