@@ -8,6 +8,7 @@ import User from 'CommonUI/src/Utils/User';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
+import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
 import URL from 'Common/Types/API/URL';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
@@ -66,8 +67,8 @@ const Email: () => JSX.Element = (): ReactElement => {
                         },
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
+                            onCompleteAction: VoidFunctionType,
+                            onError: ErrorFunctionType
                         ) => {
                             try {
                                 setCurrentItem(item);
@@ -92,8 +93,8 @@ const Email: () => JSX.Element = (): ReactElement => {
                         },
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
+                            onCompleteAction: VoidFunctionType,
+                            onError: ErrorFunctionType
                         ) => {
                             try {
                                 setCurrentItem(item);

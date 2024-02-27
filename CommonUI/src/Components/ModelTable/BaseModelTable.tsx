@@ -6,6 +6,7 @@ import React, {
     useState,
 } from 'react';
 import Columns from './Columns';
+import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
 import { JSONObject } from 'Common/Types/JSON';
@@ -860,8 +861,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 buttonStyleType: ButtonStyleType.OUTLINE,
                 onClick: async (
                     item: JSONObject,
-                    onCompleteAction: Function,
-                    onError: (err: Error) => void
+                    onCompleteAction: VoidFunctionType,
+                    onError: ErrorFunctionType
                 ) => {
                     try {
                         setViewId(item['_id'] as string);
@@ -893,8 +894,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.NORMAL,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: Function,
-                        onError: (err: Error) => void
+                        onCompleteAction: VoidFunctionType,
+                        onError: ErrorFunctionType
                     ) => {
                         try {
                             const baseModel: TBaseModel =
@@ -951,8 +952,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.OUTLINE,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: Function,
-                        onError: (err: Error) => void
+                        onCompleteAction: VoidFunctionType,
+                        onError: ErrorFunctionType
                     ) => {
                         try {
                             if (props.onBeforeEdit) {
@@ -982,8 +983,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: Function,
-                        onError: (err: Error) => void
+                        onCompleteAction: VoidFunctionType,
+                        onError: ErrorFunctionType
                     ) => {
                         try {
                             if (props.onBeforeDelete) {

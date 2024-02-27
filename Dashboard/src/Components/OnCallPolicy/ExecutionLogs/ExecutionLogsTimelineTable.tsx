@@ -12,6 +12,7 @@ import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/
 import UserElement from '../../User/User';
 import User from 'Model/Models/User';
 import EscalationRule from '../EscalationRule/EscalationRule';
+import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
@@ -60,8 +61,8 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
+                            onCompleteAction: VoidFunctionType,
+                            onError: ErrorFunctionType
                         ) => {
                             try {
                                 setStatusMessage(
