@@ -477,98 +477,101 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setColumns(columns);
     };
 
-    const getFilterDropdownItems: PromiseVoidFunctionType = async (): Promise<void> => {
-        setTableFilterError('');
-        setIsTableFilterFetchLoading(true);
+    const getFilterDropdownItems: PromiseVoidFunctionType =
+        async (): Promise<void> => {
+            setTableFilterError('');
+            setIsTableFilterFetchLoading(true);
 
-        const classicColumns: Array<TableColumn> = [...tableColumns];
+            const classicColumns: Array<TableColumn> = [...tableColumns];
 
-        try {
-            for (const column of props.columns) {
-                const key: string | null = getColumnKey(column);
+            try {
+                for (const column of props.columns) {
+                    const key: string | null = getColumnKey(column);
 
-                const classicColumn: TableColumn | undefined =
-                    classicColumns.find((i: TableColumn) => {
-                        return i.key === key;
-                    });
+                    const classicColumn: TableColumn | undefined =
+                        classicColumns.find((i: TableColumn) => {
+                            return i.key === key;
+                        });
 
-                if (!classicColumn) {
-                    continue;
-                }
+                    if (!classicColumn) {
+                        continue;
+                    }
 
-                if (!key) {
-                    continue;
-                }
+                    if (!key) {
+                        continue;
+                    }
 
-                if (!column.filterEntityType) {
-                    continue;
-                }
+                    if (!column.filterEntityType) {
+                        continue;
+                    }
 
-                if (!column.isFilterable) {
-                    continue;
-                }
+                    if (!column.isFilterable) {
+                        continue;
+                    }
 
-                if (!column.filterDropdownField) {
-                    Logger.warn(
-                        `Cannot filter on ${key} because column.dropdownField is not set.`
-                    );
-                    continue;
-                }
-
-                const hasPermission: boolean =
-                    hasPermissionToReadColumn(column);
-
-                if (!hasPermission) {
-                    continue;
-                }
-
-                const query: Query<TBaseModel> = column.filterQuery || {};
-
-                const listResult: ListResult<TBaseModel> =
-                    await props.callbacks.getList({
-                        modelType: column.filterEntityType,
-                        query: query,
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                            [column.filterDropdownField.label]: true,
-                            [column.filterDropdownField.value]: true,
-                        } as any,
-                        sort: {},
-                    });
-
-                classicColumn.filterDropdownOptions = [];
-                for (const item of listResult.data) {
-                    classicColumn.filterDropdownOptions.push({
-                        value: item.getColumnValue(
-                            column.filterDropdownField.value
-                        ) as string,
-                        label: item.getColumnValue(
-                            column.filterDropdownField.label
-                        ) as string,
-                    });
-                }
-
-                if (column.tooltipText) {
-                    classicColumn.tooltipText = (item: JSONObject): string => {
-                        return column.tooltipText!(
-                            props.callbacks.getModelFromJSON(item)
+                    if (!column.filterDropdownField) {
+                        Logger.warn(
+                            `Cannot filter on ${key} because column.dropdownField is not set.`
                         );
-                    };
+                        continue;
+                    }
+
+                    const hasPermission: boolean =
+                        hasPermissionToReadColumn(column);
+
+                    if (!hasPermission) {
+                        continue;
+                    }
+
+                    const query: Query<TBaseModel> = column.filterQuery || {};
+
+                    const listResult: ListResult<TBaseModel> =
+                        await props.callbacks.getList({
+                            modelType: column.filterEntityType,
+                            query: query,
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            select: {
+                                [column.filterDropdownField.label]: true,
+                                [column.filterDropdownField.value]: true,
+                            } as any,
+                            sort: {},
+                        });
+
+                    classicColumn.filterDropdownOptions = [];
+                    for (const item of listResult.data) {
+                        classicColumn.filterDropdownOptions.push({
+                            value: item.getColumnValue(
+                                column.filterDropdownField.value
+                            ) as string,
+                            label: item.getColumnValue(
+                                column.filterDropdownField.label
+                            ) as string,
+                        });
+                    }
+
+                    if (column.tooltipText) {
+                        classicColumn.tooltipText = (
+                            item: JSONObject
+                        ): string => {
+                            return column.tooltipText!(
+                                props.callbacks.getModelFromJSON(item)
+                            );
+                        };
+                    }
+
+                    classicColumn.colSpan = column.colSpan;
+                    classicColumn.alignItem = column.alignItem;
+                    classicColumn.contentClassName = column.contentClassName;
                 }
 
-                classicColumn.colSpan = column.colSpan;
-                classicColumn.alignItem = column.alignItem;
-                classicColumn.contentClassName = column.contentClassName;
+                setColumns(classicColumns);
+            } catch (err) {
+                setTableFilterError(API.getFriendlyMessage(err));
             }
 
-            setColumns(classicColumns);
-        } catch (err) {
-            setTableFilterError(API.getFriendlyMessage(err));
-        }
-
-        setIsTableFilterFetchLoading(false);
-    };
+            setIsTableFilterFetchLoading(false);
+        };
 
     const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
         setError('');
@@ -1321,17 +1324,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             title={getCardTitle(props.cardProps.title)}
                         >
                             {tableColumns.length === 0 &&
-                                props.columns.length > 0 ? (
-                                    <ErrorMessage
-                                        error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                            model.getReadPermissions()
-                                        ).join(', ')}`}
-                                    />
-                                ): <></>}
+                            props.columns.length > 0 ? (
+                                <ErrorMessage
+                                    error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                        model.getReadPermissions()
+                                    ).join(', ')}`}
+                                />
+                            ) : (
+                                <></>
+                            )}
                             {!(
                                 tableColumns.length === 0 &&
                                 props.columns.length > 0
-                            ) ? getTable(): <></>}
+                            ) ? (
+                                getTable()
+                            ) : (
+                                <></>
+                            )}
                         </Card>
                     )}
 

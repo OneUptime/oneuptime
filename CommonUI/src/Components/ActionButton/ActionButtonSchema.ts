@@ -2,6 +2,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from '../Button/Button';
 
 import IconProp from 'Common/Types/Icon/IconProp';
+import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
 
 interface ActionButtonSchema {
     title: string;
@@ -11,8 +12,8 @@ interface ActionButtonSchema {
     isVisible?: (item: JSONObject) => boolean | undefined;
     onClick: (
         item: JSONObject,
-        onCompleteAction: () => void,
-        onError: (err: Error) => void
+        onCompleteAction: VoidFunctionType,
+        onError: ErrorFunctionType
     ) => void;
 }
 

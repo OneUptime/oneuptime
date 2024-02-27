@@ -17,7 +17,6 @@ import Field from 'CommonUI/src/Components/Forms/Types/Field';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
-import { VoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -147,13 +146,15 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     ).map((plan: SubscriptionPlan): RadioButton => {
                         let description: string = plan.isCustomPricing()
                             ? `Our sales team will contact you soon.`
-                            : `Billed ${isSubscriptionPlanYearly
-                                ? 'yearly'
-                                : 'monthly'
-                            }. ${plan.getTrialPeriod() > 0
-                                ? `Free ${plan.getTrialPeriod()} days trial.`
-                                : ''
-                            }`;
+                            : `Billed ${
+                                  isSubscriptionPlanYearly
+                                      ? 'yearly'
+                                      : 'monthly'
+                              }. ${
+                                  plan.getTrialPeriod() > 0
+                                      ? `Free ${plan.getTrialPeriod()} days trial.`
+                                      : ''
+                              }`;
 
                         if (
                             isSubscriptionPlanYearly &&
@@ -178,22 +179,23 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                             sideTitle: plan.isCustomPricing()
                                 ? 'Custom Price'
                                 : isSubscriptionPlanYearly
-                                    ? '$' +
-                                    plan
-                                        .getYearlySubscriptionAmountInUSD()
-                                        .toString() +
-                                    '/mo billed yearly'
-                                    : '$' +
-                                    plan
-                                        .getMonthlySubscriptionAmountInUSD()
-                                        .toString(),
+                                ? '$' +
+                                  plan
+                                      .getYearlySubscriptionAmountInUSD()
+                                      .toString() +
+                                  '/mo billed yearly'
+                                : '$' +
+                                  plan
+                                      .getMonthlySubscriptionAmountInUSD()
+                                      .toString(),
                             sideDescription: plan.isCustomPricing()
                                 ? ''
                                 : isSubscriptionPlanYearly
-                                    ? `~ $${plan.getYearlySubscriptionAmountInUSD() *
-                                    12
-                                    } per user / year`
-                                    : `/month per user`,
+                                ? `~ $${
+                                      plan.getYearlySubscriptionAmountInUSD() *
+                                      12
+                                  } per user / year`
+                                : `/month per user`,
                         };
                     }),
                     title: 'Please select a plan.',
@@ -255,15 +257,15 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         name: 'Create New Project',
                         steps: BILLING_ENABLED
                             ? [
-                                {
-                                    title: 'Basic',
-                                    id: 'basic',
-                                },
-                                {
-                                    title: 'Select Plan',
-                                    id: 'plan',
-                                },
-                            ]
+                                  {
+                                      title: 'Basic',
+                                      id: 'basic',
+                                  },
+                                  {
+                                      title: 'Select Plan',
+                                      id: 'plan',
+                                  },
+                              ]
                             : undefined,
                         saveRequestOptions: {
                             isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request

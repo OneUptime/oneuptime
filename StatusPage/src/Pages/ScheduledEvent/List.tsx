@@ -77,20 +77,27 @@ const Overview: FunctionComponent<PageComponentProps> = (
     StatusPageUtil.checkIfUserHasLoggedIn();
 
     type GetEventHistoryFunctionTypeProps = {
-        scheduledMaintenanceEvents: ScheduledMaintenance[],
-        scheduledMaintenanceEventsPublicNotes: ScheduledMaintenancePublicNote[],
-        scheduledMaintenanceStateTimelines: ScheduledMaintenanceStateTimeline[],
-        statusPageResources: StatusPageResource[],
-        monitorsInGroup: Dictionary<ObjectID[]>
+        scheduledMaintenanceEvents: ScheduledMaintenance[];
+        scheduledMaintenanceEventsPublicNotes: ScheduledMaintenancePublicNote[];
+        scheduledMaintenanceStateTimelines: ScheduledMaintenanceStateTimeline[];
+        statusPageResources: StatusPageResource[];
+        monitorsInGroup: Dictionary<ObjectID[]>;
     };
 
     type GetEventHistoryFunctionType = (
         data: GetEventHistoryFunctionTypeProps
     ) => EventHistoryListComponentProps;
 
-    const getEventHistoryListComponentProps: GetEventHistoryFunctionType = (data: GetEventHistoryFunctionTypeProps): EventHistoryListComponentProps => {
-
-        const { scheduledMaintenanceEvents, scheduledMaintenanceEventsPublicNotes, scheduledMaintenanceStateTimelines, statusPageResources, monitorsInGroup } = data;
+    const getEventHistoryListComponentProps: GetEventHistoryFunctionType = (
+        data: GetEventHistoryFunctionTypeProps
+    ): EventHistoryListComponentProps => {
+        const {
+            scheduledMaintenanceEvents,
+            scheduledMaintenanceEventsPublicNotes,
+            scheduledMaintenanceStateTimelines,
+            statusPageResources,
+            monitorsInGroup,
+        } = data;
 
         const eventHistoryListComponentProps: EventHistoryListComponentProps = {
             items: [],
@@ -118,9 +125,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     statusPageResources,
                     monitorsInGroup,
                     isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
-                    isSummary: true
-                }
-                )
+                    isSummary: true,
+                })
             );
         }
 
@@ -174,7 +180,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -248,9 +254,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             scheduledMaintenanceEvents.filter((event: ScheduledMaintenance) => {
                 return (
                     event.currentScheduledMaintenanceState!.order! >=
-                    ongoingOrder &&
+                        ongoingOrder &&
                     event.currentScheduledMaintenanceState!.order! <
-                    endedEventOrder
+                        endedEventOrder
                 );
             });
 
@@ -280,25 +286,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
-                monitorsInGroup
-            }
-            );
+                monitorsInGroup,
+            });
         const scheduledEventProps: EventHistoryListComponentProps =
             getEventHistoryListComponentProps({
                 scheduledMaintenanceEvents: scheduledEvents,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
-                monitorsInGroup
-            }
-            );
+                monitorsInGroup,
+            });
         const ongoingEventProps: EventHistoryListComponentProps =
             getEventHistoryListComponentProps({
                 scheduledMaintenanceEvents: ongoingEvents,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
-                monitorsInGroup
+                monitorsInGroup,
             });
 
         setOngoingEventsParsedData(ongoingEventProps);
@@ -331,15 +335,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         StatusPageUtil.isPreviewPage()
                             ? (RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                            ] as Route)
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                              ] as Route)
                             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                     ),
                 },
             ]}
         >
             {ongoingEventsParsedData?.items &&
-                ongoingEventsParsedData?.items.length > 0 ? (
+            ongoingEventsParsedData?.items.length > 0 ? (
                 <div>
                     <Section title="Ongoing Events" />
 
@@ -352,7 +356,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {scheduledEventsParsedData?.items &&
-                scheduledEventsParsedData?.items.length > 0 ? (
+            scheduledEventsParsedData?.items.length > 0 ? (
                 <div>
                     <Section title="Scheduled Events" />
 
@@ -365,7 +369,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {endedEventsParsedData?.items &&
-                endedEventsParsedData?.items.length > 0 ? (
+            endedEventsParsedData?.items.length > 0 ? (
                 <div>
                     <Section title="Completed Events" />
 
