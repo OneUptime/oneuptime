@@ -81,7 +81,7 @@ class Express {
 
         type ResolveFunction = (app: express.Application) => void;
 
-        return new Promise<express.Application>((resolve:ResolveFunction) => {
+        return new Promise<express.Application>((resolve: ResolveFunction) => {
             this.httpServer.listen(
                 port?.toNumber() || this.app.get('port'),
                 () => {

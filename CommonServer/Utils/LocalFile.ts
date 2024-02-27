@@ -1,11 +1,11 @@
 import fs from 'fs';
-import {PromiseRejectErrorFunction} from 'Common/Types/FunctionTypes';
+import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
 
 export default class LocalFile {
     public static async makeDirectory(path: string): Promise<void> {
         return new Promise(
             (resolve: Function, reject: PromiseRejectErrorFunction) => {
-                fs.mkdir(path, { recursive: true }, (err:  Error | null) => {
+                fs.mkdir(path, { recursive: true }, (err: Error | null) => {
                     if (err) {
                         return reject(err);
                     }
@@ -18,7 +18,7 @@ export default class LocalFile {
     public static async write(path: string, data: string): Promise<void> {
         return new Promise(
             (resolve: Function, reject: PromiseRejectErrorFunction) => {
-                fs.writeFile(path, data, (err:  Error | null) => {
+                fs.writeFile(path, data, (err: Error | null) => {
                     if (err) {
                         return reject(err);
                     }

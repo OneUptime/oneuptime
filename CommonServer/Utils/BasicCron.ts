@@ -7,18 +7,13 @@ type BasicCronProps = {
     options: {
         schedule: string;
         runOnStartup: boolean;
-    },
-    runFunction: PromiseVoidFunction
-}
+    };
+    runFunction: PromiseVoidFunction;
+};
 
-type BasicCronFunction = (
-    props: BasicCronProps
-) => void;
+type BasicCronFunction = (props: BasicCronProps) => void;
 
-const BasicCron: BasicCronFunction = (
-    props: BasicCronProps
-): void => {
-
+const BasicCron: BasicCronFunction = (props: BasicCronProps): void => {
     const { jobName, options, runFunction } = props;
 
     cron.schedule(options.schedule, async () => {

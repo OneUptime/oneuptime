@@ -36,7 +36,6 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
     }, [props.refreshToggle]);
 
     const fetchCount: PromiseVoidFunction = async (): Promise<void> => {
-        
         setError('');
         setIsLoading(true);
 

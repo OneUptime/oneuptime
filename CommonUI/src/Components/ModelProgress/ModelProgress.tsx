@@ -45,11 +45,9 @@ const ModelProgress: <TBaseModel extends BaseModel>(
     };
 
     useEffect(() => {
-       
         fetchCount().catch((err: Error) => {
             setError(API.getFriendlyMessage(err));
         });
-       
     }, []);
 
     return (

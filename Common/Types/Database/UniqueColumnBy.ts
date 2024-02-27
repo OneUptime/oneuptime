@@ -14,7 +14,9 @@ type GetUniqueColumnByFunction = <T extends BaseModel>(
     propertyKey: string
 ) => string;
 
-export const getUniqueColumnBy: GetUniqueColumnByFunction = <T extends BaseModel>(
+export const getUniqueColumnBy: GetUniqueColumnByFunction = <
+    T extends BaseModel
+>(
     target: T,
     propertyKey: string
 ): string => {
@@ -25,7 +27,9 @@ type GetUniqueColumnsByFunction = <T extends BaseModel>(
     target: T
 ) => Dictionary<string>;
 
-export const getUniqueColumnsBy: GetUniqueColumnsByFunction = <T extends BaseModel>(
+export const getUniqueColumnsBy: GetUniqueColumnsByFunction = <
+    T extends BaseModel
+>(
     target: T
 ): Dictionary<string> => {
     const dictonary: Dictionary<string> = {};
