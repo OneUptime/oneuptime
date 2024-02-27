@@ -180,7 +180,12 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setIsLoading(false);
     };
 
-    const saveGraph: Function = async (
+    type SaveGraphFunctionType = (
+        nodes: Array<Node>,
+        edges: Array<Edge>
+    ) => Promise<void>;
+
+    const saveGraph: SaveGraphFunctionType = async (
         nodes: Array<Node>,
         edges: Array<Edge>
     ): Promise<void> => {

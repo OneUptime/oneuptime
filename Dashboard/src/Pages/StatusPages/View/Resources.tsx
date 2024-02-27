@@ -12,7 +12,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPageResource, {
     UptimePrecision,
 } from 'Model/Models/StatusPageResource';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -46,7 +45,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
     const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
 
-    const fetchGroups: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchGroups: Function = async () => {
         setError('');
         setIsLoading(true);
 
@@ -82,38 +81,39 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         fetchGroups();
     }, []);
 
-    const getFooterForMonitor: GetReactElementFunctionType = (): ReactElement => {
-        if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
-            if (!addMonitorGroup) {
+    const getFooterForMonitor: GetReactElementFunctionType =
+        (): ReactElement => {
+            if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
+                if (!addMonitorGroup) {
+                    return (
+                        <Link
+                            onClick={() => {
+                                setAddMonitorGroup(true);
+                            }}
+                            className="mt-1 text-sm text-gray-500 underline"
+                        >
+                            <div>
+                                <p> Add a Monitor Group instead. </p>
+                            </div>
+                        </Link>
+                    );
+                }
                 return (
                     <Link
                         onClick={() => {
-                            setAddMonitorGroup(true);
+                            setAddMonitorGroup(false);
                         }}
                         className="mt-1 text-sm text-gray-500 underline"
                     >
                         <div>
-                            <p> Add a Monitor Group instead. </p>
+                            <p> Add a Monitor instead. </p>
                         </div>
                     </Link>
                 );
             }
-            return (
-                <Link
-                    onClick={() => {
-                        setAddMonitorGroup(false);
-                    }}
-                    className="mt-1 text-sm text-gray-500 underline"
-                >
-                    <div>
-                        <p> Add a Monitor instead. </p>
-                    </div>
-                </Link>
-            );
-        }
 
-        return <></>;
-    };
+            return <></>;
+        };
 
     let formFields: Array<ModelField<StatusPageResource>> = [
         {

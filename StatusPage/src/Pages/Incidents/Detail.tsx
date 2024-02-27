@@ -44,21 +44,22 @@ import Label from 'Model/Models/Label';
 import Dictionary from 'Common/Types/Dictionary';
 
 type GetIncidentEventItemFunctionProps = {
-    incident: Incident,
-    incidentPublicNotes: Array<IncidentPublicNote>,
-    incidentStateTimelines: Array<IncidentStateTimeline>,
-    statusPageResources: Array<StatusPageResource>,
-    monitorsInGroup: Dictionary<Array<ObjectID>>,
-    isPreviewPage: boolean,
-    isSummary: boolean
+    incident: Incident;
+    incidentPublicNotes: Array<IncidentPublicNote>;
+    incidentStateTimelines: Array<IncidentStateTimeline>;
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+    isPreviewPage: boolean;
+    isSummary: boolean;
 };
 
 type GetIncidentEventItemFunctionType = (
-   props: GetIncidentEventItemFunctionProps
+    props: GetIncidentEventItemFunctionProps
 ) => EventItemComponentProps;
 
-export const getIncidentEventItem: GetIncidentEventItemFunctionType = (props: GetIncidentEventItemFunctionProps): EventItemComponentProps => {
-
+export const getIncidentEventItem: GetIncidentEventItemFunctionType = (
+    props: GetIncidentEventItemFunctionProps
+): EventItemComponentProps => {
     const {
         incident,
         incidentPublicNotes,

@@ -68,7 +68,6 @@ import AnalyticsBaseModel, {
 } from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
 import { FormProps } from '../Forms/BasicForm';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export enum ShowTableAs {
     Table,
@@ -475,7 +474,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setColumns(columns);
     };
 
-    const getFilterDropdownItems: PromiseVoidFunctionType = async (): Promise<void> => {
+    const getFilterDropdownItems: Function = async () => {
         setTableFilterError('');
         setIsTableFilterFetchLoading(true);
 
@@ -568,7 +567,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setIsTableFilterFetchLoading(false);
     };
 
-    const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchItems: Function = async () => {
         setError('');
         setIsLoading(true);
 
@@ -1102,76 +1101,77 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getOrderedStatesList: GetReactElementFunctionType = (): ReactElement => {
-        if (!props.orderedStatesListProps) {
-            throw new BadDataException(
-                'props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList'
+    const getOrderedStatesList: GetReactElementFunctionType =
+        (): ReactElement => {
+            if (!props.orderedStatesListProps) {
+                throw new BadDataException(
+                    'props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList'
+                );
+            }
+
+            let getTitleElement:
+                | ((
+                      item: JSONObject,
+                      onBeforeFetchData?: JSONObject | undefined
+                  ) => ReactElement)
+                | undefined = undefined;
+            let getDescriptionElement:
+                | ((item: JSONObject) => ReactElement)
+                | undefined = undefined;
+
+            for (const column of props.columns) {
+                const key: string | undefined = Object.keys(
+                    column.field as Object
+                )[0];
+
+                if (key === props.orderedStatesListProps.titleField) {
+                    getTitleElement = column.getElement;
+                }
+
+                if (key === props.orderedStatesListProps.descriptionField) {
+                    getDescriptionElement = column.getElement;
+                }
+            }
+
+            return (
+                <OrderedStatesList
+                    error={error}
+                    isLoading={isLoading}
+                    data={props.callbacks.toJSONArray(data)}
+                    id={props.id}
+                    titleField={props.orderedStatesListProps?.titleField || ''}
+                    descriptionField={
+                        props.orderedStatesListProps?.descriptionField || ''
+                    }
+                    orderField={props.orderedStatesListProps?.orderField || ''}
+                    shouldAddItemInTheBeginning={
+                        props.orderedStatesListProps.shouldAddItemInTheBeginning
+                    }
+                    shouldAddItemInTheEnd={
+                        props.orderedStatesListProps.shouldAddItemInTheEnd
+                    }
+                    noItemsMessage={props.noItemsMessage || ''}
+                    onRefreshClick={() => {
+                        fetchItems();
+                    }}
+                    onCreateNewItem={
+                        props.isCreateable
+                            ? (order: number) => {
+                                  setOrderedStatesListNewItemOrder(order);
+                                  setModalType(ModalType.Create);
+                                  setShowModal(true);
+                              }
+                            : undefined
+                    }
+                    singularLabel={
+                        props.singularName || model.singularName || 'Item'
+                    }
+                    actionButtons={actionButtonSchema}
+                    getTitleElement={getTitleElement}
+                    getDescriptionElement={getDescriptionElement}
+                />
             );
-        }
-
-        let getTitleElement:
-            | ((
-                  item: JSONObject,
-                  onBeforeFetchData?: JSONObject | undefined
-              ) => ReactElement)
-            | undefined = undefined;
-        let getDescriptionElement:
-            | ((item: JSONObject) => ReactElement)
-            | undefined = undefined;
-
-        for (const column of props.columns) {
-            const key: string | undefined = Object.keys(
-                column.field as Object
-            )[0];
-
-            if (key === props.orderedStatesListProps.titleField) {
-                getTitleElement = column.getElement;
-            }
-
-            if (key === props.orderedStatesListProps.descriptionField) {
-                getDescriptionElement = column.getElement;
-            }
-        }
-
-        return (
-            <OrderedStatesList
-                error={error}
-                isLoading={isLoading}
-                data={props.callbacks.toJSONArray(data)}
-                id={props.id}
-                titleField={props.orderedStatesListProps?.titleField || ''}
-                descriptionField={
-                    props.orderedStatesListProps?.descriptionField || ''
-                }
-                orderField={props.orderedStatesListProps?.orderField || ''}
-                shouldAddItemInTheBeginning={
-                    props.orderedStatesListProps.shouldAddItemInTheBeginning
-                }
-                shouldAddItemInTheEnd={
-                    props.orderedStatesListProps.shouldAddItemInTheEnd
-                }
-                noItemsMessage={props.noItemsMessage || ''}
-                onRefreshClick={() => {
-                    fetchItems();
-                }}
-                onCreateNewItem={
-                    props.isCreateable
-                        ? (order: number) => {
-                              setOrderedStatesListNewItemOrder(order);
-                              setModalType(ModalType.Create);
-                              setShowModal(true);
-                          }
-                        : undefined
-                }
-                singularLabel={
-                    props.singularName || model.singularName || 'Item'
-                }
-                actionButtons={actionButtonSchema}
-                getTitleElement={getTitleElement}
-                getDescriptionElement={getDescriptionElement}
-            />
-        );
-    };
+        };
 
     const getList: GetReactElementFunctionType = (): ReactElement => {
         return (

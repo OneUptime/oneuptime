@@ -10,7 +10,7 @@ import Sleep from 'Common/Types/Sleep';
 import Typeof from 'Common/Types/Typeof';
 import { JSONValue } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
-import {ExpressAPIFunctionType} from 'CommonServer/Types/FunctionTypes';
+import { ExpressAPIFunctionType } from 'CommonServer/Types/FunctionTypes';
 
 const router: ExpressRouter = Express.getRouter();
 
