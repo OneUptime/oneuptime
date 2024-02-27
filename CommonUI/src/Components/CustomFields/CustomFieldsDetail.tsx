@@ -13,6 +13,7 @@ import { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API/API';
 import useAsyncEffect from 'use-async-effect';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     title: string;
@@ -72,7 +73,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         }
     };
 
-    const onSave: Function = async (data: JSONObject): Promise<void> => {
+    type OnSaveFunction = (data: JSONObject) => Promise<void>;
+
+    const onSave: OnSaveFunction = async (data: JSONObject): Promise<void> => {
         try {
             // load schema.
             setIsLoading(true);

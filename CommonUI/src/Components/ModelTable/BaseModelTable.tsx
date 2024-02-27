@@ -72,7 +72,7 @@ import {
     PromiseVoidFunction,
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/FunctionsTypes';
+} from 'Common/Types/FunctionTypes';
 import { GetReactElementFunction } from '../../Types/Functions';
 import SelectEntityField from '../../Types/SelectEntityField';
 
@@ -302,35 +302,36 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     type GetRelationSelectFunction = () => Select<TBaseModel>;
 
-    const getRelationSelect: GetRelationSelectFunction = (): Select<TBaseModel> => {
-        const relationSelect: Select<TBaseModel> = {};
+    const getRelationSelect: GetRelationSelectFunction =
+        (): Select<TBaseModel> => {
+            const relationSelect: Select<TBaseModel> = {};
 
-        for (const column of props.columns || []) {
-            const key: string | null = column.field
-                ? (Object.keys(column.field)[0] as string)
-                : null;
+            for (const column of props.columns || []) {
+                const key: string | null = column.field
+                    ? (Object.keys(column.field)[0] as string)
+                    : null;
 
-            if (key && model.isFileColumn(key)) {
-                (relationSelect as JSONObject)[key] = {
-                    file: true,
-                    _id: true,
-                    type: true,
-                    name: true,
-                };
-            } else if (key && model.isEntityColumn(key)) {
-                if (!(relationSelect as JSONObject)[key]) {
-                    (relationSelect as JSONObject)[key] = {};
+                if (key && model.isFileColumn(key)) {
+                    (relationSelect as JSONObject)[key] = {
+                        file: true,
+                        _id: true,
+                        type: true,
+                        name: true,
+                    };
+                } else if (key && model.isEntityColumn(key)) {
+                    if (!(relationSelect as JSONObject)[key]) {
+                        (relationSelect as JSONObject)[key] = {};
+                    }
+
+                    (relationSelect as JSONObject)[key] = {
+                        ...((relationSelect as JSONObject)[key] as JSONObject),
+                        ...(column.field as any)[key],
+                    };
                 }
-
-                (relationSelect as JSONObject)[key] = {
-                    ...((relationSelect as JSONObject)[key] as JSONObject),
-                    ...(column.field as any)[key],
-                };
             }
-        }
 
-        return relationSelect;
-    };
+            return relationSelect;
+        };
 
     type DeleteItemFunction = (item: TBaseModel) => Promise<void>;
 
@@ -485,7 +486,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setColumns(columns);
     };
 
-    const getFilterDropdownItems: PromiseVoidPromiseVoidFunction =
+    const getFilterDropdownItems: PromiseVoidFunction =
         async (): Promise<void> => {
             setTableFilterError('');
             setIsTableFilterFetchLoading(true);
@@ -1454,12 +1455,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         setShowDeleteConfirmModal(false);
                     }}
                     submitButtonText={'Delete'}
-                    onSubmit={() => {
+                    onSubmit={async () => {
                         if (
                             currentDeleteableItem &&
                             currentDeleteableItem['_id']
                         ) {
-                            deleteItem(
+                            await deleteItem(
                                 props.callbacks.getModelFromJSON(
                                     currentDeleteableItem
                                 )

@@ -31,9 +31,8 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
             );
             initCategories.push({
                 name: new model().singularName || 'Model',
-                description: `Interact with ${
-                    new model().singularName
-                } in your workflow.`,
+                description: `Interact with ${new model().singularName
+                    } in your workflow.`,
                 icon: new model().icon || IconProp.Database,
             });
         }
@@ -41,7 +40,15 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
         return { components: initComponents, categories: initCategories };
     };
 
-export const componentInputTypeToFormFieldType: Function = (
+type ComponentInputTypeToFormFieldTypeFunction = (
+    componentInputType: ComponentInputType,
+    argValue: any
+) => {
+    fieldType: FormFieldSchemaType;
+    dropdownOptions?: Array<DropdownOption> | undefined;
+};
+
+export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTypeFunction = (
     componentInputType: ComponentInputType,
     argValue: any
 ): {

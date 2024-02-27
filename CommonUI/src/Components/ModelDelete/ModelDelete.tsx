@@ -6,7 +6,7 @@ import { ButtonStyleType } from '../Button/Button';
 import Card from '../Card/Card';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

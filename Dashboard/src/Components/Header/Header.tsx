@@ -30,7 +30,7 @@ import Incident from 'Model/Models/Incident';
 import OneUptimeDate from 'Common/Types/Date';
 import HeaderModelAlert from 'CommonUI/src/Components/HeaderAlert/HeaderModelAlert';
 import HeaderAlert from 'CommonUI/src/Components/HeaderAlert/HeaderAlert';
-import { VoidFunction } from 'Common/Types/FunctionsTypes';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     projects: Array<Project>;

@@ -4,13 +4,14 @@ import Express, {
     ExpressResponse,
     ExpressRouter,
     NextFunction,
+    RequestHandler,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 import Sleep from 'Common/Types/Sleep';
 import Typeof from 'Common/Types/Typeof';
 import { JSONValue } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
-import { ExpressAPIFunction } from 'CommonServer/Types/Functions';
+
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -36,7 +37,7 @@ router.post(
     }
 );
 
-const returnResponse: ExpressAPIFunction = async (
+const returnResponse: RequestHandler = async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction

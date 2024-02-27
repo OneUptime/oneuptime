@@ -3,7 +3,7 @@
 
 import BillingService from 'CommonServer/Services/BillingService';
 import Sleep from 'Common/Types/Sleep';
-import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const main: PromiseVoidFunction = async (): Promise<void> => {
     for (let i: number = 0; i < 2000; i++) {

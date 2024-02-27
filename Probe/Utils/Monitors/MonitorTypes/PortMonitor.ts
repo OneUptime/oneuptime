@@ -10,7 +10,7 @@ import Sleep from 'Common/Types/Sleep';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Port from 'Common/Types/Port';
 import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
-import { PromiseRejectErrorFunction } from 'Common/Types/FunctionsTypes';
+import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
 
 // TODO - make sure it  work for the IPV6
 export interface PortMonitorResponse {

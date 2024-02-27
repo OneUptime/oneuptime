@@ -9,6 +9,7 @@ import { HOST, HOME_URL, HTTP_PROTOCOL } from '../../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import useAsyncEffect from 'use-async-effect';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     documentationLink: Route;
@@ -22,7 +23,9 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
 
-    const populateWithEnvVars: Function = (text: string): string => {
+    type PopulateWithEnvVarsFunction = (text: string) => string;
+
+    const populateWithEnvVars: PopulateWithEnvVarsFunction = (text: string): string => {
         text = text.replace('{{serverUrl}}', HOME_URL.toString());
         text = text.replace('{{workflowId}}', props.workflowId.toString());
 

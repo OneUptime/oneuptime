@@ -54,7 +54,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Section from '../../Components/Section/Section';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
-import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

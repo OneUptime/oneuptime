@@ -28,6 +28,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

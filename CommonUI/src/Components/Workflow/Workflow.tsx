@@ -5,7 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { VoidFunction } from 'Common/Types/FunctionsTypes';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -40,7 +40,9 @@ import ComponentSettingsModal from './ComponentSettingsModal';
 import { loadComponentsAndCategories } from './Utils';
 import RunModal from './RunModal';
 
-export const getPlaceholderTriggerNode: Function = (): Node => {
+type GetPlaceholderTriggerNodeFunction = () => Node;
+
+export const getPlaceholderTriggerNode: GetPlaceholderTriggerNodeFunction = (): Node => {
     return {
         id: ObjectID.generate().toString(),
         type: 'node',
@@ -336,7 +338,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.onRunModalUpdate(showRunModal);
     }, [showRunModal]);
 
-    const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
+    type AddToGraphFunction = (componentMetadata: ComponentMetadata) => void;
+
+    const addToGraph: AddToGraphFunction = (componentMetadata: ComponentMetadata) => {
         const metaDataId: string = componentMetadata.id;
 
         let hasFoundExistingId: boolean = true;

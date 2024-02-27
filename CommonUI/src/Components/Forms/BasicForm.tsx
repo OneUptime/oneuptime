@@ -31,7 +31,7 @@ import useAsyncEffect from 'use-async-effect';
 import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { FormikErrors, FormikProps } from 'formik';
-import { VoidFunction } from 'Common/Types/FunctionsTypes';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;

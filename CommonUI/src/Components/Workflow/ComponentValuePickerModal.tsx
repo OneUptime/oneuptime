@@ -34,7 +34,12 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
         setSearchedComponents(searchReturnValues(props.components, searchText));
     }, [props.components, searchText]);
 
-    const searchReturnValues: Function = (
+    type SearchReturnValuesFunction = (
+        components: Array<NodeDataProp>,
+        searchText: string
+    ) => Array<NodeDataProp>;
+
+    const searchReturnValues: SearchReturnValuesFunction = (
         components: Array<NodeDataProp>,
         searchText: string
     ): Array<NodeDataProp> => {

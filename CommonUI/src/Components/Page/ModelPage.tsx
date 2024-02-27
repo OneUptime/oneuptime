@@ -6,6 +6,7 @@ import Page from './Page';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
 import useAsyncEffect from 'use-async-effect';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title?: string | undefined;

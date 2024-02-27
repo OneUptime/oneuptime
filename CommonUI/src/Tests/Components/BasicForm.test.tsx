@@ -63,7 +63,7 @@ describe('BasicForm test', () => {
     });
 
     test('Should accept values and submit if valid', async () => {
-        const handleSubmit = jest.fn();
+        const handleSubmit:  jest.Mock<any, any> = jest.fn();
         const onSubmitSuccessful: jest.Mock<any, any> = jest.fn();
         render(
             <BasicForm

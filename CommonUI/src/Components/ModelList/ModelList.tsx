@@ -7,7 +7,7 @@ import ModelAPI, {
     ListResult,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
-import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/BaseDatabase/Select';
 import Input from '../Input/Input';
@@ -178,7 +178,9 @@ const ModelList: <TBaseModel extends BaseModel>(
         }
     }, [modelList, searchText]);
 
-    const deleteItem: Function = async (item: TBaseModel) => {
+    type DeleteItemFunction = (item: TBaseModel) => Promise<void>;
+
+    const deleteItem: DeleteItemFunction = async (item: TBaseModel) => {
         if (!item.id) {
             throw new BadDataException('item.id cannot be null');
         }

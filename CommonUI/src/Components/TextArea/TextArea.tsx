@@ -44,7 +44,9 @@ const TextArea: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-    const handleChange: Function = (content: string): void => {
+    type HandleChangeFunction = (content: string) => void;
+
+    const handleChange: HandleChangeFunction = (content: string): void => {
         setText(content);
         props.onChange && props.onChange(content);
     };

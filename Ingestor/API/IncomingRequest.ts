@@ -3,6 +3,7 @@ import Express, {
     ExpressResponse,
     ExpressRouter,
     NextFunction,
+    RequestHandler,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -12,11 +13,10 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import OneUptimeDate from 'Common/Types/Date';
-import { ExpressAPIFunction } from 'CommonServer/Types/Functions';
 
 const router: ExpressRouter = Express.getRouter();
 
-const processIncomingRequest: ExpressAPIFunction = async (
+const processIncomingRequest: RequestHandler = async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction

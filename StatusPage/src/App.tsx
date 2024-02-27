@@ -37,7 +37,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Logout from './Pages/Accounts/Logout';
 import StatusPageUtil from './Utils/StatusPage';
 import UpdateSubscription from './Pages/Subscribe/UpdateSubscription';
-import { VoidFunction } from 'Common/Types/FunctionsTypes';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());

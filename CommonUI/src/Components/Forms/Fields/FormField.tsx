@@ -52,7 +52,11 @@ const FormField: <T extends Object>(
 ) => ReactElement = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const getFieldType: Function = (fieldType: FormFieldSchemaType): string => {
+    type GetFieldTypeFunction = (fieldType: FormFieldSchemaType) => string;
+
+    const getFieldType: GetFieldTypeFunction = (
+        fieldType: FormFieldSchemaType
+    ): string => {
         switch (fieldType) {
             case FormFieldSchemaType.Email:
                 return 'email';
@@ -101,7 +105,7 @@ const FormField: <T extends Object>(
             );
         }, [props.currentValues]);
 
-        const getMultiSelectCheckboxCategoryModal: Function =
+        const getMultiSelectCheckboxCategoryModal: GetReactElementFunction =
             (): ReactElement => {
                 return (
                     <Modal

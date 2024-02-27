@@ -14,7 +14,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';

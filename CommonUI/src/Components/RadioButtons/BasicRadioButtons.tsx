@@ -38,7 +38,9 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-    const handleChange: Function = (content: string): void => {
+    type HandleChangeFunction = (content: string) => void;
+
+    const handleChange: HandleChangeFunction = (content: string): void => {
         setValue(content);
         props.onChange(content);
     };

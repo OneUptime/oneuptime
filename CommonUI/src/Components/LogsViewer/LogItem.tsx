@@ -18,7 +18,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     let bodyColor: string = 'text-slate-200';
 
-    const getCopyButton: Function = (textToBeCopied: string) => {
+    type GetCopyButtonFunction = (textToBeCopied: string) => ReactElement;
+
+    const getCopyButton: GetCopyButtonFunction = (textToBeCopied: string) => {
         return (
             <CopyTextButton
                 textToBeCopied={textToBeCopied}
