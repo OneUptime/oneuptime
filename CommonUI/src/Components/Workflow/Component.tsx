@@ -198,7 +198,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                                                     i + 1,
                                                     props.data.metadata.inPorts
                                                         .length,
-                                                        false
+                                                    false
                                                 ),
                                             }}
                                         />
@@ -295,7 +295,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                                                         i + 1,
                                                         props.data.metadata
                                                             .outPorts.length,
-                                                            false
+                                                        false
                                                     ),
                                                 }}
                                             />

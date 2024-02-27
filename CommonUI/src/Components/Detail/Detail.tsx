@@ -99,7 +99,6 @@ const Detail: (props: ComponentProps) => ReactElement = (
     const getUSDCentsField: GetUSDCentsFieldFunction = (
         usdCents: number | null
     ): ReactElement => {
-
         if (usdCents === null) {
             return <></>;
         }
@@ -112,7 +111,6 @@ const Detail: (props: ComponentProps) => ReactElement = (
     const getMinutesField: GetMinutesFieldFunction = (
         minutes: number | null
     ): ReactElement => {
-
         if (minutes === null) {
             return <></>;
         }
@@ -165,15 +163,12 @@ const Detail: (props: ComponentProps) => ReactElement = (
         }
 
         if (data && field.fieldType === FieldType.Color) {
-
             if (data instanceof Color) {
                 data = getColorField(data);
             }
-
         }
 
         if (data && field.fieldType === FieldType.USDCents) {
-
             let usdCents: number | null = null;
 
             if (typeof data === 'string') {
@@ -188,7 +183,6 @@ const Detail: (props: ComponentProps) => ReactElement = (
         }
 
         if (data && field.fieldType === FieldType.Minutes) {
-
             let minutes: number | null = null;
 
             if (typeof data === 'string') {
@@ -203,7 +197,9 @@ const Detail: (props: ComponentProps) => ReactElement = (
         }
 
         if (data && field.fieldType === FieldType.DictionaryOfStrings) {
-            data = getDictionaryOfStringsViewer(props.item[field.key] as Dictionary<string>);
+            data = getDictionaryOfStringsViewer(
+                props.item[field.key] as Dictionary<string>
+            );
         }
 
         if (!data && field.fieldType === FieldType.Color && field.placeholder) {
@@ -323,10 +319,10 @@ const Detail: (props: ComponentProps) => ReactElement = (
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                            width:
-                                100 / props.showDetailsInNumberOfColumns +
-                                '%',
-                        }
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
                         : { width: '100%' }
                 }
             >
@@ -354,8 +350,9 @@ const Detail: (props: ComponentProps) => ReactElement = (
 
     return (
         <div
-            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${props.showDetailsInNumberOfColumns || 1
-                } w-full`}
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+                props.showDetailsInNumberOfColumns || 1
+            } w-full`}
         >
             {props.fields &&
                 props.fields.length > 0 &&

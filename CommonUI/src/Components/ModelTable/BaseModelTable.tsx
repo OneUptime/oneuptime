@@ -788,7 +788,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const shouldDisableSort: ShouldDisableSortFunction = (
         columnName: string | null
     ): boolean => {
-
         if (!columnName) {
             return true;
         }

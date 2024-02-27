@@ -36,5 +36,5 @@ BasicCron({
             URL.fromString(INGESTOR_URL.toString()).addRoute('/alive'),
             ProbeAPIRequest.getDefaultRequestBody()
         );
-    }
+    },
 });
