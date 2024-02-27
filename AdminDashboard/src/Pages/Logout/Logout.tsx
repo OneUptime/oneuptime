@@ -10,11 +10,12 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 const Logout: FunctionComponent = (): ReactElement => {
     const [error, setError] = React.useState<string | null>(null);
 
-    const logout: Function = async () => {
+    const logout: PromiseVoidFunctionType = async (): Promise<void> => {
         UiAnalytics.logout();
         await UserUtil.logout();
         Navigation.navigate(ACCOUNTS_URL);

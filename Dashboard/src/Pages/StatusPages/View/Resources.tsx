@@ -12,6 +12,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPageResource, {
     UptimePrecision,
 } from 'Model/Models/StatusPageResource';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -45,7 +46,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
     const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
 
-    const fetchGroups: Function = async () => {
+    const fetchGroups: PromiseVoidFunctionType = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 

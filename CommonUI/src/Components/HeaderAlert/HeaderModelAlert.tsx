@@ -5,6 +5,7 @@ import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
 import HeaderAlert from './HeaderAlert';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     icon: IconProp;
@@ -32,7 +33,7 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
         fetchCount();
     }, [props.refreshToggle]);
 
-    const fetchCount: Function = async () => {
+    const fetchCount: PromiseVoidFunctionType = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 

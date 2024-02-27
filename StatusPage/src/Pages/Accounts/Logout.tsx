@@ -7,11 +7,12 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import StatusPageUtil from '../../Utils/StatusPage';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Route from 'Common/Types/API/Route';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 const Logout: () => JSX.Element = () => {
     const [error, setError] = React.useState<string | null>(null);
 
-    const logout: Function = async () => {
+    const logout: PromiseVoidFunctionType = async (): Promise<void> => {
         if (StatusPageUtil.getStatusPageId()) {
             await UserUtil.logout(StatusPageUtil.getStatusPageId()!);
             const navRoute: Route = StatusPageUtil.isPreviewPage()

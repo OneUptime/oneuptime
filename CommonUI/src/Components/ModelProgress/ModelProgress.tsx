@@ -7,6 +7,8 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ProgressBar from '../ProgressBar/ProgressBar';
 import API from '../../Utils/API/API';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
     description: string;
@@ -24,7 +26,7 @@ const ModelProgress: <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);
 
-    const fetchCount: Function = async () => {
+    const fetchCount: PromiseVoidFunctionType = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 

@@ -3,8 +3,9 @@
 
 import BillingService from 'CommonServer/Services/BillingService';
 import Sleep from 'Common/Types/Sleep';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
-const main: Function = async () => {
+const main: PromiseVoidFunctionType = async (): Promise<void> => {
     for (let i: number = 0; i < 2000; i++) {
         const code: string = await BillingService.generateCouponCode({
             name: 'Name',

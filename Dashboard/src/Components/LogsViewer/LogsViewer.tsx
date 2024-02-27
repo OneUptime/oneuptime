@@ -18,6 +18,7 @@ import Search from 'Common/Types/BaseDatabase/Search';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import Includes from 'Common/Types/BaseDatabase/Includes';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     id: string;
@@ -84,7 +85,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         });
     }, [filterOptions]);
 
-    const fetchItems: Function = async () => {
+    const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 

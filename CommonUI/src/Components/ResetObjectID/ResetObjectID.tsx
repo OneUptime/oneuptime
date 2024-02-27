@@ -8,6 +8,7 @@ import { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from '../Modal/ConfirmModal';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -32,7 +33,7 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
 
     const [newId, setNewId] = useState<ObjectID | null>(null);
 
-    const resetKey: Function = async () => {
+    const resetKey: PromiseVoidFunctionType = async (): Promise<void> => {
         setIsLoading(true);
         try {
             const resetIdTo: ObjectID = ObjectID.generate();

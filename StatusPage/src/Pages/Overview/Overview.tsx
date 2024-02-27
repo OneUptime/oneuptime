@@ -54,6 +54,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Section from '../../Components/Section/Section';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -129,7 +130,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
-    const loadPage: Function = async () => {
+    const loadPage: PromiseVoidFunctionType = async (): Promise<void> => {
         try {
             if (!StatusPageUtil.getStatusPageId()) {
                 return;

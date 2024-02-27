@@ -68,6 +68,7 @@ import AnalyticsBaseModel, {
 } from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
 import { FormProps } from '../Forms/BasicForm';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export enum ShowTableAs {
     Table,
@@ -474,7 +475,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setColumns(columns);
     };
 
-    const getFilterDropdownItems: Function = async () => {
+    const getFilterDropdownItems: PromiseVoidFunctionType = async (): Promise<void> => {
         setTableFilterError('');
         setIsTableFilterFetchLoading(true);
 
@@ -567,7 +568,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setIsTableFilterFetchLoading(false);
     };
 
-    const fetchItems: Function = async () => {
+    const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 

@@ -14,6 +14,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
@@ -62,7 +63,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         });
     }, []);
 
-    const addLayer: Function = async () => {
+    const addLayer: PromiseVoidFunctionType = async (): Promise<void> => {
         setIsAddButtonLoading(true);
 
         try {
@@ -170,7 +171,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const fetchLayers: Function = async () => {
+    const fetchLayers: PromiseVoidFunctionType = async (): Promise<void> => {
         setIsLoading(true);
 
         try {
