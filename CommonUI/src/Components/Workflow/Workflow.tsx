@@ -210,7 +210,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 .map((edge: Edge) => {
                     return {
                         ...edge,
-                        ...getEdgeDefaultProps(edge.selected),
+                        ...getEdgeDefaultProps(edge.selected || false),
                     };
                 });
         });
@@ -229,7 +229,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             edge = {
                 ...edge,
-                ...getEdgeDefaultProps(edge.selected),
+                ...getEdgeDefaultProps(edge.selected || false),
             };
 
             return edge;
@@ -255,7 +255,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     eds.map((edge: Edge) => {
                         return {
                             ...edge,
-                            ...getEdgeDefaultProps(edge.selected),
+                            ...getEdgeDefaultProps(edge.selected || false),
                         };
                     })
                 );
@@ -285,7 +285,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     eds.map((edge: Edge) => {
                         return {
                             ...edge,
-                            ...getEdgeDefaultProps(edge.selected),
+                            ...getEdgeDefaultProps(edge.selected || false),
                         };
                     })
                 );
@@ -304,7 +304,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     .map((edge: Edge) => {
                         return {
                             ...edge,
-                            ...getEdgeDefaultProps(edge.selected),
+                            ...getEdgeDefaultProps(edge.selected || false),
                         };
                     });
             });

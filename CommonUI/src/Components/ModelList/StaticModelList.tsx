@@ -12,7 +12,7 @@ import {
     DroppableProvided,
 } from 'react-beautiful-dnd';
 import Icon from '../Icon/Icon';
-import { GetReactElementFunction } from '../../Types/Functions';
+import { GetReactElementFunction } from '../../Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     list: Array<TBaseModel>;

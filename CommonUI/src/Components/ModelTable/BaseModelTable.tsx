@@ -73,7 +73,7 @@ import {
     ErrorFunction,
     VoidFunction,
 } from 'Common/Types/FunctionTypes';
-import { GetReactElementFunction } from '../../Types/Functions';
+import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import SelectEntityField from '../../Types/SelectEntityField';
 
 export enum ShowTableAs {
@@ -783,11 +783,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.refreshToggle,
     ]);
 
-    type ShouldDisableSortFunction = (columnName: string) => boolean;
+    type ShouldDisableSortFunction = (columnName: string | null) => boolean;
 
     const shouldDisableSort: ShouldDisableSortFunction = (
-        columnName: string
+        columnName: string | null
     ): boolean => {
+
+        if (!columnName) {
+            return true;
+        }
+
         return model.isEntityColumn(columnName);
     };
 

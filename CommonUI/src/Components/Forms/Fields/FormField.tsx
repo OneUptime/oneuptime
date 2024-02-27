@@ -28,10 +28,7 @@ import CategoryCheckbox from '../../CategoryCheckbox/Index';
 import Typeof from 'Common/Types/Typeof';
 import Modal from '../../Modal/Modal';
 import Link from '../../Link/Link';
-import {
-    GetReactElementFunction,
-    GetReactElementOrStringFunction,
-} from '../../../Types/Functions';
+import { GetReactElementFunction } from '../../../Types/FunctionTypes';
 import GenericObject from 'Common/Types/GenericObject';
 
 export interface ComponentProps<T extends GenericObject> {
@@ -201,7 +198,9 @@ const FormField: <T extends GenericObject>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
-        const getFieldDescription: GetReactElementOrStringFunction = ():
+        type GetFieldDescriptionFunction = () => ReactElement | string;
+
+        const getFieldDescription: GetFieldDescriptionFunction = ():
             | ReactElement
             | string => {
             if (

@@ -10,7 +10,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import Filter, { FilterData } from './Filter';
-import { GetReactElementFunction } from '../../Types/Functions';
+import { GetReactElementFunction } from '../../Types/FunctionTypes';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
