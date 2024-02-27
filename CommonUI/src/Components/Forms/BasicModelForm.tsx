@@ -4,11 +4,14 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
-import BasicForm, { DefaultValidateFunction } from './BasicForm';
+import BasicForm, {
+    DefaultValidateFunction,
+    FormErrors,
+    FormProps,
+} from './BasicForm';
 import { ButtonStyleType } from '../Button/Button';
 import { FormStep } from './Types/FormStep';
 
@@ -24,7 +27,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | undefined
         | ((
               values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+          ) => FormErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     submitButtonStyleType?: ButtonStyleType | undefined;
@@ -43,7 +46,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
     hideSubmitButton?: undefined | boolean;
-    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     initialValues?: FormValues<TBaseModel> | undefined;
 }
 

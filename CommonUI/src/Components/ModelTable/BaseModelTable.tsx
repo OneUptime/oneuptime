@@ -1,5 +1,10 @@
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, {
+    MutableRefObject,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import Columns from './Columns';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
@@ -62,6 +67,7 @@ import AnalyticsBaseModel, {
     AnalyticsBaseModelType,
 } from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
+import { FormProps } from '../Forms/BasicForm';
 
 export enum ShowTableAs {
     Table,
@@ -168,6 +174,9 @@ export interface BaseTableProps<
         shouldAddItemInTheBeginning?: boolean;
     };
     onViewComplete?: ((item: TBaseModel) => void) | undefined;
+    createEditFromRef?:
+        | undefined
+        | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     name: string;
 }
 

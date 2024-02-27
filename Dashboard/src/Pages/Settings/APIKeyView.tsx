@@ -1,5 +1,10 @@
 import Route from 'Common/Types/API/Route';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import React, {
+    Fragment,
+    FunctionComponent,
+    MutableRefObject,
+    ReactElement,
+} from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -21,12 +26,20 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import DashboardNavigation from '../../Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
 import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import TeamPermission from 'Model/Models/TeamPermission';
+import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
     const [refresher, setRefresher] = React.useState<boolean>(false);
+
+    const formRef: MutableRefObject<FormProps<FormValues<ApiKeyPermission>>> =
+        React.useRef<
+            FormProps<FormValues<ApiKeyPermission>>
+        >() as MutableRefObject<FormProps<FormValues<ApiKeyPermission>>>;
 
     return (
         <Fragment>
@@ -145,13 +158,18 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={
                     'No permisisons created for this API Key so far.'
                 }
+                createEditFromRef={formRef}
                 formFields={[
                     {
                         field: {
                             permission: true,
                         },
-                        onChange: async (_value: any, form: any) => {
-                            await form.setFieldValue('labels', [], true);
+                        onChange: async (_value: any) => {
+                            await formRef.current.setFieldValue(
+                                'labels',
+                                [],
+                                true
+                            );
                         },
                         title: 'Permission',
                         fieldType: FormFieldSchemaType.Dropdown,
@@ -172,6 +190,24 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             type: Label,
                             labelField: 'name',
                             valueField: '_id',
+                        },
+                        showIf: (
+                            values: FormValues<TeamPermission>
+                        ): boolean => {
+                            if (!values['permission']) {
+                                return false;
+                            }
+
+                            if (
+                                values['permission'] &&
+                                !PermissionHelper.isAccessControlPermission(
+                                    values['permission'] as Permission
+                                )
+                            ) {
+                                return false;
+                            }
+
+                            return true;
                         },
                         required: false,
                         placeholder: 'Labels',

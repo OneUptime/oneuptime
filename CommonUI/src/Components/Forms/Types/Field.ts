@@ -78,7 +78,7 @@ export default interface Field<TEntity> {
         | undefined;
     styleType?: FormFieldStyleType | undefined;
     showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
-    onChange?: ((value: any, form?: any | undefined) => void) | undefined;
+    onChange?: ((value: any) => void) | undefined;
     fieldType?: FormFieldSchemaType;
     overrideFieldKey?: string;
     defaultValue?: boolean | string | Date | undefined;

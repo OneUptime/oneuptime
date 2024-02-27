@@ -30,6 +30,10 @@ import Validation from './Validation';
 import useAsyncEffect from 'use-async-effect';
 import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import { FormikErrors, FormikProps } from 'formik';
+
+export type FormProps<T> = FormikProps<T>;
+export type FormErrors<T> = FormikErrors<T>;
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>

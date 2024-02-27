@@ -118,6 +118,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                                           model.singularName
                                       }`
                             }
+                            formRef={props.createEditFromRef}
                             modalWidth={props.createEditModalWidth}
                             name={
                                 modalType === ModalType.Create

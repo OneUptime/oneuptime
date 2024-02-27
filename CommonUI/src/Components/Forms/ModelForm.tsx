@@ -1,5 +1,4 @@
 import React, { MutableRefObject, ReactElement, useState } from 'react';
-import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -44,6 +43,7 @@ import AccessControlModel from 'Common/Models/AccessControlModel';
 import Pill, { PillSize } from '../Pill/Pill';
 import Color from 'Common/Types/Color';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import { FormErrors, FormProps } from './BasicForm';
 
 export enum FormType {
     Create,
@@ -67,7 +67,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | undefined
         | ((
               values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+          ) => FormErrors<FormValues<TBaseModel>>);
     fields: Array<ModelField<TBaseModel>>;
     onFormStepChange?: undefined | ((stepId: string) => void);
     steps?: undefined | Array<FormStep<TBaseModel>>;
@@ -89,7 +89,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formType: FormType;
     hideSubmitButton?: undefined | boolean;
     submitButtonStyleType?: ButtonStyleType | undefined;
-    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
     initialValues?: FormValues<TBaseModel> | undefined;
