@@ -1,3 +1,3 @@
-type GenericObject = Object; 
+type GenericObject = Object;
 
 export default GenericObject;

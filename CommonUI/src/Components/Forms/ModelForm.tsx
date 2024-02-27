@@ -591,15 +591,19 @@ const ModelForm: <TBaseModel extends BaseModel>(
         }
     }, []);
 
-    type GetMiscDataPropsFunction = (values: FormValues<JSONObject>) => JSONObject;
+    type GetMiscDataPropsFunction = (
+        values: FormValues<JSONObject>
+    ) => JSONObject;
 
-    const getMiscDataProps: GetMiscDataPropsFunction = (values: FormValues<JSONObject>): JSONObject => {
+    const getMiscDataProps: GetMiscDataPropsFunction = (
+        values: FormValues<JSONObject>
+    ): JSONObject => {
         const result: JSONObject = {};
 
         for (const field of fields) {
             if (field.overrideFieldKey && values[field.overrideFieldKey]) {
                 result[field.overrideFieldKey] =
-                    values[field.overrideFieldKey] as JSONObject || null;
+                    (values[field.overrideFieldKey] as JSONObject) || null;
             }
         }
 

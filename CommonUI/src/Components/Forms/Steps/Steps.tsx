@@ -11,9 +11,9 @@ export interface ComponentProps<T> {
     formValues: FormValues<T>;
 }
 
-const Steps: <T extends GenericObject>(props: ComponentProps<T>) => ReactElement = <
-    T extends GenericObject
->(
+const Steps: <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const steps: Array<FormStep<T>> = props.steps.filter(

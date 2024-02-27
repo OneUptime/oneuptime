@@ -70,28 +70,31 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
     type GetRelationSelectFunction = () => Select<TBaseModel>;
 
-    const getRelationSelect: GetRelationSelectFunction = (): Select<TBaseModel> => {
-        const relationSelect: Select<TBaseModel> = {};
+    const getRelationSelect: GetRelationSelectFunction =
+        (): Select<TBaseModel> => {
+            const relationSelect: Select<TBaseModel> = {};
 
-        for (const field of props.fields || []) {
-            const key: string | null = field.field
-                ? (Object.keys(field.field)[0] as string)
-                : null;
+            for (const field of props.fields || []) {
+                const key: string | null = field.field
+                    ? (Object.keys(field.field)[0] as string)
+                    : null;
 
-            if (key && new props.modelType()?.isFileColumn(key)) {
-                (relationSelect as JSONObject)[key] = {
-                    file: true,
-                    _id: true,
-                    type: true,
-                    name: true,
-                };
-            } else if (key && new props.modelType()?.isEntityColumn(key)) {
-                (relationSelect as JSONObject)[key] = (field.field as any)[key];
+                if (key && new props.modelType()?.isFileColumn(key)) {
+                    (relationSelect as JSONObject)[key] = {
+                        file: true,
+                        _id: true,
+                        type: true,
+                        name: true,
+                    };
+                } else if (key && new props.modelType()?.isEntityColumn(key)) {
+                    (relationSelect as JSONObject)[key] = (field.field as any)[
+                        key
+                    ];
+                }
             }
-        }
 
-        return relationSelect;
-    };
+            return relationSelect;
+        };
 
     const setDetailFields: VoidFunction = (): void => {
         // set fields.

@@ -8,9 +8,9 @@ export interface ComponentProps<T> {
     state: FormStepState;
 }
 
-const Step: <T extends GenericObject>(props: ComponentProps<T>) => ReactElement = <
-    T extends GenericObject
->(
+const Step: <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     return (
