@@ -6,6 +6,7 @@ import React, {
     useState,
 } from 'react';
 import PageComponentProps from '../../PageComponentProps';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -49,7 +50,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         options: [],
     });
 
-    const fetchCheckboxOptionsAndCategories: Function =
+    const fetchCheckboxOptionsAndCategories: PromiseVoidFunctionType =
         async (): Promise<void> => {
             const result: CategoryCheckboxOptionsAndCategories =
                 await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(

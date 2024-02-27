@@ -5,6 +5,7 @@ import React, {
     useState,
 } from 'react';
 import Page from '../../Components/Page/Page';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 import ModelForm, {
     FormType,
     ModelField,
@@ -48,7 +49,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     const [isLaoding, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>(undefined);
 
-    const fetchCheckboxOptionsAndCategories: Function =
+    const fetchCheckboxOptionsAndCategories: PromiseVoidFunctionType =
         async (): Promise<void> => {
             try {
                 setIsLoading(true);

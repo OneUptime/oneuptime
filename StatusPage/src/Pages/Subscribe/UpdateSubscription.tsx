@@ -27,6 +27,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps
@@ -65,7 +66,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     const [isLaoding, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>(undefined);
 
-    const fetchCheckboxOptionsAndCategories: Function =
+    const fetchCheckboxOptionsAndCategories: PromiseVoidFunctionType =
         async (): Promise<void> => {
             try {
                 setIsLoading(true);
