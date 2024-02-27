@@ -33,7 +33,7 @@ import {
     GetReactElementOrStringFunction,
 } from '../../../Types/Functions';
 
-export interface ComponentProps<T extends Object> {
+export interface ComponentProps<T extends GenericObject> {
     field: Field<T>;
     fieldName: string;
     index: number;
@@ -47,9 +47,9 @@ export interface ComponentProps<T extends Object> {
     submitForm?: (() => void) | undefined;
 }
 
-const FormField: <T extends Object>(
+const FormField: <T extends GenericObject>(
     props: ComponentProps<T>
-) => ReactElement = <T extends Object>(
+) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     type GetFieldTypeFunction = (fieldType: FormFieldSchemaType) => string;

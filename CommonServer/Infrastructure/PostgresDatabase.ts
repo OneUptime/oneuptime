@@ -28,7 +28,6 @@ export default class Database {
         let retry: number = 0;
 
         try {
-
             type ConnectToDatabaseFunction = () => Promise<DataSource>;
 
             const connectToDatabase: ConnectToDatabaseFunction =

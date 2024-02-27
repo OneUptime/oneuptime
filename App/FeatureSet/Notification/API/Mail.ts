@@ -50,7 +50,9 @@ router.post(
 
 type HasMailServerSettingsInBody = (body: JSONObject) => boolean;
 
-const hasMailServerSettingsInBody: HasMailServerSettingsInBody = (body: JSONObject): boolean => {
+const hasMailServerSettingsInBody: HasMailServerSettingsInBody = (
+    body: JSONObject
+): boolean => {
     return (
         body &&
         Object.keys(body).filter((key: string) => {

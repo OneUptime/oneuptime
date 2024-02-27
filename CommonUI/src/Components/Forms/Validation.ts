@@ -21,9 +21,10 @@ import Dictionary from 'Common/Types/Dictionary';
 import Field from './Types/Field';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Typeof from 'Common/Types/Typeof';
+import GenericObject from 'Common/Types/GenericObject';
 
 export default class Validation {
-    public static validateLength<T extends Object>(
+    public static validateLength<T extends GenericObject>(
         content: string | undefined,
         field: Field<T>
     ): string | null {
@@ -67,7 +68,7 @@ export default class Validation {
         return null;
     }
 
-    public static validateDate<T extends Object>(
+    public static validateDate<T extends GenericObject>(
         content: string | undefined,
         field: Field<T>
     ): string | null {
@@ -81,7 +82,7 @@ export default class Validation {
         return null;
     }
 
-    public static validateMaxValueAndMinValue<T extends Object>(
+    public static validateMaxValueAndMinValue<T extends GenericObject>(
         content: string | number | undefined,
         field: Field<T>
     ): string | null {
@@ -113,7 +114,7 @@ export default class Validation {
         return null;
     }
 
-    public static validateRequired<T extends Object>(
+    public static validateRequired<T extends GenericObject>(
         currentValues: FormValues<T>,
         content: string | undefined,
         field: Field<T>
@@ -136,7 +137,7 @@ export default class Validation {
         return null;
     }
 
-    public static validateMatchField<T extends Object>(
+    public static validateMatchField<T extends GenericObject>(
         content: string | undefined,
         field: Field<T>,
         entity: JSONObject
@@ -154,7 +155,7 @@ export default class Validation {
         return null;
     }
 
-    public static validateData<T extends Object>(
+    public static validateData<T extends GenericObject>(
         content: string | undefined,
         field: Field<T>
     ): string | null {
@@ -237,7 +238,7 @@ export default class Validation {
         return null;
     }
 
-    public static validate<T extends Object>(args: {
+    public static validate<T extends GenericObject>(args: {
         formFields: Array<Field<T>>;
         values: FormValues<T>;
         onValidate: ((values: FormValues<T>) => JSONObject) | undefined;

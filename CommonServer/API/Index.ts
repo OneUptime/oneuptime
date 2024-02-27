@@ -4,7 +4,6 @@ import Express, { ExpressApplication } from '../Utils/Express';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-
 type InitFunction = (appName: string) => void;
 
 const init: InitFunction = (appName: string): void => {

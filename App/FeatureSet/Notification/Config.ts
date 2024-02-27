@@ -141,7 +141,7 @@ export const getSendgridConfig: GetSendgridConfigFunction =
         return null;
     };
 
-    type GetTwilioConfigFunction = () => Promise<TwilioConfig | null>;
+type GetTwilioConfigFunction = () => Promise<TwilioConfig | null>;
 
 export const getTwilioConfig: GetTwilioConfigFunction =
     async (): Promise<TwilioConfig | null> => {

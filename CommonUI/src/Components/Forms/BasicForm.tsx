@@ -32,6 +32,7 @@ import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { FormikErrors, FormikProps } from 'formik';
 import { VoidFunction } from 'Common/Types/FunctionTypes';
+import GenericObject from 'Common/Types/GenericObject';
 
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
@@ -42,7 +43,7 @@ export const DefaultValidateFunction: Function = (
     return {};
 };
 
-export interface BaseComponentProps<T extends Object> {
+export interface BaseComponentProps<T extends GenericObject> {
     submitButtonStyleType?: ButtonStyleType | undefined;
     initialValues?: FormValues<T> | undefined;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
@@ -68,14 +69,14 @@ export interface BaseComponentProps<T extends Object> {
     showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
 }
 
-export interface ComponentProps<T extends Object>
+export interface ComponentProps<T extends GenericObject>
     extends BaseComponentProps<T> {
     onSubmit: (values: FormValues<T>, onSubmitSuccessful?: () => void) => void;
     footer: ReactElement;
 }
 
 const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
-    <T extends Object>(
+    <T extends GenericObject>(
         props: ComponentProps<T>,
         ref: Ref<any>
     ): ReactElement => {
