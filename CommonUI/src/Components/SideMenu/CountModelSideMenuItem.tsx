@@ -7,7 +7,7 @@ import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;

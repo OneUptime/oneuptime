@@ -8,7 +8,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import URL from 'Common/Types/API/URL';
-import { VoidFunction } from 'Common/Types/Functions';
+import { VoidFunction } from 'Common/Types/FunctionsTypes';
 
 export interface ComponentProps {
     show: boolean;

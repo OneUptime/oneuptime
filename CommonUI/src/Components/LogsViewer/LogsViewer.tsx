@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import LogItem from './LogItem';
 import LogsFilters, { FilterOption } from './LogsFilters';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import { VoidFunction } from 'Common/Types/Functions';
+import { VoidFunction } from 'Common/Types/FunctionsTypes';
 
 export interface ComponentProps {
     logs: Array<Log>;

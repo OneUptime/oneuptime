@@ -26,7 +26,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
-import { VoidFunction } from 'Common/Types/Functions';
+import { VoidFunction } from 'Common/Types/FunctionsTypes';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

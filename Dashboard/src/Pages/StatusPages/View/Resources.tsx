@@ -33,7 +33,7 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupElement';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

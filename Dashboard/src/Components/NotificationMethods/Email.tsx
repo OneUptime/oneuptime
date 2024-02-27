@@ -11,7 +11,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 import URL from 'Common/Types/API/URL';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';

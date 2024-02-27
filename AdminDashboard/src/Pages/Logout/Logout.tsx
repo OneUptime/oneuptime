@@ -10,7 +10,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 const Logout: FunctionComponent = (): ReactElement => {
     const [error, setError] = React.useState<string | null>(null);

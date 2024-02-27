@@ -9,7 +9,7 @@ import Columns from './Columns';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
 import { JSONObject } from 'Common/Types/JSON';
@@ -72,7 +72,7 @@ import AnalyticsBaseModel, {
 } from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
 import { FormProps } from '../Forms/BasicForm';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 import { GetReactElementFunction } from '../../Types/Functions';
 
 export enum ShowTableAs {

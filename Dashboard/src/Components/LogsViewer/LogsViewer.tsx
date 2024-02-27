@@ -18,7 +18,7 @@ import Search from 'Common/Types/BaseDatabase/Search';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import Includes from 'Common/Types/BaseDatabase/Includes';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 export interface ComponentProps {
     id: string;

@@ -10,7 +10,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 import { JSONObject } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';

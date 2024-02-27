@@ -5,7 +5,7 @@ import React, {
     useState,
 } from 'react';
 import Page from '../../Components/Page/Page';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 import ModelForm, {
     FormType,
     ModelField,

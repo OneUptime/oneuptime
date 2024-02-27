@@ -24,7 +24,7 @@ import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
 import {
     VoidFunction,
     ErrorFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

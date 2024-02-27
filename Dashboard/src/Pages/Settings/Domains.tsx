@@ -16,7 +16,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';

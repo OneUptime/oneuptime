@@ -7,7 +7,7 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import StatusPageUtil from '../../Utils/StatusPage';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Route from 'Common/Types/API/Route';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 const Logout: () => JSX.Element = () => {
     const [error, setError] = React.useState<string | null>(null);

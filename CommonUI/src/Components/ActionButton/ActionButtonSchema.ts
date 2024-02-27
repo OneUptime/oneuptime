@@ -5,7 +5,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 
 interface ActionButtonSchema {
     title: string;

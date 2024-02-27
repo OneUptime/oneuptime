@@ -22,7 +22,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

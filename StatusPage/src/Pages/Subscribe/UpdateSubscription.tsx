@@ -27,7 +27,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps

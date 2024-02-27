@@ -5,7 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { VoidFunction } from 'Common/Types/Functions';
+import { VoidFunction } from 'Common/Types/FunctionsTypes';
 import ReactFlow, {
     MiniMap,
     Controls,

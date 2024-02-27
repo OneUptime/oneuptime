@@ -16,7 +16,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import Navigation from 'CommonUI/src/Utils/Navigation';

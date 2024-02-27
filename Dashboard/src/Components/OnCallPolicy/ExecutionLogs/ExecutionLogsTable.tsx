@@ -12,7 +12,7 @@ import IncidentView from '../../../Components/Incident/Incident';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 import Incident from 'Model/Models/Incident';
 import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
 import UserElement from '../../../Components/User/User';

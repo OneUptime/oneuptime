@@ -25,7 +25,7 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

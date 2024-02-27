@@ -24,7 +24,7 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import DashboardNavigation from '../../../../../../Utils/Navigation';
 import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 type BarTooltipFunctionProps = {
     span: Span;

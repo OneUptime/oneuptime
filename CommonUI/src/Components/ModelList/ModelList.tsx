@@ -7,7 +7,7 @@ import ModelAPI, {
     ListResult,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/BaseDatabase/Select';
 import Input from '../Input/Input';

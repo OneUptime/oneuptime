@@ -19,7 +19,7 @@ import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import { JSONValue } from 'Common/Types/JSON';
 import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
-import { VoidFunction } from 'Common/Types/Functions';
+import { VoidFunction } from 'Common/Types/FunctionsTypes';
 
 export interface ComponentProps {
     projects: Array<Project>;

@@ -8,7 +8,7 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import {
     ErrorFunction,
     VoidFunction,
-} from 'Common/Types/Functions';
+} from 'Common/Types/FunctionsTypes';
 import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';

@@ -7,7 +7,7 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ProgressBar from '../ProgressBar/ProgressBar';
 import API from '../../Utils/API/API';
-import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
