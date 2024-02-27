@@ -11,6 +11,7 @@ import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import DashboardNavigation from '../../Utils/Navigation';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
+import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
 
 const Upgrade: () => JSX.Element = (): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);

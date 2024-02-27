@@ -151,7 +151,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
-    const getEventHistoryListComponentProps: Function = (
+    type GetEventHistoryListComponentProps = (
+        incidents: Array<Incident>
+    ) => EventHistoryListComponentProps;
+
+    const getEventHistoryListComponentProps: GetEventHistoryListComponentProps = (
         incidents: Array<Incident>
     ): EventHistoryListComponentProps => {
         const eventHistoryListComponentProps: EventHistoryListComponentProps = {
@@ -173,15 +177,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
 
             days[dayString]?.items.push(
-                getIncidentEventItem(
+                getIncidentEventItem({
                     incident,
                     incidentPublicNotes,
                     incidentStateTimelines,
                     statusPageResources,
                     monitorsInGroup,
-                    StatusPageUtil.isPreviewPage(),
-                    true
-                )
+                    isPreviewPage: StatusPageUtil.isPreviewPage(),
+                    isSummary: true
+                })
             );
         }
 
@@ -264,7 +268,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             ]}
         >
             {parsedActiveIncidentsData?.items &&
-            parsedActiveIncidentsData?.items.length > 0 ? (
+                parsedActiveIncidentsData?.items.length > 0 ? (
                 <div>
                     <Section title="Active Incidents" />
 
@@ -277,7 +281,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {parsedResolvedIncidentsData?.items &&
-            parsedResolvedIncidentsData?.items.length > 0 ? (
+                parsedResolvedIncidentsData?.items.length > 0 ? (
                 <div>
                     <Section title="Resolved Incidents" />
 

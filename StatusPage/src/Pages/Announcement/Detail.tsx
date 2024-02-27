@@ -34,11 +34,20 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
-export const getAnnouncementEventItem: Function = (
-    announcement: StatusPageAnnouncement,
-    isPreviewPage: boolean,
-    isSummary: boolean
-): EventItemComponentProps => {
+type GetAnnouncementEventItemFunctionTypeProps = {
+    announcement: StatusPageAnnouncement;
+    isPreviewPage: boolean;
+    isSummary: boolean;
+};
+
+type GetAnnouncementEventItemFunctionType = (
+    data: GetAnnouncementEventItemFunctionTypeProps
+) => EventItemComponentProps;
+
+export const getAnnouncementEventItem: GetAnnouncementEventItemFunctionType = (data: GetAnnouncementEventItemFunctionTypeProps): EventItemComponentProps => {
+
+    const { announcement, isPreviewPage, isSummary } = data;
+
     return {
         eventTitle: announcement.title || '',
         eventDescription: announcement.description,
@@ -144,10 +153,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
 
         setParsedData(
-            getAnnouncementEventItem(
+            getAnnouncementEventItem({
                 announcement,
-                Boolean(StatusPageUtil.isPreviewPage())
-            )
+                isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
+                isSummary: false,
+            })
         );
     }, [isLoading]);
 

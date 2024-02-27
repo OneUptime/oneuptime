@@ -231,7 +231,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -326,7 +326,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 if (
                     !Object.keys(dict).includes(
                         resource.monitor?.currentMonitorStatusId.toString() ||
-                            ''
+                        ''
                     )
                 ) {
                     dict[
@@ -370,7 +370,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    const getMonitorOverviewListInGroup: Function = (
+    type GetMonitorOverviewListInGroupFunctionType = (group: StatusPageGroup | null) => Array<ReactElement>;
+
+    const getMonitorOverviewListInGroup: GetMonitorOverviewListInGroupFunctionType = (
         group: StatusPageGroup | null
     ): Array<ReactElement> => {
         const elements: Array<ReactElement> = [];
@@ -382,7 +384,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                        resource.statusPageGroupId.toString()) ||
+                    resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 // if its not a monitor or a monitor group, then continue. This should ideally not happen.
@@ -499,8 +501,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     | Array<ObjectID>
                                     | undefined =
                                     monitorsInGroup[
-                                        resource.monitorGroupId?.toString() ||
-                                            ''
+                                    resource.monitorGroupId?.toString() ||
+                                    ''
                                     ];
 
                                 if (!monitorsInThisGroup) {
@@ -544,7 +546,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return elements;
     };
 
-    const getActiveIncidents: Function = (): Array<IncidentGroup> => {
+    type GetActiveIncidentsFunctionType = () => Array<IncidentGroup>;
+
+    const getActiveIncidents: GetActiveIncidentsFunctionType = (): Array<IncidentGroup> => {
         const groups: Array<IncidentGroup> = [];
 
         for (const activeIncident of activeIncidents) {
@@ -589,7 +593,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return groups;
     };
 
-    const getOngoingScheduledEvents: Function =
+    type GetOngoingScheduledEventsFunctionType = () => Array<ScheduledMaintenanceGroup>;
+
+    const getOngoingScheduledEvents: GetOngoingScheduledEventsFunctionType =
         (): Array<ScheduledMaintenanceGroup> => {
             const groups: Array<ScheduledMaintenanceGroup> = [];
 
@@ -637,7 +643,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return groups;
         };
 
-    const getRightAccordionElement: Function = (
+    type GetRightAccordionElementFunctionType = (group: StatusPageGroup) => ReactElement;
+
+    const getRightAccordionElement: GetRightAccordionElementFunctionType = (
         group: StatusPageGroup
     ): ReactElement => {
         let currentStatus: MonitorStatus = new MonitorStatus();
@@ -652,7 +660,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                        resource.statusPageGroupId.toString()) ||
+                    resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 hasResource = true;
@@ -669,7 +677,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         currentStatus.priority &&
                         currentMonitorStatus?.priority &&
                         currentMonitorStatus?.priority >
-                            currentStatus.priority) ||
+                        currentStatus.priority) ||
                     !currentStatus.priority
                 ) {
                     currentStatus = currentMonitorStatus!;
@@ -727,13 +735,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             ) => {
                                 return (
                                     <EventItem
+                                        {...getAnnouncementEventItem({
+                                            announcement,
+                                            isPreviewPage: StatusPageUtil.isPreviewPage(),
+                                            isSummary: true
+                                        }
+                                        )}
                                         isDetailItem={false}
                                         key={i}
-                                        {...getAnnouncementEventItem(
-                                            announcement,
-                                            StatusPageUtil.isPreviewPage(),
-                                            true
-                                        )}
+
                                     />
                                 );
                             }
@@ -743,16 +753,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
                             <Alert
-                                title={`${
-                                    currentStatus.isOperationalState
+                                title={`${currentStatus.isOperationalState
                                         ? `All`
                                         : 'Some'
-                                } Resources are ${
-                                    currentStatus.name?.toLowerCase() ===
-                                    'maintenance'
+                                    } Resources are ${currentStatus.name?.toLowerCase() ===
+                                        'maintenance'
                                         ? 'under'
                                         : ''
-                                } ${currentStatus.name}`}
+                                    } ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 textClassName="text-white text-lg"
@@ -804,7 +812,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         }
                                                         isLastElement={
                                                             resourceGroups.length -
-                                                                1 ===
+                                                            1 ===
                                                             i
                                                         }
                                                         title={
@@ -862,7 +870,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {/* Load Active ScheduledEvent */}
                     {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup &&
                         activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length >
-                            0 && (
+                        0 && (
                             <div id="scheduled-events-list mt-2">
                                 <Section title="Scheduled Maintenance Events" />
                                 {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.map(
@@ -899,7 +907,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                     {activeIncidentsInIncidentGroup.length === 0 &&
                         activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length ===
-                            0 &&
+                        0 &&
                         statusPageResources.length === 0 &&
                         activeAnnouncements.length === 0 &&
                         !isLoading &&

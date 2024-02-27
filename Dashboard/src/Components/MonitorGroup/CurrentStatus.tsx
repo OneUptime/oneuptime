@@ -11,6 +11,7 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import Loader from 'CommonUI/src/Components/Loader/Loader';
+import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     monitorGroupId: ObjectID;
