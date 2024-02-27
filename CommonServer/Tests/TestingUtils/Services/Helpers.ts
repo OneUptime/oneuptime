@@ -20,7 +20,9 @@ import { ProductType } from 'Model/Models/UsageBilling';
 
 type MockIsBillingEnabledFunction = (value: boolean) => BillingService;
 
-const mockIsBillingEnabled: MockIsBillingEnabledFunction = (value: boolean): BillingService => {
+const mockIsBillingEnabled: MockIsBillingEnabledFunction = (
+    value: boolean
+): BillingService => {
     jest.resetModules();
     jest.doMock('../../../BillingConfig', () => {
         return {
@@ -33,7 +35,9 @@ const mockIsBillingEnabled: MockIsBillingEnabledFunction = (value: boolean): Bil
 
 type GetStripeCustomerFunction = (id?: string) => Stripe.Customer;
 
-const getStripeCustomer: GetStripeCustomerFunction = (id?: string): Stripe.Customer => {
+const getStripeCustomer: GetStripeCustomerFunction = (
+    id?: string
+): Stripe.Customer => {
     id = id || faker.datatype.uuid();
     return {
         id,
@@ -57,41 +61,42 @@ const getStripeCustomer: GetStripeCustomerFunction = (id?: string): Stripe.Custo
 
 type GetStripeSubscriptionFunction = () => Stripe.Subscription;
 
-const getStripeSubscription: GetStripeSubscriptionFunction = (): Stripe.Subscription => {
-    return {
-        id: faker.datatype.uuid(),
-        items: {
-            data: [
-                {
-                    id: faker.datatype.uuid(),
-                    // @ts-ignore
-                    price: {
-                        id: new BillingService().getMeteredPlanPriceId(
-                            ProductType.ActiveMonitoring
-                        ),
+const getStripeSubscription: GetStripeSubscriptionFunction =
+    (): Stripe.Subscription => {
+        return {
+            id: faker.datatype.uuid(),
+            items: {
+                data: [
+                    {
+                        id: faker.datatype.uuid(),
+                        // @ts-ignore
+                        price: {
+                            id: new BillingService().getMeteredPlanPriceId(
+                                ProductType.ActiveMonitoring
+                            ),
+                        },
                     },
-                },
-            ],
-        },
-        status: 'active',
-        customer: getStripeCustomer(),
+                ],
+            },
+            status: 'active',
+            customer: getStripeCustomer(),
+        };
     };
-};
-
 
 type GetSubscriptionPlanDataFunction = () => SubscriptionPlan;
 
-const getSubscriptionPlanData: GetSubscriptionPlanDataFunction = (): SubscriptionPlan => {
-    return new SubscriptionPlan(
-        faker.datatype.uuid(), // monthlyPlanId
-        faker.datatype.uuid(), // yearlyPlanId
-        faker.commerce.productName(), // name
-        faker.datatype.number(), // monthlySubscriptionAmountInUSD
-        faker.datatype.number({ min: 1, max: 100 }), // yearlySubscriptionAmountInUSD
-        faker.datatype.number({ min: 1, max: 100 }), // order
-        faker.datatype.number({ min: 1, max: 100 }) // trial period days
-    );
-};
+const getSubscriptionPlanData: GetSubscriptionPlanDataFunction =
+    (): SubscriptionPlan => {
+        return new SubscriptionPlan(
+            faker.datatype.uuid(), // monthlyPlanId
+            faker.datatype.uuid(), // yearlyPlanId
+            faker.commerce.productName(), // name
+            faker.datatype.number(), // monthlySubscriptionAmountInUSD
+            faker.datatype.number({ min: 1, max: 100 }), // yearlySubscriptionAmountInUSD
+            faker.datatype.number({ min: 1, max: 100 }), // order
+            faker.datatype.number({ min: 1, max: 100 }) // trial period days
+        );
+    };
 
 type GetStripeInvoiceFunction = () => Stripe.Invoice;
 
@@ -109,7 +114,9 @@ const getStripeInvoice: GetStripeInvoiceFunction = (): Stripe.Invoice => {
 
 type GetCustomerDataFunction = (id?: ObjectID) => CustomerData;
 
-const getCustomerData: GetCustomerDataFunction = (id?: ObjectID): CustomerData => {
+const getCustomerData: GetCustomerDataFunction = (
+    id?: ObjectID
+): CustomerData => {
     return {
         id: id || new ObjectID('customer_id'),
         name: 'John Doe',
@@ -119,7 +126,9 @@ const getCustomerData: GetCustomerDataFunction = (id?: ObjectID): CustomerData =
 
 type GetSubscriptionDataFunction = (id?: ObjectID) => Subscription;
 
-const getSubscriptionData: GetSubscriptionDataFunction = (id?: ObjectID): Subscription => {
+const getSubscriptionData: GetSubscriptionDataFunction = (
+    id?: ObjectID
+): Subscription => {
     return {
         projectId: id || new ObjectID('project_id'),
         customerId: 'cust_123',
