@@ -6,9 +6,9 @@ import React, {
 } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -59,8 +59,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         icon: IconProp.SMS,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentCallSMSTestConfig(item);
@@ -79,8 +79,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         icon: IconProp.Call,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentCallSMSTestConfig(item);

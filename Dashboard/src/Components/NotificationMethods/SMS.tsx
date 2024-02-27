@@ -10,9 +10,9 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -70,8 +70,8 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         },
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentItem(item);
@@ -96,8 +96,8 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         },
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentItem(item);

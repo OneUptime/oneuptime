@@ -23,9 +23,9 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -67,8 +67,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setStatusMessage(

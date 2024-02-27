@@ -54,7 +54,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Section from '../../Components/Section/Section';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -130,7 +130,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
-    const loadPage: PromiseVoidFunctionType = async (): Promise<void> => {
+    const loadPage: PromiseVoidFunction = async (): Promise<void> => {
         try {
             if (!StatusPageUtil.getStatusPageId()) {
                 return;
@@ -309,7 +309,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
         StatusPageUtil.isPrivateStatusPage(),
     ]);
 
-    const getOverallMonitorStatus: Function = (
+    type GetOverallMonitorStatusFunction = (
+        statusPageResources: Array<StatusPageResource>,
+        monitorStatuses: Array<MonitorStatus>,
+        monitorGroupCurrentStatuses: Dictionary<ObjectID>
+    ) => MonitorStatus | null;
+
+    const getOverallMonitorStatus: GetOverallMonitorStatusFunction = (
         statusPageResources: Array<StatusPageResource>,
         monitorStatuses: Array<MonitorStatus>,
         monitorGroupCurrentStatuses: Dictionary<ObjectID>
@@ -370,11 +376,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    type GetMonitorOverviewListInGroupFunctionType = (
+    type GetMonitorOverviewListInGroupFunction = (
         group: StatusPageGroup | null
     ) => Array<ReactElement>;
 
-    const getMonitorOverviewListInGroup: GetMonitorOverviewListInGroupFunctionType =
+    const getMonitorOverviewListInGroup: GetMonitorOverviewListInGroupFunction =
         (group: StatusPageGroup | null): Array<ReactElement> => {
             const elements: Array<ReactElement> = [];
 
@@ -552,9 +558,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return elements;
         };
 
-    type GetActiveIncidentsFunctionType = () => Array<IncidentGroup>;
+    type GetActiveIncidentsFunction = () => Array<IncidentGroup>;
 
-    const getActiveIncidents: GetActiveIncidentsFunctionType =
+    const getActiveIncidents: GetActiveIncidentsFunction =
         (): Array<IncidentGroup> => {
             const groups: Array<IncidentGroup> = [];
 
@@ -600,10 +606,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return groups;
         };
 
-    type GetOngoingScheduledEventsFunctionType =
+    type GetOngoingScheduledEventsFunction =
         () => Array<ScheduledMaintenanceGroup>;
 
-    const getOngoingScheduledEvents: GetOngoingScheduledEventsFunctionType =
+    const getOngoingScheduledEvents: GetOngoingScheduledEventsFunction =
         (): Array<ScheduledMaintenanceGroup> => {
             const groups: Array<ScheduledMaintenanceGroup> = [];
 
@@ -651,11 +657,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return groups;
         };
 
-    type GetRightAccordionElementFunctionType = (
+    type GetRightAccordionElementFunction = (
         group: StatusPageGroup
     ) => ReactElement;
 
-    const getRightAccordionElement: GetRightAccordionElementFunctionType = (
+    const getRightAccordionElement: GetRightAccordionElementFunction = (
         group: StatusPageGroup
     ): ReactElement => {
         let currentStatus: MonitorStatus = new MonitorStatus();

@@ -34,18 +34,18 @@ import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
-type GetAnnouncementEventItemFunctionTypeProps = {
+type GetAnnouncementEventItemFunctionProps = {
     announcement: StatusPageAnnouncement;
     isPreviewPage: boolean;
     isSummary: boolean;
 };
 
-type GetAnnouncementEventItemFunctionType = (
-    data: GetAnnouncementEventItemFunctionTypeProps
+type GetAnnouncementEventItemFunction = (
+    data: GetAnnouncementEventItemFunctionProps
 ) => EventItemComponentProps;
 
-export const getAnnouncementEventItem: GetAnnouncementEventItemFunctionType = (
-    data: GetAnnouncementEventItemFunctionTypeProps
+export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
+    data: GetAnnouncementEventItemFunctionProps
 ): EventItemComponentProps => {
     const { announcement, isPreviewPage, isSummary } = data;
 

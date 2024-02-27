@@ -1,5 +1,5 @@
 import { ReactElement } from 'react';
 
-export type GetReactElementFunctionType = () => ReactElement;
+export type GetReactElementFunction = () => ReactElement;
 
-export type GetReactElementOrStringFunctionType = () => ReactElement | string;
+export type GetReactElementOrStringFunction = () => ReactElement | string;

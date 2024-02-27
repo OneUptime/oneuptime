@@ -33,7 +33,7 @@ export default class QueueWorker {
             return new Promise(
                 (
                     _resolve: Function,
-                    reject: PromiseRejectErrorFunctionType
+                    reject: PromiseRejectErrorFunction
                 ) => {
                     setTimeout(() => {
                         return reject(new TimeoutException('Job Timeout'));

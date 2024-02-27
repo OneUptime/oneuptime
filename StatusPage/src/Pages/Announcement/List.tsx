@@ -100,11 +100,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
-    type GetAnnouncementsParsedDataFunctionType = (
+    type GetAnnouncementsParsedDataFunction = (
         announcements: Array<StatusPageAnnouncement>
     ) => EventHistoryListComponentProps;
 
-    const getAnouncementsParsedData: GetAnnouncementsParsedDataFunctionType = (
+    const getAnouncementsParsedData: GetAnnouncementsParsedDataFunction = (
         announcements: Array<StatusPageAnnouncement>
     ): EventHistoryListComponentProps => {
         const eventHistoryListComponentProps: EventHistoryListComponentProps = {

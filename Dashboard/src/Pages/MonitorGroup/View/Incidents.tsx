@@ -27,7 +27,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadMonitorsIds: PromiseVoidFunctionType =
+    const loadMonitorsIds: PromiseVoidFunction =
         async (): Promise<void> => {
             setIsLoading(true);
 

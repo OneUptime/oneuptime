@@ -13,14 +13,14 @@ import UserElement from '../../User/User';
 import User from 'Model/Models/User';
 import EscalationRule from '../EscalationRule/EscalationRule';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BaseModel from 'Common/Models/BaseModel';
-import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
+import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
 
 export interface ComponentProps {
     onCallPolicyExecutionLogId: ObjectID;
@@ -33,7 +33,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
-    const getModelTable: GetReactElementFunctionType = (): ReactElement => {
+    const getModelTable: GetReactElementFunction = (): ReactElement => {
         return (
             <ModelTable<OnCallDutyPolicyExecutionLogTimeline>
                 modelType={OnCallDutyPolicyExecutionLogTimeline}
@@ -65,8 +65,8 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setStatusMessage(

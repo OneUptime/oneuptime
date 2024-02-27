@@ -14,7 +14,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
@@ -63,7 +63,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         });
     }, []);
 
-    const addLayer: PromiseVoidFunctionType = async (): Promise<void> => {
+    const addLayer: PromiseVoidFunction = async (): Promise<void> => {
         setIsAddButtonLoading(true);
 
         try {
@@ -156,7 +156,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const addLayerButton: GetReactElementFunctionType = (): ReactElement => {
+    const addLayerButton: GetReactElementFunction = (): ReactElement => {
         return (
             <div className="-ml-3 mt-5">
                 <Button
@@ -171,7 +171,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const fetchLayers: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchLayers: PromiseVoidFunction = async (): Promise<void> => {
         setIsLoading(true);
 
         try {

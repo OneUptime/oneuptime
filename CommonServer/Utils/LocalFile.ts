@@ -3,7 +3,7 @@ import fs from 'fs';
 export default class LocalFile {
     public static async makeDirectory(path: string): Promise<void> {
         return new Promise(
-            (resolve: Function, reject: PromiseRejectErrorFunctionType) => {
+            (resolve: Function, reject: PromiseRejectErrorFunction) => {
                 fs.mkdir(path, { recursive: true }, (err: unknown) => {
                     if (err) {
                         return reject(err);
@@ -16,7 +16,7 @@ export default class LocalFile {
 
     public static async write(path: string, data: string): Promise<void> {
         return new Promise(
-            (resolve: Function, reject: PromiseRejectErrorFunctionType) => {
+            (resolve: Function, reject: PromiseRejectErrorFunction) => {
                 fs.writeFile(path, data, (err: unknown) => {
                     if (err) {
                         return reject();
@@ -31,7 +31,7 @@ export default class LocalFile {
         return new Promise(
             (
                 resolve: (data: string) => void,
-                reject: PromiseRejectErrorFunctionType
+                reject: PromiseRejectErrorFunction
             ) => {
                 fs.readFile(
                     path,

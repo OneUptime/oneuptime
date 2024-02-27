@@ -14,9 +14,9 @@ import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI, { RequestOptions } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -87,8 +87,8 @@ const Home: FunctionComponent<PageComponentProps> = (
                         icon: IconProp.Check,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 // accept invite.

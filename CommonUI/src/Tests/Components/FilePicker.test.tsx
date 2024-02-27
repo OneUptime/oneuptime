@@ -69,9 +69,9 @@ const mockCreateResponse: MockCreateResponseFunction = async (
     );
 };
 
-type MockFileModelFunctionType = (file: File) => Promise<FileModel>;
+type MockFileModelFunction = (file: File) => Promise<FileModel>;
 
-const mockFileModel: MockFileModelFunctionType = async (
+const mockFileModel: MockFileModelFunction = async (
     file: File
 ): Promise<FileModel> => {
     const fileModel: FileModel = new FileModel(new ObjectID('123'));
@@ -83,9 +83,9 @@ const mockFileModel: MockFileModelFunctionType = async (
     return fileModel;
 };
 
-type MockFileFunctionType = () => File;
+type MockFileFunction = () => File;
 
-const mockFile: MockFileFunctionType = (): File => {
+const mockFile: MockFileFunction = (): File => {
     const mockArrayBuffer: jest.Mock = jest.fn();
     mockArrayBuffer.mockResolvedValue(new ArrayBuffer(10)); // Mocked array buffer of size 10
 

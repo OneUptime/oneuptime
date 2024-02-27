@@ -33,7 +33,7 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupElement';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -46,7 +46,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
     const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
 
-    const fetchGroups: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchGroups: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 
@@ -82,7 +82,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         fetchGroups();
     }, []);
 
-    const getFooterForMonitor: GetReactElementFunctionType =
+    const getFooterForMonitor: GetReactElementFunction =
         (): ReactElement => {
             if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
                 if (!addMonitorGroup) {

@@ -11,7 +11,7 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import Loader from 'CommonUI/src/Components/Loader/Loader';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
 
 export interface ComponentProps {
     monitorGroupId: ObjectID;
@@ -27,7 +27,7 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadCurrentStatus: PromiseVoidFunctionType =
+    const loadCurrentStatus: PromiseVoidFunction =
         async (): Promise<void> => {
             setIsLoading(true);
 

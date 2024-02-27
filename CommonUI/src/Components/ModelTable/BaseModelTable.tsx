@@ -7,9 +7,9 @@ import React, {
 } from 'react';
 import Columns from './Columns';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
 import { JSONObject } from 'Common/Types/JSON';
@@ -72,8 +72,8 @@ import AnalyticsBaseModel, {
 } from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
 import { FormProps } from '../Forms/BasicForm';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
-import { GetReactElementFunctionType } from '../../Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
+import { GetReactElementFunction } from '../../Types/Functions';
 
 export enum ShowTableAs {
     Table,
@@ -352,7 +352,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setIsLoading(false);
     };
 
-    const serializeToTableColumns: VoidFunctionType = (): void => {
+    const serializeToTableColumns: VoidFunction = (): void => {
         // Convert ModelColumns to TableColumns.
 
         const columns: Array<TableColumn> = [];
@@ -480,7 +480,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setColumns(columns);
     };
 
-    const getFilterDropdownItems: PromiseVoidFunctionType =
+    const getFilterDropdownItems: PromiseVoidFunction =
         async (): Promise<void> => {
             setTableFilterError('');
             setIsTableFilterFetchLoading(true);
@@ -576,7 +576,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setIsTableFilterFetchLoading(false);
         };
 
-    const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 
@@ -682,7 +682,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return selectFields;
     };
 
-    const setHeaderButtons: VoidFunctionType = (): void => {
+    const setHeaderButtons: VoidFunction = (): void => {
         // add header buttons.
         let headerbuttons: Array<CardButtonSchema> = [];
 
@@ -771,19 +771,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.refreshToggle,
     ]);
 
-    type ShouldDisableSortFunctionType = (columnName: string) => boolean;
+    type ShouldDisableSortFunction = (columnName: string) => boolean;
 
-    const shouldDisableSort: ShouldDisableSortFunctionType = (
+    const shouldDisableSort: ShouldDisableSortFunction = (
         columnName: string
     ): boolean => {
         return model.isEntityColumn(columnName);
     };
 
-    type GetColumnKeyFunctionType = (
+    type GetColumnKeyFunction = (
         column: ModelTableColumn<TBaseModel>
     ) => string | null;
 
-    const getColumnKey: GetColumnKeyFunctionType = (
+    const getColumnKey: GetColumnKeyFunction = (
         column: ModelTableColumn<TBaseModel>
     ): string | null => {
         const key: string | null = column.field
@@ -793,11 +793,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return key;
     };
 
-    type HasPermissionToReadColumnFunctionType = (
+    type HasPermissionToReadColumnFunction = (
         column: ModelTableColumn<TBaseModel>
     ) => boolean;
 
-    const hasPermissionToReadColumn: HasPermissionToReadColumnFunctionType = (
+    const hasPermissionToReadColumn: HasPermissionToReadColumnFunction = (
         column: ModelTableColumn<TBaseModel>
     ): boolean => {
         const accessControl: Dictionary<ColumnAccessControl> =
@@ -833,9 +833,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return hasPermission;
     };
 
-    type GetUserPermissionsFunctionType = () => Array<Permission>;
+    type GetUserPermissionsFunction = () => Array<Permission>;
 
-    const getUserPermissions: GetUserPermissionsFunctionType =
+    const getUserPermissions: GetUserPermissionsFunction =
         (): Array<Permission> => {
             let userPermissions: Array<Permission> =
                 PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
@@ -866,7 +866,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         serializeToTableColumns();
     }, [data]);
 
-    const setActionSchema: VoidFunctionType = () => {
+    const setActionSchema: VoidFunction = () => {
         const permissions: Array<Permission> =
             PermissionUtil.getAllPermissions();
 
@@ -878,8 +878,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 buttonStyleType: ButtonStyleType.OUTLINE,
                 onClick: async (
                     item: JSONObject,
-                    onCompleteAction: VoidFunctionType,
-                    onError: ErrorFunctionType
+                    onCompleteAction: VoidFunction,
+                    onError: ErrorFunction
                 ) => {
                     try {
                         setViewId(item['_id'] as string);
@@ -911,8 +911,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.NORMAL,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: VoidFunctionType,
-                        onError: ErrorFunctionType
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
                     ) => {
                         try {
                             const baseModel: TBaseModel =
@@ -969,8 +969,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.OUTLINE,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: VoidFunctionType,
-                        onError: ErrorFunctionType
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
                     ) => {
                         try {
                             if (props.onBeforeEdit) {
@@ -1000,8 +1000,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: VoidFunctionType,
-                        onError: ErrorFunctionType
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
                     ) => {
                         try {
                             if (props.onBeforeDelete) {
@@ -1026,7 +1026,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setActionButtonSchema(actionsSchema);
     };
 
-    const getTable: GetReactElementFunctionType = (): ReactElement => {
+    const getTable: GetReactElementFunction = (): ReactElement => {
         return (
             <Table
                 onFilterChanged={(filterData: FilterData) => {
@@ -1125,7 +1125,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getOrderedStatesList: GetReactElementFunctionType =
+    const getOrderedStatesList: GetReactElementFunction =
         (): ReactElement => {
             if (!props.orderedStatesListProps) {
                 throw new BadDataException(
@@ -1197,7 +1197,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             );
         };
 
-    const getList: GetReactElementFunctionType = (): ReactElement => {
+    const getList: GetReactElementFunction = (): ReactElement => {
         return (
             <List
                 singularLabel={
@@ -1299,7 +1299,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getCardComponent: GetReactElementFunctionType = (): ReactElement => {
+    const getCardComponent: GetReactElementFunction = (): ReactElement => {
         if (showTableAs === ShowTableAs.List) {
             return (
                 <div>

@@ -29,9 +29,9 @@ import Typeof from 'Common/Types/Typeof';
 import Modal from '../../Modal/Modal';
 import Link from '../../Link/Link';
 import {
-    GetReactElementFunctionType,
-    GetReactElementOrStringFunctionType,
-} from '../../../Types/FunctionTypes';
+    GetReactElementFunction,
+    GetReactElementOrStringFunction,
+} from '../../../Types/Functions';
 
 export interface ComponentProps<T extends Object> {
     field: Field<T>;
@@ -79,7 +79,7 @@ const FormField: <T extends Object>(
         }
     };
 
-    const getFormField: GetReactElementFunctionType = (): ReactElement => {
+    const getFormField: GetReactElementFunction = (): ReactElement => {
         const [
             showMultiSelectCheckboxCategoryModal,
             setShowMultiSelectCheckboxCategoryModal,
@@ -196,7 +196,7 @@ const FormField: <T extends Object>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
-        const getFieldDescription: GetReactElementOrStringFunctionType = ():
+        const getFieldDescription: GetReactElementOrStringFunction = ():
             | ReactElement
             | string => {
             if (

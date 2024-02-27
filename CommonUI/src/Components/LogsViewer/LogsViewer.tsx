@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import LogItem from './LogItem';
 import LogsFilters, { FilterOption } from './LogsFilters';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import { VoidFunctionType } from 'Common/Types/FunctionTypes';
+import { VoidFunction } from 'Common/Types/Functions';
 
 export interface ComponentProps {
     logs: Array<Log>;
@@ -39,7 +39,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
     // Keep scroll to the bottom of the log
 
-    const scrollToBottom: VoidFunctionType = (): void => {
+    const scrollToBottom: VoidFunction = (): void => {
         const logsViewer: HTMLDivElement | null = logsViewerRef.current;
 
         if (logsViewer) {

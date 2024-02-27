@@ -17,7 +17,7 @@ import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { useAsyncEffect } from 'use-async-effect';
 import User from '../../Utils/User';
-import { VoidFunctionType } from 'Common/Types/FunctionTypes';
+import { VoidFunction } from 'Common/Types/Functions';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -89,7 +89,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         return relationSelect;
     };
 
-    const setDetailFields: VoidFunctionType = (): void => {
+    const setDetailFields: VoidFunction = (): void => {
         // set fields.
 
         const userPermissions: Array<Permission> =

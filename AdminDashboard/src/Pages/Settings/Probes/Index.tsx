@@ -20,9 +20,9 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import AdminModelAPI from '../../../Utils/ModelAPI';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 
 const Settings: FunctionComponent = (): ReactElement => {
     const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
@@ -134,8 +134,8 @@ const Settings: FunctionComponent = (): ReactElement => {
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentProbe(item);

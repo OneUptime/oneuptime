@@ -12,18 +12,18 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    type GetModelTableFunctionTypeProps = {
+    type GetModelTableFunctionProps = {
         eventOptions: Array<NotificationSettingEventType>;
         title: string;
         description: string;
     };
 
     type GetModelTableFuncitonType = (
-        options: GetModelTableFunctionTypeProps
+        options: GetModelTableFunctionProps
     ) => ReactElement;
 
     const getModelTable: GetModelTableFuncitonType = (
-        options: GetModelTableFunctionTypeProps
+        options: GetModelTableFunctionProps
     ): ReactElement => {
         return (
             <ModelTable<UserNotificationSetting>

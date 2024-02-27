@@ -8,7 +8,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import URL from 'Common/Types/API/URL';
-import { VoidFunctionType } from 'Common/Types/FunctionTypes';
+import { VoidFunction } from 'Common/Types/Functions';
 
 export interface ComponentProps {
     show: boolean;
@@ -23,7 +23,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         typeof setTimeout
     > | null>(null);
 
-    const hideMoreMenu: VoidFunctionType = (): void => {
+    const hideMoreMenu: VoidFunction = (): void => {
         if (moreMenuTimeout) {
             clearTimeout(moreMenuTimeout);
             setMoreMenuTimeout(null);
@@ -36,7 +36,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         setMoreMenuTimeout(timeout);
     };
 
-    const forceHideMoreMenu: VoidFunctionType = (): void => {
+    const forceHideMoreMenu: VoidFunction = (): void => {
         if (moreMenuTimeout) {
             clearTimeout(moreMenuTimeout);
             setMoreMenuTimeout(null);
@@ -45,7 +45,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         setIsComponentVisible(false);
     };
 
-    const showMoreMenu: VoidFunctionType = (): void => {
+    const showMoreMenu: VoidFunction = (): void => {
         if (moreMenuTimeout) {
             clearTimeout(moreMenuTimeout);
         }

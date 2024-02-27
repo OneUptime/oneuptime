@@ -4,7 +4,7 @@ import {
     NextFunction,
 } from '../Utils/Express';
 
-export type ExpressAPIFunctionType = (
+export type ExpressAPIFunction = (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction

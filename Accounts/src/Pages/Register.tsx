@@ -40,9 +40,9 @@ const RegisterPage: () => JSX.Element = () => {
         Navigation.navigate(DASHBOARD_URL);
     }
 
-    type FetchResellerFunctionType = (resellerId: string) => Promise<void>;
+    type FetchResellerFunction = (resellerId: string) => Promise<void>;
 
-    const fetchReseller: FetchResellerFunctionType = async (
+    const fetchReseller: FetchResellerFunction = async (
         resellerId: string
     ): Promise<void> => {
         setIsLoading(true);

@@ -76,7 +76,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
-    type GetEventHistoryFunctionTypeProps = {
+    type GetEventHistoryFunctionProps = {
         scheduledMaintenanceEvents: ScheduledMaintenance[];
         scheduledMaintenanceEventsPublicNotes: ScheduledMaintenancePublicNote[];
         scheduledMaintenanceStateTimelines: ScheduledMaintenanceStateTimeline[];
@@ -84,12 +84,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         monitorsInGroup: Dictionary<ObjectID[]>;
     };
 
-    type GetEventHistoryFunctionType = (
-        data: GetEventHistoryFunctionTypeProps
+    type GetEventHistoryFunction = (
+        data: GetEventHistoryFunctionProps
     ) => EventHistoryListComponentProps;
 
-    const getEventHistoryListComponentProps: GetEventHistoryFunctionType = (
-        data: GetEventHistoryFunctionTypeProps
+    const getEventHistoryListComponentProps: GetEventHistoryFunction = (
+        data: GetEventHistoryFunctionProps
     ): EventHistoryListComponentProps => {
         const {
             scheduledMaintenanceEvents,

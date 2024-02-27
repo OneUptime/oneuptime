@@ -16,7 +16,7 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Field from 'CommonUI/src/Components/Forms/Types/Field';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
-import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
+import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -33,7 +33,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         null
     );
 
-    const getFooter: GetReactElementFunctionType = (): ReactElement => {
+    const getFooter: GetReactElementFunction = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }
@@ -110,7 +110,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         refreshFields();
     }, [isSubscriptionPlanYearly]);
 
-    const refreshFields: VoidFunctionType = (): void => {
+    const refreshFields: VoidFunction = (): void => {
         let formFields: Array<Field<Project>> = [
             {
                 field: {

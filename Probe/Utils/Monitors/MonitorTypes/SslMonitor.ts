@@ -126,7 +126,7 @@ export default class SSLMonitor {
         };
 
         return new Promise(
-            (resolve: Function, reject: PromiseRejectErrorFunctionType) => {
+            (resolve: Function, reject: PromiseRejectErrorFunction) => {
                 const req: tls.TLSSocket = tls.connect(options, () => {
                     const cert: tls.PeerCertificate = req.getPeerCertificate();
                     if (req.authorized) {

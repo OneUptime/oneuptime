@@ -8,9 +8,9 @@ import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Probe from 'Model/Models/Probe';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
@@ -173,8 +173,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: VoidFunctionType,
-                                onError: ErrorFunctionType
+                                onCompleteAction: VoidFunction,
+                                onError: ErrorFunction
                             ) => {
                                 try {
                                     setCurrentProbe(item);

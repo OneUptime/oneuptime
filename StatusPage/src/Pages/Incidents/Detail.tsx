@@ -53,11 +53,11 @@ type GetIncidentEventItemFunctionProps = {
     isSummary: boolean;
 };
 
-type GetIncidentEventItemFunctionType = (
+type GetIncidentEventItemFunction = (
     props: GetIncidentEventItemFunctionProps
 ) => EventItemComponentProps;
 
-export const getIncidentEventItem: GetIncidentEventItemFunctionType = (
+export const getIncidentEventItem: GetIncidentEventItemFunction = (
     props: GetIncidentEventItemFunctionProps
 ): EventItemComponentProps => {
     const {

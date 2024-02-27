@@ -24,7 +24,7 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import DashboardNavigation from '../../../../../../Utils/Navigation';
 import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -35,7 +35,7 @@ type BarTooltipFunctionProps = {
     };
 };
 
-type GetBarTooltipFunctionType = (
+type GetBarTooltipFunction = (
     data: BarTooltipFunctionProps
 ) => ReactElement;
 
@@ -63,7 +63,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         try {
             setIsLoading(true);
 
@@ -156,7 +156,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         }
     };
 
-    const getBarTooltip: GetBarTooltipFunctionType = (
+    const getBarTooltip: GetBarTooltipFunction = (
         data: BarTooltipFunctionProps
     ): ReactElement => {
         const {
@@ -232,11 +232,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type SpanToBarFunctionType = (
+    type SpanToBarFunction = (
         data: SpanToBarFunctionProps
     ) => GanttChartBar;
 
-    const spanToBar: SpanToBarFunctionType = (
+    const spanToBar: SpanToBarFunction = (
         data: SpanToBarFunctionProps
     ): GanttChartBar => {
         const {
@@ -282,11 +282,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type GetBarsFunctionType = (
+    type GetBarsFunction = (
         data: GetBarsFunctionProps
     ) => Array<GanttChartBar>;
 
-    const getBars: GetBarsFunctionType = (
+    const getBars: GetBarsFunction = (
         data: GetBarsFunctionProps
     ): Array<GanttChartBar> => {
         const {
@@ -369,11 +369,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         };
     };
 
-    type GetRowsFromBarsFunctionType = (
+    type GetRowsFromBarsFunction = (
         bars: Array<GanttChartBar>
     ) => Array<GanttChartRow>;
 
-    const getRowsFromBars: GetRowsFromBarsFunctionType = (
+    const getRowsFromBars: GetRowsFromBarsFunction = (
         bars: Array<GanttChartBar>
     ): Array<GanttChartRow> => {
         return bars.map((bars: GanttChartBar) => {

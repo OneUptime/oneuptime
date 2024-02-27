@@ -10,7 +10,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import Filter, { FilterData } from './Filter';
-import { GetReactElementFunctionType } from '../../Types/FunctionTypes';
+import { GetReactElementFunction } from '../../Types/Functions';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -48,7 +48,7 @@ const Table: FunctionComponent<ComponentProps> = (
         colspan++;
     }
 
-    const getTablebody: GetReactElementFunctionType = (): ReactElement => {
+    const getTablebody: GetReactElementFunction = (): ReactElement => {
         if (props.isLoading) {
             return (
                 <tbody>

@@ -59,7 +59,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         setInitialValue();
     }, [props.initialValue]);
 
-    const setInitialValue: VoidFunctionType = () => {
+    const setInitialValue: VoidFunction = () => {
         if (
             Array.isArray(props.initialValue) &&
             props.initialValue &&

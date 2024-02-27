@@ -40,7 +40,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         }
     }, [props.value]);
 
-    const getDailyRestriction: GetReactElementFunctionType =
+    const getDailyRestriction: GetReactElementFunction =
         (): ReactElement => {
             // show start time to end time input fields
 
@@ -132,7 +132,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             );
         };
 
-    const getWeeklyTimeRestrictions: GetReactElementFunctionType =
+    const getWeeklyTimeRestrictions: GetReactElementFunction =
         (): ReactElement => {
             return (
                 <div>

@@ -13,11 +13,11 @@ import ComponentsModal from '../../Components/Workflow/ComponentsModal';
 
 /// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique
 
-type GetComponentMetadataFunctionType = (
+type GetComponentMetadataFunction = (
     category?: string
 ) => ComponentMetadata;
 
-const getComponentMetadata: GetComponentMetadataFunctionType = (
+const getComponentMetadata: GetComponentMetadataFunction = (
     category?: string
 ): ComponentMetadata => {
     const id: string = faker.datatype.uuid();

@@ -8,9 +8,9 @@ import User from 'CommonUI/src/Utils/User';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import { JSONObject } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
@@ -70,8 +70,8 @@ const Call: () => JSX.Element = (): ReactElement => {
                         },
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentItem(item);
@@ -96,8 +96,8 @@ const Call: () => JSX.Element = (): ReactElement => {
                         },
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentItem(item);

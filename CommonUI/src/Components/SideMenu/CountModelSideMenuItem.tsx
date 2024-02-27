@@ -7,7 +7,7 @@ import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;
@@ -29,7 +29,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);
 
-    const fetchCount: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchCount: PromiseVoidFunction = async (): Promise<void> => {
         if (!props.modelType) {
             return;
         }

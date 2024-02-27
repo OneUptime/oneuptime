@@ -11,7 +11,7 @@ import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
 import Color from 'Common/Types/Color';
-import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
+import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
 
 export interface ComponentProps {
     monitorName: string;
@@ -35,7 +35,7 @@ export interface ComponentProps {
 const MonitorOverview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const getCurrentStatus: GetReactElementFunctionType = (): ReactElement => {
+    const getCurrentStatus: GetReactElementFunction = (): ReactElement => {
         // if the current status is operational then show uptime Percent.
 
         let precision: UptimePrecision = UptimePrecision.ONE_DECIMAL;

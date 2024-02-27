@@ -1,4 +1,4 @@
-export type PromiseVoidFunctionType = () => Promise<void>;
-export type VoidFunctionType = () => void;
-export type ErrorFunctionType = (err: Error) => void;
-export type PromiseRejectErrorFunctionType = (err: Error) => void;
+export type PromiseVoidFunction = () => Promise<void>;
+export type VoidFunction = () => void;
+export type ErrorFunction = (err: Error) => void;
+export type PromiseRejectErrorFunction = (err: Error) => void;

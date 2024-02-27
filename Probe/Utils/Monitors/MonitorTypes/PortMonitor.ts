@@ -10,7 +10,7 @@ import Sleep from 'Common/Types/Sleep';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Port from 'Common/Types/Port';
 import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
-import { PromiseRejectErrorFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseRejectErrorFunction } from 'Common/Types/Functions';
 
 // TODO - make sure it  work for the IPV6
 export interface PortMonitorResponse {
@@ -139,7 +139,7 @@ export default class PortMonitor {
             // Ping a host with port
 
             const promiseResult: Promise<PositiveNumber> = new Promise(
-                (resolve: Function, reject: PromiseRejectErrorFunctionType) => {
+                (resolve: Function, reject: PromiseRejectErrorFunction) => {
                     const startTime: [number, number] = process.hrtime();
 
                     const socket: net.Socket = new net.Socket();

@@ -7,7 +7,7 @@ import ModelAPI, {
     ListResult,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
-import { PromiseVoidFunctionType } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/Functions';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/BaseDatabase/Select';
 import Input from '../Input/Input';
@@ -76,7 +76,7 @@ const ModelList: <TBaseModel extends BaseModel>(
         }
     }, [props.isSearchEnabled, modelList]);
 
-    const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 

@@ -6,9 +6,9 @@ import React, {
 } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -51,8 +51,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                         icon: IconProp.Play,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: VoidFunctionType,
-                            onError: ErrorFunctionType
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentSMTPTestConfig(item);

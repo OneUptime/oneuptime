@@ -139,7 +139,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         }
     };
 
-    const getFooter: GetReactElementFunctionType = (): ReactElement => {
+    const getFooter: GetReactElementFunction = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }

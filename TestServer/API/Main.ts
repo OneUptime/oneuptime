@@ -10,7 +10,7 @@ import Sleep from 'Common/Types/Sleep';
 import Typeof from 'Common/Types/Typeof';
 import { JSONValue } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
-import { ExpressAPIFunctionType } from 'CommonServer/Types/FunctionTypes';
+import { ExpressAPIFunction } from 'CommonServer/Types/Functions';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -36,7 +36,7 @@ router.post(
     }
 );
 
-const returnResponse: ExpressAPIFunctionType = async (
+const returnResponse: ExpressAPIFunction = async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction

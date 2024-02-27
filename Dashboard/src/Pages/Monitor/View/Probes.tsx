@@ -32,7 +32,7 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
 import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
-import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
+import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -114,7 +114,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const getPageContent: GetReactElementFunctionType = (): ReactElement => {
+    const getPageContent: GetReactElementFunction = (): ReactElement => {
         if (!monitorType || isLoading) {
             return <ComponentLoader />;
         }

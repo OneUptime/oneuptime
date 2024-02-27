@@ -12,11 +12,11 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import OneUptimeDate from 'Common/Types/Date';
-import { ExpressAPIFunctionType } from 'CommonServer/Types/FunctionTypes';
+import { ExpressAPIFunction } from 'CommonServer/Types/Functions';
 
 const router: ExpressRouter = Express.getRouter();
 
-const processIncomingRequest: ExpressAPIFunctionType = async (
+const processIncomingRequest: ExpressAPIFunction = async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction

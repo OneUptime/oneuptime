@@ -22,7 +22,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
 import DuplicateModel from 'CommonUI/src/Components/DuplicateModel/DuplicateModel';
-import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
+import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -73,7 +73,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const getPageContent: GetReactElementFunctionType = (): ReactElement => {
+    const getPageContent: GetReactElementFunction = (): ReactElement => {
         if (!monitorType || isLoading) {
             return <ComponentLoader />;
         }

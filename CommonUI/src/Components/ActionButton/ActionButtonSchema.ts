@@ -3,9 +3,9 @@ import { ButtonStyleType } from '../Button/Button';
 
 import IconProp from 'Common/Types/Icon/IconProp';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 
 interface ActionButtonSchema {
     title: string;
@@ -15,8 +15,8 @@ interface ActionButtonSchema {
     isVisible?: (item: JSONObject) => boolean | undefined;
     onClick: (
         item: JSONObject,
-        onCompleteAction: VoidFunctionType,
-        onError: ErrorFunctionType
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction
     ) => void;
 }
 

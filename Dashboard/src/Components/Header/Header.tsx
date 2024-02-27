@@ -30,7 +30,7 @@ import Incident from 'Model/Models/Incident';
 import OneUptimeDate from 'Common/Types/Date';
 import HeaderModelAlert from 'CommonUI/src/Components/HeaderAlert/HeaderModelAlert';
 import HeaderAlert from 'CommonUI/src/Components/HeaderAlert/HeaderAlert';
-import { VoidFunctionType } from 'Common/Types/FunctionTypes';
+import { VoidFunction } from 'Common/Types/Functions';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -47,7 +47,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
         useState<boolean>(true);
 
-    const refreshIncidentCount: VoidFunctionType = () => {
+    const refreshIncidentCount: VoidFunction = () => {
         setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
     };
 

@@ -20,9 +20,9 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import {
-    ErrorFunctionType,
-    VoidFunctionType,
-} from 'Common/Types/FunctionTypes';
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/Functions';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -80,8 +80,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: VoidFunctionType,
-                                onError: ErrorFunctionType
+                                onCompleteAction: VoidFunction,
+                                onError: ErrorFunction
                             ) => {
                                 try {
                                     setCnameModalText(`${item['fullDomain']}`);
@@ -109,8 +109,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             onClick: async (
                                 _item: JSONObject,
-                                onCompleteAction: VoidFunctionType,
-                                onError: ErrorFunctionType
+                                onCompleteAction: VoidFunction,
+                                onError: ErrorFunction
                             ) => {
                                 try {
                                     setShowSslProvisioningModal(true);
