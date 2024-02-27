@@ -7,38 +7,40 @@ export default class Domain extends DomainCommon {
         domain: Domain | string,
         verificationText: string
     ): Promise<boolean> {
-        return new Promise((resolve: Function, reject: PromiseRejectErrorFunctionType) => {
-            dns.resolveTxt(
-                domain.toString(),
-                (
-                    err: NodeJS.ErrnoException | null,
-                    data: Array<Array<string>>
-                ) => {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    logger.info('Verify TXT Record');
-                    logger.info('Domain ' + domain.toString());
-                    logger.info('Data: ');
-                    logger.info(data);
-
-                    let isVerified: boolean = false;
-                    for (const item of data) {
-                        let txt: Array<string> | string = item;
-                        if (Array.isArray(txt)) {
-                            txt = (txt as Array<string>).join('');
+        return new Promise(
+            (resolve: Function, reject: PromiseRejectErrorFunctionType) => {
+                dns.resolveTxt(
+                    domain.toString(),
+                    (
+                        err: NodeJS.ErrnoException | null,
+                        data: Array<Array<string>>
+                    ) => {
+                        if (err) {
+                            return reject(err);
                         }
 
-                        if (txt === verificationText) {
-                            isVerified = true;
-                            break;
-                        }
-                    }
+                        logger.info('Verify TXT Record');
+                        logger.info('Domain ' + domain.toString());
+                        logger.info('Data: ');
+                        logger.info(data);
 
-                    resolve(isVerified);
-                }
-            );
-        });
+                        let isVerified: boolean = false;
+                        for (const item of data) {
+                            let txt: Array<string> | string = item;
+                            if (Array.isArray(txt)) {
+                                txt = (txt as Array<string>).join('');
+                            }
+
+                            if (txt === verificationText) {
+                                isVerified = true;
+                                break;
+                            }
+                        }
+
+                        resolve(isVerified);
+                    }
+                );
+            }
+        );
     }
 }

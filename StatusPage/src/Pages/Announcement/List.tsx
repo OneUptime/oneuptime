@@ -129,9 +129,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 getAnnouncementEventItem({
                     announcement,
                     isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
-                    isSummary: true
-                }
-                )
+                    isSummary: true,
+                })
             );
         }
 

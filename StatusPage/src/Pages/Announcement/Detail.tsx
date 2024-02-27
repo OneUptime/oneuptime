@@ -44,8 +44,9 @@ type GetAnnouncementEventItemFunctionType = (
     data: GetAnnouncementEventItemFunctionTypeProps
 ) => EventItemComponentProps;
 
-export const getAnnouncementEventItem: GetAnnouncementEventItemFunctionType = (data: GetAnnouncementEventItemFunctionTypeProps): EventItemComponentProps => {
-
+export const getAnnouncementEventItem: GetAnnouncementEventItemFunctionType = (
+    data: GetAnnouncementEventItemFunctionTypeProps
+): EventItemComponentProps => {
     const { announcement, isPreviewPage, isSummary } = data;
 
     return {

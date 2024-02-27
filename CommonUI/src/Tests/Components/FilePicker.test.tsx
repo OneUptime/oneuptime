@@ -49,7 +49,9 @@ interface DataTransfer {
     };
 }
 
-type MockCreateResponseFunction = (file: File) => Promise<HTTPResponse<FileModel>>;
+type MockCreateResponseFunction = (
+    file: File
+) => Promise<HTTPResponse<FileModel>>;
 
 const mockCreateResponse: MockCreateResponseFunction = async (
     file: File
@@ -69,7 +71,9 @@ const mockCreateResponse: MockCreateResponseFunction = async (
 
 type MockFileModelFunctionType = (file: File) => Promise<FileModel>;
 
-const mockFileModel: MockFileModelFunctionType = async (file: File): Promise<FileModel> => {
+const mockFileModel: MockFileModelFunctionType = async (
+    file: File
+): Promise<FileModel> => {
     const fileModel: FileModel = new FileModel(new ObjectID('123'));
     fileModel.name = file.name;
     fileModel.type = file.type as MimeType;

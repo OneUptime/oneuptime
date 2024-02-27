@@ -32,7 +32,10 @@ const Settings: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    type PayInvoiceFunctionType = (customerId: string, invoiceId: string) => Promise<void>;
+    type PayInvoiceFunctionType = (
+        customerId: string,
+        invoiceId: string
+    ) => Promise<void>;
 
     const payInvoice: PayInvoiceFunctionType = async (
         customerId: string,

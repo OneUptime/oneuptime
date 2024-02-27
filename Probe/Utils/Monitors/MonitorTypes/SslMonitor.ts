@@ -125,50 +125,52 @@ export default class SSLMonitor {
             port: port,
         };
 
-        return new Promise((resolve: Function, reject: PromiseRejectErrorFunctionType) => {
-            const req: tls.TLSSocket = tls.connect(options, () => {
-                const cert: tls.PeerCertificate = req.getPeerCertificate();
-                if (req.authorized) {
-                    resolve({
-                        isOnline: true,
-                        isSelfSigned: false,
-                        createdAt: new Date(cert.valid_from),
-                        expiresAt: new Date(cert.valid_to),
-                        commonName: cert.subject.CN,
-                        organizationalUnit: cert.subject.OU,
-                        organization: cert.subject.O,
-                        locality: cert.subject.L,
-                        state: cert.subject.ST,
-                        country: cert.subject.C,
-                        serialNumber: cert.serialNumber,
-                        fingerprint: cert.fingerprint,
-                        fingerprint256: cert.fingerprint256,
-                        failureCause: '',
-                    });
-                } else {
-                    resolve({
-                        isOnline: true,
-                        isSelfSigned: true,
-                        createdAt: new Date(cert.valid_from),
-                        expiresAt: new Date(cert.valid_to),
-                        commonName: cert.subject.CN,
-                        organizationalUnit: cert.subject.OU,
-                        organization: cert.subject.O,
-                        locality: cert.subject.L,
-                        state: cert.subject.ST,
-                        country: cert.subject.C,
-                        serialNumber: cert.serialNumber,
-                        fingerprint: cert.fingerprint,
-                        fingerprint256: cert.fingerprint256,
-                        failureCause: '',
-                    });
-                }
-                req.end();
-            });
+        return new Promise(
+            (resolve: Function, reject: PromiseRejectErrorFunctionType) => {
+                const req: tls.TLSSocket = tls.connect(options, () => {
+                    const cert: tls.PeerCertificate = req.getPeerCertificate();
+                    if (req.authorized) {
+                        resolve({
+                            isOnline: true,
+                            isSelfSigned: false,
+                            createdAt: new Date(cert.valid_from),
+                            expiresAt: new Date(cert.valid_to),
+                            commonName: cert.subject.CN,
+                            organizationalUnit: cert.subject.OU,
+                            organization: cert.subject.O,
+                            locality: cert.subject.L,
+                            state: cert.subject.ST,
+                            country: cert.subject.C,
+                            serialNumber: cert.serialNumber,
+                            fingerprint: cert.fingerprint,
+                            fingerprint256: cert.fingerprint256,
+                            failureCause: '',
+                        });
+                    } else {
+                        resolve({
+                            isOnline: true,
+                            isSelfSigned: true,
+                            createdAt: new Date(cert.valid_from),
+                            expiresAt: new Date(cert.valid_to),
+                            commonName: cert.subject.CN,
+                            organizationalUnit: cert.subject.OU,
+                            organization: cert.subject.O,
+                            locality: cert.subject.L,
+                            state: cert.subject.ST,
+                            country: cert.subject.C,
+                            serialNumber: cert.serialNumber,
+                            fingerprint: cert.fingerprint,
+                            fingerprint256: cert.fingerprint256,
+                            failureCause: '',
+                        });
+                    }
+                    req.end();
+                });
 
-            req.on('error', (err: Error) => {
-                reject(err);
-            });
-        });
+                req.on('error', (err: Error) => {
+                    reject(err);
+                });
+            }
+        );
     }
 }

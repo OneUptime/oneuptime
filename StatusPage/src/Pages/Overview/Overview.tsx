@@ -231,7 +231,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -326,7 +326,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 if (
                     !Object.keys(dict).includes(
                         resource.monitor?.currentMonitorStatusId.toString() ||
-                        ''
+                            ''
                     )
                 ) {
                     dict[
@@ -370,230 +370,238 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    type GetMonitorOverviewListInGroupFunctionType = (group: StatusPageGroup | null) => Array<ReactElement>;
-
-    const getMonitorOverviewListInGroup: GetMonitorOverviewListInGroupFunctionType = (
+    type GetMonitorOverviewListInGroupFunctionType = (
         group: StatusPageGroup | null
-    ): Array<ReactElement> => {
-        const elements: Array<ReactElement> = [];
+    ) => Array<ReactElement>;
 
-        for (const resource of statusPageResources) {
-            if (
-                (resource.statusPageGroupId &&
-                    resource.statusPageGroupId.toString() &&
-                    group &&
-                    group._id?.toString() &&
-                    group._id?.toString() ===
-                    resource.statusPageGroupId.toString()) ||
-                (!resource.statusPageGroupId && !group)
-            ) {
-                // if its not a monitor or a monitor group, then continue. This should ideally not happen.
+    const getMonitorOverviewListInGroup: GetMonitorOverviewListInGroupFunctionType =
+        (group: StatusPageGroup | null): Array<ReactElement> => {
+            const elements: Array<ReactElement> = [];
 
-                if (!resource.monitor && !resource.monitorGroupId) {
-                    continue;
-                }
+            for (const resource of statusPageResources) {
+                if (
+                    (resource.statusPageGroupId &&
+                        resource.statusPageGroupId.toString() &&
+                        group &&
+                        group._id?.toString() &&
+                        group._id?.toString() ===
+                            resource.statusPageGroupId.toString()) ||
+                    (!resource.statusPageGroupId && !group)
+                ) {
+                    // if its not a monitor or a monitor group, then continue. This should ideally not happen.
 
-                // if its a monitor
-
-                if (resource.monitor) {
-                    let currentStatus: MonitorStatus | undefined =
-                        monitorStatuses.find((status: MonitorStatus) => {
-                            return (
-                                status._id?.toString() ===
-                                resource.monitor?.currentMonitorStatusId?.toString()
-                            );
-                        });
-
-                    if (!currentStatus) {
-                        currentStatus = new MonitorStatus();
-                        currentStatus.name = 'Operational';
-                        currentStatus.color = Green;
+                    if (!resource.monitor && !resource.monitorGroupId) {
+                        continue;
                     }
 
-                    elements.push(
-                        <MonitorOverview
-                            key={Math.random()}
-                            monitorName={
-                                resource.displayName ||
-                                resource.monitor?.name ||
-                                ''
-                            }
-                            statusPageHistoryChartBarColorRules={
-                                statusPageHistoryChartBarColorRules
-                            }
-                            downtimeMonitorStatuses={
-                                statusPage?.downtimeMonitorStatuses || []
-                            }
-                            description={resource.displayDescription || ''}
-                            tooltip={resource.displayTooltip || ''}
-                            currentStatus={currentStatus}
-                            showUptimePercent={Boolean(
-                                resource.showUptimePercent
-                            )}
-                            uptimePrecision={
-                                resource.uptimePercentPrecision ||
-                                UptimePrecision.ONE_DECIMAL
-                            }
-                            monitorStatusTimeline={[
-                                ...monitorStatusTimelines,
-                            ].filter((timeline: MonitorStatusTimeline) => {
+                    // if its a monitor
+
+                    if (resource.monitor) {
+                        let currentStatus: MonitorStatus | undefined =
+                            monitorStatuses.find((status: MonitorStatus) => {
                                 return (
-                                    timeline.monitorId?.toString() ===
-                                    resource.monitorId?.toString()
+                                    status._id?.toString() ===
+                                    resource.monitor?.currentMonitorStatusId?.toString()
                                 );
-                            })}
-                            startDate={startDate}
-                            endDate={endDate}
-                            showHistoryChart={resource.showStatusHistoryChart}
-                            showCurrentStatus={resource.showCurrentStatus}
-                            uptimeGraphHeight={10}
-                            defaultBarColor={
-                                statusPage?.defaultBarColor || Green
-                            }
-                        />
-                    );
-                }
+                            });
 
-                // if its a monitor group, then...
+                        if (!currentStatus) {
+                            currentStatus = new MonitorStatus();
+                            currentStatus.name = 'Operational';
+                            currentStatus.color = Green;
+                        }
 
-                if (resource.monitorGroupId) {
-                    let currentStatus: MonitorStatus | undefined =
-                        monitorStatuses.find((status: MonitorStatus) => {
-                            return (
-                                status._id?.toString() ===
-                                monitorGroupCurrentStatuses[
-                                    resource.monitorGroupId?.toString() || ''
-                                ]?.toString()
-                            );
-                        });
-
-                    if (!currentStatus) {
-                        currentStatus = new MonitorStatus();
-                        currentStatus.name = 'Operational';
-                        currentStatus.color = Green;
+                        elements.push(
+                            <MonitorOverview
+                                key={Math.random()}
+                                monitorName={
+                                    resource.displayName ||
+                                    resource.monitor?.name ||
+                                    ''
+                                }
+                                statusPageHistoryChartBarColorRules={
+                                    statusPageHistoryChartBarColorRules
+                                }
+                                downtimeMonitorStatuses={
+                                    statusPage?.downtimeMonitorStatuses || []
+                                }
+                                description={resource.displayDescription || ''}
+                                tooltip={resource.displayTooltip || ''}
+                                currentStatus={currentStatus}
+                                showUptimePercent={Boolean(
+                                    resource.showUptimePercent
+                                )}
+                                uptimePrecision={
+                                    resource.uptimePercentPrecision ||
+                                    UptimePrecision.ONE_DECIMAL
+                                }
+                                monitorStatusTimeline={[
+                                    ...monitorStatusTimelines,
+                                ].filter((timeline: MonitorStatusTimeline) => {
+                                    return (
+                                        timeline.monitorId?.toString() ===
+                                        resource.monitorId?.toString()
+                                    );
+                                })}
+                                startDate={startDate}
+                                endDate={endDate}
+                                showHistoryChart={
+                                    resource.showStatusHistoryChart
+                                }
+                                showCurrentStatus={resource.showCurrentStatus}
+                                uptimeGraphHeight={10}
+                                defaultBarColor={
+                                    statusPage?.defaultBarColor || Green
+                                }
+                            />
+                        );
                     }
 
-                    elements.push(
-                        <MonitorOverview
-                            key={Math.random()}
-                            monitorName={
-                                resource.displayName ||
-                                resource.monitor?.name ||
-                                ''
-                            }
-                            showUptimePercent={Boolean(
-                                resource.showUptimePercent
-                            )}
-                            uptimePrecision={
-                                resource.uptimePercentPrecision ||
-                                UptimePrecision.ONE_DECIMAL
-                            }
-                            statusPageHistoryChartBarColorRules={
-                                statusPageHistoryChartBarColorRules
-                            }
-                            description={resource.displayDescription || ''}
-                            tooltip={resource.displayTooltip || ''}
-                            currentStatus={currentStatus}
-                            monitorStatusTimeline={[
-                                ...monitorStatusTimelines,
-                            ].filter((timeline: MonitorStatusTimeline) => {
-                                const monitorsInThisGroup:
-                                    | Array<ObjectID>
-                                    | undefined =
-                                    monitorsInGroup[
-                                    resource.monitorGroupId?.toString() ||
-                                    ''
-                                    ];
+                    // if its a monitor group, then...
 
-                                if (!monitorsInThisGroup) {
-                                    return false;
-                                }
-
-                                return monitorsInThisGroup.find(
-                                    (monitorId: ObjectID) => {
-                                        return (
-                                            monitorId.toString() ===
-                                            timeline.monitorId?.toString()
-                                        );
-                                    }
+                    if (resource.monitorGroupId) {
+                        let currentStatus: MonitorStatus | undefined =
+                            monitorStatuses.find((status: MonitorStatus) => {
+                                return (
+                                    status._id?.toString() ===
+                                    monitorGroupCurrentStatuses[
+                                        resource.monitorGroupId?.toString() ||
+                                            ''
+                                    ]?.toString()
                                 );
-                            })}
-                            downtimeMonitorStatuses={
-                                statusPage?.downtimeMonitorStatuses || []
-                            }
-                            startDate={startDate}
-                            endDate={endDate}
-                            showHistoryChart={resource.showStatusHistoryChart}
-                            showCurrentStatus={resource.showCurrentStatus}
-                            uptimeGraphHeight={10}
-                            defaultBarColor={
-                                statusPage?.defaultBarColor || Green
-                            }
-                        />
-                    );
+                            });
+
+                        if (!currentStatus) {
+                            currentStatus = new MonitorStatus();
+                            currentStatus.name = 'Operational';
+                            currentStatus.color = Green;
+                        }
+
+                        elements.push(
+                            <MonitorOverview
+                                key={Math.random()}
+                                monitorName={
+                                    resource.displayName ||
+                                    resource.monitor?.name ||
+                                    ''
+                                }
+                                showUptimePercent={Boolean(
+                                    resource.showUptimePercent
+                                )}
+                                uptimePrecision={
+                                    resource.uptimePercentPrecision ||
+                                    UptimePrecision.ONE_DECIMAL
+                                }
+                                statusPageHistoryChartBarColorRules={
+                                    statusPageHistoryChartBarColorRules
+                                }
+                                description={resource.displayDescription || ''}
+                                tooltip={resource.displayTooltip || ''}
+                                currentStatus={currentStatus}
+                                monitorStatusTimeline={[
+                                    ...monitorStatusTimelines,
+                                ].filter((timeline: MonitorStatusTimeline) => {
+                                    const monitorsInThisGroup:
+                                        | Array<ObjectID>
+                                        | undefined =
+                                        monitorsInGroup[
+                                            resource.monitorGroupId?.toString() ||
+                                                ''
+                                        ];
+
+                                    if (!monitorsInThisGroup) {
+                                        return false;
+                                    }
+
+                                    return monitorsInThisGroup.find(
+                                        (monitorId: ObjectID) => {
+                                            return (
+                                                monitorId.toString() ===
+                                                timeline.monitorId?.toString()
+                                            );
+                                        }
+                                    );
+                                })}
+                                downtimeMonitorStatuses={
+                                    statusPage?.downtimeMonitorStatuses || []
+                                }
+                                startDate={startDate}
+                                endDate={endDate}
+                                showHistoryChart={
+                                    resource.showStatusHistoryChart
+                                }
+                                showCurrentStatus={resource.showCurrentStatus}
+                                uptimeGraphHeight={10}
+                                defaultBarColor={
+                                    statusPage?.defaultBarColor || Green
+                                }
+                            />
+                        );
+                    }
                 }
             }
-        }
 
-        if (elements.length === 0) {
-            elements.push(
-                <div key={1} className="mb-20">
-                    <ErrorMessage error="No resources added to this group." />
-                </div>
-            );
-        }
+            if (elements.length === 0) {
+                elements.push(
+                    <div key={1} className="mb-20">
+                        <ErrorMessage error="No resources added to this group." />
+                    </div>
+                );
+            }
 
-        return elements;
-    };
+            return elements;
+        };
 
     type GetActiveIncidentsFunctionType = () => Array<IncidentGroup>;
 
-    const getActiveIncidents: GetActiveIncidentsFunctionType = (): Array<IncidentGroup> => {
-        const groups: Array<IncidentGroup> = [];
+    const getActiveIncidents: GetActiveIncidentsFunctionType =
+        (): Array<IncidentGroup> => {
+            const groups: Array<IncidentGroup> = [];
 
-        for (const activeIncident of activeIncidents) {
-            if (!activeIncident.currentIncidentState) {
-                throw new BadDataException('Incident State not found.');
+            for (const activeIncident of activeIncidents) {
+                if (!activeIncident.currentIncidentState) {
+                    throw new BadDataException('Incident State not found.');
+                }
+
+                const timeline: IncidentStateTimeline | undefined =
+                    incidentStateTimelines.find(
+                        (timeline: IncidentStateTimeline) => {
+                            return (
+                                timeline.incidentId?.toString() ===
+                                activeIncident._id
+                            );
+                        }
+                    );
+
+                if (!timeline) {
+                    throw new BadDataException('Incident Timeline not found.');
+                }
+
+                const group: IncidentGroup = {
+                    incident: activeIncident,
+                    incidentState: activeIncident.currentIncidentState,
+                    incidentResources: statusPageResources,
+                    publicNotes: incidentPublicNotes.filter(
+                        (publicNote: IncidentPublicNote) => {
+                            return (
+                                publicNote.incidentId?.toString() ===
+                                activeIncident._id
+                            );
+                        }
+                    ),
+                    incidentSeverity: activeIncident.incidentSeverity!,
+                    incidentStateTimelines: [timeline],
+                    monitorsInGroup: monitorsInGroup,
+                };
+
+                groups.push(group);
             }
 
-            const timeline: IncidentStateTimeline | undefined =
-                incidentStateTimelines.find(
-                    (timeline: IncidentStateTimeline) => {
-                        return (
-                            timeline.incidentId?.toString() ===
-                            activeIncident._id
-                        );
-                    }
-                );
+            return groups;
+        };
 
-            if (!timeline) {
-                throw new BadDataException('Incident Timeline not found.');
-            }
-
-            const group: IncidentGroup = {
-                incident: activeIncident,
-                incidentState: activeIncident.currentIncidentState,
-                incidentResources: statusPageResources,
-                publicNotes: incidentPublicNotes.filter(
-                    (publicNote: IncidentPublicNote) => {
-                        return (
-                            publicNote.incidentId?.toString() ===
-                            activeIncident._id
-                        );
-                    }
-                ),
-                incidentSeverity: activeIncident.incidentSeverity!,
-                incidentStateTimelines: [timeline],
-                monitorsInGroup: monitorsInGroup,
-            };
-
-            groups.push(group);
-        }
-
-        return groups;
-    };
-
-    type GetOngoingScheduledEventsFunctionType = () => Array<ScheduledMaintenanceGroup>;
+    type GetOngoingScheduledEventsFunctionType =
+        () => Array<ScheduledMaintenanceGroup>;
 
     const getOngoingScheduledEvents: GetOngoingScheduledEventsFunctionType =
         (): Array<ScheduledMaintenanceGroup> => {
@@ -643,7 +651,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return groups;
         };
 
-    type GetRightAccordionElementFunctionType = (group: StatusPageGroup) => ReactElement;
+    type GetRightAccordionElementFunctionType = (
+        group: StatusPageGroup
+    ) => ReactElement;
 
     const getRightAccordionElement: GetRightAccordionElementFunctionType = (
         group: StatusPageGroup
@@ -660,7 +670,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                    resource.statusPageGroupId.toString()) ||
+                        resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 hasResource = true;
@@ -677,7 +687,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         currentStatus.priority &&
                         currentMonitorStatus?.priority &&
                         currentMonitorStatus?.priority >
-                        currentStatus.priority) ||
+                            currentStatus.priority) ||
                     !currentStatus.priority
                 ) {
                     currentStatus = currentMonitorStatus!;
@@ -737,13 +747,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     <EventItem
                                         {...getAnnouncementEventItem({
                                             announcement,
-                                            isPreviewPage: StatusPageUtil.isPreviewPage(),
-                                            isSummary: true
-                                        }
-                                        )}
+                                            isPreviewPage:
+                                                StatusPageUtil.isPreviewPage(),
+                                            isSummary: true,
+                                        })}
                                         isDetailItem={false}
                                         key={i}
-
                                     />
                                 );
                             }
@@ -753,14 +762,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
                             <Alert
-                                title={`${currentStatus.isOperationalState
+                                title={`${
+                                    currentStatus.isOperationalState
                                         ? `All`
                                         : 'Some'
-                                    } Resources are ${currentStatus.name?.toLowerCase() ===
-                                        'maintenance'
+                                } Resources are ${
+                                    currentStatus.name?.toLowerCase() ===
+                                    'maintenance'
                                         ? 'under'
                                         : ''
-                                    } ${currentStatus.name}`}
+                                } ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 textClassName="text-white text-lg"
@@ -812,7 +823,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         }
                                                         isLastElement={
                                                             resourceGroups.length -
-                                                            1 ===
+                                                                1 ===
                                                             i
                                                         }
                                                         title={
@@ -870,7 +881,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {/* Load Active ScheduledEvent */}
                     {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup &&
                         activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length >
-                        0 && (
+                            0 && (
                             <div id="scheduled-events-list mt-2">
                                 <Section title="Scheduled Maintenance Events" />
                                 {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.map(
@@ -907,7 +918,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                     {activeIncidentsInIncidentGroup.length === 0 &&
                         activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length ===
-                        0 &&
+                            0 &&
                         statusPageResources.length === 0 &&
                         activeAnnouncements.length === 0 &&
                         !isLoading &&
