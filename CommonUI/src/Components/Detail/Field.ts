@@ -27,7 +27,7 @@ export interface FieldBase {
         | ((
               item: JSONObject,
               onBeforeFetchData?: JSONObject,
-              fetchItems?: Function
+              fetchItems?: VoidFunction
           ) => ReactElement)
         | undefined;
     sideLink?: DetailSideLink | undefined;

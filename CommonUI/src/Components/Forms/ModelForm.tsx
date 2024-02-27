@@ -213,7 +213,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return false;
     };
 
-    const setFormFields: () => Promise<void> = async (): Promise<void> => {
+    const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
         let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {
@@ -287,7 +287,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         await setFormFields();
     }, [props.fields]);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         if (!props.modelIdToEdit || props.formType !== FormType.Update) {
             throw new BadDataException('Model ID to update not found.');
         }

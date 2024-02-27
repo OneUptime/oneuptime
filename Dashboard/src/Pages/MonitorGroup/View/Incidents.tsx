@@ -15,6 +15,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import API from 'CommonUI/src/Utils/API/API';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import {PromiseVoidFunction} from 'Common/Types/FunctionTypes';
 
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

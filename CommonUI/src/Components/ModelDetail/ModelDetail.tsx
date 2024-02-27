@@ -162,7 +162,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         }
     }, [onBeforeFetchData, props.modelType]);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
         props.onLoadingChange && props.onLoadingChange(true);

@@ -126,7 +126,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                             icon: IconProp.List,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setEmailText(
                                     JSON.stringify(item['subject']) as string
@@ -144,7 +144,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                             icon: IconProp.Error,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setEmailText(item['statusMessage'] as string);
 

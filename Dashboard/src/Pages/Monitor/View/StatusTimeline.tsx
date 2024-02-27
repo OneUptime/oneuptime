@@ -57,7 +57,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         icon: IconProp.TransparentCube,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function
+                            onCompleteAction: VoidFunction
                         ) => {
                             setRootCause(
                                 item['rootCause']
@@ -75,7 +75,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         icon: IconProp.List,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function
+                            onCompleteAction: VoidFunction
                         ) => {
                             setLogs(
                                 item['statusChangeLog']

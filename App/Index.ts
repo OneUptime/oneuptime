@@ -20,7 +20,7 @@ import Workflow from './FeatureSet/Workflow/Index';
 // home should be in the end.
 import './FeatureSet/Home/Index';
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(process.env['SERVICE_NAME']);

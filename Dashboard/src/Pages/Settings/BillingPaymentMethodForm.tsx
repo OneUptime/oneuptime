@@ -18,7 +18,9 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
     const stripe: any = useStripe();
     const elements: any = useElements();
 
-    const submitForm: Function = async (event: Event): Promise<void> => {
+    type SubmitFormFunction = (event: Event) => Promise<void>;
+
+    const submitForm: SubmitFormFunction = async (event: Event): Promise<void> => {
         event.preventDefault();
         // We don't want to let default form submission happen here,
         // which would refresh the page.

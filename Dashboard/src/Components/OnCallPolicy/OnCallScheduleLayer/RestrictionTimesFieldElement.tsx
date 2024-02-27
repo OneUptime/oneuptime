@@ -18,6 +18,7 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import DayOfWeek from 'Common/Types/Day/DayOfWeek';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     error?: string | undefined;
@@ -357,7 +358,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const updateRestrictionTimes: Function = (
+    type UpdateRestrictionTimesFunction = (restrictionTimes: RestrictionTimes) => void;
+
+    const updateRestrictionTimes: UpdateRestrictionTimesFunction = (
         restrictionTimes: RestrictionTimes
     ): void => {
         setRestrictionTimes(

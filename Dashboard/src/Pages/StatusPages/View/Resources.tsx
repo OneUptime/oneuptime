@@ -247,7 +247,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
     ]);
 
-    const getModelTable: Function = (
+    type GetModelTableFunction = (
+        statusPageGroupId: ObjectID | null,
+        statusPageGroupName: string | null
+    ) => ReactElement;
+
+    const getModelTable: GetModelTableFunction = (
         statusPageGroupId: ObjectID | null,
         statusPageGroupName: string | null
     ): ReactElement => {

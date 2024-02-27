@@ -5,7 +5,7 @@ export const APP_NAME: string = 'status-page';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME, undefined, true);

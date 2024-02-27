@@ -10,7 +10,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Components, { Categories } from 'Common/Types/Workflow/Components';
 import Typeof from 'Common/Types/Typeof';
 
-export const loadComponentsAndCategories: Function = (): {
+type LoadComponentsAndCategoriesFunction = () => {
+    components: Array<ComponentMetadata>;
+    categories: Array<ComponentCategory>;
+};
+
+export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction = (): {
     components: Array<ComponentMetadata>;
     categories: Array<ComponentCategory>;
 } => {

@@ -125,7 +125,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                             icon: IconProp.List,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setCallText(
                                     JSON.stringify(item['callData']) as string
@@ -143,7 +143,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                             icon: IconProp.Error,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setCallText(item['statusMessage'] as string);
 

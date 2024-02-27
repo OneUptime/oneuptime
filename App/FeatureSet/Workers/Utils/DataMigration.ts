@@ -4,7 +4,7 @@ import logger from 'CommonServer/Utils/Logger';
 import OneUptimeDate from 'Common/Types/Date';
 import DataMigrationService from 'CommonServer/Services/DataMigrationService';
 
-const RunDatabaseMigrations: () => Promise<void> = async (): Promise<void> => {
+const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
     for (const migration of DataMigrations) {
         try {
             // check if this migration has already been run

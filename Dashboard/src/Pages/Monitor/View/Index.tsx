@@ -89,7 +89,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         setIsLoading(true);
         setError('');
 

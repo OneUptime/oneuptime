@@ -46,7 +46,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
 
     const [probes, setProbes] = useState<Array<Probe>>([]);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 
@@ -178,7 +178,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         icon: IconProp.List,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function
+                            onCompleteAction: VoidFunction
                         ) => {
                             setLogs(
                                 item['lastMonitoringLog']

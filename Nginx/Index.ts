@@ -5,7 +5,7 @@ import FetchCertificateJobs from './Jobs/FetchCertificates';
 
 const APP_NAME: string = 'ingress';
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

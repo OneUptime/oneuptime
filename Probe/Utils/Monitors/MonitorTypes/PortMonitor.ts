@@ -139,7 +139,7 @@ export default class PortMonitor {
             // Ping a host with port
 
             const promiseResult: Promise<PositiveNumber> = new Promise(
-                (resolve: Function, reject: PromiseRejectErrorFunction) => {
+                (resolve: (responseTimeInMS: PositiveNumber) => void, reject: PromiseRejectErrorFunction) => {
                     const startTime: [number, number] = process.hrtime();
 
                     const socket: net.Socket = new net.Socket();

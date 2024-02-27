@@ -5,6 +5,7 @@ import logger from 'CommonServer/Utils/Logger';
 import OnlineCheck from '../../OnlineCheck';
 import Sleep from 'Common/Types/Sleep';
 import URL from 'Common/Types/API/URL';
+import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
 
 export interface SslMonitorResponse {
     isOnline: boolean;
@@ -126,7 +127,7 @@ export default class SSLMonitor {
         };
 
         return new Promise(
-            (resolve: Function, reject: PromiseRejectErrorFunction) => {
+            (resolve: (result: SslMonitorResponse) => void, reject: PromiseRejectErrorFunction) => {
                 const req: tls.TLSSocket = tls.connect(options, () => {
                     const cert: tls.PeerCertificate = req.getPeerCertificate();
                     if (req.authorized) {

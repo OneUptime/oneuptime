@@ -27,7 +27,7 @@ app.use([`/${APP_NAME}`, '/'], IncomingRequestAPI);
 app.use([`/${APP_NAME}`, '/'], OTelIngestAPI);
 app.use([`/${APP_NAME}`, '/'], FluentIngestAPI);
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

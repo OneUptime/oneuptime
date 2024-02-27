@@ -12,7 +12,7 @@ const APP_NAME: string = 'test-server';
 app.use([`/${APP_NAME}`, '/'], MainAPI);
 app.use([`/${APP_NAME}`, '/'], SettingsAPI);
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

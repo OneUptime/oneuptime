@@ -43,7 +43,9 @@ const Layer: FunctionComponent<ComponentProps> = (
         props.layer
     );
 
-    const updateLayer: Function = (
+    type UpdateLayerFunction = (updatedLayer: OnCallDutyPolicyScheduleLayer) => void;
+
+    const updateLayer: UpdateLayerFunction = (
         updatedLayer: OnCallDutyPolicyScheduleLayer
     ): void => {
         updatedLayer = BaseModel.fromJSON(

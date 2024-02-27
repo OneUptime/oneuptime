@@ -17,7 +17,7 @@ const DashboardFooter: () => JSX.Element = () => {
         {}
     );
 
-    const fetchVersions: () => Promise<void> = async (): Promise<void> => {
+    const fetchVersions: PromiseVoidFunction = async (): Promise<void> => {
         setIsAboutModalLoading(true);
 
         try {

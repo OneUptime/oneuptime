@@ -33,7 +33,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     const [model, setModel] = useState<BaseModel | null>(null);
     const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
-    const onLoad: () => Promise<void> = async (): Promise<void> => {
+    const onLoad: PromiseVoidFunction = async (): Promise<void> => {
         try {
             // load schema.
             setIsLoading(true);

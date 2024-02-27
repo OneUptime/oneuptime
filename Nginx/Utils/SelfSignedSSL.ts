@@ -1,4 +1,5 @@
 import { exec, ExecException } from 'node:child_process';
+import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
 
 export default class SelfSignedSSL {
     public static generate(path: string, host: string): Promise<void> {

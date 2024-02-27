@@ -77,7 +77,9 @@ const selectedEdgeStyle: React.CSSProperties = {
     color: '#818cf8',
 };
 
-export const getEdgeDefaultProps: Function = (
+type GetEdgeDefaultPropsFunction = (selected: boolean) => JSONObject;
+
+export const getEdgeDefaultProps: GetEdgeDefaultPropsFunction = (
     selected: boolean
 ): JSONObject => {
     return {
@@ -126,7 +128,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [selectedNodeData, setSelectedNodeData] =
         useState<NodeDataProp | null>(null);
 
-    const onNodeClick: Function = (data: NodeDataProp) => {
+        type OnNodeClickFunction = (data: NodeDataProp) => void;
+
+    const onNodeClick: OnNodeClickFunction = (data: NodeDataProp) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
@@ -157,7 +161,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
     }, [props.showRunModal]);
 
-    const deleteNode: Function = (id: string): void => {
+    type DeleteNodeFunction = (id: string) => void;
+
+    const deleteNode: DeleteNodeFunction = (id: string): void => {
         // remove the node.
 
         const nodesToDelete: Array<Node> = [...nodes].filter((node: Node) => {
@@ -320,7 +326,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             return eds.map((edge: Edge) => {
                 return {
                     ...edge,
-                    ...getEdgeDefaultProps(edge.selected),
+                    ...getEdgeDefaultProps(edge.selected || false),
                 };
             });
         });
