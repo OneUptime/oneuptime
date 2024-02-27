@@ -19,6 +19,7 @@ import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import { JSONValue } from 'Common/Types/JSON';
 import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
+import { VoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -129,7 +130,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         refreshFields();
     }, [isSubscriptionPlanYearly]);
 
-    const refreshFields: Function = (): void => {
+    const refreshFields: VoidFunctionType = (): void => {
         let formFields: Array<Field<Project>> = [
             {
                 field: {

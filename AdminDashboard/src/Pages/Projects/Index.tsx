@@ -30,7 +30,7 @@ const Projects: FunctionComponent = (): ReactElement => {
         refreshFields();
     }, [isSubscriptionPlanYearly]);
 
-    const refreshFields: Function = (): void => {
+    const refreshFields: VoidFunctionType = (): void => {
         let formFields: Array<Field<Project>> = [
             {
                 field: {

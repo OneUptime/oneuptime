@@ -5,6 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import { VoidFunctionType } from 'Common/Types/FunctionTypes';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -314,7 +315,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
 
-    const refreshEdges: Function = (): void => {
+    const refreshEdges: VoidFunctionType = (): void => {
         setEdges((eds: Array<Edge>) => {
             return eds.map((edge: Edge) => {
                 return {

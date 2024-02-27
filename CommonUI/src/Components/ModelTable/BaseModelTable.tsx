@@ -47,6 +47,7 @@ import { FilterData } from '../Table/Filter';
 import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import { VoidFunctionType } from 'Common/Types/FunctionTypes';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from '../../Config';
 import SubscriptionPlan, {
@@ -348,7 +349,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setIsLoading(false);
     };
 
-    const serializeToTableColumns: Function = (): void => {
+    const serializeToTableColumns: VoidFunctionType = (): void => {
         // Convert ModelColumns to TableColumns.
 
         const columns: Array<TableColumn> = [];
@@ -675,7 +676,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return selectFields;
     };
 
-    const setHeaderButtons: Function = (): void => {
+    const setHeaderButtons: VoidFunctionType = (): void => {
         // add header buttons.
         let headerbuttons: Array<CardButtonSchema> = [];
 

@@ -31,6 +31,7 @@ import useAsyncEffect from 'use-async-effect';
 import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { FormikErrors, FormikProps } from 'formik';
+import { VoidFunctionType } from 'Common/Types/FunctionTypes';
 
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
@@ -259,7 +260,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             return fieldName;
         };
 
-        const setAllTouched: Function = (): void => {
+        const setAllTouched: VoidFunctionType = (): void => {
             const touchedObj: Dictionary<boolean> = {};
 
             for (const field of formFields) {
