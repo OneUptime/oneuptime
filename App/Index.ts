@@ -24,7 +24,7 @@ import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App(process.env['SERVICE_NAME']);
+        await App(process.env['SERVICE_NAME'] || 'app');
 
         // connect to the database.
         await PostgresAppInstance.connect(

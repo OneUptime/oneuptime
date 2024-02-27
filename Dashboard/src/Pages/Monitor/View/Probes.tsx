@@ -32,7 +32,7 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
 import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
-import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (

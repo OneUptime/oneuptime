@@ -20,7 +20,7 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import AdminModelAPI from '../../Utils/ModelAPI';
-import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 const Projects: FunctionComponent = (): ReactElement => {
     const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =

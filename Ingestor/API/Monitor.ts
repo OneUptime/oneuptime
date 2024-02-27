@@ -221,7 +221,7 @@ router.post(
             const monitorProbes: Array<MonitorProbe> =
                 await MonitorProbeService.findBy({
                     query: getMonitorFetchQuery(
-                        (req as OneUptimeRequest).probe?.id
+                        (req as OneUptimeRequest).probe?.id!
                     ),
                     sort: {
                         nextPingAt: SortOrder.Ascending,

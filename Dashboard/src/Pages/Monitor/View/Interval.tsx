@@ -22,7 +22,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
-import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (

@@ -22,7 +22,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
 import DuplicateModel from 'CommonUI/src/Components/DuplicateModel/DuplicateModel';
-import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (

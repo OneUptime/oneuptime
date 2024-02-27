@@ -11,7 +11,7 @@ import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
 import Color from 'Common/Types/Color';
-import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     monitorName: string;

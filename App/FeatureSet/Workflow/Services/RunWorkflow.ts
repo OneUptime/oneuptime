@@ -406,7 +406,7 @@ export default class RunWorkflow {
         if (ComponentCode) {
             const instance: ComponentCode = ComponentCode;
             return await instance.run(args, {
-                log: (data: string | JSONObject | JSONArray | Error) => {
+                log: (data: string | JSONObject | JSONArray | Error | JSONValue) => {
                     this.log(data);
                 },
                 workflowId: this.workflowId!,
@@ -491,7 +491,7 @@ export default class RunWorkflow {
         };
     }
 
-    public log(data: string | JSONObject | JSONArray | Error): void {
+    public log(data: string | JSONObject | JSONArray | Error | JSONValue): void {
         if (!this.logs) {
             this.logs = [];
         }

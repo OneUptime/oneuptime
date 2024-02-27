@@ -10,7 +10,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ProjectUser from '../../../Utils/ProjectUser';
 import UserElement from '../../User/User';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;

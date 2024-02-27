@@ -20,7 +20,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { VoidFunction, ErrorFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (

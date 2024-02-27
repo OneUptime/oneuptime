@@ -163,8 +163,8 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                         edges[i] = {
                             ...edges[i],
-                            ...getEdgeDefaultProps(),
-                        };
+                            ...getEdgeDefaultProps(false),
+                        } as Edge;
                     }
 
                     setEdges(edges);

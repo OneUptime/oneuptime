@@ -8,13 +8,13 @@ import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
 import Register from '../Services/Register';
 import BasicCron from 'CommonServer/Utils/BasicCron';
 
-BasicCron(
-    'Basic:Alive',
-    {
+BasicCron({
+    jobName: 'Basic:Alive',
+    options: {
         schedule: EVERY_MINUTE,
         runOnStartup: false,
     },
-    async () => {
+    runFunction: async () => {
         logger.info('Checking if probe is alive...');
 
         const probeId: string | undefined = LocalCache.getString(
@@ -37,4 +37,4 @@ BasicCron(
             ProbeAPIRequest.getDefaultRequestBody()
         );
     }
-);
+});
