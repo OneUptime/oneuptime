@@ -156,7 +156,13 @@ export class Service extends DatabaseService<Model> {
 
         // get unique users and notify all the users.
 
-        const startUserNotificationRuleExecution: Function = async (
+        type StartUserNotificationRuleExecutionFunction = (
+            userId: ObjectID,
+            teamId: ObjectID | null,
+            scheduleId: ObjectID | null
+        ) => Promise<void>;
+
+        const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction = async (
             userId: ObjectID,
             teamId: ObjectID | null,
             scheduleId: ObjectID | null

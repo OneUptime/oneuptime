@@ -30,23 +30,20 @@ type GetColumnAccessControlForAllColumnsFunction = <T extends BaseModel>(
     target: T
 ) => Dictionary<ColumnAccessControl>;
 
-export const getColumnAccessControlForAllColumns: GetColumnAccessControlForAllColumnsFunction = <
-    T extends BaseModel
->(
-    target: T
-): Dictionary<ColumnAccessControl> => {
-    const dictonary: Dictionary<ColumnAccessControl> = {};
-    const keys: Array<string> = Object.keys(target);
+export const getColumnAccessControlForAllColumns: GetColumnAccessControlForAllColumnsFunction =
+    <T extends BaseModel>(target: T): Dictionary<ColumnAccessControl> => {
+        const dictonary: Dictionary<ColumnAccessControl> = {};
+        const keys: Array<string> = Object.keys(target);
 
-    for (const key of keys) {
-        if (Reflect.getMetadata(accessControlSymbol, target, key)) {
-            dictonary[key] = Reflect.getMetadata(
-                accessControlSymbol,
-                target,
-                key
-            ) as ColumnAccessControl;
+        for (const key of keys) {
+            if (Reflect.getMetadata(accessControlSymbol, target, key)) {
+                dictonary[key] = Reflect.getMetadata(
+                    accessControlSymbol,
+                    target,
+                    key
+                ) as ColumnAccessControl;
+            }
         }
-    }
 
-    return dictonary;
-};
+        return dictonary;
+    };

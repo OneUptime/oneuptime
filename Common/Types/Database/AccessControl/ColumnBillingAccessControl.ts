@@ -12,7 +12,12 @@ export default (
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
-export const getColumnBillingAccessControl: Function = (
+type GetColumnBillingAccessControlFunction = (
+    target: BaseModel,
+    propertyKey: string
+) => ColumnBillingAccessControl;
+
+export const getColumnBillingAccessControl: GetColumnBillingAccessControlFunction = (
     target: BaseModel,
     propertyKey: string
 ): ColumnBillingAccessControl => {
@@ -23,7 +28,11 @@ export const getColumnBillingAccessControl: Function = (
     ) as ColumnBillingAccessControl;
 };
 
-export const getColumnBillingAccessControlForAllColumns: Function = <
+type GetColumnBillingAccessControlForAllColumnsFunction = <T extends BaseModel>(
+    target: T
+) => Dictionary<ColumnBillingAccessControl>;
+
+export const getColumnBillingAccessControlForAllColumns: GetColumnBillingAccessControlForAllColumnsFunction = <
     T extends BaseModel
 >(
     target: T

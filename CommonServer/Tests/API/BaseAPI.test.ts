@@ -446,7 +446,7 @@ describe('BaseAPI', () => {
         });
 
         it('should return values retrieved from service', async () => {
-            const result: [Request, Response, Object, PositiveNumber, Object] =
+            const result: [Request, Response, GenericObject, PositiveNumber, GenericObject] =
                 (await baseApiInstance.getList(emptyRequest, res)) as any;
             expect(result[2]).toEqual([{ id: 'mock' }]);
             expect(result[3]).toEqual(new PositiveNumber(42));

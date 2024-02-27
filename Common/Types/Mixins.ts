@@ -1,3 +1,5 @@
 // https://www.typescriptlang.org/docs/handbook/mixins.html
 
-export type GConstructor<T = {}> = new (...args: any[]) => T;
+import GenericObject from "./GenericObject";
+
+export type GConstructor<T = GenericObject> = new (...args: any[]) => T;
