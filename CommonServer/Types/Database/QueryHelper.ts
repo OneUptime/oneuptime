@@ -61,7 +61,9 @@ export default class QueryHelper {
 
         type ConstructQueryFunction = (alias: string) => string;
 
-        const constructQuery: ConstructQueryFunction = (alias: string): string => {
+        const constructQuery: ConstructQueryFunction = (
+            alias: string
+        ): string => {
             let query: string = '(';
 
             query += rid

@@ -9,7 +9,10 @@ export default class Domain extends DomainCommon {
         verificationText: string
     ): Promise<boolean> {
         return new Promise(
-            (resolve: (isVerfified: boolean) => void, reject: PromiseRejectErrorFunction) => {
+            (
+                resolve: (isVerfified: boolean) => void,
+                reject: PromiseRejectErrorFunction
+            ) => {
                 dns.resolveTxt(
                     domain.toString(),
                     (
