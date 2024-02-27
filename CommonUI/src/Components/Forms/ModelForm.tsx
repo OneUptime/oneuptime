@@ -676,7 +676,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
                         Typeof.String
                 ) {
                     const arr: Array<string> = [];
-                    for (const id of valuesToSend[key] as Array<GenericObject>) {
+                    for (const id of valuesToSend[
+                        key
+                    ] as Array<GenericObject>) {
                         arr.push((id as any).value as string);
                     }
                     valuesToSend[key] = arr;

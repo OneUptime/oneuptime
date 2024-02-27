@@ -10,7 +10,12 @@ export default (accessControl: ColumnAccessControl): ReflectionMetadataType => {
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
-export const getColumnAccessControl: Function = (
+type GetColumnAccessControlFunction = (
+    target: BaseModel,
+    propertyKey: string
+) => ColumnAccessControl;
+
+export const getColumnAccessControl: GetColumnAccessControlFunction = (
     target: BaseModel,
     propertyKey: string
 ): ColumnAccessControl => {
@@ -21,7 +26,11 @@ export const getColumnAccessControl: Function = (
     ) as ColumnAccessControl;
 };
 
-export const getColumnAccessControlForAllColumns: Function = <
+type GetColumnAccessControlForAllColumnsFunction = <T extends BaseModel>(
+    target: T
+) => Dictionary<ColumnAccessControl>;
+
+export const getColumnAccessControlForAllColumns: GetColumnAccessControlForAllColumnsFunction = <
     T extends BaseModel
 >(
     target: T

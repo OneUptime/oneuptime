@@ -77,7 +77,9 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        const getNewLog: Function =
+        type GetNewLogFunction = () => OnCallDutyPolicyExecutionLogTimeline;
+
+        const getNewLog: GetNewLogFunction =
             (): OnCallDutyPolicyExecutionLogTimeline => {
                 const log: OnCallDutyPolicyExecutionLogTimeline =
                     new OnCallDutyPolicyExecutionLogTimeline();

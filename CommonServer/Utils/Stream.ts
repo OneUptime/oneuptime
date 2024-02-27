@@ -4,7 +4,10 @@ import { Stream } from 'stream';
 export default class StreamUtil {
     public static convertStreamToText(stream: Stream): Promise<string> {
         return new Promise<string>(
-            (resolve: (result: string) => void, reject: PromiseRejectErrorFunction) => {
+            (
+                resolve: (result: string) => void,
+                reject: PromiseRejectErrorFunction
+            ) => {
                 const chunks: Array<any> = [];
 
                 stream.on('data', (chunk: any) => {

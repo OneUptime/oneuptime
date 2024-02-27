@@ -22,7 +22,9 @@ const RecurringFieldElement: FunctionComponent<ComponentProps> = (
 
     type UpdateRecurringFunction = (restrictionTimes: Recurring) => void;
 
-    const updateRecurring: UpdateRecurringFunction = (restrictionTimes: Recurring): void => {
+    const updateRecurring: UpdateRecurringFunction = (
+        restrictionTimes: Recurring
+    ): void => {
         setRecurring(Recurring.fromJSON(restrictionTimes.toJSON()));
         if (props.onChange) {
             props.onChange(restrictionTimes);

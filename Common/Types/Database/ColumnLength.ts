@@ -17,7 +17,11 @@ enum ColumnLength {
     OTP = 8,
 }
 
-export const getMaxLengthFromTableColumnType: Function = (
+type GetMaxLengthFromTableColumnTypeFunction = (
+    type: TableColumnType
+) => number | undefined;
+
+export const getMaxLengthFromTableColumnType: GetMaxLengthFromTableColumnTypeFunction = (
     type: TableColumnType
 ): number | undefined => {
     if (type === TableColumnType.Version) {

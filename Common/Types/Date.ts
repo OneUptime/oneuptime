@@ -303,15 +303,18 @@ export default class OneUptimeDate {
 
     public static toDateTimeLocalString(date: Date): string {
         date = this.fromString(date);
-        const ten: Function = (i: number): string => {
+
+        type TenFunction = (i: number) => string;
+
+        const ten: TenFunction = (i: number): string => {
                 return (i < 10 ? '0' : '') + i;
             },
             YYYY: number = date.getFullYear(),
-            MM: number = ten(date.getMonth() + 1),
-            DD: number = ten(date.getDate()),
-            HH: number = ten(date.getHours()),
-            II: number = ten(date.getMinutes()),
-            SS: number = ten(date.getSeconds());
+            MM: string = ten(date.getMonth() + 1),
+            DD: string = ten(date.getDate()),
+            HH: string = ten(date.getHours()),
+            II: string = ten(date.getMinutes()),
+            SS: string = ten(date.getSeconds());
 
         return YYYY + '-' + MM + '-' + DD + 'T' + HH + ':' + II + ':' + SS;
     }

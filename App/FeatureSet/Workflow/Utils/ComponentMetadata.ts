@@ -4,7 +4,9 @@ import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseMode
 import Components from 'Common/Types/Workflow/Components';
 import Dictionary from 'Common/Types/Dictionary';
 
-export const loadAllComponentMetadata: Function =
+type LoadAllComponentMetadataFunction = () => Dictionary<ComponentMetadata>;
+
+export const loadAllComponentMetadata: LoadAllComponentMetadataFunction =
     (): Dictionary<ComponentMetadata> => {
         const initComponents: Dictionary<ComponentMetadata> = {};
 

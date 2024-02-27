@@ -17,7 +17,9 @@ type Route = {
     handlerFunction: RouterFunction;
 };
 
-const mockRouterForMethod: Function = (method: string) => {
+type MockRouterForMethodFunction = (method: string) => (uri: string, middleware: RouterFunction, handlerFunction: RouterFunction) => void;
+
+const mockRouterForMethod: MockRouterForMethodFunction = (method: string) => {
     return (
         uri: string,
         middleware: RouterFunction,

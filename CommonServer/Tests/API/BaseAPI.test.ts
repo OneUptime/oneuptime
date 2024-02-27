@@ -21,6 +21,7 @@ import UserType from 'Common/Types/UserType';
 import { mockRouter } from './Helpers';
 import { UserPermission } from 'Common/Types/Permission';
 import CommonAPI from '../../API/CommonAPI';
+import GenericObject from 'Common/Types/GenericObject';
 
 jest.mock('../../Utils/Express', () => {
     return {
@@ -68,7 +69,7 @@ jest.mock('../../Services/DatabaseService', () => {
 });
 
 jest.mock('Common/Models/BaseModel', () => {
-    return jest.fn().mockImplementation((initObject: {}) => {
+    return jest.fn().mockImplementation((initObject: GenericObject) => {
         return {
             ...initObject,
             getCrudApiPath: jest.fn().mockImplementation(() => {

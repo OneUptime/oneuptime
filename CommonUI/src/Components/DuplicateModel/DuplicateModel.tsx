@@ -36,7 +36,9 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
 
     type DuplicateItemFunction = (partialModel: TBaseModel) => void;
 
-    const duplicateItem: DuplicateItemFunction = async (partialModel: TBaseModel) => {
+    const duplicateItem: DuplicateItemFunction = async (
+        partialModel: TBaseModel
+    ) => {
         setIsLoading(true);
         try {
             const item: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({
