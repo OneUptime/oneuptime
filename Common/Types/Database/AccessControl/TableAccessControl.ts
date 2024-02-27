@@ -1,5 +1,5 @@
 import { TableAccessControl } from '../../BaseDatabase/AccessControl';
-import GenericFunction from "../../GenericFunction";
+import GenericFunction from '../../GenericFunction';
 
 export default (accessControl: TableAccessControl) => {
     return (ctr: GenericFunction) => {

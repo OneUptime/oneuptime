@@ -203,14 +203,16 @@ describe('getErrorResponse', () => {
         const status: number = 500;
         const headers: Headers = { 'X-PoweredBy': 'coffee' };
 
-        const response: AxiosResponse<typeof data, GenericObject> = createAxiosResponse({
-            data,
-            headers,
-            status,
-        });
-        const axiosError: AxiosError<typeof data, GenericObject> = createAxiosError({
-            response,
-        });
+        const response: AxiosResponse<typeof data, GenericObject> =
+            createAxiosResponse({
+                data,
+                headers,
+                status,
+            });
+        const axiosError: AxiosError<typeof data, GenericObject> =
+            createAxiosError({
+                response,
+            });
 
         // Use bracket notation property access to access private method
         const errorResponse: HTTPErrorResponse =
@@ -248,11 +250,13 @@ describe('fetch', () => {
         const mockedParsedResponse: HTTPResponse<typeof responseData> =
             new HTTPResponse(status, responseData, DEFAULT_HEADERS);
 
-        const mockedAxiosResponse: AxiosResponse<typeof responseData, GenericObject> =
-            createAxiosResponse({
-                status,
-                data: responseData,
-            });
+        const mockedAxiosResponse: AxiosResponse<
+            typeof responseData,
+            GenericObject
+        > = createAxiosResponse({
+            status,
+            data: responseData,
+        });
 
         mockedAxios.mockResolvedValueOnce(mockedAxiosResponse);
 
@@ -282,14 +286,15 @@ describe('fetch', () => {
             message: 'Not Found',
         };
 
-        const mockedAxiosError: AxiosError<undefined, GenericObject> = createAxiosError({
-            response: createAxiosResponse({
-                status,
-                statusText,
-                data,
-            }),
-            message: 'An error occurred',
-        }) as AxiosError<undefined, GenericObject>;
+        const mockedAxiosError: AxiosError<undefined, GenericObject> =
+            createAxiosError({
+                response: createAxiosResponse({
+                    status,
+                    statusText,
+                    data,
+                }),
+                message: 'An error occurred',
+            }) as AxiosError<undefined, GenericObject>;
 
         mockedAxios.mockRejectedValueOnce(mockedAxiosError);
 

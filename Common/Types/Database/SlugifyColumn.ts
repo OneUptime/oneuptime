@@ -1,4 +1,4 @@
-import GenericFunction from "../GenericFunction";
+import GenericFunction from '../GenericFunction';
 
 export default (columnName: string, saveSlugToColumnName: string) => {
     return (ctr: GenericFunction) => {

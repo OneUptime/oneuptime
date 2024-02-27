@@ -1,5 +1,5 @@
 import EnableWorkflowOn from '../BaseDatabase/EnableWorkflowOn';
-import GenericFunction from "../GenericFunction";
+import GenericFunction from '../GenericFunction';
 
 export default (enableWorkflowOn: EnableWorkflowOn) => {
     return (ctr: GenericFunction) => {

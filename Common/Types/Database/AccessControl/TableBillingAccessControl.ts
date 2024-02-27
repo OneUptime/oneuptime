@@ -1,5 +1,5 @@
 import TableBillingAccessControl from '../../BaseDatabase/TableBillingAccessControl';
-import GenericFunction from "../../GenericFunction";
+import GenericFunction from '../../GenericFunction';
 
 export default (accessControl: TableBillingAccessControl) => {
     return (ctr: GenericFunction) => {

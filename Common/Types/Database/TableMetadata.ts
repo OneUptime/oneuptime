@@ -1,5 +1,5 @@
 import IconProp from '../Icon/IconProp';
-import GenericFunction from "../GenericFunction";
+import GenericFunction from '../GenericFunction';
 
 export default (props: {
     tableName: string;

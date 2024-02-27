@@ -17,7 +17,7 @@ export default class LocalFile {
 
     public static async write(path: string, data: string): Promise<void> {
         return new Promise(
-            (resolve: Function, reject: PromiseRejectErrorFunction) => {
+            (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
                 fs.writeFile(path, data, (err: Error | null) => {
                     if (err) {
                         return reject(err);

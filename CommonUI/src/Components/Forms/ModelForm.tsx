@@ -45,6 +45,7 @@ import Color from 'Common/Types/Color';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import { FormErrors, FormProps } from './BasicForm';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import GenericObject from 'Common/Types/GenericObject';
 
 export enum FormType {
     Create,
@@ -675,7 +676,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                         Typeof.String
                 ) {
                     const arr: Array<string> = [];
-                    for (const id of valuesToSend[key] as Array<Object>) {
+                    for (const id of valuesToSend[key] as Array<GenericObject>) {
                         arr.push((id as any).value as string);
                     }
                     valuesToSend[key] = arr;

@@ -16,7 +16,6 @@ type GetCertificateFunction = (
     isKeyPair: boolean
 ) => Promise<null | string>;
 
-
 module.exports = {
     create: (_opts: any) => {
         const saveCertificate: SaveCertificateFunction = async (

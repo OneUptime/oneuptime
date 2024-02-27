@@ -117,7 +117,13 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     }
 });
 
-const init: Function = async (
+type InitFunction = (
+    appName: string,
+    port?: Port,
+    isFrontendApp?: boolean
+) => Promise<ExpressApplication>;
+
+const init: InitFunction = async (
     appName: string,
     port?: Port,
     isFrontendApp?: boolean

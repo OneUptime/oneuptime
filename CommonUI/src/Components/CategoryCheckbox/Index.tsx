@@ -85,7 +85,12 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         );
     }
 
-    const getCategory: Function = (
+    type GetCategoryFunction = (
+        category?: CheckboxCategory,
+        isLastCategory?: boolean
+    ) => ReactElement;
+
+    const getCategory: GetCategoryFunction = (
         category?: CheckboxCategory,
         isLastCategory: boolean = false
     ): ReactElement => {

@@ -1,3 +1,3 @@
-type GenericFunction = Function; 
+type GenericFunction = Function;
 
 export default GenericFunction;

@@ -146,8 +146,8 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                         onClose={() => {
                             return setShowModelForm(false);
                         }}
-                        onSubmit={(data: JSONObject) => {
-                            onSave(data).catch();
+                        onSubmit={async (data: JSONObject) => {
+                            await onSave(data).catch();
                         }}
                         formProps={{
                             initialValues: (model as any)['customFields'] || {},

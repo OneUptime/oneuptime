@@ -1,4 +1,4 @@
-import GenericFunction from "../GenericFunction";
+import GenericFunction from '../GenericFunction';
 
 export interface EnableDocumentationProps {
     isMasterAdminApiDocs?: boolean | undefined;

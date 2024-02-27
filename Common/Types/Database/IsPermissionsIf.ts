@@ -1,5 +1,5 @@
 import Permission from '../Permission';
-import GenericFunction from "../GenericFunction";
+import GenericFunction from '../GenericFunction';
 
 export default (
     permission: Permission,
