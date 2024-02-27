@@ -60,37 +60,41 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             setCategoryCheckboxOptionsAndCategories(result);
         };
 
-    const fetchStatusPage: PromiseVoidFunctionType = async (): Promise<void> => {
-        try {
-            setIsLoading(true);
+    const fetchStatusPage: PromiseVoidFunctionType =
+        async (): Promise<void> => {
+            try {
+                setIsLoading(true);
 
-            const statusPage: StatusPage | null = await ModelAPI.getItem({
-                modelType: StatusPage,
-                id: modelId,
-                select: {
-                    allowSubscribersToChooseResources: true,
-                    enableSmsSubscribers: true,
-                },
-            });
+                const statusPage: StatusPage | null = await ModelAPI.getItem({
+                    modelType: StatusPage,
+                    id: modelId,
+                    select: {
+                        allowSubscribersToChooseResources: true,
+                        enableSmsSubscribers: true,
+                    },
+                });
 
-            if (statusPage && statusPage.allowSubscribersToChooseResources) {
-                setAllowSubscribersToChooseResources(
+                if (
+                    statusPage &&
                     statusPage.allowSubscribersToChooseResources
-                );
-                await fetchCheckboxOptionsAndCategories();
-            }
+                ) {
+                    setAllowSubscribersToChooseResources(
+                        statusPage.allowSubscribersToChooseResources
+                    );
+                    await fetchCheckboxOptionsAndCategories();
+                }
 
-            if (statusPage && statusPage.enableSmsSubscribers) {
-                setIsSMSSubscribersEnabled(statusPage.enableSmsSubscribers);
+                if (statusPage && statusPage.enableSmsSubscribers) {
+                    setIsSMSSubscribersEnabled(statusPage.enableSmsSubscribers);
+                }
+
+                setIsLoading(false);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
             }
 
             setIsLoading(false);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
-
-        setIsLoading(false);
-    };
+        };
 
     useEffect(() => {
         fetchStatusPage().catch((err: Error) => {

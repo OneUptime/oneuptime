@@ -5,7 +5,10 @@ import React, {
     useState,
 } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
+import {
+    ErrorFunctionType,
+    VoidFunctionType,
+} from 'Common/Types/FunctionTypes';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';

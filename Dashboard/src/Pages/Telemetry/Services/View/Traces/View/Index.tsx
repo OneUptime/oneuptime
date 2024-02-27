@@ -63,7 +63,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    const fetchItems:  PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchItems: PromiseVoidFunctionType = async (): Promise<void> => {
         try {
             setIsLoading(true);
 
@@ -225,7 +225,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         );
     };
 
-
     type SpanToBarFunctionProps = {
         span: Span;
         timelineStartTimeUnixNano: number;
@@ -233,9 +232,13 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type SpanToBarFunctionType = (data: SpanToBarFunctionProps) => GanttChartBar;
+    type SpanToBarFunctionType = (
+        data: SpanToBarFunctionProps
+    ) => GanttChartBar;
 
-    const spanToBar: SpanToBarFunctionType = (data: SpanToBarFunctionProps): GanttChartBar => {
+    const spanToBar: SpanToBarFunctionType = (
+        data: SpanToBarFunctionProps
+    ): GanttChartBar => {
         const {
             span,
             timelineStartTimeUnixNano,
@@ -279,9 +282,13 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type GetBarsFunctionType = (data: GetBarsFunctionProps) => Array<GanttChartBar>;
+    type GetBarsFunctionType = (
+        data: GetBarsFunctionProps
+    ) => Array<GanttChartBar>;
 
-    const getBars: GetBarsFunctionType = (data: GetBarsFunctionProps): Array<GanttChartBar> => {
+    const getBars: GetBarsFunctionType = (
+        data: GetBarsFunctionProps
+    ): Array<GanttChartBar> => {
         const {
             rootSpan,
             allSpans,
@@ -362,7 +369,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         };
     };
 
-    type GetRowsFromBarsFunctionType = (bars: Array<GanttChartBar>) => Array<GanttChartRow>;
+    type GetRowsFromBarsFunctionType = (
+        bars: Array<GanttChartBar>
+    ) => Array<GanttChartRow>;
 
     const getRowsFromBars: GetRowsFromBarsFunctionType = (
         bars: Array<GanttChartBar>

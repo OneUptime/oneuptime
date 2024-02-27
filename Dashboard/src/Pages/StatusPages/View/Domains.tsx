@@ -19,7 +19,10 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
+import {
+    ErrorFunctionType,
+    VoidFunctionType,
+} from 'Common/Types/FunctionTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

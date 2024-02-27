@@ -6,7 +6,10 @@ import React, {
     useState,
 } from 'react';
 import Columns from './Columns';
-import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
+import {
+    ErrorFunctionType,
+    VoidFunctionType,
+} from 'Common/Types/FunctionTypes';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
 import { JSONObject } from 'Common/Types/JSON';
@@ -770,11 +773,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     type ShouldDisableSortFunctionType = (columnName: string) => boolean;
 
-    const shouldDisableSort: ShouldDisableSortFunctionType = (columnName: string): boolean => {
+    const shouldDisableSort: ShouldDisableSortFunctionType = (
+        columnName: string
+    ): boolean => {
         return model.isEntityColumn(columnName);
     };
 
-    type GetColumnKeyFunctionType = (column: ModelTableColumn<TBaseModel>) => string | null;
+    type GetColumnKeyFunctionType = (
+        column: ModelTableColumn<TBaseModel>
+    ) => string | null;
 
     const getColumnKey: GetColumnKeyFunctionType = (
         column: ModelTableColumn<TBaseModel>
@@ -786,7 +793,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return key;
     };
 
-    type HasPermissionToReadColumnFunctionType = (column: ModelTableColumn<TBaseModel>) => boolean;
+    type HasPermissionToReadColumnFunctionType = (
+        column: ModelTableColumn<TBaseModel>
+    ) => boolean;
 
     const hasPermissionToReadColumn: HasPermissionToReadColumnFunctionType = (
         column: ModelTableColumn<TBaseModel>
@@ -826,27 +835,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     type GetUserPermissionsFunctionType = () => Array<Permission>;
 
-    const getUserPermissions: GetUserPermissionsFunctionType = (): Array<Permission> => {
-        let userPermissions: Array<Permission> =
-            PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
-        if (
-            PermissionUtil.getProjectPermissions() &&
-            PermissionUtil.getProjectPermissions()?.permissions &&
-            PermissionUtil.getProjectPermissions()!.permissions.length > 0
-        ) {
-            userPermissions = userPermissions.concat(
-                PermissionUtil.getProjectPermissions()!.permissions.map(
-                    (i: UserPermission) => {
-                        return i.permission;
-                    }
-                )
-            );
-        }
+    const getUserPermissions: GetUserPermissionsFunctionType =
+        (): Array<Permission> => {
+            let userPermissions: Array<Permission> =
+                PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+            if (
+                PermissionUtil.getProjectPermissions() &&
+                PermissionUtil.getProjectPermissions()?.permissions &&
+                PermissionUtil.getProjectPermissions()!.permissions.length > 0
+            ) {
+                userPermissions = userPermissions.concat(
+                    PermissionUtil.getProjectPermissions()!.permissions.map(
+                        (i: UserPermission) => {
+                            return i.permission;
+                        }
+                    )
+                );
+            }
 
-        userPermissions.push(Permission.Public);
+            userPermissions.push(Permission.Public);
 
-        return userPermissions;
-    };
+            return userPermissions;
+        };
 
     useEffect(() => {
         serializeToTableColumns();

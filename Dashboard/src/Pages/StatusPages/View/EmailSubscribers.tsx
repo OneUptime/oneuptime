@@ -59,37 +59,43 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             setCategoryCheckboxOptionsAndCategories(result);
         };
 
-    const fetchStatusPage:  PromiseVoidFunctionType = async (): Promise<void> => {
-        try {
-            setIsLoading(true);
+    const fetchStatusPage: PromiseVoidFunctionType =
+        async (): Promise<void> => {
+            try {
+                setIsLoading(true);
 
-            const statusPage: StatusPage | null = await ModelAPI.getItem({
-                modelType: StatusPage,
-                id: modelId,
-                select: {
-                    allowSubscribersToChooseResources: true,
-                    enableEmailSubscribers: true,
-                },
-            });
+                const statusPage: StatusPage | null = await ModelAPI.getItem({
+                    modelType: StatusPage,
+                    id: modelId,
+                    select: {
+                        allowSubscribersToChooseResources: true,
+                        enableEmailSubscribers: true,
+                    },
+                });
 
-            if (statusPage && statusPage.allowSubscribersToChooseResources) {
-                setAllowSubscribersToChooseResources(
+                if (
+                    statusPage &&
                     statusPage.allowSubscribersToChooseResources
-                );
-                await fetchCheckboxOptionsAndCategories();
-            }
+                ) {
+                    setAllowSubscribersToChooseResources(
+                        statusPage.allowSubscribersToChooseResources
+                    );
+                    await fetchCheckboxOptionsAndCategories();
+                }
 
-            if (statusPage && statusPage.enableEmailSubscribers) {
-                setIsEmailSubscribersEnabled(statusPage.enableEmailSubscribers);
+                if (statusPage && statusPage.enableEmailSubscribers) {
+                    setIsEmailSubscribersEnabled(
+                        statusPage.enableEmailSubscribers
+                    );
+                }
+
+                setIsLoading(false);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
             }
 
             setIsLoading(false);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
-
-        setIsLoading(false);
-    };
+        };
 
     useEffect(() => {
         fetchStatusPage().catch((err: Error) => {

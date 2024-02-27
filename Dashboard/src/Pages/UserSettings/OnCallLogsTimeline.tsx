@@ -21,8 +21,10 @@ import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import { GetReactElementFunctionType } from 'CommonUI/src/Types/FunctionTypes';
-import { VoidFunctionType, ErrorFunctionType } from 'Common/Types/FunctionTypes';
-
+import {
+    VoidFunctionType,
+    ErrorFunctionType,
+} from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

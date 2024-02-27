@@ -25,7 +25,7 @@ const Settings: FunctionComponent = (): ReactElement => {
 
     const [error, setError] = React.useState<string>('');
 
-    const fetchItem:  PromiseVoidFunctionType = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunctionType = async (): Promise<void> => {
         setIsLoading(true);
 
         const globalConfig: GlobalConfig | null =

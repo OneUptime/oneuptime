@@ -7,7 +7,10 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import User from 'CommonUI/src/Utils/User';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
+import {
+    ErrorFunctionType,
+    VoidFunctionType,
+} from 'Common/Types/FunctionTypes';
 import { JSONObject } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';

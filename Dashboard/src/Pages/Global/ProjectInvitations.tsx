@@ -13,7 +13,10 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI, { RequestOptions } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
-import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
+import {
+    ErrorFunctionType,
+    VoidFunctionType,
+} from 'Common/Types/FunctionTypes';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import Navigation from 'CommonUI/src/Utils/Navigation';

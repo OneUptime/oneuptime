@@ -2,7 +2,7 @@ import { Stream } from 'stream';
 
 export default class StreamUtil {
     public static convertStreamToText(stream: Stream): Promise<string> {
-        return new Promise<string>((resolve: Function, reject: Function) => {
+        return new Promise<string>((resolve: Function, reject: PromiseRejectErrorFunctionType) => {
             const chunks: Array<any> = [];
 
             stream.on('data', (chunk: any) => {

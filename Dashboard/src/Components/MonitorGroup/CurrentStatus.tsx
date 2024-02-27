@@ -26,26 +26,27 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadCurrentStatus:  PromiseVoidFunctionType = async (): Promise<void> => {
-        setIsLoading(true);
+    const loadCurrentStatus: PromiseVoidFunctionType =
+        async (): Promise<void> => {
+            setIsLoading(true);
 
-        try {
-            const currentStatus: MonitorStatus | null =
-                await ModelAPI.post<MonitorStatus>({
-                    modelType: MonitorStatus,
-                    apiUrl: URL.fromString(APP_API_URL.toString())
-                        .addRoute(new MonitorGroup().getCrudApiPath()!)
-                        .addRoute('/current-status/')
-                        .addRoute(`/${props.monitorGroupId.toString()}`),
-                });
+            try {
+                const currentStatus: MonitorStatus | null =
+                    await ModelAPI.post<MonitorStatus>({
+                        modelType: MonitorStatus,
+                        apiUrl: URL.fromString(APP_API_URL.toString())
+                            .addRoute(new MonitorGroup().getCrudApiPath()!)
+                            .addRoute('/current-status/')
+                            .addRoute(`/${props.monitorGroupId.toString()}`),
+                    });
 
-            setCurrentGroupStatus(currentStatus);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+                setCurrentGroupStatus(currentStatus);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-        setIsLoading(false);
-    };
+            setIsLoading(false);
+        };
 
     useEffect(() => {
         loadCurrentStatus().catch(() => {});

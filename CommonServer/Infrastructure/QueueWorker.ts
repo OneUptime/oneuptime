@@ -30,7 +30,7 @@ export default class QueueWorker {
         jobCallback: Function
     ): Promise<void> {
         const timeoutPromise: Function = (ms: number): Promise<void> => {
-            return new Promise((_resolve: Function, reject: Function) => {
+            return new Promise((_resolve: Function, reject: PromiseRejectErrorFunctionType) => {
                 setTimeout(() => {
                     return reject(new TimeoutException('Job Timeout'));
                 }, ms);

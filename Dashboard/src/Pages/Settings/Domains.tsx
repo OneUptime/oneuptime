@@ -13,7 +13,10 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Domain from 'Model/Models/Domain';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
-import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
+import {
+    ErrorFunctionType,
+    VoidFunctionType,
+} from 'Common/Types/FunctionTypes';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';

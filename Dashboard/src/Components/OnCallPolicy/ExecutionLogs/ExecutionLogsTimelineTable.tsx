@@ -12,7 +12,10 @@ import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/
 import UserElement from '../../User/User';
 import User from 'Model/Models/User';
 import EscalationRule from '../EscalationRule/EscalationRule';
-import { ErrorFunctionType, VoidFunctionType } from 'Common/Types/FunctionTypes';
+import {
+    ErrorFunctionType,
+    VoidFunctionType,
+} from 'Common/Types/FunctionTypes';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';

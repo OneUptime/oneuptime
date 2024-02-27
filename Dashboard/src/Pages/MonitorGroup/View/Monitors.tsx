@@ -39,34 +39,35 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadMonitorStatuses:  PromiseVoidFunctionType = async (): Promise<void> => {
-        setIsLoading(true);
+    const loadMonitorStatuses: PromiseVoidFunctionType =
+        async (): Promise<void> => {
+            setIsLoading(true);
 
-        try {
-            const monitorStatuses: ListResult<MonitorStatus> =
-                await ModelAPI.getList<MonitorStatus>({
-                    modelType: MonitorStatus,
-                    query: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    select: {
-                        _id: true,
-                        name: true,
-                        color: true,
-                    },
-                    sort: {},
-                });
+            try {
+                const monitorStatuses: ListResult<MonitorStatus> =
+                    await ModelAPI.getList<MonitorStatus>({
+                        modelType: MonitorStatus,
+                        query: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
+                            _id: true,
+                            name: true,
+                            color: true,
+                        },
+                        sort: {},
+                    });
 
-            setMonitorStatuses(monitorStatuses.data);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+                setMonitorStatuses(monitorStatuses.data);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-        setIsLoading(false);
-    };
+            setIsLoading(false);
+        };
 
     useEffect(() => {
         loadMonitorStatuses().catch(() => {});
