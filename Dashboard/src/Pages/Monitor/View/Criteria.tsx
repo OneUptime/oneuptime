@@ -30,6 +30,7 @@ import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { useAsyncEffect } from 'use-async-effect';
 import { GetReactElementFunction } from 'CommonUI/src/Types/Functions';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

@@ -62,6 +62,7 @@ import SettingsRoutes from './Routes/SettingsRoutes';
 import OnCallDutyRoutes from './Routes/OnCallDutyRoutes';
 import MonitorGroupRoutes from './Routes/MonitorGroupRoutes';
 import UserSettingsRoutes from './Routes/UserSettingsRoutes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());

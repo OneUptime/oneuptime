@@ -9,7 +9,7 @@ import {
 type UseComponentOutsideClickFunction = (isVisible: boolean) => {
     ref: any;
     isComponentVisible: boolean;
-    setIsComponentVisible: Function;
+    setIsComponentVisible: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const useComponentOutsideClick: UseComponentOutsideClickFunction = (
@@ -17,7 +17,7 @@ const useComponentOutsideClick: UseComponentOutsideClickFunction = (
 ): {
     ref: any;
     isComponentVisible: boolean;
-    setIsComponentVisible: Function;
+    setIsComponentVisible: React.Dispatch<React.SetStateAction<boolean>>;
 } => {
     const [isComponentVisible, setIsComponentVisible] =
         useState<boolean>(isVisible);

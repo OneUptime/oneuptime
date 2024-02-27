@@ -243,7 +243,14 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             );
         };
 
-    const getWeeklyTimeRestriction: Function = (params: {
+    type GetWeeklyRestrictionFunction = (params: {
+        weeklyRestriction: WeeklyResctriction;
+        onChange: (value: WeeklyResctriction) => void;
+        onDelete: () => void;
+    }) => ReactElement;
+
+
+    const getWeeklyTimeRestriction: GetWeeklyRestrictionFunction = (params: {
         weeklyRestriction: WeeklyResctriction;
         onChange: (value: WeeklyResctriction) => void;
         onDelete: () => void;

@@ -49,7 +49,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         );
     }, [props.startDate, props.endDate]);
 
-    const getUptimeBar: Function = (dayNumber: number): ReactElement => {
+    type GetUptimeBarFunction = (dayNumber: number) => ReactElement;
+
+    const getUptimeBar: GetUptimeBarFunction = (dayNumber: number): ReactElement => {
         let color: Color = props.defaultBarColor || Green;
 
         const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
@@ -243,7 +245,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const getUptimeGraph: Function = (): Array<ReactElement> => {
+    type GetUptimeGraphFunction = () => Array<ReactElement>;
+
+    const getUptimeGraph: GetUptimeGraphFunction = (): Array<ReactElement> => {
         const elements: Array<ReactElement> = [];
 
         for (let i: number = 0; i < days; i++) {

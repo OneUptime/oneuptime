@@ -17,7 +17,7 @@ import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { useAsyncEffect } from 'use-async-effect';
 import User from '../../Utils/User';
-import { VoidFunction } from 'Common/Types/FunctionsTypes';
+import { VoidFunction, PromiseVoidFunction } from 'Common/Types/FunctionsTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
