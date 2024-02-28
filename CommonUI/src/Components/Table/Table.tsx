@@ -136,7 +136,7 @@ const Table: FunctionComponent<ComponentProps> = (
                         );
                 }}
             >
-                <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="-my-2 overflow-x-auto -mx-6">
                     <div className="inline-block min-w-full py-2 align-middle">
                         <div className="overflow-hidden border-t border-gray-200">
                             <table className="min-w-full divide-y divide-gray-200">
