@@ -47,7 +47,7 @@
         "node-cron": "^3.0.3",
         "nodemailer": "^6.9.9",
         "pg": "^8.7.3",
-        "socket.io": "^4.7.2",
+        "socket.io": "^4.7.4",
         "stripe": "^10.17.0",
         "twilio": "^4.19.3",
         "typeorm": "^0.3.20",
