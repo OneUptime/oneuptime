@@ -35,6 +35,7 @@ export type RecordValue =
     | Array<string>
     | Array<ObjectID>
     | Array<CommonModel>
+    | JSONObject
     | CommonModel;
 
 export type Record = Array<RecordValue | Record>;

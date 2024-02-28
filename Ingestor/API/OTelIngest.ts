@@ -165,7 +165,7 @@ router.post(
                         dbSpan.kind =
                             (span['kind'] as SpanKind) || SpanKind.Internal;
 
-                        dbSpan.attributes = OTelIngestService.getKeyValues(
+                        dbSpan.attributes = OTelIngestService.getAttributes(
                             span['attributes'] as JSONArray
                         );
 
@@ -276,10 +276,10 @@ router.post(
                                     'asInt'
                                 ] as number;
 
-                                dbMetricSum.attributes =
-                                    OTelIngestService.getKeyValues(
-                                        metric['attributes'] as JSONArray
-                                    );
+                                // dbMetricSum.attributes =
+                                //     OTelIngestService.getAttributes(
+                                //         metric['attributes'] as JSONArray
+                                //     );
 
                                 dbMetricsSum.push(dbMetricSum);
                             }
@@ -327,10 +327,10 @@ router.post(
                                     'asInt'
                                 ] as number;
 
-                                dbMetricGauge.attributes =
-                                    OTelIngestService.getKeyValues(
-                                        metric['attributes'] as JSONArray
-                                    );
+                                // dbMetricGauge.attributes =
+                                //     OTelIngestService.getKeyValues(
+                                //         metric['attributes'] as JSONArray
+                                //     );
 
                                 dbMetricsGauge.push(dbMetricGauge);
                             }
@@ -397,10 +397,10 @@ router.post(
                                     'explicitBounds'
                                 ] as Array<number>;
 
-                                dbMetricHistogram.attributes =
-                                    OTelIngestService.getKeyValues(
-                                        metric['attributes'] as JSONArray
-                                    );
+                                // dbMetricHistogram.attributes =
+                                //     OTelIngestService.getKeyValues(
+                                //         metric['attributes'] as JSONArray
+                                //     );
 
                                 dbMetricsHistogram.push(dbMetricHistogram);
                             }
@@ -589,7 +589,7 @@ router.post(
                         );
 
                         // We need to convert this to date.
-                        dbLog.attributes = OTelIngestService.getKeyValues(
+                        dbLog.attributes =  OTelIngestService.getAttributes(
                             log['attributes'] as JSONArray
                         );
 
