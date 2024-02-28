@@ -22,12 +22,16 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 import Dictionary from 'Common/Types/Dictionary';
 
-export const getAllEnvVars: Function = (): JSONObject => {
+type GetAllEnvVarsFunction = () => JSONObject;
+
+export const getAllEnvVars: GetAllEnvVarsFunction = (): JSONObject => {
     const envVars: JSONObject = window?.process?.env || process?.env || {};
     return envVars;
 };
 
-export const env: Function = (key: string): string => {
+type GetEnvFunction = (key: string) => string;
+
+export const env: GetEnvFunction = (key: string): string => {
     const allEnv: JSONObject = getAllEnvVars();
     return (allEnv[key] as string) || '';
 };
@@ -163,7 +167,9 @@ export const OpenTelemetryExporterOtlpEndpoint: URL | null = env(
     ? URL.fromString(env('OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT').toString())
     : null;
 
-const getOpenTelemetryExporterOtlpHeaders: Function =
+type GetOpenTelemetryExporterOtlpHeadersFunction = () => Dictionary<string>;
+
+const getOpenTelemetryExporterOtlpHeaders: GetOpenTelemetryExporterOtlpHeadersFunction =
     (): Dictionary<string> => {
         if (!env('OPENTELEMETRY_EXPORTER_OTLP_HEADERS')) {
             return {};

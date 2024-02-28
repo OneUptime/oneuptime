@@ -7,6 +7,7 @@ import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;
@@ -28,7 +29,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);
 
-    const fetchCount: Function = async () => {
+    const fetchCount: PromiseVoidFunction = async (): Promise<void> => {
         if (!props.modelType) {
             return;
         }
@@ -60,9 +61,9 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
     };
 
     useEffect(() => {
-        setIsLoading(true);
-        fetchCount();
-        setIsLoading(false);
+        fetchCount().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, []);
 
     return (

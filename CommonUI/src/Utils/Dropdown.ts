@@ -1,9 +1,11 @@
 import BaseModel from 'Common/Models/BaseModel';
 import { DropdownOption } from '../Components/Dropdown/Dropdown';
 
+type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
+
 export default class DropdownUtil {
-    public static getDropdownOptionsFromEnum(
-        obj: Object,
+    public static getDropdownOptionsFromEnum<T>(
+        obj: Enum<T>,
         useKeyAsLebel: boolean = false
     ): Array<DropdownOption> {
         return Object.keys(obj).map((key: string) => {
@@ -14,8 +16,8 @@ export default class DropdownUtil {
         });
     }
 
-    public static getDropdownOptionFromEnumForValue(
-        enumObject: Object,
+    public static getDropdownOptionFromEnumForValue<T>(
+        enumObject: Enum<T>,
         value: string
     ): DropdownOption | undefined {
         const options: Array<DropdownOption> =

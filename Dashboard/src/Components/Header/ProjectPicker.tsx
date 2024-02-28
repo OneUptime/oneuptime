@@ -18,6 +18,8 @@ import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButt
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import { JSONValue } from 'Common/Types/JSON';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -51,7 +53,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         refreshFields();
     }, [initialValues]);
 
-    const getFooter: Function = (): ReactElement => {
+    const getFooter: GetReactElementFunction = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }
@@ -128,7 +130,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         refreshFields();
     }, [isSubscriptionPlanYearly]);
 
-    const refreshFields: Function = (): void => {
+    const refreshFields: VoidFunction = (): void => {
         let formFields: Array<Field<Project>> = [
             {
                 field: {

@@ -43,7 +43,9 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-    const handleChange: Function = (color: string): void => {
+    type HandleChangeFunction = (color: string) => void;
+
+    const handleChange: HandleChangeFunction = (color: string): void => {
         setColor(color);
         if (!color) {
             return props.onChange(null);

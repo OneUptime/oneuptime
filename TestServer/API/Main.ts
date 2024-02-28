@@ -4,6 +4,7 @@ import Express, {
     ExpressResponse,
     ExpressRouter,
     NextFunction,
+    RequestHandler,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 import Sleep from 'Common/Types/Sleep';
@@ -20,7 +21,7 @@ router.get(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await returnResponse(req, res, next);
+        returnResponse(req, res, next);
     }
 );
 
@@ -31,11 +32,11 @@ router.post(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await returnResponse(req, res, next);
+        returnResponse(req, res, next);
     }
 );
 
-const returnResponse: Function = async (
+const returnResponse: RequestHandler = async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction

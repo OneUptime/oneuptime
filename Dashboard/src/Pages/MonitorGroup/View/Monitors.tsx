@@ -25,6 +25,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import BaseModel from 'Common/Models/BaseModel';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -39,34 +40,35 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = React.useState<string | undefined>(undefined);
 
-    const loadMonitorStatuses: Function = async (): Promise<void> => {
-        setIsLoading(true);
+    const loadMonitorStatuses: PromiseVoidFunction =
+        async (): Promise<void> => {
+            setIsLoading(true);
 
-        try {
-            const monitorStatuses: ListResult<MonitorStatus> =
-                await ModelAPI.getList<MonitorStatus>({
-                    modelType: MonitorStatus,
-                    query: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    select: {
-                        _id: true,
-                        name: true,
-                        color: true,
-                    },
-                    sort: {},
-                });
+            try {
+                const monitorStatuses: ListResult<MonitorStatus> =
+                    await ModelAPI.getList<MonitorStatus>({
+                        modelType: MonitorStatus,
+                        query: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
+                            _id: true,
+                            name: true,
+                            color: true,
+                        },
+                        sort: {},
+                    });
 
-            setMonitorStatuses(monitorStatuses.data);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+                setMonitorStatuses(monitorStatuses.data);
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-        setIsLoading(false);
-    };
+            setIsLoading(false);
+        };
 
     useEffect(() => {
         loadMonitorStatuses().catch(() => {});

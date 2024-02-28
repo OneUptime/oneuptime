@@ -127,7 +127,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
     }, [statusPageId]);
 
-    const getId: Function = async (): Promise<ObjectID> => {
+    type GetIdFunction = () => Promise<ObjectID>;
+
+    const getId: GetIdFunction = async (): Promise<ObjectID> => {
         if (StatusPageUtil.isPreviewPage()) {
             const id: string | null = Navigation.getParamByName(
                 RouteParams.StatusPageId,

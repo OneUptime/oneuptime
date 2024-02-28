@@ -12,34 +12,40 @@ export default (
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
-export const getColumnBillingAccessControl: Function = (
+type GetColumnBillingAccessControlFunction = (
     target: BaseModel,
     propertyKey: string
-): ColumnBillingAccessControl => {
-    return Reflect.getMetadata(
-        accessControlSymbol,
-        target,
-        propertyKey
-    ) as ColumnBillingAccessControl;
-};
+) => ColumnBillingAccessControl;
 
-export const getColumnBillingAccessControlForAllColumns: Function = <
-    T extends BaseModel
->(
+export const getColumnBillingAccessControl: GetColumnBillingAccessControlFunction =
+    (target: BaseModel, propertyKey: string): ColumnBillingAccessControl => {
+        return Reflect.getMetadata(
+            accessControlSymbol,
+            target,
+            propertyKey
+        ) as ColumnBillingAccessControl;
+    };
+
+type GetColumnBillingAccessControlForAllColumnsFunction = <T extends BaseModel>(
     target: T
-): Dictionary<ColumnBillingAccessControl> => {
-    const dictonary: Dictionary<ColumnBillingAccessControl> = {};
-    const keys: Array<string> = Object.keys(target);
+) => Dictionary<ColumnBillingAccessControl>;
 
-    for (const key of keys) {
-        if (Reflect.getMetadata(accessControlSymbol, target, key)) {
-            dictonary[key] = Reflect.getMetadata(
-                accessControlSymbol,
-                target,
-                key
-            ) as ColumnBillingAccessControl;
+export const getColumnBillingAccessControlForAllColumns: GetColumnBillingAccessControlForAllColumnsFunction =
+    <T extends BaseModel>(
+        target: T
+    ): Dictionary<ColumnBillingAccessControl> => {
+        const dictonary: Dictionary<ColumnBillingAccessControl> = {};
+        const keys: Array<string> = Object.keys(target);
+
+        for (const key of keys) {
+            if (Reflect.getMetadata(accessControlSymbol, target, key)) {
+                dictonary[key] = Reflect.getMetadata(
+                    accessControlSymbol,
+                    target,
+                    key
+                ) as ColumnBillingAccessControl;
+            }
         }
-    }
 
-    return dictonary;
-};
+        return dictonary;
+    };

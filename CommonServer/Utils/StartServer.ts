@@ -38,12 +38,12 @@ app.set('port', process.env['PORT']);
 app.set('view engine', 'ejs');
 app.use(CookieParser());
 
-const jsonBodyParserMiddleware: Function = ExpressJson({
+const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
     limit: '50mb',
     extended: true,
 }); // 50 MB limit.
 
-const urlEncodedMiddleware: Function = ExpressUrlEncoded({
+const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded({
     limit: '50mb',
     extended: true,
 }); // 50 MB limit.
@@ -117,7 +117,13 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     }
 });
 
-const init: Function = async (
+type InitFunction = (
+    appName: string,
+    port?: Port,
+    isFrontendApp?: boolean
+) => Promise<ExpressApplication>;
+
+const init: InitFunction = async (
     appName: string,
     port?: Port,
     isFrontendApp?: boolean

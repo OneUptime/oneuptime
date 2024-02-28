@@ -1,5 +1,4 @@
 import React, { MutableRefObject, ReactElement, useState } from 'react';
-import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -44,6 +43,9 @@ import AccessControlModel from 'Common/Models/AccessControlModel';
 import Pill, { PillSize } from '../Pill/Pill';
 import Color from 'Common/Types/Color';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import { FormErrors, FormProps } from './BasicForm';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import GenericObject from 'Common/Types/GenericObject';
 
 export enum FormType {
     Create,
@@ -67,7 +69,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | undefined
         | ((
               values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+          ) => FormErrors<FormValues<TBaseModel>>);
     fields: Array<ModelField<TBaseModel>>;
     onFormStepChange?: undefined | ((stepId: string) => void);
     steps?: undefined | Array<FormStep<TBaseModel>>;
@@ -89,7 +91,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formType: FormType;
     hideSubmitButton?: undefined | boolean;
     submitButtonStyleType?: ButtonStyleType | undefined;
-    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
     initialValues?: FormValues<TBaseModel> | undefined;
@@ -119,7 +121,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
-    const getSelectFields: Function = (): Select<TBaseModel> => {
+    type GetSelectFieldsFunction = () => Select<TBaseModel>;
+
+    const getSelectFields: GetSelectFieldsFunction = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
         for (const field of props.fields) {
             const key: string | null = field.field
@@ -213,7 +217,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         return false;
     };
 
-    const setFormFields: () => Promise<void> = async (): Promise<void> => {
+    const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
         let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {
@@ -287,7 +291,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         await setFormFields();
     }, [props.fields]);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         if (!props.modelIdToEdit || props.formType !== FormType.Update) {
             throw new BadDataException('Model ID to update not found.');
         }
@@ -359,7 +363,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
         setItemToEdit(item as TBaseModel);
     };
 
-    const fetchDropdownOptions: Function = async (
+    type FetchDropdownOptionsFunction = (
+        fields: Fields<TBaseModel>
+    ) => Promise<Fields<TBaseModel>>;
+
+    const fetchDropdownOptions: FetchDropdownOptionsFunction = async (
         fields: Fields<TBaseModel>
     ): Promise<Fields<TBaseModel>> => {
         setIsFetchingDropdownOptions(true);
@@ -584,13 +592,19 @@ const ModelForm: <TBaseModel extends BaseModel>(
         }
     }, []);
 
-    const getmiscDataProps: Function = (values: JSONObject): JSONObject => {
+    type GetMiscDataPropsFunction = (
+        values: FormValues<JSONObject>
+    ) => JSONObject;
+
+    const getMiscDataProps: GetMiscDataPropsFunction = (
+        values: FormValues<JSONObject>
+    ): JSONObject => {
         const result: JSONObject = {};
 
         for (const field of fields) {
             if (field.overrideFieldKey && values[field.overrideFieldKey]) {
                 result[field.overrideFieldKey] =
-                    values[field.overrideFieldKey] || null;
+                    (values[field.overrideFieldKey] as JSONObject) || null;
             }
         }
 
@@ -626,7 +640,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 (valuesToSend as any)['_id'] = props.modelIdToEdit.toString();
             }
 
-            const miscDataProps: JSONObject = getmiscDataProps(values);
+            const miscDataProps: JSONObject = getMiscDataProps(values);
 
             // remove those props from valuesToSend
             for (const key in miscDataProps) {
@@ -662,7 +676,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
                         Typeof.String
                 ) {
                     const arr: Array<string> = [];
-                    for (const id of valuesToSend[key] as Array<Object>) {
+                    for (const id of valuesToSend[
+                        key
+                    ] as Array<GenericObject>) {
                         arr.push((id as any).value as string);
                     }
                     valuesToSend[key] = arr;

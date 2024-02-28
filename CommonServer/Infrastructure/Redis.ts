@@ -78,7 +78,11 @@ export default abstract class Redis {
                 }
             });
 
-            const connectToDatabase: Function = async (
+            type ConnectToDatabaseFunction = (
+                client: RedisClient
+            ) => Promise<void>;
+
+            const connectToDatabase: ConnectToDatabaseFunction = async (
                 client: RedisClient
             ): Promise<void> => {
                 try {

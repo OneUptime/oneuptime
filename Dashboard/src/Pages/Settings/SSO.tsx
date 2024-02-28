@@ -213,7 +213,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setShowSingleSignOnUrlId(
                                     (item['_id'] as string) || ''

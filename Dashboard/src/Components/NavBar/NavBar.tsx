@@ -8,6 +8,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import URL from 'Common/Types/API/URL';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     show: boolean;
@@ -22,7 +23,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         typeof setTimeout
     > | null>(null);
 
-    const hideMoreMenu: Function = (): void => {
+    const hideMoreMenu: VoidFunction = (): void => {
         if (moreMenuTimeout) {
             clearTimeout(moreMenuTimeout);
             setMoreMenuTimeout(null);
@@ -35,7 +36,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         setMoreMenuTimeout(timeout);
     };
 
-    const forceHideMoreMenu: Function = (): void => {
+    const forceHideMoreMenu: VoidFunction = (): void => {
         if (moreMenuTimeout) {
             clearTimeout(moreMenuTimeout);
             setMoreMenuTimeout(null);
@@ -44,7 +45,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         setIsComponentVisible(false);
     };
 
-    const showMoreMenu: Function = (): void => {
+    const showMoreMenu: VoidFunction = (): void => {
         if (moreMenuTimeout) {
             clearTimeout(moreMenuTimeout);
         }
@@ -85,12 +86,12 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
-                title="Scheduled Maintenance"
-                activeRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS]}
+                title="Telemetry and APM"
+                activeRoute={RouteMap[PageMap.TELEMETRY]}
+                icon={IconProp.Cube}
                 route={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
+                    RouteMap[PageMap.TELEMETRY] as Route
                 )}
-                icon={IconProp.Clock}
             ></NavBarItem>
 
             <NavBarItem
@@ -135,12 +136,14 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             <NavBarMenuItem
-                                title="Telemetry"
-                                description="Logs, Traces, Metrics and more."
+                                title="Scheduled Maintenance"
+                                description="Manage your scheduled maintenance events."
                                 route={RouteUtil.populateRouteParams(
-                                    RouteMap[PageMap.TELEMETRY] as Route
+                                    RouteMap[
+                                        PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                    ] as Route
                                 )}
-                                icon={IconProp.Cube}
+                                icon={IconProp.Clock}
                                 onClick={() => {
                                     forceHideMoreMenu();
                                 }}

@@ -16,6 +16,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Red } from 'Common/Types/BrandColors';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent = (): ReactElement => {
     const [emailServerType, setemailServerType] =
@@ -25,7 +26,7 @@ const Settings: FunctionComponent = (): ReactElement => {
 
     const [error, setError] = React.useState<string>('');
 
-    const fetchItem: Function = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         setIsLoading(true);
 
         const globalConfig: GlobalConfig | null =

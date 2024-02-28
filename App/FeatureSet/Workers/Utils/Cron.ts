@@ -1,21 +1,24 @@
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import JobDictionary from './JobDictionary';
 import Queue, { QueueName } from 'CommonServer/Infrastructure/Queue';
 import logger from 'CommonServer/Utils/Logger';
 
-const RunCron: (
+type RunCronFunction = (
     jobName: string,
     options: {
         schedule: string;
         runOnStartup: boolean;
     },
-    runFunction: Function
-) => void = (
+    runFunction: PromiseVoidFunction
+) => void;
+
+const RunCron: RunCronFunction = (
     jobName: string,
     options: {
         schedule: string;
         runOnStartup: boolean;
     },
-    runFunction: Function
+    runFunction: PromiseVoidFunction
 ): void => {
     JobDictionary.setJobFunction(jobName, runFunction);
 

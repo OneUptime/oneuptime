@@ -125,7 +125,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             icon: IconProp.List,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setSmsText(item['smsText'] as string);
 
@@ -141,7 +141,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             icon: IconProp.Error,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setSmsText(item['statusMessage'] as string);
 

@@ -1,4 +1,4 @@
-import {
+import React, {
     useState,
     useEffect,
     useRef,
@@ -6,12 +6,18 @@ import {
     MouseEvent,
 } from 'react';
 
-const useComponentOutsideClick: Function = (
+type UseComponentOutsideClickFunction = (isVisible: boolean) => {
+    ref: any;
+    isComponentVisible: boolean;
+    setIsComponentVisible: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+const useComponentOutsideClick: UseComponentOutsideClickFunction = (
     isVisible: boolean
 ): {
     ref: any;
     isComponentVisible: boolean;
-    setIsComponentVisible: Function;
+    setIsComponentVisible: React.Dispatch<React.SetStateAction<boolean>>;
 } => {
     const [isComponentVisible, setIsComponentVisible] =
         useState<boolean>(isVisible);

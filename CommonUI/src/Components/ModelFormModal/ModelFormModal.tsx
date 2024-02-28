@@ -1,4 +1,4 @@
-import React, { ReactElement, useRef, useState } from 'react';
+import React, { MutableRefObject, ReactElement, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal, { ModalWidth } from '../Modal/Modal';
 import ModelForm, {
@@ -11,6 +11,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from '../Alerts/Alert';
 import FormValues from '../Forms/Types/FormValues';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import { FormProps } from '../Forms/BasicForm';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
@@ -30,6 +31,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
         | undefined;
     footer?: ReactElement | undefined;
+    formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
 }
 
 const ModelFormModal: <TBaseModel extends BaseModel>(
@@ -43,9 +45,13 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
         props.submitButtonText || 'Save'
     );
 
-    const [error, setError] = useState<string>('');
+    const formRef: MutableRefObject<FormProps<FormValues<TBaseModel>>> =
+        props.formRef ||
+        (useRef<FormProps<FormValues<TBaseModel>>>(null) as MutableRefObject<
+            FormProps<FormValues<TBaseModel>>
+        >);
 
-    const formRef: any = useRef<any>(null);
+    const [error, setError] = useState<string>('');
 
     let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
 
@@ -62,8 +68,8 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
             isLoading={isFormLoading}
             description={props.description}
             disableSubmitButton={isFormLoading}
-            onSubmit={() => {
-                formRef.current.submitForm();
+            onSubmit={async () => {
+                await formRef.current?.submitForm();
             }}
             error={error}
         >

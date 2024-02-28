@@ -28,8 +28,10 @@ import CategoryCheckbox from '../../CategoryCheckbox/Index';
 import Typeof from 'Common/Types/Typeof';
 import Modal from '../../Modal/Modal';
 import Link from '../../Link/Link';
+import { GetReactElementFunction } from '../../../Types/FunctionTypes';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps<T extends Object> {
+export interface ComponentProps<T extends GenericObject> {
     field: Field<T>;
     fieldName: string;
     index: number;
@@ -43,12 +45,16 @@ export interface ComponentProps<T extends Object> {
     submitForm?: (() => void) | undefined;
 }
 
-const FormField: <T extends Object>(
+const FormField: <T extends GenericObject>(
     props: ComponentProps<T>
-) => ReactElement = <T extends Object>(
+) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const getFieldType: Function = (fieldType: FormFieldSchemaType): string => {
+    type GetFieldTypeFunction = (fieldType: FormFieldSchemaType) => string;
+
+    const getFieldType: GetFieldTypeFunction = (
+        fieldType: FormFieldSchemaType
+    ): string => {
         switch (fieldType) {
             case FormFieldSchemaType.Email:
                 return 'email';
@@ -75,7 +81,7 @@ const FormField: <T extends Object>(
         }
     };
 
-    const getFormField: Function = (): ReactElement => {
+    const getFormField: GetReactElementFunction = (): ReactElement => {
         const [
             showMultiSelectCheckboxCategoryModal,
             setShowMultiSelectCheckboxCategoryModal,
@@ -97,7 +103,7 @@ const FormField: <T extends Object>(
             );
         }, [props.currentValues]);
 
-        const getMultiSelectCheckboxCategoryModal: Function =
+        const getMultiSelectCheckboxCategoryModal: GetReactElementFunction =
             (): ReactElement => {
                 return (
                     <Modal
@@ -192,7 +198,11 @@ const FormField: <T extends Object>(
                 OneUptimeDate.getCurrentTimezoneString();
         }
 
-        const getFieldDescription: Function = (): ReactElement | string => {
+        type GetFieldDescriptionFunction = () => ReactElement | string;
+
+        const getFieldDescription: GetFieldDescriptionFunction = ():
+            | ReactElement
+            | string => {
             if (
                 props.field.fieldType ===
                     FormFieldSchemaType.MultiSelectDropdown &&

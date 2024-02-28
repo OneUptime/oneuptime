@@ -57,7 +57,11 @@ RunCron(
     }
 );
 
-const shouldProcessRequest: Function = (monitor: Monitor): boolean => {
+type ShouldProcessRequestFunction = (monitor: Monitor) => boolean;
+
+const shouldProcessRequest: ShouldProcessRequestFunction = (
+    monitor: Monitor
+): boolean => {
     // check if any criteria has request time step. If yes, then process the request. If no then skip the request.
     // We dont want Incoming Request Monitor to process the request if there is no criteria that checks for incoming request.
     // Those monitors criteria should be checked if the request is receievd from the API and not through the worker.

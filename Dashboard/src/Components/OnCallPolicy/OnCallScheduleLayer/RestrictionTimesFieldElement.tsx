@@ -18,6 +18,7 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import DayOfWeek from 'Common/Types/Day/DayOfWeek';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     error?: string | undefined;
@@ -40,7 +41,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         }
     }, [props.value]);
 
-    const getDailyRestriction: Function = (): ReactElement => {
+    const getDailyRestriction: GetReactElementFunction = (): ReactElement => {
         // show start time to end time input fields
 
         return (
@@ -129,113 +130,126 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const getWeeklyTimeRestrictions: Function = (): ReactElement => {
-        return (
-            <div>
-                <div className="ml-8">
-                    {/** LIST */}
+    const getWeeklyTimeRestrictions: GetReactElementFunction =
+        (): ReactElement => {
+            return (
+                <div>
+                    <div className="ml-8">
+                        {/** LIST */}
 
-                    {restrictionTimes?.weeklyRestrictionTimes?.map(
-                        (weeklyRestriction: WeeklyResctriction, i: number) => {
-                            return (
-                                <div key={i} className="flex">
-                                    <div>
-                                        {getWeeklyTimeRestriction({
-                                            weeklyRestriction,
-                                            onChange: (
-                                                value: WeeklyResctriction
-                                            ) => {
-                                                let tempRestrictionTimes:
-                                                    | RestrictionTimes
-                                                    | undefined = restrictionTimes;
+                        {restrictionTimes?.weeklyRestrictionTimes?.map(
+                            (
+                                weeklyRestriction: WeeklyResctriction,
+                                i: number
+                            ) => {
+                                return (
+                                    <div key={i} className="flex">
+                                        <div>
+                                            {getWeeklyTimeRestriction({
+                                                weeklyRestriction,
+                                                onChange: (
+                                                    value: WeeklyResctriction
+                                                ) => {
+                                                    let tempRestrictionTimes:
+                                                        | RestrictionTimes
+                                                        | undefined = restrictionTimes;
 
-                                                if (!tempRestrictionTimes) {
-                                                    tempRestrictionTimes =
-                                                        new RestrictionTimes();
-                                                }
+                                                    if (!tempRestrictionTimes) {
+                                                        tempRestrictionTimes =
+                                                            new RestrictionTimes();
+                                                    }
 
-                                                if (
-                                                    !tempRestrictionTimes.weeklyRestrictionTimes
-                                                ) {
-                                                    tempRestrictionTimes.weeklyRestrictionTimes =
-                                                        [];
-                                                }
+                                                    if (
+                                                        !tempRestrictionTimes.weeklyRestrictionTimes
+                                                    ) {
+                                                        tempRestrictionTimes.weeklyRestrictionTimes =
+                                                            [];
+                                                    }
 
-                                                tempRestrictionTimes.weeklyRestrictionTimes[
-                                                    i
-                                                ] = value;
+                                                    tempRestrictionTimes.weeklyRestrictionTimes[
+                                                        i
+                                                    ] = value;
 
-                                                updateRestrictionTimes(
-                                                    tempRestrictionTimes
-                                                );
-                                            },
-                                            onDelete: () => {
-                                                let tempRestrictionTimes:
-                                                    | RestrictionTimes
-                                                    | undefined = restrictionTimes;
+                                                    updateRestrictionTimes(
+                                                        tempRestrictionTimes
+                                                    );
+                                                },
+                                                onDelete: () => {
+                                                    let tempRestrictionTimes:
+                                                        | RestrictionTimes
+                                                        | undefined = restrictionTimes;
 
-                                                if (!tempRestrictionTimes) {
-                                                    tempRestrictionTimes =
-                                                        new RestrictionTimes();
-                                                }
+                                                    if (!tempRestrictionTimes) {
+                                                        tempRestrictionTimes =
+                                                            new RestrictionTimes();
+                                                    }
 
-                                                if (
-                                                    !tempRestrictionTimes.weeklyRestrictionTimes
-                                                ) {
-                                                    tempRestrictionTimes.weeklyRestrictionTimes =
-                                                        [];
-                                                }
+                                                    if (
+                                                        !tempRestrictionTimes.weeklyRestrictionTimes
+                                                    ) {
+                                                        tempRestrictionTimes.weeklyRestrictionTimes =
+                                                            [];
+                                                    }
 
-                                                tempRestrictionTimes.weeklyRestrictionTimes.splice(
-                                                    i,
-                                                    1
-                                                );
+                                                    tempRestrictionTimes.weeklyRestrictionTimes.splice(
+                                                        i,
+                                                        1
+                                                    );
 
-                                                updateRestrictionTimes(
-                                                    tempRestrictionTimes
-                                                );
-                                            },
-                                        })}
+                                                    updateRestrictionTimes(
+                                                        tempRestrictionTimes
+                                                    );
+                                                },
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        }
-                    )}
-                </div>
-
-                <div className="ml-5 mt-3">
-                    {/** show add button */}
-                    <Button
-                        title="Add Restriction Time"
-                        buttonStyle={ButtonStyleType.NORMAL}
-                        icon={IconProp.Add}
-                        onClick={() => {
-                            let tempRestrictionTimes:
-                                | RestrictionTimes
-                                | undefined = restrictionTimes;
-
-                            if (!tempRestrictionTimes) {
-                                tempRestrictionTimes = new RestrictionTimes();
+                                );
                             }
+                        )}
+                    </div>
 
-                            if (!tempRestrictionTimes.weeklyRestrictionTimes) {
-                                tempRestrictionTimes.weeklyRestrictionTimes =
-                                    [];
-                            }
+                    <div className="ml-5 mt-3">
+                        {/** show add button */}
+                        <Button
+                            title="Add Restriction Time"
+                            buttonStyle={ButtonStyleType.NORMAL}
+                            icon={IconProp.Add}
+                            onClick={() => {
+                                let tempRestrictionTimes:
+                                    | RestrictionTimes
+                                    | undefined = restrictionTimes;
 
-                            tempRestrictionTimes.weeklyRestrictionTimes.push(
-                                RestrictionTimes.getDefaultWeeklyRestrictionTIme()
-                            );
+                                if (!tempRestrictionTimes) {
+                                    tempRestrictionTimes =
+                                        new RestrictionTimes();
+                                }
 
-                            updateRestrictionTimes(tempRestrictionTimes);
-                        }}
-                    />
+                                if (
+                                    !tempRestrictionTimes.weeklyRestrictionTimes
+                                ) {
+                                    tempRestrictionTimes.weeklyRestrictionTimes =
+                                        [];
+                                }
+
+                                tempRestrictionTimes.weeklyRestrictionTimes.push(
+                                    RestrictionTimes.getDefaultWeeklyRestrictionTIme()
+                                );
+
+                                updateRestrictionTimes(tempRestrictionTimes);
+                            }}
+                        />
+                    </div>
                 </div>
-            </div>
-        );
-    };
+            );
+        };
 
-    const getWeeklyTimeRestriction: Function = (params: {
+    type GetWeeklyRestrictionFunction = (params: {
+        weeklyRestriction: WeeklyResctriction;
+        onChange: (value: WeeklyResctriction) => void;
+        onDelete: () => void;
+    }) => ReactElement;
+
+    const getWeeklyTimeRestriction: GetWeeklyRestrictionFunction = (params: {
         weeklyRestriction: WeeklyResctriction;
         onChange: (value: WeeklyResctriction) => void;
         onDelete: () => void;
@@ -347,7 +361,11 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const updateRestrictionTimes: Function = (
+    type UpdateRestrictionTimesFunction = (
+        restrictionTimes: RestrictionTimes
+    ) => void;
+
+    const updateRestrictionTimes: UpdateRestrictionTimesFunction = (
         restrictionTimes: RestrictionTimes
     ): void => {
         setRestrictionTimes(

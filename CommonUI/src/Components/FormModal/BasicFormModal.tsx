@@ -6,8 +6,9 @@ import BasicForm, {
 } from '../Forms/BasicForm';
 import ButtonType from '../Button/ButtonTypes';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps<T extends Object> {
+export interface ComponentProps<T extends GenericObject> {
     title: string;
     isLoading?: boolean | undefined;
     onClose?: undefined | (() => void);
@@ -18,9 +19,9 @@ export interface ComponentProps<T extends Object> {
     description?: string | undefined;
 }
 
-const BasicFormModal: <T extends Object>(
+const BasicFormModal: <T extends GenericObject>(
     props: ComponentProps<T>
-) => ReactElement = <T extends Object>(
+) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(

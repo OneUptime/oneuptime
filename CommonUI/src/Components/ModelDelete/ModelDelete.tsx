@@ -6,6 +6,7 @@ import { ButtonStyleType } from '../Button/Button';
 import Card from '../Card/Card';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -25,7 +26,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
 
-    const deleteItem: Function = async () => {
+    const deleteItem: PromiseVoidFunction = async (): Promise<void> => {
         setIsLoading(true);
         try {
             await ModelAPI.deleteItem<TBaseModel>({
@@ -63,9 +64,9 @@ const ModelDelete: <TBaseModel extends BaseModel>(
                 <ConfirmModal
                     description={`Are you sure you want to delete this ${model.singularName?.toLowerCase()}?`}
                     title={`Delete ${model.singularName}`}
-                    onSubmit={() => {
+                    onSubmit={async () => {
                         setShowModal(false);
-                        deleteItem();
+                        await deleteItem();
                     }}
                     onClose={() => {
                         setShowModal(false);

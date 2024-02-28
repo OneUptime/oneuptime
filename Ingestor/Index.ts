@@ -11,7 +11,7 @@ import IncomingRequestAPI from './API/IncomingRequest';
 import OTelIngestAPI from './API/OTelIngest';
 import FluentIngestAPI from './API/FluentIngest';
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
-
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import Realtime from 'CommonServer/Utils/Realtime';
 
@@ -27,7 +27,7 @@ app.use([`/${APP_NAME}`, '/'], IncomingRequestAPI);
 app.use([`/${APP_NAME}`, '/'], OTelIngestAPI);
 app.use([`/${APP_NAME}`, '/'], FluentIngestAPI);
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

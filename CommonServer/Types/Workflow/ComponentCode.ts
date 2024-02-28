@@ -3,12 +3,12 @@
 
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Exception from 'Common/Types/Exception/Exception';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 
 export interface RunOptions {
-    log: Function;
+    log: (item: string | JSONObject | Error | JSONArray | JSONValue) => void;
     workflowLogId: ObjectID;
     workflowId: ObjectID;
     projectId: ObjectID;

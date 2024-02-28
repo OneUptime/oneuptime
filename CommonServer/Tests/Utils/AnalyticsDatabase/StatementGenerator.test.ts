@@ -11,6 +11,7 @@ import logger from '../../../Utils/Logger';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import OneUptimeDate from 'Common/Types/Date';
+import GenericObject from 'Common/Types/GenericObject';
 
 function expectStatement(actual: Statement, expected: Statement): void {
     expect(actual.query).toBe(expected.query);
@@ -67,8 +68,8 @@ describe('StatementGenerator', () => {
         beforeEach(() => {
             updateBy = {
                 data: new TestModel(),
-                query: '<query>' as {},
-                props: '<props>' as {},
+                query: '<query>' as GenericObject,
+                props: '<props>' as GenericObject,
             };
             generator.toSetStatement = jest.fn(() => {
                 return SQL`<set-statement>`;
@@ -228,8 +229,8 @@ describe('StatementGenerator', () => {
 
             /* eslint-disable prettier/prettier */
             expectStatement(statement, SQL`
-                column_1 String NOT NULL,
-                column_2 Int32 NULL
+                column_1 String,
+                column_2 Int32
             `);
             /* eslint-enable prettier/prettier */
         });
@@ -278,7 +279,7 @@ describe('StatementGenerator', () => {
 
             /* eslint-disable prettier/prettier */
             expectStatement(statement, SQL`
-                column_1 String NOT NULL,
+                column_1 String,
                 column_2 Nested (
                     nested_column_1 String,
                     nested_column_2 Int32

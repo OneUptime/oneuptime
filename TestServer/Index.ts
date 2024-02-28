@@ -4,6 +4,7 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import MainAPI from './API/Main';
 import SettingsAPI from './API/Settings';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -12,7 +13,7 @@ const APP_NAME: string = 'test-server';
 app.use([`/${APP_NAME}`, '/'], MainAPI);
 app.use([`/${APP_NAME}`, '/'], SettingsAPI);
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

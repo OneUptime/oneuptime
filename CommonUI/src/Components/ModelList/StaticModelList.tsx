@@ -12,6 +12,7 @@ import {
     DroppableProvided,
 } from 'react-beautiful-dnd';
 import Icon from '../Icon/Icon';
+import { GetReactElementFunction } from '../../Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     list: Array<TBaseModel>;
@@ -34,7 +35,13 @@ const StaticModelList: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const getRow: Function = (
+    type GetRowFunction = (
+        model: TBaseModel,
+        isSelected: boolean,
+        provided?: DraggableProvided | undefined
+    ) => ReactElement;
+
+    const getRow: GetRowFunction = (
         model: TBaseModel,
         isSelected: boolean,
         provided?: DraggableProvided | undefined
@@ -115,7 +122,13 @@ const StaticModelList: <TBaseModel extends BaseModel>(
         );
     };
 
-    const getBody: Function = (provided?: DroppableProvided): ReactElement => {
+    type GetBodyFunction = (
+        provided?: DroppableProvided | undefined
+    ) => ReactElement;
+
+    const getBody: GetBodyFunction = (
+        provided?: DroppableProvided
+    ): ReactElement => {
         return (
             <div ref={provided?.innerRef} {...provided?.droppableProps}>
                 {props.list &&
@@ -172,7 +185,7 @@ const StaticModelList: <TBaseModel extends BaseModel>(
         );
     };
 
-    const getComponent: Function = (): ReactElement => {
+    const getComponent: GetReactElementFunction = (): ReactElement => {
         if (props.enableDragAndDrop) {
             return (
                 <Droppable droppableId={props.dragAndDropScope || ''}>

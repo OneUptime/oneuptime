@@ -91,7 +91,9 @@ export default class IfElse extends ComponentCode {
                 },
             });
 
-            const serialize: Function = (arg: any): any => {
+            type SerializeFunction = (arg: string) => string;
+
+            const serialize: SerializeFunction = (arg: string): string => {
                 if (typeof arg === 'string') {
                     return arg.replace(/\n/g, '--newline--');
                 }

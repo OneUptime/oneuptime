@@ -3,6 +3,7 @@ import Express, {
     ExpressResponse,
     ExpressRouter,
     NextFunction,
+    RequestHandler,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -15,7 +16,7 @@ import OneUptimeDate from 'Common/Types/Date';
 
 const router: ExpressRouter = Express.getRouter();
 
-const processIncomingRequest: Function = async (
+const processIncomingRequest: RequestHandler = async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction
@@ -59,7 +60,7 @@ router.post(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await processIncomingRequest(req, res, next);
+        processIncomingRequest(req, res, next);
     }
 );
 
@@ -70,7 +71,7 @@ router.get(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        await processIncomingRequest(req, res, next);
+        processIncomingRequest(req, res, next);
     }
 );
 

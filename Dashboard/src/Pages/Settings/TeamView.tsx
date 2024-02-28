@@ -1,5 +1,10 @@
 import Route from 'Common/Types/API/Route';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import React, {
+    Fragment,
+    FunctionComponent,
+    MutableRefObject,
+    ReactElement,
+} from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -26,11 +31,17 @@ import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
 import DashboardNavigation from '../../Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
+import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+    const formRef: MutableRefObject<FormProps<FormValues<TeamPermission>>> =
+        React.useRef<
+            FormProps<FormValues<TeamPermission>>
+        >() as MutableRefObject<FormProps<FormValues<TeamPermission>>>;
 
     return (
         <Fragment>
@@ -194,6 +205,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 name="Settings > Team > Permissions"
                 isViewable={false}
+                createEditFromRef={formRef}
                 query={{
                     teamId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
@@ -219,11 +231,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             permission: true,
                         },
-                        onChange: async (
-                            _value: any,
-                            form: any
-                        ): Promise<void> => {
-                            await form.setFieldValue('labels', [], true);
+                        onChange: async (_value: any): Promise<void> => {
+                            await formRef.current.setFieldValue(
+                                'labels',
+                                [],
+                                true
+                            );
                         },
                         title: 'Permission',
                         fieldType: FormFieldSchemaType.Dropdown,

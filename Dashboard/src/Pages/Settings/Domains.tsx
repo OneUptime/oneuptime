@@ -13,6 +13,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Domain from 'Model/Models/Domain';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
@@ -71,8 +72,8 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         },
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setCurrentVerificationDomain(item);

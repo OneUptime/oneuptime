@@ -28,6 +28,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import NotificationRuleType from 'Common/Types/NotificationRule/NotificationRuleType';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -45,12 +46,18 @@ const Settings: FunctionComponent<PageComponentProps> = (
         setNotificationMethodsDropdownOptions,
     ] = useState<Array<DropdownOption>>([]);
 
-    const getModelTable: Function = (options: {
+    type GetTableFunctionProps = {
         incidentSeverity?: IncidentSeverity;
         ruleType: NotificationRuleType;
         title: string;
         description: string;
-    }): ReactElement => {
+    };
+
+    type GetTableFunction = (props: GetTableFunctionProps) => ReactElement;
+
+    const getModelTable: GetTableFunction = (
+        options: GetTableFunctionProps
+    ): ReactElement => {
         return (
             <ModelTable<UserNotificationRule>
                 modelType={UserNotificationRule}
@@ -223,7 +230,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
         );
     };
 
-    const init: () => Promise<void> = async (): Promise<void> => {
+    const init: PromiseVoidFunction = async (): Promise<void> => {
         // Ping an API here.
         setError('');
         setIsLoading(true);

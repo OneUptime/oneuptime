@@ -151,48 +151,52 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
-    const getEventHistoryListComponentProps: Function = (
+    type GetEventHistoryListComponentProps = (
         incidents: Array<Incident>
-    ): EventHistoryListComponentProps => {
-        const eventHistoryListComponentProps: EventHistoryListComponentProps = {
-            items: [],
-        };
+    ) => EventHistoryListComponentProps;
 
-        const days: Dictionary<EventHistoryDayListComponentProps> = {};
-
-        for (const incident of incidents) {
-            const dayString: string = OneUptimeDate.getDateString(
-                incident.createdAt!
-            );
-
-            if (!days[dayString]) {
-                days[dayString] = {
-                    date: incident.createdAt!,
+    const getEventHistoryListComponentProps: GetEventHistoryListComponentProps =
+        (incidents: Array<Incident>): EventHistoryListComponentProps => {
+            const eventHistoryListComponentProps: EventHistoryListComponentProps =
+                {
                     items: [],
                 };
+
+            const days: Dictionary<EventHistoryDayListComponentProps> = {};
+
+            for (const incident of incidents) {
+                const dayString: string = OneUptimeDate.getDateString(
+                    incident.createdAt!
+                );
+
+                if (!days[dayString]) {
+                    days[dayString] = {
+                        date: incident.createdAt!,
+                        items: [],
+                    };
+                }
+
+                days[dayString]?.items.push(
+                    getIncidentEventItem({
+                        incident,
+                        incidentPublicNotes,
+                        incidentStateTimelines,
+                        statusPageResources,
+                        monitorsInGroup,
+                        isPreviewPage: StatusPageUtil.isPreviewPage(),
+                        isSummary: true,
+                    })
+                );
             }
 
-            days[dayString]?.items.push(
-                getIncidentEventItem(
-                    incident,
-                    incidentPublicNotes,
-                    incidentStateTimelines,
-                    statusPageResources,
-                    monitorsInGroup,
-                    StatusPageUtil.isPreviewPage(),
-                    true
-                )
-            );
-        }
+            for (const key in days) {
+                eventHistoryListComponentProps.items.push(
+                    days[key] as EventHistoryDayListComponentProps
+                );
+            }
 
-        for (const key in days) {
-            eventHistoryListComponentProps.items.push(
-                days[key] as EventHistoryDayListComponentProps
-            );
-        }
-
-        return eventHistoryListComponentProps;
-    };
+            return eventHistoryListComponentProps;
+        };
 
     useEffect(() => {
         if (isLoading) {

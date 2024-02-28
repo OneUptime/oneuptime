@@ -59,7 +59,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         setInitialValue();
     }, [props.initialValue]);
 
-    const setInitialValue: () => void = () => {
+    const setInitialValue: VoidFunction = () => {
         if (
             Array.isArray(props.initialValue) &&
             props.initialValue &&
@@ -128,7 +128,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         },
     });
 
-    const getThumbs: Function = (): Array<ReactElement> => {
+    type GetThumbsFunction = () => Array<ReactElement>;
+
+    const getThumbs: GetThumbsFunction = (): Array<ReactElement> => {
         return filesModel.map((file: FileModel, i: number) => {
             if (!file.file) {
                 return <></>;

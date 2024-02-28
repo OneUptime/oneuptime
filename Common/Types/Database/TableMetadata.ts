@@ -1,4 +1,5 @@
 import IconProp from '../Icon/IconProp';
+import GenericFunction from '../GenericFunction';
 
 export default (props: {
     tableName: string;
@@ -7,7 +8,7 @@ export default (props: {
     icon: IconProp;
     tableDescription: string;
 }) => {
-    return (ctr: Function) => {
+    return (ctr: GenericFunction) => {
         ctr.prototype.singularName = props.singularName;
         ctr.prototype.tableName = props.tableName;
         ctr.prototype.icon = props.icon;

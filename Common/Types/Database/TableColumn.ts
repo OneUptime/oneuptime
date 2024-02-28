@@ -26,7 +26,12 @@ export default (props: TableColumnMetadata): ReflectionMetadataType => {
     return Reflect.metadata(tableColumn, props);
 };
 
-export const getTableColumn: Function = <T extends BaseModel>(
+type GetTableColumnFunction = <T extends BaseModel>(
+    target: T,
+    propertyKey: string
+) => TableColumnMetadata;
+
+export const getTableColumn: GetTableColumnFunction = <T extends BaseModel>(
     target: T,
     propertyKey: string
 ): TableColumnMetadata => {
@@ -37,7 +42,11 @@ export const getTableColumn: Function = <T extends BaseModel>(
     ) as TableColumnMetadata;
 };
 
-export const getTableColumns: Function = <T extends BaseModel>(
+type GetTableColumnsFunction = <T extends BaseModel>(
+    target: T
+) => Dictionary<TableColumnMetadata>;
+
+export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
     target: T
 ): Dictionary<TableColumnMetadata> => {
     const dictonary: Dictionary<TableColumnMetadata> = {};

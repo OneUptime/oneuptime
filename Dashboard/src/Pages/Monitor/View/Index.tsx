@@ -36,6 +36,7 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import BaseModel from 'Common/Models/BaseModel';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -89,7 +90,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         setIsLoading(true);
         setError('');
 

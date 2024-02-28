@@ -6,6 +6,7 @@ import Page from './Page';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
 import useAsyncEffect from 'use-async-effect';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title?: string | undefined;
@@ -27,7 +28,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
     const [error, setError] = useState<string>('');
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 

@@ -7,6 +7,7 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsDatabaseService from '../../Services/AnalyticsDatabaseService';
 import { SQL, Statement } from '../../Utils/AnalyticsDatabase/Statement';
 import logger from '../../Utils/Logger';
+import GenericObject from 'Common/Types/GenericObject';
 
 describe('AnalyticsDatabaseService', () => {
     class TestModel extends AnalyticsBaseModel {
@@ -68,8 +69,8 @@ describe('AnalyticsDatabaseService', () => {
 
         test('should return count statement', () => {
             const statement: Statement = service.toCountStatement({
-                query: '<query>' as {},
-                props: '<props>' as {},
+                query: '<query>' as GenericObject,
+                props: '<props>' as GenericObject,
             });
 
             expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
@@ -100,8 +101,8 @@ describe('AnalyticsDatabaseService', () => {
 
         test('optionally adds LIMIT', () => {
             const statement: Statement = service.toCountStatement({
-                query: '<query>' as {},
-                props: '<props>' as {},
+                query: '<query>' as GenericObject,
+                props: '<props>' as GenericObject,
                 limit: 123,
             });
 
@@ -121,8 +122,8 @@ describe('AnalyticsDatabaseService', () => {
 
         test('optionally adds OFFSET', () => {
             const statement: Statement = service.toCountStatement({
-                query: '<query>' as {},
-                props: '<props>' as {},
+                query: '<query>' as GenericObject,
+                props: '<props>' as GenericObject,
                 skip: 123,
             });
 
@@ -166,10 +167,10 @@ describe('AnalyticsDatabaseService', () => {
 
         test('should return find statement', () => {
             const { statement, columns } = service.toFindStatement({
-                select: '<select>' as {},
-                query: '<query>' as {},
-                props: '<props>' as {},
-                sort: '<sort>' as {},
+                select: '<select>' as GenericObject,
+                query: '<query>' as GenericObject,
+                props: '<props>' as GenericObject,
+                sort: '<sort>' as GenericObject,
                 limit: 123,
                 skip: 234,
             });
@@ -227,8 +228,8 @@ describe('AnalyticsDatabaseService', () => {
 
             test('should return delete statement', () => {
                 const statement: Statement = service.toDeleteStatement({
-                    query: '<query>' as {},
-                    props: '<props>' as {},
+                    query: '<query>' as GenericObject,
+                    props: '<props>' as GenericObject,
                 });
 
                 expect(

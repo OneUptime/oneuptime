@@ -30,15 +30,25 @@ export interface ComponentProps {
 const Detail: (props: ComponentProps) => ReactElement = (
     props: ComponentProps
 ): ReactElement => {
-    const getMarkdownViewer: Function = (text: string): ReactElement | null => {
+    type GetMarkdownViewerFunction = (text: string) => ReactElement;
+
+    const getMarkdownViewer: GetMarkdownViewerFunction = (
+        text: string
+    ): ReactElement => {
         if (!text) {
-            return null;
+            return <></>;
         }
 
         return <MarkdownViewer text={text} />;
     };
 
-    const getDropdownViewer: Function = (
+    type GetDropdownViewerFunction = (
+        data: string,
+        options: Array<DropdownOption>,
+        placeholder: string
+    ) => ReactElement;
+
+    const getDropdownViewer: GetDropdownViewerFunction = (
         data: string,
         options: Array<DropdownOption>,
         placeholder: string
@@ -66,21 +76,45 @@ const Detail: (props: ComponentProps) => ReactElement = (
         );
     };
 
-    const getDictionaryOfStringsViewer: Function = (
+    type GetDictionaryOfStringsViewerFunction = (
+        data: Dictionary<string>
+    ) => ReactElement;
+
+    const getDictionaryOfStringsViewer: GetDictionaryOfStringsViewerFunction = (
         data: Dictionary<string>
     ): ReactElement => {
         return <DictionaryOfStringsViewer value={data} />;
     };
 
-    const getColorField: Function = (color: Color): ReactElement => {
+    type GetColorFieldFunction = (color: Color) => ReactElement;
+
+    const getColorField: GetColorFieldFunction = (
+        color: Color
+    ): ReactElement => {
         return <ColorViewer value={color} />;
     };
 
-    const getUSDCentsField: Function = (usdCents: number): ReactElement => {
+    type GetUSDCentsFieldFunction = (usdCents: number | null) => ReactElement;
+
+    const getUSDCentsField: GetUSDCentsFieldFunction = (
+        usdCents: number | null
+    ): ReactElement => {
+        if (usdCents === null) {
+            return <></>;
+        }
+
         return <div className="text-gray-900">{usdCents / 100} USD</div>;
     };
 
-    const getMinutesField: Function = (minutes: number): ReactElement => {
+    type GetMinutesFieldFunction = (minutes: number | null) => ReactElement;
+
+    const getMinutesField: GetMinutesFieldFunction = (
+        minutes: number | null
+    ): ReactElement => {
+        if (minutes === null) {
+            return <></>;
+        }
+
         return (
             <div className="text-gray-900">
                 {minutes} {minutes > 1 ? 'minutes' : 'minute'}
@@ -88,7 +122,12 @@ const Detail: (props: ComponentProps) => ReactElement = (
         );
     };
 
-    const getField: Function = (field: Field, index: number): ReactElement => {
+    type GetFieldFunction = (field: Field, index: number) => ReactElement;
+
+    const getField: GetFieldFunction = (
+        field: Field,
+        index: number
+    ): ReactElement => {
         const fieldKey: string = field.key;
 
         if (!props.item) {
@@ -124,19 +163,43 @@ const Detail: (props: ComponentProps) => ReactElement = (
         }
 
         if (data && field.fieldType === FieldType.Color) {
-            data = getColorField(data);
+            if (data instanceof Color) {
+                data = getColorField(data);
+            }
         }
 
         if (data && field.fieldType === FieldType.USDCents) {
-            data = getUSDCentsField(data);
+            let usdCents: number | null = null;
+
+            if (typeof data === 'string') {
+                usdCents = parseInt(data);
+            }
+
+            if (typeof data === 'number') {
+                usdCents = data;
+            }
+
+            data = getUSDCentsField(usdCents);
         }
 
         if (data && field.fieldType === FieldType.Minutes) {
-            data = getMinutesField(data);
+            let minutes: number | null = null;
+
+            if (typeof data === 'string') {
+                minutes = parseInt(data);
+            }
+
+            if (typeof data === 'number') {
+                minutes = data;
+            }
+
+            data = getMinutesField(minutes);
         }
 
         if (data && field.fieldType === FieldType.DictionaryOfStrings) {
-            data = getDictionaryOfStringsViewer(props.item[field.key]);
+            data = getDictionaryOfStringsViewer(
+                props.item[field.key] as Dictionary<string>
+            );
         }
 
         if (!data && field.fieldType === FieldType.Color && field.placeholder) {
@@ -180,7 +243,7 @@ const Detail: (props: ComponentProps) => ReactElement = (
         if (field.fieldType === FieldType.Dropdown) {
             data = getDropdownViewer(
                 data as string,
-                field.dropdownOptions,
+                field.dropdownOptions || [],
                 field.placeholder as string
             );
         }

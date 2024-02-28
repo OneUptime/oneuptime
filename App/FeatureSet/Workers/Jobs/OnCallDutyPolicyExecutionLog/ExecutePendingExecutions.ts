@@ -56,7 +56,11 @@ RunCron(
     }
 );
 
-const executeOnCallPolicy: Function = async (
+type ExecuteOnCallPolicyFunction = (
+    executionLog: OnCallDutyPolicyExecutionLog
+) => Promise<void>;
+
+const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
     executionLog: OnCallDutyPolicyExecutionLog
 ): Promise<void> => {
     try {

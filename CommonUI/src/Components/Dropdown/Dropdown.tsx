@@ -33,13 +33,19 @@ export interface ComponentProps {
 const Dropdown: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const getDropdownOptionFromValue: Function = (
-        value:
-            | undefined
-            | DropdownValue
-            | DropdownOption
-            | Array<DropdownOption>
-            | Array<DropdownValue>
+    type GetDropdownOptionFromValueFunctionProps =
+        | undefined
+        | DropdownValue
+        | DropdownOption
+        | Array<DropdownOption>
+        | Array<DropdownValue>;
+
+    type GetDropdownOptionFromValueFunction = (
+        value: GetDropdownOptionFromValueFunctionProps
+    ) => DropdownOption | Array<DropdownOption>;
+
+    const getDropdownOptionFromValue: GetDropdownOptionFromValueFunction = (
+        value: GetDropdownOptionFromValueFunctionProps
     ): DropdownOption | Array<DropdownOption> => {
         if (
             Array.isArray(value) &&

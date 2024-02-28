@@ -22,6 +22,7 @@ import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -63,8 +64,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setStatusMessage(

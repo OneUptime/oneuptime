@@ -143,8 +143,8 @@ export default class Email extends ComponentCode {
                 returnValues: {},
                 executePort: successPort,
             });
-        } catch (err) {
-            options.log(err);
+        } catch (err: unknown) {
+            options.log(err as Error);
             return Promise.resolve({
                 returnValues: {},
                 executePort: successPort,

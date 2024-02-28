@@ -36,7 +36,8 @@ export default class ClickhouseDatabase {
         let retry: number = 0;
 
         try {
-            const connectToDatabase: Function =
+            type ConnectToDatabaseFunction = () => Promise<ClickhouseClient>;
+            const connectToDatabase: ConnectToDatabaseFunction =
                 async (): Promise<ClickhouseClient> => {
                     try {
                         const defaultDbClient: ClickhouseClient = createClient({

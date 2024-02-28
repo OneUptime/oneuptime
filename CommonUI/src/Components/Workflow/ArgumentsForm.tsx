@@ -7,13 +7,12 @@ import React, {
 } from 'react';
 import { Argument, NodeDataProp } from 'Common/Types/Workflow/Component';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import BasicForm from '../Forms/BasicForm';
+import BasicForm, { FormProps } from '../Forms/BasicForm';
 import FormValues from '../Forms/Types/FormValues';
 import { JSONObject } from 'Common/Types/JSON';
 import Dictionary from 'Common/Types/Dictionary';
 import { componentInputTypeToFormFieldType } from './Utils';
 import VariableModal from './VariableModal';
-import { FormikProps, FormikValues } from 'formik';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentValuePickerModal from './ComponentValuePickerModal';
 
@@ -28,7 +27,7 @@ export interface ComponentProps {
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const formRef: any = useRef<FormikProps<FormikValues>>(null);
+    const formRef: any = useRef<FormProps<FormValues<JSONObject>>>(null);
     const [component, setComponent] = useState<NodeDataProp>(props.component);
     const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
     const [showComponentPickerModal, setShowComponentPickerModal] =

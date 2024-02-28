@@ -30,14 +30,24 @@ import Validation from './Validation';
 import useAsyncEffect from 'use-async-effect';
 import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import { FormikErrors, FormikProps } from 'formik';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
+import GenericObject from 'Common/Types/GenericObject';
 
-export const DefaultValidateFunction: Function = (
+export type FormProps<T> = FormikProps<T>;
+export type FormErrors<T> = FormikErrors<T>;
+
+type DefaultValidateFunctionType = (
+    values: FormValues<JSONObject>
+) => JSONObject;
+
+export const DefaultValidateFunction: DefaultValidateFunctionType = (
     _values: FormValues<JSONObject>
 ): JSONObject => {
     return {};
 };
 
-export interface BaseComponentProps<T extends Object> {
+export interface BaseComponentProps<T extends GenericObject> {
     submitButtonStyleType?: ButtonStyleType | undefined;
     initialValues?: FormValues<T> | undefined;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
@@ -63,14 +73,14 @@ export interface BaseComponentProps<T extends Object> {
     showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
 }
 
-export interface ComponentProps<T extends Object>
+export interface ComponentProps<T extends GenericObject>
     extends BaseComponentProps<T> {
     onSubmit: (values: FormValues<T>, onSubmitSuccessful?: () => void) => void;
     footer: ReactElement;
 }
 
 const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
-    <T extends Object>(
+    <T extends GenericObject>(
         props: ComponentProps<T>,
         ref: Ref<any>
     ): ReactElement => {
@@ -247,7 +257,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             setFormFields(fields);
         }, [props.fields]);
 
-        const getFieldName: Function = (field: Field<T>): string => {
+        type GetFieldNameFunction = (field: Field<T>) => string;
+
+        const getFieldName: GetFieldNameFunction = (
+            field: Field<T>
+        ): string => {
             const fieldName: string = field.overrideFieldKey
                 ? field.overrideFieldKey
                 : (Object.keys(field.field || {})[0] as string);
@@ -255,7 +269,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             return fieldName;
         };
 
-        const setAllTouched: Function = (): void => {
+        const setAllTouched: VoidFunction = (): void => {
             const touchedObj: Dictionary<boolean> = {};
 
             for (const field of formFields) {
@@ -438,11 +452,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     field.fieldType === FormFieldSchemaType.Dropdown &&
                     (values as any)[fieldName]
                 ) {
-                    (values as any)[fieldName] = field.dropdownOptions?.filter(
-                        (option: DropdownOption) => {
-                            return option.value === (values as any)[fieldName];
-                        }
-                    )[0];
+                    const dropdownOption: DropdownOption | undefined =
+                        field.dropdownOptions?.find(
+                            (option: DropdownOption) => {
+                                return (
+                                    option.value === (values as any)[fieldName]
+                                );
+                            }
+                        );
+
+                    (values as any)[fieldName] = dropdownOption?.value || null;
                 }
 
                 if (
@@ -450,11 +469,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         FormFieldSchemaType.MultiSelectDropdown &&
                     (values as any)[fieldName]
                 ) {
-                    (values as any)[fieldName] = field.dropdownOptions?.filter(
+                    const dropdownOptions: Array<DropdownOption> =
+                        field.dropdownOptions?.filter(
+                            (option: DropdownOption) => {
+                                return (values as any)[fieldName].includes(
+                                    option.value
+                                );
+                            }
+                        ) || [];
+
+                    (values as any)[fieldName] = dropdownOptions.map(
                         (option: DropdownOption) => {
-                            return (values as any)[fieldName].includes(
-                                option.value
-                            );
+                            return option.value;
                         }
                     );
                 }

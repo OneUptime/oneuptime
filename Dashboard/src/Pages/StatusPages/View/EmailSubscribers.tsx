@@ -28,6 +28,7 @@ import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/Ca
 import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -49,7 +50,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         options: [],
     });
 
-    const fetchCheckboxOptionsAndCategories: Function =
+    const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
         async (): Promise<void> => {
             const result: CategoryCheckboxOptionsAndCategories =
                 await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(
@@ -59,7 +60,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             setCategoryCheckboxOptionsAndCategories(result);
         };
 
-    const fetchStatusPage: Function = async (): Promise<void> => {
+    const fetchStatusPage: PromiseVoidFunction = async (): Promise<void> => {
         try {
             setIsLoading(true);
 

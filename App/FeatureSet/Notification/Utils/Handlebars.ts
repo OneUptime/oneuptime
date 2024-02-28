@@ -2,8 +2,9 @@ import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
 import Path from 'path';
 import logger from 'CommonServer/Utils/Logger';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
-const loadPartials: () => Promise<void> = async (): Promise<void> => {
+const loadPartials: PromiseVoidFunction = async (): Promise<void> => {
     // get all partials in the partial folder and comile then and register then as partials in handlebars.
     const partialsDir: string = Path.resolve(
         process.cwd(),

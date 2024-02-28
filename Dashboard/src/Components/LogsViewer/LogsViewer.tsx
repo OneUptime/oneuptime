@@ -18,6 +18,7 @@ import Search from 'Common/Types/BaseDatabase/Search';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import Includes from 'Common/Types/BaseDatabase/Includes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     id: string;
@@ -47,7 +48,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         severityText: true,
     };
 
-    const getQuery: Function = (): Query<Log> => {
+    type GetQueryFunction = () => Query<Log>;
+
+    const getQuery: GetQueryFunction = (): Query<Log> => {
         const query: Query<Log> = {
             serviceId: new Includes(props.telemetryServiceIds),
         };
@@ -84,7 +87,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         });
     }, [filterOptions]);
 
-    const fetchItems: Function = async () => {
+    const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 

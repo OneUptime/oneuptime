@@ -12,10 +12,12 @@ import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/
 import UserElement from '../../User/User';
 import User from 'Model/Models/User';
 import EscalationRule from '../EscalationRule/EscalationRule';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import ObjectID from 'Common/Types/ObjectID';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BaseModel from 'Common/Models/BaseModel';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     onCallPolicyExecutionLogId: ObjectID;
@@ -28,7 +30,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
-    const getModelTable: Function = (): ReactElement => {
+    const getModelTable: GetReactElementFunction = (): ReactElement => {
         return (
             <ModelTable<OnCallDutyPolicyExecutionLogTimeline>
                 modelType={OnCallDutyPolicyExecutionLogTimeline}
@@ -60,8 +62,8 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setStatusMessage(

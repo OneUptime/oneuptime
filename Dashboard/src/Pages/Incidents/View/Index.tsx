@@ -27,6 +27,7 @@ import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolic
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -337,7 +338,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject | undefined,
-                                fetchItems: Function | undefined
+                                fetchItems: VoidFunction | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeIncidentState
@@ -363,7 +364,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject | undefined,
-                                fetchItems: Function | undefined
+                                fetchItems: VoidFunction | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeIncidentState

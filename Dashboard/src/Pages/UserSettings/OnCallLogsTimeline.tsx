@@ -20,6 +20,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
 import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { VoidFunction, ErrorFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -30,7 +32,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
         useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
-    const getModelTable: Function = (): ReactElement => {
+    const getModelTable: GetReactElementFunction = (): ReactElement => {
         return (
             <ModelTable<UserOnCallLogTimeline>
                 modelType={UserOnCallLogTimeline}
@@ -68,8 +70,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function,
-                            onError: (err: Error) => void
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
                         ) => {
                             try {
                                 setStatusMessage(

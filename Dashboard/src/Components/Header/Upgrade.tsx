@@ -11,13 +11,14 @@ import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import DashboardNavigation from '../../Utils/Navigation';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 const Upgrade: () => JSX.Element = (): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);
     const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
 
-    const getFooter: Function = (): ReactElement => {
+    const getFooter: GetReactElementFunction = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }

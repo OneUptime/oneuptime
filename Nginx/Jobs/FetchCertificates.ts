@@ -18,13 +18,13 @@ import SelfSignedSSL from '../Utils/SelfSignedSSL';
 
 export default class Jobs {
     public static init(): void {
-        BasicCron(
-            'StatusPageCerts:WriteGreelockCertsToDisk',
-            {
+        BasicCron({
+            jobName: 'StatusPageCerts:WriteGreelockCertsToDisk',
+            options: {
                 schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
                 runOnStartup: true,
             },
-            async () => {
+            runFunction: async () => {
                 // Fetch all domains where certs are added to greenlock.
 
                 const certs: Array<GreenlockCertificate> =
@@ -98,16 +98,16 @@ export default class Jobs {
                         key
                     );
                 }
-            }
-        );
+            },
+        });
 
-        BasicCron(
-            'StatusPageCerts:WriteSelfSignedCertsToDisk',
-            {
+        BasicCron({
+            jobName: 'StatusPageCerts:WriteSelfSignedCertsToDisk',
+            options: {
                 schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIVE_MINUTE,
                 runOnStartup: true,
             },
-            async () => {
+            runFunction: async () => {
                 // Fetch all domains where certs are added to greenlock.
 
                 const certs: Array<GreenlockCertificate> =
@@ -171,7 +171,7 @@ export default class Jobs {
                         },
                     });
                 }
-            }
-        );
+            },
+        });
     }
 }

@@ -23,7 +23,11 @@ export interface CategoryCheckboxProps
 const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     props: CategoryCheckboxProps
 ): ReactElement => {
-    const sanitizeInitialValues: Function = (
+    type SanitizeInitialValuesFunction = (
+        value?: Array<CategoryCheckboxValue | BaseModel>
+    ) => Array<CategoryCheckboxValue>;
+
+    const sanitizeInitialValues: SanitizeInitialValuesFunction = (
         value?: Array<CategoryCheckboxValue | BaseModel>
     ): Array<CategoryCheckboxValue> => {
         if (!value) {
@@ -81,7 +85,12 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
         );
     }
 
-    const getCategory: Function = (
+    type GetCategoryFunction = (
+        category?: CheckboxCategory,
+        isLastCategory?: boolean
+    ) => ReactElement;
+
+    const getCategory: GetCategoryFunction = (
         category?: CheckboxCategory,
         isLastCategory: boolean = false
     ): ReactElement => {

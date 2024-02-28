@@ -10,7 +10,12 @@ export default (accessControl: ColumnAccessControl): ReflectionMetadataType => {
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
-export const getColumnAccessControl: Function = (
+type GetColumnAccessControlFunction = (
+    target: BaseModel,
+    propertyKey: string
+) => ColumnAccessControl;
+
+export const getColumnAccessControl: GetColumnAccessControlFunction = (
     target: BaseModel,
     propertyKey: string
 ): ColumnAccessControl => {
@@ -21,23 +26,24 @@ export const getColumnAccessControl: Function = (
     ) as ColumnAccessControl;
 };
 
-export const getColumnAccessControlForAllColumns: Function = <
-    T extends BaseModel
->(
+type GetColumnAccessControlForAllColumnsFunction = <T extends BaseModel>(
     target: T
-): Dictionary<ColumnAccessControl> => {
-    const dictonary: Dictionary<ColumnAccessControl> = {};
-    const keys: Array<string> = Object.keys(target);
+) => Dictionary<ColumnAccessControl>;
 
-    for (const key of keys) {
-        if (Reflect.getMetadata(accessControlSymbol, target, key)) {
-            dictonary[key] = Reflect.getMetadata(
-                accessControlSymbol,
-                target,
-                key
-            ) as ColumnAccessControl;
+export const getColumnAccessControlForAllColumns: GetColumnAccessControlForAllColumnsFunction =
+    <T extends BaseModel>(target: T): Dictionary<ColumnAccessControl> => {
+        const dictonary: Dictionary<ColumnAccessControl> = {};
+        const keys: Array<string> = Object.keys(target);
+
+        for (const key of keys) {
+            if (Reflect.getMetadata(accessControlSymbol, target, key)) {
+                dictonary[key] = Reflect.getMetadata(
+                    accessControlSymbol,
+                    target,
+                    key
+                ) as ColumnAccessControl;
+            }
         }
-    }
 
-    return dictonary;
-};
+        return dictonary;
+    };

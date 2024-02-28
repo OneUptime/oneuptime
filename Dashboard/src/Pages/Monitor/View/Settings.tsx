@@ -22,6 +22,8 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
 import DuplicateModel from 'CommonUI/src/Components/DuplicateModel/DuplicateModel';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -35,7 +37,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = useState<string>('');
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 
@@ -72,7 +74,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const getPageContent: Function = (): ReactElement => {
+    const getPageContent: GetReactElementFunction = (): ReactElement => {
         if (!monitorType || isLoading) {
             return <ComponentLoader />;
         }

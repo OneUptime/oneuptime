@@ -43,15 +43,32 @@ import Monitor from 'Model/Models/Monitor';
 import Label from 'Model/Models/Label';
 import BaseModel from 'Common/Models/BaseModel';
 
-export const getScheduledEventEventItem: Function = (
-    scheduledMaintenance: ScheduledMaintenance,
-    scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>,
-    scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>,
-    statusPageResources: Array<StatusPageResource>,
-    monitorsInGroup: Dictionary<Array<ObjectID>>,
-    isPreviewPage: boolean,
-    isSummary: boolean
+export type GetScheduledEventEventItemFunctionProps = {
+    scheduledMaintenance: ScheduledMaintenance;
+    scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>;
+    scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>;
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+    isPreviewPage: boolean;
+    isSummary: boolean;
+};
+
+export type GetScheduledEventEventItemFunction = (
+    props: GetScheduledEventEventItemFunctionProps
+) => EventItemComponentProps;
+
+export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
+    props: GetScheduledEventEventItemFunctionProps
 ): EventItemComponentProps => {
+    const {
+        scheduledMaintenance,
+        scheduledMaintenanceEventsPublicNotes,
+        scheduledMaintenanceStateTimelines,
+        statusPageResources,
+        monitorsInGroup,
+        isPreviewPage,
+        isSummary,
+    } = props;
     /// get timeline.
 
     let currentStateStatus: string = '';
@@ -373,14 +390,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return;
         }
         setParsedData(
-            getScheduledEventEventItem(
-                scheduledMaintenanceEvent,
+            getScheduledEventEventItem({
+                scheduledMaintenance: scheduledMaintenanceEvent,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
                 monitorsInGroup,
-                Boolean(StatusPageUtil.isPreviewPage())
-            )
+                isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
+                isSummary: false,
+            })
         );
     }, [isLoading]);
 

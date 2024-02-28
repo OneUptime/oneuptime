@@ -21,6 +21,7 @@ import UserType from 'Common/Types/UserType';
 import { mockRouter } from './Helpers';
 import { UserPermission } from 'Common/Types/Permission';
 import CommonAPI from '../../API/CommonAPI';
+import GenericObject from 'Common/Types/GenericObject';
 
 jest.mock('../../Utils/Express', () => {
     return {
@@ -68,7 +69,7 @@ jest.mock('../../Services/DatabaseService', () => {
 });
 
 jest.mock('Common/Models/BaseModel', () => {
-    return jest.fn().mockImplementation((initObject: {}) => {
+    return jest.fn().mockImplementation((initObject: GenericObject) => {
         return {
             ...initObject,
             getCrudApiPath: jest.fn().mockImplementation(() => {
@@ -209,7 +210,7 @@ describe('BaseAPI', () => {
             ['GET', '/mock/:id/get-item', 'getItem'],
             ['PUT', '/mock/:id', 'updateItem'],
             ['DELETE', '/mock/:id', 'deleteItem'],
-        ] as [String, String, String][];
+        ] as [string, string, string][];
 
         for (const [method, uri, shouldBeCalled] of checkRoutes) {
             describe(`${method} ${uri}`, () => {
@@ -445,8 +446,13 @@ describe('BaseAPI', () => {
         });
 
         it('should return values retrieved from service', async () => {
-            const result: [Request, Response, Object, PositiveNumber, Object] =
-                (await baseApiInstance.getList(emptyRequest, res)) as any;
+            const result: [
+                Request,
+                Response,
+                GenericObject,
+                PositiveNumber,
+                GenericObject
+            ] = (await baseApiInstance.getList(emptyRequest, res)) as any;
             expect(result[2]).toEqual([{ id: 'mock' }]);
             expect(result[3]).toEqual(new PositiveNumber(42));
         });
@@ -802,7 +808,7 @@ describe('BaseAPI', () => {
 
     describe('getEntityName', () => {
         it('should return the name of the entity', () => {
-            const entityName: String = baseApiInstance.getEntityName();
+            const entityName: string = baseApiInstance.getEntityName();
             expect(entityName).toBe('mockConstructor');
         });
     });

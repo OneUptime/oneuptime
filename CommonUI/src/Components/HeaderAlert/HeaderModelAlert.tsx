@@ -5,6 +5,7 @@ import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
 import IconProp from 'Common/Types/Icon/IconProp';
 import HeaderAlert from './HeaderAlert';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     icon: IconProp;
@@ -29,10 +30,12 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
     const [count, setCount] = useState<number>(0);
 
     useEffect(() => {
-        fetchCount();
+        fetchCount().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, [props.refreshToggle]);
 
-    const fetchCount: Function = async () => {
+    const fetchCount: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 
@@ -57,7 +60,9 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         setIsLoading(true);
-        fetchCount();
+        fetchCount().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
         setIsLoading(false);
     }, []);
 

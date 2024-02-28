@@ -46,6 +46,8 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ResellerPlan from 'Model/Models/ResellerPlan';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Icon from 'CommonUI/src/Components/Icon/Icon';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -117,7 +119,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
     }, []);
 
-    const fetchSetupIntent: () => Promise<void> = async (): Promise<void> => {
+    const fetchSetupIntent: PromiseVoidFunction = async (): Promise<void> => {
         try {
             setIsModalLoading(true);
 
@@ -139,7 +141,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         }
     };
 
-    const getFooter: Function = (): ReactElement => {
+    const getFooter: GetReactElementFunction = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }

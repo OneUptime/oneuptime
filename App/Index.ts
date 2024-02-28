@@ -19,11 +19,12 @@ import Workflow from './FeatureSet/Workflow/Index';
 
 // home should be in the end.
 import './FeatureSet/Home/Index';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App(process.env['SERVICE_NAME']);
+        await App(process.env['SERVICE_NAME'] || 'app');
 
         // connect to the database.
         await PostgresAppInstance.connect(

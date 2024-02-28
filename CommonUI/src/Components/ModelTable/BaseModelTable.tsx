@@ -1,5 +1,10 @@
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, {
+    MutableRefObject,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import Columns from './Columns';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
@@ -62,6 +67,14 @@ import AnalyticsBaseModel, {
     AnalyticsBaseModelType,
 } from 'Common/AnalyticsModels/BaseModel';
 import Sort from '../../Utils/BaseDatabase/Sort';
+import { FormProps } from '../Forms/BasicForm';
+import {
+    PromiseVoidFunction,
+    ErrorFunction,
+    VoidFunction,
+} from 'Common/Types/FunctionTypes';
+import { GetReactElementFunction } from '../../Types/FunctionTypes';
+import SelectEntityField from '../../Types/SelectEntityField';
 
 export enum ShowTableAs {
     Table,
@@ -168,6 +181,9 @@ export interface BaseTableProps<
         shouldAddItemInTheBeginning?: boolean;
     };
     onViewComplete?: ((item: TBaseModel) => void) | undefined;
+    createEditFromRef?:
+        | undefined
+        | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     name: string;
 }
 
@@ -284,37 +300,42 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
     }, [tableColumns]);
 
-    const getRelationSelect: Function = (): Select<TBaseModel> => {
-        const relationSelect: Select<TBaseModel> = {};
+    type GetRelationSelectFunction = () => Select<TBaseModel>;
 
-        for (const column of props.columns || []) {
-            const key: string | null = column.field
-                ? (Object.keys(column.field)[0] as string)
-                : null;
+    const getRelationSelect: GetRelationSelectFunction =
+        (): Select<TBaseModel> => {
+            const relationSelect: Select<TBaseModel> = {};
 
-            if (key && model.isFileColumn(key)) {
-                (relationSelect as JSONObject)[key] = {
-                    file: true,
-                    _id: true,
-                    type: true,
-                    name: true,
-                };
-            } else if (key && model.isEntityColumn(key)) {
-                if (!(relationSelect as JSONObject)[key]) {
-                    (relationSelect as JSONObject)[key] = {};
+            for (const column of props.columns || []) {
+                const key: string | null = column.field
+                    ? (Object.keys(column.field)[0] as string)
+                    : null;
+
+                if (key && model.isFileColumn(key)) {
+                    (relationSelect as JSONObject)[key] = {
+                        file: true,
+                        _id: true,
+                        type: true,
+                        name: true,
+                    };
+                } else if (key && model.isEntityColumn(key)) {
+                    if (!(relationSelect as JSONObject)[key]) {
+                        (relationSelect as JSONObject)[key] = {};
+                    }
+
+                    (relationSelect as JSONObject)[key] = {
+                        ...((relationSelect as JSONObject)[key] as JSONObject),
+                        ...(column.field as any)[key],
+                    };
                 }
-
-                (relationSelect as JSONObject)[key] = {
-                    ...((relationSelect as JSONObject)[key] as JSONObject),
-                    ...(column.field as any)[key],
-                };
             }
-        }
 
-        return relationSelect;
-    };
+            return relationSelect;
+        };
 
-    const deleteItem: Function = async (item: TBaseModel) => {
+    type DeleteItemFunction = (item: TBaseModel) => Promise<void>;
+
+    const deleteItem: DeleteItemFunction = async (item: TBaseModel) => {
         if (!item.id) {
             throw new BadDataException('item.id cannot be null');
         }
@@ -337,7 +358,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setIsLoading(false);
     };
 
-    const serializeToTableColumns: Function = (): void => {
+    const serializeToTableColumns: VoidFunction = (): void => {
         // Convert ModelColumns to TableColumns.
 
         const columns: Array<TableColumn> = [];
@@ -465,100 +486,103 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setColumns(columns);
     };
 
-    const getFilterDropdownItems: Function = async () => {
-        setTableFilterError('');
-        setIsTableFilterFetchLoading(true);
+    const getFilterDropdownItems: PromiseVoidFunction =
+        async (): Promise<void> => {
+            setTableFilterError('');
+            setIsTableFilterFetchLoading(true);
 
-        const classicColumns: Array<TableColumn> = [...tableColumns];
+            const classicColumns: Array<TableColumn> = [...tableColumns];
 
-        try {
-            for (const column of props.columns) {
-                const key: string | null = getColumnKey(column);
+            try {
+                for (const column of props.columns) {
+                    const key: string | null = getColumnKey(column);
 
-                const classicColumn: TableColumn | undefined =
-                    classicColumns.find((i: TableColumn) => {
-                        return i.key === key;
-                    });
+                    const classicColumn: TableColumn | undefined =
+                        classicColumns.find((i: TableColumn) => {
+                            return i.key === key;
+                        });
 
-                if (!classicColumn) {
-                    continue;
-                }
+                    if (!classicColumn) {
+                        continue;
+                    }
 
-                if (!key) {
-                    continue;
-                }
+                    if (!key) {
+                        continue;
+                    }
 
-                if (!column.filterEntityType) {
-                    continue;
-                }
+                    if (!column.filterEntityType) {
+                        continue;
+                    }
 
-                if (!column.isFilterable) {
-                    continue;
-                }
+                    if (!column.isFilterable) {
+                        continue;
+                    }
 
-                if (!column.filterDropdownField) {
-                    Logger.warn(
-                        `Cannot filter on ${key} because column.dropdownField is not set.`
-                    );
-                    continue;
-                }
-
-                const hasPermission: boolean =
-                    hasPermissionToReadColumn(column);
-
-                if (!hasPermission) {
-                    continue;
-                }
-
-                const query: Query<TBaseModel> = column.filterQuery || {};
-
-                const listResult: ListResult<TBaseModel> =
-                    await props.callbacks.getList({
-                        modelType: column.filterEntityType,
-                        query: query,
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                            [column.filterDropdownField.label]: true,
-                            [column.filterDropdownField.value]: true,
-                        } as any,
-                        sort: {},
-                    });
-
-                classicColumn.filterDropdownOptions = [];
-                for (const item of listResult.data) {
-                    classicColumn.filterDropdownOptions.push({
-                        value: item.getColumnValue(
-                            column.filterDropdownField.value
-                        ) as string,
-                        label: item.getColumnValue(
-                            column.filterDropdownField.label
-                        ) as string,
-                    });
-                }
-
-                if (column.tooltipText) {
-                    classicColumn.tooltipText = (item: JSONObject): string => {
-                        return column.tooltipText!(
-                            props.callbacks.getModelFromJSON(item)
+                    if (!column.filterDropdownField) {
+                        Logger.warn(
+                            `Cannot filter on ${key} because column.dropdownField is not set.`
                         );
-                    };
+                        continue;
+                    }
+
+                    const hasPermission: boolean =
+                        hasPermissionToReadColumn(column);
+
+                    if (!hasPermission) {
+                        continue;
+                    }
+
+                    const query: Query<TBaseModel> = column.filterQuery || {};
+
+                    const listResult: ListResult<TBaseModel> =
+                        await props.callbacks.getList({
+                            modelType: column.filterEntityType,
+                            query: query,
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            select: {
+                                [column.filterDropdownField.label]: true,
+                                [column.filterDropdownField.value]: true,
+                            } as any,
+                            sort: {},
+                        });
+
+                    classicColumn.filterDropdownOptions = [];
+                    for (const item of listResult.data) {
+                        classicColumn.filterDropdownOptions.push({
+                            value: item.getColumnValue(
+                                column.filterDropdownField.value
+                            ) as string,
+                            label: item.getColumnValue(
+                                column.filterDropdownField.label
+                            ) as string,
+                        });
+                    }
+
+                    if (column.tooltipText) {
+                        classicColumn.tooltipText = (
+                            item: JSONObject
+                        ): string => {
+                            return column.tooltipText!(
+                                props.callbacks.getModelFromJSON(item)
+                            );
+                        };
+                    }
+
+                    classicColumn.colSpan = column.colSpan;
+                    classicColumn.alignItem = column.alignItem;
+                    classicColumn.contentClassName = column.contentClassName;
                 }
 
-                classicColumn.colSpan = column.colSpan;
-                classicColumn.alignItem = column.alignItem;
-                classicColumn.contentClassName = column.contentClassName;
+                setColumns(classicColumns);
+            } catch (err) {
+                setTableFilterError(API.getFriendlyMessage(err));
             }
 
-            setColumns(classicColumns);
-        } catch (err) {
-            setTableFilterError(API.getFriendlyMessage(err));
-        }
+            setIsTableFilterFetchLoading(false);
+        };
 
-        setIsTableFilterFetchLoading(false);
-    };
-
-    const fetchItems: Function = async () => {
+    const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 
@@ -606,11 +630,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     useEffect(() => {
         if (showTableFilter) {
-            getFilterDropdownItems();
+            getFilterDropdownItems().catch((err: Error) => {
+                setTableFilterError(API.getFriendlyMessage(err));
+            });
         }
     }, [showTableFilter]);
 
-    const getSelect: Function = (): Select<TBaseModel> => {
+    type GetSelectFunction = () => Select<TBaseModel>;
+
+    const getSelect: GetSelectFunction = (): Select<TBaseModel> => {
         const selectFields: Select<TBaseModel> = {
             _id: true,
         };
@@ -664,7 +692,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return selectFields;
     };
 
-    const setHeaderButtons: Function = (): void => {
+    const setHeaderButtons: VoidFunction = (): void => {
         // add header buttons.
         let headerbuttons: Array<CardButtonSchema> = [];
 
@@ -712,8 +740,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
                     : 'py-0 pr-0 pl-1 mt-1',
                 buttonStyle: ButtonStyleType.ICON,
-                onClick: () => {
-                    fetchItems();
+                onClick: async () => {
+                    await fetchItems();
                 },
                 disabled: isTableFilterFetchLoading,
                 icon: IconProp.Refresh,
@@ -743,7 +771,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
 
     useEffect(() => {
-        fetchItems();
+        fetchItems().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, [
         currentPageNumber,
         sortBy,
@@ -753,11 +783,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.refreshToggle,
     ]);
 
-    const shouldDisableSort: Function = (columnName: string): boolean => {
+    type ShouldDisableSortFunction = (columnName: string | null) => boolean;
+
+    const shouldDisableSort: ShouldDisableSortFunction = (
+        columnName: string | null
+    ): boolean => {
+        if (!columnName) {
+            return true;
+        }
+
         return model.isEntityColumn(columnName);
     };
 
-    const getColumnKey: Function = (
+    type GetColumnKeyFunction = (
+        column: ModelTableColumn<TBaseModel>
+    ) => string | null;
+
+    const getColumnKey: GetColumnKeyFunction = (
         column: ModelTableColumn<TBaseModel>
     ): string | null => {
         const key: string | null = column.field
@@ -767,7 +809,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return key;
     };
 
-    const hasPermissionToReadColumn: Function = (
+    type HasPermissionToReadColumnFunction = (
+        column: ModelTableColumn<TBaseModel>
+    ) => boolean;
+
+    const hasPermissionToReadColumn: HasPermissionToReadColumnFunction = (
         column: ModelTableColumn<TBaseModel>
     ): boolean => {
         const accessControl: Dictionary<ColumnAccessControl> =
@@ -803,27 +849,30 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return hasPermission;
     };
 
-    const getUserPermissions: Function = (): Array<Permission> => {
-        let userPermissions: Array<Permission> =
-            PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
-        if (
-            PermissionUtil.getProjectPermissions() &&
-            PermissionUtil.getProjectPermissions()?.permissions &&
-            PermissionUtil.getProjectPermissions()!.permissions.length > 0
-        ) {
-            userPermissions = userPermissions.concat(
-                PermissionUtil.getProjectPermissions()!.permissions.map(
-                    (i: UserPermission) => {
-                        return i.permission;
-                    }
-                )
-            );
-        }
+    type GetUserPermissionsFunction = () => Array<Permission>;
 
-        userPermissions.push(Permission.Public);
+    const getUserPermissions: GetUserPermissionsFunction =
+        (): Array<Permission> => {
+            let userPermissions: Array<Permission> =
+                PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+            if (
+                PermissionUtil.getProjectPermissions() &&
+                PermissionUtil.getProjectPermissions()?.permissions &&
+                PermissionUtil.getProjectPermissions()!.permissions.length > 0
+            ) {
+                userPermissions = userPermissions.concat(
+                    PermissionUtil.getProjectPermissions()!.permissions.map(
+                        (i: UserPermission) => {
+                            return i.permission;
+                        }
+                    )
+                );
+            }
 
-        return userPermissions;
-    };
+            userPermissions.push(Permission.Public);
+
+            return userPermissions;
+        };
 
     useEffect(() => {
         serializeToTableColumns();
@@ -833,7 +882,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         serializeToTableColumns();
     }, [data]);
 
-    const setActionSchema: () => void = () => {
+    const setActionSchema: VoidFunction = () => {
         const permissions: Array<Permission> =
             PermissionUtil.getAllPermissions();
 
@@ -845,8 +894,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 buttonStyleType: ButtonStyleType.OUTLINE,
                 onClick: async (
                     item: JSONObject,
-                    onCompleteAction: Function,
-                    onError: (err: Error) => void
+                    onCompleteAction: VoidFunction,
+                    onError: ErrorFunction
                 ) => {
                     try {
                         setViewId(item['_id'] as string);
@@ -878,8 +927,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.NORMAL,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: Function,
-                        onError: (err: Error) => void
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
                     ) => {
                         try {
                             const baseModel: TBaseModel =
@@ -936,8 +985,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.OUTLINE,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: Function,
-                        onError: (err: Error) => void
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
                     ) => {
                         try {
                             if (props.onBeforeEdit) {
@@ -967,8 +1016,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
                     onClick: async (
                         item: JSONObject,
-                        onCompleteAction: Function,
-                        onError: (err: Error) => void
+                        onCompleteAction: VoidFunction,
+                        onError: ErrorFunction
                     ) => {
                         try {
                             if (props.onBeforeDelete) {
@@ -993,7 +1042,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setActionButtonSchema(actionsSchema);
     };
 
-    const getTable: Function = (): ReactElement => {
+    const getTable: GetReactElementFunction = (): ReactElement => {
         return (
             <Table
                 onFilterChanged={(filterData: FilterData) => {
@@ -1038,8 +1087,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     setSortBy(sortBy);
                     setSortOrder(sortOrder);
                 }}
-                onTableFilterRefreshClick={() => {
-                    getFilterDropdownItems();
+                onTableFilterRefreshClick={async () => {
+                    await getFilterDropdownItems();
                 }}
                 singularLabel={
                     props.singularName || model.singularName || 'Item'
@@ -1071,7 +1120,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         },
                     });
 
-                    fetchItems();
+                    await fetchItems();
                 }}
                 disablePagination={props.disablePagination || false}
                 isTableFilterLoading={isTableFilterFetchLoading}
@@ -1084,15 +1133,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 }}
                 showFilter={showTableFilter}
                 noItemsMessage={props.noItemsMessage || ''}
-                onRefreshClick={() => {
-                    fetchItems();
+                onRefreshClick={async () => {
+                    await fetchItems();
                 }}
                 actionButtons={actionButtonSchema}
             />
         );
     };
 
-    const getOrderedStatesList: Function = (): ReactElement => {
+    const getOrderedStatesList: GetReactElementFunction = (): ReactElement => {
         if (!props.orderedStatesListProps) {
             throw new BadDataException(
                 'props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList'
@@ -1111,7 +1160,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         for (const column of props.columns) {
             const key: string | undefined = Object.keys(
-                column.field as Object
+                column.field as SelectEntityField<TBaseModel>
             )[0];
 
             if (key === props.orderedStatesListProps.titleField) {
@@ -1141,8 +1190,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     props.orderedStatesListProps.shouldAddItemInTheEnd
                 }
                 noItemsMessage={props.noItemsMessage || ''}
-                onRefreshClick={() => {
-                    fetchItems();
+                onRefreshClick={async () => {
+                    await fetchItems();
                 }}
                 onCreateNewItem={
                     props.isCreateable
@@ -1163,7 +1212,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getList: Function = (): ReactElement => {
+    const getList: GetReactElementFunction = (): ReactElement => {
         return (
             <List
                 singularLabel={
@@ -1188,7 +1237,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         },
                     });
 
-                    fetchItems();
+                    await fetchItems();
                 }}
                 dragDropIdField={'_id'}
                 dragDropIndexField={props.dragDropIndexField}
@@ -1207,15 +1256,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     setItemsOnPage(itemsOnPage);
                 }}
                 noItemsMessage={props.noItemsMessage || ''}
-                onRefreshClick={() => {
-                    fetchItems();
+                onRefreshClick={async () => {
+                    await fetchItems();
                 }}
                 actionButtons={actionButtonSchema}
             />
         );
     };
 
-    const getCardTitle: Function = (
+    type GetCardTitleFunction = (title: ReactElement | string) => ReactElement;
+
+    const getCardTitle: GetCardTitleFunction = (
         title: ReactElement | string
     ): ReactElement => {
         const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
@@ -1265,7 +1316,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
     };
 
-    const getCardComponent: Function = (): ReactElement => {
+    const getCardComponent: GetReactElementFunction = (): ReactElement => {
         if (showTableAs === ShowTableAs.List) {
             return (
                 <div>
@@ -1308,17 +1359,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             title={getCardTitle(props.cardProps.title)}
                         >
                             {tableColumns.length === 0 &&
-                                props.columns.length > 0 && (
-                                    <ErrorMessage
-                                        error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                            model.getReadPermissions()
-                                        ).join(', ')}`}
-                                    />
-                                )}
+                            props.columns.length > 0 ? (
+                                <ErrorMessage
+                                    error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                        model.getReadPermissions()
+                                    ).join(', ')}`}
+                                />
+                            ) : (
+                                <></>
+                            )}
                             {!(
                                 tableColumns.length === 0 &&
                                 props.columns.length > 0
-                            ) && getTable()}
+                            ) ? (
+                                getTable()
+                            ) : (
+                                <></>
+                            )}
                         </Card>
                     )}
 
@@ -1381,7 +1438,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     onSuccess: async (item: TBaseModel): Promise<void> => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
-                        fetchItems();
+                        await fetchItems();
                         if (props.onCreateSuccess) {
                             await props.onCreateSuccess(item);
                         }
@@ -1408,12 +1465,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         setShowDeleteConfirmModal(false);
                     }}
                     submitButtonText={'Delete'}
-                    onSubmit={() => {
+                    onSubmit={async () => {
                         if (
                             currentDeleteableItem &&
                             currentDeleteableItem['_id']
                         ) {
-                            deleteItem(
+                            await deleteItem(
                                 props.callbacks.getModelFromJSON(
                                     currentDeleteableItem
                                 )

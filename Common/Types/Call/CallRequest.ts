@@ -29,7 +29,9 @@ export default interface CallRequest extends CallRequestMessage {
     to: Phone;
 }
 
-export const isHighRiskPhoneNumber: Function = (
+type IsHighRiskPhoneNumberFunction = (phoneNumber: Phone) => boolean;
+
+export const isHighRiskPhoneNumber: IsHighRiskPhoneNumberFunction = (
     phoneNumber: Phone
 ): boolean => {
     // Pakistan

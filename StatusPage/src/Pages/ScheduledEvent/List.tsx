@@ -76,13 +76,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
-    const getEventHistoryListComponentProps: Function = (
-        scheduledMaintenanceEvents: ScheduledMaintenance[],
-        scheduledMaintenanceEventsPublicNotes: ScheduledMaintenancePublicNote[],
-        scheduledMaintenanceStateTimelines: ScheduledMaintenanceStateTimeline[],
-        statusPageResources: StatusPageResource[],
-        monitorsInGroup: Dictionary<ObjectID[]>
+    type GetEventHistoryFunctionProps = {
+        scheduledMaintenanceEvents: ScheduledMaintenance[];
+        scheduledMaintenanceEventsPublicNotes: ScheduledMaintenancePublicNote[];
+        scheduledMaintenanceStateTimelines: ScheduledMaintenanceStateTimeline[];
+        statusPageResources: StatusPageResource[];
+        monitorsInGroup: Dictionary<ObjectID[]>;
+    };
+
+    type GetEventHistoryFunction = (
+        data: GetEventHistoryFunctionProps
+    ) => EventHistoryListComponentProps;
+
+    const getEventHistoryListComponentProps: GetEventHistoryFunction = (
+        data: GetEventHistoryFunctionProps
     ): EventHistoryListComponentProps => {
+        const {
+            scheduledMaintenanceEvents,
+            scheduledMaintenanceEventsPublicNotes,
+            scheduledMaintenanceStateTimelines,
+            statusPageResources,
+            monitorsInGroup,
+        } = data;
+
         const eventHistoryListComponentProps: EventHistoryListComponentProps = {
             items: [],
         };
@@ -102,15 +118,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
 
             days[dayString]?.items.push(
-                getScheduledEventEventItem(
-                    scheduledMaintenance,
+                getScheduledEventEventItem({
+                    scheduledMaintenance: scheduledMaintenance,
                     scheduledMaintenanceEventsPublicNotes,
                     scheduledMaintenanceStateTimelines,
                     statusPageResources,
                     monitorsInGroup,
-                    Boolean(StatusPageUtil.isPreviewPage()),
-                    true
-                )
+                    isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
+                    isSummary: true,
+                })
             );
         }
 
@@ -265,29 +281,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
             });
 
         const endedEventProps: EventHistoryListComponentProps =
-            getEventHistoryListComponentProps(
-                endedEvents,
+            getEventHistoryListComponentProps({
+                scheduledMaintenanceEvents: endedEvents,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
-                monitorsInGroup
-            );
+                monitorsInGroup,
+            });
         const scheduledEventProps: EventHistoryListComponentProps =
-            getEventHistoryListComponentProps(
-                scheduledEvents,
+            getEventHistoryListComponentProps({
+                scheduledMaintenanceEvents: scheduledEvents,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
-                monitorsInGroup
-            );
+                monitorsInGroup,
+            });
         const ongoingEventProps: EventHistoryListComponentProps =
-            getEventHistoryListComponentProps(
-                ongoingEvents,
+            getEventHistoryListComponentProps({
+                scheduledMaintenanceEvents: ongoingEvents,
                 scheduledMaintenanceEventsPublicNotes,
                 scheduledMaintenanceStateTimelines,
                 statusPageResources,
-                monitorsInGroup
-            );
+                monitorsInGroup,
+            });
 
         setOngoingEventsParsedData(ongoingEventProps);
         setScheduledEventsParsedData(scheduledEventProps);

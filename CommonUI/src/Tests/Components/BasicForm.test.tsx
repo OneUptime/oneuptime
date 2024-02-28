@@ -39,7 +39,7 @@ describe('BasicForm test', () => {
     ];
 
     test('Should render correctly and has type of "email" and "password" fields', async () => {
-        const handleSubmit: Function = jest.fn();
+        const handleSubmit: jest.Mock<any, any> = jest.fn();
         render(
             <BasicForm
                 fields={fields}
@@ -63,8 +63,8 @@ describe('BasicForm test', () => {
     });
 
     test('Should accept values and submit if valid', async () => {
-        const handleSubmit: Function = jest.fn();
-        const onSubmitSuccessful: Function = jest.fn();
+        const handleSubmit: jest.Mock<any, any> = jest.fn();
+        const onSubmitSuccessful: jest.Mock<any, any> = jest.fn();
         render(
             <BasicForm
                 fields={fields}
@@ -101,7 +101,7 @@ describe('BasicForm test', () => {
     });
 
     test('Should display error if values are invalid', async () => {
-        const handleSubmit: Function = jest.fn();
+        const handleSubmit: jest.Mock<any, any> = jest.fn();
         render(
             <BasicForm
                 fields={fields}

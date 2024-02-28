@@ -14,6 +14,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
@@ -24,6 +25,7 @@ import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicySche
 import LayersPreview from './LayersPreview';
 import Card from 'CommonUI/src/Components/Card/Card';
 import BaseModel from 'Common/Models/BaseModel';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     onCallDutyPolicyScheduleId: ObjectID;
@@ -62,7 +64,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         });
     }, []);
 
-    const addLayer: Function = async () => {
+    const addLayer: PromiseVoidFunction = async (): Promise<void> => {
         setIsAddButtonLoading(true);
 
         try {
@@ -114,7 +116,9 @@ const Layers: FunctionComponent<ComponentProps> = (
         setIsAddButtonLoading(false);
     };
 
-    const deleteLayer: Function = async (
+    type DeleteLayerFunction = (item: OnCallDutyPolicyScheduleLayer) => void;
+
+    const deleteLayer: DeleteLayerFunction = async (
         item: OnCallDutyPolicyScheduleLayer
     ) => {
         if (!item.id) {
@@ -155,14 +159,14 @@ const Layers: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const addLayerButton: Function = (): ReactElement => {
+    const addLayerButton: GetReactElementFunction = (): ReactElement => {
         return (
             <div className="-ml-3 mt-5">
                 <Button
                     title="Add New Layer"
                     isLoading={isAddbuttonLoading}
-                    onClick={() => {
-                        addLayer();
+                    onClick={async () => {
+                        await addLayer();
                     }}
                     icon={IconProp.Add}
                 />
@@ -170,7 +174,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const fetchLayers: Function = async () => {
+    const fetchLayers: PromiseVoidFunction = async (): Promise<void> => {
         setIsLoading(true);
 
         try {

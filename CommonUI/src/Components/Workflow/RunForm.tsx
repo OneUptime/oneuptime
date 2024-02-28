@@ -7,11 +7,10 @@ import React, {
 } from 'react';
 import { NodeDataProp, ReturnValue } from 'Common/Types/Workflow/Component';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import BasicForm from '../Forms/BasicForm';
+import BasicForm, { FormProps } from '../Forms/BasicForm';
 import FormValues from '../Forms/Types/FormValues';
 import { JSONObject } from 'Common/Types/JSON';
 import { componentInputTypeToFormFieldType } from './Utils';
-import { FormikProps, FormikValues } from 'formik';
 
 export interface ComponentProps {
     component: NodeDataProp;
@@ -22,7 +21,7 @@ export interface ComponentProps {
 const RunForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const formRef: any = useRef<FormikProps<FormikValues>>(null);
+    const formRef: any = useRef<FormProps<FormValues<JSONObject>>>(null);
     const [component, setComponent] = useState<NodeDataProp>(props.component);
     const [hasFormValidationErrors, setHasFormValidationErrors] =
         useState<boolean>(false);

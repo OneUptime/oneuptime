@@ -1,12 +1,13 @@
 import App from 'CommonServer/Utils/StartServer';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export const APP_NAME: string = 'admin';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME, undefined, true);

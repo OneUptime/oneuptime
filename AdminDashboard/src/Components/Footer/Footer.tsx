@@ -8,6 +8,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Dictionary from 'Common/Types/Dictionary';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const DashboardFooter: () => JSX.Element = () => {
     const [showAboutModal, setShowAboutModal] = React.useState<boolean>(false);
@@ -17,7 +18,7 @@ const DashboardFooter: () => JSX.Element = () => {
         {}
     );
 
-    const fetchVersions: () => Promise<void> = async (): Promise<void> => {
+    const fetchVersions: PromiseVoidFunction = async (): Promise<void> => {
         setIsAboutModalLoading(true);
 
         try {

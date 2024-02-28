@@ -43,15 +43,33 @@ import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Label from 'Model/Models/Label';
 import Dictionary from 'Common/Types/Dictionary';
 
-export const getIncidentEventItem: Function = (
-    incident: Incident,
-    incidentPublicNotes: Array<IncidentPublicNote>,
-    incidentStateTimelines: Array<IncidentStateTimeline>,
-    statusPageResources: Array<StatusPageResource>,
-    monitorsInGroup: Dictionary<Array<ObjectID>>,
-    isPreviewPage: boolean,
-    isSummary: boolean
+type GetIncidentEventItemFunctionProps = {
+    incident: Incident;
+    incidentPublicNotes: Array<IncidentPublicNote>;
+    incidentStateTimelines: Array<IncidentStateTimeline>;
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+    isPreviewPage: boolean;
+    isSummary: boolean;
+};
+
+type GetIncidentEventItemFunction = (
+    props: GetIncidentEventItemFunctionProps
+) => EventItemComponentProps;
+
+export const getIncidentEventItem: GetIncidentEventItemFunction = (
+    props: GetIncidentEventItemFunctionProps
 ): EventItemComponentProps => {
+    const {
+        incident,
+        incidentPublicNotes,
+        incidentStateTimelines,
+        statusPageResources,
+        monitorsInGroup,
+        isPreviewPage,
+        isSummary,
+    } = props;
+
     const timeline: Array<TimelineItem> = [];
 
     let currentStateStatus: string = '';
@@ -329,14 +347,15 @@ const Detail: FunctionComponent<PageComponentProps> = (
         }
 
         setParsedData(
-            getIncidentEventItem(
+            getIncidentEventItem({
                 incident,
                 incidentPublicNotes,
                 incidentStateTimelines,
                 statusPageResources,
                 monitorsInGroup,
-                StatusPageUtil.isPreviewPage()
-            )
+                isPreviewPage: StatusPageUtil.isPreviewPage(),
+                isSummary: false,
+            })
         );
     }, [isLoading, incident]);
 

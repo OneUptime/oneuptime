@@ -2,7 +2,7 @@ import 'ejs';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import Register from './Services/Register';
-
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import './Jobs/Alive';
 import FetchListAndProbe from './Jobs/Monitor/FetchList';
 import { PROBE_MONITORING_WORKERS } from './Config';
@@ -10,7 +10,7 @@ import Sleep from 'Common/Types/Sleep';
 
 const APP_NAME: string = 'probe';
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

@@ -29,6 +29,8 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { useAsyncEffect } from 'use-async-effect';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -39,7 +41,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = useState<string>('');
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 
@@ -75,7 +77,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const getPageContent: Function = (): ReactElement => {
+    const getPageContent: GetReactElementFunction = (): ReactElement => {
         if (!monitorType || isLoading) {
             return <ComponentLoader />;
         }

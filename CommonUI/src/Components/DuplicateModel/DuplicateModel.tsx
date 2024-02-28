@@ -34,7 +34,11 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
 
-    const duplicateItem: Function = async (partialModel: TBaseModel) => {
+    type DuplicateItemFunction = (partialModel: TBaseModel) => void;
+
+    const duplicateItem: DuplicateItemFunction = async (
+        partialModel: TBaseModel
+    ) => {
         setIsLoading(true);
         try {
             const item: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({

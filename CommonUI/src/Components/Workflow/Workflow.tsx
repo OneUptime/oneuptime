@@ -5,6 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -39,26 +40,29 @@ import ComponentSettingsModal from './ComponentSettingsModal';
 import { loadComponentsAndCategories } from './Utils';
 import RunModal from './RunModal';
 
-export const getPlaceholderTriggerNode: Function = (): Node => {
-    return {
-        id: ObjectID.generate().toString(),
-        type: 'node',
-        position: { x: 100, y: 100 },
-        data: {
-            metadata: {
-                iconProp: IconProp.Bolt,
-                componentType: ComponentType.Trigger,
-                title: 'Trigger',
-                description: 'Please click here to add trigger',
+type GetPlaceholderTriggerNodeFunction = () => Node;
+
+export const getPlaceholderTriggerNode: GetPlaceholderTriggerNodeFunction =
+    (): Node => {
+        return {
+            id: ObjectID.generate().toString(),
+            type: 'node',
+            position: { x: 100, y: 100 },
+            data: {
+                metadata: {
+                    iconProp: IconProp.Bolt,
+                    componentType: ComponentType.Trigger,
+                    title: 'Trigger',
+                    description: 'Please click here to add trigger',
+                },
+                metadataId: '',
+                internalId: '',
+                nodeType: NodeType.PlaceholderNode,
+                id: '',
+                error: '',
             },
-            metadataId: '',
-            internalId: '',
-            nodeType: NodeType.PlaceholderNode,
-            id: '',
-            error: '',
-        },
+        };
     };
-};
 
 const nodeTypes: NodeTypes = {
     node: WorkflowComponent,
@@ -76,7 +80,9 @@ const selectedEdgeStyle: React.CSSProperties = {
     color: '#818cf8',
 };
 
-export const getEdgeDefaultProps: Function = (
+type GetEdgeDefaultPropsFunction = (selected: boolean) => JSONObject;
+
+export const getEdgeDefaultProps: GetEdgeDefaultPropsFunction = (
     selected: boolean
 ): JSONObject => {
     return {
@@ -125,7 +131,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [selectedNodeData, setSelectedNodeData] =
         useState<NodeDataProp | null>(null);
 
-    const onNodeClick: Function = (data: NodeDataProp) => {
+    type OnNodeClickFunction = (data: NodeDataProp) => void;
+
+    const onNodeClick: OnNodeClickFunction = (data: NodeDataProp) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
@@ -156,7 +164,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
     }, [props.showRunModal]);
 
-    const deleteNode: Function = (id: string): void => {
+    type DeleteNodeFunction = (id: string) => void;
+
+    const deleteNode: DeleteNodeFunction = (id: string): void => {
         // remove the node.
 
         const nodesToDelete: Array<Node> = [...nodes].filter((node: Node) => {
@@ -200,7 +210,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 .map((edge: Edge) => {
                     return {
                         ...edge,
-                        ...getEdgeDefaultProps(edge.selected),
+                        ...getEdgeDefaultProps(edge.selected || false),
                     };
                 });
         });
@@ -219,7 +229,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
             edge = {
                 ...edge,
-                ...getEdgeDefaultProps(edge.selected),
+                ...getEdgeDefaultProps(edge.selected || false),
             };
 
             return edge;
@@ -245,7 +255,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     eds.map((edge: Edge) => {
                         return {
                             ...edge,
-                            ...getEdgeDefaultProps(edge.selected),
+                            ...getEdgeDefaultProps(edge.selected || false),
                         };
                     })
                 );
@@ -275,7 +285,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     eds.map((edge: Edge) => {
                         return {
                             ...edge,
-                            ...getEdgeDefaultProps(edge.selected),
+                            ...getEdgeDefaultProps(edge.selected || false),
                         };
                     })
                 );
@@ -294,7 +304,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     .map((edge: Edge) => {
                         return {
                             ...edge,
-                            ...getEdgeDefaultProps(edge.selected),
+                            ...getEdgeDefaultProps(edge.selected || false),
                         };
                     });
             });
@@ -314,12 +324,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.onComponentPickerModalUpdate(showComponentsModal);
     }, [showComponentsModal]);
 
-    const refreshEdges: Function = (): void => {
+    const refreshEdges: VoidFunction = (): void => {
         setEdges((eds: Array<Edge>) => {
             return eds.map((edge: Edge) => {
                 return {
                     ...edge,
-                    ...getEdgeDefaultProps(edge.selected),
+                    ...getEdgeDefaultProps(edge.selected || false),
                 };
             });
         });
@@ -329,7 +339,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         props.onRunModalUpdate(showRunModal);
     }, [showRunModal]);
 
-    const addToGraph: Function = (componentMetadata: ComponentMetadata) => {
+    type AddToGraphFunction = (componentMetadata: ComponentMetadata) => void;
+
+    const addToGraph: AddToGraphFunction = (
+        componentMetadata: ComponentMetadata
+    ) => {
         const metaDataId: string = componentMetadata.id;
 
         let hasFoundExistingId: boolean = true;

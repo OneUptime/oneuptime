@@ -12,13 +12,14 @@ import UserType from 'Common/Types/UserType';
 import Dictionary from 'Common/Types/Dictionary';
 import Port from 'Common/Types/Port';
 import { Server, createServer } from 'http';
+import GenericFunction from 'Common/Types/GenericFunction';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
 
-export const ExpressStatic: Function = express.static;
-export const ExpressJson: Function = express.json;
-export const ExpressUrlEncoded: Function = express.urlencoded;
+export const ExpressStatic: GenericFunction = express.static;
+export const ExpressJson: GenericFunction = express.json;
+export const ExpressUrlEncoded: GenericFunction = express.urlencoded;
 
 export type ProbeRequest = {
     id: ObjectID;
@@ -79,7 +80,9 @@ class Express {
             this.httpServer = createServer(this.app);
         }
 
-        return new Promise<express.Application>((resolve: Function) => {
+        type ResolveFunction = (app: express.Application) => void;
+
+        return new Promise<express.Application>((resolve: ResolveFunction) => {
             this.httpServer.listen(
                 port?.toNumber() || this.app.get('port'),
                 () => {

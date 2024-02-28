@@ -2,10 +2,11 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import FetchCertificateJobs from './Jobs/FetchCertificates';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const APP_NAME: string = 'ingress';
 
-const init: () => Promise<void> = async (): Promise<void> => {
+const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);

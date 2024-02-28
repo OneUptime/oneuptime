@@ -22,6 +22,7 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import IconProp from 'Common/Types/Icon/IconProp';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ComponentMetadata, {
     NodeDataProp,
@@ -56,7 +57,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
     const [showRunModal, setShowRunModal] = useState<boolean>(false);
 
-    const loadGraph: () => Promise<void> = async (): Promise<void> => {
+    const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
         try {
             setIsLoading(true);
             const workflow: WorkflowModel | null = await ModelAPI.getItem({
@@ -162,8 +163,8 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                         edges[i] = {
                             ...edges[i],
-                            ...getEdgeDefaultProps(),
-                        };
+                            ...getEdgeDefaultProps(false),
+                        } as Edge;
                     }
 
                     setEdges(edges);
@@ -180,7 +181,12 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setIsLoading(false);
     };
 
-    const saveGraph: Function = async (
+    type SaveGraphFunction = (
+        nodes: Array<Node>,
+        edges: Array<Edge>
+    ) => Promise<void>;
+
+    const saveGraph: SaveGraphFunction = async (
         nodes: Array<Node>,
         edges: Array<Edge>
     ): Promise<void> => {

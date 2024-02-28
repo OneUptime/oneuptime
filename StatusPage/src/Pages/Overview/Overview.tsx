@@ -54,6 +54,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import Section from '../../Components/Section/Section';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -129,7 +130,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     StatusPageUtil.checkIfUserHasLoggedIn();
 
-    const loadPage: Function = async () => {
+    const loadPage: PromiseVoidFunction = async (): Promise<void> => {
         try {
             if (!StatusPageUtil.getStatusPageId()) {
                 return;
@@ -293,18 +294,28 @@ const Overview: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        loadPage();
+        loadPage().catch((err: Error) => {
+            setError(err.message);
+        });
     }, []);
 
     useEffect(() => {
-        loadPage();
+        loadPage().catch((err: Error) => {
+            setError(err.message);
+        });
     }, [
         StatusPageUtil.getStatusPageId()?.toString() || '',
         StatusPageUtil.isPreviewPage(),
         StatusPageUtil.isPrivateStatusPage(),
     ]);
 
-    const getOverallMonitorStatus: Function = (
+    type GetOverallMonitorStatusFunction = (
+        statusPageResources: Array<StatusPageResource>,
+        monitorStatuses: Array<MonitorStatus>,
+        monitorGroupCurrentStatuses: Dictionary<ObjectID>
+    ) => MonitorStatus | null;
+
+    const getOverallMonitorStatus: GetOverallMonitorStatusFunction = (
         statusPageResources: Array<StatusPageResource>,
         monitorStatuses: Array<MonitorStatus>,
         monitorGroupCurrentStatuses: Dictionary<ObjectID>
@@ -365,226 +376,240 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    const getMonitorOverviewListInGroup: Function = (
+    type GetMonitorOverviewListInGroupFunction = (
         group: StatusPageGroup | null
-    ): Array<ReactElement> => {
-        const elements: Array<ReactElement> = [];
+    ) => Array<ReactElement>;
 
-        for (const resource of statusPageResources) {
-            if (
-                (resource.statusPageGroupId &&
-                    resource.statusPageGroupId.toString() &&
-                    group &&
-                    group._id?.toString() &&
-                    group._id?.toString() ===
-                        resource.statusPageGroupId.toString()) ||
-                (!resource.statusPageGroupId && !group)
-            ) {
-                // if its not a monitor or a monitor group, then continue. This should ideally not happen.
+    const getMonitorOverviewListInGroup: GetMonitorOverviewListInGroupFunction =
+        (group: StatusPageGroup | null): Array<ReactElement> => {
+            const elements: Array<ReactElement> = [];
 
-                if (!resource.monitor && !resource.monitorGroupId) {
-                    continue;
-                }
+            for (const resource of statusPageResources) {
+                if (
+                    (resource.statusPageGroupId &&
+                        resource.statusPageGroupId.toString() &&
+                        group &&
+                        group._id?.toString() &&
+                        group._id?.toString() ===
+                            resource.statusPageGroupId.toString()) ||
+                    (!resource.statusPageGroupId && !group)
+                ) {
+                    // if its not a monitor or a monitor group, then continue. This should ideally not happen.
 
-                // if its a monitor
-
-                if (resource.monitor) {
-                    let currentStatus: MonitorStatus | undefined =
-                        monitorStatuses.find((status: MonitorStatus) => {
-                            return (
-                                status._id?.toString() ===
-                                resource.monitor?.currentMonitorStatusId?.toString()
-                            );
-                        });
-
-                    if (!currentStatus) {
-                        currentStatus = new MonitorStatus();
-                        currentStatus.name = 'Operational';
-                        currentStatus.color = Green;
+                    if (!resource.monitor && !resource.monitorGroupId) {
+                        continue;
                     }
 
-                    elements.push(
-                        <MonitorOverview
-                            key={Math.random()}
-                            monitorName={
-                                resource.displayName ||
-                                resource.monitor?.name ||
-                                ''
-                            }
-                            statusPageHistoryChartBarColorRules={
-                                statusPageHistoryChartBarColorRules
-                            }
-                            downtimeMonitorStatuses={
-                                statusPage?.downtimeMonitorStatuses || []
-                            }
-                            description={resource.displayDescription || ''}
-                            tooltip={resource.displayTooltip || ''}
-                            currentStatus={currentStatus}
-                            showUptimePercent={Boolean(
-                                resource.showUptimePercent
-                            )}
-                            uptimePrecision={
-                                resource.uptimePercentPrecision ||
-                                UptimePrecision.ONE_DECIMAL
-                            }
-                            monitorStatusTimeline={[
-                                ...monitorStatusTimelines,
-                            ].filter((timeline: MonitorStatusTimeline) => {
+                    // if its a monitor
+
+                    if (resource.monitor) {
+                        let currentStatus: MonitorStatus | undefined =
+                            monitorStatuses.find((status: MonitorStatus) => {
                                 return (
-                                    timeline.monitorId?.toString() ===
-                                    resource.monitorId?.toString()
+                                    status._id?.toString() ===
+                                    resource.monitor?.currentMonitorStatusId?.toString()
                                 );
-                            })}
-                            startDate={startDate}
-                            endDate={endDate}
-                            showHistoryChart={resource.showStatusHistoryChart}
-                            showCurrentStatus={resource.showCurrentStatus}
-                            uptimeGraphHeight={10}
-                            defaultBarColor={
-                                statusPage?.defaultBarColor || Green
-                            }
-                        />
-                    );
-                }
+                            });
 
-                // if its a monitor group, then...
+                        if (!currentStatus) {
+                            currentStatus = new MonitorStatus();
+                            currentStatus.name = 'Operational';
+                            currentStatus.color = Green;
+                        }
 
-                if (resource.monitorGroupId) {
-                    let currentStatus: MonitorStatus | undefined =
-                        monitorStatuses.find((status: MonitorStatus) => {
-                            return (
-                                status._id?.toString() ===
-                                monitorGroupCurrentStatuses[
-                                    resource.monitorGroupId?.toString() || ''
-                                ]?.toString()
-                            );
-                        });
-
-                    if (!currentStatus) {
-                        currentStatus = new MonitorStatus();
-                        currentStatus.name = 'Operational';
-                        currentStatus.color = Green;
+                        elements.push(
+                            <MonitorOverview
+                                key={Math.random()}
+                                monitorName={
+                                    resource.displayName ||
+                                    resource.monitor?.name ||
+                                    ''
+                                }
+                                statusPageHistoryChartBarColorRules={
+                                    statusPageHistoryChartBarColorRules
+                                }
+                                downtimeMonitorStatuses={
+                                    statusPage?.downtimeMonitorStatuses || []
+                                }
+                                description={resource.displayDescription || ''}
+                                tooltip={resource.displayTooltip || ''}
+                                currentStatus={currentStatus}
+                                showUptimePercent={Boolean(
+                                    resource.showUptimePercent
+                                )}
+                                uptimePrecision={
+                                    resource.uptimePercentPrecision ||
+                                    UptimePrecision.ONE_DECIMAL
+                                }
+                                monitorStatusTimeline={[
+                                    ...monitorStatusTimelines,
+                                ].filter((timeline: MonitorStatusTimeline) => {
+                                    return (
+                                        timeline.monitorId?.toString() ===
+                                        resource.monitorId?.toString()
+                                    );
+                                })}
+                                startDate={startDate}
+                                endDate={endDate}
+                                showHistoryChart={
+                                    resource.showStatusHistoryChart
+                                }
+                                showCurrentStatus={resource.showCurrentStatus}
+                                uptimeGraphHeight={10}
+                                defaultBarColor={
+                                    statusPage?.defaultBarColor || Green
+                                }
+                            />
+                        );
                     }
 
-                    elements.push(
-                        <MonitorOverview
-                            key={Math.random()}
-                            monitorName={
-                                resource.displayName ||
-                                resource.monitor?.name ||
-                                ''
-                            }
-                            showUptimePercent={Boolean(
-                                resource.showUptimePercent
-                            )}
-                            uptimePrecision={
-                                resource.uptimePercentPrecision ||
-                                UptimePrecision.ONE_DECIMAL
-                            }
-                            statusPageHistoryChartBarColorRules={
-                                statusPageHistoryChartBarColorRules
-                            }
-                            description={resource.displayDescription || ''}
-                            tooltip={resource.displayTooltip || ''}
-                            currentStatus={currentStatus}
-                            monitorStatusTimeline={[
-                                ...monitorStatusTimelines,
-                            ].filter((timeline: MonitorStatusTimeline) => {
-                                const monitorsInThisGroup:
-                                    | Array<ObjectID>
-                                    | undefined =
-                                    monitorsInGroup[
+                    // if its a monitor group, then...
+
+                    if (resource.monitorGroupId) {
+                        let currentStatus: MonitorStatus | undefined =
+                            monitorStatuses.find((status: MonitorStatus) => {
+                                return (
+                                    status._id?.toString() ===
+                                    monitorGroupCurrentStatuses[
                                         resource.monitorGroupId?.toString() ||
                                             ''
-                                    ];
-
-                                if (!monitorsInThisGroup) {
-                                    return false;
-                                }
-
-                                return monitorsInThisGroup.find(
-                                    (monitorId: ObjectID) => {
-                                        return (
-                                            monitorId.toString() ===
-                                            timeline.monitorId?.toString()
-                                        );
-                                    }
+                                    ]?.toString()
                                 );
-                            })}
-                            downtimeMonitorStatuses={
-                                statusPage?.downtimeMonitorStatuses || []
-                            }
-                            startDate={startDate}
-                            endDate={endDate}
-                            showHistoryChart={resource.showStatusHistoryChart}
-                            showCurrentStatus={resource.showCurrentStatus}
-                            uptimeGraphHeight={10}
-                            defaultBarColor={
-                                statusPage?.defaultBarColor || Green
-                            }
-                        />
-                    );
+                            });
+
+                        if (!currentStatus) {
+                            currentStatus = new MonitorStatus();
+                            currentStatus.name = 'Operational';
+                            currentStatus.color = Green;
+                        }
+
+                        elements.push(
+                            <MonitorOverview
+                                key={Math.random()}
+                                monitorName={
+                                    resource.displayName ||
+                                    resource.monitor?.name ||
+                                    ''
+                                }
+                                showUptimePercent={Boolean(
+                                    resource.showUptimePercent
+                                )}
+                                uptimePrecision={
+                                    resource.uptimePercentPrecision ||
+                                    UptimePrecision.ONE_DECIMAL
+                                }
+                                statusPageHistoryChartBarColorRules={
+                                    statusPageHistoryChartBarColorRules
+                                }
+                                description={resource.displayDescription || ''}
+                                tooltip={resource.displayTooltip || ''}
+                                currentStatus={currentStatus}
+                                monitorStatusTimeline={[
+                                    ...monitorStatusTimelines,
+                                ].filter((timeline: MonitorStatusTimeline) => {
+                                    const monitorsInThisGroup:
+                                        | Array<ObjectID>
+                                        | undefined =
+                                        monitorsInGroup[
+                                            resource.monitorGroupId?.toString() ||
+                                                ''
+                                        ];
+
+                                    if (!monitorsInThisGroup) {
+                                        return false;
+                                    }
+
+                                    return monitorsInThisGroup.find(
+                                        (monitorId: ObjectID) => {
+                                            return (
+                                                monitorId.toString() ===
+                                                timeline.monitorId?.toString()
+                                            );
+                                        }
+                                    );
+                                })}
+                                downtimeMonitorStatuses={
+                                    statusPage?.downtimeMonitorStatuses || []
+                                }
+                                startDate={startDate}
+                                endDate={endDate}
+                                showHistoryChart={
+                                    resource.showStatusHistoryChart
+                                }
+                                showCurrentStatus={resource.showCurrentStatus}
+                                uptimeGraphHeight={10}
+                                defaultBarColor={
+                                    statusPage?.defaultBarColor || Green
+                                }
+                            />
+                        );
+                    }
                 }
             }
-        }
 
-        if (elements.length === 0) {
-            elements.push(
-                <div key={1} className="mb-20">
-                    <ErrorMessage error="No resources added to this group." />
-                </div>
-            );
-        }
-
-        return elements;
-    };
-
-    const getActiveIncidents: Function = (): Array<IncidentGroup> => {
-        const groups: Array<IncidentGroup> = [];
-
-        for (const activeIncident of activeIncidents) {
-            if (!activeIncident.currentIncidentState) {
-                throw new BadDataException('Incident State not found.');
-            }
-
-            const timeline: IncidentStateTimeline | undefined =
-                incidentStateTimelines.find(
-                    (timeline: IncidentStateTimeline) => {
-                        return (
-                            timeline.incidentId?.toString() ===
-                            activeIncident._id
-                        );
-                    }
+            if (elements.length === 0) {
+                elements.push(
+                    <div key={1} className="mb-20">
+                        <ErrorMessage error="No resources added to this group." />
+                    </div>
                 );
-
-            if (!timeline) {
-                throw new BadDataException('Incident Timeline not found.');
             }
 
-            const group: IncidentGroup = {
-                incident: activeIncident,
-                incidentState: activeIncident.currentIncidentState,
-                incidentResources: statusPageResources,
-                publicNotes: incidentPublicNotes.filter(
-                    (publicNote: IncidentPublicNote) => {
-                        return (
-                            publicNote.incidentId?.toString() ===
-                            activeIncident._id
-                        );
-                    }
-                ),
-                incidentSeverity: activeIncident.incidentSeverity!,
-                incidentStateTimelines: [timeline],
-                monitorsInGroup: monitorsInGroup,
-            };
+            return elements;
+        };
 
-            groups.push(group);
-        }
+    type GetActiveIncidentsFunction = () => Array<IncidentGroup>;
 
-        return groups;
-    };
+    const getActiveIncidents: GetActiveIncidentsFunction =
+        (): Array<IncidentGroup> => {
+            const groups: Array<IncidentGroup> = [];
 
-    const getOngoingScheduledEvents: Function =
+            for (const activeIncident of activeIncidents) {
+                if (!activeIncident.currentIncidentState) {
+                    throw new BadDataException('Incident State not found.');
+                }
+
+                const timeline: IncidentStateTimeline | undefined =
+                    incidentStateTimelines.find(
+                        (timeline: IncidentStateTimeline) => {
+                            return (
+                                timeline.incidentId?.toString() ===
+                                activeIncident._id
+                            );
+                        }
+                    );
+
+                if (!timeline) {
+                    throw new BadDataException('Incident Timeline not found.');
+                }
+
+                const group: IncidentGroup = {
+                    incident: activeIncident,
+                    incidentState: activeIncident.currentIncidentState,
+                    incidentResources: statusPageResources,
+                    publicNotes: incidentPublicNotes.filter(
+                        (publicNote: IncidentPublicNote) => {
+                            return (
+                                publicNote.incidentId?.toString() ===
+                                activeIncident._id
+                            );
+                        }
+                    ),
+                    incidentSeverity: activeIncident.incidentSeverity!,
+                    incidentStateTimelines: [timeline],
+                    monitorsInGroup: monitorsInGroup,
+                };
+
+                groups.push(group);
+            }
+
+            return groups;
+        };
+
+    type GetOngoingScheduledEventsFunction =
+        () => Array<ScheduledMaintenanceGroup>;
+
+    const getOngoingScheduledEvents: GetOngoingScheduledEventsFunction =
         (): Array<ScheduledMaintenanceGroup> => {
             const groups: Array<ScheduledMaintenanceGroup> = [];
 
@@ -632,7 +657,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return groups;
         };
 
-    const getRightAccordionElement: Function = (
+    type GetRightAccordionElementFunction = (
+        group: StatusPageGroup
+    ) => ReactElement;
+
+    const getRightAccordionElement: GetRightAccordionElementFunction = (
         group: StatusPageGroup
     ): ReactElement => {
         let currentStatus: MonitorStatus = new MonitorStatus();
@@ -722,13 +751,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             ) => {
                                 return (
                                     <EventItem
+                                        {...getAnnouncementEventItem({
+                                            announcement,
+                                            isPreviewPage:
+                                                StatusPageUtil.isPreviewPage(),
+                                            isSummary: true,
+                                        })}
                                         isDetailItem={false}
                                         key={i}
-                                        {...getAnnouncementEventItem(
-                                            announcement,
-                                            StatusPageUtil.isPreviewPage(),
-                                            true
-                                        )}
                                     />
                                 );
                             }
@@ -829,17 +859,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 (incidentGroup: IncidentGroup, i: number) => {
                                     return (
                                         <EventItem
+                                            {...getIncidentEventItem({
+                                                incident:
+                                                    incidentGroup.incident,
+                                                incidentPublicNotes:
+                                                    incidentGroup.publicNotes ||
+                                                    [],
+                                                incidentStateTimelines:
+                                                    incidentGroup.incidentStateTimelines,
+                                                statusPageResources:
+                                                    incidentGroup.incidentResources,
+                                                monitorsInGroup:
+                                                    incidentGroup.monitorsInGroup,
+                                                isPreviewPage:
+                                                    StatusPageUtil.isPreviewPage(),
+                                                isSummary: true,
+                                            })}
                                             isDetailItem={false}
                                             key={i}
-                                            {...getIncidentEventItem(
-                                                incidentGroup.incident,
-                                                incidentGroup.publicNotes,
-                                                incidentGroup.incidentStateTimelines,
-                                                incidentGroup.incidentResources,
-                                                incidentGroup.monitorsInGroup,
-                                                StatusPageUtil.isPreviewPage(),
-                                                true
-                                            )}
                                         />
                                     );
                                 }
@@ -861,16 +898,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         return (
                                             <EventItem
                                                 key={i}
+                                                {...getScheduledEventEventItem({
+                                                    scheduledMaintenance:
+                                                        scheduledEventGroup.scheduledMaintenance,
+                                                    scheduledMaintenanceEventsPublicNotes:
+                                                        scheduledEventGroup.publicNotes ||
+                                                        [],
+                                                    scheduledMaintenanceStateTimelines:
+                                                        scheduledEventGroup.scheduledMaintenanceStateTimelines,
+                                                    statusPageResources:
+                                                        scheduledEventGroup.scheduledEventResources,
+                                                    monitorsInGroup:
+                                                        scheduledEventGroup.monitorsInGroup,
+                                                    isPreviewPage:
+                                                        StatusPageUtil.isPreviewPage(),
+                                                    isSummary: true,
+                                                })}
                                                 isDetailItem={false}
-                                                {...getScheduledEventEventItem(
-                                                    scheduledEventGroup.scheduledMaintenance,
-                                                    scheduledEventGroup.publicNotes,
-                                                    scheduledEventGroup.scheduledMaintenanceStateTimelines,
-                                                    scheduledEventGroup.scheduledEventResources,
-                                                    scheduledEventGroup.monitorsInGroup,
-                                                    StatusPageUtil.isPreviewPage(),
-                                                    true
-                                                )}
                                             />
                                         );
                                     }

@@ -33,6 +33,8 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupElement';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -45,7 +47,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
     const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
 
-    const fetchGroups: Function = async () => {
+    const fetchGroups: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 
@@ -78,10 +80,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        fetchGroups();
+        fetchGroups().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, []);
 
-    const getFooterForMonitor: Function = (): ReactElement => {
+    const getFooterForMonitor: GetReactElementFunction = (): ReactElement => {
         if (props.currentProject?.isFeatureFlagMonitorGroupsEnabled) {
             if (!addMonitorGroup) {
                 return (
@@ -245,7 +249,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
     ]);
 
-    const getModelTable: Function = (
+    type GetModelTableFunction = (
+        statusPageGroupId: ObjectID | null,
+        statusPageGroupName: string | null
+    ) => ReactElement;
+
+    const getModelTable: GetModelTableFunction = (
         statusPageGroupId: ObjectID | null,
         statusPageGroupName: string | null
     ): ReactElement => {

@@ -2,6 +2,7 @@ import React, { ReactElement } from 'react';
 import { FormStep, FormStepState } from '../Types/FormStep';
 import Step from './Step';
 import FormValues from '../Types/FormValues';
+import GenericObject from 'Common/Types/GenericObject';
 
 export interface ComponentProps<T> {
     steps: Array<FormStep<T>>;
@@ -10,9 +11,9 @@ export interface ComponentProps<T> {
     formValues: FormValues<T>;
 }
 
-const Steps: <T extends Object>(props: ComponentProps<T>) => ReactElement = <
-    T extends Object
->(
+const Steps: <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const steps: Array<FormStep<T>> = props.steps.filter(

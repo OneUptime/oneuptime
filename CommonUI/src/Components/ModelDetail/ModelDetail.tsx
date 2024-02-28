@@ -17,6 +17,7 @@ import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { useAsyncEffect } from 'use-async-effect';
 import User from '../../Utils/User';
+import { VoidFunction, PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -46,7 +47,9 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         JSONObject | undefined
     >(undefined);
 
-    const getSelectFields: Function = (): Select<TBaseModel> => {
+    type GetSelectFields = () => Select<TBaseModel>;
+
+    const getSelectFields: GetSelectFields = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
         for (const field of props.fields) {
             const key: string | null = field.field
@@ -65,30 +68,35 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         return select;
     };
 
-    const getRelationSelect: Function = (): Select<TBaseModel> => {
-        const relationSelect: Select<TBaseModel> = {};
+    type GetRelationSelectFunction = () => Select<TBaseModel>;
 
-        for (const field of props.fields || []) {
-            const key: string | null = field.field
-                ? (Object.keys(field.field)[0] as string)
-                : null;
+    const getRelationSelect: GetRelationSelectFunction =
+        (): Select<TBaseModel> => {
+            const relationSelect: Select<TBaseModel> = {};
 
-            if (key && new props.modelType()?.isFileColumn(key)) {
-                (relationSelect as JSONObject)[key] = {
-                    file: true,
-                    _id: true,
-                    type: true,
-                    name: true,
-                };
-            } else if (key && new props.modelType()?.isEntityColumn(key)) {
-                (relationSelect as JSONObject)[key] = (field.field as any)[key];
+            for (const field of props.fields || []) {
+                const key: string | null = field.field
+                    ? (Object.keys(field.field)[0] as string)
+                    : null;
+
+                if (key && new props.modelType()?.isFileColumn(key)) {
+                    (relationSelect as JSONObject)[key] = {
+                        file: true,
+                        _id: true,
+                        type: true,
+                        name: true,
+                    };
+                } else if (key && new props.modelType()?.isEntityColumn(key)) {
+                    (relationSelect as JSONObject)[key] = (field.field as any)[
+                        key
+                    ];
+                }
             }
-        }
 
-        return relationSelect;
-    };
+            return relationSelect;
+        };
 
-    const setDetailFields: Function = (): void => {
+    const setDetailFields: VoidFunction = (): void => {
         // set fields.
 
         const userPermissions: Array<Permission> =
@@ -161,7 +169,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         }
     }, [onBeforeFetchData, props.modelType]);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
         props.onLoadingChange && props.onLoadingChange(true);

@@ -35,7 +35,11 @@ const ListRow: FunctionComponent<ComponentProps> = (
 
     const [error, setError] = useState<string>('');
 
-    const getRow: Function = (provided?: DraggableProvided): ReactElement => {
+    type GetRowFunction = (provided?: DraggableProvided) => ReactElement;
+
+    const getRow: GetRowFunction = (
+        provided?: DraggableProvided
+    ): ReactElement => {
         return (
             <div
                 {...provided?.draggableProps}

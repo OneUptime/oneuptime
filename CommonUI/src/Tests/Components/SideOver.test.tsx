@@ -15,7 +15,11 @@ describe('SideOver', () => {
         children: childElement,
     };
 
-    const renderComponent: Function = (props: ComponentProps): void => {
+    type RenderComponentFunction = (props: ComponentProps) => void;
+
+    const renderComponent: RenderComponentFunction = (
+        props: ComponentProps
+    ): void => {
         render(<SideOver {...props} />);
     };
 

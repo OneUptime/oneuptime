@@ -32,6 +32,8 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
 import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -45,7 +47,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
 
     const [probes, setProbes] = useState<Array<Probe>>([]);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 
@@ -113,7 +115,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const getPageContent: Function = (): ReactElement => {
+    const getPageContent: GetReactElementFunction = (): ReactElement => {
         if (!monitorType || isLoading) {
             return <ComponentLoader />;
         }
@@ -177,7 +179,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         icon: IconProp.List,
                         onClick: async (
                             item: JSONObject,
-                            onCompleteAction: Function
+                            onCompleteAction: VoidFunction
                         ) => {
                             setLogs(
                                 item['lastMonitoringLog']

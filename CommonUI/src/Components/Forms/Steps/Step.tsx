@@ -1,5 +1,6 @@
 import React, { ReactElement } from 'react';
 import { FormStep, FormStepState } from '../Types/FormStep';
+import GenericObject from 'Common/Types/GenericObject';
 
 export interface ComponentProps<T> {
     step: FormStep<T>;
@@ -7,9 +8,9 @@ export interface ComponentProps<T> {
     state: FormStepState;
 }
 
-const Step: <T extends Object>(props: ComponentProps<T>) => ReactElement = <
-    T extends Object
->(
+const Step: <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     return (

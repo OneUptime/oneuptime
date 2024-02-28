@@ -34,6 +34,7 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorGroupView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -96,7 +97,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
         await fetchItem();
     }, []);
 
-    const fetchItem: () => Promise<void> = async (): Promise<void> => {
+    const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         setIsLoading(true);
         setError('');
 

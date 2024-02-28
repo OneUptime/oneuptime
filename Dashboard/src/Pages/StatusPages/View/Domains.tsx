@@ -19,6 +19,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -76,8 +77,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function,
-                                onError: (err: Error) => void
+                                onCompleteAction: VoidFunction,
+                                onError: ErrorFunction
                             ) => {
                                 try {
                                     setCnameModalText(`${item['fullDomain']}`);
@@ -105,8 +106,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             onClick: async (
                                 _item: JSONObject,
-                                onCompleteAction: Function,
-                                onError: (err: Error) => void
+                                onCompleteAction: VoidFunction,
+                                onError: ErrorFunction
                             ) => {
                                 try {
                                     setShowSslProvisioningModal(true);

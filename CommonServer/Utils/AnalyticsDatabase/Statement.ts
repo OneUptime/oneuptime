@@ -135,7 +135,7 @@ export class Statement implements BaseQueryParams {
      * Append an escaped SQL fragment. If you pass a raw String
      * it is appended as trusted SQL!
      */
-    public append(statement: Statement | String): Statement {
+    public append(statement: Statement | string): Statement {
         if (statement instanceof Statement) {
             this.strings[this.strings.length - 1] += statement.strings[0];
             this.strings.push(...statement.strings.slice(1));

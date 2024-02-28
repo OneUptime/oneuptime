@@ -37,6 +37,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Logout from './Pages/Accounts/Logout';
 import StatusPageUtil from './Utils/StatusPage';
 import UpdateSubscription from './Pages/Subscribe/UpdateSubscription';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -69,7 +70,7 @@ const App: () => JSX.Element = () => {
     // js.
     const [javascript, setJavaScript] = useState<string | null>(null);
 
-    const onPageLoadComplete: Function = (): void => {
+    const onPageLoadComplete: VoidFunction = (): void => {
         if (javascript) {
             // run custom javascipt.
             new Function(javascript)();

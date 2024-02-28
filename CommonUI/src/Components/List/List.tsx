@@ -8,6 +8,7 @@ import ListBody from './ListBody';
 import Field from '../Detail/Field';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { ListDetailProps } from './ListRow';
+import { GetReactElementFunction } from '../../Types/FunctionTypes';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -35,7 +36,7 @@ export interface ComponentProps {
 const List: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const getListbody: Function = (): ReactElement => {
+    const getListbody: GetReactElementFunction = (): ReactElement => {
         if (props.isLoading) {
             return <ComponentLoader />;
         }

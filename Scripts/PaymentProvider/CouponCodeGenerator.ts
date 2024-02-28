@@ -3,8 +3,9 @@
 
 import BillingService from 'CommonServer/Services/BillingService';
 import Sleep from 'Common/Types/Sleep';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
-const main: Function = async () => {
+const main: PromiseVoidFunction = async (): Promise<void> => {
     for (let i: number = 0; i < 2000; i++) {
         const code: string = await BillingService.generateCouponCode({
             name: 'Name',
@@ -18,4 +19,7 @@ const main: Function = async () => {
     }
 };
 
-main();
+main().catch((err: Error) => {
+    //eslint-disable-next-line no-console
+    console.error(err);
+});

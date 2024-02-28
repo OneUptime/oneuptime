@@ -63,22 +63,22 @@ export default interface Field<TEntity> {
     fileTypes?: Array<MimeType> | undefined;
     sideLink?: FormFieldSideLink | undefined;
     validation?: {
-        minLength?: number;
-        maxLength?: number;
-        toMatchField?: string;
-        noSpaces?: boolean;
+        minLength?: number | undefined;
+        maxLength?: number | undefined;
+        toMatchField?: string | undefined;
+        noSpaces?: boolean | undefined;
         noSpecialCharacters?: boolean;
-        noNumbers?: boolean;
-        minValue?: number;
-        maxValue?: number;
-        dateShouldBeInTheFuture?: boolean;
+        noNumbers?: boolean | undefined;
+        minValue?: number | undefined;
+        maxValue?: number | undefined;
+        dateShouldBeInTheFuture?: boolean | undefined;
     };
     customValidation?:
         | ((values: FormValues<TEntity>) => string | null)
         | undefined;
     styleType?: FormFieldStyleType | undefined;
     showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
-    onChange?: ((value: any, form?: any | undefined) => void) | undefined;
+    onChange?: ((value: any) => void) | undefined;
     fieldType?: FormFieldSchemaType;
     overrideFieldKey?: string;
     defaultValue?: boolean | string | Date | undefined;

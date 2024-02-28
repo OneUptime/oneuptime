@@ -7,6 +7,7 @@ import ModelAPI, {
     ListResult,
     RequestOptions,
 } from '../../Utils/ModelAPI/ModelAPI';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Select from '../../Utils/BaseDatabase/Select';
 import Input from '../Input/Input';
@@ -62,11 +63,15 @@ const ModelList: <TBaseModel extends BaseModel>(
     }, [selectedList]);
 
     useEffect(() => {
-        fetchItems().catch();
+        fetchItems().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, [props.refreshToggle]);
 
     useEffect(() => {
-        fetchItems().catch();
+        fetchItems().catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, []);
 
     useEffect(() => {
@@ -75,7 +80,7 @@ const ModelList: <TBaseModel extends BaseModel>(
         }
     }, [props.isSearchEnabled, modelList]);
 
-    const fetchItems: Function = async () => {
+    const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         setError('');
         setIsLoading(true);
 
@@ -177,7 +182,9 @@ const ModelList: <TBaseModel extends BaseModel>(
         }
     }, [modelList, searchText]);
 
-    const deleteItem: Function = async (item: TBaseModel) => {
+    type DeleteItemFunction = (item: TBaseModel) => Promise<void>;
+
+    const deleteItem: DeleteItemFunction = async (item: TBaseModel) => {
         if (!item.id) {
             throw new BadDataException('item.id cannot be null');
         }
@@ -253,13 +260,13 @@ const ModelList: <TBaseModel extends BaseModel>(
                                 },
                             });
 
-                            fetchItems();
+                            await fetchItems();
                         }}
                         titleField={props.titleField}
                         onDelete={
                             props.isDeleteable
                                 ? async (item: TBaseModel) => {
-                                      deleteItem(item);
+                                      await deleteItem(item);
                                   }
                                 : undefined
                         }

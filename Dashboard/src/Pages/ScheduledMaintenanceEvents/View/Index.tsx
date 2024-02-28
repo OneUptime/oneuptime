@@ -399,7 +399,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject | undefined,
-                                fetchItems: Function | undefined
+                                fetchItems: VoidFunction | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeScheduledMaintenanceState
@@ -425,7 +425,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             getElement: (
                                 _item: JSONObject,
                                 onBeforeFetchData: JSONObject | undefined,
-                                fetchItems: Function | undefined
+                                fetchItems: VoidFunction | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeScheduledMaintenanceState

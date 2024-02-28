@@ -96,7 +96,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
         textColor = 'text-red-600';
     }
 
-    const getSvgWrapper: Function = (
+    type GetSvgWrapperFunction = (
+        children: ReactElement | Array<ReactElement>
+    ) => ReactElement;
+
+    const getSvgWrapper: GetSvgWrapperFunction = (
         children: ReactElement | Array<ReactElement>
     ): ReactElement => {
         return (

@@ -1383,7 +1383,7 @@ describe('BillingService', () => {
                     .mockResolvedValue(mockCustomer);
 
                 // mock responses for invoice creation, adding an item, and finalizing
-                const mockInvoice: Invoice = getStripeInvoice();
+                const mockInvoice: any = getStripeInvoice();
                 mockStripe.invoices.create = jest
                     .fn()
                     .mockResolvedValue(mockInvoice);
@@ -1440,7 +1440,7 @@ describe('BillingService', () => {
                     .mockResolvedValue(mockCustomer);
 
                 // mock successful invoice creation and finalization
-                const mockInvoice: Invoice = getStripeInvoice();
+                const mockInvoice: any = getStripeInvoice();
                 mockStripe.invoices.create = jest
                     .fn()
                     .mockResolvedValue(mockInvoice);

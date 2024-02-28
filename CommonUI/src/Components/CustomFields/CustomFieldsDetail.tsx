@@ -13,6 +13,7 @@ import { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API/API';
 import useAsyncEffect from 'use-async-effect';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     title: string;
@@ -33,7 +34,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     const [model, setModel] = useState<BaseModel | null>(null);
     const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
-    const onLoad: () => Promise<void> = async (): Promise<void> => {
+    const onLoad: PromiseVoidFunction = async (): Promise<void> => {
         try {
             // load schema.
             setIsLoading(true);
@@ -72,7 +73,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         }
     };
 
-    const onSave: Function = async (data: JSONObject): Promise<void> => {
+    type OnSaveFunction = (data: JSONObject) => Promise<void>;
+
+    const onSave: OnSaveFunction = async (data: JSONObject): Promise<void> => {
         try {
             // load schema.
             setIsLoading(true);
@@ -143,8 +146,8 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                         onClose={() => {
                             return setShowModelForm(false);
                         }}
-                        onSubmit={(data: JSONObject) => {
-                            onSave(data).catch();
+                        onSubmit={async (data: JSONObject) => {
+                            await onSave(data).catch();
                         }}
                         formProps={{
                             initialValues: (model as any)['customFields'] || {},

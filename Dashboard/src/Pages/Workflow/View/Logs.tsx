@@ -52,7 +52,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             icon: IconProp.List,
                             onClick: async (
                                 item: JSONObject,
-                                onCompleteAction: Function
+                                onCompleteAction: VoidFunction
                             ) => {
                                 setLogs(item['logs'] as string);
                                 setShowViewLogsModal(true);
