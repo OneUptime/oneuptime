@@ -1,34 +1,27 @@
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import KeyValueNestedModel from 'Model/AnalyticsModels/NestedModels/KeyValueNestedModel';
+import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
 
 export default class OTelIngestService {
-    public static getKeyValues(items: JSONArray): Array<KeyValueNestedModel> {
+    public static getAttributes(items: JSONArray): JSONObject {
+        const finalObj: JSONObject = {};
         // We need to convert this to date.
         const attributes: JSONArray = items;
 
         if (attributes) {
-            const dbattributes: Array<KeyValueNestedModel> = [];
-
             for (const attribute of attributes) {
-                const dbattribute: KeyValueNestedModel =
-                    new KeyValueNestedModel();
-                dbattribute.key = attribute['key'] as string;
+                if (attribute['key'] && typeof attribute['key'] === 'string') {
+                    let value: JSONValue = attribute['value'] as JSONObject;
 
-                const value: JSONObject = attribute['value'] as JSONObject;
+                    if (value['stringValue']) {
+                        value = value['stringValue'] as string;
+                    } else if (value['intValue']) {
+                        value = value['intValue'] as number;
+                    }
 
-                if (value['stringValue']) {
-                    dbattribute.stringValue = value['stringValue'] as string;
+                    finalObj[attribute['key']] = value;
                 }
-
-                if (value['intValue']) {
-                    dbattribute.numberValue = value['intValue'] as number;
-                }
-                dbattributes.push(dbattribute);
             }
-
-            return dbattributes;
         }
 
-        return [];
+        return finalObj;
     }
 }

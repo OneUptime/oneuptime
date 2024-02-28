@@ -219,4 +219,27 @@ export default class JSONFunctions {
     public static anyObjectToJSONObject(val: any): JSONObject {
         return JSON.parse(JSON.stringify(val));
     }
+
+    public static flattenObject(val: JSONObject): JSONObject {
+        const returnObj: JSONObject = {};
+
+        type FlattenFunction = (obj: JSONObject, prefix: string) => void;
+
+        const flatten: FlattenFunction = (
+            obj: JSONObject,
+            prefix: string
+        ): void => {
+            for (const key in obj) {
+                if (typeof obj[key] === Typeof.Object) {
+                    flatten(obj[key] as JSONObject, `${prefix}${key}.`);
+                } else {
+                    returnObj[`${prefix}${key}`] = obj[key];
+                }
+            }
+        };
+
+        flatten(val, '');
+
+        return returnObj;
+    }
 }

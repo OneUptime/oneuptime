@@ -237,7 +237,9 @@ const Detail: (props: ComponentProps) => ReactElement = (
         }
 
         if (field.fieldType === FieldType.Markdown) {
-            data = getMarkdownViewer(data as string);
+            if (data) {
+                data = getMarkdownViewer(data as string);
+            }
         }
 
         if (field.fieldType === FieldType.Dropdown) {

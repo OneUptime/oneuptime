@@ -35,6 +35,7 @@ export type RecordValue =
     | Array<string>
     | Array<ObjectID>
     | Array<CommonModel>
+    | JSONObject
     | CommonModel;
 
 export type Record = Array<RecordValue | Record>;
@@ -76,7 +77,11 @@ export default class CommonModel {
                 column.type === TableColumnType.JSON &&
                 typeof value === 'string'
             ) {
-                value = JSON.parse(value);
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {
+                    value = {};
+                }
             }
 
             if (

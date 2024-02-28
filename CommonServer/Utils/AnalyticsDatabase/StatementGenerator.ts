@@ -24,6 +24,8 @@ import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import Includes from 'Common/Types/BaseDatabase/Includes';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
@@ -398,6 +400,57 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 );
             } else if (value instanceof IsNull) {
                 whereStatement.append(SQL`AND ${key} IS NULL`);
+            } else if (
+                tableColumn.type === TableColumnType.JSON &&
+                typeof value === 'object'
+            ) {
+                const flatValue: JSONObject =
+                    JSONFunctions.flattenObject(value);
+
+                for (const objKey in flatValue) {
+                    if (flatValue[objKey] === undefined) {
+                        continue;
+                    }
+
+                    if (
+                        flatValue[objKey] &&
+                        typeof flatValue[objKey] === 'string'
+                    ) {
+                        whereStatement.append(
+                            SQL`AND JSONExtractString(${key}, ${{
+                                value: key,
+                                type: TableColumnType.Text,
+                            }}) = ${{
+                                value: flatValue[objKey] as string,
+                                type: TableColumnType.Text,
+                            }}`
+                        );
+                        continue;
+                    }
+
+                    if (
+                        flatValue[objKey] &&
+                        typeof flatValue[objKey] === 'number'
+                    ) {
+                        whereStatement.append(
+                            SQL`AND JSONExtractInt(${key}, ${{
+                                value: key,
+                                type: TableColumnType.Text,
+                            }}) = ${{
+                                value: flatValue[objKey] as number,
+                                type: TableColumnType.Number,
+                            }}`
+                        );
+                        continue;
+                    }
+                }
+
+                whereStatement.append(
+                    SQL`AND ${key} = ${{
+                        value: JSON.stringify(value),
+                        type: tableColumn.type,
+                    }}`
+                );
             } else {
                 whereStatement.append(
                     SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
@@ -550,7 +603,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             [TableColumnType.Number]: SQL`Int32`,
             [TableColumnType.Decimal]: SQL`Double`,
             [TableColumnType.Date]: SQL`DateTime`,
-            [TableColumnType.JSON]: SQL`JSON`,
+            [TableColumnType.JSON]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
             [TableColumnType.NestedModel]: SQL`Nested`,
             [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
             [TableColumnType.ArrayText]: SQL`Array(String)`,
