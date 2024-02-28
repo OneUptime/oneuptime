@@ -3,10 +3,10 @@ import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
-import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
 import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
+import { JSONObject } from 'Common/Types/JSON';
 
 export enum SpanKind {
     Server = 'SPAN_KIND_SERVER',
@@ -64,13 +64,13 @@ export class SpanEvent extends NestedModel {
         this.setColumnValue('name', v);
     }
 
-    public get attributes(): Array<KeyValueNestedModel> | undefined {
+    public get attributes(): JSONObject | undefined {
         return this.getColumnValue('attributes') as
-            | Array<KeyValueNestedModel>
+            | JSONObject
             | undefined;
     }
 
-    public set attributes(v: Array<KeyValueNestedModel> | undefined) {
+    public set attributes(v: JSONObject | undefined) {
         this.setColumnValue('attributes', v);
     }
 }
@@ -103,14 +103,6 @@ export class SpanLink extends NestedModel {
                     type: TableColumnType.Text,
                 }),
 
-                // new AnalyticsTableColumn({
-                //     key: 'attributes',
-                //     title: 'Attributes',
-                //     description: 'Attributes',
-                //     required: false,
-                //     type: TableColumnType.NestedModel,
-                //     nestedModelType: KeyValueNestedModel,
-                // }),
             ],
         });
     }
@@ -410,8 +402,7 @@ export default class Span extends AnalyticsBaseModel {
                     title: 'Attributes',
                     description: 'Attributes',
                     required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModelType: KeyValueNestedModel,
+                    type: TableColumnType.JSON,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -434,8 +425,7 @@ export default class Span extends AnalyticsBaseModel {
                     title: 'Events',
                     description: 'Span Events',
                     required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModelType: SpanEvent,
+                    type: TableColumnType.JSON,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -458,8 +448,7 @@ export default class Span extends AnalyticsBaseModel {
                     title: 'Links',
                     description: 'Span Links',
                     required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModelType: SpanLink,
+                    type: TableColumnType.JSON,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -683,13 +672,13 @@ export default class Span extends AnalyticsBaseModel {
         this.setColumnValue('traceState', v);
     }
 
-    public get attributes(): Array<KeyValueNestedModel> | undefined {
+    public get attributes(): JSONObject | undefined {
         return this.getColumnValue('attributes') as
-            | Array<KeyValueNestedModel>
+            | JSONObject
             | undefined;
     }
 
-    public set attributes(v: Array<KeyValueNestedModel> | undefined) {
+    public set attributes(v: JSONObject | undefined) {
         this.setColumnValue('attributes', v);
     }
 

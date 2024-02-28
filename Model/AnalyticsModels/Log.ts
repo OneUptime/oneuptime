@@ -3,9 +3,9 @@ import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
-import KeyValueNestedModel from './NestedModels/KeyValueNestedModel';
 import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
+import { JSONObject } from 'Common/Types/JSON';
 
 export enum LogSeverity {
     Unspecified = 'Unspecified',
@@ -199,8 +199,7 @@ export default class Log extends AnalyticsBaseModel {
                     title: 'Attributes',
                     description: 'Attributes',
                     required: false,
-                    type: TableColumnType.NestedModel,
-                    nestedModelType: KeyValueNestedModel,
+                    type: TableColumnType.JSON,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -347,13 +346,13 @@ export default class Log extends AnalyticsBaseModel {
         this.setColumnValue('severityNumber', v);
     }
 
-    public get attributes(): Array<KeyValueNestedModel> | undefined {
+    public get attributes(): JSONObject | undefined {
         return this.getColumnValue('attributes') as
-            | Array<KeyValueNestedModel>
+            | JSONObject
             | undefined;
     }
 
-    public set attributes(v: Array<KeyValueNestedModel> | undefined) {
+    public set attributes(v: JSONObject | undefined) {
         this.setColumnValue('attributes', v);
     }
 
