@@ -182,6 +182,9 @@ export default class AnalyticsDatabaseService<
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
         try {
+
+            debugger;
+
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
