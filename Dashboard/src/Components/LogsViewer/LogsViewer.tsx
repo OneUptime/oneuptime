@@ -45,8 +45,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         serviceId: true,
         spanId: true,
         traceId: true,
-        severityText: true,
-        attributes: true
+        severityText: true
     };
 
     type GetQueryFunction = () => Query<Log>;

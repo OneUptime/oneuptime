@@ -24,14 +24,15 @@ import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import Includes from 'Common/Types/BaseDatabase/Includes';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database: ClickhouseDatabase;
     }) {
         this.modelType = data.modelType;
@@ -135,9 +136,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             records.push(record);
         }
 
-        const statement: string = `INSERT INTO ${
-            this.database.getDatasourceOptions().database
-        }.${this.model.tableName} 
+        const statement: string = `INSERT INTO ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName} 
         ( 
             ${columnNames.join(', ')}
         )
@@ -390,6 +390,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     }}`
                 );
             } else if (value instanceof Includes) {
+
                 whereStatement.append(
                     SQL`AND ${key} IN ${{
                         value: value,
@@ -398,6 +399,50 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 );
             } else if (value instanceof IsNull) {
                 whereStatement.append(SQL`AND ${key} IS NULL`);
+            } else if (tableColumn.type === TableColumnType.JSON && typeof value === "object") {
+
+
+                const flatValue = JSONFunctions.flattenObject(value);
+
+                for(const objKey in flatValue) {
+                    if(flatValue[objKey] === undefined) {
+                        continue;
+                    }
+
+                    if(flatValue[objKey] && typeof flatValue[objKey] === "string") {
+                        whereStatement.append(
+                            SQL`AND JSONExtractString(${key}, ${{
+                                value: key,
+                                type: TableColumnType.Text,
+                            }}) = ${{
+                                value: flatValue[objKey] as string,
+                                type: TableColumnType.Text,
+                            }}`
+                        );
+                        continue;
+                    }
+
+                    if(flatValue[objKey] && typeof flatValue[objKey] === "number") {
+                        whereStatement.append(
+                            SQL`AND JSONExtractInt(${key}, ${{
+                                value: key,
+                                type: TableColumnType.Text,
+                            }}) = ${{
+                                value: flatValue[objKey] as number,
+                                type: TableColumnType.Number,
+                            }}`
+                        );
+                        continue;
+                    }
+                }
+
+                whereStatement.append(
+                    SQL`AND ${key} = ${{
+                        value: JSON.stringify(value),
+                        type: tableColumn.type,
+                    }}`
+                );
+
             } else {
                 whereStatement.append(
                     SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
@@ -452,22 +497,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public getColumnTypesStatement(columnName: string): string {
-        return `SELECT type FROM system.columns WHERE table = '${
-            this.model.tableName
-        }' AND database = '${
-            this.database.getDatasourceOptions().database
-        }' AND name = '${columnName}'`;
+        return `SELECT type FROM system.columns WHERE table = '${this.model.tableName
+            }' AND database = '${this.database.getDatasourceOptions().database
+            }' AND name = '${columnName}'`;
     }
 
     public async toRenameColumnStatement(
         oldColumnName: string,
         newColumnName: string
     ): Promise<Statement> {
-        const statement: string = `ALTER TABLE ${
-            this.database.getDatasourceOptions().database
-        }.${
-            this.model.tableName
-        } RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
+        const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions().database
+            }.${this.model.tableName
+            } RENAME COLUMN IF EXISTS ${oldColumnName} TO ${newColumnName}`;
 
         return SQL`${statement}`;
     }
@@ -550,7 +591,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             [TableColumnType.Number]: SQL`Int32`,
             [TableColumnType.Decimal]: SQL`Double`,
             [TableColumnType.Date]: SQL`DateTime`,
-            [TableColumnType.JSON]: SQL`JSON`,
+            [TableColumnType.JSON]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
             [TableColumnType.NestedModel]: SQL`Nested`,
             [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
             [TableColumnType.ArrayText]: SQL`Array(String)`,
@@ -559,10 +600,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toDoesColumnExistStatement(columnName: string): string {
-        const statement: string = `SELECT name FROM system.columns WHERE table = '${
-            this.model.tableName
-        }' AND database = '${this.database.getDatasourceOptions()
-            .database!}' AND name = '${columnName}'`;
+        const statement: string = `SELECT name FROM system.columns WHERE table = '${this.model.tableName
+            }' AND database = '${this.database.getDatasourceOptions()
+                .database!}' AND name = '${columnName}'`;
 
         logger.info(`${this.model.tableName} Does Column Exist Statement`);
         logger.info(statement);
@@ -572,9 +612,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     public toAddColumnStatement(column: AnalyticsTableColumn): Statement {
         const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-            this.model.tableName
-        }
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName
+            }
             ADD COLUMN IF NOT EXISTS
         `.append(this.toColumnsCreateStatement([column], false));
 
@@ -586,9 +625,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     public toDropColumnStatement(columnName: string): string {
         const statement: string = `
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
-            this.model.tableName
-        } DROP COLUMN IF EXISTS ${columnName}`;
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName
+            } DROP COLUMN IF EXISTS ${columnName}`;
 
         logger.info(`${this.model.tableName} Drop Column Statement`);
         logger.info(statement);
