@@ -1,3 +1,4 @@
+import AddAttributeColumnToSpanAndLog from './AddAttributesColumnToSpanAndLog';
 import AddDefaultGlobalConfig from './AddDefaultGlobalConfig';
 import AddDowntimeMonitorStatusToStatusPage from './AddDowntimeMonitorStatusToStatusPage';
 import AddDurationColumnToSpanTable from './AddDurationColumnToSpanTable';
@@ -43,6 +44,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddStartDateToScheduledEventsStateTimeline(),
     new AddDurationColumnToSpanTable(),
     new ChangeLogSeverityColumnTypeFromTextToNumber(),
+    new AddAttributeColumnToSpanAndLog()
 ];
 
 export default DataMigrations;
