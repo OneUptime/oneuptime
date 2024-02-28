@@ -237,7 +237,6 @@ const Detail: (props: ComponentProps) => ReactElement = (
         }
 
         if (field.fieldType === FieldType.Markdown) {
-
             if (data) {
                 data = getMarkdownViewer(data as string);
             }
@@ -322,10 +321,10 @@ const Detail: (props: ComponentProps) => ReactElement = (
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                            width:
-                                100 / props.showDetailsInNumberOfColumns +
-                                '%',
-                        }
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
                         : { width: '100%' }
                 }
             >
@@ -353,8 +352,9 @@ const Detail: (props: ComponentProps) => ReactElement = (
 
     return (
         <div
-            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${props.showDetailsInNumberOfColumns || 1
-                } w-full`}
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+                props.showDetailsInNumberOfColumns || 1
+            } w-full`}
         >
             {props.fields &&
                 props.fields.length > 0 &&

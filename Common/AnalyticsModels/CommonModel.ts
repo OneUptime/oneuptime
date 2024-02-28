@@ -146,7 +146,7 @@ export default class CommonModel {
 
     public static fromJSON<T extends CommonModel>(
         json: JSONObject | JSONArray | CommonModel | Array<CommonModel>,
-        type: { new(): T }
+        type: { new (): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -172,7 +172,7 @@ export default class CommonModel {
 
     public static toJSON<T extends CommonModel>(
         model: T,
-        _modelType: { new(): T }
+        _modelType: { new (): T }
     ): JSONObject {
         return model.toJSON();
     }
@@ -217,7 +217,7 @@ export default class CommonModel {
 
     public static fromJSONArray<TBaseModel extends CommonModel>(
         jsonArray: Array<JSONObject | CommonModel>,
-        modelType: { new(): CommonModel }
+        modelType: { new (): CommonModel }
     ): Array<TBaseModel> {
         const models: Array<CommonModel> = [];
 
@@ -237,7 +237,7 @@ export default class CommonModel {
 
     public static toJSONArray(
         models: Array<CommonModel>,
-        modelType: { new(): CommonModel }
+        modelType: { new (): CommonModel }
     ): Array<JSONObject> {
         const json: Array<JSONObject> = [];
 

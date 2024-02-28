@@ -589,7 +589,7 @@ router.post(
                         );
 
                         // We need to convert this to date.
-                        dbLog.attributes =  OTelIngestService.getAttributes(
+                        dbLog.attributes = OTelIngestService.getAttributes(
                             log['attributes'] as JSONArray
                         );
 

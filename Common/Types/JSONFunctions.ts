@@ -220,11 +220,15 @@ export default class JSONFunctions {
         return JSON.parse(JSON.stringify(val));
     }
 
-
     public static flattenObject(val: JSONObject): JSONObject {
         const returnObj: JSONObject = {};
 
-        const flatten = (obj: JSONObject, prefix: string): void => {
+        type FlattenFunction = (obj: JSONObject, prefix: string) => void;
+
+        const flatten: FlattenFunction = (
+            obj: JSONObject,
+            prefix: string
+        ): void => {
             for (const key in obj) {
                 if (typeof obj[key] === Typeof.Object) {
                     flatten(obj[key] as JSONObject, `${prefix}${key}.`);

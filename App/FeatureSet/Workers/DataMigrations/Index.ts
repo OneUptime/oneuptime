@@ -44,7 +44,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddStartDateToScheduledEventsStateTimeline(),
     new AddDurationColumnToSpanTable(),
     new ChangeLogSeverityColumnTypeFromTextToNumber(),
-    new AddAttributeColumnToSpanAndLog()
+    new AddAttributeColumnToSpanAndLog(),
 ];
 
 export default DataMigrations;

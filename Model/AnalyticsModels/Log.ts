@@ -347,9 +347,7 @@ export default class Log extends AnalyticsBaseModel {
     }
 
     public get attributes(): JSONObject | undefined {
-        return this.getColumnValue('attributes') as
-            | JSONObject
-            | undefined;
+        return this.getColumnValue('attributes') as JSONObject | undefined;
     }
 
     public set attributes(v: JSONObject | undefined) {

@@ -17,7 +17,7 @@ export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
     }
 
     public async addAttributesColumnToLog(): Promise<void> {
-        // logs 
+        // logs
         const logsAttributesColumn: AnalyticsTableColumn | undefined =
             new Log().tableColumns.find((column: AnalyticsTableColumn) => {
                 return column.key === 'attributes';
@@ -37,7 +37,7 @@ export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
     }
 
     public async addAttributesColumnToSpan(): Promise<void> {
-        // spans 
+        // spans
 
         const spansAttributesColumn: AnalyticsTableColumn | undefined =
             new Span().tableColumns.find((column: AnalyticsTableColumn) => {

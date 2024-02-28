@@ -65,9 +65,7 @@ export class SpanEvent extends NestedModel {
     }
 
     public get attributes(): JSONObject | undefined {
-        return this.getColumnValue('attributes') as
-            | JSONObject
-            | undefined;
+        return this.getColumnValue('attributes') as JSONObject | undefined;
     }
 
     public set attributes(v: JSONObject | undefined) {
@@ -102,7 +100,6 @@ export class SpanLink extends NestedModel {
                     required: false,
                     type: TableColumnType.Text,
                 }),
-
             ],
         });
     }
@@ -673,9 +670,7 @@ export default class Span extends AnalyticsBaseModel {
     }
 
     public get attributes(): JSONObject | undefined {
-        return this.getColumnValue('attributes') as
-            | JSONObject
-            | undefined;
+        return this.getColumnValue('attributes') as JSONObject | undefined;
     }
 
     public set attributes(v: JSONObject | undefined) {
