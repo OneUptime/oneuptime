@@ -214,6 +214,17 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     {getCopyButton(props.log.spanId?.toString() || '')}
                 </div>
             )}
+
+            {props.log.attributes && (
+                <div className="flex">
+                    <div className="font-medium text-slate-200 courier-prime mr-2">
+                        ATTRIBUTES:
+                    </div>
+                    <div className={`${bodyColor} courier-prime`}>
+                        {JSON.stringify(props.log.attributes, null, 2)}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
