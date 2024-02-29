@@ -34,7 +34,7 @@
         "prop-types": "^15.8.1",
         "react": "^18.2.0",
         "react-beautiful-dnd": "^13.1.1",
-        "react-big-calendar": "^1.8.7",
+        "react-big-calendar": "^1.9.1",
         "react-color": "^2.19.3",
         "react-dom": "^18.1.0",
         "react-dropzone": "^14.2.2",
