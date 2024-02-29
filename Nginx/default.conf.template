@@ -300,7 +300,7 @@ server {
     
     listen 80 http2;
 
-    server_name localhost ${HOST}; #All domains
+    server_name localhost ingress ${HOST}; #All domains
 
     proxy_busy_buffers_size   512k;
     proxy_buffers   4 512k;
