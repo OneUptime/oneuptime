@@ -52,11 +52,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     type GetQueryFunction = () => Query<Log>;
 
     const getQuery: GetQueryFunction = (): Query<Log> => {
-        const query: Query<Log> = {
-            
-        };
+        const query: Query<Log> = {};
 
-        if(props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
+        if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
             query.serviceId = new Includes(props.telemetryServiceIds);
         }
 
