@@ -399,7 +399,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     }}`
                 );
             } else if (value instanceof IsNull) {
-                whereStatement.append(SQL`AND ${key} IS NULL`);
+                if(tableColumn.type === TableColumnType.Text) {
+                    whereStatement.append(SQL`AND (${key} IS NULL OR ${key} = '')`);
+                }else{
+                    whereStatement.append(SQL`AND ${key} IS NULL`);
+                }
             } else if (
                 tableColumn.type === TableColumnType.JSON &&
                 typeof value === 'object'
