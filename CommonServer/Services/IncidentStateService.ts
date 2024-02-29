@@ -10,6 +10,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import UpdateBy from '../Types/Database/UpdateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -154,6 +155,37 @@ export class Service extends DatabaseService<Model> {
                 },
             });
         }
+    }
+
+
+    public async getUnresolvedIncidentStates(projectId: ObjectID, props: DatabaseCommonInteractionProps): Promise<Model[]> {
+        const incidentStates = await this.findBy({
+            query: {
+                projectId: projectId,
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+            sort: {
+                order: SortOrder.Ascending
+            },
+            select: {
+                _id: true,
+                isResolvedState: true,
+            },
+            props: props
+        });
+
+        const unresolvedIncidentStates = [];
+
+        for(const state of incidentStates) {
+            if(!state.isResolvedState) {
+                unresolvedIncidentStates.push(state);
+            }else{
+                break; // everything after resolved state is resolved
+            }
+        }
+        
+        return unresolvedIncidentStates;
     }
 }
 export default new Service();

@@ -824,12 +824,23 @@ export default class StatusPageAPI extends BaseAPI<
                             };
                         }
 
+                        const unresolvedIncidentStates = await IncidentStateService.getUnresolvedIncidentStates(
+                            statusPage.projectId!,
+                            {
+                                isRoot: true,
+                            }
+                        );
+
+                        const unresolvedIncidentStateIds: Array<ObjectID> = unresolvedIncidentStates.map(
+                            (state: IncidentState) => {
+                                return state.id!;
+                            }
+                        );
+
                         activeIncidents = await IncidentService.findBy({
                             query: {
                                 monitors: monitorsOnStatusPage as any,
-                                currentIncidentState: {
-                                    isResolvedState: false,
-                                } as any,
+                                currentIncidentStateId: QueryHelper.in(unresolvedIncidentStateIds),
                                 projectId: statusPage.projectId!,
                             },
                             select: select,
