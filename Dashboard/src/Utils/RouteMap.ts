@@ -288,7 +288,7 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/user-profile/profile-picture`
     ),
 
-    [PageMap.ACTIVE_INCIDENTS]: new Route(`/dashboard/active-incidents`),
+    [PageMap.NEW_INCIDENTS]: new Route(`/dashboard/new-incidents`),
 
     [PageMap.PROJECT_INVITATIONS]: new Route(`/dashboard/project-invitations`),
 
@@ -1098,7 +1098,7 @@ export class RouteUtil {
                 RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() ||
             route.toString() ===
                 RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
-            route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()
+            route.toString() === RouteMap[PageMap.NEW_INCIDENTS]?.toString()
         ) {
             return true;
         }

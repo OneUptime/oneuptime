@@ -22,7 +22,7 @@ const Home: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <Page
-            title={'Active Incidents'}
+            title={'New Incidents'}
             breadcrumbLinks={[
                 {
                     title: 'Home',
@@ -31,16 +31,16 @@ const Home: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Active Incidents',
+                    title: 'New Incidents',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ACTIVE_INCIDENTS] as Route
+                        RouteMap[PageMap.NEW_INCIDENTS] as Route
                     ),
                 },
             ]}
         >
             <ModelTable<Incident>
                 modelType={Incident}
-                name="Active Incidents"
+                name="New Incidents"
                 id="incident-table"
                 isDeleteable={false}
                 query={{
@@ -61,13 +61,13 @@ const Home: FunctionComponent<PageComponentProps> = (
                 isCreateable={false}
                 isViewable={true}
                 cardProps={{
-                    title: 'Active Incidents',
+                    title: 'New Incidents',
                     description:
-                        'Here is a list of active incidents for all of the projects you are a part of.',
+                        'Here is a list of new incidents for all of the projects you are a part of.',
                 }}
                 noItemsMessage={'No incident found.'}
-                singularName="Active Incident"
-                pluralName="Active Incidents"
+                singularName="New Incident"
+                pluralName="New Incidents"
                 onViewPage={(item: Incident): Promise<Route> => {
                     return Promise.resolve(
                         new Route(

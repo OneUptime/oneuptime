@@ -11,13 +11,11 @@ import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import DashboardNavigation from '../../Utils/Navigation';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 import IncidentState from 'Model/Models/IncidentState';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import API from 'CommonUI/src/Utils/API/API';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Includes from 'Common/Types/BaseDatabase/Includes';
+import IncidentStateUtil from '../../Utils/IncidentState';
 
 export interface ComponentProps extends PageComponentProps {
     isLoadingProjects: boolean;
@@ -37,34 +35,7 @@ const Home: FunctionComponent<ComponentProps> = (
         setIsLoading(true);
 
         try {
-
-            const incidentStates = await ModelAPI.getList<IncidentState>({
-                modelType: IncidentState,
-                query: {
-                    projectId: DashboardNavigation.getProjectId()!,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                sort: {
-                    order: SortOrder.Ascending
-                },
-                select: {
-                    _id: true,
-                    isResolvedState: true,
-                }
-            });
-
-            const unresolvedIncidentStates = [];
-
-            for(const state of incidentStates.data) {
-                if(!state.isResolvedState) {
-                    unresolvedIncidentStates.push(state);
-                }else{
-                    break; // everything after resolved state is resolved
-                }
-            }
-
-            setUnresolvedIncidentStates(incidentStates.data);
+            setUnresolvedIncidentStates(await IncidentStateUtil.getUnresolvedIncidentStates(DashboardNavigation.getProjectId()!));
             setError('');
         } catch (err) {
             setError(API.getFriendlyMessage(err));

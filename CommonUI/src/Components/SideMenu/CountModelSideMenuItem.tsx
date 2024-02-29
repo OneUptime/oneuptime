@@ -53,6 +53,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
             });
 
             setCount(count);
+            setError('');
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -64,7 +65,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
         fetchCount().catch((err: Error) => {
             setError(API.getFriendlyMessage(err));
         });
-    }, []);
+    }, [props.countQuery]);
 
     return (
         <SideMenuItem

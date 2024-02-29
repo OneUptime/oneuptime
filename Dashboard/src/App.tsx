@@ -24,7 +24,7 @@ import {
     APP_API_URL,
 } from 'CommonUI/src/Config';
 
-import ActiveIncidents from './Pages/Global/ActiveIncidents';
+import ActiveIncidents from './Pages/Global/NewIncidents';
 import ProjectInvitations from './Pages/Global/ProjectInvitations';
 
 import SettingsDangerZone from './Pages/Settings/DangerZone';
@@ -454,12 +454,12 @@ const App: () => JSX.Element = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString() || ''}
+                    path={RouteMap[PageMap.NEW_INCIDENTS]?.toString() || ''}
                     element={
                         <ActiveIncidents
                             {...commonPageProps}
                             pageRoute={
-                                RouteMap[PageMap.ACTIVE_INCIDENTS] as Route
+                                RouteMap[PageMap.NEW_INCIDENTS] as Route
                             }
                         />
                     }

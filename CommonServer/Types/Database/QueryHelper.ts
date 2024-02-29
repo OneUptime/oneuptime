@@ -118,6 +118,15 @@ export default class QueryHelper {
         });
         const rid: string = Text.generateRandomText(10);
 
+        if(!values || values.length === 0){
+            return Raw(
+                () => {
+                    return `TRUE = FALSE`; // this will always return false
+                },
+                {}
+            );
+        }
+
         return Raw(
             (alias: string) => {
                 return `(${alias} IN (:...${rid}))`;

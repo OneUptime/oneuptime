@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
@@ -11,6 +11,9 @@ import Project from 'Model/Models/Project';
 import Monitor from 'Model/Models/Monitor';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
+import IncidentState from 'Model/Models/IncidentState';
+import Includes from 'Common/Types/BaseDatabase/Includes';
+import IncidentStateUtil from '../../Utils/IncidentState';
 
 export interface ComponentProps {
     project?: Project | undefined;
@@ -19,6 +22,25 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+
+    const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<Array<IncidentState>>([]);
+
+    const fetchIncidentStates = async () => {
+        try {
+            if (props.project?.id) {
+                const unresolvedIncidentStates = await IncidentStateUtil.getUnresolvedIncidentStates(props.project?.id);
+                setUnresolvedIncidentStates(unresolvedIncidentStates);
+            }
+        } catch (err) {
+            // maybe show an error message
+        }
+    };
+
+    useEffect(() => {
+        fetchIncidentStates();
+    }, []);
+
     return (
         <SideMenu>
             <SideMenuSection title="Incidents">
@@ -34,9 +56,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     modelType={Incident}
                     countQuery={{
                         projectId: props.project?._id,
-                        currentIncidentState: {
-                            isResolvedState: false,
-                        },
+                        currentIncidentStateId: new Includes(unresolvedIncidentStates.map((state) => state.id!)),
                     }}
                 />
             </SideMenuSection>
@@ -47,7 +67,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Inoperational',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                            PageMap.HOME_NOT_OPERATIONAL_MONITORS
                             ] as Route
                         ),
                     }}
@@ -69,8 +89,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Ongoing',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap
-                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                            PageMap
+                                .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                             ] as Route
                         ),
                     }}

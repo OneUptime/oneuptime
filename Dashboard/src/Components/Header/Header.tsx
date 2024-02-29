@@ -141,14 +141,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     },
                                 }}
                                 refreshToggle={activeIncidentToggleRefresh}
-                                singularName="Active Incident"
-                                pluralName="Active Incidents"
+                                singularName="New Incident"
+                                pluralName="New Incidents"
                                 requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
                                 onClick={() => {
                                     Navigation.navigate(
-                                        RouteMap[PageMap.ACTIVE_INCIDENTS]!
+                                        RouteMap[PageMap.NEW_INCIDENTS]!
                                     );
                                 }}
                             />
