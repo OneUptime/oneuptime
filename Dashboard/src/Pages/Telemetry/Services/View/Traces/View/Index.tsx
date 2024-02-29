@@ -47,7 +47,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
     const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);
-    const telemetryServiceId: ObjectID = Navigation.getLastParamAsObjectID(2);
 
     const [error, setError] = React.useState<string | null>(null);
 
@@ -504,7 +503,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 <DashboardLogsViewer
                     id={'traces-logs-viewer'}
                     noLogsMessage="No logs found for this trace."
-                    telemetryServiceIds={[telemetryServiceId]}
                     traceIds={[traceId]}
                     spanIds={selectedSpans}
                     enableRealtime={false}

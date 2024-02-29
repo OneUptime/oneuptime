@@ -22,7 +22,7 @@ import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     id: string;
-    telemetryServiceIds: Array<ObjectID>;
+    telemetryServiceIds?: Array<ObjectID> | undefined;
     enableRealtime?: boolean;
     traceIds?: Array<string>;
     spanIds?: Array<string>;
@@ -53,8 +53,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     const getQuery: GetQueryFunction = (): Query<Log> => {
         const query: Query<Log> = {
-            serviceId: new Includes(props.telemetryServiceIds),
+            
         };
+
+        if(props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
+            query.serviceId = new Includes(props.telemetryServiceIds);
+        }
 
         if (filterOptions.searchText) {
             query.body = new Search(filterOptions.searchText);
