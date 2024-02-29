@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Route from 'Common/Types/API/Route';
@@ -25,17 +30,21 @@ export interface ComponentProps extends PageComponentProps {
 const Home: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<Array<IncidentState>>([]);
+    const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
+        Array<IncidentState>
+    >([]);
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const fetchIncidentStates = async () => {
-
         setIsLoading(true);
 
         try {
-            setUnresolvedIncidentStates(await IncidentStateUtil.getUnresolvedIncidentStates(DashboardNavigation.getProjectId()!));
+            setUnresolvedIncidentStates(
+                await IncidentStateUtil.getUnresolvedIncidentStates(
+                    DashboardNavigation.getProjectId()!
+                )
+            );
             setError('');
         } catch (err) {
             setError(API.getFriendlyMessage(err));
@@ -47,17 +56,15 @@ const Home: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         if (!props.isLoadingProjects && props.projects.length === 0) {
             Navigation.navigate(RouteMap[PageMap.WELCOME] as Route);
-            return; 
-        } else {
-            UiAnalytics.capture('dashboard/home', {
-                projectId: DashboardNavigation.getProjectId()?.toString(),
-            });
+            return;
         }
-
-        fetchIncidentStates().catch((err) => {
-            setError(API.getFriendlyMessage(err));
+        UiAnalytics.capture('dashboard/home', {
+            projectId: DashboardNavigation.getProjectId()?.toString(),
         });
 
+        fetchIncidentStates().catch(err => {
+            setError(API.getFriendlyMessage(err));
+        });
     }, [props.projects]);
 
     return (
@@ -87,18 +94,25 @@ const Home: FunctionComponent<ComponentProps> = (
                 {isLoading && <PageLoader isVisible={true} />}
                 {error && <ErrorMessage error={error} />}
 
-                {!isLoading && !error && unresolvedIncidentStates.length > 0 && <IncidentsTable
-                    viewPageRoute={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENTS] as Route
-                    )}
-                    query={{
-                        projectId: DashboardNavigation.getProjectId()?.toString(),
-                        currentIncidentStateId: new Includes(unresolvedIncidentStates.map((state) => state.id!)),
-                    }}
-                    noItemsMessage="Nice work! No Active Incidents so far."
-                    title="Active Incidents"
-                    description="Here is a list of all the Active Incidents for this project."
-                />}
+                {!isLoading && !error && unresolvedIncidentStates.length > 0 && (
+                    <IncidentsTable
+                        viewPageRoute={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.INCIDENTS] as Route
+                        )}
+                        query={{
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                            currentIncidentStateId: new Includes(
+                                unresolvedIncidentStates.map((state) => {
+                                    return state.id!;
+                                })
+                            ),
+                        }}
+                        noItemsMessage="Nice work! No Active Incidents so far."
+                        title="Active Incidents"
+                        description="Here is a list of all the Active Incidents for this project."
+                    />
+                )}
             </div>
         </Page>
     );

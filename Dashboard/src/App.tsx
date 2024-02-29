@@ -458,9 +458,7 @@ const App: () => JSX.Element = () => {
                     element={
                         <ActiveIncidents
                             {...commonPageProps}
-                            pageRoute={
-                                RouteMap[PageMap.NEW_INCIDENTS] as Route
-                            }
+                            pageRoute={RouteMap[PageMap.NEW_INCIDENTS] as Route}
                         />
                     }
                 />

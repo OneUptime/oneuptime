@@ -824,23 +824,27 @@ export default class StatusPageAPI extends BaseAPI<
                             };
                         }
 
-                        const unresolvedIncidentStates = await IncidentStateService.getUnresolvedIncidentStates(
-                            statusPage.projectId!,
-                            {
-                                isRoot: true,
-                            }
-                        );
+                        const unresolvedIncidentStates =
+                            await IncidentStateService.getUnresolvedIncidentStates(
+                                statusPage.projectId!,
+                                {
+                                    isRoot: true,
+                                }
+                            );
 
-                        const unresolvedIncidentStateIds: Array<ObjectID> = unresolvedIncidentStates.map(
-                            (state: IncidentState) => {
-                                return state.id!;
-                            }
-                        );
+                        const unresolvedIncidentStateIds: Array<ObjectID> =
+                            unresolvedIncidentStates.map(
+                                (state: IncidentState) => {
+                                    return state.id!;
+                                }
+                            );
 
                         activeIncidents = await IncidentService.findBy({
                             query: {
                                 monitors: monitorsOnStatusPage as any,
-                                currentIncidentStateId: QueryHelper.in(unresolvedIncidentStateIds),
+                                currentIncidentStateId: QueryHelper.in(
+                                    unresolvedIncidentStateIds
+                                ),
                                 projectId: statusPage.projectId!,
                             },
                             select: select,
@@ -2312,14 +2316,27 @@ export default class StatusPageAPI extends BaseAPI<
 
             let activeIncidents: Array<Incident> = [];
 
+            const unresolvedIncidentStates: Array<IncidentState> =
+                await IncidentStateService.getUnresolvedIncidentStates(
+                    statusPage.projectId!,
+                    {
+                        isRoot: true,
+                    }
+                );
+
+            const unresolvbedIncidentStateIds: Array<ObjectID> =
+                unresolvedIncidentStates.map((state: IncidentState) => {
+                    return state.id!;
+                });
+
             // If there is no particular incident id to fetch then fetch active incidents.
             if (!incidentId) {
                 activeIncidents = await IncidentService.findBy({
                     query: {
                         monitors: monitorsOnStatusPage as any,
-                        currentIncidentState: {
-                            isResolvedState: false,
-                        } as any,
+                        currentIncidentStateId: QueryHelper.in(
+                            unresolvbedIncidentStateIds
+                        ),
                         projectId: statusPage.projectId!,
                     },
                     select: selectIncidents,

@@ -495,7 +495,7 @@ export default class ModelPermission {
                 query[key] = QueryHelper.greaterThan(
                     (query[key] as GreaterThan).toString() as any
                 ) as any;
-            }  else if (
+            } else if (
                 query[key] &&
                 query[key] instanceof Includes &&
                 tableColumnMetadata
