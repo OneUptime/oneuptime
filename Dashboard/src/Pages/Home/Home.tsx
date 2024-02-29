@@ -21,6 +21,7 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Includes from 'Common/Types/BaseDatabase/Includes';
 import IncidentStateUtil from '../../Utils/IncidentState';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps extends PageComponentProps {
     isLoadingProjects: boolean;
@@ -36,22 +37,23 @@ const Home: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const fetchIncidentStates = async () => {
-        setIsLoading(true);
+    const fetchIncidentStates: PromiseVoidFunction =
+        async (): Promise<void> => {
+            setIsLoading(true);
 
-        try {
-            setUnresolvedIncidentStates(
-                await IncidentStateUtil.getUnresolvedIncidentStates(
-                    DashboardNavigation.getProjectId()!
-                )
-            );
-            setError('');
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
+            try {
+                setUnresolvedIncidentStates(
+                    await IncidentStateUtil.getUnresolvedIncidentStates(
+                        DashboardNavigation.getProjectId()!
+                    )
+                );
+                setError('');
+            } catch (err) {
+                setError(API.getFriendlyMessage(err));
+            }
 
-        setIsLoading(false);
-    };
+            setIsLoading(false);
+        };
 
     useEffect(() => {
         if (!props.isLoadingProjects && props.projects.length === 0) {
@@ -62,7 +64,7 @@ const Home: FunctionComponent<ComponentProps> = (
             projectId: DashboardNavigation.getProjectId()?.toString(),
         });
 
-        fetchIncidentStates().catch(err => {
+        fetchIncidentStates().catch((err: Error) => {
             setError(API.getFriendlyMessage(err));
         });
     }, [props.projects]);
@@ -103,9 +105,11 @@ const Home: FunctionComponent<ComponentProps> = (
                             projectId:
                                 DashboardNavigation.getProjectId()?.toString(),
                             currentIncidentStateId: new Includes(
-                                unresolvedIncidentStates.map((state) => {
-                                    return state.id!;
-                                })
+                                unresolvedIncidentStates.map(
+                                    (state: IncidentState) => {
+                                        return state.id!;
+                                    }
+                                )
                             ),
                         }}
                         noItemsMessage="Nice work! No Active Incidents so far."

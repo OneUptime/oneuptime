@@ -824,7 +824,7 @@ export default class StatusPageAPI extends BaseAPI<
                             };
                         }
 
-                        const unresolvedIncidentStates =
+                        const unresolvedIncidentStates: Array<IncidentState> =
                             await IncidentStateService.getUnresolvedIncidentStates(
                                 statusPage.projectId!,
                                 {

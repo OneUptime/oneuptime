@@ -19,6 +19,7 @@ import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import IncidentState from 'Model/Models/IncidentState';
 import Includes from 'Common/Types/BaseDatabase/Includes';
 import IncidentStateUtil from '../../Utils/IncidentState';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     project?: Project | undefined;
@@ -31,22 +32,25 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         Array<IncidentState>
     >([]);
 
-    const fetchIncidentStates = async () => {
-        try {
-            if (props.project?.id) {
-                const unresolvedIncidentStates =
-                    await IncidentStateUtil.getUnresolvedIncidentStates(
-                        props.project?.id
-                    );
-                setUnresolvedIncidentStates(unresolvedIncidentStates);
+    const fetchIncidentStates: PromiseVoidFunction =
+        async (): Promise<void> => {
+            try {
+                if (props.project?.id) {
+                    const unresolvedIncidentStates: Array<IncidentState> =
+                        await IncidentStateUtil.getUnresolvedIncidentStates(
+                            props.project?.id
+                        );
+                    setUnresolvedIncidentStates(unresolvedIncidentStates);
+                }
+            } catch (err) {
+                // maybe show an error message
             }
-        } catch (err) {
-            // maybe show an error message
-        }
-    };
+        };
 
     useEffect(() => {
-        fetchIncidentStates();
+        fetchIncidentStates().catch((_err: Error) => {
+            // do nothing
+        });
     }, []);
 
     return (
@@ -65,9 +69,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     countQuery={{
                         projectId: props.project?._id,
                         currentIncidentStateId: new Includes(
-                            unresolvedIncidentStates.map((state) => {
-                                return state.id!;
-                            })
+                            unresolvedIncidentStates.map(
+                                (state: IncidentState) => {
+                                    return state.id!;
+                                }
+                            )
                         ),
                     }}
                 />

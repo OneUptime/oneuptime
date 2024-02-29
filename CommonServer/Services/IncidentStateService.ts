@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/IncidentState';
+import IncidentState from 'Model/Models/IncidentState';
 import DatabaseService from './DatabaseService';
 import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
@@ -12,14 +12,14 @@ import UpdateBy from '../Types/Database/UpdateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<IncidentState> {
     public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
+        super(IncidentState, postgresDatabase);
     }
 
     protected override async onBeforeCreate(
-        createBy: CreateBy<Model>
-    ): Promise<OnCreate<Model>> {
+        createBy: CreateBy<IncidentState>
+    ): Promise<OnCreate<IncidentState>> {
         if (!createBy.data.order) {
             throw new BadDataException('Incident State order is required');
         }
@@ -41,15 +41,15 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onBeforeDelete(
-        deleteBy: DeleteBy<Model>
-    ): Promise<OnDelete<Model>> {
+        deleteBy: DeleteBy<IncidentState>
+    ): Promise<OnDelete<IncidentState>> {
         if (!deleteBy.query._id && !deleteBy.props.isRoot) {
             throw new BadDataException(
                 '_id should be present when deleting incident states. Please try the delete with objectId'
             );
         }
 
-        let incidentState: Model | null = null;
+        let incidentState: IncidentState | null = null;
 
         if (!deleteBy.props.isRoot) {
             incidentState = await this.findOneBy({
@@ -71,11 +71,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onDeleteSuccess(
-        onDelete: OnDelete<Model>,
+        onDelete: OnDelete<IncidentState>,
         _itemIdsBeforeDelete: ObjectID[]
-    ): Promise<OnDelete<Model>> {
-        const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
-        const incidentState: Model | null = onDelete.carryForward;
+    ): Promise<OnDelete<IncidentState>> {
+        const deleteBy: DeleteBy<IncidentState> = onDelete.deleteBy;
+        const incidentState: IncidentState | null = onDelete.carryForward;
 
         if (!deleteBy.props.isRoot && incidentState) {
             if (
@@ -98,8 +98,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onBeforeUpdate(
-        updateBy: UpdateBy<Model>
-    ): Promise<OnUpdate<Model>> {
+        updateBy: UpdateBy<IncidentState>
+    ): Promise<OnUpdate<IncidentState>> {
         if (updateBy.data.order && !updateBy.props.isRoot) {
             throw new BadDataException(
                 'Incident State order should not be updated. Delete this incident state and create a new state with the right order.'
@@ -115,7 +115,7 @@ export class Service extends DatabaseService<Model> {
         increaseOrder: boolean = true
     ): Promise<void> {
         // get incident with this order.
-        const incidentStates: Array<Model> = await this.findBy({
+        const incidentStates: Array<IncidentState> = await this.findBy({
             query: {
                 order: QueryHelper.greaterThanEqualTo(currentOrder),
                 projectId: projectId,
@@ -160,8 +160,8 @@ export class Service extends DatabaseService<Model> {
     public async getUnresolvedIncidentStates(
         projectId: ObjectID,
         props: DatabaseCommonInteractionProps
-    ): Promise<Model[]> {
-        const incidentStates = await this.findBy({
+    ): Promise<IncidentState[]> {
+        const incidentStates: Array<IncidentState> = await this.findBy({
             query: {
                 projectId: projectId,
             },
@@ -177,7 +177,7 @@ export class Service extends DatabaseService<Model> {
             props: props,
         });
 
-        const unresolvedIncidentStates = [];
+        const unresolvedIncidentStates: Array<IncidentState> = [];
 
         for (const state of incidentStates) {
             if (!state.isResolvedState) {
