@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Route from 'Common/Types/API/Route';
@@ -10,6 +10,14 @@ import DashboardSideMenu from './SideMenu';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import DashboardNavigation from '../../Utils/Navigation';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
+import IncidentState from 'Model/Models/IncidentState';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import API from 'CommonUI/src/Utils/API/API';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Includes from 'Common/Types/BaseDatabase/Includes';
 
 export interface ComponentProps extends PageComponentProps {
     isLoadingProjects: boolean;
@@ -19,14 +27,66 @@ export interface ComponentProps extends PageComponentProps {
 const Home: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<Array<IncidentState>>([]);
+    const [error, setError] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+    const fetchIncidentStates = async () => {
+
+        setIsLoading(true);
+
+        try {
+
+            const incidentStates = await ModelAPI.getList<IncidentState>({
+                modelType: IncidentState,
+                query: {
+                    projectId: DashboardNavigation.getProjectId()!,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                sort: {
+                    order: SortOrder.Ascending
+                },
+                select: {
+                    _id: true,
+                    isResolvedState: true,
+                }
+            });
+
+            const unresolvedIncidentStates = [];
+
+            for(const state of incidentStates.data) {
+                if(!state.isResolvedState) {
+                    unresolvedIncidentStates.push(state);
+                }else{
+                    break; // everything after resolved state is resolved
+                }
+            }
+
+            setUnresolvedIncidentStates(incidentStates.data);
+            setError('');
+        } catch (err) {
+            setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+    };
+
     useEffect(() => {
         if (!props.isLoadingProjects && props.projects.length === 0) {
             Navigation.navigate(RouteMap[PageMap.WELCOME] as Route);
+            return; 
         } else {
             UiAnalytics.capture('dashboard/home', {
                 projectId: DashboardNavigation.getProjectId()?.toString(),
             });
         }
+
+        fetchIncidentStates().catch((err) => {
+            setError(API.getFriendlyMessage(err));
+        });
+
     }, [props.projects]);
 
     return (
@@ -52,20 +112,23 @@ const Home: FunctionComponent<ComponentProps> = (
                 />
             }
         >
-            <IncidentsTable
-                viewPageRoute={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.INCIDENTS] as Route
-                )}
-                query={{
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
-                    currentIncidentState: {
-                        isResolvedState: false,
-                    },
-                }}
-                noItemsMessage="Nice work! No Active Incidents so far."
-                title="Active Incidents"
-                description="Here is a list of all the Active Incidents for this project."
-            />
+            <div>
+                {isLoading && <PageLoader isVisible={true} />}
+                {error && <ErrorMessage error={error} />}
+
+                {!isLoading && !error && unresolvedIncidentStates.length > 0 && <IncidentsTable
+                    viewPageRoute={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENTS] as Route
+                    )}
+                    query={{
+                        projectId: DashboardNavigation.getProjectId()?.toString(),
+                        currentIncidentStateId: new Includes(unresolvedIncidentStates.map((state) => state.id!)),
+                    }}
+                    noItemsMessage="Nice work! No Active Incidents so far."
+                    title="Active Incidents"
+                    description="Here is a list of all the Active Incidents for this project."
+                />}
+            </div>
         </Page>
     );
 };

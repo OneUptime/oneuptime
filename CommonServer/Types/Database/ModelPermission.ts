@@ -38,6 +38,7 @@ import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedEx
 import UserType from 'Common/Types/UserType';
 import ColumnBillingAccessControl from 'Common/Types/BaseDatabase/ColumnBillingAccessControl';
 import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
+import Includes from 'Common/Types/BaseDatabase/Includes';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -493,6 +494,14 @@ export default class ModelPermission {
             ) {
                 query[key] = QueryHelper.greaterThan(
                     (query[key] as GreaterThan).toString() as any
+                ) as any;
+            }  else if (
+                query[key] &&
+                query[key] instanceof Includes &&
+                tableColumnMetadata
+            ) {
+                query[key] = QueryHelper.in(
+                    (query[key] as Includes).values
                 ) as any;
             } else if (
                 query[key] &&
