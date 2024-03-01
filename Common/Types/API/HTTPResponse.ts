@@ -12,7 +12,6 @@ export default class HTTPResponse<
         | Array<BaseModel>
         | AnalyticsBaseModel
         | Array<AnalyticsBaseModel>
-        | string
 > {
     private _statusCode: number = -1;
     public get statusCode(): number {
