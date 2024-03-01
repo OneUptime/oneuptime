@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/BillingInvoice';
+import Model, { InvoiceStatus } from 'Model/Models/BillingInvoice';
 import DatabaseService from './DatabaseService';
 import FindBy from '../Types/Database/FindBy';
 import { OnFind } from '../Types/Database/Hooks';
@@ -75,7 +75,7 @@ export class Service extends DatabaseService<Model> {
             billingInvoice.paymentProviderCustomerId = invoice.customerId || '';
             billingInvoice.paymentProviderSubscriptionId =
                 invoice.subscriptionId || '';
-            billingInvoice.status = invoice.status || '';
+            billingInvoice.status = invoice.status as InvoiceStatus || InvoiceStatus.Undefined;
             billingInvoice.paymentProviderInvoiceId = invoice.id;
 
             await this.create({

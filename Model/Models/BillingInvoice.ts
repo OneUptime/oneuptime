@@ -18,6 +18,16 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 import URL from 'Common/Types/API/URL';
 
+export enum InvoiceStatus {
+    Paid = 'paid',
+    Draft = 'draft',
+    Void = 'void',
+    Uncollectible = 'uncollectible',
+    Deleted = 'deleted',
+    Open = 'open',
+    Undefined = ''
+}
+
 @AllowAccessIfSubscriptionIsUnpaid()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -273,7 +283,7 @@ export default class BillingInvoice extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public status?: string = undefined;
+    public status?: InvoiceStatus = undefined;
 
     @ColumnAccessControl({
         create: [],

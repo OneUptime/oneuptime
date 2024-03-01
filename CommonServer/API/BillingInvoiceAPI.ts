@@ -1,7 +1,7 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import Permission, { UserPermission } from 'Common/Types/Permission';
-import BillingInvoice from 'Model/Models/BillingInvoice';
+import BillingInvoice, { InvoiceStatus } from 'Model/Models/BillingInvoice';
 import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import UserMiddleware from '../Middleware/UserAuthorization';
@@ -127,7 +127,7 @@ export default class UserAPI extends BaseAPI<
                             ignoreHooks: true,
                         },
                         data: {
-                            status: invoice.status,
+                            status: invoice.status as InvoiceStatus,
                         },
                     });
 

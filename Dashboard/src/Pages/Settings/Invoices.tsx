@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import Text from 'Common/Types/Text';
 import PageComponentProps from '../PageComponentProps';
-import BillingInvoice from 'Model/Models/BillingInvoice';
+import BillingInvoice, { InvoiceStatus } from 'Model/Models/BillingInvoice';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import URL from 'Common/Types/API/URL';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -131,7 +131,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             type: FieldType.Text,
                             isFilterable: true,
                             getElement: (item: JSONObject) => {
-                                if (item['status'] === 'paid') {
+                                if (item['status'] === InvoiceStatus.Paid) {
                                     return (
                                         <Pill
                                             text={Text.uppercaseFirstLetter(
@@ -177,8 +177,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                                             <></>
                                         )}
 
-                                        {item['status'] !== 'paid' &&
-                                        item['status'] !== 'draft' ? (
+                                        {item['status'] !==
+                                            InvoiceStatus.Paid &&
+                                        item['status'] !==
+                                            InvoiceStatus.Draft &&
+                                        item['status'] !== InvoiceStatus.Void &&
+                                        item['status'] !==
+                                            InvoiceStatus.Deleted ? (
                                             <Button
                                                 icon={IconProp.Billing}
                                                 onClick={async () => {
