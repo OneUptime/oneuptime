@@ -21,8 +21,6 @@ import BlogPostUtil, { BlogPost } from './Utils/BlogPost';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-
-
 //Routes
 
 app.get('/blog/:file', async (req: ExpressRequest, res: ExpressResponse) => {
@@ -37,11 +35,11 @@ app.get('/blog/:file', async (req: ExpressRequest, res: ExpressResponse) => {
             cta: true,
             blackLogo: false,
             requestDemoCta: false,
-            blogPost: blogPost
+            blogPost: blogPost,
         });
     } catch (e) {
         logger.error(e);
-        
+
         return res.redirect('/server-error');
     }
 });
@@ -553,11 +551,11 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
             const response:
                 | HTTPResponse<Array<JSONObject>>
                 | HTTPErrorResponse = await API.get<Array<JSONObject>>(
-                    URL.fromString(
-                        'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
+                URL.fromString(
+                    'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
                         pageNumber
-                    )
-                );
+                )
+            );
             pageNumber++;
             if ((response.data as Array<JSONObject>).length < 30) {
                 hasMoreContributors = false;
@@ -1011,7 +1009,6 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-
 app.get('/server-error', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(500);
     res.render(`${ViewsPath}/server-error.ejs`, {
@@ -1022,4 +1019,3 @@ app.get('/server-error', (_req: ExpressRequest, res: ExpressResponse) => {
         requestDemoCta: false,
     });
 });
-
