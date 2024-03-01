@@ -25,7 +25,7 @@ export enum InvoiceStatus {
     Uncollectible = 'uncollectible',
     Deleted = 'deleted',
     Open = 'open',
-    Undefined = ''
+    Undefined = '',
 }
 
 @AllowAccessIfSubscriptionIsUnpaid()
