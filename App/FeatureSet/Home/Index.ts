@@ -16,10 +16,36 @@ import { JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { StaticPath, ViewsPath } from './Utils/Config';
+import logger from 'CommonServer/Utils/Logger';
+import BlogPostUtil, { BlogPost } from './Utils/BlogPost';
 
 const app: ExpressApplication = Express.getExpressApp();
 
+
+
 //Routes
+
+app.get('/blog/:file', async (req: ExpressRequest, res: ExpressResponse) => {
+    try {
+        const fileName: string = req.params['file'] as string;
+
+        const blogPost: BlogPost = await BlogPostUtil.getBlogPost(fileName);
+
+        res.render(`${ViewsPath}/blog`, {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            blogPost: blogPost
+        });
+    } catch (e) {
+        logger.error(e);
+        
+        return res.redirect('/server-error');
+    }
+});
+
 app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render(`${ViewsPath}/index`, {
         support: false,
@@ -527,11 +553,11 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
             const response:
                 | HTTPResponse<Array<JSONObject>>
                 | HTTPErrorResponse = await API.get<Array<JSONObject>>(
-                URL.fromString(
-                    'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
+                    URL.fromString(
+                        'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
                         pageNumber
-                )
-            );
+                    )
+                );
             pageNumber++;
             if ((response.data as Array<JSONObject>).length < 30) {
                 hasMoreContributors = false;
@@ -984,3 +1010,16 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
         requestDemoCta: false,
     });
 });
+
+
+app.get('/server-error', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.status(500);
+    res.render(`${ViewsPath}/server-error.ejs`, {
+        footerCards: false,
+        support: false,
+        cta: false,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+

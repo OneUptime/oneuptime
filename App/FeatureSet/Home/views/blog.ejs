@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title><%= blogPost.title %></title>
+    <meta name="description"
+        content="<%= blogPost.description %>">
+    <%- include('head') -%>
+
+</head>
+
+<body>
+    <%- include('nav') -%>
+
+    <h1><%= blogPost.title %></h1>
+
+    <%= blogPost.htmlBody %>
+
+    <%- include('cta') -%>
+    <%- include('footer') -%>
+</body>
+
+</html>
