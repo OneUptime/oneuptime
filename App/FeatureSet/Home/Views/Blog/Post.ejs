@@ -8,11 +8,61 @@
         <%= blogPost.title %>
     </title>
     <meta name="description" content="<%= blogPost.description %>">
-    <%- include('../head') -%>
+    <%- include('../head-basic') -%>
+        <link rel="canonical" href="https://oneuptime.com/blog/post/<%= blogPost.fileName %>" />
+        <meta property="og:site_name" content="OneUptime | One Complete Observability platform.">
+        <meta property="og:type" content="article">
+        <meta property="og:title" content="<%= blogPost.title %>">
+        <meta property="og:description" content="<%= blogPost.description %>">
+        <meta property="og:url"
+            content="<%= blogPost.blogUrl %>">
+        <meta property="og:image"
+            content="<%= blogPost.socialMediaImageUrl %>">
+        <meta property="article:published_time" content="<%- blogPost.postDate -%>T00:00:00.000Z">
+        <meta property="article:modified_time" content="<%- blogPost.postDate -%>T00:00:00.000Z">
+        <meta property="article:publisher" content="https://www.facebook.com/OneUptime">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="<%= blogPost.title %>">
+        <meta name="twitter:description" content="<%= blogPost.description %>">
+        <meta name="twitter:url"
+            content="<%= blogPost.blogUrl %>">
+        <meta name="twitter:image"
+            content="<%= blogPost.socialMediaImageUrl %>">
+        <meta name="twitter:label1" content="Written by">
+        <meta name="twitter:data1" content="<%= blogPost.author.name %>">
+        <meta name="twitter:site" content="@OneUptimeHQ">
+        <meta property="og:image:width" content="1280">
+        <meta property="og:image:height" content="720">
+        <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "OneUptime",
+        "url": "https://oneuptime.com/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://oneuptime.com/img/OneUptimePNG/1.png",
+            "width": 60,
+            "height": 60
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "<%= blogPost.author.name %>",
+        "url": "<%= blogPost.author.githubUrl %>",
+        "sameAs": []
+    },
+    "headline": "<%= blogPost.title %>",
+    "url": "<%= blogPost.blogUrl %>",
+    "datePublished": "<%- blogPost.postDate -%>T00:00:00.000Z",
+    "dateModified": "<%- blogPost.postDate -%>T00:00:00.000Z",
+    "description": "<%- blogPost.description -%>",
+    "mainEntityOfPage": "<%= blogPost.blogUrl %>"
+}
+    </script>
 
-        <style>
-
-        </style>
 
 </head>
 
@@ -28,7 +78,7 @@
                         <h1 class="text-4xl font-bold tracking-tight text-gray-900">
                             <%= blogPost.title %>
                         </h1>
-                        <p class="mt-6 text-xl sm:text-2xl leading-8 text-gray-600">
+                        <p class="mt-2 text-xl sm:text-2xl leading-8 text-gray-600">
                             <%= blogPost.description %>
                         </p>
 
@@ -38,69 +88,78 @@
                         <%- blogPost.htmlBody -%>
                     </div>
 
-                    <% if(blogPost.tags.length > 0){ %>
-                    <div class="flex mt-10">
-                        <div class="space-x-1">
-                        <!-- Loop over blogPost.tags and show them here-->
-                        <% for(var i=0; i<blogPost.tags.length; i++) {%>
-                            <a href="/blog/tag/<%- blogPost.tags[i].replace(' ','-').toLowerCase() -%>">
-                            <div class="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
-                                <div class="absolute flex flex-shrink-0 items-center justify-center">
-                                    <div
-                                        class="h-1.5 w-1.5 rounded-full bg-indigo-500"
-                                        aria-hidden="true"
-                                    ></div>
-                                </div>
-                                <div class="ml-3.5 font-medium text-gray-900">
-                                    <%- blogPost.tags[i] -%>
-                                </div>
-                            </div>
-                            </a>
-                           
-                        <% } %>
-                    </div>
-                    </div>
-                    <% } %>
-
-                    <div class="bg-white my-10">
-                        <div class="">
-                            <ul role="list" class="">
-                                <li>
-                                    <a href="<%- blogPost.author.githubUrl -%>" target="_blank">
-                                        <div class="flex items-center gap-x-6">
-                                            <img class="h-12 w-12 rounded-full"
-                                                src="<%- blogPost.author.profileImageUrl -%>" alt="">
-                                            <div class="-ml-4">
-                                                <h3
-                                                    class="text-base font-semibold leading-7 tracking-tight text-gray-600">
-                                                    Written by <%- blogPost.author.name -%> on <%- blogPost.postDate -%>
-                                                </h3>
-                                                <p class="text-sm font-semibold leading-6 text-indigo-500 -mt-1">@<%-
-                                                        blogPost.author.username -%></p>
+                    <% if(blogPost.tags.length> 0){ %>
+                        <div class="flex mt-10">
+                            <div class="space-x-1">
+                                <!-- Loop over blogPost.tags and show them here-->
+                                <% for(var i=0; i<blogPost.tags.length; i++) {%>
+                                    <a href="/blog/tag/<%- blogPost.tags[i].replace(' ','-').toLowerCase() -%>">
+                                        <div
+                                            class="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
+                                            <div class="absolute flex flex-shrink-0 items-center justify-center">
+                                                <div class="h-1.5 w-1.5 rounded-full bg-indigo-500" aria-hidden="true">
+                                                </div>
+                                            </div>
+                                            <div class="ml-3.5 font-medium text-gray-900">
+                                                <%- blogPost.tags[i] -%>
                                             </div>
                                         </div>
                                     </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
 
-                    
-                        <div class="text-sm font-medium leading-6 text-gray-900 mt-24">Our commitment to open-source</div>
-                        <div class="mt-2 text-sm text-gray-900">
-                          <ul role="list" class="divide-y divide-gray-100 rounded-md border border-gray-200">
-                            <li class="flex items-center justify-between py-4 pl-4 pr-5 text-sm leading-6">
-                              <div class="flex w-0 flex-1 items-center">
-                                
-                                <div class="ml-4 flex min-w-0 flex-1 gap-2">
-                                  <span>Everything we do at OneUptime is 100% open-source, including this blog post. You can make edits to this post and improve it <a class="underline" target="_blank" href="https://github.com/oneuptime/blog/tree/master/posts/<%- blogPost.fileName -%>">here</a>. <br/> You can even contribute by writing a post just like this. Please check contributing guidelines <a class="underline" target="_blank" href="https://github.com/oneuptime/blog">here</a></span>
-                                </div>
-                              </div>
-                            </li>
-                            
-                          </ul>
+                                    <% } %>
+                            </div>
                         </div>
-                    
+                        <% } %>
+
+                            <div class="bg-white my-10 mt-20">
+                                <div class="">
+                                    <ul role="list" class="">
+                                        <li>
+                                            <a href="<%- blogPost.author.githubUrl -%>" target="_blank">
+                                                <div class="flex items-center gap-x-6">
+                                                    <img class="h-12 w-12 rounded-full"
+                                                        src="<%- blogPost.author.profileImageUrl -%>" alt="">
+                                                    <div class="-ml-4">
+                                                        <h3
+                                                            class="text-base font-medium leading-7 tracking-tight text-gray-600">
+                                                            <span class="text-gray-400">By</span> <%-
+                                                                blogPost.author.name -%> <span class="text-gray-400"> on
+                                                                    <%- blogPost.formattedPostDate -%></span>
+                                                        </h3>
+                                                        <p class="text-sm font-medium leading-6 text-indigo-500 -mt-1">
+                                                            @<%- blogPost.author.username -%></p>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+
+                            <div class="text-sm font-medium leading-6 text-gray-900 mt-24">Our Commitment to Open Source
+                            </div>
+                            <div class="mt-2 text-sm text-gray-900">
+                                <ul role="list" class="divide-y divide-gray-100 rounded-md border border-gray-200">
+                                    <li class="flex items-center justify-between py-4 pl-4 pr-5 text-sm leading-6">
+                                        <div class="flex w-0 flex-1 items-center">
+
+                                            <div class="ml-4 flex min-w-0 flex-1 gap-2">
+                                                <span>Everything we do at OneUptime is 100% open-source, including this
+                                                    blog post. You can make edits to this post and improve it <a
+                                                        class="underline" target="_blank"
+                                                        href="https://github.com/oneuptime/blog/tree/master/posts/<%- blogPost.fileName -%>">here</a>.
+                                                    <br /> You can even contribute by writing a post just like this.
+                                                    Please check contributing guidelines <a class="underline"
+                                                        target="_blank"
+                                                        href="https://github.com/oneuptime/blog">here</a></span>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                </ul>
+                            </div>
+
 
 
 

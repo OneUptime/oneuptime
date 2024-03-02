@@ -27,6 +27,9 @@ export interface BlogPost {
     fileName: string;
     tags: string[];
     postDate: string;
+    formattedPostDate: string;
+    socialMediaImageUrl: string;
+    blogUrl: string;
 }
 
 const GitHubRawUrl = 'https://raw.githubusercontent.com/oneuptime/blog/master'
@@ -146,6 +149,7 @@ export default class BlogPostUtil {
         );
 
         const postDate = this.getPostDateFromFileName(fileName);
+        const formattedPostDate = this.getFormattedPostDateFromFileName(fileName);
 
         const fileData:
             | HTTPResponse<
@@ -193,12 +197,28 @@ export default class BlogPostUtil {
             markdownBody: markdownContent,
             fileName,
             tags,
-            postDate: postDate,
+            postDate,
+            formattedPostDate,
+            socialMediaImageUrl: `${GitHubRawUrl}/posts/${fileName}/social-media.png`,
+            blogUrl: `https://oneuptime.com/blog/post/${fileName}`,
         };
 
         return blogPost;
     }
+
     static getPostDateFromFileName(fileName: string): string {
+        const year = fileName.split('-')[0];
+        const month = fileName.split('-')[1];
+        const day = fileName.split('-')[2];
+
+        if(!year || !month || !day) {
+            throw new BadDataException('Invalid file name');
+        }
+
+        return `${year}-${month}-${day}`;
+    }
+
+    static getFormattedPostDateFromFileName(fileName: string): string {
         // file name is of the format YYYY-MM-DD-Title.md
         const year = fileName.split('-')[0];
         const month = fileName.split('-')[1];

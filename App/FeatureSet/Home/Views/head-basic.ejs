@@ -1,0 +1,120 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+<style>
+    * {
+        font-family: Inter;
+    }
+
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+    }
+</style>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Google Tag Manager -->
+<script>(function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({
+            'gtm.start':
+                new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
+<!-- End Google Tag Manager -->
+
+
+<style>
+    .async-hide {
+        opacity: 0 !important
+    }
+</style>
+
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_lrbfSHsDc1YOhfbabPI8ncLCKz8eqeGdmu0O6IRKaz1',{api_host:'https://eu.posthog.com', autocapture: false})
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        //check if utm_source is present in the URL and save it to localstorage. 
+
+        if(posthog){
+            posthog.capture('home/page_view', {
+                'page': {
+                    'path': window.location.pathname,
+                    'referrer': document.referrer,
+                    'search': window.location.search,
+                    'url': window.location.href,
+                    'title': document.title,
+                }
+            });
+        }
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var utm_source = urlParams.get('utm_source');
+        var utm_medium = urlParams.get('utm_medium');
+        var utm_campaign = urlParams.get('utm_campaign');
+        var utm_term = urlParams.get('utm_term');
+        var utm_content = urlParams.get('utm_content');
+        var utm_url = window.location.href;
+
+        if (utm_source != null) {
+            localStorage.setItem('utmSource', utm_source);
+            localStorage.setItem('utmMedium', utm_medium);
+            localStorage.setItem('utmCampaign', utm_campaign);
+            localStorage.setItem('utmTerm', utm_term);
+            localStorage.setItem('utmContent', utm_content);
+            localStorage.setItem('utmUrl', utm_url);
+
+            if (posthog) {
+                posthog.capture('home/utm_event', {
+                    utm_source: utm_source,
+                    utm_medium: utm_medium,
+                    utm_campaign: utm_campaign,
+                    utm_term: utm_term,
+                    utm_content: utm_content,
+                    utm_url: utm_url
+                })
+            }
+        }
+    });
+</script>
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="shortcut icon" href="/img/favicons/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/img/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/favicons/favicon-16x16.png">
+<link rel="mask-icon" href="/img/favicons/safari-pinned-tab.svg" color="#32335b">
+<meta name="msapplication-TileColor" content="#32335b">
+<link rel="apple-touch-icon-precomposed" href="/img/ou-wb.svg">
+<link rel="icon" href="/img/ou-wb.svg">
+<link rel="image_src" type="image/png" href="/img/hou-wb.svg">
+<link rel="canonical" href="/">
+<link rel="manifest" href="/manifest.json">
