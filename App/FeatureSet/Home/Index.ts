@@ -19,6 +19,9 @@ import { StaticPath, ViewsPath } from './Utils/Config';
 import NotFoundUtil from './Utils/NotFound';
 import ServerErrorUtil from './Utils/ServerError';
 
+// improt API
+import './API/BlogAPI';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 //Routes

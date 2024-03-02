@@ -8,11 +8,14 @@ import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export interface BlogPostAuthor {
     username: string;
     githubUrl: string;
     profileImageUrl: string;
+    name: string;
 }
 
 export interface BlogPost {
@@ -23,6 +26,7 @@ export interface BlogPost {
     markdownBody: string;
     fileName: string;
     tags: string[];
+    postDate: string;
 }
 
 const GitHubRawUrl = 'https://raw.githubusercontent.com/oneuptime/blog/master'
@@ -45,6 +49,30 @@ export default class BlogPostUtil {
         );
 
         return blogPost;
+    }
+
+
+    public static async getNameOfGitHubUser(username: string): Promise<string> {
+        const fileUrl: URL = URL.fromString(
+            `https://api.github.com/users/${username}`
+        );
+
+        const fileData:
+            | HTTPResponse<
+                | JSONObjectOrArray
+                | BaseModel
+                | BaseModel[]
+                | AnalyticsBaseModel
+                | AnalyticsBaseModel[]
+            >
+            | HTTPErrorResponse = await API.get(fileUrl);
+
+        if (fileData.isFailure()) {
+            throw fileData as HTTPErrorResponse;
+        }
+
+        let name: string = (fileData.data as JSONObject)?.['name']?.toString() || '';
+        return name;
     }
 
 
@@ -117,6 +145,8 @@ export default class BlogPostUtil {
             `${GitHubRawUrl}/posts/${fileName}/README.md`
         );
 
+        const postDate = this.getPostDateFromFileName(fileName);
+
         const fileData:
             | HTTPResponse<
                 | JSONObjectOrArray
@@ -140,7 +170,7 @@ export default class BlogPostUtil {
             (fileData.data as JSONObject)?.['data']?.toString() || '';
 
         const blogPostAuthor: BlogPostAuthor | null =
-            this.getAuthorFromFileContent(markdownContent);
+            await this.getAuthorFromFileContent(markdownContent);
 
         const title = this.getTitleFromFileContent(markdownContent);
         const description = this.getDescriptionFromFileContent(markdownContent);
@@ -162,10 +192,24 @@ export default class BlogPostUtil {
             htmlBody,
             markdownBody: markdownContent,
             fileName,
-            tags
+            tags,
+            postDate: postDate,
         };
 
         return blogPost;
+    }
+    static getPostDateFromFileName(fileName: string): string {
+        // file name is of the format YYYY-MM-DD-Title.md
+        const year = fileName.split('-')[0];
+        const month = fileName.split('-')[1];
+        const day = fileName.split('-')[2];
+
+        if(!year || !month || !day) {
+            throw new BadDataException('Invalid file name');
+        }
+
+        const date = OneUptimeDate.getDateFromYYYYMMDD(year, month, day);
+        return OneUptimeDate.getDateAsLocalFormattedString(date, true);
     }
 
     static getBlogRenderer() {
@@ -306,9 +350,9 @@ export default class BlogPostUtil {
         return descriptionLine;
     }
 
-    public static getAuthorFromFileContent(
+    public static async getAuthorFromFileContent(
         fileContent: string
-    ): BlogPostAuthor | null {
+    ): Promise<BlogPostAuthor | null> {
         // author line is in this format: Author: [username](githubUrl)
 
         const authorLine: string | undefined = fileContent
@@ -332,6 +376,7 @@ export default class BlogPostUtil {
             username: authorUsername,
             githubUrl: authorGitHubUrl,
             profileImageUrl: authorProfileImageUrl,
+            name: await this.getNameOfGitHubUser(authorUsername),
         };
     }
 }

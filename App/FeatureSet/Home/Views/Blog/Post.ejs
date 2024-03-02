@@ -8,22 +8,22 @@
         <%= blogPost.title %>
     </title>
     <meta name="description" content="<%= blogPost.description %>">
-    <%- include('head') -%>
+    <%- include('../head') -%>
 
-    <style>
+        <style>
 
-    </style>
+        </style>
 
 </head>
 
 
 <body>
-    <%- include('nav') -%>
+    <%- include('../nav') -%>
 
         <div class="relative isolate overflow-hidden bg-white">
             <div class="py-24 sm:py-32">
                 <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                    <div class="mx-auto max-w-2xl text-center mb-36">
+                    <div class="mx-auto max-w-2xl text-center mb-24">
 
                         <h1 class="text-4xl font-bold tracking-tight text-gray-900">
                             <%= blogPost.title %>
@@ -38,14 +38,82 @@
                         <%- blogPost.htmlBody -%>
                     </div>
 
+                    <% if(blogPost.tags.length > 0){ %>
+                    <div class="flex mt-10">
+                        <div class="space-x-1">
+                        <!-- Loop over blogPost.tags and show them here-->
+                        <% for(var i=0; i<blogPost.tags.length; i++) {%>
+                            <a href="/blog/tag/<%- blogPost.tags[i].replace(' ','-').toLowerCase() -%>">
+                            <div class="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
+                                <div class="absolute flex flex-shrink-0 items-center justify-center">
+                                    <div
+                                        class="h-1.5 w-1.5 rounded-full bg-indigo-500"
+                                        aria-hidden="true"
+                                    ></div>
+                                </div>
+                                <div class="ml-3.5 font-medium text-gray-900">
+                                    <%- blogPost.tags[i] -%>
+                                </div>
+                            </div>
+                            </a>
+                           
+                        <% } %>
+                    </div>
+                    </div>
+                    <% } %>
+
+                    <div class="bg-white my-10">
+                        <div class="">
+                            <ul role="list" class="">
+                                <li>
+                                    <a href="<%- blogPost.author.githubUrl -%>" target="_blank">
+                                        <div class="flex items-center gap-x-6">
+                                            <img class="h-12 w-12 rounded-full"
+                                                src="<%- blogPost.author.profileImageUrl -%>" alt="">
+                                            <div class="-ml-4">
+                                                <h3
+                                                    class="text-base font-semibold leading-7 tracking-tight text-gray-600">
+                                                    Written by <%- blogPost.author.name -%> on <%- blogPost.postDate -%>
+                                                </h3>
+                                                <p class="text-sm font-semibold leading-6 text-indigo-500 -mt-1">@<%-
+                                                        blogPost.author.username -%></p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    
+                        <div class="text-sm font-medium leading-6 text-gray-900 mt-24">Our commitment to open-source</div>
+                        <div class="mt-2 text-sm text-gray-900">
+                          <ul role="list" class="divide-y divide-gray-100 rounded-md border border-gray-200">
+                            <li class="flex items-center justify-between py-4 pl-4 pr-5 text-sm leading-6">
+                              <div class="flex w-0 flex-1 items-center">
+                                
+                                <div class="ml-4 flex min-w-0 flex-1 gap-2">
+                                  <span>Everything we do at OneUptime is 100% open-source, including this blog post. You can make edits to this post and improve it <a class="underline" target="_blank" href="https://github.com/oneuptime/blog/tree/master/posts/<%- blogPost.fileName -%>">here</a>. <br/> You can even contribute by writing a post just like this. Please check contributing guidelines <a class="underline" target="_blank" href="https://github.com/oneuptime/blog">here</a></span>
+                                </div>
+                              </div>
+                            </li>
+                            
+                          </ul>
+                        </div>
+                    
+
+
+
                 </div>
             </div>
 
         </div>
 
 
-        <%- include('cta') -%>
-            <%- include('footer') -%>
+
+
+        <%- include('./BlogCta') -%>
+            <%- include('../footer') -%>
 </body>
 
 </html>

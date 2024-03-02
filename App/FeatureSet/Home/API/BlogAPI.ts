@@ -39,7 +39,7 @@ app.get('/blog/tag/:tagName', async (req: ExpressRequest, res: ExpressResponse) 
     try {
         const fileName: string = req.params['file'] as string;
 
-        const blogPost: BlogPost = await BlogPostUtil.getBlogPost(fileName);
+        const blogPost: BlogPost | null = await BlogPostUtil.getBlogPost(fileName);
 
         res.render(`${ViewsPath}/Blog/ListByTag`, {
             support: false,
@@ -60,7 +60,7 @@ app.get('/blog', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const fileName: string = req.params['file'] as string;
 
-        const blogPost: BlogPost = await BlogPostUtil.getBlogPost(fileName);
+        const blogPost: BlogPost | null  = await BlogPostUtil.getBlogPost(fileName);
 
         res.render(`${ViewsPath}/Blog/List`, {
             support: false,

@@ -12,6 +12,10 @@ export default class OneUptimeDate {
         return seconds * 1000 * 1000 * 1000;
     }
 
+    public static getDateFromYYYYMMDD(year: string, month: string, day: string): Date {
+        return moment(`${year}-${month}-${day}`).toDate();
+    }
+
     public getMicroSecondsFromSeconds(seconds: number): number {
         return seconds * 1000 * 1000;
     }
