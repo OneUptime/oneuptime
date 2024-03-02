@@ -16,34 +16,10 @@ import { JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { StaticPath, ViewsPath } from './Utils/Config';
-import logger from 'CommonServer/Utils/Logger';
-import BlogPostUtil, { BlogPost } from './Utils/BlogPost';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 //Routes
-
-app.get('/blog/:file', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const fileName: string = req.params['file'] as string;
-
-        const blogPost: BlogPost = await BlogPostUtil.getBlogPost(fileName);
-
-        res.render(`${ViewsPath}/blog`, {
-            support: false,
-            footerCards: true,
-            cta: true,
-            blackLogo: false,
-            requestDemoCta: false,
-            blogPost: blogPost,
-        });
-    } catch (e) {
-        logger.error(e);
-
-        return res.redirect('/server-error');
-    }
-});
-
 app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render(`${ViewsPath}/index`, {
         support: false,
