@@ -22,10 +22,13 @@ export interface BlogPost {
     htmlBody: string;
     markdownBody: string;
     fileName: string;
+    tags: string[];
 }
 
+const GitHubRawUrl = 'https://raw.githubusercontent.com/oneuptime/blog/master'
+
 export default class BlogPostUtil {
-    public static async getBlogPost(fileName: string): Promise<BlogPost> {
+    public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
         let blogPost: BlogPost | null = this.getBlogPostFromCache(fileName);
 
         // if (blogPost) {
@@ -44,24 +47,92 @@ export default class BlogPostUtil {
         return blogPost;
     }
 
-    public static async getBlogPostFromGitHub(
-        fileName: string
-    ): Promise<BlogPost> {
+
+    public static async getGitHubMarkdownFileContent(githubPath: string): Promise<string | null> {
         const fileUrl: URL = URL.fromString(
-            `https://raw.githubusercontent.com/oneuptime/blog/master/posts/${fileName}/README.md`
+            `${GitHubRawUrl}/${githubPath}`
         );
 
         const fileData:
             | HTTPResponse<
-                  | JSONObjectOrArray
-                  | BaseModel
-                  | BaseModel[]
-                  | AnalyticsBaseModel
-                  | AnalyticsBaseModel[]
-              >
+                | JSONObjectOrArray
+                | BaseModel
+                | BaseModel[]
+                | AnalyticsBaseModel
+                | AnalyticsBaseModel[]
+            >
             | HTTPErrorResponse = await API.get(fileUrl);
 
         if (fileData.isFailure()) {
+
+            if ((fileData as HTTPErrorResponse).statusCode === 404) {
+                return null;
+            }
+
+            throw fileData as HTTPErrorResponse;
+        }
+
+        let markdownContent: string = (fileData.data as JSONObject)?.['data']?.toString() || '';
+        return markdownContent;
+    }
+
+    public static async getTags(): Promise<string[]> {
+        // check if tags are in cache
+        let tags: string[] = LocalCache.getJSON('blog-tags', 'tags') as string[];
+
+        if (tags && tags.length > 0) {
+            return tags;
+        }
+
+        tags = await this.getAllTagsFromGitHub();
+
+        // save this to cache
+
+        LocalCache.setJSON(
+            'blog-tags',
+            'tags',
+            JSONFunctions.serialize(tags as any)
+        );
+
+        return tags;
+    }
+
+    public static async getAllTagsFromGitHub(): Promise<string[]> {
+
+        const tagsMarkdownContent = await this.getGitHubMarkdownFileContent('Tags.md');
+
+        if (!tagsMarkdownContent) {
+            return [];
+        }
+
+        const tags = tagsMarkdownContent.split('\n').map((tag: string) => tag.trim()).filter((tag: string) => tag.startsWith('-')).map((tag: string) => tag.replace('-', '').trim());
+
+        return tags;
+    }
+
+    public static async getBlogPostFromGitHub(
+        fileName: string
+    ): Promise<BlogPost | null> {
+        const fileUrl: URL = URL.fromString(
+            `${GitHubRawUrl}/posts/${fileName}/README.md`
+        );
+
+        const fileData:
+            | HTTPResponse<
+                | JSONObjectOrArray
+                | BaseModel
+                | BaseModel[]
+                | AnalyticsBaseModel
+                | AnalyticsBaseModel[]
+            >
+            | HTTPErrorResponse = await API.get(fileUrl);
+
+        if (fileData.isFailure()) {
+
+            if ((fileData as HTTPErrorResponse).statusCode === 404) {
+                return null;
+            }
+
             throw fileData as HTTPErrorResponse;
         }
 
@@ -73,9 +144,10 @@ export default class BlogPostUtil {
 
         const title = this.getTitleFromFileContent(markdownContent);
         const description = this.getDescriptionFromFileContent(markdownContent);
+        const tags = this.getTagsFromFileContent(markdownContent);
 
         markdownContent =
-            this.removeAuthorTitleAndDescriptionFromMarkdown(markdownContent);
+            this.getPostFromMarkdown(markdownContent);
 
         const renderer = this.getBlogRenderer();
 
@@ -90,6 +162,7 @@ export default class BlogPostUtil {
             htmlBody,
             markdownBody: markdownContent,
             fileName,
+            tags
         };
 
         return blogPost;
@@ -130,7 +203,7 @@ export default class BlogPostUtil {
         return renderer;
     }
 
-    static removeAuthorTitleAndDescriptionFromMarkdown(
+    static getPostFromMarkdown(
         markdownContent: string
     ) {
         const authorLine: string | undefined = markdownContent
@@ -145,10 +218,16 @@ export default class BlogPostUtil {
             });
         const descriptionLine: string | undefined =
             markdownContent.split('\n').find((line: string) => {
-                return line.startsWith('>');
+                return line.startsWith('Description:');
             }) || '';
 
-        if (!authorLine || !titleLine || !descriptionLine) {
+        const tagsLine: string | undefined =
+            markdownContent.split('\n').find((line: string) => {
+                return line.startsWith('Tags:');
+            }) || '';
+
+
+        if (!authorLine && !titleLine && !descriptionLine && !tagsLine) {
             return markdownContent;
         }
 
@@ -169,7 +248,12 @@ export default class BlogPostUtil {
             lines.splice(descriptionLineIndex, 1);
         }
 
-        return lines.join('\n');
+        if(tagsLine) {
+            const tagsLineIndex: number = lines.indexOf(tagsLine);
+            lines.splice(tagsLineIndex, 1);
+        }
+
+        return lines.join('\n').trim();
     }
 
     public static getBlogPostFromCache(fileName: string): BlogPost | null {
@@ -194,6 +278,20 @@ export default class BlogPostUtil {
         return titleLine;
     }
 
+    public static getTagsFromFileContent(fileContent: string): string[] {
+        // tags is the first line that starts with "Tags:"
+
+        const tagsLine: string | undefined =
+            fileContent
+                .split('\n')
+                .find((line: string) => {
+                    return line.startsWith('Tags:');
+                })
+                ?.replace('Tags:', '') || '';
+
+        return tagsLine.split(',').map((tag: string) => tag.trim());
+    }
+
     public static getDescriptionFromFileContent(fileContent: string): string {
         // description is the first line that starts with ">"
 
@@ -201,9 +299,9 @@ export default class BlogPostUtil {
             fileContent
                 .split('\n')
                 .find((line: string) => {
-                    return line.startsWith('>');
+                    return line.startsWith('Description:');
                 })
-                ?.replace('>', '') || '';
+                ?.replace('Description:', '') || '';
 
         return descriptionLine;
     }

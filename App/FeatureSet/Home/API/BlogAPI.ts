@@ -3,6 +3,8 @@ import BlogPost from "../Utils/BlogPost";
 import BlogPostUtil from "../Utils/BlogPost";
 import { ViewsPath } from "../Utils/Config";
 import logger from 'CommonServer/Utils/Logger';
+import ServerErrorUtil from "../Utils/ServerError";
+import NotFoundUtil from "../Utils/NotFound";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -10,9 +12,13 @@ app.get('/blog/post/:file', async (req: ExpressRequest, res: ExpressResponse) =>
     try {
         const fileName: string = req.params['file'] as string;
 
-        const blogPost: BlogPost = await BlogPostUtil.getBlogPost(fileName);
+        const blogPost: BlogPost | null = await BlogPostUtil.getBlogPost(fileName);
 
-        res.render(`${ViewsPath}/blog`, {
+        if(!blogPost) {
+            return NotFoundUtil.renderNotFound(res);
+        }
+
+        res.render(`${ViewsPath}/Blog/Post`, {
             support: false,
             footerCards: true,
             cta: true,
@@ -20,9 +26,10 @@ app.get('/blog/post/:file', async (req: ExpressRequest, res: ExpressResponse) =>
             requestDemoCta: false,
             blogPost: blogPost,
         });
+
     } catch (e) {
         logger.error(e);
-        return res.redirect('/server-error');
+        return ServerErrorUtil.rednerServerError(res);
     }
 });
 
@@ -34,7 +41,7 @@ app.get('/blog/tag/:tagName', async (req: ExpressRequest, res: ExpressResponse) 
 
         const blogPost: BlogPost = await BlogPostUtil.getBlogPost(fileName);
 
-        res.render(`${ViewsPath}/blog`, {
+        res.render(`${ViewsPath}/Blog/ListByTag`, {
             support: false,
             footerCards: true,
             cta: true,
@@ -55,7 +62,7 @@ app.get('/blog', async (req: ExpressRequest, res: ExpressResponse) => {
 
         const blogPost: BlogPost = await BlogPostUtil.getBlogPost(fileName);
 
-        res.render(`${ViewsPath}/blog`, {
+        res.render(`${ViewsPath}/Blog/List`, {
             support: false,
             footerCards: true,
             cta: true,
