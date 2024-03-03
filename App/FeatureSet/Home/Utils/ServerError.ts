@@ -1,5 +1,5 @@
-import { ExpressResponse } from "CommonServer/Utils/Express";
-import { ViewsPath } from "./Config";
+import { ExpressResponse } from 'CommonServer/Utils/Express';
+import { ViewsPath } from './Config';
 
 export default class ServerErrorUtil {
     public static rednerServerError(res: ExpressResponse): void {

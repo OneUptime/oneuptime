@@ -879,17 +879,16 @@ app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
 
     if (!productConfig) {
         return NotFoundUtil.renderNotFound(res);
-    } else {
-        res.render(`${ViewsPath}/product-compare.ejs`, {
-            support: false,
-            footerCards: true,
-            cta: true,
-            blackLogo: false,
-            requestDemoCta: false,
-            productConfig,
-            onlyShowCompareTable: false,
-        });
     }
+    res.render(`${ViewsPath}/product-compare.ejs`, {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+        productConfig,
+        onlyShowCompareTable: false,
+    });
 });
 
 // Generate sitemap
@@ -973,7 +972,7 @@ app.use(
 );
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
-   return NotFoundUtil.renderNotFound(res);
+    return NotFoundUtil.renderNotFound(res);
 });
 
 app.get('/server-error', (_req: ExpressRequest, res: ExpressResponse) => {

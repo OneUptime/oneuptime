@@ -32,10 +32,12 @@ export interface BlogPost {
     blogUrl: string;
 }
 
-const GitHubRawUrl = 'https://raw.githubusercontent.com/oneuptime/blog/master'
+const GitHubRawUrl = 'https://raw.githubusercontent.com/oneuptime/blog/master';
 
 export default class BlogPostUtil {
-    public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
+    public static async getBlogPost(
+        fileName: string
+    ): Promise<BlogPost | null> {
         let blogPost: BlogPost | null = this.getBlogPostFromCache(fileName);
 
         // if (blogPost) {
@@ -54,7 +56,6 @@ export default class BlogPostUtil {
         return blogPost;
     }
 
-
     public static async getNameOfGitHubUser(username: string): Promise<string> {
         const fileUrl: URL = URL.fromString(
             `https://api.github.com/users/${username}`
@@ -62,40 +63,39 @@ export default class BlogPostUtil {
 
         const fileData:
             | HTTPResponse<
-                | JSONObjectOrArray
-                | BaseModel
-                | BaseModel[]
-                | AnalyticsBaseModel
-                | AnalyticsBaseModel[]
-            >
+                  | JSONObjectOrArray
+                  | BaseModel
+                  | BaseModel[]
+                  | AnalyticsBaseModel
+                  | AnalyticsBaseModel[]
+              >
             | HTTPErrorResponse = await API.get(fileUrl);
 
         if (fileData.isFailure()) {
             throw fileData as HTTPErrorResponse;
         }
 
-        let name: string = (fileData.data as JSONObject)?.['name']?.toString() || '';
+        const name: string =
+            (fileData.data as JSONObject)?.['name']?.toString() || '';
         return name;
     }
 
-
-    public static async getGitHubMarkdownFileContent(githubPath: string): Promise<string | null> {
-        const fileUrl: URL = URL.fromString(
-            `${GitHubRawUrl}/${githubPath}`
-        );
+    public static async getGitHubMarkdownFileContent(
+        githubPath: string
+    ): Promise<string | null> {
+        const fileUrl: URL = URL.fromString(`${GitHubRawUrl}/${githubPath}`);
 
         const fileData:
             | HTTPResponse<
-                | JSONObjectOrArray
-                | BaseModel
-                | BaseModel[]
-                | AnalyticsBaseModel
-                | AnalyticsBaseModel[]
-            >
+                  | JSONObjectOrArray
+                  | BaseModel
+                  | BaseModel[]
+                  | AnalyticsBaseModel
+                  | AnalyticsBaseModel[]
+              >
             | HTTPErrorResponse = await API.get(fileUrl);
 
         if (fileData.isFailure()) {
-
             if ((fileData as HTTPErrorResponse).statusCode === 404) {
                 return null;
             }
@@ -103,13 +103,17 @@ export default class BlogPostUtil {
             throw fileData as HTTPErrorResponse;
         }
 
-        let markdownContent: string = (fileData.data as JSONObject)?.['data']?.toString() || '';
+        const markdownContent: string =
+            (fileData.data as JSONObject)?.['data']?.toString() || '';
         return markdownContent;
     }
 
     public static async getTags(): Promise<string[]> {
         // check if tags are in cache
-        let tags: string[] = LocalCache.getJSON('blog-tags', 'tags') as string[];
+        let tags: string[] = LocalCache.getJSON(
+            'blog-tags',
+            'tags'
+        ) as string[];
 
         if (tags && tags.length > 0) {
             return tags;
@@ -129,14 +133,25 @@ export default class BlogPostUtil {
     }
 
     public static async getAllTagsFromGitHub(): Promise<string[]> {
-
-        const tagsMarkdownContent = await this.getGitHubMarkdownFileContent('Tags.md');
+        const tagsMarkdownContent = await this.getGitHubMarkdownFileContent(
+            'Tags.md'
+        );
 
         if (!tagsMarkdownContent) {
             return [];
         }
 
-        const tags = tagsMarkdownContent.split('\n').map((tag: string) => tag.trim()).filter((tag: string) => tag.startsWith('-')).map((tag: string) => tag.replace('-', '').trim());
+        const tags = tagsMarkdownContent
+            .split('\n')
+            .map((tag: string) => {
+                return tag.trim();
+            })
+            .filter((tag: string) => {
+                return tag.startsWith('-');
+            })
+            .map((tag: string) => {
+                return tag.replace('-', '').trim();
+            });
 
         return tags;
     }
@@ -149,20 +164,20 @@ export default class BlogPostUtil {
         );
 
         const postDate = this.getPostDateFromFileName(fileName);
-        const formattedPostDate = this.getFormattedPostDateFromFileName(fileName);
+        const formattedPostDate =
+            this.getFormattedPostDateFromFileName(fileName);
 
         const fileData:
             | HTTPResponse<
-                | JSONObjectOrArray
-                | BaseModel
-                | BaseModel[]
-                | AnalyticsBaseModel
-                | AnalyticsBaseModel[]
-            >
+                  | JSONObjectOrArray
+                  | BaseModel
+                  | BaseModel[]
+                  | AnalyticsBaseModel
+                  | AnalyticsBaseModel[]
+              >
             | HTTPErrorResponse = await API.get(fileUrl);
 
         if (fileData.isFailure()) {
-
             if ((fileData as HTTPErrorResponse).statusCode === 404) {
                 return null;
             }
@@ -180,8 +195,7 @@ export default class BlogPostUtil {
         const description = this.getDescriptionFromFileContent(markdownContent);
         const tags = this.getTagsFromFileContent(markdownContent);
 
-        markdownContent =
-            this.getPostFromMarkdown(markdownContent);
+        markdownContent = this.getPostFromMarkdown(markdownContent);
 
         const renderer = this.getBlogRenderer();
 
@@ -211,7 +225,7 @@ export default class BlogPostUtil {
         const month = fileName.split('-')[1];
         const day = fileName.split('-')[2];
 
-        if(!year || !month || !day) {
+        if (!year || !month || !day) {
             throw new BadDataException('Invalid file name');
         }
 
@@ -224,7 +238,7 @@ export default class BlogPostUtil {
         const month = fileName.split('-')[1];
         const day = fileName.split('-')[2];
 
-        if(!year || !month || !day) {
+        if (!year || !month || !day) {
             throw new BadDataException('Invalid file name');
         }
 
@@ -267,9 +281,7 @@ export default class BlogPostUtil {
         return renderer;
     }
 
-    static getPostFromMarkdown(
-        markdownContent: string
-    ) {
+    static getPostFromMarkdown(markdownContent: string) {
         const authorLine: string | undefined = markdownContent
             .split('\n')
             .find((line: string) => {
@@ -289,7 +301,6 @@ export default class BlogPostUtil {
             markdownContent.split('\n').find((line: string) => {
                 return line.startsWith('Tags:');
             }) || '';
-
 
         if (!authorLine && !titleLine && !descriptionLine && !tagsLine) {
             return markdownContent;
@@ -312,7 +323,7 @@ export default class BlogPostUtil {
             lines.splice(descriptionLineIndex, 1);
         }
 
-        if(tagsLine) {
+        if (tagsLine) {
             const tagsLineIndex: number = lines.indexOf(tagsLine);
             lines.splice(tagsLineIndex, 1);
         }
@@ -353,7 +364,9 @@ export default class BlogPostUtil {
                 })
                 ?.replace('Tags:', '') || '';
 
-        return tagsLine.split(',').map((tag: string) => tag.trim());
+        return tagsLine.split(',').map((tag: string) => {
+            return tag.trim();
+        });
     }
 
     public static getDescriptionFromFileContent(fileContent: string): string {
