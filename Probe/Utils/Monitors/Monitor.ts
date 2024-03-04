@@ -202,7 +202,7 @@ export default class MonitorUtil {
                 monitorStep.data?.requestBody &&
                 typeof monitorStep.data?.requestBody === 'string'
             ) {
-                requestBody = JSONFunctions.parse(
+                requestBody = JSONFunctions.parseJSONObject(
                     monitorStep.data?.requestBody
                 );
             }
