@@ -30,7 +30,7 @@
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "css-loader": "^6.10.0",
-        "dotenv": "^16.4.1",
+        "dotenv": "^16.4.2",
         "express": "^4.18.2",
         "file-loader": "^6.2.0",
         "Model": "file:../Model",
