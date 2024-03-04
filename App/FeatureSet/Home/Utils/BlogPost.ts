@@ -68,7 +68,7 @@ export default class BlogPostUtil {
             (fileData.data as string | JSONArray) || [];
 
         if (typeof jsonContent === 'string') {
-            jsonContent = JSONFunctions.parse(jsonContent) as JSONArray;
+            jsonContent = JSONFunctions.parseJSONArray(jsonContent);
         }
 
         const blogs: Array<JSONObject> = JSONFunctions.deserializeArray(

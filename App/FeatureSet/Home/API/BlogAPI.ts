@@ -59,7 +59,7 @@ app.get(
                 blackLogo: false,
                 requestDemoCta: false,
                 blogPosts: blogPosts,
-                tagName: Text.fromDashesToPascalCase(tagName)
+                tagName: Text.fromDashesToPascalCase(tagName),
             });
         } catch (e) {
             logger.error(e);
