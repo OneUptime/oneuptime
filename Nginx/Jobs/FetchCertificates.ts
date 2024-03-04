@@ -56,21 +56,21 @@ export default class Jobs {
                         continue;
                     }
 
-                    const key: string = JSONFunctions.parse(cert.blob || '{}')[
+                    const key: string = JSONFunctions.parseJSONObject(cert.blob || '{}')[
                         'privateKeyPem'
                     ] as string;
-                    let crt: string = JSONFunctions.parse(
+                    let crt: string = JSONFunctions.parseJSONObject(
                         certBlob.blob || '{}'
                     )['cert'] as string;
 
                     if (
-                        JSONFunctions.parse(certBlob.blob || '{}')[
+                        JSONFunctions.parseJSONObject(certBlob.blob || '{}')[
                             'chain'
                         ] as string
                     ) {
                         crt += ('\n' +
                             '\n' +
-                            JSONFunctions.parse(certBlob.blob || '{}')[
+                            JSONFunctions.parseJSONObject(certBlob.blob || '{}')[
                                 'chain'
                             ]) as string;
                     }
