@@ -3,8 +3,7 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-import BlogPost from '../Utils/BlogPost';
-import BlogPostUtil from '../Utils/BlogPost';
+import BlogPostUtil, { BlogPost, BlogPostHeader } from '../Utils/BlogPost';
 import { ViewsPath } from '../Utils/Config';
 import logger from 'CommonServer/Utils/Logger';
 import ServerErrorUtil from '../Utils/ServerError';
@@ -69,13 +68,10 @@ app.get(
 );
 
 // main blog page
-app.get('/blog', async (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/blog', async (_req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const fileName: string = req.params['file'] as string;
-
-        const blogPost: BlogPost | null = await BlogPostUtil.getBlogPost(
-            fileName
-        );
+        const blogPosts: Array<BlogPostHeader> =
+            await BlogPostUtil.getBlogPostList();
 
         res.render(`${ViewsPath}/Blog/List`, {
             support: false,
@@ -83,7 +79,7 @@ app.get('/blog', async (req: ExpressRequest, res: ExpressResponse) => {
             cta: true,
             blackLogo: false,
             requestDemoCta: false,
-            blogPost: blogPost,
+            blogPost: blogPosts,
         });
     } catch (e) {
         logger.error(e);

@@ -66,7 +66,7 @@ class JSONWebToken {
         const decodedToken: string = JSON.stringify(
             jwt.verify(token, EncryptionSecret.toString()) as string
         );
-        const decoded: JSONObject = JSONFunctions.parse(decodedToken);
+        const decoded: JSONObject = JSONFunctions.parseJSONObject(decodedToken);
 
         return decoded;
     }

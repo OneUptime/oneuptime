@@ -190,8 +190,28 @@ export default class JSONFunctions {
         return returnArr;
     }
 
-    public static parse(val: string): JSONObject {
+    public static parse(val: string): JSONObject | JSONArray {
         return JSON5.parse(val);
+    }
+
+    public static parseJSONObject(val: string): JSONObject {
+        const result: JSONObject | JSONArray = this.parse(val);
+
+        if(Array.isArray(result)) {
+            throw new Error('Expected JSONObject, but got JSONArray');
+        }
+
+        return result;
+    }
+
+    public static parseJSONArray(val: string): JSONArray {
+        const result: JSONObject | JSONArray = this.parse(val);
+
+        if(!Array.isArray(result)) {
+            throw new Error('Expected JSONArray, but got JSONObject');
+        }
+
+        return result;
     }
 
     public static deserialize(val: JSONObject): JSONObject {

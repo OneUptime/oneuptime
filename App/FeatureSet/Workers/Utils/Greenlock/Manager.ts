@@ -99,7 +99,7 @@ module.exports = {
                         return i.blob;
                     })
                     .map((i: GreenlockCertificate) => {
-                        return JSONFunctions.parse(i.blob!);
+                        return JSONFunctions.parseJSONObject(i.blob!);
                     })
                     .filter((site: any) => {
                         logger.info('Filter Site: ');

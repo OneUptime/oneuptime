@@ -2,7 +2,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
 import { marked } from 'marked';
-import { JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
+import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
@@ -18,23 +18,56 @@ export interface BlogPostAuthor {
     name: string;
 }
 
-export interface BlogPost {
+export interface BlogPostHeader {
     title: string;
     description: string;
     author: BlogPostAuthor | null;
-    htmlBody: string;
-    markdownBody: string;
+    formattedPostDate: string;
     fileName: string;
     tags: string[];
     postDate: string;
-    formattedPostDate: string;
-    socialMediaImageUrl: string;
     blogUrl: string;
 }
 
-const GitHubRawUrl = 'https://raw.githubusercontent.com/oneuptime/blog/master';
+export interface BlogPost extends BlogPostHeader {
+    htmlBody: string;
+    markdownBody: string;
+    socialMediaImageUrl: string;
+}
+
+const GitHubRawUrl: string =
+    'https://raw.githubusercontent.com/oneuptime/blog/master';
 
 export default class BlogPostUtil {
+    public static async getBlogPostList(): Promise<BlogPostHeader[]> {
+        const fileUrl: URL = URL.fromString(`${GitHubRawUrl}/Blog.json`);
+
+        const fileData:
+            | HTTPResponse<
+                  | JSONObjectOrArray
+                  | BaseModel
+                  | BaseModel[]
+                  | AnalyticsBaseModel
+                  | AnalyticsBaseModel[]
+              >
+            | HTTPErrorResponse = await API.get(fileUrl);
+
+        if (fileData.isFailure()) {
+            throw fileData as HTTPErrorResponse;
+        }
+
+        let jsonContent: string | JSONArray =
+            (fileData.data as JSONObject)?.['data']?.toString() || '';
+
+        if (typeof jsonContent === 'string') {
+            jsonContent = JSONFunctions.parse(jsonContent) as JSONArray;
+        }
+
+        return JSONFunctions.deserializeArray(
+            jsonContent as Array<JSONObject>
+        ) as any;
+    }
+
     public static async getBlogPost(
         fileName: string
     ): Promise<BlogPost | null> {
