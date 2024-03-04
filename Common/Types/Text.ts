@@ -103,6 +103,14 @@ export default class Text {
         return word;
     }
 
+    public static fromDashesToPascalCase(word: string): string {
+        let tempWord: string = word.replace(/-/g, ' ');
+        tempWord = tempWord.replace(/\b\w/g, (m: string): string => {
+            return m.toUpperCase();
+        });
+        return tempWord;
+    }
+
     public static pascalCaseToDashes(word: string): string {
         let tempWord: string = word.replace(/[A-Z]/g, (m: string): string => {
             return '-' + m.toLowerCase();

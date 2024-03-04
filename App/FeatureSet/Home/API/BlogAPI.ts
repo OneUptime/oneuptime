@@ -8,6 +8,7 @@ import { ViewsPath } from '../Utils/Config';
 import logger from 'CommonServer/Utils/Logger';
 import ServerErrorUtil from '../Utils/ServerError';
 import NotFoundUtil from '../Utils/NotFound';
+import Text from 'Common/Types/Text';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -58,6 +59,7 @@ app.get(
                 blackLogo: false,
                 requestDemoCta: false,
                 blogPosts: blogPosts,
+                tagName: Text.fromDashesToPascalCase(tagName)
             });
         } catch (e) {
             logger.error(e);
