@@ -14,20 +14,16 @@
         <meta property="og:type" content="article">
         <meta property="og:title" content="<%= blogPost.title %>">
         <meta property="og:description" content="<%= blogPost.description %>">
-        <meta property="og:url"
-            content="<%= blogPost.blogUrl %>">
-        <meta property="og:image"
-            content="<%= blogPost.socialMediaImageUrl %>">
+        <meta property="og:url" content="<%= blogPost.blogUrl %>">
+        <meta property="og:image" content="<%= blogPost.socialMediaImageUrl %>">
         <meta property="article:published_time" content="<%- blogPost.postDate -%>T00:00:00.000Z">
         <meta property="article:modified_time" content="<%- blogPost.postDate -%>T00:00:00.000Z">
         <meta property="article:publisher" content="https://www.facebook.com/OneUptime">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="<%= blogPost.title %>">
         <meta name="twitter:description" content="<%= blogPost.description %>">
-        <meta name="twitter:url"
-            content="<%= blogPost.blogUrl %>">
-        <meta name="twitter:image"
-            content="<%= blogPost.socialMediaImageUrl %>">
+        <meta name="twitter:url" content="<%= blogPost.blogUrl %>">
+        <meta name="twitter:image" content="<%= blogPost.socialMediaImageUrl %>">
         <meta name="twitter:label1" content="Written by">
         <meta name="twitter:data1" content="<%= blogPost.author.name %>">
         <meta name="twitter:site" content="@OneUptimeHQ">
@@ -63,11 +59,11 @@
 }
     </script>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
-<script>hljs.highlightAll();</script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+        <script>hljs.highlightAll();</script>
 
 </head>
 
@@ -79,16 +75,15 @@
             <div class="py-24 sm:py-32">
                 <div class="mx-auto max-w-7xl px-6 lg:px-8">
 
-                    <%- include('./Partials/BlogTitleAndDescription', { title: blogPost.title , description:  blogPost.description }) -%>
-            
+                    <%- include('./Partials/BlogTitleAndDescription', { title: blogPost.title , description:
+                        blogPost.description }) -%>
 
-                    <div class="blog-body">
-                        <%- blogPost.htmlBody -%>
-                    </div>
 
-                   <%- include('./Partials/Tags', {
-                    blogPost: blogPost
-                   }) -%>
+                        <div class="blog-body">
+                            <%- blogPost.htmlBody -%>
+                        </div>
+
+                        <%- include('./Partials/Tags', { blogPost: blogPost }) -%>
 
                             <div class="bg-white my-10 mt-20">
                                 <div class="">
