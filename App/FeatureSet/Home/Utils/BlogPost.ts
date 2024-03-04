@@ -334,7 +334,7 @@ export default class BlogPostUtil {
         };
 
         renderer.code = function (code, language) {
-            return `<pre class="my-4 p-4 bg-gray-100 text-gray-900 rounded-md"><code class="language-${language}">${code}</code></pre>`;
+            return `<pre class="language-${language} my-4 p-4 bg-gray-100 text-gray-900 rounded-md"><code class="language-${language}">${code}</code></pre>`;
         };
 
         renderer.heading = function (text, level) {
