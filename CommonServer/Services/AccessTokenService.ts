@@ -226,7 +226,7 @@ export class AccessTokenService extends BaseService {
     public async getUserGlobalAccessPermission(
         userId: ObjectID
     ): Promise<UserGlobalAccessPermission | null> {
-        const json: JSONObject | null = await GlobalCache.getJSON(
+        const json: JSONObject | null = await GlobalCache.getJSONObject(
             'user',
             userId.toString()
         );
@@ -329,7 +329,7 @@ export class AccessTokenService extends BaseService {
         projectId: ObjectID
     ): Promise<UserTenantAccessPermission | null> {
         const json: UserTenantAccessPermission | null =
-            (await GlobalCache.getJSON(
+            (await GlobalCache.getJSONObject(
                 PermissionNamespace.ProjectPermission,
                 userId.toString() + projectId.toString()
             )) as UserTenantAccessPermission;

@@ -1,0 +1,22 @@
+<% if(blogPost.tags.length> 0){ %>
+    <div class="flex mt-10">
+        <div class="space-x-1">
+            <!-- Loop over blogPost.tags and show them here-->
+            <% for(var i=0; i<blogPost.tags.length; i++) {%>
+                <a href="/blog/tag/<%- blogPost.tags[i].replaceAll(' ','-').toLowerCase() -%>">
+                    <div
+                        class="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
+                        <div class="absolute flex flex-shrink-0 items-center justify-center">
+                            <div class="h-1.5 w-1.5 rounded-full bg-indigo-500" aria-hidden="true">
+                            </div>
+                        </div>
+                        <div class="ml-3.5 font-medium text-gray-900">
+                            <%- blogPost.tags[i] -%>
+                        </div>
+                    </div>
+                </a>
+
+                <% } %>
+        </div>
+    </div>
+    <% } %>

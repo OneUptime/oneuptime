@@ -1,15 +1,56 @@
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Redis, { ClientType } from './Redis';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 import OneUptimeDate from 'Common/Types/Date';
 import logger from '../Utils/Logger';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default abstract class GlobalCache {
-    public static async getJSON(
+    public static async getJSONObject(
         namespace: string,
         key: string
     ): Promise<JSONObject | null> {
+        const json: JSONArray | JSONObject | null =
+            await this.getJSONArrayOrObject(namespace, key);
+
+        if (!json) {
+            return null;
+        }
+
+        if (Array.isArray(json)) {
+            throw new BadDataException(
+                'Expected JSONObject, but got JSONArray'
+            );
+        }
+
+        return json;
+    }
+
+    public static async getJSONArray(
+        namespace: string,
+        key: string
+    ): Promise<JSONArray | null> {
+        const json: JSONArray | JSONObject | null =
+            await this.getJSONArrayOrObject(namespace, key);
+
+        if (!json) {
+            return null;
+        }
+
+        if (!Array.isArray(json)) {
+            throw new BadDataException(
+                'Expected JSONArray, but got JSONObject'
+            );
+        }
+
+        return json;
+    }
+
+    private static async getJSONArrayOrObject(
+        namespace: string,
+        key: string
+    ): Promise<JSONObject | JSONArray | null> {
         const value: string | null = await this.getString(namespace, key);
 
         if (!value) {
@@ -17,9 +58,13 @@ export default abstract class GlobalCache {
         }
 
         try {
-            const jsonObject: JSONObject = JSONFunctions.deserialize(
-                JSONFunctions.parse(value)
-            ) as JSONObject;
+            let jsonObject: JSONObject | JSONArray = JSONFunctions.parse(value);
+
+            if (Array.isArray(jsonObject)) {
+                jsonObject = JSONFunctions.deserializeArray(jsonObject);
+            } else {
+                jsonObject = JSONFunctions.deserialize(jsonObject);
+            }
 
             if (!jsonObject) {
                 return null;

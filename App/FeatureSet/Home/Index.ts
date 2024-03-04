@@ -16,6 +16,11 @@ import { JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { StaticPath, ViewsPath } from './Utils/Config';
+import NotFoundUtil from './Utils/NotFound';
+import ServerErrorUtil from './Utils/ServerError';
+
+// improt API
+import './API/BlogAPI';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -873,25 +878,17 @@ app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
     );
 
     if (!productConfig) {
-        res.status(404);
-        res.render(`${ViewsPath}/not-found.ejs`, {
-            footerCards: false,
-            support: false,
-            cta: false,
-            blackLogo: false,
-            requestDemoCta: false,
-        });
-    } else {
-        res.render(`${ViewsPath}/product-compare.ejs`, {
-            support: false,
-            footerCards: true,
-            cta: true,
-            blackLogo: false,
-            requestDemoCta: false,
-            productConfig,
-            onlyShowCompareTable: false,
-        });
+        return NotFoundUtil.renderNotFound(res);
     }
+    res.render(`${ViewsPath}/product-compare.ejs`, {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+        productConfig,
+        onlyShowCompareTable: false,
+    });
 });
 
 // Generate sitemap
@@ -975,12 +972,9 @@ app.use(
 );
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.status(404);
-    res.render(`${ViewsPath}/not-found.ejs`, {
-        footerCards: false,
-        support: false,
-        cta: false,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
+    return NotFoundUtil.renderNotFound(res);
+});
+
+app.get('/server-error', (_req: ExpressRequest, res: ExpressResponse) => {
+    return ServerErrorUtil.renderServerError(res);
 });

@@ -1,0 +1,33 @@
+<li class="py-5">
+    <div class="min-w-0">
+        <a href="<%= blogPost.blogUrl %>">
+            
+      <div class="min-w-0 flex-auto">
+        <p class="font-semibold text-2xl leading-6 text-gray-900">
+          <%= blogPost.title %>
+        </p>
+        <p class="mt-2 leading-5 text-gray-600">
+          <%= blogPost.description %>
+        </p>
+      </div>
+      </a>
+    </div>
+    <div class="-mt-5">
+      <%- include('./Tags', { blogPost: blogPost }) -%>
+    </div>
+    <div class="mt-5">
+      <div class="">
+
+        <a href="https://github.com/<%- blogPost.authorGitHubUsername -%>" target="_blank">
+          <div class="flex items-center gap-x-6">
+            <p class="text-sm font-medium leading-7 tracking-tight text-gray-600">
+              <span class="text-gray-500">By</span> @<%- blogPost.authorGitHubUsername -%> <span
+                  class="text-gray-500"> on
+                  <%- blogPost.formattedPostDate -%></span>
+            </p>
+          </div>
+      </div>
+      </a>
+
+    </div>
+  </li>

@@ -5,7 +5,7 @@ import { JSONObject } from 'Common/Types/JSON';
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
-export default class OneUptimeLogger {
+export default class logger {
     public static serializeLogBody(body: LogBody): string {
         if (typeof body === 'string') {
             return body;
