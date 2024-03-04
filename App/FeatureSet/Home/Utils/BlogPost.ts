@@ -206,9 +206,8 @@ export default class BlogPostUtil {
     }
 
     public static async getAllTagsFromGitHub(): Promise<string[]> {
-        const tagsMarkdownContent: string | null = await this.getGitHubMarkdownFileContent(
-            'Tags.md'
-        );
+        const tagsMarkdownContent: string | null =
+            await this.getGitHubMarkdownFileContent('Tags.md');
 
         if (!tagsMarkdownContent) {
             return [];
@@ -265,8 +264,10 @@ export default class BlogPostUtil {
             await this.getAuthorFromFileContent(markdownContent);
 
         const title: string = this.getTitleFromFileContent(markdownContent);
-        const description: string = this.getDescriptionFromFileContent(markdownContent);
-        const tags: Array<string> = this.getTagsFromFileContent(markdownContent);
+        const description: string =
+            this.getDescriptionFromFileContent(markdownContent);
+        const tags: Array<string> =
+            this.getTagsFromFileContent(markdownContent);
 
         markdownContent = this.getPostFromMarkdown(markdownContent);
 
@@ -294,9 +295,9 @@ export default class BlogPostUtil {
     }
 
     private static getPostDateFromFileName(fileName: string): string {
-        const year = fileName.split('-')[0];
-        const month = fileName.split('-')[1];
-        const day = fileName.split('-')[2];
+        const year: string | undefined = fileName.split('-')[0];
+        const month: string | undefined = fileName.split('-')[1];
+        const day: string | undefined = fileName.split('-')[2];
 
         if (!year || !month || !day) {
             throw new BadDataException('Invalid file name');
@@ -307,20 +308,20 @@ export default class BlogPostUtil {
 
     private static getFormattedPostDateFromFileName(fileName: string): string {
         // file name is of the format YYYY-MM-DD-Title.md
-        const year = fileName.split('-')[0];
-        const month = fileName.split('-')[1];
-        const day = fileName.split('-')[2];
+        const year: string | undefined = fileName.split('-')[0];
+        const month: string | undefined = fileName.split('-')[1];
+        const day: string | undefined = fileName.split('-')[2];
 
         if (!year || !month || !day) {
             throw new BadDataException('Invalid file name');
         }
 
-        const date = OneUptimeDate.getDateFromYYYYMMDD(year, month, day);
+        const date: Date = OneUptimeDate.getDateFromYYYYMMDD(year, month, day);
         return OneUptimeDate.getDateAsLocalFormattedString(date, true);
     }
 
     private static getBlogRenderer(): Renderer {
-        const renderer = new Renderer();
+        const renderer: Renderer = new Renderer();
 
         renderer.paragraph = function (text) {
             return `<p class="mt-2 mb-2 leading-8 text-gray-600">${text}</p>`;
@@ -354,7 +355,7 @@ export default class BlogPostUtil {
         return renderer;
     }
 
-    private static getPostFromMarkdown(markdownContent: string) {
+    private static getPostFromMarkdown(markdownContent: string): string {
         const authorLine: string | undefined = markdownContent
             .split('\n')
             .find((line: string) => {
