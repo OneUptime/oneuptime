@@ -7,43 +7,45 @@ import logger from '../Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default abstract class GlobalCache {
-
     public static async getJSONObject(
         namespace: string,
         key: string
     ): Promise<JSONObject | null> {
-        const json: JSONArray | JSONObject | null = await this.getJSONArrayOrObject(namespace, key);
+        const json: JSONArray | JSONObject | null =
+            await this.getJSONArrayOrObject(namespace, key);
 
-        if(!json) {
+        if (!json) {
             return null;
         }
 
-        if(Array.isArray(json)) {
-            throw new BadDataException('Expected JSONObject, but got JSONArray');
+        if (Array.isArray(json)) {
+            throw new BadDataException(
+                'Expected JSONObject, but got JSONArray'
+            );
         }
 
         return json;
     }
-    
+
     public static async getJSONArray(
         namespace: string,
         key: string
     ): Promise<JSONArray | null> {
-        
-        const json: JSONArray | JSONObject | null = await this.getJSONArrayOrObject(namespace, key);
+        const json: JSONArray | JSONObject | null =
+            await this.getJSONArrayOrObject(namespace, key);
 
-        if(!json) {
+        if (!json) {
             return null;
         }
 
-        if(!Array.isArray(json)) {
-            throw new BadDataException('Expected JSONArray, but got JSONObject');
+        if (!Array.isArray(json)) {
+            throw new BadDataException(
+                'Expected JSONArray, but got JSONObject'
+            );
         }
 
         return json;
-
     }
-
 
     private static async getJSONArrayOrObject(
         namespace: string,
@@ -58,12 +60,10 @@ export default abstract class GlobalCache {
         try {
             let jsonObject: JSONObject | JSONArray = JSONFunctions.parse(value);
 
-            if(Array.isArray(jsonObject)) {
+            if (Array.isArray(jsonObject)) {
                 jsonObject = JSONFunctions.deserializeArray(jsonObject);
-            }else{
-                jsonObject = JSONFunctions.deserialize(
-                    jsonObject
-                );
+            } else {
+                jsonObject = JSONFunctions.deserialize(jsonObject);
             }
 
             if (!jsonObject) {

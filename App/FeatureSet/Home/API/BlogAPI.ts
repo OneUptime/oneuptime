@@ -35,7 +35,7 @@ app.get(
             });
         } catch (e) {
             logger.error(e);
-            return ServerErrorUtil.rednerServerError(res);
+            return ServerErrorUtil.renderServerError(res);
         }
     }
 );
@@ -46,11 +46,10 @@ app.get(
     '/blog/tag/:tagName',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const fileName: string = req.params['file'] as string;
+            const tagName: string = req.params['tagName'] as string;
 
-            const blogPost: BlogPost | null = await BlogPostUtil.getBlogPost(
-                fileName
-            );
+            const blogPosts: Array<BlogPostHeader> =
+                await BlogPostUtil.getBlogPostList(tagName);
 
             res.render(`${ViewsPath}/Blog/ListByTag`, {
                 support: false,
@@ -58,11 +57,11 @@ app.get(
                 cta: true,
                 blackLogo: false,
                 requestDemoCta: false,
-                blogPost: blogPost,
+                blogPosts: blogPosts,
             });
         } catch (e) {
             logger.error(e);
-            return res.redirect('/server-error');
+            return ServerErrorUtil.renderServerError(res);
         }
     }
 );
@@ -79,10 +78,10 @@ app.get('/blog', async (_req: ExpressRequest, res: ExpressResponse) => {
             cta: true,
             blackLogo: false,
             requestDemoCta: false,
-            blogPost: blogPosts,
+            blogPosts: blogPosts,
         });
     } catch (e) {
         logger.error(e);
-        return res.redirect('/server-error');
+        return ServerErrorUtil.renderServerError(res);
     }
 });

@@ -197,7 +197,7 @@ export default class JSONFunctions {
     public static parseJSONObject(val: string): JSONObject {
         const result: JSONObject | JSONArray = this.parse(val);
 
-        if(Array.isArray(result)) {
+        if (Array.isArray(result)) {
             throw new Error('Expected JSONObject, but got JSONArray');
         }
 
@@ -207,7 +207,7 @@ export default class JSONFunctions {
     public static parseJSONArray(val: string): JSONArray {
         const result: JSONObject | JSONArray = this.parse(val);
 
-        if(!Array.isArray(result)) {
+        if (!Array.isArray(result)) {
             throw new Error('Expected JSONArray, but got JSONObject');
         }
 

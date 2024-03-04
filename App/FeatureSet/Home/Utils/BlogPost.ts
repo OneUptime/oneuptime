@@ -1,7 +1,7 @@
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
-import { marked } from 'marked';
+import { marked, Renderer } from 'marked';
 import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
@@ -10,6 +10,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Text from 'Common/Types/Text';
 
 export interface BlogPostAuthor {
     username: string;
@@ -18,10 +19,10 @@ export interface BlogPostAuthor {
     name: string;
 }
 
-export interface BlogPostHeader {
+export interface BlogPostBaseProps {
     title: string;
     description: string;
-    author: BlogPostAuthor | null;
+
     formattedPostDate: string;
     fileName: string;
     tags: string[];
@@ -29,18 +30,25 @@ export interface BlogPostHeader {
     blogUrl: string;
 }
 
-export interface BlogPost extends BlogPostHeader {
+export interface BlogPostHeader extends BlogPostBaseProps {
+    authorGitHubUsername: string;
+}
+
+export interface BlogPost extends BlogPostBaseProps {
     htmlBody: string;
     markdownBody: string;
     socialMediaImageUrl: string;
+    author: BlogPostAuthor | null;
 }
 
 const GitHubRawUrl: string =
     'https://raw.githubusercontent.com/oneuptime/blog/master';
 
 export default class BlogPostUtil {
-    public static async getBlogPostList(): Promise<BlogPostHeader[]> {
-        const fileUrl: URL = URL.fromString(`${GitHubRawUrl}/Blog.json`);
+    public static async getBlogPostList(
+        tagName?: string | undefined
+    ): Promise<BlogPostHeader[]> {
+        const fileUrl: URL = URL.fromString(`${GitHubRawUrl}/Blogs.json`);
 
         const fileData:
             | HTTPResponse<
@@ -57,15 +65,47 @@ export default class BlogPostUtil {
         }
 
         let jsonContent: string | JSONArray =
-            (fileData.data as JSONObject)?.['data']?.toString() || '';
+            (fileData.data as string | JSONArray) || [];
 
         if (typeof jsonContent === 'string') {
             jsonContent = JSONFunctions.parse(jsonContent) as JSONArray;
         }
 
-        return JSONFunctions.deserializeArray(
+        const blogs: Array<JSONObject> = JSONFunctions.deserializeArray(
             jsonContent as Array<JSONObject>
-        ) as any;
+        ).reverse(); // reverse so new content comes first
+
+        const resultList: Array<BlogPostHeader> = [];
+
+        for (const blog of blogs) {
+            const fileName: string = blog['post'] as string;
+            const formattedPostDate: string =
+                this.getFormattedPostDateFromFileName(fileName);
+            const postDate: string = this.getPostDateFromFileName(fileName);
+
+            resultList.push({
+                title: blog['title'] as string,
+                description: blog['description'] as string,
+                fileName,
+                formattedPostDate,
+                postDate,
+                tags: blog['tags'] as string[],
+                authorGitHubUsername: blog['authorGitHubUsername'] as string,
+                blogUrl: `/blog/post/${fileName}`,
+            });
+        }
+
+        if (tagName) {
+            return resultList.filter((blog: BlogPostHeader) => {
+                return blog.tags
+                    .map((item: string) => {
+                        return Text.replaceAll(item.toLowerCase(), ' ', '-');
+                    })
+                    .includes(tagName);
+            });
+        }
+
+        return resultList;
     }
 
     public static async getBlogPost(
@@ -166,7 +206,7 @@ export default class BlogPostUtil {
     }
 
     public static async getAllTagsFromGitHub(): Promise<string[]> {
-        const tagsMarkdownContent = await this.getGitHubMarkdownFileContent(
+        const tagsMarkdownContent: string | null = await this.getGitHubMarkdownFileContent(
             'Tags.md'
         );
 
@@ -174,7 +214,7 @@ export default class BlogPostUtil {
             return [];
         }
 
-        const tags = tagsMarkdownContent
+        const tags: Array<string> = tagsMarkdownContent
             .split('\n')
             .map((tag: string) => {
                 return tag.trim();
@@ -196,8 +236,8 @@ export default class BlogPostUtil {
             `${GitHubRawUrl}/posts/${fileName}/README.md`
         );
 
-        const postDate = this.getPostDateFromFileName(fileName);
-        const formattedPostDate =
+        const postDate: string = this.getPostDateFromFileName(fileName);
+        const formattedPostDate: string =
             this.getFormattedPostDateFromFileName(fileName);
 
         const fileData:
@@ -224,13 +264,13 @@ export default class BlogPostUtil {
         const blogPostAuthor: BlogPostAuthor | null =
             await this.getAuthorFromFileContent(markdownContent);
 
-        const title = this.getTitleFromFileContent(markdownContent);
-        const description = this.getDescriptionFromFileContent(markdownContent);
-        const tags = this.getTagsFromFileContent(markdownContent);
+        const title: string = this.getTitleFromFileContent(markdownContent);
+        const description: string = this.getDescriptionFromFileContent(markdownContent);
+        const tags: Array<string> = this.getTagsFromFileContent(markdownContent);
 
         markdownContent = this.getPostFromMarkdown(markdownContent);
 
-        const renderer = this.getBlogRenderer();
+        const renderer: Renderer = this.getBlogRenderer();
 
         const htmlBody: string = await marked(markdownContent, {
             renderer: renderer,
@@ -247,13 +287,13 @@ export default class BlogPostUtil {
             postDate,
             formattedPostDate,
             socialMediaImageUrl: `${GitHubRawUrl}/posts/${fileName}/social-media.png`,
-            blogUrl: `https://oneuptime.com/blog/post/${fileName}`,
+            blogUrl: `https://oneuptime.com/blog/post/${fileName}`, // this has to be oneuptime.com because its used in twitter cards and faceboomk cards. Please dont change this.
         };
 
         return blogPost;
     }
 
-    static getPostDateFromFileName(fileName: string): string {
+    private static getPostDateFromFileName(fileName: string): string {
         const year = fileName.split('-')[0];
         const month = fileName.split('-')[1];
         const day = fileName.split('-')[2];
@@ -265,7 +305,7 @@ export default class BlogPostUtil {
         return `${year}-${month}-${day}`;
     }
 
-    static getFormattedPostDateFromFileName(fileName: string): string {
+    private static getFormattedPostDateFromFileName(fileName: string): string {
         // file name is of the format YYYY-MM-DD-Title.md
         const year = fileName.split('-')[0];
         const month = fileName.split('-')[1];
@@ -279,8 +319,8 @@ export default class BlogPostUtil {
         return OneUptimeDate.getDateAsLocalFormattedString(date, true);
     }
 
-    static getBlogRenderer() {
-        const renderer = new marked.Renderer();
+    private static getBlogRenderer(): Renderer {
+        const renderer = new Renderer();
 
         renderer.paragraph = function (text) {
             return `<p class="mt-2 mb-2 leading-8 text-gray-600">${text}</p>`;
@@ -314,7 +354,7 @@ export default class BlogPostUtil {
         return renderer;
     }
 
-    static getPostFromMarkdown(markdownContent: string) {
+    private static getPostFromMarkdown(markdownContent: string) {
         const authorLine: string | undefined = markdownContent
             .split('\n')
             .find((line: string) => {

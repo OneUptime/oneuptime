@@ -73,43 +73,17 @@
         <div class="relative isolate overflow-hidden bg-white">
             <div class="py-24 sm:py-32">
                 <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                    <div class="mx-auto max-w-2xl text-center mb-24">
 
-                        <h1 class="text-4xl font-bold tracking-tight text-gray-900">
-                            <%= blogPost.title %>
-                        </h1>
-                        <p class="mt-2 text-xl sm:text-2xl leading-8 text-gray-600">
-                            <%= blogPost.description %>
-                        </p>
-
-                    </div>
+                    <%- include('./Partials/BlogTitleAndDescription', { title: blogPost.title , description:  blogPost.description }) -%>
+            
 
                     <div class="blog-body">
                         <%- blogPost.htmlBody -%>
                     </div>
 
-                    <% if(blogPost.tags.length> 0){ %>
-                        <div class="flex mt-10">
-                            <div class="space-x-1">
-                                <!-- Loop over blogPost.tags and show them here-->
-                                <% for(var i=0; i<blogPost.tags.length; i++) {%>
-                                    <a href="/blog/tag/<%- blogPost.tags[i].replace(' ','-').toLowerCase() -%>">
-                                        <div
-                                            class="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
-                                            <div class="absolute flex flex-shrink-0 items-center justify-center">
-                                                <div class="h-1.5 w-1.5 rounded-full bg-indigo-500" aria-hidden="true">
-                                                </div>
-                                            </div>
-                                            <div class="ml-3.5 font-medium text-gray-900">
-                                                <%- blogPost.tags[i] -%>
-                                            </div>
-                                        </div>
-                                    </a>
-
-                                    <% } %>
-                            </div>
-                        </div>
-                        <% } %>
+                   <%- include('./Partials/Tags', {
+                    blogPost: blogPost
+                   }) -%>
 
                             <div class="bg-white my-10 mt-20">
                                 <div class="">
@@ -122,8 +96,8 @@
                                                     <div class="-ml-4">
                                                         <h3
                                                             class="text-base font-medium leading-7 tracking-tight text-gray-600">
-                                                            <span class="text-gray-400">By</span> <%-
-                                                                blogPost.author.name -%> <span class="text-gray-400"> on
+                                                            <span class="text-gray-500">By</span> <%-
+                                                                blogPost.author.name -%> <span class="text-gray-500"> on
                                                                     <%- blogPost.formattedPostDate -%></span>
                                                         </h3>
                                                         <p class="text-sm font-medium leading-6 text-indigo-500 -mt-1">
@@ -159,10 +133,6 @@
 
                                 </ul>
                             </div>
-
-
-
-
                 </div>
             </div>
 

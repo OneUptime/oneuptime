@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>
+    OneUptime Blog - Latest posts on Observability, Monitoring, Reliability and more.
+  </title>
+  <meta name="description" content="Learn more about Observability, Monitoring, Reliability and more.">
+  <%- include('../head') -%>
+
+
+</head>
+
+
+<body>
+  <%- include('../nav') -%>
+
+    <div class="relative isolate overflow-hidden bg-white">
+      <div class="py-24 sm:py-32">
+
+        <%- include('./Partials/BlogTitleAndDescription', { title: 'Engineering Uptime, by OneUptime', description: 'Latest posts on Observability, Monitoring, Reliability and more.' }) -%>
+
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          
+          <div>
+
+            <% if(blogPosts.length> 0){ %>
+              <ul role="list" class="divide-y divide-gray-100 list-none">
+
+                <% for(var i=0; i<blogPosts.length; i++) {%>
+
+
+
+                  <%- include('./Partials/ListItem', { blogPost: blogPosts[i] }) -%>
+
+                    <% } %>
+
+              </ul>
+              <% } %>
+
+          </div>
+
+
+        </div>
+      </div>
+
+    </div>
+
+
+
+
+    <%- include('./Partials/BlogCta') -%>
+      <%- include('../footer') -%>
+</body>
+
+</html>

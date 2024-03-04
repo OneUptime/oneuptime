@@ -60,7 +60,7 @@ export default class TextToJSON extends ComponentCode {
         }
 
         try {
-            const returnValue: JSONObject = JSONFunctions.parse(
+            const returnValue: JSONObject = JSONFunctions.parseJSONObject(
                 args['text'] as string
             );
             return Promise.resolve({

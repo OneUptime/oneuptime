@@ -976,5 +976,5 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/server-error', (_req: ExpressRequest, res: ExpressResponse) => {
-    return ServerErrorUtil.rednerServerError(res);
+    return ServerErrorUtil.renderServerError(res);
 });
