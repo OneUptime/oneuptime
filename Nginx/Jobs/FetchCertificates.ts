@@ -56,9 +56,9 @@ export default class Jobs {
                         continue;
                     }
 
-                    const key: string = JSONFunctions.parseJSONObject(cert.blob || '{}')[
-                        'privateKeyPem'
-                    ] as string;
+                    const key: string = JSONFunctions.parseJSONObject(
+                        cert.blob || '{}'
+                    )['privateKeyPem'] as string;
                     let crt: string = JSONFunctions.parseJSONObject(
                         certBlob.blob || '{}'
                     )['cert'] as string;
@@ -70,9 +70,9 @@ export default class Jobs {
                     ) {
                         crt += ('\n' +
                             '\n' +
-                            JSONFunctions.parseJSONObject(certBlob.blob || '{}')[
-                                'chain'
-                            ]) as string;
+                            JSONFunctions.parseJSONObject(
+                                certBlob.blob || '{}'
+                            )['chain']) as string;
                     }
 
                     // Need to make sure StatusPageCerts dir exists.
