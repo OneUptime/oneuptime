@@ -774,4 +774,3 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd InfrastructureAgent && bash Scripts/Build/Mac.sh
-      - 
