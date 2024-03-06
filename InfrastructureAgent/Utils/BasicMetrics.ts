@@ -24,7 +24,7 @@ export class BasicMetircs {
     public static async getDiskUsage(
         diskPath: string
     ): Promise<BasicDiskMetrics> {
-        const info = await diskusage.check(diskPath);
+        const info: diskusage.DiskUsage = await diskusage.check(diskPath);
 
         return {
             total: info.total,
@@ -36,9 +36,9 @@ export class BasicMetircs {
     }
 
     public static async getMemoryMetrics(): Promise<MemoryMetrics> {
-        const totalMemory = os.totalmem();
-        const freeMemory = os.freemem();
-        const usedMemory = totalMemory - freeMemory;
+        const totalMemory: number = os.totalmem();
+        const freeMemory: number = os.freemem();
+        const usedMemory: number = totalMemory - freeMemory;
 
         return {
             total: totalMemory,
@@ -48,7 +48,7 @@ export class BasicMetircs {
     }
 
     public static async getCPUMetrics(): Promise<CPUMetrics> {
-        const cpuUsage = os.loadavg()[0]; // Returns an array containing the 1, 5, and 15 minute load averages.
+        const cpuUsage: number | undefined = os.loadavg()[0]; // Returns an array containing the 1, 5, and 15 minute load averages.
 
         return {
             percentUsage: cpuUsage || 0,
