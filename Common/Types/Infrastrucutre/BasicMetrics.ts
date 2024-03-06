@@ -16,9 +16,8 @@ export interface BasicDiskMetrics {
     diskPath: string;
 }
 
-
 export default interface BasicInfrastructureMetrics {
     cpuMetrics: CPUMetrics;
     memoryMetrics: MemoryMetrics;
-    diskMetrics: Array<BasicDiskMetrics>
+    diskMetrics: Array<BasicDiskMetrics>;
 }

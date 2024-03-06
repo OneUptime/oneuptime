@@ -9,8 +9,10 @@ BasicCron({
         runOnStartup: true,
     },
     runFunction: async () => {
-        console.log(await BasicMetircs.getBasicMetrics({
-            diskPaths: ['/'],
-        }));
-    }
-})
+        console.log(
+            await BasicMetircs.getBasicMetrics({
+                diskPaths: ['/'],
+            })
+        );
+    },
+});

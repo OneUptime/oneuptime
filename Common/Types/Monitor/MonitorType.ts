@@ -71,6 +71,12 @@ export class MonitorTypeHelper {
                 description:
                     'This monitor types lets you monitor any TCP or UDP port.',
             },
+            {
+                monitorType: MonitorType.Server,
+                title: 'Server / VM',
+                description:
+                    'This monitor types lets you monitor any server, VM, or any machine.',
+            },
         ];
 
         return monitorTypeProps;
