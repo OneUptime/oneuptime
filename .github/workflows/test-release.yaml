@@ -765,12 +765,29 @@ jobs:
           node-version: 18.3.0
       - run: cd HelmChart && cd Tests && bash index.sh
 
-  infrastrucutre-agent-macos-binary-build:
+  infrastrucutre-agent-macos-binary-release:
     runs-on: macos-latest
-    needs: [test-helm-chart]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0
       - run: cd InfrastructureAgent && bash Scripts/Build/Mac.sh
+
+  infrastrucutre-agent-windows-binary-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd InfrastructureAgent && ./Scripts/Build/Windows.sh
+
+  infrastrucutre-agent-linux-binary-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd InfrastructureAgent && bash ./Scripts/Build/Linux.sh
