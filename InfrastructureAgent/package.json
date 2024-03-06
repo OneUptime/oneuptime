@@ -1,8 +1,8 @@
 {
   "name": "infrastructure-agent",
   "version": "1.0.0",
-  "description": "",
   "type": "module",
+  "description": "",
   "main": "./build/dist/Index.js",
   "scripts": {
     "start": "node --require ts-node/register Index.ts",
