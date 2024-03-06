@@ -9,6 +9,7 @@ enum MonitorType {
     IP = 'IP',
     IncomingRequest = 'Incoming Request',
     Port = 'Port',
+    Server = 'Server',
 }
 
 export default MonitorType;
