@@ -13,7 +13,7 @@ export class BasicMetircs {
             cpuMetrics: await this.getCPUMetrics(),
             diskMetrics: await Promise.all(data.diskPaths.map(async (diskPath: string) => {
                 return this.getDiskUsage(diskPath)
-            }));
+            }))
         }
     }
 
@@ -42,10 +42,10 @@ export class BasicMetircs {
     }
 
     public static async getCPUMetrics(): Promise<CPUMetrics> {
-        const cpuUsage = os.loadavg()[0];
+        const cpuUsage = os.loadavg()[0]; // Returns an array containing the 1, 5, and 15 minute load averages.
 
         return {
-            percentUsage: cpuUsage
+            percentUsage: cpuUsage || 0
         }
     }
 }
