@@ -18,7 +18,7 @@
         // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
 
         /* Language and Environment */
-        "target": "es2017" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+        "target": "es2015" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
         // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
         "jsx": "react" /* Specify what JSX code is generated. */,
         "experimentalDecorators": true,                   /* Enable experimental support for TC39 stage 2 draft decorators. */
@@ -40,7 +40,7 @@
         "typeRoots": [
             "./node_modules/@types"
         ], /* Specify multiple folders that act like `./node_modules/@types`. */
-        "types": ["node", "jest"],                                      /* Specify type package names to be included without being referenced in a source file. */
+        "types": ["node"],                                      /* Specify type package names to be included without being referenced in a source file. */
         // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
         // "resolveJsonModule": true,                        /* Enable importing .json files */
         // "noResolve": true,                                /* Disallow `import`s, `require`s or `<reference>`s from expanding the number of files TypeScript should add to a project. */
