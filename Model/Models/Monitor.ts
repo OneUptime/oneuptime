@@ -761,4 +761,115 @@ export default class Monitor extends BaseModel {
         default: false,
     })
     public disableActiveMonitoringBecauseOfManualIncident?: boolean = undefined;
+
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.Date,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Server Monitor Request Received At',
+        description:
+            'This field is for Server Monitor only. When was the last time we received a request?',
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+    })
+    public serverMonitorRequestReceivedAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Server Monitor Secret Key',
+        description:
+            'This field is for Server Monitor only. Secret Key to authenticate the request.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public serverMonitorSecretKey?: ObjectID = undefined;
+
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Incoming Request Secret Key',
+        description:
+            'This field is for Incoming Request Monitor only. Secret Key to authenticate the request.',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public incomingRequestSecretKey?: ObjectID = undefined;
 }
