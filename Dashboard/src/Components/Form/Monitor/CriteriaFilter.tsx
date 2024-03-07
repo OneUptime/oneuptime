@@ -5,7 +5,7 @@ import {
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonSize, ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Dropdown, {
     DropdownOption,
     DropdownValue,
@@ -15,6 +15,7 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import URL from 'Common/Types/API/URL';
+import FieldLabelElement from 'CommonUI/src/Components/Detail/FieldLabel';
 
 export interface ComponentProps {
     initialValue: CriteriaFilter | undefined;
@@ -51,6 +52,19 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 return (
                     i.value === CheckOn.IsOnline ||
                     i.value === CheckOn.ResponseTime
+                );
+            });
+        }
+
+        if (
+            props.monitorType === MonitorType.Server
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === CheckOn.IsOnline ||
+                    i.value === CheckOn.DiskUsagePercent ||
+                    i.value === CheckOn.CPUUsagePercent ||
+                    i.value === CheckOn.MemoryUsagePercent
                 );
             });
         }
@@ -111,6 +125,20 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             });
 
             setValuePlaceholder('5000');
+        }
+
+
+        if (criteriaFilter?.checkOn === CheckOn.CPUUsagePercent || criteriaFilter?.checkOn === CheckOn.DiskUsagePercent || criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.GreaterThan ||
+                    i.value === FilterType.LessThan ||
+                    i.value === FilterType.LessThanOrEqualTo ||
+                    i.value === FilterType.GreaterThanOrEqualTo
+                );
+            });
+
+            setValuePlaceholder('65');
         }
 
         if (criteriaFilter?.checkOn === CheckOn.IncomingRequest) {
@@ -190,8 +218,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <div className="flex">
-                <div className="w-1/3 mr-1">
+            <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
+                <div className="">
+                    <FieldLabelElement title="Filter Type" />
                     <Dropdown
                         initialValue={checkOnOptions.find(
                             (i: DropdownOption) => {
@@ -210,9 +239,37 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         }}
                     />
                 </div>
-                <div className="w-1/3 mr-1 ml-1">
-                    {!criteriaFilter?.checkOn ||
-                        (criteriaFilter?.checkOn && (
+
+
+
+                {criteriaFilter?.checkOn &&
+                    (criteriaFilter?.checkOn === CheckOn.DiskUsagePercent && (
+                        <div className="mt-1">
+                            <FieldLabelElement title="Disk Path" />
+
+                            <Input
+                                placeholder={'C:\\ or /mnt/data or /dev/sda1'}
+                                initialValue={criteriaFilter?.serverMonitorOptions?.diskPath?.toString()}
+                                onChange={(value: string) => {
+                                    setCriteriaFilter({
+                                        ...criteriaFilter,
+                                        serverMonitorOptions: {
+                                            diskPath: value
+                                        }
+                                    });
+                                }}
+                            />
+
+                        </div>
+                    ))}
+
+
+
+
+                {!criteriaFilter?.checkOn ||
+                    (criteriaFilter?.checkOn && (
+                        <div className="mt-1">
+                            <FieldLabelElement title="Filter Condition" />
                             <Dropdown
                                 initialValue={filterTypeOptions.find(
                                     (i: DropdownOption) => {
@@ -239,12 +296,16 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                     });
                                 }}
                             />
-                        ))}
-                </div>
-                <div className="w-1/3 mr-1 ml-1">
-                    {!criteriaFilter?.checkOn ||
-                        (criteriaFilter?.checkOn &&
-                            criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                        </div>
+                    ))}
+
+
+
+                {!criteriaFilter?.checkOn ||
+                    (criteriaFilter?.checkOn &&
+                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                            <div className="mt-1">
+                                <FieldLabelElement title="Value" />
                                 <Input
                                     placeholder={valuePlaceholder}
                                     initialValue={criteriaFilter?.value?.toString()}
@@ -260,13 +321,15 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                         });
                                     }}
                                 />
-                            ))}
-                </div>
-                <div className="mt-1">
+                            </div>
+                        ))}
+
+                <div className="mt-3 -mr-2 w-full flex justify-end">
                     <Button
-                        title="Delete"
-                        buttonStyle={ButtonStyleType.ICON}
+                        title="Delete Filter"
+                        buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                         icon={IconProp.Trash}
+                        buttonSize={ButtonSize.Small}
                         onClick={() => {
                             props.onDelete?.();
                         }}

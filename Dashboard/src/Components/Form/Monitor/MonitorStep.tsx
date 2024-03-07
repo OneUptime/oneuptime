@@ -101,7 +101,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
     return (
         <div className="mt-5">
-            {props.monitorType !== MonitorType.IncomingRequest && (
+            {props.monitorType !== MonitorType.IncomingRequest && props.monitorType !== MonitorType.Server && (
                 <div>
                     <div className="mt-5">
                         <FieldLabelElement
