@@ -91,19 +91,17 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        if(createBy.data.monitorType === MonitorType.Server) {
+        if (createBy.data.monitorType === MonitorType.Server) {
             createBy.data.serverMonitorSecretKey = ObjectID.generate();
         }
 
-        if(createBy.data.monitorType === MonitorType.IncomingRequest) {
+        if (createBy.data.monitorType === MonitorType.IncomingRequest) {
             createBy.data.incomingRequestSecretKey = ObjectID.generate();
         }
 
         if (!createBy.props.tenantId) {
             throw new BadDataException('ProjectId required to create monitor.');
         }
-
-
 
         const monitorStatus: MonitorStatus | null =
             await MonitorStatusService.findOneBy({

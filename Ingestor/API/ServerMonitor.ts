@@ -11,7 +11,6 @@ import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorRe
 import Dictionary from 'Common/Types/Dictionary';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import OneUptimeDate from 'Common/Types/Date';
 
 const router: ExpressRouter = Express.getRouter();
@@ -28,13 +27,16 @@ const processServerMonitor: RequestHandler = async (
             | string
             | JSONObject;
 
-        const monitorSecretKeyAsString: string | undefined = req.params['secretkey'];
+        const monitorSecretKeyAsString: string | undefined =
+            req.params['secretkey'];
 
         if (!monitorSecretKeyAsString) {
             throw new BadDataException('Monitor Secret Key is required');
         }
 
-        const monitorId: ObjectID = ObjectID.fromString(monitorSecretKeyAsString);
+        const monitorId: ObjectID = ObjectID.fromString(
+            monitorSecretKeyAsString
+        );
 
         const serverMonitorRequest: ServerMonitorRequest = {
             monitorId: monitorId,

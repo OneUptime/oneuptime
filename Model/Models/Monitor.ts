@@ -762,8 +762,6 @@ export default class Monitor extends BaseModel {
     })
     public disableActiveMonitoringBecauseOfManualIncident?: boolean = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -834,8 +832,6 @@ export default class Monitor extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public serverMonitorSecretKey?: ObjectID = undefined;
-
-
 
     @ColumnAccessControl({
         create: [

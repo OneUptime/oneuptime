@@ -5,7 +5,10 @@ import {
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import Button, { ButtonSize, ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Button, {
+    ButtonSize,
+    ButtonStyleType,
+} from 'CommonUI/src/Components/Button/Button';
 import Dropdown, {
     DropdownOption,
     DropdownValue,
@@ -56,9 +59,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             });
         }
 
-        if (
-            props.monitorType === MonitorType.Server
-        ) {
+        if (props.monitorType === MonitorType.Server) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === CheckOn.IsOnline ||
@@ -127,8 +128,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             setValuePlaceholder('5000');
         }
 
-
-        if (criteriaFilter?.checkOn === CheckOn.CPUUsagePercent || criteriaFilter?.checkOn === CheckOn.DiskUsagePercent || criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent) {
+        if (
+            criteriaFilter?.checkOn === CheckOn.CPUUsagePercent ||
+            criteriaFilter?.checkOn === CheckOn.DiskUsagePercent ||
+            criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent
+        ) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === FilterType.GreaterThan ||
@@ -240,10 +244,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     />
                 </div>
 
-
-
                 {criteriaFilter?.checkOn &&
-                    (criteriaFilter?.checkOn === CheckOn.DiskUsagePercent && (
+                    criteriaFilter?.checkOn === CheckOn.DiskUsagePercent && (
                         <div className="mt-1">
                             <FieldLabelElement title="Disk Path" />
 
@@ -254,17 +256,13 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                     setCriteriaFilter({
                                         ...criteriaFilter,
                                         serverMonitorOptions: {
-                                            diskPath: value
-                                        }
+                                            diskPath: value,
+                                        },
                                     });
                                 }}
                             />
-
                         </div>
-                    ))}
-
-
-
+                    )}
 
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn && (
@@ -298,8 +296,6 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                             />
                         </div>
                     ))}
-
-
 
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn &&

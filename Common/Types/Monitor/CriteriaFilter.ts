@@ -16,7 +16,7 @@ export enum CheckOn {
 }
 
 export interface ServerMonitorOptions {
-    diskPath?: string | undefined; 
+    diskPath?: string | undefined;
 }
 
 export interface CriteriaFilter {
