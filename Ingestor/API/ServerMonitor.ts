@@ -3,57 +3,19 @@ import Express, {
     ExpressResponse,
     ExpressRouter,
     NextFunction,
-    RequestHandler,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
-import Dictionary from 'Common/Types/Dictionary';
-import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import OneUptimeDate from 'Common/Types/Date';
+import Monitor from 'Model/Models/Monitor';
+import MonitorService from 'CommonServer/Services/MonitorService';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
+import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
+import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
 
 const router: ExpressRouter = Express.getRouter();
 
-const processServerMonitor: RequestHandler = async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction
-): Promise<void> => {
-    try {
-        const requestHeaders: Dictionary<string> =
-            req.headers as Dictionary<string>;
-        const requestBody: string | JSONObject = req.body as
-            | string
-            | JSONObject;
-
-        const monitorSecretKeyAsString: string | undefined =
-            req.params['secretkey'];
-
-        if (!monitorSecretKeyAsString) {
-            throw new BadDataException('Monitor Secret Key is required');
-        }
-
-        const monitorId: ObjectID = ObjectID.fromString(
-            monitorSecretKeyAsString
-        );
-
-        const serverMonitorRequest: ServerMonitorRequest = {
-            monitorId: monitorId,
-            requestHeaders: requestHeaders,
-            requestBody: requestBody,
-            incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
-            onlyCheckForIncomingRequestReceivedAt: false,
-        };
-
-        // process probe response here.
-        await ProbeMonitorResponseService.processProbeResponse(incomingRequest);
-
-        return Response.sendEmptyResponse(req, res);
-    } catch (err) {
-        return next(err);
-    }
-};
 
 router.get(
     '/server-monitor/:secretkey',
@@ -62,18 +24,96 @@ router.get(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        processServerMonitor(req, res, next);
+        try {
+
+            const monitorSecretKeyAsString: string | undefined =
+                req.params['secretkey'];
+
+
+            if (!monitorSecretKeyAsString) {
+                throw new BadDataException('Invalid Secret Key');
+            }
+
+
+            const monitor: Monitor | null = await MonitorService.findOneBy({
+                query: {
+                    serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
+                    monitorType: MonitorType.Server
+                },
+                select: {
+                    monitorSteps: true
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+
+            if (!monitor) {
+                throw new BadDataException('Monitor not found');
+            }
+
+            return Response.sendEntityResponse(req, res, monitor, Monitor);
+
+        } catch (err) {
+            return next(err);
+        }
     }
 );
 
 router.post(
-    '/server-monitor/response/ingest',
+    '/server-monitor/response/ingest/:secretkey',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-        processServerMonitor(req, res, next);
+        try {
+            const monitorSecretKeyAsString: string | undefined =
+                req.params['secretkey'];
+
+
+            if (!monitorSecretKeyAsString) {
+                throw new BadDataException('Invalid Secret Key');
+            }
+
+
+            const monitor: Monitor | null = await MonitorService.findOneBy({
+                query: {
+                    serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
+                    monitorType: MonitorType.Server
+                },
+                select: {
+                    _id: true
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+
+            if (!monitor) {
+                throw new BadDataException('Monitor not found');
+            }
+
+            // now process this request. 
+
+            const serverMonitorResponse = req.body['serverMonitorResponse'] as ServerMonitorResponse;
+
+            if (!serverMonitorResponse) {
+                throw new BadDataException('Invalid Server Monitor Response');
+            }
+
+            // process probe response here.
+            const probeApiIngestResponse: ProbeApiIngestResponse =
+                await ProbeMonitorResponseService.processProbeResponse(
+                    serverMonitorResponse
+                );
+
+            return Response.sendJsonObjectResponse(req, res, {
+                probeApiIngestResponse: probeApiIngestResponse,
+            } as any);
+        } catch (err) {
+            return next(err);
+        }
     }
 );
 
