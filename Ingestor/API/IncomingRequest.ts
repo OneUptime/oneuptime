@@ -34,29 +34,28 @@ const processIncomingRequest: RequestHandler = async (
         const monitorSecretKeyAsString: string | undefined =
             req.params['secretkey'];
 
-
         if (!monitorSecretKeyAsString) {
             throw new BadDataException('Invalid Secret Key');
         }
 
-
         const monitor: Monitor | null = await MonitorService.findOneBy({
             query: {
-                incomingRequestSecretKey: new ObjectID(monitorSecretKeyAsString),
-                monitorType: MonitorType.Server
+                incomingRequestSecretKey: new ObjectID(
+                    monitorSecretKeyAsString
+                ),
+                monitorType: MonitorType.Server,
             },
             select: {
-                _id: true
+                _id: true,
             },
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
 
         if (!monitor || !monitor._id) {
             throw new BadDataException('Monitor not found');
         }
-
 
         const incomingRequest: IncomingMonitorRequest = {
             monitorId: new ObjectID(monitor._id),

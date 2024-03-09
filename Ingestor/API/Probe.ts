@@ -52,7 +52,6 @@ router.post(
             return Response.sendJsonObjectResponse(req, res, {
                 probeApiIngestResponse: probeApiIngestResponse,
             } as any);
-            
         } catch (err) {
             return next(err);
         }

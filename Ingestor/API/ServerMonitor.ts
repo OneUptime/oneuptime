@@ -16,7 +16,6 @@ import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorRe
 
 const router: ExpressRouter = Express.getRouter();
 
-
 router.get(
     '/server-monitor/:secretkey',
     async (
@@ -25,27 +24,26 @@ router.get(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             const monitorSecretKeyAsString: string | undefined =
                 req.params['secretkey'];
-
 
             if (!monitorSecretKeyAsString) {
                 throw new BadDataException('Invalid Secret Key');
             }
 
-
             const monitor: Monitor | null = await MonitorService.findOneBy({
                 query: {
-                    serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
-                    monitorType: MonitorType.Server
+                    serverMonitorSecretKey: new ObjectID(
+                        monitorSecretKeyAsString
+                    ),
+                    monitorType: MonitorType.Server,
                 },
                 select: {
-                    monitorSteps: true
+                    monitorSteps: true,
                 },
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
 
             if (!monitor) {
@@ -53,7 +51,6 @@ router.get(
             }
 
             return Response.sendEntityResponse(req, res, monitor, Monitor);
-
         } catch (err) {
             return next(err);
         }
@@ -71,32 +68,34 @@ router.post(
             const monitorSecretKeyAsString: string | undefined =
                 req.params['secretkey'];
 
-
             if (!monitorSecretKeyAsString) {
                 throw new BadDataException('Invalid Secret Key');
             }
 
-
             const monitor: Monitor | null = await MonitorService.findOneBy({
                 query: {
-                    serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
-                    monitorType: MonitorType.Server
+                    serverMonitorSecretKey: new ObjectID(
+                        monitorSecretKeyAsString
+                    ),
+                    monitorType: MonitorType.Server,
                 },
                 select: {
-                    _id: true
+                    _id: true,
                 },
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
 
             if (!monitor) {
                 throw new BadDataException('Monitor not found');
             }
 
-            // now process this request. 
+            // now process this request.
 
-            const serverMonitorResponse = req.body['serverMonitorResponse'] as ServerMonitorResponse;
+            const serverMonitorResponse = req.body[
+                'serverMonitorResponse'
+            ] as ServerMonitorResponse;
 
             if (!serverMonitorResponse) {
                 throw new BadDataException('Invalid Server Monitor Response');
