@@ -7,15 +7,22 @@ import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorRe
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import Monitor from 'Model/Models/Monitor';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
+import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
+import OneUptimeDate from 'Common/Types/Date';
+import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
 
 RunCron(
-    'IncomingRequestMonitor:CheckHeartbeat',
+    'ServerMonitor:CheckOnlineStatus',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
-        const incomingRequestMonitors: Array<Monitor> =
+
+        const twoMinsAgo = OneUptimeDate.getSomeMinutesAgo(2);
+
+        const serverMonitors: Array<Monitor> =
             await MonitorService.findBy({
                 query: {
-                    monitorType: MonitorType.IncomingRequest,
+                    monitorType: MonitorType.Server,
+                    serverMonitorRequestReceivedAt: QueryHelper.lessThan(twoMinsAgo)
                 },
                 props: {
                     isRoot: true,
@@ -23,14 +30,14 @@ RunCron(
                 select: {
                     _id: true,
                     monitorSteps: true,
-                    incomingRequestReceivedAt: true,
+                    serverMonitorRequestReceivedAt: true,
                     createdAt: true,
                 },
                 limit: LIMIT_MAX,
                 skip: 0,
             });
 
-        for (const monitor of incomingRequestMonitors) {
+        for (const monitor of serverMonitors) {
             if (!monitor.monitorSteps) {
                 continue;
             }
@@ -41,17 +48,14 @@ RunCron(
                 continue;
             }
 
-            const incomingRequest: IncomingMonitorRequest = {
+            const serverMonitorResponse: ServerMonitorResponse = {
                 monitorId: monitor.id!,
-                requestHeaders: undefined,
-                requestBody: undefined,
-                incomingRequestReceivedAt:
-                    monitor.incomingRequestReceivedAt || monitor.createdAt!,
-                onlyCheckForIncomingRequestReceivedAt: true,
+                onlyCheckRequestReceivedAt: true,
+                requestReceivedAt: monitor.serverMonitorRequestReceivedAt || monitor.createdAt!
             };
 
             await ProbeMonitorResponseService.processProbeResponse(
-                incomingRequest
+                serverMonitorResponse
             );
         }
     }
@@ -62,9 +66,8 @@ type ShouldProcessRequestFunction = (monitor: Monitor) => boolean;
 const shouldProcessRequest: ShouldProcessRequestFunction = (
     monitor: Monitor
 ): boolean => {
-    // check if any criteria has request time step. If yes, then process the request. If no then skip the request.
-    // We dont want Incoming Request Monitor to process the request if there is no criteria that checks for incoming request.
-    // Those monitors criteria should be checked if the request is receievd from the API and not through the worker.
+    // check if any criteria has Is Online step. If yes, then process the request. If no then skip the request.
+    
 
     let shouldWeProcessRequest: boolean = false;
 
@@ -74,7 +77,7 @@ const shouldProcessRequest: ShouldProcessRequestFunction = (
             for (const criteria of steps.data?.monitorCriteria.data
                 ?.monitorCriteriaInstanceArray || []) {
                 for (const filters of criteria.data?.filters || []) {
-                    if (filters.checkOn === CheckOn.IncomingRequest) {
+                    if (filters.checkOn === CheckOn.IsOnline) {
                         shouldWeProcessRequest = true;
                         break;
                     }
