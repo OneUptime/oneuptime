@@ -45,11 +45,10 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
                     [props.fieldName]: resetIdTo,
                 },
             });
+            setNewId(resetIdTo);
             setShowModal(false);
             setShowResultModal(true);
-            if (props.onUpdateComplete) {
-                props.onUpdateComplete(resetIdTo);
-            }
+           
         } catch (err) {
             setError(API.getFriendlyMessage(err));
             setShowErrorModal(true);
@@ -122,6 +121,9 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
                     }`}
                     title={`New ${tableColumnName}`}
                     onSubmit={() => {
+                        if (props.onUpdateComplete && newId) {
+                            props.onUpdateComplete(newId);
+                        }
                         setShowResultModal(false);
                         setError('');
                     }}

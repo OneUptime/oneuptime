@@ -9,6 +9,7 @@ import AddEndedState from './AddEndedState';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
 import AddPostedAtToPublicNotes from './AddPostedAtToPublicNotes';
+import AddSecretKeyToIncomingRequestMonitor from './AddSecretKeyToIncomingRequestMonitor';
 import AddStartDateToIncidentStateTimeline from './AddStartDateToIncidentStateTimeline';
 import AddStartDateToMonitorStatusTimeline from './AddStartDateToMonitorStatusTimeline';
 import AddStartDateToScheduledEventsStateTimeline from './AddStartDateToScheduledEventsStateTimeline';
@@ -45,6 +46,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddDurationColumnToSpanTable(),
     new ChangeLogSeverityColumnTypeFromTextToNumber(),
     new AddAttributeColumnToSpanAndLog(),
+    new AddSecretKeyToIncomingRequestMonitor(),
 ];
 
 export default DataMigrations;

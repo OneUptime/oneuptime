@@ -6,7 +6,7 @@ import { HOST, HTTP_PROTOCOL } from 'CommonUI/src/Config';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
-    modelId: ObjectID;
+    secretKey: ObjectID;
 }
 
 const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
@@ -24,12 +24,12 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
                             openInNewTab={true}
                             to={new URL(HTTP_PROTOCOL, HOST)
                                 .addRoute('/heartbeat')
-                                .addRoute(`/${props.modelId.toString()}`)}
+                                .addRoute(`/${props.secretKey.toString()}`)}
                         >
                             <span>
                                 {new URL(HTTP_PROTOCOL, HOST)
                                     .addRoute('/heartbeat')
-                                    .addRoute(`/${props.modelId.toString()}`)
+                                    .addRoute(`/${props.secretKey.toString()}`)
                                     .toString()}
                             </span>
                         </Link>

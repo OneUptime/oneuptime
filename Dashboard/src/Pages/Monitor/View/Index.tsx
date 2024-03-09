@@ -61,6 +61,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
         undefined
     );
 
+    const [monitor, setMonitor] = useState<Monitor | null>(null);
+
     const getUptimePercent: () => ReactElement = (): ReactElement => {
         if (isLoading) {
             return <></>;
@@ -129,8 +131,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         name: true,
                         color: true,
                     },
+                    incomingRequestSecretKey: true,
                 },
             });
+
+            setMonitor(item);
 
             const monitorStatuses: ListResult<MonitorStatus> =
                 await ModelAPI.getList({
@@ -346,8 +351,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             />
 
             {/* Heartbeat URL */}
-            {monitorType === MonitorType.IncomingRequest ? (
-                <IncomingMonitorLink modelId={modelId} />
+            {monitorType === MonitorType.IncomingRequest && monitor?.incomingRequestSecretKey ? (
+                <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
             ) : (
                 <></>
             )}

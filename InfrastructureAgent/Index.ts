@@ -36,7 +36,7 @@ BasicCron({
                 return;
             }
 
-            const oneuptimeHost = args
+            let oneuptimeHost = args
                 .filter((arg) => {
                     return arg
                         .toLowerCase()
@@ -48,10 +48,10 @@ BasicCron({
                 })[0];
 
             if (!oneuptimeHost) {
-                logger.error(
-                    'No --oneuptime-url= found. Please provide --oneuptime-url= as argument.'
+                logger.info(
+                    'No --oneuptime-url= found. Using default oneuptime url - https://oneuptime.com'
                 );
-                return;
+                oneuptimeHost = 'https://oneuptime.com';
             }
 
             // get monitor steps to get disk paths.
@@ -104,7 +104,7 @@ BasicCron({
                 {}
             );
         } catch (err) {
-            logger.error('Error in MonitorInfrastructure');
+            logger.error('Error reporting metrics to OneUptime Server.');
             logger.error(err);
         }
     },

@@ -24,6 +24,7 @@ import useAsyncEffect from 'use-async-effect';
 import DuplicateModel from 'CommonUI/src/Components/DuplicateModel/DuplicateModel';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -37,37 +38,39 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
 
     const [error, setError] = useState<string>('');
 
+    const [monitor, setMonitor] = useState<Monitor | null>(null);
+
+
     const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
 
         setError('');
         try {
-            const item: Monitor | null = await ModelAPI.getItem({
+            const monitor: Monitor | null = await ModelAPI.getItem<Monitor>({
                 modelType: Monitor,
                 id: modelId,
                 select: {
                     monitorType: true,
-                } as any,
+                    incomingRequestSecretKey: true,
+                    serverMonitorSecretKey: true,
+                },
                 requestOptions: {},
             });
 
-            if (!item) {
+            if (!monitor) {
                 setError(`Monitor not found`);
 
                 return;
             }
 
-            setMonitorType(item.monitorType);
+            setMonitor(monitor);
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
         setIsLoading(false);
     };
 
-    const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
-        undefined
-    );
 
     useAsyncEffect(async () => {
         // fetch the model
@@ -75,7 +78,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     }, []);
 
     const getPageContent: GetReactElementFunction = (): ReactElement => {
-        if (!monitorType || isLoading) {
+        if (!monitor?.monitorType || isLoading) {
             return <ComponentLoader />;
         }
 
@@ -85,7 +88,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
 
         return (
             <div>
-                {monitorType !== MonitorType.Manual && (
+                {monitor?.monitorType !== MonitorType.Manual && (
                     <CardModelDetail
                         name="Monitor Settings"
                         editButtonText="Edit Settings"
@@ -126,6 +129,35 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                         }}
                     />
                 )}
+
+                {monitor?.monitorType === MonitorType.IncomingRequest ? <div className='mt-5'>
+
+                    <ResetObjectID<Monitor>
+                        modelType={Monitor}
+                        onUpdateComplete={async () => {
+                            await fetchItem();
+                         }}
+                        fieldName={'incomingRequestSecretKey'}
+                        title={'Reset Incoming Request Secret Key'}
+                        description={`Your current incoming request secret key is: ${monitor.incomingRequestSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate incoming requests.`}
+                        modelId={modelId}
+                    />
+                </div>: <></>}
+
+                {monitor?.monitorType === MonitorType.Server ? <div className='mt-5'>
+
+                    <ResetObjectID<Monitor>
+                        modelType={Monitor}
+                        onUpdateComplete={async () => {
+                           await fetchItem();
+                        }}
+                        fieldName={'serverMonitorSecretKey'}
+                        title={'Reset Server Monitor Secret Key'}
+                        description={`Your current server monitor secret key is: ${monitor.serverMonitorSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate monitoring agents deployed on the.`}
+                        modelId={modelId}
+                    />
+                </div> : <></>}
+
                 <div className="mt-5">
                     <DuplicateModel
                         modelId={modelId}
