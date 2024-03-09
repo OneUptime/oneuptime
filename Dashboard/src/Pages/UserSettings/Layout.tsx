@@ -13,7 +13,7 @@ const UserSettingsLayout: FunctionComponent<PageComponentProps> = (
     const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
     return (
         <Page
-            title={'User Settings for Project '+props.currentProject?.name}
+            title={'User Settings for Project ' + props.currentProject?.name}
             breadcrumbLinks={getUserSettingsBreadcrumbs(path)}
             sideMenu={<DashboardSideMenu />}
         >

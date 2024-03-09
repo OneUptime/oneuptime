@@ -351,8 +351,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             />
 
             {/* Heartbeat URL */}
-            {monitorType === MonitorType.IncomingRequest && monitor?.incomingRequestSecretKey ? (
-                <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
+            {monitorType === MonitorType.IncomingRequest &&
+            monitor?.incomingRequestSecretKey ? (
+                <IncomingMonitorLink
+                    secretKey={monitor?.incomingRequestSecretKey}
+                />
             ) : (
                 <></>
             )}

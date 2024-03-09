@@ -48,7 +48,6 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
             setNewId(resetIdTo);
             setShowModal(false);
             setShowResultModal(true);
-           
         } catch (err) {
             setError(API.getFriendlyMessage(err));
             setShowErrorModal(true);

@@ -40,7 +40,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
 
     const [monitor, setMonitor] = useState<Monitor | null>(null);
 
-
     const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
@@ -70,7 +69,6 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
         }
         setIsLoading(false);
     };
-
 
     useAsyncEffect(async () => {
         // fetch the model
@@ -130,33 +128,39 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                     />
                 )}
 
-                {monitor?.monitorType === MonitorType.IncomingRequest ? <div className='mt-5'>
+                {monitor?.monitorType === MonitorType.IncomingRequest ? (
+                    <div className="mt-5">
+                        <ResetObjectID<Monitor>
+                            modelType={Monitor}
+                            onUpdateComplete={async () => {
+                                await fetchItem();
+                            }}
+                            fieldName={'incomingRequestSecretKey'}
+                            title={'Reset Incoming Request Secret Key'}
+                            description={`Your current incoming request secret key is: ${monitor.incomingRequestSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate incoming requests.`}
+                            modelId={modelId}
+                        />
+                    </div>
+                ) : (
+                    <></>
+                )}
 
-                    <ResetObjectID<Monitor>
-                        modelType={Monitor}
-                        onUpdateComplete={async () => {
-                            await fetchItem();
-                         }}
-                        fieldName={'incomingRequestSecretKey'}
-                        title={'Reset Incoming Request Secret Key'}
-                        description={`Your current incoming request secret key is: ${monitor.incomingRequestSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate incoming requests.`}
-                        modelId={modelId}
-                    />
-                </div>: <></>}
-
-                {monitor?.monitorType === MonitorType.Server ? <div className='mt-5'>
-
-                    <ResetObjectID<Monitor>
-                        modelType={Monitor}
-                        onUpdateComplete={async () => {
-                           await fetchItem();
-                        }}
-                        fieldName={'serverMonitorSecretKey'}
-                        title={'Reset Server Monitor Secret Key'}
-                        description={`Your current server monitor secret key is: ${monitor.serverMonitorSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate monitoring agents deployed on the.`}
-                        modelId={modelId}
-                    />
-                </div> : <></>}
+                {monitor?.monitorType === MonitorType.Server ? (
+                    <div className="mt-5">
+                        <ResetObjectID<Monitor>
+                            modelType={Monitor}
+                            onUpdateComplete={async () => {
+                                await fetchItem();
+                            }}
+                            fieldName={'serverMonitorSecretKey'}
+                            title={'Reset Server Monitor Secret Key'}
+                            description={`Your current server monitor secret key is: ${monitor.serverMonitorSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate monitoring agents deployed on the.`}
+                            modelId={modelId}
+                        />
+                    </div>
+                ) : (
+                    <></>
+                )}
 
                 <div className="mt-5">
                     <DuplicateModel
