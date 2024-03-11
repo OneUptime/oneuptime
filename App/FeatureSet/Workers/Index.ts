@@ -69,6 +69,8 @@ import './Jobs/UserOnCallLog/ExecutePendingExecutions';
 import './Jobs/UserOnCallLog/TimeoutStuckExecutions';
 
 import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
+import './Jobs/ServerMonitor/CheckOnlineStatus';
+
 import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
 
 import './Jobs/Workflow/TimeoutJobs';
