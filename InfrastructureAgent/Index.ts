@@ -10,6 +10,8 @@ import Monitor from 'Model/Models/Monitor';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
 import OneUptimeDate from 'Common/Types/Date';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 BasicCron({
     jobName: 'MonitorInfrastructure',
@@ -19,13 +21,13 @@ BasicCron({
     },
     runFunction: async () => {
         try {
-            const args = process.argv;
+            const args: Array<string> = process.argv;
 
-            const secretKey = args
-                .filter((arg) => {
+            const secretKey: string | undefined = args
+                .filter((arg: string) => {
                     return arg.toLowerCase().trim().includes('--secret-key=');
                 })
-                .map((arg) => {
+                .map((arg: string) => {
                     return arg.split('=')[1];
                 })[0];
 
@@ -36,14 +38,14 @@ BasicCron({
                 return;
             }
 
-            let oneuptimeHost = args
-                .filter((arg) => {
+            let oneuptimeHost: string | undefined = args
+                .filter((arg: string) => {
                     return arg
                         .toLowerCase()
                         .trim()
                         .includes('--oneuptime-url=');
                 })
-                .map((arg) => {
+                .map((arg: string) => {
                     return arg.split('=')[1];
                 })[0];
 
@@ -55,9 +57,12 @@ BasicCron({
             }
 
             // get monitor steps to get disk paths.
-            const monitorResult = await API.get(
-                URL.fromString(`${oneuptimeHost}/server-monitor/${secretKey}`)
-            );
+            const monitorResult: HTTPErrorResponse | HTTPResponse<BaseModel> =
+                await API.get(
+                    URL.fromString(
+                        `${oneuptimeHost}/server-monitor/${secretKey}`
+                    )
+                );
 
             const monitor: Monitor = BaseModel.fromJSON(
                 monitorResult.data as JSONObject,
@@ -84,10 +89,11 @@ BasicCron({
 
             const serverMonitorResponse: ServerMonitorResponse = {
                 monitorId: monitor.id!,
-                metricsCollectedAt: OneUptimeDate.getCurrentDate(),
+                requestReceivedAt: OneUptimeDate.getCurrentDate(),
                 basicInfrastructureMetrics: await BasicMetircs.getBasicMetrics({
                     diskPaths: diskPaths,
                 }),
+                onlyCheckRequestReceivedAt: false,
             };
 
             // now we send this data back to server.

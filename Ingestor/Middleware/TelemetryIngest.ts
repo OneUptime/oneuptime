@@ -50,7 +50,7 @@ export default class TelemetryIngest {
                 'service-token',
                 serviceTokenInHeader as string
             );
-            
+
             const serviceProjectId: string | null = await GlobalCache.getString(
                 'service-project-id',
                 serviceTokenInHeader as string

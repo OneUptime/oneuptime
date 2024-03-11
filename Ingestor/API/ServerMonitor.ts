@@ -93,7 +93,7 @@ router.post(
 
             // now process this request.
 
-            const serverMonitorResponse = req.body[
+            const serverMonitorResponse: ServerMonitorResponse = req.body[
                 'serverMonitorResponse'
             ] as ServerMonitorResponse;
 
