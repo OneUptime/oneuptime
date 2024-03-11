@@ -913,20 +913,36 @@ export default class ProbeMonitorResponseService {
             return null; // if true then return null.
         }
 
-        if (input.monitor.monitorType === MonitorType.Server) {
+        if (input.monitor.monitorType === MonitorType.Server && (input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt) {
+
+            const lastCheckTime: Date = (
+                input.dataToProcess as ServerMonitorResponse
+            ).requestReceivedAt;
+
+            const differenceInMinutes: number =
+                OneUptimeDate.getDifferenceInMinutes(
+                    lastCheckTime,
+                    OneUptimeDate.getCurrentDate()
+                );
+
+        
+            const offlineIfNotCheckedInMinutes: number = 2;
+
             if (
                 input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-                input.criteriaFilter.filterType === FilterType.True
+                input.criteriaFilter.filterType === FilterType.True && differenceInMinutes <= offlineIfNotCheckedInMinutes
             ) {
+                
                 if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
                     return 'Monitor is online.';
                 }
+
                 return null;
             }
 
             if (
                 input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-                input.criteriaFilter.filterType === FilterType.False
+                input.criteriaFilter.filterType === FilterType.False && differenceInMinutes > offlineIfNotCheckedInMinutes
             ) {
                 if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
                     return 'Monitor is offline.';
