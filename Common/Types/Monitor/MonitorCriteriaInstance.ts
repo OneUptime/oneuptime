@@ -104,7 +104,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         if (
             arg.monitorType === MonitorType.Ping ||
             arg.monitorType === MonitorType.IP ||
-            arg.monitorType === MonitorType.Port
+            arg.monitorType === MonitorType.Port || 
+            arg.monitorType === MonitorType.Server
         ) {
             monitorCriteriaInstance.data = {
                 id: ObjectID.generate().toString(),
