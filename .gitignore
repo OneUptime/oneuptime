@@ -102,3 +102,4 @@ Examples/otel-dotnet/obj/*
 
 InfrastructureAgent/sea-prep.blob
 InfrastructureAgent/InfrastructureAgent
+InfrastructureAgent/build/*
