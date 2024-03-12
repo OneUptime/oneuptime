@@ -815,6 +815,33 @@ jobs:
             GIT_SHA=${{ github.sha }}
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
+  infrastrucutre-agent-macos-binary-release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 21.6.2
+      - run: cd InfrastructureAgent && bash Scripts/Build/Mac.sh
+
+  infrastrucutre-agent-windows-binary-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 21.6.2
+      - run: cd InfrastructureAgent && ./Scripts/Build/Windows.sh
+
+  infrastrucutre-agent-linux-binary-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 21.6.2
+      - run: cd InfrastructureAgent && bash ./Scripts/Build/Linux.sh
+
   test-helm-chart:
     runs-on: ubuntu-latest
     needs: [test-server-docker-image-deploy, test-docker-image-deploy, ingestor-docker-image-deploy, probe-docker-image-deploy, haraka-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy]
