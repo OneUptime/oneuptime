@@ -26,6 +26,9 @@ BasicCron({
             const secretKey: string | undefined = SecretKey; 
             const oneuptimeHost: URL = OneUptimeURL;
 
+            console.log('Secret Key:', secretKey);
+            console.log('OneUptime Host:', oneuptimeHost);
+
             if(!secretKey){
                 throw new BadDataException(
                     'No SECRET_KEY environment variable found. You can find secret key for this monitor on OneUptime Dashboard'

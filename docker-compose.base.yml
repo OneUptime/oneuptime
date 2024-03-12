@@ -253,7 +253,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            ONEUPTIME_URL: ${HTTP_PROTOCOL}://${HOST}
+            ONEUPTIME_URL: http://ingestor:${INGESTOR_PORT}
             SECRET_KEY: ${INFRASTRUCTURE_AGENT_SECRET_KEY}
         logging:
             driver: "local"
