@@ -1,4 +1,0 @@
-{
-    "main": "./build/dist/Index.js",
-    "output": "sea-prep.blob"
-}

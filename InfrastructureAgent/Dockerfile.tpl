@@ -39,12 +39,10 @@ RUN npm install
 COPY ./Model /usr/src/Model
 
 
-
 WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
-
 
 
 ENV PRODUCTION=true
@@ -54,7 +52,6 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY ./InfrastructureAgent/package*.json /usr/src/app/
 RUN npm install
-
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
