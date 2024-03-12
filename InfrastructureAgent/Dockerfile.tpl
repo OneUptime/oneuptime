@@ -52,7 +52,7 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./InfrastrcutureAgent/package*.json /usr/src/app/
+COPY ./InfrastructureAgent/package*.json /usr/src/app/
 RUN npm install
 
 
@@ -61,7 +61,7 @@ RUN npm install
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./InfrastrcutureAgent /usr/src/app
+COPY ./InfrastructureAgent /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app

@@ -248,6 +248,18 @@ services:
                 max-size: "1000m"
             
 
+    infrastructure-agent:   
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            ONEUPTIME_URL: ${HTTP_PROTOCOL}://${HOST}
+            SECRET_KEY: ${INFRASTRUCTURE_AGENT_SECRET_KEY}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
     probe-1:   
         networks:
           - oneuptime

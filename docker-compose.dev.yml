@@ -266,6 +266,15 @@ services:
             context: ./Fluentd
             dockerfile: ./Dockerfile
 
+    infrastructure-agent:
+        build:
+            network: host
+            context: .
+            dockerfile: ./InfrastructureAgent/Dockerfile
+        extends:
+            file: ./docker-compose.base.yml
+            service: infrastructure-agent
+
     ingress:
         build:
             network: host
