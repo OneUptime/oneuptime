@@ -26,7 +26,6 @@ router.get(
         next: NextFunction
     ): Promise<void> => {
         try {
-            
             const monitorSecretKeyAsString: string | undefined =
                 req.params['secretkey'];
 
@@ -68,7 +67,6 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             const monitorSecretKeyAsString: string | undefined =
                 req.params['secretkey'];
 
@@ -97,15 +95,16 @@ router.post(
 
             // now process this request.
 
-            const serverMonitorResponse: ServerMonitorResponse = JSONFunctions.deserialize(req.body[
-                'serverMonitorResponse'
-            ] as JSONObject) as any;
+            const serverMonitorResponse: ServerMonitorResponse =
+                JSONFunctions.deserialize(
+                    req.body['serverMonitorResponse'] as JSONObject
+                ) as any;
 
             if (!serverMonitorResponse) {
                 throw new BadDataException('Invalid Server Monitor Response');
             }
 
-            if(!monitor.id){
+            if (!monitor.id) {
                 throw new BadDataException('Monitor id not found');
             }
 

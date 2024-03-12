@@ -692,8 +692,7 @@ export default class BaseModel extends BaseEntity {
             const arr: Array<T> = [];
 
             for (const item of json) {
-
-                if(item instanceof BaseModel) {
+                if (item instanceof BaseModel) {
                     arr.push(item as T);
                     continue;
                 }
@@ -704,7 +703,7 @@ export default class BaseModel extends BaseEntity {
             return arr;
         }
 
-        if(json instanceof BaseModel) {
+        if (json instanceof BaseModel) {
             return json as T;
         }
 

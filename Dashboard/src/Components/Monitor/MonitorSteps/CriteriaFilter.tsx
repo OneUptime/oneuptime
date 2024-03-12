@@ -32,8 +32,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     } else {
         text += props.criteriaFilter?.checkOn.toString().toLowerCase() + ' ';
 
-        if(props.criteriaFilter?.serverMonitorOptions?.diskPath){
-            text += 'on ' + props.criteriaFilter?.serverMonitorOptions?.diskPath + ' ';
+        if (props.criteriaFilter?.serverMonitorOptions?.diskPath) {
+            text +=
+                'on ' +
+                props.criteriaFilter?.serverMonitorOptions?.diskPath +
+                ' ';
         }
 
         if (props.criteriaFilter?.filterType) {
