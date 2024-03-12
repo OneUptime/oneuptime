@@ -52,19 +52,16 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./App/package*.json /usr/src/app/
+COPY ./InfrastrcutureAgent/package*.json /usr/src/app/
 RUN npm install
 
-# Expose ports.
-#   - 3002: OneUptime-backend
-EXPOSE 3002
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./App /usr/src/app
+COPY ./InfrastrcutureAgent /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app

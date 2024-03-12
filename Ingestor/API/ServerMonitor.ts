@@ -13,6 +13,8 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
 import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import { JSONObject } from 'Common/Types/JSON';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -24,8 +26,6 @@ router.get(
         next: NextFunction
     ): Promise<void> => {
         try {
-
-            debugger;
             
             const monitorSecretKeyAsString: string | undefined =
                 req.params['secretkey'];
@@ -69,8 +69,6 @@ router.post(
     ): Promise<void> => {
         try {
 
-            debugger;
-
             const monitorSecretKeyAsString: string | undefined =
                 req.params['secretkey'];
 
@@ -99,13 +97,19 @@ router.post(
 
             // now process this request.
 
-            const serverMonitorResponse: ServerMonitorResponse = req.body[
+            const serverMonitorResponse: ServerMonitorResponse = JSONFunctions.deserialize(req.body[
                 'serverMonitorResponse'
-            ] as ServerMonitorResponse;
+            ] as JSONObject) as any;
 
             if (!serverMonitorResponse) {
                 throw new BadDataException('Invalid Server Monitor Response');
             }
+
+            if(!monitor.id){
+                throw new BadDataException('Monitor id not found');
+            }
+
+            serverMonitorResponse.monitorId = monitor.id;
 
             // process probe response here.
             const probeApiIngestResponse: ProbeApiIngestResponse =

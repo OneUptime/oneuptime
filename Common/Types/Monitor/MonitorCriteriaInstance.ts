@@ -277,6 +277,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                     filter.checkOn
                 );
             }
+
+            if(filter.checkOn === CheckOn.DiskUsagePercent && !filter.serverMonitorOptions?.diskPath){
+                return 'Disk Path is required for Disk Usage Percent';
+            }
         }
 
         return null;

@@ -4,7 +4,7 @@
   "description": "",
   "main": "./build/dist/Index.ts",
   "scripts": {
-    "start": "node --require ts-node/register Index.ts --secret-key=2c7aabf0-e04b-11ee-8d5c-87db75684d47 --oneuptime-url=http://localhost",
+    "start": "node --require ts-node/register Index.ts",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "npx nodemon",

@@ -11,6 +11,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { OneUptimeURL, SecretKey } from './Utils/Config';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 BasicCron({
     jobName: 'MonitorInfrastructure',
@@ -20,44 +22,16 @@ BasicCron({
     },
     runFunction: async () => {
         try {
-            const args: Array<string> = process.argv;
+            
+            const secretKey: string | undefined = SecretKey; 
+            const oneuptimeHost: URL = OneUptimeURL;
 
-            const secretKey: string | undefined = args
-                .filter((arg: string) => {
-                    return arg.toLowerCase().trim().includes('--secret-key=');
-                })
-                .map((arg: string) => {
-                    return arg.split('=')[1];
-                })[0];
-
-            if (!secretKey) {
-                logger.error(
-                    'No --secret-key= found. Please provide --secret-key= as argument. You can find secret key for this monitor on OneUptime Dashboard'
+            if(!secretKey){
+                throw new BadDataException(
+                    'No SECRET_KEY environment variable found. You can find secret key for this monitor on OneUptime Dashboard'
                 );
-                return;
             }
-
-            let oneuptimeHost: string | undefined = args
-                .filter((arg: string) => {
-                    return arg
-                        .toLowerCase()
-                        .trim()
-                        .includes('--oneuptime-url=');
-                })
-                .map((arg: string) => {
-                    return arg.split('=')[1];
-                })[0];
-
-            if (!oneuptimeHost) {
-                logger.info(
-                    'No --oneuptime-url= found. Using default oneuptime url - https://oneuptime.com'
-                );
-                oneuptimeHost = 'https://oneuptime.com';
-            }
-
-            console.log('oneuptimeHost', oneuptimeHost);
-            console.log('secretKey', secretKey);
-
+            
             // get monitor steps to get disk paths.
             const monitorResult: HTTPErrorResponse | HTTPResponse<BaseModel> =
                 await API.get(
@@ -70,8 +44,6 @@ BasicCron({
                 throw monitorResult;
             }
 
-
-            console.log(monitorResult)
 
             const monitor: Monitor = BaseModel.fromJSON(
                 monitorResult.data,
@@ -105,6 +77,10 @@ BasicCron({
                 onlyCheckRequestReceivedAt: false,
             };
 
+
+            logger.info('Server Monitor Response');
+            logger.info(serverMonitorResponse);
+
             // now we send this data back to server.
 
             await API.post(
@@ -118,6 +94,7 @@ BasicCron({
                 },
                 {}
             );
+
         } catch (err) {
             logger.error('Error reporting metrics to OneUptime Server.');
             logger.error(err);

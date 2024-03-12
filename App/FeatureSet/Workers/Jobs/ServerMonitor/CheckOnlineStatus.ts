@@ -14,6 +14,7 @@ RunCron(
     'ServerMonitor:CheckOnlineStatus',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
+
         const twoMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(2);
 
         const serverMonitors: Array<Monitor> = await MonitorService.findBy({
