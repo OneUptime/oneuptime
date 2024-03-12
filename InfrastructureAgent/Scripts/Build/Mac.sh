@@ -1,6 +1,7 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
 
-npm run compile
+npm run compile 
+npm run build
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 node --experimental-sea-config $SCRIPT_DIR/../../sea-config.json 
 cp $(command -v node) InfrastructureAgent
