@@ -4,7 +4,6 @@ import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import logger from 'CommonServer/Utils/Logger';
 import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
 import Monitor from 'Model/Models/Monitor';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
@@ -56,6 +55,9 @@ BasicCron({
                 oneuptimeHost = 'https://oneuptime.com';
             }
 
+            console.log('oneuptimeHost', oneuptimeHost);
+            console.log('secretKey', secretKey);
+
             // get monitor steps to get disk paths.
             const monitorResult: HTTPErrorResponse | HTTPResponse<BaseModel> =
                 await API.get(
@@ -64,8 +66,15 @@ BasicCron({
                     )
                 );
 
+            if (monitorResult instanceof HTTPErrorResponse) {
+                throw monitorResult;
+            }
+
+
+            console.log(monitorResult)
+
             const monitor: Monitor = BaseModel.fromJSON(
-                monitorResult.data as JSONObject,
+                monitorResult.data,
                 Monitor
             ) as Monitor;
 

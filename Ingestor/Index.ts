@@ -14,6 +14,7 @@ import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDat
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import Realtime from 'CommonServer/Utils/Realtime';
+import ServerMonitorAPI from './API/ServerMonitor';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -26,6 +27,7 @@ app.use([`/${APP_NAME}`, '/'], Ingestor);
 app.use([`/${APP_NAME}`, '/'], IncomingRequestAPI);
 app.use([`/${APP_NAME}`, '/'], OTelIngestAPI);
 app.use([`/${APP_NAME}`, '/'], FluentIngestAPI);
+app.use([`/${APP_NAME}`, '/'], ServerMonitorAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {

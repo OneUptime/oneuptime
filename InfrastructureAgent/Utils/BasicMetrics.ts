@@ -30,8 +30,9 @@ export class BasicMetircs {
             total: info.total,
             free: info.free,
             used: info.total - info.free,
-            available: info.available,
             diskPath: diskPath,
+            percentFree: (info.free / info.total) * 100,
+            percentUsed: ((info.total - info.free) / info.total) * 100,
         };
     }
 
@@ -44,6 +45,8 @@ export class BasicMetircs {
             total: totalMemory,
             free: freeMemory,
             used: usedMemory,
+            percentFree: (freeMemory / totalMemory) * 100,
+            percentUsed: (usedMemory / totalMemory) * 100,
         };
     }
 
