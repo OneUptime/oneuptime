@@ -1,4 +1,4 @@
-import OSTypeEnum from 'Common/Types/Infrastrucutre/OSType';
+import OSTypeEnum from 'Common/Types/Infrastructure/OSType';
 import os from 'node:os';
 
 export default class OSType {

@@ -1,4 +1,4 @@
-import BasicInfrastructureMetrics from '../../Infrastrucutre/BasicMetrics';
+import BasicInfrastructureMetrics from '../../Infrastructure/BasicMetrics';
 import ObjectID from '../../ObjectID';
 
 export default interface ServerMonitorResponse {

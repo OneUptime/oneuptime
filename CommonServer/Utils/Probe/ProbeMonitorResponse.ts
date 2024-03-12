@@ -36,7 +36,7 @@ import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/Incomin
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import VMUtil from '../VM';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
-import { BasicDiskMetrics } from 'Common/Types/Infrastrucutre/BasicMetrics';
+import { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
 
 type DataToProcess =
     | ProbeMonitorResponse
