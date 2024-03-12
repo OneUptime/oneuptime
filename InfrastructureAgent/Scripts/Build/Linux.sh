@@ -1,5 +1,5 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
-
+npm run compile
 node --experimental-sea-config sea-config.json
 cp $(command -v node) InfrastructureAgent
 npm i postject -g

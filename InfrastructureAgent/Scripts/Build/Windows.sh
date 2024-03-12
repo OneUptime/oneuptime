@@ -1,5 +1,5 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
-
+npm run compile
 SET TEMP_SCRIPT_DIR=%~dp0
 SET SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 npm i postject -g
