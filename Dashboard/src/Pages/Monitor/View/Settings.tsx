@@ -21,6 +21,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
+import InlineCode from 'CommonUI/src/Components/InlineCode/InlineCode';
 import DuplicateModel from 'CommonUI/src/Components/DuplicateModel/DuplicateModel';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
@@ -137,7 +138,20 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             }}
                             fieldName={'incomingRequestSecretKey'}
                             title={'Reset Incoming Request Secret Key'}
-                            description={`Your current incoming request secret key is: ${monitor.incomingRequestSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate incoming requests.`}
+                            description={
+                                <p className="mt-2">
+                                    Your current incoming request secret key is:{' '}
+                                    <InlineCode
+                                        text={
+                                            monitor.incomingRequestSecretKey?.toString() ||
+                                            'No key generated'
+                                        }
+                                    />{' '}
+                                    Resetting the secret key will generate a new
+                                    key. Secret is used to authenticate incoming
+                                    requests.
+                                </p>
+                            }
                             modelId={modelId}
                         />
                     </div>
@@ -154,7 +168,20 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             }}
                             fieldName={'serverMonitorSecretKey'}
                             title={'Reset Server Monitor Secret Key'}
-                            description={`Your current server monitor secret key is: ${monitor.serverMonitorSecretKey?.toString()}. Resetting the secret key will generate a new key. Secret is used to authenticate monitoring agents deployed on the.`}
+                            description={
+                                <p className="mt-2">
+                                    Your current server monitor secret key is:{' '}
+                                    <InlineCode
+                                        text={
+                                            monitor.serverMonitorSecretKey?.toString() ||
+                                            'No key generated'
+                                        }
+                                    />{' '}
+                                    Resetting the secret key will generate a new
+                                    key. Secret is used to authenticate
+                                    monitoring agents deployed on the.
+                                </p>
+                            }
                             modelId={modelId}
                         />
                     </div>
