@@ -28,8 +28,8 @@ export interface ComponentProps {
 const Card: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const noRightElementsOrButtons = !props.rightElement && (!props.buttons || props.buttons.length === 0); 
+    const noRightElementsOrButtons: boolean =
+        !props.rightElement && (!props.buttons || props.buttons.length === 0);
 
     return (
         <React.Fragment>
@@ -37,7 +37,11 @@ const Card: FunctionComponent<ComponentProps> = (
                 <div className="shadow sm:rounded-md">
                     <div className="bg-white py-6 px-4 sm:p-6">
                         <div className="flex justify-between">
-                            <div className={`${noRightElementsOrButtons ? 'w-full' : ''}`}>
+                            <div
+                                className={`${
+                                    noRightElementsOrButtons ? 'w-full' : ''
+                                }`}
+                            >
                                 <h2
                                     data-testid="card-details-heading"
                                     id="card-details-heading"

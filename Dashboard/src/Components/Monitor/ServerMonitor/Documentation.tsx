@@ -1,4 +1,3 @@
-
 import ObjectID from 'Common/Types/ObjectID';
 import Card from 'CommonUI/src/Components/Card/Card';
 import CodeBlock from 'CommonUI/src/Components/CodeBlock/CodeBlock';
@@ -12,22 +11,32 @@ export interface ComponentProps {
 const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const host: string = `${HTTP_PROTOCOL}${HOST}`;
+    let showHost: boolean = true;
 
-    const host = `${HTTP_PROTOCOL}${HOST}`;
+    if (host === 'https://oneuptime.com') {
+        showHost = false;
+    }
 
     return (
         <>
             <Card
                 title={`Set up your Server Monitor`}
                 description={
-                    <div className='space-y-2 w-full'>
-                        <div>Please install NPM on your server. </div>
-                        <CodeBlock language='bash' code={<div>
-                            <p>npm install -g @oneuptime/infrastructure-agent</p>
-                            <p>oneuptime-infrastructure-agent --secret-key={props.secretKey.toString()} --oneuptime-url={host}</p>
-                        </div>} />
-                    </div>
+                    <div className="space-y-2 w-full mt-5">
+                        <CodeBlock
+                            language="bash"
+                            code={`
+# Please make sure you have NPM installed on your server
 
+npm install -g @oneuptime/infrastructure-agent
+oneuptime-infrastructure-agent --secret-key=${props.secretKey.toString()} ${
+                                showHost ? '--oneuptime-url=' + host : ''
+                            }
+
+`}
+                        />
+                    </div>
                 }
             />
         </>

@@ -140,7 +140,8 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             title={'Reset Incoming Request Secret Key'}
                             description={
                                 <p className="mt-2">
-                                    Your current incoming request secret key is {'  '}
+                                    Your current incoming request secret key is{' '}
+                                    {'  '}
                                     <InlineCode
                                         text={
                                             monitor.incomingRequestSecretKey?.toString() ||
@@ -170,7 +171,8 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                             title={'Reset Server Monitor Secret Key'}
                             description={
                                 <p className="mt-2">
-                                    Your current server monitor secret key is {'  '}
+                                    Your current server monitor secret key is{' '}
+                                    {'  '}
                                     <InlineCode
                                         text={
                                             monitor.serverMonitorSecretKey?.toString() ||

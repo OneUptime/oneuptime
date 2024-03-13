@@ -133,7 +133,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         color: true,
                     },
                     incomingRequestSecretKey: true,
-                    serverMonitorSecretKey: true
+                    serverMonitorSecretKey: true,
                 },
             });
 
@@ -295,7 +295,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
@@ -303,7 +303,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         text={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -333,7 +333,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -354,7 +354,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
-                monitor?.incomingRequestSecretKey ? (
+            monitor?.incomingRequestSecretKey ? (
                 <IncomingMonitorLink
                     secretKey={monitor?.incomingRequestSecretKey}
                 />
@@ -363,7 +363,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             )}
 
             {monitorType === MonitorType.Server &&
-                monitor?.serverMonitorSecretKey ? (
+            monitor?.serverMonitorSecretKey ? (
                 <ServerMonitorDocumentation
                     secretKey={monitor?.serverMonitorSecretKey}
                 />
