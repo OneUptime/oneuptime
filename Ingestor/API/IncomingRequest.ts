@@ -43,7 +43,7 @@ const processIncomingRequest: RequestHandler = async (
                 incomingRequestSecretKey: new ObjectID(
                     monitorSecretKeyAsString
                 ),
-                monitorType: MonitorType.Server,
+                monitorType: MonitorType.IncomingRequest,
             },
             select: {
                 _id: true,

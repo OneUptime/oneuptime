@@ -9,6 +9,7 @@ import ObjectID from 'Common/Types/ObjectID';
 export const MonitorsRoutePath: Dictionary<string> = {
     [PageMap.MONITORS_INOPERATIONAL]: 'inoperational',
     [PageMap.MONITORS_DISABLED]: 'disabled',
+   
     [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
     [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
     [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -19,6 +20,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
     [PageMap.MONITOR_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
     [PageMap.MONITOR_VIEW_CRITERIA]: `${RouteParams.ModelID}/criteria`,
     [PageMap.MONITOR_VIEW_PROBES]: `${RouteParams.ModelID}/probes`,
+    [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -198,6 +200,9 @@ const RouteMap: Dictionary<Route> = {
         }`
     ),
 
+   
+    
+
     [PageMap.MONITORS_DISABLED]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${
             MonitorsRoutePath[PageMap.MONITORS_DISABLED]
@@ -213,6 +218,12 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.MONITOR_VIEW_INTERVAL]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${
             MonitorsRoutePath[PageMap.MONITOR_VIEW_INTERVAL]
+        }`
+    ),
+
+    [PageMap.MONITOR_VIEW_DOCUMENTATION]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${
+            MonitorsRoutePath[PageMap.MONITOR_VIEW_DOCUMENTATION]
         }`
     ),
 

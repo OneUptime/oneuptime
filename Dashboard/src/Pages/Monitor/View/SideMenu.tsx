@@ -7,9 +7,11 @@ import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 import ObjectID from 'Common/Types/ObjectID';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     modelId: ObjectID;
+    monitorType: MonitorType;
 }
 
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
@@ -38,7 +40,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Team}
                 />
-                <SideMenuItem
+                {props.monitorType !== MonitorType.Manual ? <SideMenuItem
                     link={{
                         title: 'Criteria',
                         to: RouteUtil.populateRouteParams(
@@ -47,8 +49,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Criteria}
-                />
-                <SideMenuItem
+                /> : <></>}
+                {props.monitorType !== MonitorType.Manual && props.monitorType !== MonitorType.Server && props.monitorType !== MonitorType.IncomingRequest ? <SideMenuItem
                     link={{
                         title: 'Interval',
                         to: RouteUtil.populateRouteParams(
@@ -57,7 +59,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Clock}
-                />
+                /> : <></>}
             </SideMenuSection>
 
             <SideMenuSection title="Timeline and Incidents">
@@ -66,7 +68,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Status Timeline',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                            PageMap.MONITOR_VIEW_STATUS_TIMELINE
                             ] as Route,
                             { modelId: props.modelId }
                         ),
@@ -86,7 +88,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
-                <SideMenuItem
+                {props.monitorType === MonitorType.IncomingRequest || props.monitorType === MonitorType.Server ? <SideMenuItem
+                    link={{
+                        title: 'Documentation',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                            PageMap.MONITOR_VIEW_DOCUMENTATION
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.Book}
+                /> : <></>}
+                {props.monitorType !== MonitorType.Manual ? <SideMenuItem
                     link={{
                         title: 'Probes',
                         to: RouteUtil.populateRouteParams(
@@ -95,13 +109,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Signal}
-                />
+                /> : <></>}
                 <SideMenuItem
                     link={{
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                            PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                             ] as Route,
                             { modelId: props.modelId }
                         ),

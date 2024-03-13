@@ -61,6 +61,14 @@ const MonitorViewInterval: LazyExoticComponent<
 > = lazy(() => {
     return import('../Pages/Monitor/View/Interval');
 });
+
+
+const MonitorViewDocumentation: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Monitor/View/Documentation');
+});
+
 const MonitorViewProbes: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -116,7 +124,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITORS_INOPERATIONAL
+                                    PageMap.MONITORS_INOPERATIONAL
                                     ] as Route
                                 }
                             />
@@ -152,7 +160,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_SETTINGS
+                                    PageMap.MONITOR_VIEW_SETTINGS
                                     ] as Route
                                 }
                             />
@@ -169,7 +177,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_OWNERS
+                                    PageMap.MONITOR_VIEW_OWNERS
                                     ] as Route
                                 }
                             />
@@ -186,7 +194,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_CRITERIA
+                                    PageMap.MONITOR_VIEW_CRITERIA
                                     ] as Route
                                 }
                             />
@@ -204,7 +212,25 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_INTERVAL
+                                    PageMap.MONITOR_VIEW_INTERVAL
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.MONITOR_VIEW_DOCUMENTATION
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorViewDocumentation
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                    PageMap.MONITOR_VIEW_DOCUMENTATION
                                     ] as Route
                                 }
                             />
@@ -222,7 +248,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
                                     ] as Route
                                 }
                             />
@@ -240,7 +266,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_INCIDENTS
+                                    PageMap.MONITOR_VIEW_INCIDENTS
                                     ] as Route
                                 }
                             />
@@ -257,7 +283,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_DELETE
+                                    PageMap.MONITOR_VIEW_DELETE
                                     ] as Route
                                 }
                             />
@@ -275,7 +301,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_CUSTOM_FIELDS
+                                    PageMap.MONITOR_VIEW_CUSTOM_FIELDS
                                     ] as Route
                                 }
                             />
@@ -293,7 +319,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.MONITOR_VIEW_PROBES
+                                    PageMap.MONITOR_VIEW_PROBES
                                     ] as Route
                                 }
                             />

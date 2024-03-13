@@ -134,6 +134,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     },
                     incomingRequestSecretKey: true,
                     serverMonitorSecretKey: true,
+                    serverMonitorRequestReceivedAt: true,
+                    incomingRequestReceivedAt: true,
                 },
             });
 
@@ -354,7 +356,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
-            monitor?.incomingRequestSecretKey ? (
+            monitor?.incomingRequestSecretKey && !monitor.incomingRequestReceivedAt ? (
                 <IncomingMonitorLink
                     secretKey={monitor?.incomingRequestSecretKey}
                 />
@@ -363,7 +365,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             )}
 
             {monitorType === MonitorType.Server &&
-            monitor?.serverMonitorSecretKey ? (
+            monitor?.serverMonitorSecretKey && !monitor.serverMonitorRequestReceivedAt ? (
                 <ServerMonitorDocumentation
                     secretKey={monitor?.serverMonitorSecretKey}
                 />
