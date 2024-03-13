@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "node --require ts-node/register Index.ts",
+    "start": "node --require ts-node/register Index.ts --secret-key hello",
     "build": "esbuild Index.ts --bundle --platform=node --outfile=./Build/Index.js --loader:.node=file",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
@@ -17,13 +17,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "boxen": "^7.1.1",
+    "chalk": "^5.3.0",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "diskusage": "^1.2.0",
     "esbuild": "^0.20.1",
     "Model": "file:../Model",
     "ts-node": "^10.9.1",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "yargs": "^17.7.2"
+  },
+  "bin": {
+    "oneuptime-infrastructure-agent": "./build/Index.js"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
