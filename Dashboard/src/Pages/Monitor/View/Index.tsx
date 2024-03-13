@@ -29,7 +29,7 @@ import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import IncomingMonitorLink from './IncomingMonitorLink';
+import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
 import { Green, Grey } from 'Common/Types/BrandColors';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -37,6 +37,7 @@ import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -132,6 +133,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         color: true,
                     },
                     incomingRequestSecretKey: true,
+                    serverMonitorSecretKey: true
                 },
             });
 
@@ -293,7 +295,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
@@ -301,7 +303,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         text={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -331,7 +333,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                    [],
+                                                [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -352,9 +354,18 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
-            monitor?.incomingRequestSecretKey ? (
+                monitor?.incomingRequestSecretKey ? (
                 <IncomingMonitorLink
                     secretKey={monitor?.incomingRequestSecretKey}
+                />
+            ) : (
+                <></>
+            )}
+
+            {monitorType === MonitorType.Server &&
+                monitor?.serverMonitorSecretKey ? (
+                <ServerMonitorDocumentation
+                    secretKey={monitor?.serverMonitorSecretKey}
                 />
             ) : (
                 <></>
