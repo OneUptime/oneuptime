@@ -1,6 +1,6 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
 # Run Base.sh
-./Base.sh
+bash ./Base.sh
 
 # This is a PowerShell script that builds the Windows version of the Infrastructure Agent.
 SET SCRIPT_DIR=%~dp0
