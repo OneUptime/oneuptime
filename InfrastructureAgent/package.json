@@ -1,9 +1,9 @@
 {
   "name": "@oneuptime/infrastructure-agent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "scripts": {
-    "start": "node --require ts-node/register Index.ts --secret-key hello",
+    "start": "npm run compile && node --require ts-node/register Index.ts",
     "build": "esbuild Index.ts --bundle --platform=node --outfile=./Build/Index.js --loader:.node=file",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
@@ -34,7 +34,6 @@
   "devDependencies": {
     "@types/jest": "^29.5.11",
     "@types/node": "^17.0.31",
-    "@types/nodemailer": "^6.4.14",
     "jest": "^28.1.0",
     "nodemon": "^2.0.20"
   }

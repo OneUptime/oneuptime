@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import yargs from 'yargs';
 import URL from 'Common/Types/API/URL';
 import Dictionary from 'Common/Types/Dictionary';
@@ -16,7 +18,6 @@ const argv: Dictionary<string> = yargs
 
 const secretKey: string | undefined = argv["secret-key"];
 const oneuptimeHost: URL = URL.fromString(argv["oneuptime-host"] || "https://oneuptime.com");
-
 
 if(!secretKey) {
     throw new Error("No secret-key argument found. You can find secret key for this monitor on OneUptime Dashboard");
