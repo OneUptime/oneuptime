@@ -1,8 +1,8 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
-npm install
-npm run compile 
-npm run build
-npm i postject -g
+# Run Base.sh
+./Base.sh
+
+# This is a PowerShell script that builds the Windows version of the Infrastructure Agent.
 SET SCRIPT_DIR=%~dp0
 node --experimental-sea-config %(SCRIPT_DIR)/../../sea-config.json 
 node -e "require('fs').copyFileSync(process.execPath, 'InfrastructureAgent.exe')" 
