@@ -19,7 +19,7 @@ const argv: Dictionary<string> = yargs
     })
     .option('h', {
         alias: 'oneuptime-host',
-        describe: 'OneUptime Host. By default this is https://oneupime.com',
+        describe: 'OneUptime Host. By default this is https://oneuptime.com',
         type: 'string',
         demandOption: false,
     })
