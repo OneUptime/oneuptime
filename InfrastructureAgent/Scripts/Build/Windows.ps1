@@ -1,9 +1,8 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
 npm run compile 
 npm run build
-SET TEMP_SCRIPT_DIR=%~dp0
-SET SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 npm i postject -g
+SET SCRIPT_DIR=%~dp0
 node --experimental-sea-config %(SCRIPT_DIR)/../../sea-config.json 
 node -e "require('fs').copyFileSync(process.execPath, 'InfrastructureAgent.exe')" 
 signtool remove /s InfrastructureAgent.exe
