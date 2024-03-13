@@ -161,7 +161,7 @@ jobs:
 
       # build image for mail service
       - name: build docker image
-        run: sudo docker build -f ./InfrastrctureAgent/Dockerfile .
+        run: sudo docker build -f ./InfrastructureAgent/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest

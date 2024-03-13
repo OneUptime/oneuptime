@@ -1,5 +1,5 @@
 {
-  "name": "infrastructure-agent",
+  "name": "@oneuptime/infrastructure-agent",
   "version": "1.0.0",
   "description": "",
   "scripts": {
