@@ -14,7 +14,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class MonitorInfrastructure {
-    public static initJob(secretKey: string, oneuptimeHost: URL) {
+    public static initJob(secretKey: string, oneuptimeHost: URL): void {
         BasicCron({
             jobName: 'MonitorInfrastructure',
             options: {
@@ -23,7 +23,6 @@ export default class MonitorInfrastructure {
             },
             runFunction: async () => {
                 try {
-
                     if (!secretKey) {
                         throw new BadDataException(
                             'No SECRET_KEY environment variable found. You can find secret key for this monitor on OneUptime Dashboard'

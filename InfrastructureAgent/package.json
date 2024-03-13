@@ -27,7 +27,7 @@
     "yargs": "^17.7.2"
   },
   "bin": {
-    "x-infrastructure-agent": "./Index.ts"
+    "oneuptime-infrastructure-agent": "./Index.ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
