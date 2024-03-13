@@ -15,7 +15,7 @@
     "license": "MIT",
     "dependencies": {
         "@clickhouse/client": "^0.2.10",
-        "@elastic/elasticsearch": "^8.11.0",
+        "@elastic/elasticsearch": "^8.12.1",
         "@opentelemetry/api": "^1.7.0",
         "@opentelemetry/api-logs": "^0.48.0",
         "@opentelemetry/exporter-logs-otlp-http": "^0.48.0",
