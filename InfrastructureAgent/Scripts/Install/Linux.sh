@@ -1,14 +1,20 @@
 #!/bin/bash
 
-# Get the binary name and service name from arguments
-BINARY_NAME="$1"
-SERVICE_NAME="$2"
+# 
 
-# Check if arguments are provided
-if [ -z "$BINARY_NAME" ] || [ -z "$SERVICE_NAME" ]; then
-  echo "Usage: $0 <binary_name> <service_name>"
+# Check if curl is installed
+if ! [ -x "$(command -v curl)" ]; then
+  echo "Error: curl is not installed. Please install curl and return this command" >&2
   exit 1
 fi
+
+# Download the binary from the latest release from 
+curl -L -o InfrastructureAgent
+
+# Get the binary name and service name from arguments
+BINARY_NAME="InfrastructureAgent"
+SERVICE_NAME="infrastructure-agent"
+
 
 # Check if binary exists
 if [ ! -f "$BINARY_NAME" ]; then
