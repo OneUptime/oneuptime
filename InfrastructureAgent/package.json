@@ -12,7 +12,7 @@
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "test": "rm -rf build && jest --detectOpenHandles",
     "coverage": "jest --detectOpenHandles --coverage",
-    "publish": "PACKAGE_NAME=@oneuptime/infrastructure-agent && bash ../Scripts/NPM/PublishPackage.sh"
+    "publish": "export PACKAGE_NAME=@oneuptime/infrastructure-agent && bash ../Scripts/NPM/PublishPackage.sh"
   },
   "author": "",
   "license": "ISC",
