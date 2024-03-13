@@ -10,6 +10,20 @@ on:
 
 jobs:
 
+  publish-infrastucture-agent:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+      NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+      PACKAGE_VERSION: 7.0.${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      - name: Preinstall 
+        run: npm run prerun
+      - name: Publish Infrastructure Agent
+        run: cd InfrastructureAgent && npm run publish
+
   docker-build-accounts:
     runs-on: ubuntu-latest
     env:

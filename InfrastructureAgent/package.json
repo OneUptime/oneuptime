@@ -11,7 +11,8 @@
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "test": "rm -rf build && jest --detectOpenHandles",
-    "coverage": "jest --detectOpenHandles --coverage"
+    "coverage": "jest --detectOpenHandles --coverage",
+    "publish": "PACKAGE_NAME=@oneuptime/infrastructure-agent && bash ../Scripts/NPM/Publish.sh"
   },
   "author": "",
   "license": "ISC",
