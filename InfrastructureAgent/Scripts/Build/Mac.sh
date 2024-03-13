@@ -1,6 +1,7 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
-bash Base.sh
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+bash $SCRIPT_DIR/Base.sh
 node --experimental-sea-config $SCRIPT_DIR/../../sea-config.json 
 cp $(command -v node) InfrastructureAgent
 codesign --remove-signature InfrastructureAgent 
