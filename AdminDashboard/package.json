@@ -6,7 +6,7 @@
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
-        "dotenv": "^16.4.2",
+        "dotenv": "^16.4.4",
         "file-loader": "^6.2.0",
         "Model": "file:../Model",
         "react": "^18.2.0",
