@@ -1,5 +1,5 @@
 # This is taken from: https://nodejs.org/api/single-executable-applications.html
-
+npm install
 npm run compile 
 npm run build
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
