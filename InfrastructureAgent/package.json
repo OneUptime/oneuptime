@@ -17,8 +17,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "boxen": "^7.1.1",
-    "chalk": "^5.3.0",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "diskusage": "^1.2.0",
@@ -29,7 +27,7 @@
     "yargs": "^17.7.2"
   },
   "bin": {
-    "oneuptime-infrastructure-agent": "./build/Index.js"
+    "x-infrastructure-agent": "./Index.ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
