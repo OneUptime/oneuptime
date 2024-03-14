@@ -20,6 +20,7 @@ publish_to_npm() {
     directory_name=$1
     echo "Publishing $directory_name@$package_version to npm"
     cd $directory_name
+
     npm version $package_version
 
     # Before npm install, replace "Common": "file:../Common" with "@oneuptime/common": "$package_version" in package.json
@@ -38,6 +39,8 @@ publish_to_npm() {
     npm install
     npm run compile
     npm publish --tag latest
+
+    cd ..
 }
 
 
