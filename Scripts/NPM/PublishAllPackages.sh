@@ -16,6 +16,9 @@ touch ~/.npmrc
 echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" >> ~/.npmrc
 echo "//registry.npmjs.org/:email=npm@oneuptime.com" >> ~/.npmrc
 
+# Show content of npmrc file
+cat ~/.npmrc
+
 publish_to_npm() {
     directory_name=$1
     echo "Publishing $directory_name@$package_version to npm"
