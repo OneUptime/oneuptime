@@ -15,7 +15,7 @@
     "publish-package": "export PACKAGE_NAME=@oneuptime/infrastructure-agent && bash ../Scripts/NPM/PublishPackage.sh"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",

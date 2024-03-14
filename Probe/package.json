@@ -15,7 +15,7 @@
     "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@types/ping": "^0.4.4",
     "axios": "^1.6.7",

@@ -14,7 +14,7 @@
         "coverage": "jest --detectOpenHandles --coverage"
     },
     "author": "",
-    "license": "ISC",
+    "license": "Apache-2.0",
     "dependencies": {
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",

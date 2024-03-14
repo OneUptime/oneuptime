@@ -10,7 +10,7 @@
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
