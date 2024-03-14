@@ -1,5 +1,5 @@
 {
-    "name": "dashboard",
+    "name": "@oneuptime/dashboard",
     "version": "0.1.0",
     "private": false,
     "scripts": {

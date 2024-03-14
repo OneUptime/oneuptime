@@ -1,5 +1,5 @@
 {
-    "name": "common-ui",
+    "name": "@oneuptime/common-ui",
     "version": "1.0.0",
     "description": "",
     "main": "index.ts",

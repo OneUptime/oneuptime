@@ -1,12 +1,5 @@
 # Set the package name and version
-package_name=$PACKAGE_NAME
 package_version=$PACKAGE_VERSION
-
-# If no package name is provided, exit
-if [ -z "$package_name" ]; then
-  echo "Package name is required"
-  exit 1
-fi
 
 # If no package version is provided, exit
 if [ -z "$package_version" ]; then

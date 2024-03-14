@@ -1,5 +1,5 @@
 {
-  "name": "nginx",
+  "name": "@oneuptime/nginx",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

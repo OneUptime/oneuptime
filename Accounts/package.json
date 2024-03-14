@@ -1,5 +1,5 @@
 {
-    "name": "accounts",
+    "name": "@oneuptime/accounts",
     "version": "0.1.0",
     "private": false,
     "scripts": {
