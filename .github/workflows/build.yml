@@ -10,32 +10,35 @@ on:
 
 jobs:
 
-  infrastructure-agent-macos-binary-release:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 21.6.2
-      - run: cd InfrastructureAgent && bash Scripts/Build/Mac.sh
+  # We dont need any of this because we are using the npm package  
+  # infrastructure-agent-macos-binary-release:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: 21.6.2
+  #     - run: cd InfrastructureAgent && bash Scripts/Build/Mac.sh
 
-  infrastructure-agent-windows-binary-release:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 21.6.2
-      - run: cd InfrastructureAgent && ./Scripts/Build/Windows.ps1
+  # We dont need any of this because we are using the npm package    
+  # infrastructure-agent-windows-binary-release:
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: 21.6.2
+  #     - run: cd InfrastructureAgent && ./Scripts/Build/Windows.ps1
 
-  infrastructure-agent-linux-binary-release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 21.6.2
-      - run: cd InfrastructureAgent && bash ./Scripts/Build/Linux.sh
+  # We dont need any of this because we are using the npm package  
+  # infrastructure-agent-linux-binary-release:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: 21.6.2
+  #     - run: cd InfrastructureAgent && bash ./Scripts/Build/Linux.sh
 
   publish-infrastucture-agent:
     runs-on: ubuntu-latest
