@@ -3,7 +3,7 @@
 
 # This is a PowerShell script that builds the Windows version of the Infrastructure Agent.
 SET SCRIPT_DIR=%~dp0
-echo "Scirpt Directory: $SCRIPT_DIR"
+Write-Host "Scirpt Directory: $SCRIPT_DIR"
 bash $SCRIPT_DIR/Base.sh
 node --experimental-sea-config $SCRIPT_DIR/../../sea-config.json 
 node -e "require('fs').copyFileSync(process.execPath, 'InfrastructureAgent.exe')" 
