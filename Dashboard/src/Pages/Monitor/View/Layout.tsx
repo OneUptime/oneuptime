@@ -15,16 +15,14 @@ import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import useAsyncEffect from 'use-async-effect';
 
 const MonitorViewLayout: FunctionComponent = (): ReactElement => {
-    
     const { id } = useParams();
     const modelId: ObjectID = new ObjectID(id || '');
     const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 
-
     const [monitor, setMonitor] = useState<Monitor | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
-    
+
     useAsyncEffect(async () => {
         await fetchItem();
     }, []);
@@ -34,7 +32,6 @@ const MonitorViewLayout: FunctionComponent = (): ReactElement => {
         setError('');
 
         try {
-        
             const item: Monitor | null = await ModelAPI.getItem({
                 modelType: Monitor,
                 id: modelId,
@@ -45,15 +42,11 @@ const MonitorViewLayout: FunctionComponent = (): ReactElement => {
 
             setMonitor(item);
 
-           
-
             if (!item) {
                 setError(`Monitor not found`);
 
                 return;
             }
-
-           
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -61,14 +54,13 @@ const MonitorViewLayout: FunctionComponent = (): ReactElement => {
         setIsLoading(false);
     };
 
-    if(error){
-        return <ErrorMessage error={error} />
+    if (error) {
+        return <ErrorMessage error={error} />;
     }
 
-    if(isLoading || !monitor?.monitorType){
-        return <PageLoader isVisible={true} />
+    if (isLoading || !monitor?.monitorType) {
+        return <PageLoader isVisible={true} />;
     }
-
 
     return (
         <ModelPage
@@ -77,7 +69,12 @@ const MonitorViewLayout: FunctionComponent = (): ReactElement => {
             modelId={modelId}
             modelNameField="name"
             breadcrumbLinks={getMonitorBreadcrumbs(path)}
-            sideMenu={<SideMenu monitorType={monitor?.monitorType} modelId={modelId} />}
+            sideMenu={
+                <SideMenu
+                    monitorType={monitor?.monitorType}
+                    modelId={modelId}
+                />
+            }
         >
             <Outlet />
         </ModelPage>

@@ -9,7 +9,7 @@ import ObjectID from 'Common/Types/ObjectID';
 export const MonitorsRoutePath: Dictionary<string> = {
     [PageMap.MONITORS_INOPERATIONAL]: 'inoperational',
     [PageMap.MONITORS_DISABLED]: 'disabled',
-   
+
     [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
     [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
     [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -199,9 +199,6 @@ const RouteMap: Dictionary<Route> = {
             MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL]
         }`
     ),
-
-   
-    
 
     [PageMap.MONITORS_DISABLED]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/${

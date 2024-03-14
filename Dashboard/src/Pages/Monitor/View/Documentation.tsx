@@ -22,21 +22,16 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 const MonitorDocumentation: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-   
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    
-   
 
     const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
         undefined
     );
 
     const [monitor, setMonitor] = useState<Monitor | null>(null);
-
 
     useAsyncEffect(async () => {
         await fetchItem();
@@ -47,7 +42,6 @@ const MonitorDocumentation: FunctionComponent<PageComponentProps> = (
         setError('');
 
         try {
-        
             const item: Monitor | null = await ModelAPI.getItem({
                 modelType: Monitor,
                 id: modelId,
@@ -60,8 +54,6 @@ const MonitorDocumentation: FunctionComponent<PageComponentProps> = (
 
             setMonitor(item);
 
-           
-
             if (!item) {
                 setError(`Monitor not found`);
 
@@ -69,7 +61,6 @@ const MonitorDocumentation: FunctionComponent<PageComponentProps> = (
             }
 
             setMonitorType(item.monitorType);
-           
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -77,12 +68,12 @@ const MonitorDocumentation: FunctionComponent<PageComponentProps> = (
         setIsLoading(false);
     };
 
-    if(error){
-        return <ErrorMessage error={error} />
+    if (error) {
+        return <ErrorMessage error={error} />;
     }
 
-    if(isLoading){
-        return <PageLoader isVisible={true} />
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
     }
 
     return (
@@ -107,8 +98,6 @@ const MonitorDocumentation: FunctionComponent<PageComponentProps> = (
             ) : (
                 <></>
             )}
-
-           
         </Fragment>
     );
 };
