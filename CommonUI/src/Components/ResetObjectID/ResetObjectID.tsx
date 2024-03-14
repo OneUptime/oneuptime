@@ -14,7 +14,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
     fieldName: keyof TBaseModel;
     title: string;
-    description: string;
+    description: string | ReactElement;
     modelId: ObjectID;
     onUpdateComplete?: undefined | ((updatedValue: ObjectID) => void);
 }
@@ -45,11 +45,9 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
                     [props.fieldName]: resetIdTo,
                 },
             });
+            setNewId(resetIdTo);
             setShowModal(false);
             setShowResultModal(true);
-            if (props.onUpdateComplete) {
-                props.onUpdateComplete(resetIdTo);
-            }
         } catch (err) {
             setError(API.getFriendlyMessage(err));
             setShowErrorModal(true);
@@ -68,7 +66,7 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         <>
             <Card
                 title={`${props.title}`}
-                description={`${props.description}`}
+                description={props.description}
                 buttons={[
                     {
                         title: `Reset ${tableColumnName}`,
@@ -122,6 +120,9 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
                     }`}
                     title={`New ${tableColumnName}`}
                     onSubmit={() => {
+                        if (props.onUpdateComplete && newId) {
+                            props.onUpdateComplete(newId);
+                        }
                         setShowResultModal(false);
                         setError('');
                     }}

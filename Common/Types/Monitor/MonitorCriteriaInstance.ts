@@ -104,7 +104,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         if (
             arg.monitorType === MonitorType.Ping ||
             arg.monitorType === MonitorType.IP ||
-            arg.monitorType === MonitorType.Port
+            arg.monitorType === MonitorType.Port ||
+            arg.monitorType === MonitorType.Server
         ) {
             monitorCriteriaInstance.data = {
                 id: ObjectID.generate().toString(),
@@ -275,6 +276,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                     'Ping  Monitor cannot have filter criteria: ' +
                     filter.checkOn
                 );
+            }
+
+            if (
+                filter.checkOn === CheckOn.DiskUsagePercent &&
+                !filter.serverMonitorOptions?.diskPath
+            ) {
+                return 'Disk Path is required for Disk Usage Percent';
             }
         }
 

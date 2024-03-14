@@ -1,5 +1,5 @@
 {
-  "name": "probe",
+  "name": "@oneuptime/probe",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -14,8 +14,8 @@
         "coverage": "jest --detectOpenHandles --coverage",
     "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "license": "Apache-2.0",
   "dependencies": {
     "@types/ping": "^0.4.4",
     "axios": "^1.6.7",

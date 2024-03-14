@@ -68,7 +68,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     showIf: (values: FormValues<Monitor>) => {
                         return (
                             values.monitorType !== MonitorType.Manual &&
-                            values.monitorType !== MonitorType.IncomingRequest
+                            values.monitorType !==
+                                MonitorType.IncomingRequest &&
+                            values.monitorType !== MonitorType.Server
                         );
                     },
                 },

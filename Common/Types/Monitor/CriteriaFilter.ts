@@ -10,10 +10,18 @@ export enum CheckOn {
     RequestHeader = 'Request Header',
     RequestHeaderValue = 'Request Header Value',
     JavaScriptExpression = 'JavaScript Expression',
+    DiskUsagePercent = 'Disk Usage (in %)',
+    CPUUsagePercent = 'CPU Usage (in %)',
+    MemoryUsagePercent = 'Memory Usage (in %)',
+}
+
+export interface ServerMonitorOptions {
+    diskPath?: string | undefined;
 }
 
 export interface CriteriaFilter {
     checkOn: CheckOn;
+    serverMonitorOptions?: ServerMonitorOptions | undefined;
     filterType: FilterType | undefined;
     value: string | number | undefined;
 }

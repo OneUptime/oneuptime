@@ -35,10 +35,17 @@ import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import VMUtil from '../VM';
+import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
+import { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
+
+type DataToProcess =
+    | ProbeMonitorResponse
+    | IncomingMonitorRequest
+    | ServerMonitorResponse;
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest
+        dataToProcess: DataToProcess
     ): Promise<ProbeApiIngestResponse> {
         let response: ProbeApiIngestResponse = {
             monitorId: dataToProcess.monitorId,
@@ -173,6 +180,23 @@ export default class ProbeMonitorResponseService {
                     incomingRequestReceivedAt: (
                         dataToProcess as IncomingMonitorRequest
                     ).incomingRequestReceivedAt!,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+
+        if (
+            monitor.monitorType === MonitorType.Server &&
+            (dataToProcess as ServerMonitorResponse).requestReceivedAt
+        ) {
+            await MonitorService.updateOneById({
+                id: monitor.id!,
+                data: {
+                    serverMonitorRequestReceivedAt: (
+                        dataToProcess as ServerMonitorResponse
+                    ).requestReceivedAt!,
                 },
                 props: {
                     isRoot: true,
@@ -360,7 +384,7 @@ export default class ProbeMonitorResponseService {
         >;
         rootCause: string;
         criteriaInstance: MonitorCriteriaInstance | null;
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+        dataToProcess: DataToProcess;
     }): Promise<Array<Incident>> {
         // check active incidents and if there are open incidents, do not cretae anothr incident.
         const openIncidents: Array<Incident> = await IncidentService.findBy({
@@ -410,7 +434,7 @@ export default class ProbeMonitorResponseService {
     private static async criteriaMetCreateIncidentsAndUpdateMonitorStatus(input: {
         criteriaInstance: MonitorCriteriaInstance;
         monitor: Monitor;
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+        dataToProcess: DataToProcess;
         rootCause: string;
         autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
             Array<string>
@@ -584,7 +608,10 @@ export default class ProbeMonitorResponseService {
     private static async resolveOpenIncident(input: {
         openIncident: Incident;
         rootCause: string;
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+        dataToProcess:
+            | ProbeMonitorResponse
+            | IncomingMonitorRequest
+            | DataToProcess;
     }): Promise<void> {
         const resolvedStateId: ObjectID =
             await IncidentStateTimelineService.getResolvedStateIdForProject(
@@ -662,7 +689,7 @@ export default class ProbeMonitorResponseService {
     }
 
     private static async processMonitorStep(input: {
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+        dataToProcess: DataToProcess;
         monitorStep: MonitorStep;
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
@@ -708,7 +735,7 @@ export default class ProbeMonitorResponseService {
     }
 
     private static async processMonitorCriteiaInstance(input: {
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+        dataToProcess: DataToProcess;
         monitorStep: MonitorStep;
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
@@ -733,7 +760,7 @@ export default class ProbeMonitorResponseService {
     }
 
     private static async isMonitorInstanceCriteriaFiltersMet(input: {
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+        dataToProcess: DataToProcess;
         monitorStep: MonitorStep;
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
@@ -795,7 +822,7 @@ export default class ProbeMonitorResponseService {
     }
 
     private static async isMonitorInstanceCriteriaFilterMet(input: {
-        dataToProcess: ProbeMonitorResponse | IncomingMonitorRequest;
+        dataToProcess: DataToProcess;
         monitorStep: MonitorStep;
         monitor: Monitor;
         probeApiIngestResponse: ProbeApiIngestResponse;
@@ -891,23 +918,66 @@ export default class ProbeMonitorResponseService {
         }
 
         if (
-            input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-            input.criteriaFilter.filterType === FilterType.True
+            input.monitor.monitorType === MonitorType.Server &&
+            (input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
         ) {
-            if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
-                return 'Monitor is online.';
+            const lastCheckTime: Date = (
+                input.dataToProcess as ServerMonitorResponse
+            ).requestReceivedAt;
+
+            const differenceInMinutes: number =
+                OneUptimeDate.getDifferenceInMinutes(
+                    lastCheckTime,
+                    OneUptimeDate.getCurrentDate()
+                );
+
+            const offlineIfNotCheckedInMinutes: number = 2;
+
+            if (
+                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+                input.criteriaFilter.filterType === FilterType.True &&
+                differenceInMinutes <= offlineIfNotCheckedInMinutes
+            ) {
+                if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
+                    return 'Monitor is online.';
+                }
+
+                return null;
             }
-            return null;
+
+            if (
+                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+                input.criteriaFilter.filterType === FilterType.False &&
+                differenceInMinutes > offlineIfNotCheckedInMinutes
+            ) {
+                if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
+                    return 'Monitor is offline.';
+                }
+                return null;
+            }
         }
 
-        if (
-            input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-            input.criteriaFilter.filterType === FilterType.False
-        ) {
-            if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
-                return 'Monitor is offline.';
+        if (input.monitor.monitorType !== MonitorType.Server) {
+            if (
+                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+                input.criteriaFilter.filterType === FilterType.True
+            ) {
+                if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
+                    return 'Monitor is online.';
+                }
+                return null;
             }
-            return null;
+
+            if (
+                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+                input.criteriaFilter.filterType === FilterType.False
+            ) {
+                if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
+                    return 'Monitor is offline.';
+                }
+                return null;
+            }
         }
 
         // check response time filter
@@ -1247,6 +1317,7 @@ export default class ProbeMonitorResponseService {
             const lastCheckTime: Date = (
                 input.dataToProcess as IncomingMonitorRequest
             ).incomingRequestReceivedAt;
+
             const differenceInMinutes: number =
                 OneUptimeDate.getDifferenceInMinutes(
                     lastCheckTime,
@@ -1399,6 +1470,259 @@ export default class ProbeMonitorResponseService {
                 ) {
                     return `Request header value does not contain ${value}.`;
                 }
+                return null;
+            }
+        }
+
+        // Server Monitoring Checks
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.CPUUsagePercent &&
+            !(input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
+        ) {
+            if (!value) {
+                return null;
+            }
+
+            if (typeof value === Typeof.String) {
+                try {
+                    value = parseInt(value as string);
+                } catch (err) {
+                    logger.error(err);
+                    return null;
+                }
+            }
+
+            if (typeof value !== Typeof.Number) {
+                return null;
+            }
+
+            const currentCpuPercent: number =
+                (input.dataToProcess as ServerMonitorResponse)
+                    .basicInfrastructureMetrics?.cpuMetrics.percentUsage || 0;
+
+            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
+                if (currentCpuPercent > (value as number)) {
+                    return `CPU Percent is ${currentCpuPercent}% which is greater than the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.LessThan) {
+                if (currentCpuPercent < (value as number)) {
+                    return `CPU Percent is ${currentCpuPercent}% which is less than than the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
+                if (currentCpuPercent === (value as number)) {
+                    return `CPU Percent is ${currentCpuPercent}% which is equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
+                if (currentCpuPercent !== (value as number)) {
+                    return `CPU Percent is ${currentCpuPercent}% which is not equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType ===
+                FilterType.GreaterThanOrEqualTo
+            ) {
+                if (currentCpuPercent >= (value as number)) {
+                    return `CPU Percent is ${currentCpuPercent}% which is greater than or equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
+            ) {
+                if (currentCpuPercent <= (value as number)) {
+                    return `CPU Percent is ${currentCpuPercent}% which is less than or equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.MemoryUsagePercent &&
+            !(input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
+        ) {
+            if (!value) {
+                return null;
+            }
+
+            if (typeof value === Typeof.String) {
+                try {
+                    value = parseInt(value as string);
+                } catch (err) {
+                    logger.error(err);
+                    return null;
+                }
+            }
+
+            if (typeof value !== Typeof.Number) {
+                return null;
+            }
+
+            const memoryPercent: number =
+                (input.dataToProcess as ServerMonitorResponse)
+                    .basicInfrastructureMetrics?.memoryMetrics.percentFree || 0;
+
+            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
+                if (memoryPercent > (value as number)) {
+                    return `Memory Percent is ${memoryPercent}% which is greater than the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.LessThan) {
+                if (memoryPercent < (value as number)) {
+                    return `Memory Percent is ${memoryPercent}% which is less than than the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
+                if (memoryPercent === (value as number)) {
+                    return `Memory Percent is ${memoryPercent}% which is equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
+                if (memoryPercent !== (value as number)) {
+                    return `Memory Percent is ${memoryPercent}% which is not equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType ===
+                FilterType.GreaterThanOrEqualTo
+            ) {
+                if (memoryPercent >= (value as number)) {
+                    return `Memory Percent is ${memoryPercent}% which is greater than or equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
+            ) {
+                if (memoryPercent <= (value as number)) {
+                    return `Memory Percent is ${memoryPercent}% which is less than or equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent &&
+            !(input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
+        ) {
+            if (!value) {
+                return null;
+            }
+
+            if (typeof value === Typeof.String) {
+                try {
+                    value = parseInt(value as string);
+                } catch (err) {
+                    logger.error(err);
+                    return null;
+                }
+            }
+
+            if (typeof value !== Typeof.Number) {
+                return null;
+            }
+
+            const diskPath: string =
+                input.criteriaFilter.serverMonitorOptions?.diskPath || '/';
+
+            const diskPercent: number =
+                (
+                    input.dataToProcess as ServerMonitorResponse
+                ).basicInfrastructureMetrics?.diskMetrics.filter(
+                    (item: BasicDiskMetrics) => {
+                        return (
+                            item.diskPath.trim().toLowerCase() ===
+                            diskPath.trim().toLowerCase()
+                        );
+                    }
+                )[0]?.percentFree || 0;
+
+            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
+                if (diskPercent > (value as number)) {
+                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is greater than the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.LessThan) {
+                if (diskPercent < (value as number)) {
+                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is less than than the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
+                if (diskPercent === (value as number)) {
+                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
+                if (diskPercent !== (value as number)) {
+                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is not equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType ===
+                FilterType.GreaterThanOrEqualTo
+            ) {
+                if (diskPercent >= (value as number)) {
+                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is greater than or equal to the criteria value of ${value}%.`;
+                }
+
+                return null;
+            }
+
+            if (
+                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
+            ) {
+                if (diskPercent <= (value as number)) {
+                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is less than or equal to the criteria value of ${value}%.`;
+                }
+
                 return null;
             }
         }

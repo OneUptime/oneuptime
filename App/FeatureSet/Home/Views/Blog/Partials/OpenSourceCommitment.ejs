@@ -1,0 +1,29 @@
+<div class=" font-medium leading-6 text-gray-900 mt-24">Our Commitment to Open Source
+</div>
+
+<div class="mt-2 text-gray-900">
+    <ul role="list" class="divide-y divide-gray-100 rounded-md border border-gray-200">
+        <li class="items-center justify-between py-4 pl-4 pr-5 leading-6">
+            <div class="items-center">
+
+                <div class="p-1 space-y-2">
+                    
+                   
+
+                        <div>Everything we do at OneUptime is 100% open-source. You can contribute by writing a post just like this.
+                        Please check contributing guidelines <a class="underline"
+                            target="_blank"
+                            href="https://github.com/oneuptime/blog">here.</a></div>
+
+                            <% if(blogPost){%>
+
+                                <div>If you wish to contribute to this post, you can make edits and improve it <a
+                                        class="underline" target="_blank"
+                                        href="https://github.com/oneuptime/blog/tree/master/posts/<%- blogPost.fileName -%>">here</a>.</div>
+                            <% } %>
+                </div>
+            </div>
+        </li>
+
+    </ul>
+</div>

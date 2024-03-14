@@ -61,6 +61,13 @@ const MonitorViewInterval: LazyExoticComponent<
 > = lazy(() => {
     return import('../Pages/Monitor/View/Interval');
 });
+
+const MonitorViewDocumentation: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Monitor/View/Documentation');
+});
+
 const MonitorViewProbes: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -205,6 +212,24 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
                                 pageRoute={
                                     RouteMap[
                                         PageMap.MONITOR_VIEW_INTERVAL
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.MONITOR_VIEW_DOCUMENTATION
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorViewDocumentation
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.MONITOR_VIEW_DOCUMENTATION
                                     ] as Route
                                 }
                             />

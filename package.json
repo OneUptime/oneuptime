@@ -1,5 +1,5 @@
 {
-    "name": "app",
+    "name": "@oneuptime/app",
     "version": "3.0.2",
     "description": "One Complete Observability platform.",
     "main": "ts",
@@ -72,8 +72,8 @@
         "url": "git+https://gitlab.com/oneuptime/app.git"
     },
     "keywords": [],
-    "author": "",
-    "license": "MIT",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+    "license": "Apache-2.0",
     "bugs": {
         "url": "https://gitlab.com/oneuptime/app/issues"
     },

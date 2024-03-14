@@ -1,5 +1,5 @@
 {
-    "name": "test-server",
+    "name": "@oneuptime/test-server",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
@@ -13,8 +13,8 @@
         "test": "jest --detectOpenHandles",
         "coverage": "jest --detectOpenHandles --coverage"
     },
-    "author": "",
-    "license": "ISC",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+    "license": "Apache-2.0",
     "dependencies": {
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",

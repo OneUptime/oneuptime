@@ -1,5 +1,5 @@
 {
-    "name": "common",
+    "name": "@oneuptime/common",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
@@ -10,8 +10,8 @@
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
     },
-    "author": "",
-    "license": "MIT",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+    "license": "Apache-2.0",
     "devDependencies": {
         "@faker-js/faker": "^8.0.2",
         "@types/jest": "^27.5.2",

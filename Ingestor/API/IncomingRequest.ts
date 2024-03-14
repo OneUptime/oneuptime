@@ -13,6 +13,9 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import OneUptimeDate from 'Common/Types/Date';
+import MonitorService from 'CommonServer/Services/MonitorService';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import Monitor from 'Model/Models/Monitor';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -28,16 +31,34 @@ const processIncomingRequest: RequestHandler = async (
             | string
             | JSONObject;
 
-        const monitorIdAsString: string | undefined = req.params['id'];
+        const monitorSecretKeyAsString: string | undefined =
+            req.params['secretkey'];
 
-        if (!monitorIdAsString) {
-            throw new BadDataException('Monitor Id is required');
+        if (!monitorSecretKeyAsString) {
+            throw new BadDataException('Invalid Secret Key');
         }
 
-        const monitorId: ObjectID = ObjectID.fromString(monitorIdAsString);
+        const monitor: Monitor | null = await MonitorService.findOneBy({
+            query: {
+                incomingRequestSecretKey: new ObjectID(
+                    monitorSecretKeyAsString
+                ),
+                monitorType: MonitorType.IncomingRequest,
+            },
+            select: {
+                _id: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!monitor || !monitor._id) {
+            throw new BadDataException('Monitor not found');
+        }
 
         const incomingRequest: IncomingMonitorRequest = {
-            monitorId: monitorId,
+            monitorId: new ObjectID(monitor._id),
             requestHeaders: requestHeaders,
             requestBody: requestBody,
             incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
@@ -54,7 +75,7 @@ const processIncomingRequest: RequestHandler = async (
 };
 
 router.post(
-    '/incoming-request/:id',
+    '/incoming-request/:secretkey',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -65,7 +86,7 @@ router.post(
 );
 
 router.get(
-    '/incoming-request/:id',
+    '/incoming-request/:secretkey',
     async (
         req: ExpressRequest,
         res: ExpressResponse,

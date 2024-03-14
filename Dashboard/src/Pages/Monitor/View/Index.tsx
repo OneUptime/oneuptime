@@ -29,7 +29,7 @@ import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import IncomingMonitorLink from './IncomingMonitorLink';
+import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
 import { Green, Grey } from 'Common/Types/BrandColors';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -37,6 +37,7 @@ import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -60,6 +61,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
         undefined
     );
+
+    const [monitor, setMonitor] = useState<Monitor | null>(null);
 
     const getUptimePercent: () => ReactElement = (): ReactElement => {
         if (isLoading) {
@@ -129,8 +132,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         name: true,
                         color: true,
                     },
+                    incomingRequestSecretKey: true,
+                    serverMonitorSecretKey: true,
+                    serverMonitorRequestReceivedAt: true,
+                    incomingRequestReceivedAt: true,
                 },
             });
+
+            setMonitor(item);
 
             const monitorStatuses: ListResult<MonitorStatus> =
                 await ModelAPI.getList({
@@ -346,8 +355,22 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             />
 
             {/* Heartbeat URL */}
-            {monitorType === MonitorType.IncomingRequest ? (
-                <IncomingMonitorLink modelId={modelId} />
+            {monitorType === MonitorType.IncomingRequest &&
+            monitor?.incomingRequestSecretKey &&
+            !monitor.incomingRequestReceivedAt ? (
+                <IncomingMonitorLink
+                    secretKey={monitor?.incomingRequestSecretKey}
+                />
+            ) : (
+                <></>
+            )}
+
+            {monitorType === MonitorType.Server &&
+            monitor?.serverMonitorSecretKey &&
+            !monitor.serverMonitorRequestReceivedAt ? (
+                <ServerMonitorDocumentation
+                    secretKey={monitor?.serverMonitorSecretKey}
+                />
             ) : (
                 <></>
             )}

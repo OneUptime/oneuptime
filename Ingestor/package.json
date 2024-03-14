@@ -1,5 +1,5 @@
 {
-    "name": "identity",
+    "name": "@oneuptime/ingestor",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
@@ -12,8 +12,8 @@
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
         "test": "jest --passWithNoTests"
     },
-    "author": "",
-    "license": "ISC",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+    "license": "Apache-2.0",
     "dependencies": {
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",

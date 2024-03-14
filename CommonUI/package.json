@@ -1,5 +1,5 @@
 {
-    "name": "common-ui",
+    "name": "@oneuptime/common-ui",
     "version": "1.0.0",
     "description": "",
     "main": "index.ts",
@@ -10,8 +10,8 @@
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true --ignores='@babel/runtime'"
     },
-    "author": "",
-    "license": "MIT",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+    "license": "Apache-2.0",
     "type": "module",
     "dependencies": {
         "@babel/runtime": "^7.24.0",
@@ -26,6 +26,7 @@
         "@opentelemetry/sdk-trace-web": "^1.21.0",
         "@opentelemetry/semantic-conventions": "^1.21.0",
         "@tippyjs/react": "^4.2.6",
+        "@types/react-highlight": "^0.12.8",
         "Common": "file:../Common",
         "formik": "^2.2.9",
         "history": "^5.3.0",
@@ -40,6 +41,7 @@
         "react-dom": "^18.1.0",
         "react-dropzone": "^14.2.2",
         "react-error-boundary": "^4.0.12",
+        "react-highlight": "^0.15.0",
         "react-markdown": "^8.0.3",
         "react-router-dom": "^6.22.0",
         "react-select": "^5.4.0",

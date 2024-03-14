@@ -9,7 +9,7 @@ import Monitor from 'Model/Models/Monitor';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
 
 RunCron(
-    'HardDelete:HardDeleteItemsInDatabase',
+    'IncomingRequestMonitor:CheckHeartbeat',
     { schedule: EVERY_MINUTE, runOnStartup: false },
     async () => {
         const incomingRequestMonitors: Array<Monitor> =
