@@ -10,50 +10,6 @@ on:
 
 jobs:
 
-  # We dont need any of this because we are using the npm package  
-  # infrastructure-agent-macos-binary-release:
-  #   runs-on: macos-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: 21.6.2
-  #     - run: cd InfrastructureAgent && bash Scripts/Build/Mac.sh
-
-  # We dont need any of this because we are using the npm package    
-  # infrastructure-agent-windows-binary-release:
-  #   runs-on: windows-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: 21.6.2
-  #     - run: cd InfrastructureAgent && ./Scripts/Build/Windows.ps1
-
-  # We dont need any of this because we are using the npm package  
-  # infrastructure-agent-linux-binary-release:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: 21.6.2
-  #     - run: cd InfrastructureAgent && bash ./Scripts/Build/Linux.sh
-
-  publish-npm-packages:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-      NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
-      PACKAGE_VERSION: 7.0.${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v2
-      - name: Preinstall 
-        run: npm run prerun
-      - name: Publish Infrastructure Agent
-        run: bash ./Scripts/NPM/PublishAllPackages.sh
-
   docker-build-accounts:
     runs-on: ubuntu-latest
     env:
