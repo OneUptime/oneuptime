@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/infrastructure-agent",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "",
   "scripts": {
     "start": "npm run compile && node --require ts-node/register Index.ts",
