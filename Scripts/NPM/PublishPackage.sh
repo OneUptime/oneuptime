@@ -21,6 +21,8 @@ touch ~/.npmrc
 echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
 echo "//registry.npmjs.org/:email=npm@oneuptime.com" > ~/.npmrc
 
+npm version $PACKAGE_VERSION
+
 # Run npm install
 npm install
 
