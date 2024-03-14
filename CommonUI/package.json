@@ -11,7 +11,7 @@
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true --ignores='@babel/runtime'"
     },
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "type": "module",
     "dependencies": {
         "@babel/runtime": "^7.24.0",

@@ -12,7 +12,7 @@
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
     },
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "dependencies": {
         "@clickhouse/client": "^0.2.10",
         "@elastic/elasticsearch": "^8.12.1",

@@ -73,7 +73,7 @@
     },
     "keywords": [],
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "bugs": {
         "url": "https://gitlab.com/oneuptime/app/issues"
     },

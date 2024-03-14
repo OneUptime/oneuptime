@@ -13,7 +13,7 @@ fi
 touch ~/.npmrc
 
 # Add Auth Token to npmrc file
-echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" >> ~/.npmrc
 echo "//registry.npmjs.org/:email=npm@oneuptime.com" >> ~/.npmrc
 
 publish_to_npm() {
@@ -38,7 +38,7 @@ publish_to_npm() {
 
     npm install
     npm run compile
-    npm publish --tag latest
+    npm publish --access public
 
     cd ..
 }
