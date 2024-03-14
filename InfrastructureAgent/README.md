@@ -1,29 +1,16 @@
-# README
+# OneUptime Infrastructure Agent
 
-This README would normally document whatever steps are necessary to get your application up and running.
+The OneUptime Infrastructure Agent is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to install and use, and to be extensible.
 
-### What is this repository for?
+## Installation
 
--   Quick summary
--   Version
--   [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+```
+npm i @oneuptime/infrastructure-agent -g
 
-### How do I get set up?
+# You can change the host to your own host if you're self hosting the OneUptime platform. 
+# You can find the secret key on OneUptime Dashboard. Click on "View Monitor" and go to "Settings" tab.
 
--   Summary of set up
--   Configuration
--   Dependencies
--   Database configuration
--   How to run tests
--   Deployment instructions
+oneuptime-infrastructure-agent --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
 
-### Contribution guidelines
-
--   Writing tests
--   Code review
--   Other guidelines
-
-### Who do I talk to?
-
--   Repo owner or admin
--   Other community or team contact
+Once its up and running you should see the metrics on the OneUptime Dashboard.
