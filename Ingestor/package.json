@@ -12,7 +12,7 @@
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
         "test": "jest --passWithNoTests"
     },
-    "author": "",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "Apache-2.0",
     "dependencies": {
         "Common": "file:../Common",

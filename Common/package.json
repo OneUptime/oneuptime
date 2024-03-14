@@ -10,7 +10,7 @@
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
     },
-    "author": "",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "MIT",
     "devDependencies": {
         "@faker-js/faker": "^8.0.2",

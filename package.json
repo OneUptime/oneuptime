@@ -72,7 +72,7 @@
         "url": "git+https://gitlab.com/oneuptime/app.git"
     },
     "keywords": [],
-    "author": "",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "MIT",
     "bugs": {
         "url": "https://gitlab.com/oneuptime/app/issues"

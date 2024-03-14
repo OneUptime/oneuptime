@@ -20,6 +20,6 @@
     "jest": "^27.5.1",
     "ts-jest": "^27.1.4"
   },
-  "author": "",
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0"
 }

@@ -14,7 +14,7 @@
         "coverage": "jest --detectOpenHandles --coverage",
     "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
   },
-  "author": "",
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
     "@types/ping": "^0.4.4",

@@ -10,7 +10,7 @@
     "compile": "tsc"
   },
   "keywords": [],
-  "author": "",
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "devDependencies": {
     "@playwright/test": "^1.31.2",

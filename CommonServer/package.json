@@ -11,7 +11,7 @@
         "debug:test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd CommonServer && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
     },
-    "author": "",
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "MIT",
     "dependencies": {
         "@clickhouse/client": "^0.2.10",

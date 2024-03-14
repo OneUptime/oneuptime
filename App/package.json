@@ -13,7 +13,7 @@
     "test": "rm -rf build && jest --detectOpenHandles",
     "coverage": "jest --detectOpenHandles --coverage"
   },
-  "author": "",
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
     "@sendgrid/mail": "^8.1.0",

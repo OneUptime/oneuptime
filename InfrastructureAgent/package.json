@@ -14,7 +14,7 @@
     "coverage": "jest --detectOpenHandles --coverage",
     "publish-package": "export PACKAGE_NAME=@oneuptime/infrastructure-agent && bash ../Scripts/NPM/PublishPackage.sh"
   },
-  "author": "",
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
     "Common": "file:../Common",
