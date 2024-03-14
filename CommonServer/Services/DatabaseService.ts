@@ -1305,8 +1305,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                     true;
             }
 
+            const dataColumns: [string, boolean][] = [];
+            const dataKeys: string[] = Object.keys(data);
+            for (const key of dataKeys) {
+                dataColumns.push([key, true]);
+            }
+            // Select the `_id` column and the columns in `data`.
+            // `_id` is used for locating database records for updates, and `data`
+            // columns are used for checking if the update causes a change in values.
             const selectColumns: Select<TBaseModel> = {
                 _id: true,
+                ...Object.fromEntries(dataColumns),
             };
 
             if (this.getModel().getTenantColumn()) {
@@ -1332,7 +1341,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 await this.getRepository().save(updatedItem);
 
                 // hit workflow.
-                if (this.getModel().enableWorkflowOn?.update) {
+                if (
+                    this.getModel().enableWorkflowOn?.update &&
+                    // Only trigger workflow if there's a change in values
+                    !this.hasSameValues({ item, updatedItem })
+                ) {
                     let tenantId: ObjectID | undefined =
                         updateBy.props.tenantId;
 
@@ -1377,6 +1390,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             await this.onUpdateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private hasSameValues(data: {
+        item: TBaseModel;
+        updatedItem: any;
+    }): boolean {
+        const { item, updatedItem } = data;
+        const columns: string[] = Object.keys(updatedItem);
+        for (const column of columns) {
+            if (
+                // `toString()` is necessary so we can compare wrapped values
+                // (e.g. `ObjectID`) with raw values (e.g. `string`)
+                item.getColumnValue(column)?.toString() !==
+                updatedItem[column]?.toString()
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public async updateOneBy(
