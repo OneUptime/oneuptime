@@ -48,12 +48,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Preinstall 
         run: npm run prerun
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonServer && npm install
-      - run: cd CommonUI && npm install --force
       - name: Publish Infrastructure Agent
-        run: cd InfrastructureAgent && npm run publish-package
+        run: bash ./Scripts/NPM/PublishAllPackages.sh
 
   docker-build-accounts:
     runs-on: ubuntu-latest
