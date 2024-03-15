@@ -3,6 +3,8 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 import UILink from '../Link/Link';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
 
 interface ComponentProps {
     links: Array<Link>;
@@ -39,7 +41,11 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                                             icon={IconProp.ChevronRight}
                                         />
                                         <UILink
-                                            to={link.to}
+                                            to={
+                                                isCurrentPage(link.to)
+                                                    ? null // Avoid linking to current page
+                                                    : link.to
+                                            }
                                             className="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1"
                                         >
                                             {link.title}
@@ -53,5 +59,9 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
         </nav>
     );
 };
+
+function isCurrentPage(linkTo: Route | URL): boolean {
+    return linkTo.toString() === window.location.pathname;
+}
 
 export default Breadcrumbs;
