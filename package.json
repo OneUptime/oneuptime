@@ -1,5 +1,5 @@
 {
-    "name": "@oneuptime/app",
+    "name": "@oneuptime/root",
     "version": "3.0.2",
     "description": "One Complete Observability platform.",
     "main": "ts",
