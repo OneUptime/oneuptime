@@ -28,7 +28,7 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
                             language="bash"
                             code={`
 # For Linux and MacOS
-curl -s https://oneuptime.com/infrastructure-agent/install.sh | bash -s -- --secret-key=904c9500-e2b5-11ee-879c-8d06c4e2b5df --oneuptime-url=https://test.oneuptime.com --secret-key=${props.secretKey.toString()} ${
+curl -s https://oneuptime.com/infrastructure-agent/install.sh | bash -s -- --secret-key=${props.secretKey.toString()} ${
                                 showHost ? '--oneuptime-url=' + host : ''
                             }
 
