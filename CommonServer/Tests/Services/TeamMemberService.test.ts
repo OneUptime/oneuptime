@@ -26,6 +26,8 @@ import UserNotificationRuleService from '../../Services/UserNotificationRuleServ
 import Errors from '../../Utils/Errors';
 import CreateBy from '../../Types/Database/CreateBy';
 
+jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
+
 const testDatabase: Database = new Database();
 
 // mock PostgresDatabase because we need it across all services

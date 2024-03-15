@@ -38,10 +38,14 @@ const Link: FunctionComponent<ComponentProps> = (
         linkProps['href'] = props.to?.toString();
     }
 
+    const cursorClassName: string = props.to
+        ? 'cursor-pointer'
+        : 'cursor-default';
+
     return (
         <a
             id={props.id}
-            className={`cursor-pointer  ${props.className || ''}`}
+            className={`${cursorClassName} ${props.className || ''}`}
             onMouseOver={props.onMouseOver}
             onMouseOut={props.onMouseOut}
             onMouseLeave={props.onMouseLeave}

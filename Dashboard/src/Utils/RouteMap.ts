@@ -26,12 +26,12 @@ export const MonitorsRoutePath: Dictionary<string> = {
 export const WorkflowRoutePath: Dictionary<string> = {
     [PageMap.WORKFLOWS_LOGS]: 'logs',
     [PageMap.WORKFLOWS_VARIABLES]: 'variables',
-    [PageMap.WORKFLOW_VARIABLES]: `workflow/${RouteParams.ModelID}/variables`,
-    [PageMap.WORKFLOW_BUILDER]: `workflow/${RouteParams.ModelID}/builder`,
-    [PageMap.WORKFLOW_VIEW]: `workflow/${RouteParams.ModelID}`,
-    [PageMap.WORKFLOW_LOGS]: `workflow/${RouteParams.ModelID}/logs`,
-    [PageMap.WORKFLOW_DELETE]: `workflow/${RouteParams.ModelID}/delete`,
-    [PageMap.WORKFLOW_VIEW_SETTINGS]: `workflow/${RouteParams.ModelID}/settings`,
+    [PageMap.WORKFLOW_VARIABLES]: `${RouteParams.ModelID}/variables`,
+    [PageMap.WORKFLOW_BUILDER]: `${RouteParams.ModelID}/builder`,
+    [PageMap.WORKFLOW_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.WORKFLOW_LOGS]: `${RouteParams.ModelID}/logs`,
+    [PageMap.WORKFLOW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.WORKFLOW_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
 export const TelemetryRouthPath: Dictionary<string> = {
