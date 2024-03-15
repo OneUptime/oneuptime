@@ -27,16 +27,16 @@ publish_to_npm() {
     npm version $package_version
 
     # Before npm install, replace "Common": "file:../Common" with "@oneuptime/common": "$package_version" in package.json
-    sed -i "s/\"Common\": \"file:..\/Common\"/\"@oneuptime\/common\": \"$package_version\"/g" package.json
+    sed -i "s/\"Common\": \"file:..\/Common\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
 
     # Before npm install, replace "CommonServer": "file:../CommonServer" with "@oneuptime/common-server": "$package_version" in package.json
-    sed -i "s/\"CommonServer\": \"file:..\/CommonServer\"/\"@oneuptime\/common-server\": \"$package_version\"/g" package.json
+    sed -i "s/\"CommonServer\": \"file:..\/CommonServer\"/\"CommonServer\": \"npm:@oneuptime\/common-server@$package_version\"/g" package.json
 
     # Before npm install, replace "Model": "file:../Model" with "@oneuptime/model": "$package_version" in package.json
-    sed -i "s/\"Model\": \"file:..\/Model\"/\"@oneuptime\/model\": \"$package_version\"/g" package.json
-
+    sed -i "s/\"Model\": \"file:..\/Model\"/\"Model\": \"npm:@oneuptime\/model@$package_version\"/g" package.json
+   
     # Before npm install, replace "CommonUI": "file:../CommonUI" with "@oneuptime/common-ui": "$package_version" in package.json
-    sed -i "s/\"CommonUI\": \"file:..\/CommonUI\"/\"@oneuptime\/common-ui\": \"$package_version\"/g" package.json
+    sed -i "s/\"CommonUI\": \"file:..\/CommonUI\"/\"CommonUI\": \"npm:@oneuptime\/common-ui@$package_version\"/g" package.json
 
 
     npm install
