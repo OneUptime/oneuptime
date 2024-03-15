@@ -11,10 +11,6 @@ httpProtocol: http
 openTelemetryCollectorHost:
 fluentdHost: 
 
-volume: 
-  certs: 
-    storage: 1Gi
-
 deployment: 
   replicaCount: 1
 
