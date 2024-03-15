@@ -26,9 +26,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     labels: true,
                 }}
                 navigateToOnSuccess={RouteUtil.populateRouteParams(
-                    new Route(RouteMap[PageMap.WORKFLOWS]?.toString()).addRoute(
-                        '/workflow'
-                    )
+                    new Route(RouteMap[PageMap.WORKFLOWS]?.toString())
                 )}
                 fieldsToChange={[
                     {

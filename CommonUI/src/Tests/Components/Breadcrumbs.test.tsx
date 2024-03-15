@@ -7,6 +7,7 @@ import renderer, {
 } from 'react-test-renderer';
 import Breadcrumbs from '../../Components/Breadcrumbs/Breadcrumbs';
 import Link from 'Common/Types/Link';
+import Navigation from '../../Utils/Navigation';
 describe('Breadcrumbs', () => {
     test('Should render correctly and also contain "Home" and "Projects" string', () => {
         const links: Array<Link> = [
@@ -41,5 +42,41 @@ describe('Breadcrumbs', () => {
                 'children'
             ]
         ).toEqual('Projects');
+    });
+
+    test('Should avoid linking to the current page', () => {
+        // Mock `window.location.pathname`
+        Object.defineProperty(window, 'location', {
+            get() {
+                return { pathname: '/projects' };
+            },
+        });
+        // Render component
+        const links: Array<Link> = [
+            {
+                title: 'Home',
+                to: new Route('/'),
+            },
+            {
+                title: 'Projects',
+                to: new Route('/projects'),
+            },
+        ];
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Breadcrumbs links={links} />
+        );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        // Assert cursor style
+        const anchors: ReactTestInstance[] = testInstance.findAllByType('a');
+        expect(anchors[0]?.props['className']).toContain('cursor-pointer');
+        expect(anchors[1]?.props['className']).toContain('cursor-default');
+        // Set up spy on navigation
+        jest.spyOn(Navigation, 'navigate');
+        // Assert the second link does not navigate
+        anchors[1]?.props['onClick']();
+        expect(Navigation.navigate).not.toHaveBeenCalled();
+        // Assert the first link navigates
+        anchors[0]?.props['onClick']();
+        expect(Navigation.navigate).toHaveBeenCalledTimes(1);
     });
 });

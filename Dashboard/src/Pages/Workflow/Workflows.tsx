@@ -1,4 +1,3 @@
-import Route from 'Common/Types/API/Route';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -135,9 +134,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ]}
                     showRefreshButton={true}
                     showFilterButton={true}
-                    viewPageRoute={Navigation.getCurrentRoute().addRoute(
-                        new Route('/workflow')
-                    )}
+                    viewPageRoute={Navigation.getCurrentRoute()}
                     columns={[
                         {
                             field: {
