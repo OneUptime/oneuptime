@@ -20,7 +20,7 @@ RunCron(
             query: {
                 monitorType: MonitorType.Server,
                 serverMonitorRequestReceivedAt:
-                    QueryHelper.lessThan(twoMinsAgo),
+                    QueryHelper.lessThanEqualToOrNull(twoMinsAgo),
             },
             props: {
                 isRoot: true,
