@@ -27,10 +27,8 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
                         <CodeBlock
                             language="bash"
                             code={`
-# Please make sure you have NPM installed on your server
-
-npm install -g @oneuptime/infrastructure-agent
-oneuptime-infrastructure-agent --secret-key=${props.secretKey.toString()} ${
+# For Linux and MacOS
+curl -s https://oneuptime.com/infrastructure-agent/install.sh | bash -s -- --secret-key=904c9500-e2b5-11ee-879c-8d06c4e2b5df --oneuptime-url=https://test.oneuptime.com --secret-key=${props.secretKey.toString()} ${
                                 showHost ? '--oneuptime-url=' + host : ''
                             }
 

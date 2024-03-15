@@ -1,6 +1,8 @@
 #!/usr/bin/env ts-node
 
+//@ts-ignore
 import yargs from 'yargs';
+
 import URL from 'Common/Types/API/URL';
 import Dictionary from 'Common/Types/Dictionary';
 import MonitorInfrastructure from './Jobs/MonitorInfrastructure';

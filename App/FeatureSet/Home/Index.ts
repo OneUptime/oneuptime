@@ -35,6 +35,16 @@ app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
+app.get(
+    '/infrastructure-agent/install.sh',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        // fetch the file from https://raw.githubusercontent.com/oneuptime/infrastructure-agent/release/Scripts/Install/Linux.sh  and send it as response
+        res.redirect(
+            'https://raw.githubusercontent.com/OneUptime/oneuptime/release/InfrastructureAgent/Scripts/Install/Linux.sh'
+        );
+    }
+);
+
 app.get('/support', async (_req: ExpressRequest, res: ExpressResponse) => {
     res.render(`${ViewsPath}/support`);
 });
