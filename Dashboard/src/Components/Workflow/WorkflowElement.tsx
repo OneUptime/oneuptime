@@ -27,7 +27,7 @@ const WorkflowElement: FunctionComponent<ComponentProps> = (
                 className="hover:underline"
                 to={
                     new Route(
-                        `/dashboard/${projectId}/workflows/workflow/${props.workflow._id}`
+                        `/dashboard/${projectId}/workflows/${props.workflow._id}`
                     )
                 }
             >
