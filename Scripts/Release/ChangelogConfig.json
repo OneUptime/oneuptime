@@ -33,7 +33,7 @@
         "order": "ASC",
         "on_property": "mergedAt"
     },
-    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Changes</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
     "pr_template": "- #{{TITLE}}\n   - PR: ##{{NUMBER}}",
     "empty_template": "No significant changes were made. We have just fixed minor bugs for this release. You can find the detailed information in the commit history.",
     "label_extractor": [
