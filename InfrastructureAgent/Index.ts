@@ -1,4 +1,4 @@
-#!/usr/bin/npm start
+#!/usr/bin/env ts-node
 
 import yargs from 'yargs';
 import URL from 'Common/Types/API/URL';
