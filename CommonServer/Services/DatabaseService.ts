@@ -1298,13 +1298,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 updateBy.limit = new PositiveNumber(updateBy.limit);
             }
 
-            const select: Select<TBaseModel> = {};
-
-            if (this.getModel().getTenantColumn()) {
-                (select as any)[this.getModel().getTenantColumn() as string] =
-                    true;
-            }
-
             const dataColumns: [string, boolean][] = [];
             const dataKeys: string[] = Object.keys(data);
             for (const key of dataKeys) {
