@@ -1,14 +1,12 @@
-
 import ServerMonitorResponse from '../Types/ServerMonitorResponse';
 import BasicCron from '../Utils/BasicCron';
 import { BasicMetircs } from '../Utils/BasicMetrics';
 import Logger from '../Utils/Logger';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 export default class MonitorInfrastructure {
     public static initJob(secretKey: string, oneuptimeHost: string): void {
-
-        const EVERY_MINUTE = '* * * * *';
+        const EVERY_MINUTE: string = '* * * * *';
 
         BasicCron({
             jobName: 'MonitorInfrastructure',
@@ -25,11 +23,11 @@ export default class MonitorInfrastructure {
                     }
 
                     // get monitor steps to get disk paths.
-                    const monitorResult = await axios.get(
+                    const monitorResult: AxiosResponse = await axios.get(
                         `${oneuptimeHost}/server-monitor/${secretKey}`
                     );
 
-                    const monitor = monitorResult.data;
+                    const monitor: any = monitorResult.data;
                     // get disk paths to monitor.
 
                     const diskPaths: string[] = [];

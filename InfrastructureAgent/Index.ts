@@ -7,19 +7,21 @@ import MonitorInfrastructure from './Jobs/MonitorInfrastructure';
 const usage: string =
     '\nUsage: oneuptime-infrastructure-agent --secret-key <secret-key>';
 
-const argv: {
-    [x: string]: unknown;
-    k: string;
-    u: string | undefined;
-    _: (string | number)[];
-    $0: string;
-} | Promise<{
-    [x: string]: unknown;
-    k: string;
-    u: string | undefined;
-    _: (string | number)[];
-    $0: string;
-}> = yargs
+const argv:
+    | {
+          [x: string]: unknown;
+          k: string;
+          u: string | undefined;
+          _: (string | number)[];
+          $0: string;
+      }
+    | Promise<{
+          [x: string]: unknown;
+          k: string;
+          u: string | undefined;
+          _: (string | number)[];
+          $0: string;
+      }> = yargs
     .usage(usage)
     .option('k', {
         alias: 'secret-key',
@@ -37,7 +39,8 @@ const argv: {
     .help(true).argv;
 
 const secretKey: string | undefined = (argv as any)['secret-key'];
-const oneuptimeUrl: string = (argv as any)['oneuptime-url'] || 'https://oneuptime.com'
+const oneuptimeHost: string =
+    (argv as any)['oneuptime-url'] || 'https://oneuptime.com';
 
 if (!secretKey) {
     throw new Error(
@@ -45,4 +48,4 @@ if (!secretKey) {
     );
 }
 
-MonitorInfrastructure.initJob(secretKey, oneuptimeUrl);
+MonitorInfrastructure.initJob(secretKey, oneuptimeHost);

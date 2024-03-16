@@ -1,4 +1,3 @@
-
 import logger from './Logger';
 import cron from 'node-cron';
 

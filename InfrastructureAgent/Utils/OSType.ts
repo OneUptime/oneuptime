@@ -1,4 +1,3 @@
-
 import os from 'node:os';
 
 enum OSTypeEnum {
