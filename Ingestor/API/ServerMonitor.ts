@@ -26,6 +26,9 @@ router.get(
         next: NextFunction
     ): Promise<void> => {
         try {
+
+            debugger;
+
             const monitorSecretKeyAsString: string | undefined =
                 req.params['secretkey'];
 

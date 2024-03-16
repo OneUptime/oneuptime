@@ -10,13 +10,13 @@ const usage: string =
 const argv: {
     [x: string]: unknown;
     k: string;
-    h: string | undefined;
+    u: string | undefined;
     _: (string | number)[];
     $0: string;
 } | Promise<{
     [x: string]: unknown;
     k: string;
-    h: string | undefined;
+    u: string | undefined;
     _: (string | number)[];
     $0: string;
 }> = yargs
@@ -28,8 +28,8 @@ const argv: {
         type: 'string',
         demandOption: true,
     })
-    .option('h', {
-        alias: 'oneuptime-host',
+    .option('u', {
+        alias: 'oneuptime-url',
         describe: 'OneUptime Host. By default this is https://oneuptime.com',
         type: 'string',
         demandOption: false,
@@ -37,7 +37,7 @@ const argv: {
     .help(true).argv;
 
 const secretKey: string | undefined = (argv as any)['secret-key'];
-const oneuptimeHost: string = (argv as any)['oneuptime-host'] || 'https://oneuptime.com'
+const oneuptimeUrl: string = (argv as any)['oneuptime-url'] || 'https://oneuptime.com'
 
 if (!secretKey) {
     throw new Error(
@@ -45,4 +45,4 @@ if (!secretKey) {
     );
 }
 
-MonitorInfrastructure.initJob(secretKey, oneuptimeHost);
+MonitorInfrastructure.initJob(secretKey, oneuptimeUrl);
