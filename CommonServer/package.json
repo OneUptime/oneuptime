@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "description": "",
     "main": "index.ts",
+    "type": "module",
     "scripts": {
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",

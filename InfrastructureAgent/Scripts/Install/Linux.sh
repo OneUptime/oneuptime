@@ -46,5 +46,8 @@ nvm install node
 # Make this nodejs version the default
 nvm alias default node
 
+# Use the default version
+nvm use default
+
 # Now install 
 npm install -g ts-node @oneuptime/infrastructure-agent
