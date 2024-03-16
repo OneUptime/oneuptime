@@ -1,20 +1,15 @@
-import BasicCron from 'CommonServer/Utils/BasicCron';
+
+import ServerMonitorResponse from '../Types/ServerMonitorResponse';
+import BasicCron from '../Utils/BasicCron';
 import { BasicMetircs } from '../Utils/BasicMetrics';
-import { EVERY_MINUTE } from 'Common/Utils/CronTime';
-import logger from 'CommonServer/Utils/Logger';
-import API from 'Common/Utils/API';
-import URL from 'Common/Types/API/URL';
-import BaseModel from 'Common/Models/BaseModel';
-import Monitor from 'Model/Models/Monitor';
-import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
-import OneUptimeDate from 'Common/Types/Date';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import BadDataException from 'Common/Types/Exception/BadDataException';
+import Logger from '../Utils/Logger';
+import axios from 'axios';
 
 export default class MonitorInfrastructure {
-    public static initJob(secretKey: string, oneuptimeHost: URL): void {
+    public static initJob(secretKey: string, oneuptimeHost: string): void {
+
+        const EVERY_MINUTE = '* * * * *';
+
         BasicCron({
             jobName: 'MonitorInfrastructure',
             options: {
@@ -24,29 +19,17 @@ export default class MonitorInfrastructure {
             runFunction: async () => {
                 try {
                     if (!secretKey) {
-                        throw new BadDataException(
+                        throw new Error(
                             'No SECRET_KEY environment variable found. You can find secret key for this monitor on OneUptime Dashboard'
                         );
                     }
 
                     // get monitor steps to get disk paths.
-                    const monitorResult:
-                        | HTTPErrorResponse
-                        | HTTPResponse<BaseModel> = await API.get(
-                        URL.fromString(
-                            `${oneuptimeHost}/server-monitor/${secretKey}`
-                        )
+                    const monitorResult = await axios.get(
+                        `${oneuptimeHost}/server-monitor/${secretKey}`
                     );
 
-                    if (monitorResult instanceof HTTPErrorResponse) {
-                        throw monitorResult;
-                    }
-
-                    const monitor: Monitor = BaseModel.fromJSON(
-                        monitorResult.data,
-                        Monitor
-                    ) as Monitor;
-
+                    const monitor = monitorResult.data;
                     // get disk paths to monitor.
 
                     const diskPaths: string[] = [];
@@ -69,7 +52,7 @@ export default class MonitorInfrastructure {
 
                     const serverMonitorResponse: ServerMonitorResponse = {
                         monitorId: monitor.id!,
-                        requestReceivedAt: OneUptimeDate.getCurrentDate(),
+                        requestReceivedAt: new Date(),
                         basicInfrastructureMetrics:
                             await BasicMetircs.getBasicMetrics({
                                 diskPaths: diskPaths,
@@ -77,27 +60,20 @@ export default class MonitorInfrastructure {
                         onlyCheckRequestReceivedAt: false,
                     };
 
-                    logger.info('Server Monitor Response');
-                    logger.info(serverMonitorResponse);
+                    Logger.info('Server Monitor Response');
+                    Logger.info(JSON.stringify(serverMonitorResponse));
 
                     // now we send this data back to server.
 
-                    await API.post(
-                        URL.fromString(
-                            `${oneuptimeHost}/server-monitor/response/ingest/${secretKey}`
-                        ),
+                    await axios.post(
+                        `${oneuptimeHost}/server-monitor/response/ingest/${secretKey}`,
                         {
-                            serverMonitorResponse: JSONFunctions.serialize(
-                                serverMonitorResponse as any
-                            ),
+                            serverMonitorResponse: serverMonitorResponse,
                         },
                         {}
                     );
                 } catch (err) {
-                    logger.error(
-                        'Error reporting metrics to OneUptime Server.'
-                    );
-                    logger.error(err);
+                    Logger.error(err);
                 }
             },
         });

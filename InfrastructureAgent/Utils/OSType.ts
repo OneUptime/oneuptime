@@ -1,5 +1,12 @@
-import OSTypeEnum from 'Common/Types/Infrastructure/OSType';
+
 import os from 'node:os';
+
+enum OSTypeEnum {
+    Windows = 'Windows',
+    Linux = 'Linux',
+    MacOS = 'MacOS',
+    Unknown = 'Unknown',
+}
 
 export default class OSType {
     public static getOSType(): OSTypeEnum {

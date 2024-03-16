@@ -2,15 +2,24 @@
 
 //@ts-ignore
 import yargs from 'yargs';
-
-import URL from 'Common/Types/API/URL';
-import Dictionary from 'Common/Types/Dictionary';
 import MonitorInfrastructure from './Jobs/MonitorInfrastructure';
 
 const usage: string =
     '\nUsage: oneuptime-infrastructure-agent --secret-key <secret-key>';
 
-const argv: Dictionary<string> = yargs
+const argv: {
+    [x: string]: unknown;
+    k: string;
+    h: string | undefined;
+    _: (string | number)[];
+    $0: string;
+} | Promise<{
+    [x: string]: unknown;
+    k: string;
+    h: string | undefined;
+    _: (string | number)[];
+    $0: string;
+}> = yargs
     .usage(usage)
     .option('k', {
         alias: 'secret-key',
@@ -25,12 +34,10 @@ const argv: Dictionary<string> = yargs
         type: 'string',
         demandOption: false,
     })
-    .help(true).argv as Dictionary<string>;
+    .help(true).argv;
 
-const secretKey: string | undefined = argv['secret-key'];
-const oneuptimeHost: URL = URL.fromString(
-    argv['oneuptime-host'] || 'https://oneuptime.com'
-);
+const secretKey: string | undefined = (argv as any)['secret-key'];
+const oneuptimeHost: string = (argv as any)['oneuptime-host'] || 'https://oneuptime.com'
 
 if (!secretKey) {
     throw new Error(

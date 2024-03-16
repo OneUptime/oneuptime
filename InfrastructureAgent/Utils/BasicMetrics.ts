@@ -4,7 +4,7 @@ import BasicInfrastructureMetrics, {
     BasicDiskMetrics,
     CPUMetrics,
     MemoryMetrics,
-} from 'Common/Types/Infrastructure/BasicMetrics';
+} from '../Types/BasicMetrics';
 
 export class BasicMetircs {
     public static async getBasicMetrics(data: {
