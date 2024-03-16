@@ -45,7 +45,7 @@
         "markdown-it": "^13.0.1",
         "Model": "file:../Model",
         "node-cron": "^3.0.3",
-        "nodemailer": "^6.9.9",
+        "nodemailer": "^6.9.10",
         "pg": "^8.7.3",
         "socket.io": "^4.7.4",
         "stripe": "^10.17.0",
