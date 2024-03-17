@@ -47,11 +47,7 @@ spec:
               {{- end }}
             - name: PROBE_MONITOR_FETCH_LIMIT
               value: {{ $val.monitorFetchLimit | squote }}
-            - name: ONEUPTIME_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
-                  key: oneuptime-secret
+            {{- include "oneuptime.env.oneuptimeSecret" $ | nindent 12 }}
           
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---

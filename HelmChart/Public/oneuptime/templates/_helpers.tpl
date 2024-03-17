@@ -68,11 +68,7 @@
   value: {{ $.Values.statusPage.cnameRecord }}
 {{- end }}
 
-
-{{- define "oneuptime.env.commonServer" }}
-- name: IS_SERVER
-  value: {{ printf "true" | squote }}
-
+{{- define "oneuptime.env.oneuptimeSecret" }}
 - name: ONEUPTIME_SECRET
   {{- if $.Values.oneuptimeSecret }}
   value: {{ $.Values.oneuptimeSecret }}
@@ -82,6 +78,13 @@
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: oneuptime-secret
   {{- end }}
+{{- end }}
+
+{{- define "oneuptime.env.commonServer" }}
+- name: IS_SERVER
+  value: {{ printf "true" | squote }}
+
+
   
 - name: ENCRYPTION_SECRET
   {{- if $.Values.encryptionSecret }}
@@ -255,6 +258,7 @@ spec:
             {{- end }}
             {{- if $.IsServer  }}
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
+            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             {{- end }}
             {{- if $.Env }}
             {{- range $key, $val := $.Env }}
