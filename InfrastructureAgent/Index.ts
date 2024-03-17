@@ -1,6 +1,5 @@
 #!/usr/bin/env ts-node
 
-//@ts-ignore
 import yargs from 'yargs';
 import MonitorInfrastructure from './Jobs/MonitorInfrastructure';
 

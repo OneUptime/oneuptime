@@ -4,7 +4,7 @@
 
 # Check if system supports apt-get
 
-if  -x "$(command -v apt-get)" ]; then
+if [ -x "$(command -v apt-get)" ]; then
     # Update apt-get
     sudo apt-get update
     # Install build-essential
@@ -12,7 +12,7 @@ if  -x "$(command -v apt-get)" ]; then
 fi
 
 # Check if system supports yum
-if -x "$(command -v yum)" ]; then
+if [ -x "$(command -v yum)" ]; then
     # Update yum
     sudo yum update
     # Install build-essential
@@ -20,7 +20,7 @@ if -x "$(command -v yum)" ]; then
 fi
 
 # Check if system supports apk
-if -x "$(command -v apk)" ]; then
+if [ -x "$(command -v apk)" ]; then
     # Update apk
     sudo apk update
     # Install build-essential
