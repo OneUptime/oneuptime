@@ -160,3 +160,7 @@ port:
 
 testServer: 
   enabled: false
+
+
+openTelemetry: 
+  

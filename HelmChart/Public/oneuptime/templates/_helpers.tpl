@@ -84,7 +84,7 @@
   {{- end }}
   
 - name: ENCRYPTION_SECRET
-  {{- if $.Values.encryptionSecret }}.
+  {{- if $.Values.encryptionSecret }}
   value: {{ $.Values.encryptionSecret }}
   {{- else }}
   valueFrom:
@@ -126,12 +126,12 @@
 - name: DATABASE_PORT 
   value: {{ printf "5432" | squote}}
 - name: DATABASE_USERNAME
-  value: {{ $.Values.postgresql.auth.username }}
+  value: postgres
 - name: DATABASE_PASSWORD 
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
-        key: password
+        key: postgres-password
 - name: DATABASE_DATABASE 
   value: {{ $.Values.postgresql.auth.database }}
 
