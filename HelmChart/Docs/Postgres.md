@@ -37,6 +37,14 @@ Please make sure you have `pg_dump` and `pg_restore` installed on your local mac
 To take a backup of the database, use the following command:
 
 ```
-# Source Database
-pg_dump -h localhost -p 5432 -U <source_username> -d oneuptimedb -f oneuptime.sql
+# Source Database. This will prompt for the password
+pg_dump --host=<source_port> --port=<target_port> --username=<source_username> --password --dbname=oneuptimedb --file=oneuptime.sql
+```
+
+
+To restore the database, use the following command:
+
+```
+# Target Database. This will prompt for the password
+pg_restore --host=localhost --port=5432 --username=<target_username> --dbname=oneuptimedb --password --file=oneuptime.sql
 ```
