@@ -66,6 +66,8 @@
   value: {{ printf "false" | squote }}
 - name: STATUS_PAGE_CNAME_RECORD
   value: {{ $.Values.statusPage.cnameRecord }}
+- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+  value: {{ $.Values.openTelemetryExporter.endpoint.client }}
 {{- end }}
 
 {{- define "oneuptime.env.oneuptimeSecret" }}
@@ -84,8 +86,9 @@
 - name: IS_SERVER
   value: {{ printf "true" | squote }}
 
+- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+  value: {{ $.Values.openTelemetryExporter.endpoint.server }}
 
-  
 - name: ENCRYPTION_SECRET
   {{- if $.Values.encryptionSecret }}
   value: {{ $.Values.encryptionSecret }}

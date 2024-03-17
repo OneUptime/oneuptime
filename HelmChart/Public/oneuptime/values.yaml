@@ -138,15 +138,8 @@ probes:
 
 port: 
   app: 3002
-  workflow: 3099
-  alert: 3088
   ingestor: 3400
   testServer: 3800
-  file: 3125
-  identity: 3087
-  notification: 3191
-  realtime: 3300
-  workers: 3452
   accounts: 3003
   statusPage: 3105
   dashboard: 3009
@@ -162,5 +155,15 @@ testServer:
   enabled: false
 
 
-openTelemetry: 
+openTelemetryExporter:
+  endpoint: 
+    server:
+    client:
+  headers: 
+    app:
+    dashboard:
+    accounts:
+    statusPage:
+    probe: 
+    adminDashboard:
   

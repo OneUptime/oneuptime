@@ -17,7 +17,10 @@ import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xm
 
 export default class Telemetry {
     public static init(data: { serviceName: string }): void {
-        if (OpenTelemetryExporterOtlpEndpoint) {
+        const hasHeaders: boolean =
+            Object.keys(OpenTelemetryExporterOtlpHeaders).length > 0;
+
+        if (OpenTelemetryExporterOtlpEndpoint && hasHeaders) {
             const providerConfig: TracerConfig = {
                 resource: new Resource({
                     [SemanticResourceAttributes.SERVICE_NAME]: data.serviceName,

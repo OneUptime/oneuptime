@@ -94,12 +94,14 @@ export default class Telemetry {
         if (!this.sdk) {
             const headers: Dictionary<string> = this.getHeaders();
 
+            const hasHeaders: boolean = Object.keys(headers).length > 0;
+
             let traceExporter: SpanExporter | undefined = undefined;
 
             let metricReader: PeriodicExportingMetricReader | undefined =
                 undefined;
 
-            if (this.getOltpTracesEndpoint()) {
+            if (this.getOltpTracesEndpoint() && hasHeaders) {
                 traceExporter = new OTLPTraceExporter({
                     url: this.getOltpTracesEndpoint()!.toString(),
                     headers: headers,
@@ -107,7 +109,7 @@ export default class Telemetry {
                 });
             }
 
-            if (this.getOltpMetricsEndpoint()) {
+            if (this.getOltpMetricsEndpoint() && hasHeaders) {
                 metricReader = new PeriodicExportingMetricReader({
                     exporter: new OTLPMetricExporter({
                         url: this.getOltpMetricsEndpoint()!.toString(),
@@ -119,7 +121,7 @@ export default class Telemetry {
 
             const loggerProvider: LoggerProvider = new LoggerProvider();
 
-            if (this.getOltpLogsEndpoint()) {
+            if (this.getOltpLogsEndpoint() && hasHeaders) {
                 const logExporter: OTLPLogExporter = new OTLPLogExporter({
                     url: this.getOltpLogsEndpoint()!.toString(),
                     headers: headers,

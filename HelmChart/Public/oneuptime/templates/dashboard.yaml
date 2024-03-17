@@ -1,5 +1,5 @@
 # OneUptime dashboard Deployment
-{{- $dashboardEnv := dict "PORT"  $.Values.port.dashboard -}}
+{{- $dashboardEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers.dashboard "PORT"  $.Values.port.dashboard -}}
 {{- $dashboardDeploymentArgs :=dict "IsUI" true "ServiceName" "dashboard" "Port" $.Values.port.dashboard "Release" $.Release "Values" $.Values "Env" $dashboardEnv -}}
 {{- include "oneuptime.deployment" $dashboardDeploymentArgs }}
 ---
