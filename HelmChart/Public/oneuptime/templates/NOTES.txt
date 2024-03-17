@@ -10,7 +10,7 @@ kubectl get svc --namespace={{ $.Release.Namespace }} {{ $.Release.Name }}-nginx
 
 You should then be able to access OneUptime cluster with that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
 
-🚀 OneUptime is up! 🚀
+🚀 OneUptime is deployed! 🚀
 
 
 We would like to hear your feedback to make this product better for you and for other users, please email us at hello@oneuptime.com.
