@@ -7,6 +7,10 @@ global:
 host: localhost
 httpProtocol: http
 
+# (Optional): You usually do not need to set this if you're self hosting. If you do set it, set it to a long random value.
+oneuptimeSecret: 
+encryptionSecret: 
+
 # (Optional): You usually do not need to set this if you're self hosting. 
 openTelemetryCollectorHost:
 fluentdHost: 
@@ -124,11 +128,13 @@ probes:
     description: "Probe"
     monitoringWorkers: 3
     monitorFetchLimit: 10
+    key: 
   # two: 
   #   name: "Probe 2"
   #   description: "Probe 2"
   #   monitoringWorkers: 3
   #   monitorFetchLimit: 10
+  #   key:
 
 port: 
   app: 3002

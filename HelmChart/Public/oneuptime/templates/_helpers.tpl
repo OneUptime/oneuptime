@@ -74,15 +74,24 @@
   value: {{ printf "true" | squote }}
 
 - name: ONEUPTIME_SECRET
+  {{- if $.Values.oneuptimeSecret }}
+  value: {{ $.Values.oneuptimeSecret }}
+  {{- else }}
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: oneuptime-secret
+  {{- end }}
+  
 - name: ENCRYPTION_SECRET
+  {{- if $.Values.encryptionSecret }}.
+  value: {{ $.Values.encryptionSecret }}
+  {{- else }}
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: encryption-secret
+  {{- end }}
 
 - name: CLICKHOUSE_USER
   value: {{ $.Values.clickhouse.auth.username }}

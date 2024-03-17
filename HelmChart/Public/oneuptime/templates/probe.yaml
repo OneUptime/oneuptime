@@ -37,10 +37,14 @@ spec:
             - name: PROBE_MONITORING_WORKERS
               value: {{ $val.monitoringWorkers | squote }}
             - name: PROBE_KEY
+              {{- if $val.key }}
+              value: {{ $val.key }}
+              {{- else }}
               valueFrom:
                 secretKeyRef:
                   name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
                   key: {{printf "probe-%s" $key}}
+              {{- end }}
             - name: PROBE_MONITOR_FETCH_LIMIT
               value: {{ $val.monitorFetchLimit | squote }}
             - name: ONEUPTIME_SECRET
