@@ -17,6 +17,7 @@ git pull
 
 sudo docker run --net=host --rm \
 --env-file config.env \
+--add-host=host.docker.internal:host-gateway \
 --volume=$(pwd)$DATABASE_RESTORE_DIRECTORY:/var/lib/postgresql/data \
 postgres:latest /usr/bin/pg_restore --dbname=postgresql://$DATABASE_RESTORE_USERNAME:$DATABASE_RESTORE_PASSWORD@$DATABASE_RESTORE_HOST:$DATABASE_RESTORE_PORT/$DATABASE_RESTORE_NAME /var/lib/postgresql/data/$DATABASE_RESTORE_FILENAME
 

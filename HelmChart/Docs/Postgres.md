@@ -32,19 +32,16 @@ This will make the database accessible from the localhost:5432.
 
 ### Postgres Backup
 
-Please make sure you have `pg_dump` and `pg_restore` installed on your local machine.
-
-To take a backup of the database, use the following command:
+Please fill the values in config.env file and run the following command to take the backup of the database.
 
 ```
-# Source Database. This will prompt for the password
-pg_dump --host=<source_port> --port=<target_port> --username=<source_username> --password --dbname=oneuptimedb --file=oneuptime.sql
+./backup.sh
 ```
 
+### Postgres Restore
 
-To restore the database, use the following command:
+Please fill the values in config.env file and run the following command to restore the database.
 
 ```
-# Target Database. This will prompt for the password
-pg_restore --host=localhost --port=5432 --username=<target_username> --dbname=oneuptimedb --password --file=oneuptime.sql
+./restore.sh
 ```
