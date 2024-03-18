@@ -12,6 +12,7 @@ import Realtime from 'CommonServer/Utils/Realtime';
 // import featuresets.
 import './FeatureSet/Identity/Index';
 import './FeatureSet/Notification/Index';
+import './FeatureSet/Docs/Index';
 import './FeatureSet/BaseAPI/Index';
 import './FeatureSet/ApiReference/Index';
 import Workers from './FeatureSet/Workers/Index';
