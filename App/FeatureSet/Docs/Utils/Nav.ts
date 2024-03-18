@@ -20,21 +20,21 @@ export interface NavGroup {
         title: 'Installation',
         links: [
             { title: 'Local Development', url: '/docs/installation/local-development' },
-            { title: 'Docker Compose', url: '/docs/installation/docker-comopose' },
-            { title: 'Kubernetes and Helm', url: '/docs/installation/kubernetes' },
+            { title: 'Docker Compose', url: '/docs/installation/docker-compose' },
+            { title: 'Kubernetes and Helm', url: 'https://artifacthub.io/packages/helm/oneuptime/oneuptime' },
         ],
     },
     {
         title: 'Monitor',
         links: [
-            { title: 'JavaScript Expressions', url: '/docs/monitors/javascript-expressions' },
+            { title: 'JavaScript Expressions', url: '/docs/monitor/javascript-expression' },
         ],
     },
     {
         title: 'Probe',
         links: [
-            { title: 'Custom Probes', url: '/docs/probes/custom-probes' },
-            { title: 'IP Addresses', url: '/docs/probes/ip-addresses' },
+            { title: 'Custom Probes', url: '/docs/probe/custom-probe' },
+            { title: 'IP Addresses', url: '/docs/probe/ip-address' },
         ],
     },
     {

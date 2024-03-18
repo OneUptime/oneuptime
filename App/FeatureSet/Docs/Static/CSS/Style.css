@@ -94,9 +94,6 @@
     --font-lexend: "__lexend_b436a8","__lexend_Fallback_b436a8"
 }
 
-pre[class*=language-] {
-    color: #f8fafc
-}
 
 .token.class-name,.token.function,.token.selector,.token.selector .class,.token.selector.class,.token.tag {
     color: #f472b6
@@ -727,7 +724,6 @@ img,video {
     margin-top: 1.7142857em;
     margin-bottom: 1.7142857em;
     border-radius: .375rem;
-    padding: .8571429em 1.1428571em
 }
 
 .prose :where(pre code):not(:where([class~=not-prose],[class~=not-prose] *)) {

@@ -9,6 +9,7 @@ import { ContentPath, StaticPath, ViewsPath } from './Utils/Config';
 import DocsNav, { NavGroup, NavLink } from './Utils/Nav';
 import LocalFile from 'CommonServer/Utils/LocalFile';
 import DocsRender from './Utils/Render';
+import logger from 'CommonServer/Utils/Logger';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -23,19 +24,23 @@ app.get('/docs/:categorypath/:pagepath', async (_req: ExpressRequest, res: Expre
         const fullPath: string = `${_req.params['categorypath']}/${_req.params['pagepath']}`.toLowerCase();
 
         // read file from Content folder. 
-        const contentInMarkdown = await LocalFile.read(`${ContentPath}/${fullPath}.md`);
+        let contentInMarkdown = await LocalFile.read(`${ContentPath}/${fullPath}.md`);
 
-        const renderedContent = DocsRender.render(contentInMarkdown);
+        // remove first line from content because we dont want to show title in content. Title is already in nav.
+
+        contentInMarkdown = contentInMarkdown.split('\n').slice(1).join('\n');
+
+        const renderedContent = await DocsRender.render(contentInMarkdown);
 
         const currentCategory: NavGroup | undefined = DocsNav.find((category) => {
             return category.links.find((link) => {
-                return link.url === fullPath;
+                return link.url.toLocaleLowerCase().includes(fullPath);
             });
         });
 
 
         const currrentNavLink: NavLink | undefined = currentCategory?.links.find((link) => {
-            return link.url === fullPath;
+            return link.url.toLocaleLowerCase().includes(fullPath);
         });
 
 
@@ -48,15 +53,16 @@ app.get('/docs/:categorypath/:pagepath', async (_req: ExpressRequest, res: Expre
             });
         }
 
-
         res.render(`${ViewsPath}/Index`, {
             nav: DocsNav,
             content: renderedContent,
-            currentCategory: currentCategory,
-            currentNavLink: currrentNavLink
+            category: currentCategory,
+            link: currrentNavLink
         });
 
+
     } catch (err) {
+        logger.error(err);
         res.status(500);
         return res.render(`${ViewsPath}/ServerError`, {
             nav: DocsNav,
