@@ -1,7 +1,7 @@
 import ObjectID from 'Common/Types/ObjectID';
 import Card from 'CommonUI/src/Components/Card/Card';
 import CodeBlock from 'CommonUI/src/Components/CodeBlock/CodeBlock';
-import { HOST, HTTP_PROTOCOL } from 'CommonUI/src/Config';
+import { HOST, HTTP_PROTOCOL, VERSION } from 'CommonUI/src/Config';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
@@ -28,10 +28,10 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
                             language="bash"
                             code={`
 # Install the agent
-curl -s https://oneuptime.com/infrastructure-agent/install.sh | bash 
+curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install-linux.sh | bash 
 
 # Run the agent
-oneuptime-infrastructure-agent --secret-key=${props.secretKey.toString()} ${
+oneuptime-infrastructure-agent@${VERSION.toString()} --secret-key=${props.secretKey.toString()} ${
                                 showHost ? '--oneuptime-url=' + host : ''
                             }
 
