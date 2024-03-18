@@ -3,31 +3,45 @@ export interface NavLink {
     url: string;
 }
 
-
 export interface NavGroup {
     title: string;
     links: NavLink[];
 }
 
- const DocsNav: NavGroup[] = [
+const DocsNav: NavGroup[] = [
     {
         title: 'Introduction',
         links: [
-            { title: 'Getting Started', url: '/docs/introduction/getting-started' },
+            {
+                title: 'Getting Started',
+                url: '/docs/introduction/getting-started',
+            },
         ],
     },
     {
         title: 'Installation',
         links: [
-            { title: 'Local Development', url: '/docs/installation/local-development' },
-            { title: 'Docker Compose', url: '/docs/installation/docker-compose' },
-            { title: 'Kubernetes and Helm', url: 'https://artifacthub.io/packages/helm/oneuptime/oneuptime' },
+            {
+                title: 'Local Development',
+                url: '/docs/installation/local-development',
+            },
+            {
+                title: 'Docker Compose',
+                url: '/docs/installation/docker-compose',
+            },
+            {
+                title: 'Kubernetes and Helm',
+                url: 'https://artifacthub.io/packages/helm/oneuptime/oneuptime',
+            },
         ],
     },
     {
         title: 'Monitor',
         links: [
-            { title: 'JavaScript Expressions', url: '/docs/monitor/javascript-expression' },
+            {
+                title: 'JavaScript Expressions',
+                url: '/docs/monitor/javascript-expression',
+            },
         ],
     },
     {
@@ -44,8 +58,6 @@ export interface NavGroup {
             { title: 'Fluentd', url: '/docs/telemetry/fluentd' },
         ],
     },
-
 ];
-
 
 export default DocsNav;

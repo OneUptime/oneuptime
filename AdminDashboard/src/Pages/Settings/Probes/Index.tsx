@@ -14,7 +14,6 @@ import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
-import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
@@ -57,9 +56,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 openInNewTab={true}
                 title="Need help with setting up Global Probes?"
                 description="Here is a guide which will help you get set up"
-                link={URL.fromString(
-                    'https://github.com/OneUptime/oneuptime/blob/master/Docs/Probe/CustomProbe.md'
-                )}
+                link={Route.fromString('/docs/probe/custom-probe')}
             />
 
             <ModelTable<Probe>

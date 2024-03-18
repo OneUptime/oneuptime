@@ -1,7 +1,6 @@
-import { Renderer, marked } from "marked";
+import { Renderer, marked } from 'marked';
 
-export default class DocsRender { 
-
+export default class DocsRender {
     public static async render(markdownContent: string): Promise<string> {
         const renderer: Renderer = this.getBlogRenderer();
 

@@ -1,11 +1,12 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import URL from 'Common/Types/API/URL';
 import Link from '../Link/Link';
+import Route from 'Common/Types/API/Route';
 
 export interface ComponentProps {
     title: string;
     description: string;
-    link: URL;
+    link: URL | Route;
     openInNewTab: boolean;
 }
 
