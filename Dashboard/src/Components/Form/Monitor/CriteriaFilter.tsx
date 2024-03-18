@@ -17,8 +17,8 @@ import Input from 'CommonUI/src/Components/Input/Input';
 import Link from 'CommonUI/src/Components/Link/Link';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import URL from 'Common/Types/API/URL';
 import FieldLabelElement from 'CommonUI/src/Components/Detail/FieldLabel';
+import Route from 'Common/Types/API/Route';
 
 export interface ComponentProps {
     initialValue: CriteriaFilter | undefined;
@@ -335,8 +335,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             {criteriaFilter?.checkOn === CheckOn.JavaScriptExpression ? (
                 <div className="mt-1 text-sm text-gray-500 underline">
                     <Link
-                        to={URL.fromString(
-                            'https://github.com/OneUptime/oneuptime/blob/master/Docs/Monitor/JavaScriptExpression.md'
+                        to={Route.fromString(
+                            '/docs/monitor/javascript-expression'
                         )}
                         openInNewTab={true}
                     >
