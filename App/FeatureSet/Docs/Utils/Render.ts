@@ -23,6 +23,10 @@ export default class DocsRender {
         </blockquote>`;
         };
 
+        renderer.image = function (href, _title, text) {
+            return `<img src="${href}" alt="${text}" class="rounded-md shadow-md" />`;
+        };
+
         renderer.code = function (code, language) {
             return `<pre class="language-${language} rounded-md"><code class="language-${language} rounded-md">${code}</code></pre>`;
         };
