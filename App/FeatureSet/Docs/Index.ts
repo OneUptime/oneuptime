@@ -10,7 +10,7 @@ import { StaticPath, ViewsPath } from './Utils/Config';
 const app: ExpressApplication = Express.getExpressApp();
 
 app.get('/docs', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render(`${ViewsPath}/index`, {
+    res.render(`${ViewsPath}/Index`, {
         support: false,
         footerCards: true,
         cta: true,
