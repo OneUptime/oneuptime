@@ -22,10 +22,10 @@ export interface ServerMonitorOptions {
 export enum EvaluateOverTimeType {
     Average = 'Average',
     Sum = 'Sum',
-    Maximum = 'Maximum',
-    Munimum = 'Minimum',
-    All = 'All',
-    Any = 'Any',
+    MaximumValue = 'Maximum Value',
+    MunimumValue = 'Minimum Value',
+    AllValues = 'All Values',
+    AnyValue = 'Any Value',
 }
 
 export enum EvaluateOverTimeMinutes {

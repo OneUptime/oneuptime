@@ -205,7 +205,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                         : {
                                               timeValueInMinutes: 5,
                                               evaluateOverTimeType:
-                                                  EvaluateOverTimeType.All,
+                                                  EvaluateOverTimeType.AllValues,
                                           };
 
                                 setCriteriaFilter({
@@ -249,7 +249,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                         : {
                                               timeValueInMinutes: 5,
                                               evaluateOverTimeType:
-                                                  EvaluateOverTimeType.All,
+                                                  EvaluateOverTimeType.AllValues,
                                           };
 
                                 setCriteriaFilter({
@@ -281,12 +281,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                         | null
                                 ) => {
                                     setCriteriaFilter({
-                                        checkOn:
-                                            criteriaFilter?.checkOn ||
-                                            CheckOn.IsOnline,
+                                        ...criteriaFilter,
                                         filterType:
                                             value?.toString() as FilterType,
-                                        value: criteriaFilter?.value || '',
+                                        value: undefined,
                                     });
                                 }}
                             />
@@ -303,12 +301,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                     value={criteriaFilter?.value?.toString()}
                                     onChange={(value: string) => {
                                         setCriteriaFilter({
-                                            checkOn:
-                                                criteriaFilter?.checkOn ||
-                                                CheckOn.IsOnline,
-                                            filterType:
-                                                criteriaFilter?.filterType ||
-                                                FilterType.EqualTo,
+                                            ...criteriaFilter,
                                             value: value || '',
                                         });
                                     }}

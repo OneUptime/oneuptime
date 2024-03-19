@@ -3,7 +3,10 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import {
     CheckOn,
+    CriteriaFilter,
     EvaluateOverTimeMinutes,
+    EvaluateOverTimeType,
+    FilterCondition,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 
@@ -18,6 +21,115 @@ export default class CriteriaFilterUtil {
                 value: (EvaluateOverTimeMinutes as any)[key]!.toString(),
             };
         });
+    }
+
+    public static translateFilterToText(
+        criteriaFilter: CriteriaFilter,
+        filterCondition?: FilterCondition | undefined
+    ): string {
+        let text: string = 'Check if ';
+
+        // check evaluation over time values.
+        if (
+            criteriaFilter?.eveluateOverTime &&
+            criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType
+        ) {
+            if (
+                criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+                EvaluateOverTimeType.AllValues
+            ) {
+                text += 'all values ';
+            } else if (
+                criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+                EvaluateOverTimeType.AnyValue
+            ) {
+                text += 'any value ';
+            } else if (
+                criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+                EvaluateOverTimeType.Average
+            ) {
+                text += 'average ';
+            } else if (
+                criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+                EvaluateOverTimeType.MaximumValue
+            ) {
+                text += 'maximum value ';
+            } else if (
+                criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+                EvaluateOverTimeType.MunimumValue
+            ) {
+                text += 'minimum value ';
+            } else if (
+                criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+                EvaluateOverTimeType.Sum
+            ) {
+                text += 'sum ';
+            }
+        }
+
+        if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
+            text +=
+                'JavaScript expression ' +
+                criteriaFilter?.value +
+                ' - evaluates to true.';
+        } else if (criteriaFilter?.checkOn === CheckOn.IsOnline) {
+            if (criteriaFilter?.filterType === FilterType.True) {
+                text += ' is online ';
+            } else {
+                text += ' is offline ';
+            }
+        } else {
+            text += criteriaFilter?.checkOn.toString().toLowerCase() + ' ';
+
+            if (criteriaFilter?.serverMonitorOptions?.diskPath) {
+                text +=
+                    'on ' +
+                    criteriaFilter?.serverMonitorOptions?.diskPath +
+                    ' ';
+            }
+
+            if (criteriaFilter?.filterType) {
+                if (
+                    criteriaFilter?.filterType
+                        .toLowerCase()
+                        .includes('contains')
+                ) {
+                    text +=
+                        criteriaFilter?.filterType.toString().toLowerCase() +
+                        ' ';
+                } else {
+                    text +=
+                        'is ' +
+                        criteriaFilter?.filterType.toString().toLowerCase() +
+                        ' ';
+                }
+            }
+
+            if (criteriaFilter?.value !== undefined) {
+                text += criteriaFilter?.value.toString() + ' ';
+            }
+
+            // add minutes if evaluate over time is true
+            if (
+                criteriaFilter?.eveluateOverTime &&
+                criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+            ) {
+                text +=
+                    'over ' +
+                    criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes +
+                    ' minutes ';
+            }
+        }
+
+        if (filterCondition === FilterCondition.All) {
+            text += 'and,';
+        }
+
+        if (filterCondition === FilterCondition.Any) {
+            text += 'or,';
+        }
+
+        return text;
     }
 
     public static getCheckOnOptionsByMonitorType(
