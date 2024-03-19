@@ -183,7 +183,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                             title: 'Use SSL / TLS',
                             stepId: 'server-info',
                             fieldType: FormFieldSchemaType.Toggle,
-                            description: 'Make email communication secure?',
+                            description: 'If you use port 465, please enable this. Do not enable this if you use port 587.',
                         },
                         {
                             field: {
