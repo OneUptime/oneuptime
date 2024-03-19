@@ -11,7 +11,7 @@ import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
 export const InternalSmtpPassword: string =
     process.env['INTERNAL_SMTP_PASSWORD'] || '';
 
-export const InternalSmtpHost: Hostname = new Hostname('haraka');
+export const InternalSmtpHost: Hostname = new Hostname(process.env['INTERNAL_SMTP_HOST'] || 'haraka');
 
 export const InternalSmtpPort: Port = new Port(2525);
 

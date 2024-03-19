@@ -1,7 +1,62 @@
 # OneUptime app Deployment
-{{- $appEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers.app  "PORT"  $.Values.port.app "SMS_HIGH_RISK_COST_IN_CENTS" $.Values.billing.smsHighRiskValueInCents "CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE" $.Values.billing.callHighRiskValueInCentsPerMinute "SMS_DEFAULT_COST_IN_CENTS" $.Values.billing.smsDefaultValueInCents "CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE" $.Values.billing.callDefaultValueInCentsPerMinute "INTERNAL_SMTP_FROM_NAME" $.Values.internalSmtp.name "INTERNAL_SMTP_EMAIL" $.Values.internalSmtp.email "INTERNAL_SMTP_PASSWORD" "internal_smtp_password" -}}
-{{- $appDeploymentArgs :=dict "IsServer" true "ServiceName" "app" "Port" $.Values.port.app "Release" $.Release "Values" $.Values "Env" $appEnv -}}
-{{- include "oneuptime.deployment" $appDeploymentArgs }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "app"  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "app"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    date: "{{ now | unixEpoch }}"
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "app"  }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "app"  }}
+        date: "{{ now | unixEpoch }}"
+        appname: oneuptime
+    spec:
+      containers:
+        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "app" $.Values.image.tag }}
+          name: {{ printf "%s-%s" $.Release.Name "app"  }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- include "oneuptime.env.commonServer" . | nindent 12 }}
+            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers.app }}
+            - name: PORT
+              value: {{ $.Values.port.app | quote }}
+            - name: SMS_HIGH_RISK_COST_IN_CENTS
+              value: {{ $.Values.billing.smsHighRiskValueInCents | quote }}
+            - name: CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE
+              value: {{ $.Values.billing.callHighRiskValueInCentsPerMinute | quote }}
+            - name: SMS_DEFAULT_COST_IN_CENTS
+              value: {{ $.Values.billing.smsDefaultValueInCents | quote }}
+            - name: CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE
+              value: {{ $.Values.billing.callDefaultValueInCentsPerMinute | quote }}
+            - name: INTERNAL_SMTP_HOST
+              value: {{ printf "%s-haraka.%s.svc.%s" $.Release.Name $.Release.Namespace $.Values.global.clusterDomain | quote }}
+            - name: INTERNAL_SMTP_FROM_NAME
+              value: {{ $.Values.internalSmtp.name | quote }}
+            - name: INTERNAL_SMTP_EMAIL
+              value: {{ $.Values.internalSmtp.email | quote }}
+            - name: INTERNAL_SMTP_PASSWORD
+              value: "internal_smtp_password"  
+        
+          ports:
+            - containerPort: {{ $.Values.port.app }}
+              protocol: TCP
+              name: http
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+
 ---
 
 # OneUptime app Service
