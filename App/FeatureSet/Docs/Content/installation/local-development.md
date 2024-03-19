@@ -1,4 +1,4 @@
-# Development
+# Local Development
 
 For local development you need to use docker-compose.dev.yml file. 
 
