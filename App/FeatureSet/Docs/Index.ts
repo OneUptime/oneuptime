@@ -67,7 +67,7 @@ app.get(
                 content: renderedContent,
                 category: currentCategory,
                 link: currrentNavLink,
-                githubPath: fullPath
+                githubPath: fullPath,
             });
         } catch (err) {
             logger.error(err);
