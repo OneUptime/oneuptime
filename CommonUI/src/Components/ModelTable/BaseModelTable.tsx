@@ -1513,7 +1513,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                                 You can use this ID to interact with{' '}
                                 {props.singularName || model.singularName || ''}{' '}
                                 via the OneUptime API. Click the button below to
-                                go to API Documentation.
+                                go to API Reference.
                             </span>
                         </div>
                     }

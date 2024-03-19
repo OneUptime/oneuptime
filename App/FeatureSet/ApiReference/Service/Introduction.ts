@@ -18,7 +18,7 @@ export default class ServiceHandler {
 
         pageData.featuredResources = FeaturedResources;
         pageTitle = 'Introduction';
-        pageDescription = 'API Documentation for OneUptime';
+        pageDescription = 'API Reference for OneUptime';
 
         return res.render(`${ViewsPath}/pages/index`, {
             page: page,

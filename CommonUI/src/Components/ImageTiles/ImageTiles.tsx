@@ -3,10 +3,11 @@ import URL from 'Common/Types/API/URL';
 import Navigation from '../../Utils/Navigation';
 import Image from '../Image/Image';
 import FieldLabelElement from '../Detail/FieldLabel';
+import Route from 'Common/Types/API/Route';
 
 export interface ImageTile {
     image: ReactElement;
-    navigateToUrl: URL;
+    navigateToUrl: URL | Route;
     title: string;
 }
 

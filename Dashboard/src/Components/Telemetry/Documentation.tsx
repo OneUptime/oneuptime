@@ -15,18 +15,15 @@ import PostgresSQLImage from '../Images/SvgImages/postgres.svg';
 import MySQLImage from '../Images/SvgImages/mysql.svg';
 import SystemdImage from '../Images/SvgImages/systemd.svg';
 import MoreSourcesImage from '../Images/SvgImages/moresources.svg';
-
-import URL from 'Common/Types/API/URL';
 import Card from 'CommonUI/src/Components/Card/Card';
+import Route from 'Common/Types/API/Route';
 
 const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
-    const openTelemetryDocUrl: URL = URL.fromString(
-        'https://github.com/OneUptime/oneuptime/tree/master/Docs/Telemetry/OpenTelemetry'
+    const openTelemetryDocUrl: Route = Route.fromString(
+        '/docs/telemetry/open-telemetry'
     );
 
-    const fluentdDocUrl: URL = URL.fromString(
-        'https://github.com/OneUptime/oneuptime/tree/master/Docs/Telemetry/Fluentd'
-    );
+    const fluentdDocUrl: Route = Route.fromString('/docs/telemetry/fluentd');
 
     return (
         <Card
