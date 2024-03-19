@@ -1,13 +1,15 @@
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import MonitorType from "Common/Types/Monitor/MonitorType";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
-import { CheckOn, EvaluateOverTimeMinutes, FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import {
+    CheckOn,
+    EvaluateOverTimeMinutes,
+    FilterType,
+} from 'Common/Types/Monitor/CriteriaFilter';
 
-export default class CriteriaFilterUtil { 
-
-
-    public static  getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
-        const keys = Object.keys(EvaluateOverTimeMinutes)
+export default class CriteriaFilterUtil {
+    public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
+        const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
         return keys.map((key: string) => {
             return {
                 label: `${EvaluateOverTimeMinutes[key as any]} Minutes`,
@@ -16,7 +18,9 @@ export default class CriteriaFilterUtil {
         });
     }
 
-    public static getCheckOnOptionsByMonitorType(monitorType: MonitorType): Array<DropdownOption> {
+    public static getCheckOnOptionsByMonitorType(
+        monitorType: MonitorType
+    ): Array<DropdownOption> {
         let options: Array<DropdownOption> =
             DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
 
@@ -76,8 +80,9 @@ export default class CriteriaFilterUtil {
         return options;
     }
 
-
-    public static getFilterTypeOptionsByCheckOn(checkOn: CheckOn): Array<DropdownOption> {
+    public static getFilterTypeOptionsByCheckOn(
+        checkOn: CheckOn
+    ): Array<DropdownOption> {
         let options: Array<DropdownOption> =
             DropdownUtil.getDropdownOptionsFromEnum(FilterType);
 
@@ -162,12 +167,15 @@ export default class CriteriaFilterUtil {
                 );
             });
         }
-        
-        return  options;
+
+        return options;
     }
 
-    public static getFilterTypePlaceholderValueByCheckOn(monitorType: MonitorType, checkOn: CheckOn): string {
-        if(!checkOn) {
+    public static getFilterTypePlaceholderValueByCheckOn(
+        monitorType: MonitorType,
+        checkOn: CheckOn
+    ): string {
+        if (!checkOn) {
             return '';
         }
 
@@ -187,21 +195,22 @@ export default class CriteriaFilterUtil {
             return '5';
         }
 
-        if ( checkOn === CheckOn.ResponseBody ||
+        if (
+            checkOn === CheckOn.ResponseBody ||
             checkOn === CheckOn.ResponseHeader ||
             checkOn === CheckOn.ResponseHeaderValue ||
             checkOn === CheckOn.RequestBody ||
             checkOn === CheckOn.RequestHeader ||
-            checkOn === CheckOn.RequestHeaderValue) {
+            checkOn === CheckOn.RequestHeaderValue
+        ) {
             return 'Some Text';
         }
 
         if (checkOn === CheckOn.JavaScriptExpression) {
             if (monitorType === MonitorType.IncomingRequest) {
                 return '{{requestBody.result}} === true';
-            } else {
-               return '{{responseBody.result}} === true';
             }
+            return '{{responseBody.result}} === true';
         }
 
         if (checkOn === CheckOn.ResponseStatusCode) {

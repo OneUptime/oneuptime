@@ -47,9 +47,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-
     useEffect(() => {
-        setCheckOnOptions(CriteriaFilterUiUtil.getCheckOnOptionsByMonitorType(props.monitorType));
+        setCheckOnOptions(
+            CriteriaFilterUiUtil.getCheckOnOptionsByMonitorType(
+                props.monitorType
+            )
+        );
         setIsLoading(false);
     }, [props.monitorType]);
 
@@ -58,8 +61,21 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     >([]);
 
     useEffect(() => {
-        setFilterTypeOptions(criteriaFilter?.checkOn ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(criteriaFilter?.checkOn) : []);
-        setValuePlaceholder( criteriaFilter?.checkOn ? CriteriaFilterUiUtil.getFilterTypePlaceholderValueByCheckOn(props.monitorType, criteriaFilter?.checkOn) : '');
+        setFilterTypeOptions(
+            criteriaFilter?.checkOn
+                ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
+                      criteriaFilter?.checkOn
+                  )
+                : []
+        );
+        setValuePlaceholder(
+            criteriaFilter?.checkOn
+                ? CriteriaFilterUiUtil.getFilterTypePlaceholderValueByCheckOn(
+                      props.monitorType,
+                      criteriaFilter?.checkOn
+                  )
+                : ''
+        );
     }, [criteriaFilter]);
 
     useEffect(() => {
@@ -118,46 +134,73 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
                 {/** checkbox for evaluateOverTime */}
 
-                {
-                    (criteriaFilter?.checkOn && CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn)) && (
+                {criteriaFilter?.checkOn &&
+                    CriteriaFilterUtil.isEvaluateOverTimeFilter(
+                        criteriaFilter?.checkOn
+                    ) && (
                         <div className="mt-3">
-
                             <CheckboxElement
                                 initialValue={criteriaFilter?.eveluateOverTime}
-                                title={"Evaluate this criteria over a period of time"}
+                                title={
+                                    'Evaluate this criteria over a period of time'
+                                }
                                 onChange={(value: boolean) => {
                                     setCriteriaFilter({
                                         ...criteriaFilter,
                                         eveluateOverTime: value,
                                     });
-                                }} />
+                                }}
+                            />
                         </div>
                     )}
 
-
                 {criteriaFilter?.checkOn &&
-                    (criteriaFilter?.checkOn && CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn)) && criteriaFilter.eveluateOverTime ? (
+                criteriaFilter?.checkOn &&
+                CriteriaFilterUtil.isEvaluateOverTimeFilter(
+                    criteriaFilter?.checkOn
+                ) &&
+                criteriaFilter.eveluateOverTime ? (
                     <div className="mt-1">
                         <FieldLabelElement title="Evaluate" />
                         <Dropdown
-                            initialValue={DropdownUtil.getDropdownOptionsFromEnum(EvaluateOverTimeType).find((item: DropdownOption) => item.value === criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType)}
-                            options={DropdownUtil.getDropdownOptionsFromEnum(EvaluateOverTimeType)}
-                            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-
-                                const evaluateOverTimeOption: EvaluateOverTimeOptions = criteriaFilter?.evaluateOverTimeOptions ? { ...criteriaFilter?.evaluateOverTimeOptions } : {
-                                    timeValueInMinutes: 5,
-                                    evaluateOverTimeType: EvaluateOverTimeType.All,
-                                };
+                            initialValue={DropdownUtil.getDropdownOptionsFromEnum(
+                                EvaluateOverTimeType
+                            ).find((item: DropdownOption) => {
+                                return (
+                                    item.value ===
+                                    criteriaFilter?.evaluateOverTimeOptions
+                                        ?.evaluateOverTimeType
+                                );
+                            })}
+                            options={DropdownUtil.getDropdownOptionsFromEnum(
+                                EvaluateOverTimeType
+                            )}
+                            onChange={(
+                                value:
+                                    | DropdownValue
+                                    | Array<DropdownValue>
+                                    | null
+                            ) => {
+                                const evaluateOverTimeOption: EvaluateOverTimeOptions =
+                                    criteriaFilter?.evaluateOverTimeOptions
+                                        ? {
+                                              ...criteriaFilter?.evaluateOverTimeOptions,
+                                          }
+                                        : {
+                                              timeValueInMinutes: 5,
+                                              evaluateOverTimeType:
+                                                  EvaluateOverTimeType.All,
+                                          };
 
                                 setCriteriaFilter({
                                     ...criteriaFilter,
                                     eveluateOverTime: true,
                                     evaluateOverTimeOptions: {
                                         ...evaluateOverTimeOption,
-                                        evaluateOverTimeType: value?.toString() as EvaluateOverTimeType,
+                                        evaluateOverTimeType:
+                                            value?.toString() as EvaluateOverTimeType,
                                     },
                                 });
-
                             }}
                         />
                     </div>
@@ -165,20 +208,41 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <></>
                 )}
 
-
                 {criteriaFilter?.checkOn &&
-                    (criteriaFilter?.checkOn && CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn)) && criteriaFilter.eveluateOverTime ? (
+                criteriaFilter?.checkOn &&
+                CriteriaFilterUtil.isEvaluateOverTimeFilter(
+                    criteriaFilter?.checkOn
+                ) &&
+                criteriaFilter.eveluateOverTime ? (
                     <div className="mt-1">
                         <FieldLabelElement title="For the last (in minutes)" />
                         <Dropdown
-                            initialValue={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions().find((item: DropdownOption) => item.value === criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes)}
+                            initialValue={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions().find(
+                                (item: DropdownOption) => {
+                                    return (
+                                        item.value ===
+                                        criteriaFilter?.evaluateOverTimeOptions
+                                            ?.timeValueInMinutes
+                                    );
+                                }
+                            )}
                             options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
-                            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-
-                                const evaluateOverTimeOption: EvaluateOverTimeOptions = criteriaFilter?.evaluateOverTimeOptions ? { ...criteriaFilter?.evaluateOverTimeOptions } : {
-                                    timeValueInMinutes: 5,
-                                    evaluateOverTimeType: EvaluateOverTimeType.All,
-                                };
+                            onChange={(
+                                value:
+                                    | DropdownValue
+                                    | Array<DropdownValue>
+                                    | null
+                            ) => {
+                                const evaluateOverTimeOption: EvaluateOverTimeOptions =
+                                    criteriaFilter?.evaluateOverTimeOptions
+                                        ? {
+                                              ...criteriaFilter?.evaluateOverTimeOptions,
+                                          }
+                                        : {
+                                              timeValueInMinutes: 5,
+                                              evaluateOverTimeType:
+                                                  EvaluateOverTimeType.All,
+                                          };
 
                                 setCriteriaFilter({
                                     ...criteriaFilter,
@@ -188,15 +252,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                         timeValueInMinutes: value as number,
                                     },
                                 });
-
                             }}
                         />
                     </div>
                 ) : (
                     <></>
                 )}
-
-
 
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn && (

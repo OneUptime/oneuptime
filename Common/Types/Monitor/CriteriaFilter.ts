@@ -40,7 +40,6 @@ export enum EvaluateOverTimeMinutes {
     SixtyMinutes = 60,
 }
 
-
 export interface EvaluateOverTimeOptions {
     timeValueInMinutes: number | undefined;
     evaluateOverTimeType: EvaluateOverTimeType | undefined;
@@ -80,9 +79,14 @@ export enum FilterCondition {
     Any = 'Any',
 }
 
-
 export class CriteriaFilterUtil {
     public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
-        return checkOn === CheckOn.ResponseStatusCode || checkOn === CheckOn.ResponseTime || checkOn === CheckOn.DiskUsagePercent || checkOn === CheckOn.CPUUsagePercent || checkOn === CheckOn.MemoryUsagePercent;
+        return (
+            checkOn === CheckOn.ResponseStatusCode ||
+            checkOn === CheckOn.ResponseTime ||
+            checkOn === CheckOn.DiskUsagePercent ||
+            checkOn === CheckOn.CPUUsagePercent ||
+            checkOn === CheckOn.MemoryUsagePercent
+        );
     }
 }
