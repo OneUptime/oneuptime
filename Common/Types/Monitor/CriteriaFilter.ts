@@ -19,11 +19,40 @@ export interface ServerMonitorOptions {
     diskPath?: string | undefined;
 }
 
+export enum EvaluateOverTimeType {
+    Average = 'Average',
+    Sum = 'Sum',
+    Maximum = 'Maximum',
+    Munimum = 'Minimum',
+    All = 'All',
+    Any = 'Any',
+}
+
+export enum EvaluateOverTimeMinutes {
+    TwoMinutes = 2,
+    ThreeMinutes = 3,
+    FiveMinutes = 5,
+    TenMinutes = 10,
+    FifteenMinutes = 15,
+    TwentyMinutes = 20,
+    ThirtyMinutes = 30,
+    FortyFiveMinutes = 45,
+    SixtyMinutes = 60,
+}
+
+
+export interface EvaluateOverTimeOptions {
+    timeValueInMinutes: number | undefined;
+    evaluateOverTimeType: EvaluateOverTimeType | undefined;
+}
+
 export interface CriteriaFilter {
     checkOn: CheckOn;
     serverMonitorOptions?: ServerMonitorOptions | undefined;
     filterType: FilterType | undefined;
     value: string | number | undefined;
+    eveluateOverTime?: boolean | undefined;
+    evaluateOverTimeOptions?: EvaluateOverTimeOptions | undefined;
 }
 
 export enum FilterType {
@@ -49,4 +78,11 @@ export enum FilterType {
 export enum FilterCondition {
     All = 'All',
     Any = 'Any',
+}
+
+
+export class CriteriaFilterUtil {
+    public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
+        return checkOn === CheckOn.ResponseStatusCode || checkOn === CheckOn.ResponseTime || checkOn === CheckOn.DiskUsagePercent || checkOn === CheckOn.CPUUsagePercent || checkOn === CheckOn.MemoryUsagePercent;
+    }
 }
