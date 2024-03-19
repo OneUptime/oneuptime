@@ -10,7 +10,9 @@ import {
 export default class CriteriaFilterUtil {
     public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
         const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
-        return keys.map((key: string) => {
+        return keys.filter((key: string)=>{
+            return EvaluateOverTimeMinutes[key as any];
+        }).map((key: string) => {
             return {
                 label: `${EvaluateOverTimeMinutes[key as any]} Minutes`,
                 value: EvaluateOverTimeMinutes[key as any]!,
