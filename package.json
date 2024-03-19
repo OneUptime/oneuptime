@@ -65,7 +65,9 @@
         "pull": "export $(grep -v '^#' config.env | xargs) && docker compose pull",
         "update": "npm run prerun && export $(grep -v '^#' config.env | xargs) && docker compose pull && npm run start",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-        "run-probes": "export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d probe-1 probe-2"
+        "run-probes": "export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d probe-1 probe-2",
+        "deploy-test": "kubectl config set-context oneuptime-test && helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/test.values.yaml",
+        "deploy-prod": "kubectl config set-context oneuptime-prod && helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/prod.values.yaml"
     },
     "repository": {
         "type": "git",
