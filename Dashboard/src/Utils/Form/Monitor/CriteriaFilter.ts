@@ -8,16 +8,16 @@ import {
 } from 'Common/Types/Monitor/CriteriaFilter';
 
 export default class CriteriaFilterUtil {
+
     public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
         const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
-        return keys.filter((key: string)=>{
-            return EvaluateOverTimeMinutes[key as any];
-        }).map((key: string) => {
-            return {
-                label: `${EvaluateOverTimeMinutes[key as any]} Minutes`,
-                value: EvaluateOverTimeMinutes[key as any]!,
-            };
-        });
+        return keys
+            .map((key: string) => {
+                return {
+                    label: `${(EvaluateOverTimeMinutes as any)[key].toString()} Minutes`,
+                    value: (EvaluateOverTimeMinutes as any)[key]!.toString(),
+                };
+            });
     }
 
     public static getCheckOnOptionsByMonitorType(

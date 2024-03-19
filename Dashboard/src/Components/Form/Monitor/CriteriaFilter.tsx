@@ -88,13 +88,45 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         return <></>;
     }
 
+
+    const filterConditionValue: DropdownOption | undefined = filterTypeOptions.find(
+        (i: DropdownOption) => {
+            return (
+                i.value ===
+                criteriaFilter?.filterType
+            );
+        }
+    );
+
+
+    const evaluateOverTimeMinutesValue: DropdownOption | undefined = CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions().find(
+        (item: DropdownOption) => {
+            return (
+                item.value ===
+                criteriaFilter?.evaluateOverTimeOptions
+                    ?.timeValueInMinutes
+            );
+        }
+    );
+
+
+    const evaluateOverTimeTypeValue: DropdownOption | undefined = DropdownUtil.getDropdownOptionsFromEnum(
+        EvaluateOverTimeType
+    ).find((item: DropdownOption) => {
+        return (
+            item.value ===
+            criteriaFilter?.evaluateOverTimeOptions
+                ?.evaluateOverTimeType
+        );
+    });
+
     return (
         <div>
             <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
                 <div className="">
                     <FieldLabelElement title="Filter Type" />
                     <Dropdown
-                        initialValue={checkOnOptions.find(
+                        value={checkOnOptions.find(
                             (i: DropdownOption) => {
                                 return i.value === criteriaFilter?.checkOn;
                             }
@@ -119,7 +151,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
                             <Input
                                 placeholder={'C:\\ or /mnt/data or /dev/sda1'}
-                                initialValue={criteriaFilter?.serverMonitorOptions?.diskPath?.toString()}
+                                value={criteriaFilter?.serverMonitorOptions?.diskPath?.toString()}
                                 onChange={(value: string) => {
                                     setCriteriaFilter({
                                         ...criteriaFilter,
@@ -140,7 +172,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     ) && (
                         <div className="mt-3">
                             <CheckboxElement
-                                initialValue={criteriaFilter?.eveluateOverTime}
+                                value={criteriaFilter?.eveluateOverTime}
                                 title={
                                     'Evaluate this criteria over a period of time'
                                 }
@@ -163,15 +195,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <div className="mt-1">
                         <FieldLabelElement title="Evaluate" />
                         <Dropdown
-                            initialValue={DropdownUtil.getDropdownOptionsFromEnum(
-                                EvaluateOverTimeType
-                            ).find((item: DropdownOption) => {
-                                return (
-                                    item.value ===
-                                    criteriaFilter?.evaluateOverTimeOptions
-                                        ?.evaluateOverTimeType
-                                );
-                            })}
+                            value={evaluateOverTimeTypeValue}
                             options={DropdownUtil.getDropdownOptionsFromEnum(
                                 EvaluateOverTimeType
                             )}
@@ -217,15 +241,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <div className="mt-1">
                         <FieldLabelElement title="For the last (in minutes)" />
                         <Dropdown
-                            initialValue={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions().find(
-                                (item: DropdownOption) => {
-                                    return (
-                                        item.value ===
-                                        criteriaFilter?.evaluateOverTimeOptions
-                                            ?.timeValueInMinutes
-                                    );
-                                }
-                            )}
+                            value={evaluateOverTimeMinutesValue}
                             options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
                             onChange={(
                                 value:
@@ -264,14 +280,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         <div className="mt-1">
                             <FieldLabelElement title="Filter Condition" />
                             <Dropdown
-                                initialValue={filterTypeOptions.find(
-                                    (i: DropdownOption) => {
-                                        return (
-                                            i.value ===
-                                            criteriaFilter?.filterType
-                                        );
-                                    }
-                                )}
+                                value={filterConditionValue}
                                 options={filterTypeOptions}
                                 onChange={(
                                     value:
@@ -299,7 +308,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                 <FieldLabelElement title="Value" />
                                 <Input
                                     placeholder={valuePlaceholder}
-                                    initialValue={criteriaFilter?.value?.toString()}
+                                    value={criteriaFilter?.value?.toString()}
                                     onChange={(value: string) => {
                                         setCriteriaFilter({
                                             checkOn:

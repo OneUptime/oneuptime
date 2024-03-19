@@ -29,15 +29,15 @@ export enum EvaluateOverTimeType {
 }
 
 export enum EvaluateOverTimeMinutes {
-    TwoMinutes = 2,
-    ThreeMinutes = 3,
-    FiveMinutes = 5,
-    TenMinutes = 10,
-    FifteenMinutes = 15,
-    TwentyMinutes = 20,
-    ThirtyMinutes = 30,
-    FortyFiveMinutes = 45,
-    SixtyMinutes = 60,
+    TwoMinutes = '2',
+    ThreeMinutes = '3',
+    FiveMinutes = '5',
+    TenMinutes = '10',
+    FifteenMinutes = '15',
+    TwentyMinutes = '20',
+    ThirtyMinutes = '30',
+    FortyFiveMinutes = '45',
+    SixtyMinutes = '60',
 }
 
 export interface EvaluateOverTimeOptions {
