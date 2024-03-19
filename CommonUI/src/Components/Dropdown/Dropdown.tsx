@@ -20,8 +20,8 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?:
-    | undefined
-    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+        | undefined
+        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -47,8 +47,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     const getDropdownOptionFromValue: GetDropdownOptionFromValueFunction = (
         value: GetDropdownOptionFromValueFunctionProps
     ): DropdownOption | Array<DropdownOption> | undefined => {
-
-        if(value === undefined) {
+        if (value === undefined) {
             return undefined;
         }
 
@@ -76,10 +75,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                         | DropdownOption
                         | undefined
                         | Array<DropdownOption> = props.options.find(
-                            (option: DropdownOption) => {
-                                return option.value === item;
-                            }
-                        ) as DropdownOption | Array<DropdownOption>;
+                        (option: DropdownOption) => {
+                            return option.value === item;
+                        }
+                    ) as DropdownOption | Array<DropdownOption>;
 
                     if (option) {
                         options.push(option as DropdownOption);
@@ -107,23 +106,18 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     >(getDropdownOptionFromValue(props.initialValue));
 
     useEffect(() => {
-
         const value: DropdownOption | Array<DropdownOption> | undefined =
-        getDropdownOptionFromValue(
-            props.value ? props.value : undefined
-        )
+            getDropdownOptionFromValue(props.value ? props.value : undefined);
 
-        setValue(
-            value
-        );
-
+        setValue(value);
     }, [props.value]);
 
     return (
         <div
-            className={`${props.className ||
+            className={`${
+                props.className ||
                 'relative mt-2 mb-1 rounded-md w-full overflow-visible'
-                }`}
+            }`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();

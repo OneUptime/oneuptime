@@ -88,37 +88,31 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         return <></>;
     }
 
+    const filterConditionValue: DropdownOption | undefined =
+        filterTypeOptions.find((i: DropdownOption) => {
+            return i.value === criteriaFilter?.filterType;
+        });
 
-    const filterConditionValue: DropdownOption | undefined = filterTypeOptions.find(
-        (i: DropdownOption) => {
-            return (
-                i.value ===
-                criteriaFilter?.filterType
-            );
-        }
-    );
-
-
-    const evaluateOverTimeMinutesValue: DropdownOption | undefined = CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions().find(
-        (item: DropdownOption) => {
-            return (
-                item.value ===
-                criteriaFilter?.evaluateOverTimeOptions
-                    ?.timeValueInMinutes
-            );
-        }
-    );
-
-
-    const evaluateOverTimeTypeValue: DropdownOption | undefined = DropdownUtil.getDropdownOptionsFromEnum(
-        EvaluateOverTimeType
-    ).find((item: DropdownOption) => {
-        return (
-            item.value ===
-            criteriaFilter?.evaluateOverTimeOptions
-                ?.evaluateOverTimeType
+    const evaluateOverTimeMinutesValue: DropdownOption | undefined =
+        CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions().find(
+            (item: DropdownOption) => {
+                return (
+                    item.value ===
+                    criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes
+                );
+            }
         );
-    });
+
+    const evaluateOverTimeTypeValue: DropdownOption | undefined =
+        DropdownUtil.getDropdownOptionsFromEnum(EvaluateOverTimeType).find(
+            (item: DropdownOption) => {
+                return (
+                    item.value ===
+                    criteriaFilter?.evaluateOverTimeOptions
+                        ?.evaluateOverTimeType
+                );
+            }
+        );
 
     return (
         <div>
@@ -126,11 +120,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 <div className="">
                     <FieldLabelElement title="Filter Type" />
                     <Dropdown
-                        value={checkOnOptions.find(
-                            (i: DropdownOption) => {
-                                return i.value === criteriaFilter?.checkOn;
-                            }
-                        )}
+                        value={checkOnOptions.find((i: DropdownOption) => {
+                            return i.value === criteriaFilter?.checkOn;
+                        })}
                         options={checkOnOptions}
                         onChange={(
                             value: DropdownValue | Array<DropdownValue> | null
