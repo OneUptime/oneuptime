@@ -1056,7 +1056,7 @@ export default class ProbeMonitorResponseService {
 
         if (input.monitor.monitorType === MonitorType.Server) {
             // check server monitor
-            const serverMonitorResult =
+            const serverMonitorResult: string | null =
                 await ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
                     dataToProcess: input.dataToProcess,
                     criteriaFilter: input.criteriaFilter,
