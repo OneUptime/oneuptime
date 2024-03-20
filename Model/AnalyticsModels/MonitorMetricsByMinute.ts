@@ -6,6 +6,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
 import { JSONObject } from 'Common/Types/JSON';
+import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
 
 export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
     public constructor() {
@@ -158,11 +159,11 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
         this.setColumnValue('monitorId', v);
     }
 
-    public get metricType(): string | undefined {
-        return this.getColumnValue('metricType') as string | undefined;
+    public get metricType(): CheckOn | undefined {
+        return this.getColumnValue('metricType') as CheckOn | undefined;
     }
 
-    public set metricType(v: string | undefined) {
+    public set metricType(v: CheckOn | undefined) {
         this.setColumnValue('metricType', v);
     }
 
