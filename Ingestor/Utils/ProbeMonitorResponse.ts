@@ -12,40 +12,37 @@ import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import ProbeApiIngestResponse from 'Common/Types/Probe/ProbeApiIngestResponse';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Typeof from 'Common/Types/Typeof';
-import MonitorService from '../../Services/MonitorService';
-import MonitorStatusTimelineService from '../../Services/MonitorStatusTimelineService';
-import IncidentService from '../../Services/IncidentService';
-import logger from '../../Utils/Logger';
+import MonitorService from 'CommonServer/Services/MonitorService';
+import MonitorStatusTimelineService from 'CommonServer/Services/MonitorStatusTimelineService';
+import IncidentService from 'CommonServer/Services/IncidentService';
+import logger from 'CommonServer/Utils/Logger';
 import Incident from 'Model/Models/Incident';
 import Monitor from 'Model/Models/Monitor';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
-import MonitorProbeService from '../../Services/MonitorProbeService';
+import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorProbe from 'Model/Models/MonitorProbe';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import IncidentStateTimelineService from '../../Services/IncidentStateTimelineService';
+import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import IncidentSeverityService from '../../Services/IncidentSeverityService';
+import IncidentSeverityService from 'CommonServer/Services/IncidentSeverityService';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import VMUtil from '../VM';
+import VMUtil from 'CommonServer/Utils/VM';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
-import BasicInfrastructureMetrics, {
-    BasicDiskMetrics,
-} from 'Common/Types/Infrastructure/BasicMetrics';
+import BasicInfrastructureMetrics from 'Common/Types/Infrastructure/BasicMetrics';
 import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
-import MonitorMetricsByMinuteService from '../../Services/MonitorMetricsByMinuteService';
-
-type DataToProcess =
-    | ProbeMonitorResponse
-    | IncomingMonitorRequest
-    | ServerMonitorResponse;
+import MonitorMetricsByMinuteService from 'CommonServer/Services/MonitorMetricsByMinuteService';
+import DataToProcess from '../Types/DataToProcess';
+import ServerMonitorCriteria from './Criteria/ServerMonitorCriteria';
+import IncomingRequestCriteria from './Criteria/IncomingRequestCriteria';
+import APIRequestCriteria from './Criteria/APIRequestCriteria';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -940,8 +937,6 @@ export default class ProbeMonitorResponseService {
     }): Promise<string | null> {
         // returns root cause if any. Otherwise criteria is not met.
         // process monitor criteria filter here.
-        let value: number | string | undefined = input.criteriaFilter.value;
-        //check is online filter
 
         if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
             let storageMap: JSONObject = {};
@@ -1027,43 +1022,48 @@ export default class ProbeMonitorResponseService {
         }
 
         if (
-            input.monitor.monitorType === MonitorType.Server &&
-            (input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
+            input.monitor.monitorType === MonitorType.API ||
+            input.monitor.monitorType === MonitorType.Website ||
+            input.monitor.monitorType === MonitorType.IP ||
+            input.monitor.monitorType === MonitorType.Ping ||
+            input.monitor.monitorType === MonitorType.Port
         ) {
-            const lastCheckTime: Date = (
-                input.dataToProcess as ServerMonitorResponse
-            ).requestReceivedAt;
+            const apiRequestCriteriaResult: string | null =
+                await APIRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+                    dataToProcess: input.dataToProcess,
+                    criteriaFilter: input.criteriaFilter,
+                });
 
-            const differenceInMinutes: number =
-                OneUptimeDate.getDifferenceInMinutes(
-                    lastCheckTime,
-                    OneUptimeDate.getCurrentDate()
+            if (apiRequestCriteriaResult) {
+                return apiRequestCriteriaResult;
+            }
+        }
+
+        if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+            //check  incoming request
+            const incomingRequestResult: string | null =
+                await IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet(
+                    {
+                        dataToProcess: input.dataToProcess,
+                        criteriaFilter: input.criteriaFilter,
+                    }
                 );
 
-            const offlineIfNotCheckedInMinutes: number = 2;
-
-            if (
-                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-                input.criteriaFilter.filterType === FilterType.True &&
-                differenceInMinutes <= offlineIfNotCheckedInMinutes
-            ) {
-                if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
-                    return 'Monitor is online.';
-                }
-
-                return null;
+            if (incomingRequestResult) {
+                return incomingRequestResult;
             }
+        }
 
-            if (
-                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-                input.criteriaFilter.filterType === FilterType.False &&
-                differenceInMinutes > offlineIfNotCheckedInMinutes
-            ) {
-                if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
-                    return 'Monitor is offline.';
-                }
-                return null;
+        if (input.monitor.monitorType === MonitorType.Server) {
+            // check server monitor
+            const serverMonitorResult =
+                await ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+                    dataToProcess: input.dataToProcess,
+                    criteriaFilter: input.criteriaFilter,
+                });
+
+            if (serverMonitorResult) {
+                return serverMonitorResult;
             }
         }
 
@@ -1085,753 +1085,6 @@ export default class ProbeMonitorResponseService {
                 if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
                     return 'Monitor is offline.';
                 }
-                return null;
-            }
-        }
-
-        // check response time filter
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
-            if (!value) {
-                return null;
-            }
-
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
-
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! > (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is greater than the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.LessThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! < (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is less than the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs === (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs !== (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is not equal to the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.GreaterThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! >= (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is greater than or equal to the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! <= (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is less than or equal to the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-        }
-
-        //check response code
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
-            if (!value) {
-                return null;
-            }
-
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
-
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! > (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is greater than the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.LessThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! < (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is less than the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode === (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    }.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode !== (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is not equal to the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.GreaterThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! >= (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is greater than or equal to the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! <= (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is less than or equal to the criteria value of ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseBody) {
-            let responseBody: string | JSONObject | undefined = (
-                input.dataToProcess as ProbeMonitorResponse
-            ).responseBody;
-
-            if (responseBody && typeof responseBody === Typeof.Object) {
-                responseBody = JSON.stringify(responseBody);
-            }
-
-            if (!responseBody) {
-                return null;
-            }
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    responseBody &&
-                    (responseBody as string).includes(value as string)
-                ) {
-                    return `Response body contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    responseBody &&
-                    !(responseBody as string).includes(value as string)
-                ) {
-                    return `Response body does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
-            const headerKeys: Array<string> = Object.keys(
-                (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                    {}
-            ).map((key: string) => {
-                return key.toLowerCase();
-            });
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    headerKeys &&
-                    headerKeys.includes(value as string)
-                ) {
-                    return `Response header contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    headerKeys &&
-                    !headerKeys.includes(value as string)
-                ) {
-                    return `Response header does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
-            const headerValues: Array<string> = Object.values(
-                (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                    {}
-            ).map((key: string) => {
-                return key.toLowerCase();
-            });
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    headerValues &&
-                    headerValues.includes(value as string)
-                ) {
-                    return `Response header value contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    headerValues &&
-                    !headerValues.includes(value as string)
-                ) {
-                    return `Response header value does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        // All incoming request related checks
-
-        if (input.criteriaFilter.checkOn === CheckOn.IncomingRequest) {
-            const lastCheckTime: Date = (
-                input.dataToProcess as IncomingMonitorRequest
-            ).incomingRequestReceivedAt;
-
-            const differenceInMinutes: number =
-                OneUptimeDate.getDifferenceInMinutes(
-                    lastCheckTime,
-                    OneUptimeDate.getCurrentDate()
-                );
-
-            if (!value) {
-                return null;
-            }
-
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
-
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.RecievedInMinutes
-            ) {
-                if (value && differenceInMinutes <= (value as number)) {
-                    return `Incoming request / heartbeat received in ${value} minutes.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.NotRecievedInMinutes
-            ) {
-                if (value && differenceInMinutes > (value as number)) {
-                    return `Incoming request / heartbeat not received in ${value} minutes.`;
-                }
-                return null;
-            }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.RequestBody &&
-            !(input.dataToProcess as IncomingMonitorRequest)
-                .onlyCheckForIncomingRequestReceivedAt
-        ) {
-            let responseBody: string | JSONObject | undefined = (
-                input.dataToProcess as IncomingMonitorRequest
-            ).requestBody;
-
-            if (responseBody && typeof responseBody === Typeof.Object) {
-                responseBody = JSON.stringify(responseBody);
-            }
-
-            if (!responseBody) {
-                return null;
-            }
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    responseBody &&
-                    (responseBody as string).includes(value as string)
-                ) {
-                    return `Request body contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    responseBody &&
-                    !(responseBody as string).includes(value as string)
-                ) {
-                    return `Request body does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.RequestHeader &&
-            !(input.dataToProcess as IncomingMonitorRequest)
-                .onlyCheckForIncomingRequestReceivedAt
-        ) {
-            const headerKeys: Array<string> = Object.keys(
-                (input.dataToProcess as IncomingMonitorRequest)
-                    .requestHeaders || {}
-            ).map((key: string) => {
-                return key.toLowerCase();
-            });
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    headerKeys &&
-                    headerKeys.includes(value as string)
-                ) {
-                    return `Request header contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    headerKeys &&
-                    !headerKeys.includes(value as string)
-                ) {
-                    return `Request header does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.RequestHeaderValue &&
-            !(input.dataToProcess as IncomingMonitorRequest)
-                .onlyCheckForIncomingRequestReceivedAt
-        ) {
-            const headerValues: Array<string> = Object.values(
-                (input.dataToProcess as IncomingMonitorRequest)
-                    .requestHeaders || {}
-            ).map((key: string) => {
-                return key.toLowerCase();
-            });
-
-            // contains
-            if (input.criteriaFilter.filterType === FilterType.Contains) {
-                if (
-                    value &&
-                    headerValues &&
-                    headerValues.includes(value as string)
-                ) {
-                    return `Request header value contains ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotContains) {
-                if (
-                    value &&
-                    headerValues &&
-                    !headerValues.includes(value as string)
-                ) {
-                    return `Request header value does not contain ${value}.`;
-                }
-                return null;
-            }
-        }
-
-        // Server Monitoring Checks
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.CPUUsagePercent &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            if (!value) {
-                return null;
-            }
-
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
-
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            const currentCpuPercent: number =
-                (input.dataToProcess as ServerMonitorResponse)
-                    .basicInfrastructureMetrics?.cpuMetrics.percentUsage || 0;
-
-            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
-                if (currentCpuPercent > (value as number)) {
-                    return `CPU Percent is ${currentCpuPercent}% which is greater than the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.LessThan) {
-                if (currentCpuPercent < (value as number)) {
-                    return `CPU Percent is ${currentCpuPercent}% which is less than than the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
-                if (currentCpuPercent === (value as number)) {
-                    return `CPU Percent is ${currentCpuPercent}% which is equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
-                if (currentCpuPercent !== (value as number)) {
-                    return `CPU Percent is ${currentCpuPercent}% which is not equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.GreaterThanOrEqualTo
-            ) {
-                if (currentCpuPercent >= (value as number)) {
-                    return `CPU Percent is ${currentCpuPercent}% which is greater than or equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
-            ) {
-                if (currentCpuPercent <= (value as number)) {
-                    return `CPU Percent is ${currentCpuPercent}% which is less than or equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.MemoryUsagePercent &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            if (!value) {
-                return null;
-            }
-
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
-
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            const memoryPercent: number =
-                (input.dataToProcess as ServerMonitorResponse)
-                    .basicInfrastructureMetrics?.memoryMetrics.percentFree || 0;
-
-            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
-                if (memoryPercent > (value as number)) {
-                    return `Memory Percent is ${memoryPercent}% which is greater than the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.LessThan) {
-                if (memoryPercent < (value as number)) {
-                    return `Memory Percent is ${memoryPercent}% which is less than than the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
-                if (memoryPercent === (value as number)) {
-                    return `Memory Percent is ${memoryPercent}% which is equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
-                if (memoryPercent !== (value as number)) {
-                    return `Memory Percent is ${memoryPercent}% which is not equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.GreaterThanOrEqualTo
-            ) {
-                if (memoryPercent >= (value as number)) {
-                    return `Memory Percent is ${memoryPercent}% which is greater than or equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
-            ) {
-                if (memoryPercent <= (value as number)) {
-                    return `Memory Percent is ${memoryPercent}% which is less than or equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            if (!value) {
-                return null;
-            }
-
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
-
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            const diskPath: string =
-                input.criteriaFilter.serverMonitorOptions?.diskPath || '/';
-
-            const diskPercent: number =
-                (
-                    input.dataToProcess as ServerMonitorResponse
-                ).basicInfrastructureMetrics?.diskMetrics.filter(
-                    (item: BasicDiskMetrics) => {
-                        return (
-                            item.diskPath.trim().toLowerCase() ===
-                            diskPath.trim().toLowerCase()
-                        );
-                    }
-                )[0]?.percentFree || 0;
-
-            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
-                if (diskPercent > (value as number)) {
-                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is greater than the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.LessThan) {
-                if (diskPercent < (value as number)) {
-                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is less than than the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
-                if (diskPercent === (value as number)) {
-                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
-                if (diskPercent !== (value as number)) {
-                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is not equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.GreaterThanOrEqualTo
-            ) {
-                if (diskPercent >= (value as number)) {
-                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is greater than or equal to the criteria value of ${value}%.`;
-                }
-
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
-            ) {
-                if (diskPercent <= (value as number)) {
-                    return `Disk Percent for ${diskPath} is ${diskPercent}% which is less than or equal to the criteria value of ${value}%.`;
-                }
-
                 return null;
             }
         }
