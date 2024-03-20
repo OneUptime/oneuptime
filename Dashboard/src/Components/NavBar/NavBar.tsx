@@ -57,14 +57,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <NavBar rightElement={<NavBarItem
-            title="User Settings"
-            route={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.USER_SETTINGS] as Route
-            )}
-            activeRoute={RouteMap[PageMap.USER_SETTINGS]}
-            icon={IconProp.User}
-        />}>
+        <NavBar
+            rightElement={
+                <NavBarItem
+                    title="User Settings"
+                    route={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.USER_SETTINGS] as Route
+                    )}
+                    activeRoute={RouteMap[PageMap.USER_SETTINGS]}
+                    icon={IconProp.User}
+                />
+            }
+        >
             <NavBarItem
                 title="Home"
                 icon={IconProp.Home}
@@ -147,7 +151,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 description="Manage your scheduled maintenance events."
                                 route={RouteUtil.populateRouteParams(
                                     RouteMap[
-                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                        PageMap.SCHEDULED_MAINTENANCE_EVENTS
                                     ] as Route
                                 )}
                                 icon={IconProp.Clock}
@@ -190,7 +194,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                     forceHideMoreMenu();
                                 }}
                             />
-
 
                             {/* <NavBarMenuItem
                             title="Logs Management"

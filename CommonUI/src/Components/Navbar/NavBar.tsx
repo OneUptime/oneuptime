@@ -14,14 +14,12 @@ const Navbar: FunctionComponent<ComponentProps> = (
     const className: string =
         props.className || 'flex text-center lg:space-x-8 lg:py-2 bg-white ';
 
-    return <nav className='flex justify-between'>
-        <div className={className}>
-            {props.children}
-        </div>
-        <div className={className}>
-            {props.rightElement}
-        </div>
-    </nav>;
+    return (
+        <nav className="flex justify-between">
+            <div className={className}>{props.children}</div>
+            <div className={className}>{props.rightElement}</div>
+        </nav>
+    );
 };
 
 export default Navbar;
