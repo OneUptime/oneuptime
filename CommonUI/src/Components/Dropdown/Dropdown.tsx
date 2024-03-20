@@ -5,6 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
+import ObjectID from 'Common/Types/ObjectID';
 
 export type DropdownValue = string | number | boolean;
 
@@ -28,6 +29,7 @@ export interface ComponentProps {
     isMultiSelect?: boolean;
     tabIndex?: number | undefined;
     error?: string | undefined;
+    id?: string | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -49,6 +51,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     ): DropdownOption | Array<DropdownOption> | undefined => {
         if (value === undefined) {
             return undefined;
+        }
+
+        if(value instanceof ObjectID){
+            value = value.toString();
         }
 
         if (
@@ -114,6 +120,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     return (
         <div
+            id={props.id}
             className={`${
                 props.className ||
                 'relative mt-2 mb-1 rounded-md w-full overflow-visible'

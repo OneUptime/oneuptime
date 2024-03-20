@@ -84,6 +84,7 @@ export default interface Field<TEntity> {
     defaultValue?: boolean | string | Date | undefined;
     radioButtonOptions?: Array<RadioButton>;
     footerElement?: ReactElement | undefined;
+    id?: string | undefined;
     getCustomElement?: (
         values: FormValues<TEntity>,
         props: CustomElementProps

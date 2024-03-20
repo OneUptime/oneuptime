@@ -1,4 +1,3 @@
-
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
 import DashboardNavigation from '../../../Utils/Navigation';
@@ -19,7 +18,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 viewPageRoute={Navigation.getCurrentRoute()}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
-                    monitors: [modelId.toString()]
+                    monitors: [modelId.toString()],
                 }}
                 createInitialValues={{
                     monitors: [modelId.toString()],

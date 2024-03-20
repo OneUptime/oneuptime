@@ -210,7 +210,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 isEditable={false}
                 isCreateable={true}
                 isViewable={true}
-                createInitialValues={Object.keys(initialValuesForIncident).length > 0 ? initialValuesForIncident : props.createInitialValues}
+                createInitialValues={
+                    Object.keys(initialValuesForIncident).length > 0
+                        ? initialValuesForIncident
+                        : props.createInitialValues
+                }
                 cardProps={{
                     title: props.title || 'Incidents',
                     buttons: [

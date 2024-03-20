@@ -20,7 +20,9 @@ export interface ComponentProps {
 const Toggle: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [isChecked, setIsChecked] = useState<boolean>(props.initialValue || false);
+    const [isChecked, setIsChecked] = useState<boolean>(
+        props.initialValue || false
+    );
 
     useEffect(() => {
         if (props !== undefined) {
