@@ -138,6 +138,7 @@ import OnCallDutyPolicyEscalationRuleScheduleService from './OnCallDutyPolicyEsc
 
 import UsageBillingService from './UsageBillingService';
 import ProjectCallSMSConfigService from './ProjectCallSMSConfigService';
+import MonitorMetricsByMinuteService from './MonitorMetricsByMinuteService';
 
 const services: Array<BaseService> = [
     PromoCodeService,
@@ -275,6 +276,7 @@ export const AnalyticsServices: Array<
     MetricSumService,
     MetricHistogramService,
     MetricGaugeService,
+    MonitorMetricsByMinuteService
 ];
 
 export default services;
