@@ -36,7 +36,9 @@ import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/Incomin
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import VMUtil from '../VM';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
-import { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
+import BasicInfrastructureMetrics, { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
+import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
+import MonitorMetricsByMinuteService from '../../Services/MonitorMetricsByMinuteService';
 
 type DataToProcess =
     | ProbeMonitorResponse
@@ -204,7 +206,11 @@ export default class ProbeMonitorResponseService {
             });
         }
 
-        // TODO: save data to Clickhouse.
+        await this.saveMonitorMetrics({
+            monitorId: monitor.id!,
+            projectId: monitor.projectId!,
+            dataToProcess: dataToProcess,
+        });
 
         const monitorSteps: MonitorSteps = monitor.monitorSteps!;
 
@@ -375,6 +381,94 @@ export default class ProbeMonitorResponseService {
         }
 
         return response;
+    }
+
+    public static async saveMonitorMetrics(data: { monitorId: ObjectID; projectId: ObjectID; dataToProcess: DataToProcess; }): Promise<void> {
+        
+        if(!data.monitorId){
+            return;
+        }
+
+        if(!data.projectId){
+            return;
+        }
+
+        if(!data.dataToProcess){
+            return;
+        }
+
+       
+
+        if((data.dataToProcess as ServerMonitorResponse).basicInfrastructureMetrics){
+            // store cpu, memory, disk metrics.
+
+            const basicMetrics: BasicInfrastructureMetrics | undefined = (data.dataToProcess as ServerMonitorResponse).basicInfrastructureMetrics;
+
+            if(!basicMetrics){
+                return;
+            }
+
+            const itemsToSave: Array<MonitorMetricsByMinute> = [];
+
+            if(basicMetrics.cpuMetrics){
+                const monitorMetricsByMinute: MonitorMetricsByMinute = new MonitorMetricsByMinute();
+                monitorMetricsByMinute.monitorId = data.monitorId;
+                monitorMetricsByMinute.projectId = data.projectId;
+                monitorMetricsByMinute.metricType = CheckOn.CPUUsagePercent;
+                monitorMetricsByMinute.metricValue = basicMetrics.cpuMetrics.percentUsed;
+
+                itemsToSave.push(monitorMetricsByMinute);
+            }
+
+            if(basicMetrics.memoryMetrics){
+                const monitorMetricsByMinute: MonitorMetricsByMinute = new MonitorMetricsByMinute();
+                monitorMetricsByMinute.monitorId = data.monitorId;
+                monitorMetricsByMinute.projectId = data.projectId;
+                monitorMetricsByMinute.metricType = CheckOn.MemoryUsagePercent;
+                monitorMetricsByMinute.metricValue = basicMetrics.memoryMetrics.percentUsed;
+
+                itemsToSave.push(monitorMetricsByMinute);
+            }
+
+            if(basicMetrics.diskMetrics){
+                for(const diskMetric of basicMetrics.diskMetrics){
+                    const monitorMetricsByMinute: MonitorMetricsByMinute = new MonitorMetricsByMinute();
+                    monitorMetricsByMinute.monitorId = data.monitorId;
+                    monitorMetricsByMinute.projectId = data.projectId;
+                    monitorMetricsByMinute.metricType = CheckOn.DiskUsagePercent;
+                    monitorMetricsByMinute.metricValue = diskMetric.percentUsed;
+                    monitorMetricsByMinute.miscData = {
+                        diskPath: diskMetric.diskPath,
+                    };
+
+                    itemsToSave.push(monitorMetricsByMinute);
+                }
+            }
+
+            await MonitorMetricsByMinuteService.createMany({
+                items: itemsToSave,
+                props: {
+                    isRoot: true,
+                }
+            });
+        }
+
+        if((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs){
+
+            const monitorMetricsByMinute: MonitorMetricsByMinute = new MonitorMetricsByMinute();
+            monitorMetricsByMinute.monitorId = data.monitorId;
+            monitorMetricsByMinute.projectId = data.projectId;
+            monitorMetricsByMinute.metricType = CheckOn.ResponseTime;
+            monitorMetricsByMinute.metricValue = (data.dataToProcess as ProbeMonitorResponse).responseTimeInMs;
+
+            await MonitorMetricsByMinuteService.create({
+                data: monitorMetricsByMinute,
+                props: {
+                    isRoot: true,
+                }
+            });
+        }
+
     }
 
     private static async checkOpenIncidentsAndCloseIfResolved(input: {
