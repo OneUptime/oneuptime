@@ -83,9 +83,9 @@ export default class CriteriaFilterUtil {
                 ' - evaluates to true.';
         } else if (criteriaFilter?.checkOn === CheckOn.IsOnline) {
             if (criteriaFilter?.filterType === FilterType.True) {
-                text += ' is online ';
+                text += 'the resource is online ';
             } else {
-                text += ' is offline ';
+                text += 'the resource is offline ';
             }
         } else {
             text += criteriaFilter?.checkOn.toString().toLowerCase() + ' ';
