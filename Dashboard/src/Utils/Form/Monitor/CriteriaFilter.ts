@@ -31,7 +31,10 @@ export default class CriteriaFilterUtil {
 
         // template: the maximum percentage of disk usage on /dev/sda in the past three minutes exceeds 21%.
 
-        const isPercentage: boolean = criteriaFilter?.checkOn === CheckOn.CPUUsagePercent || criteriaFilter?.checkOn === CheckOn.DiskUsagePercent || criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent;
+        const isPercentage: boolean =
+            criteriaFilter?.checkOn === CheckOn.CPUUsagePercent ||
+            criteriaFilter?.checkOn === CheckOn.DiskUsagePercent ||
+            criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent;
 
         // check evaluation over time values.
         if (
@@ -67,11 +70,10 @@ export default class CriteriaFilterUtil {
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.Sum
             ) {
-                text += `sum of all ${isPercentage ? 'percentage ' : ''}values `;
+                text += `sum of all ${
+                    isPercentage ? 'percentage ' : ''
+                }values `;
             }
-
-
-            
         }
 
         if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
@@ -106,7 +108,6 @@ export default class CriteriaFilterUtil {
                     ' minutes is ';
             }
 
-
             // ADD FILTER TYPE - like greater than, less than, etc
 
             if (criteriaFilter?.filterType) {
@@ -126,13 +127,11 @@ export default class CriteriaFilterUtil {
                 }
             }
 
-
             /// FINALLY ADD THE VALUE
 
             if (criteriaFilter?.value !== undefined) {
                 text += criteriaFilter?.value.toString() + ' ';
             }
-
         }
 
         if (filterCondition === FilterCondition.All) {
