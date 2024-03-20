@@ -29,6 +29,10 @@ export default class CriteriaFilterUtil {
     ): string {
         let text: string = 'Check if ';
 
+        // template: the maximum percentage of disk usage on /dev/sda in the past three minutes exceeds 21%.
+
+        const isPercentage: boolean = criteriaFilter?.checkOn === CheckOn.CPUUsagePercent || criteriaFilter?.checkOn === CheckOn.DiskUsagePercent || criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent;
+
         // check evaluation over time values.
         if (
             criteriaFilter?.eveluateOverTime &&
@@ -38,33 +42,36 @@ export default class CriteriaFilterUtil {
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.AllValues
             ) {
-                text += 'all values ';
+                text += `all ${isPercentage ? 'percentage ' : ''}values `;
             } else if (
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.AnyValue
             ) {
-                text += 'any value ';
+                text += `any ${isPercentage ? 'percentage ' : ''}value `;
             } else if (
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.Average
             ) {
-                text += 'average ';
+                text += `average ${isPercentage ? 'percentage ' : ''}value`;
             } else if (
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.MaximumValue
             ) {
-                text += 'maximum value ';
+                text += `maximum ${isPercentage ? 'percentage ' : ''}value `;
             } else if (
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.MunimumValue
             ) {
-                text += 'minimum value ';
+                text += `minimum ${isPercentage ? 'percentage ' : ''}value `;
             } else if (
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.Sum
             ) {
-                text += 'sum ';
+                text += `sum of all ${isPercentage ? 'percentage ' : ''}values `;
             }
+
+
+            
         }
 
         if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
@@ -88,6 +95,20 @@ export default class CriteriaFilterUtil {
                     ' ';
             }
 
+            // add minutes if evaluate over time is true
+            if (
+                criteriaFilter?.eveluateOverTime &&
+                criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+            ) {
+                text +=
+                    'in the past ' +
+                    criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes +
+                    ' minutes is ';
+            }
+
+
+            // ADD FILTER TYPE - like greater than, less than, etc
+
             if (criteriaFilter?.filterType) {
                 if (
                     criteriaFilter?.filterType
@@ -105,20 +126,13 @@ export default class CriteriaFilterUtil {
                 }
             }
 
+
+            /// FINALLY ADD THE VALUE
+
             if (criteriaFilter?.value !== undefined) {
                 text += criteriaFilter?.value.toString() + ' ';
             }
 
-            // add minutes if evaluate over time is true
-            if (
-                criteriaFilter?.eveluateOverTime &&
-                criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
-            ) {
-                text +=
-                    'over ' +
-                    criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes +
-                    ' minutes ';
-            }
         }
 
         if (filterCondition === FilterCondition.All) {
