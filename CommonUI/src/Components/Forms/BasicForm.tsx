@@ -16,7 +16,7 @@ import ButtonTypes from '../Button/ButtonTypes';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Alert, { AlertType } from '../Alerts/Alert';
-import { DropdownOption } from '../Dropdown/Dropdown';
+import { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
 import OneUptimeDate from 'Common/Types/Date';
 import HashedString from 'Common/Types/HashedString';
 import Typeof from 'Common/Types/Typeof';
@@ -33,6 +33,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { FormikErrors, FormikProps } from 'formik';
 import { VoidFunction } from 'Common/Types/FunctionTypes';
 import GenericObject from 'Common/Types/GenericObject';
+import ObjectID from 'Common/Types/ObjectID';
 
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
@@ -455,9 +456,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     const dropdownOption: DropdownOption | undefined =
                         field.dropdownOptions?.find(
                             (option: DropdownOption) => {
-                                return (
-                                    option.value === (values as any)[fieldName]
-                                );
+                                let valueToCompare: DropdownValue = (
+                                    values as any
+                                )[fieldName];
+
+                                if (
+                                    (valueToCompare as any) instanceof ObjectID
+                                ) {
+                                    valueToCompare = valueToCompare.toString();
+                                }
+
+                                return option.value === valueToCompare;
                             }
                         );
 
@@ -472,9 +481,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     const dropdownOptions: Array<DropdownOption> =
                         field.dropdownOptions?.filter(
                             (option: DropdownOption) => {
-                                return (values as any)[fieldName].includes(
-                                    option.value
+                                let valueToCompare: Array<DropdownValue> = [
+                                    ...(values as any)[fieldName],
+                                ];
+
+                                valueToCompare = valueToCompare.map(
+                                    (item: DropdownValue) => {
+                                        if ((item as any) instanceof ObjectID) {
+                                            return item.toString();
+                                        }
+
+                                        return item;
+                                    }
                                 );
+
+                                return valueToCompare.includes(option.value);
                             }
                         ) || [];
 

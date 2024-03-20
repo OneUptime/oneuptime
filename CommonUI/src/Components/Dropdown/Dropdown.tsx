@@ -53,7 +53,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             return undefined;
         }
 
-        if(value instanceof ObjectID){
+        if (value instanceof ObjectID) {
             value = value.toString();
         }
 
