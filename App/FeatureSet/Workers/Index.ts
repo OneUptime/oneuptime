@@ -76,8 +76,7 @@ import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement'
 import './Jobs/Workflow/TimeoutJobs';
 import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
 
-
-// Monitor Metrics 
+// Monitor Metrics
 import './Jobs/MonitorMetrics/MonitorMetricsByMinute';
 
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';

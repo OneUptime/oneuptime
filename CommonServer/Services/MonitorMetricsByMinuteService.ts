@@ -4,7 +4,10 @@ import ClickhouseDatabase from '../Infrastructure/ClickhouseDatabase';
 
 export class MonitorMetricsByMinuteService extends AnalyticsDatabaseService<MonitorMetricsByMinute> {
     public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
-        super({ modelType: MonitorMetricsByMinute, database: clickhouseDatabase });
+        super({
+            modelType: MonitorMetricsByMinute,
+            database: clickhouseDatabase,
+        });
     }
 }
 

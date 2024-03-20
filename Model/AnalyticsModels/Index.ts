@@ -12,7 +12,7 @@ const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [
     MetricHistogram,
     MetricSum,
     MetricGauge,
-    MonitorMetricsByMinute
+    MonitorMetricsByMinute,
 ];
 
 export default AnalyticsModels;

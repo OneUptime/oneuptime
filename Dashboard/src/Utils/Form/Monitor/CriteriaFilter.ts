@@ -133,7 +133,9 @@ export default class CriteriaFilterUtil {
             /// FINALLY ADD THE VALUE
 
             if (criteriaFilter?.value !== undefined) {
-                text += `${criteriaFilter?.value.toString()}${isPercentage ? '%':''}${isMilliseconds ? 'ms': ''} `
+                text += `${criteriaFilter?.value.toString()}${
+                    isPercentage ? '%' : ''
+                }${isMilliseconds ? 'ms' : ''} `;
             }
         }
 

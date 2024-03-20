@@ -276,7 +276,7 @@ export const AnalyticsServices: Array<
     MetricSumService,
     MetricHistogramService,
     MetricGaugeService,
-    MonitorMetricsByMinuteService
+    MonitorMetricsByMinuteService,
 ];
 
 export default services;

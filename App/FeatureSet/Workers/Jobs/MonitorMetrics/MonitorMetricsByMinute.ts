@@ -14,11 +14,11 @@ RunCron(
 
         await MonitorMetricsByMinuteService.deleteBy({
             query: {
-                createdAt: new LessThan(oneHourAgo)
+                createdAt: new LessThan(oneHourAgo),
             },
             props: {
                 isRoot: true,
-            }
+            },
         });
     }
 );

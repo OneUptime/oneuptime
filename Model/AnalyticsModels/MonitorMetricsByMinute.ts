@@ -21,15 +21,9 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
                     Permission.ProjectMember,
                     Permission.CanReadProjectMonitor,
                 ],
-                create: [
-                   
-                ],
-                update: [
-                   
-                ],
-                delete: [
-                    
-                ],
+                create: [],
+                update: [],
+                delete: [],
             },
             pluralName: 'Monitor Metrics By Minutes',
             crudApiPath: new Route('/monitor-metrics-by-minute'),
@@ -48,9 +42,7 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
                             Permission.ProjectMember,
                             Permission.CanReadProjectMonitor,
                         ],
-                        create: [
-                           
-                        ],
+                        create: [],
                         update: [],
                     },
                 }),
@@ -58,7 +50,8 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
                 new AnalyticsTableColumn({
                     key: 'monitorId',
                     title: 'Monitor ID',
-                    description: 'ID of the Monitor which this metric belongs to',
+                    description:
+                        'ID of the Monitor which this metric belongs to',
                     required: true,
                     type: TableColumnType.ObjectID,
                     accessControl: {
@@ -68,9 +61,7 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
                             Permission.ProjectMember,
                             Permission.CanReadProjectMonitor,
                         ],
-                        create: [
-                           
-                        ],
+                        create: [],
                         update: [],
                     },
                 }),
@@ -88,13 +79,10 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
                             Permission.ProjectMember,
                             Permission.CanReadProjectMonitor,
                         ],
-                        create: [
-                           
-                        ],
+                        create: [],
                         update: [],
                     },
                 }),
-
 
                 new AnalyticsTableColumn({
                     key: 'metricValue',
@@ -109,13 +97,10 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
                             Permission.ProjectMember,
                             Permission.CanReadProjectMonitor,
                         ],
-                        create: [
-                           
-                        ],
+                        create: [],
                         update: [],
                     },
                 }),
-
 
                 new AnalyticsTableColumn({
                     key: 'miscData',
@@ -130,14 +115,10 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
                             Permission.ProjectMember,
                             Permission.CanReadProjectMonitor,
                         ],
-                        create: [
-                           
-                        ],
+                        create: [],
                         update: [],
                     },
                 }),
-
-                
             ],
             primaryKeys: ['projectId', 'monitorId', 'createdAt'],
         });
