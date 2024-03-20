@@ -36,6 +36,9 @@ export default class CriteriaFilterUtil {
             criteriaFilter?.checkOn === CheckOn.DiskUsagePercent ||
             criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent;
 
+        const isMilliseconds: boolean =
+            criteriaFilter?.checkOn === CheckOn.ResponseTime;
+
         // check evaluation over time values.
         if (
             criteriaFilter?.eveluateOverTime &&
@@ -105,7 +108,7 @@ export default class CriteriaFilterUtil {
                 text +=
                     'in the past ' +
                     criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes +
-                    ' minutes is ';
+                    ' minutes ';
             }
 
             // ADD FILTER TYPE - like greater than, less than, etc
@@ -130,7 +133,7 @@ export default class CriteriaFilterUtil {
             /// FINALLY ADD THE VALUE
 
             if (criteriaFilter?.value !== undefined) {
-                text += criteriaFilter?.value.toString() + ' ';
+                text += `${criteriaFilter?.value.toString()}${isPercentage ? '%':''}${isMilliseconds ? 'ms': ''} `
             }
         }
 
