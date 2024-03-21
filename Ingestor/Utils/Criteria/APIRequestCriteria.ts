@@ -4,10 +4,11 @@ import {
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import logger from 'CommonServer/Utils/Logger';
 import Typeof from 'Common/Types/Typeof';
 import { JSONObject } from 'Common/Types/JSON';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
+import CompareCriteria from './CompareCriteria';
+import EvaluateOverTime from './EvaluateOverTime';
 
 export default class APIRequestCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -16,236 +17,55 @@ export default class APIRequestCriteria {
     }): Promise<string | null> {
         // Server Monitoring Checks
 
-        let value: number | string | undefined = input.criteriaFilter.value;
+        let threshold: number | string | undefined | null = input.criteriaFilter.value;
 
-        // check response time filter
-        if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
-            if (!value) {
+
+        let overTimeValue: Array<number> | number | undefined = undefined;
+
+
+        if (input.criteriaFilter.eveluateOverTime && input.criteriaFilter.evaluateOverTimeOptions) {
+            overTimeValue = await EvaluateOverTime.getValueOverTime({
+                monitorId: input.dataToProcess.monitorId!,
+                evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+                metricType: input.criteriaFilter.checkOn,
+                miscData: input.criteriaFilter.serverMonitorOptions as JSONObject
+            });
+
+            if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
                 return null;
             }
 
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
-
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! > (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is greater than the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.LessThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! < (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is less than the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs === (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs !== (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is not equal to the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.GreaterThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! >= (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is greater than or equal to the criteria value of ${value} ms.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseTimeInMs! <= (value as number)
-                ) {
-                    return `Response time is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseTimeInMs
-                    } ms which is less than or equal to the criteria value of ${value} ms.`;
-                }
+            if (overTimeValue === undefined) {
                 return null;
             }
         }
 
+        // check response time filter
+        if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
+            threshold = CompareCriteria.convertThresholdToNumber(threshold);
+
+            let value: Array<number> | number = overTimeValue || (input.dataToProcess as ProbeMonitorResponse)
+                .responseTimeInMs!;
+
+            return CompareCriteria.compareCriteriaNumbers({
+                value: value,
+                threshold: threshold as number,
+                criteriaFilter: input.criteriaFilter,
+            });
+        }
+
         //check response code
         if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
-            if (!value) {
-                return null;
-            }
+            threshold = CompareCriteria.convertThresholdToNumber(threshold);
 
-            if (typeof value === Typeof.String) {
-                try {
-                    value = parseInt(value as string);
-                } catch (err) {
-                    logger.error(err);
-                    return null;
-                }
-            }
+            let value: Array<number> | number = overTimeValue || (input.dataToProcess as ProbeMonitorResponse)
+                .responseCode!;
 
-            if (typeof value !== Typeof.Number) {
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.GreaterThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! > (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is greater than the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.LessThan) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! < (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is less than the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.EqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode === (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    }.`;
-                }
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.NotEqualTo) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode !== (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is not equal to the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType ===
-                FilterType.GreaterThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! >= (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is greater than or equal to the criteria value of ${value}.`;
-                }
-                return null;
-            }
-
-            if (
-                input.criteriaFilter.filterType === FilterType.LessThanOrEqualTo
-            ) {
-                if (
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode &&
-                    (input.dataToProcess as ProbeMonitorResponse)
-                        .responseCode! <= (value as number)
-                ) {
-                    return `Response status code is ${
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .responseCode
-                    } which is less than or equal to the criteria value of ${value}.`;
-                }
-                return null;
-            }
+            return CompareCriteria.compareCriteriaNumbers({
+                value: value,
+                threshold: threshold as number,
+                criteriaFilter: input.criteriaFilter,
+            });
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.ResponseBody) {
@@ -264,22 +84,22 @@ export default class APIRequestCriteria {
             // contains
             if (input.criteriaFilter.filterType === FilterType.Contains) {
                 if (
-                    value &&
+                    threshold &&
                     responseBody &&
-                    (responseBody as string).includes(value as string)
+                    (responseBody as string).includes(threshold as string)
                 ) {
-                    return `Response body contains ${value}.`;
+                    return `Response body contains ${threshold}.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotContains) {
                 if (
-                    value &&
+                    threshold &&
                     responseBody &&
-                    !(responseBody as string).includes(value as string)
+                    !(responseBody as string).includes(threshold as string)
                 ) {
-                    return `Response body does not contain ${value}.`;
+                    return `Response body does not contain ${threshold}.`;
                 }
                 return null;
             }
@@ -288,7 +108,7 @@ export default class APIRequestCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
             const headerKeys: Array<string> = Object.keys(
                 (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                    {}
+                {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });
@@ -296,22 +116,22 @@ export default class APIRequestCriteria {
             // contains
             if (input.criteriaFilter.filterType === FilterType.Contains) {
                 if (
-                    value &&
+                    threshold &&
                     headerKeys &&
-                    headerKeys.includes(value as string)
+                    headerKeys.includes(threshold as string)
                 ) {
-                    return `Response header contains ${value}.`;
+                    return `Response header contains ${threshold}.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotContains) {
                 if (
-                    value &&
+                    threshold &&
                     headerKeys &&
-                    !headerKeys.includes(value as string)
+                    !headerKeys.includes(threshold as string)
                 ) {
-                    return `Response header does not contain ${value}.`;
+                    return `Response header does not contain ${threshold}.`;
                 }
                 return null;
             }
@@ -320,7 +140,7 @@ export default class APIRequestCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
             const headerValues: Array<string> = Object.values(
                 (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                    {}
+                {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });
@@ -328,22 +148,22 @@ export default class APIRequestCriteria {
             // contains
             if (input.criteriaFilter.filterType === FilterType.Contains) {
                 if (
-                    value &&
+                    threshold &&
                     headerValues &&
-                    headerValues.includes(value as string)
+                    headerValues.includes(threshold as string)
                 ) {
-                    return `Response header value contains ${value}.`;
+                    return `Response header threshold contains ${threshold}.`;
                 }
                 return null;
             }
 
             if (input.criteriaFilter.filterType === FilterType.NotContains) {
                 if (
-                    value &&
+                    threshold &&
                     headerValues &&
-                    !headerValues.includes(value as string)
+                    !headerValues.includes(threshold as string)
                 ) {
-                    return `Response header value does not contain ${value}.`;
+                    return `Response header threshold does not contain ${threshold}.`;
                 }
                 return null;
             }
