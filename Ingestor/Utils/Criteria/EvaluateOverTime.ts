@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { CheckOn, EvaluateOverTimeOptions, EvaluateOverTimeType } from "Common/Types/Monitor/CriteriaFilter";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorMetricsByMinuteService from "CommonServer/Services/MonitorMetricsByMinuteService";
+import Query from "CommonServer/Types/AnalyticsDatabase/Query";
 import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
 
 export default class EvaluateOverTime { 
@@ -19,12 +20,19 @@ export default class EvaluateOverTime {
 
         // TODO: Query over miscData
 
+        const query: Query<MonitorMetricsByMinute>  = {
+            createdAt: new GreaterThanOrEqual(lastMinutesDate),
+            monitorId: data.monitorId,
+            metricType: data.metricType,
+        };
+
+
+        if(data.miscData){
+            query.miscData = data.miscData;
+        }
+
         const monitorMetricsItems: Array<MonitorMetricsByMinute> = await MonitorMetricsByMinuteService.findBy({
-            query: {
-                createdAt: new GreaterThanOrEqual(lastMinutesDate),
-                monitorId: data.monitorId,
-                metricType: data.metricType,
-            },
+            query: query,
             limit: LIMIT_PER_PROJECT, 
             skip: 0, 
             props: {
