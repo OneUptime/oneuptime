@@ -1,4 +1,4 @@
-import DataToProcess from '../../../../Ingestor/Types/DataToProcess';
+
 import {
     CheckOn,
     CriteriaFilter,
@@ -9,6 +9,7 @@ import Typeof from 'Common/Types/Typeof';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import { JSONObject } from 'Common/Types/JSON';
 import OneUptimeDate from 'Common/Types/Date';
+import DataToProcess from '../DataToProcess';
 
 export default class IncomingRequestCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {

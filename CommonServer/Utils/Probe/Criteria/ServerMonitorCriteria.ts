@@ -1,4 +1,3 @@
-import DataToProcess from '../../../../Ingestor/Types/DataToProcess';
 import {
     CheckOn,
     CriteriaFilter,
@@ -11,6 +10,7 @@ import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import EvaluateOverTime from './EvaluateOverTime';
 import { JSONObject } from 'Common/Types/JSON';
 import CompareCriteria from './CompareCriteria';
+import DataToProcess from '../DataToProcess';
 
 export default class ServerMonitorCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {

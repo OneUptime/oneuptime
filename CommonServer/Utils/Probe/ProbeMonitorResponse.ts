@@ -39,10 +39,12 @@ import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMoni
 import BasicInfrastructureMetrics from 'Common/Types/Infrastructure/BasicMetrics';
 import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
 import MonitorMetricsByMinuteService from '../../Services/MonitorMetricsByMinuteService';
-import DataToProcess from '../../../Ingestor/Types/DataToProcess';
 import ServerMonitorCriteria from './Criteria/ServerMonitorCriteria';
 import IncomingRequestCriteria from './Criteria/IncomingRequestCriteria';
 import APIRequestCriteria from './Criteria/APIRequestCriteria';
+import DataToProcess from './DataToProcess';
+
+
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(

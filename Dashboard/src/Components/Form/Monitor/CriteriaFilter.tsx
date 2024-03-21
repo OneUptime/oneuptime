@@ -131,6 +131,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                 checkOn: value?.toString() as CheckOn,
                                 filterType: undefined,
                                 value: undefined,
+                                eveluateOverTime: false,
+                                evaluateOverTimeOptions: undefined,
                             });
                         }}
                     />

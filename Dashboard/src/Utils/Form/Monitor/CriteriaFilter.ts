@@ -48,12 +48,12 @@ export default class CriteriaFilterUtil {
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.AllValues
             ) {
-                text += `all ${isPercentage ? 'percentage ' : ''}values `;
+                text += `all `;
             } else if (
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.AnyValue
             ) {
-                text += `any ${isPercentage ? 'percentage ' : ''}value `;
+                text += `any `;
             } else if (
                 criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
                 EvaluateOverTimeType.Average

@@ -20,6 +20,7 @@ export default class EvaluateOverTime {
         miscData?: JSONObject | undefined;
     }): Promise<number | Array<number>> {
         // get values over time
+
         const lastMinutesDate: Date = OneUptimeDate.getSomeMinutesAgo(
             data.evaluateOverTimeOptions.timeValueInMinutes!
         );
