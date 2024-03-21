@@ -44,8 +44,6 @@ import IncomingRequestCriteria from './Criteria/IncomingRequestCriteria';
 import APIRequestCriteria from './Criteria/APIRequestCriteria';
 import DataToProcess from './DataToProcess';
 
-
-
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
         dataToProcess: DataToProcess

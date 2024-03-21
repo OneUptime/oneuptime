@@ -306,7 +306,10 @@ export default class CompareCriteria {
             message += ` on disk ${diskPath}`;
         }
 
-        if (data.criteriaFilter.eveluateOverTime && data.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes) {
+        if (
+            data.criteriaFilter.eveluateOverTime &&
+            data.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+        ) {
             message += ` over the last ${data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes} minutes`;
         }
 
