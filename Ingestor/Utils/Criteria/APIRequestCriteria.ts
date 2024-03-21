@@ -17,18 +17,22 @@ export default class APIRequestCriteria {
     }): Promise<string | null> {
         // Server Monitoring Checks
 
-        let threshold: number | string | undefined | null = input.criteriaFilter.value;
-
+        let threshold: number | string | undefined | null =
+            input.criteriaFilter.value;
 
         let overTimeValue: Array<number> | number | undefined = undefined;
 
-
-        if (input.criteriaFilter.eveluateOverTime && input.criteriaFilter.evaluateOverTimeOptions) {
+        if (
+            input.criteriaFilter.eveluateOverTime &&
+            input.criteriaFilter.evaluateOverTimeOptions
+        ) {
             overTimeValue = await EvaluateOverTime.getValueOverTime({
                 monitorId: input.dataToProcess.monitorId!,
-                evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+                evaluateOverTimeOptions:
+                    input.criteriaFilter.evaluateOverTimeOptions,
                 metricType: input.criteriaFilter.checkOn,
-                miscData: input.criteriaFilter.serverMonitorOptions as JSONObject
+                miscData: input.criteriaFilter
+                    .serverMonitorOptions as JSONObject,
             });
 
             if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
@@ -44,8 +48,9 @@ export default class APIRequestCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
             threshold = CompareCriteria.convertThresholdToNumber(threshold);
 
-            let value: Array<number> | number = overTimeValue || (input.dataToProcess as ProbeMonitorResponse)
-                .responseTimeInMs!;
+            const value: Array<number> | number =
+                overTimeValue ||
+                (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs!;
 
             return CompareCriteria.compareCriteriaNumbers({
                 value: value,
@@ -58,8 +63,9 @@ export default class APIRequestCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
             threshold = CompareCriteria.convertThresholdToNumber(threshold);
 
-            let value: Array<number> | number = overTimeValue || (input.dataToProcess as ProbeMonitorResponse)
-                .responseCode!;
+            const value: Array<number> | number =
+                overTimeValue ||
+                (input.dataToProcess as ProbeMonitorResponse).responseCode!;
 
             return CompareCriteria.compareCriteriaNumbers({
                 value: value,
@@ -108,7 +114,7 @@ export default class APIRequestCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
             const headerKeys: Array<string> = Object.keys(
                 (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                {}
+                    {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });
@@ -140,7 +146,7 @@ export default class APIRequestCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
             const headerValues: Array<string> = Object.values(
                 (input.dataToProcess as ProbeMonitorResponse).responseHeaders ||
-                {}
+                    {}
             ).map((key: string) => {
                 return key.toLowerCase();
             });

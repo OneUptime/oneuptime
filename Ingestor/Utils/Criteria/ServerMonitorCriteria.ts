@@ -19,16 +19,21 @@ export default class ServerMonitorCriteria {
     }): Promise<string | null> {
         // Server Monitoring Checks
 
-        let threshold: number | string | undefined | null = input.criteriaFilter.value;
+        let threshold: number | string | undefined | null =
+            input.criteriaFilter.value;
         let overTimeValue: Array<number> | number | undefined = undefined;
 
-
-        if (input.criteriaFilter.eveluateOverTime && input.criteriaFilter.evaluateOverTimeOptions) {
+        if (
+            input.criteriaFilter.eveluateOverTime &&
+            input.criteriaFilter.evaluateOverTimeOptions
+        ) {
             overTimeValue = await EvaluateOverTime.getValueOverTime({
                 monitorId: input.dataToProcess.monitorId!,
-                evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+                evaluateOverTimeOptions:
+                    input.criteriaFilter.evaluateOverTimeOptions,
                 metricType: input.criteriaFilter.checkOn,
-                miscData: input.criteriaFilter.serverMonitorOptions as JSONObject
+                miscData: input.criteriaFilter
+                    .serverMonitorOptions as JSONObject,
             });
 
             if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
@@ -39,7 +44,6 @@ export default class ServerMonitorCriteria {
                 return null;
             }
         }
-
 
         if (
             (input.dataToProcess as ServerMonitorResponse)
@@ -88,8 +92,11 @@ export default class ServerMonitorCriteria {
         ) {
             threshold = CompareCriteria.convertThresholdToNumber(threshold);
 
-            const currentCpuPercent: number | Array<number> = overTimeValue || (input.dataToProcess as ServerMonitorResponse)
-                .basicInfrastructureMetrics?.cpuMetrics.percentUsed || 0;
+            const currentCpuPercent: number | Array<number> =
+                overTimeValue ||
+                (input.dataToProcess as ServerMonitorResponse)
+                    .basicInfrastructureMetrics?.cpuMetrics.percentUsed ||
+                0;
 
             return CompareCriteria.compareCriteriaNumbers({
                 value: currentCpuPercent,
@@ -105,13 +112,16 @@ export default class ServerMonitorCriteria {
         ) {
             threshold = CompareCriteria.convertThresholdToNumber(threshold);
 
-            const memoryPercent: number | Array<number> = overTimeValue || (input.dataToProcess as ServerMonitorResponse)
-                .basicInfrastructureMetrics?.memoryMetrics.percentUsed || 0;
+            const memoryPercent: number | Array<number> =
+                overTimeValue ||
+                (input.dataToProcess as ServerMonitorResponse)
+                    .basicInfrastructureMetrics?.memoryMetrics.percentUsed ||
+                0;
 
             return CompareCriteria.compareCriteriaNumbers({
                 value: memoryPercent,
                 threshold: threshold as number,
-                criteriaFilter: input.criteriaFilter
+                criteriaFilter: input.criteriaFilter,
             });
         }
 
