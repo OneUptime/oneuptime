@@ -1,10 +1,10 @@
-import DataToProcess from '../../Types/DataToProcess';
+import DataToProcess from '../../../../Ingestor/Types/DataToProcess';
 import {
     CheckOn,
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import logger from 'CommonServer/Utils/Logger';
+import logger from '../../../Utils/Logger';
 import Typeof from 'Common/Types/Typeof';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import { JSONObject } from 'Common/Types/JSON';

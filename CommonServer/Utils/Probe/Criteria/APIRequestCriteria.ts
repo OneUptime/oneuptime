@@ -1,4 +1,4 @@
-import DataToProcess from '../../Types/DataToProcess';
+import DataToProcess from '../../../../Ingestor/Types/DataToProcess';
 import {
     CheckOn,
     CriteriaFilter,
