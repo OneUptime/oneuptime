@@ -10,6 +10,8 @@ import logger from 'CommonServer/Utils/Logger';
 import Typeof from 'Common/Types/Typeof';
 import OneUptimeDate from 'Common/Types/Date';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
+import EvaluateOverTime from './EvaluateOverTime';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class ServerMonitorCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -19,6 +21,19 @@ export default class ServerMonitorCriteria {
         // Server Monitoring Checks
 
         let value: number | string | undefined = input.criteriaFilter.value;
+
+
+        if(input.criteriaFilter.eveluateOverTime && input.criteriaFilter.evaluateOverTimeOptions) {
+            const overTimeValue: Array<number> | number = await EvaluateOverTime.getValueOverTime({
+                monitorId: input.dataToProcess.monitorId!,
+                evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+                metricType: input.criteriaFilter.checkOn,
+                miscData: input.criteriaFilter.serverMonitorOptions as JSONObject
+            });
+
+            // TODO: Check Any / All values
+        }
+
 
         if (
             (input.dataToProcess as ServerMonitorResponse)
