@@ -54,7 +54,7 @@ export class BasicMetircs {
         const cpuUsage: number | undefined = os.loadavg()[0]; // Returns an array containing the 1, 5, and 15 minute load averages.
 
         return {
-            percentUsed: cpuUsage || 0,
+            percentUsage: cpuUsage || 0,
         };
     }
 }
