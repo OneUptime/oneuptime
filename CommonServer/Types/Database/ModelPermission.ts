@@ -39,6 +39,7 @@ import UserType from 'Common/Types/UserType';
 import ColumnBillingAccessControl from 'Common/Types/BaseDatabase/ColumnBillingAccessControl';
 import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 import Includes from 'Common/Types/BaseDatabase/Includes';
+import UserModel from 'Common/Models/UserModel';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -294,6 +295,10 @@ export default class ModelPermission {
                 select,
                 props
             );
+
+            // add user scope if any
+
+            query = await this.addUserScopeToQuery(modelType, query, props);
 
             if (!props.isMultiTenantRequest) {
                 // We will check for this permission in recursive function.
@@ -849,6 +854,26 @@ export default class ModelPermission {
         // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
         if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
             (query as any)[tenantColumn] = props.tenantId;
+        }
+
+        return query;
+    }
+
+    private static async addUserScopeToQuery<TBaseModel extends BaseModel>(
+        modelType: { new (): TBaseModel },
+        query: Query<TBaseModel>,
+        props: DatabaseCommonInteractionProps
+    ): Promise<Query<TBaseModel>> {
+        const model: BaseModel = new modelType();
+
+        if (model instanceof UserModel) {
+            if (props.userId) {
+                (query as any)['_id'] = props.userId;
+            } else if (!props.isRoot && !props.isMasterAdmin) {
+                throw new NotAuthorizedException(
+                    `You do not have permissions to query on - ${model.singularName}.`
+                );
+            }
         }
 
         return query;

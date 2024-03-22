@@ -402,4 +402,6 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    
 }

@@ -556,4 +556,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
         transformer: RestrictionTimes.getDatabaseTransformer(),
     })
     public restrictionTimes?: RestrictionTimes = undefined;
+
+    
 }
