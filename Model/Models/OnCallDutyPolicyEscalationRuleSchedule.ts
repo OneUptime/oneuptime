@@ -421,7 +421,6 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],

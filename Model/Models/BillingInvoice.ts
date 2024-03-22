@@ -192,7 +192,6 @@ export default class BillingInvoice extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [

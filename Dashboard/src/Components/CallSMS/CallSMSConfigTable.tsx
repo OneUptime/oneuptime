@@ -408,7 +408,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             ) : (
                 <></>
             )}
-            
         </>
     );
 };

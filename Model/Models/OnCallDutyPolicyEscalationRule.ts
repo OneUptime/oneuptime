@@ -373,7 +373,6 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
