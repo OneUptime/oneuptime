@@ -23,22 +23,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <BasicForm
                 modelType={Incident}
                 hideSubmitButton={true}
-                initialValues={
-                    props.initialValue
-                        ? {
-                              ...props.initialValue,
-                              incidentSeverityId:
-                                  props.incidentSeverityDropdownOptions.find(
-                                      (i: DropdownOption) => {
-                                          return (
-                                              i.value.toString() ===
-                                              props.initialValue?.incidentSeverityId?.toString()
-                                          );
-                                      }
-                                  ),
-                          }
-                        : {}
-                }
+                initialValues={props.initialValue}
                 onChange={(values: FormValues<CriteriaIncident>) => {
                     props.onChange &&
                         props.onChange(values as CriteriaIncident);
@@ -79,6 +64,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         dropdownOptions: props.incidentSeverityDropdownOptions,
                         required: true,
                         placeholder: 'Incident Severity',
+                        id: 'incident-severity',
                     },
                     {
                         field: {

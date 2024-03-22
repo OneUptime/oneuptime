@@ -1,10 +1,9 @@
 import {
-    CheckOn,
     CriteriaFilter,
     FilterCondition,
-    FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement } from 'react';
+import CriteriaFilterUtil from '../../../Utils/Form/Monitor/CriteriaFilter';
 
 export interface ComponentProps {
     criteriaFilter: CriteriaFilter | undefined;
@@ -14,59 +13,13 @@ export interface ComponentProps {
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    let text: string = 'Check if this resource ';
+    let text: string = '';
 
-    if (props.criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
-        text = 'Check if ';
-
-        text +=
-            'JavaScript expression ' +
-            props.criteriaFilter?.value +
-            ' - evaluates to true.';
-    } else if (props.criteriaFilter?.checkOn === CheckOn.IsOnline) {
-        if (props.criteriaFilter?.filterType === FilterType.True) {
-            text += ' is online ';
-        } else {
-            text += ' is offline ';
-        }
-    } else {
-        text += props.criteriaFilter?.checkOn.toString().toLowerCase() + ' ';
-
-        if (props.criteriaFilter?.serverMonitorOptions?.diskPath) {
-            text +=
-                'on ' +
-                props.criteriaFilter?.serverMonitorOptions?.diskPath +
-                ' ';
-        }
-
-        if (props.criteriaFilter?.filterType) {
-            if (
-                props.criteriaFilter?.filterType
-                    .toLowerCase()
-                    .includes('contains')
-            ) {
-                text +=
-                    props.criteriaFilter?.filterType.toString().toLowerCase() +
-                    ' ';
-            } else {
-                text +=
-                    'is ' +
-                    props.criteriaFilter?.filterType.toString().toLowerCase() +
-                    ' ';
-            }
-        }
-
-        if (props.criteriaFilter?.value !== undefined) {
-            text += props.criteriaFilter?.value.toString() + ' ';
-        }
-    }
-
-    if (props.filterCondition === FilterCondition.All) {
-        text += 'and,';
-    }
-
-    if (props.filterCondition === FilterCondition.Any) {
-        text += 'or,';
+    if (props.criteriaFilter) {
+        text = CriteriaFilterUtil.translateFilterToText(
+            props.criteriaFilter,
+            props.filterCondition
+        );
     }
 
     return (

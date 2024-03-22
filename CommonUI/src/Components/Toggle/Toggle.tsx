@@ -7,7 +7,8 @@ import React, {
 
 export interface ComponentProps {
     onChange: (value: boolean) => void;
-    initialValue: boolean;
+    initialValue?: boolean | undefined;
+    value?: boolean | undefined;
     onFocus?: () => void;
     onBlur?: () => void;
     tabIndex?: number | undefined;
@@ -19,17 +20,19 @@ export interface ComponentProps {
 const Toggle: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [isChecked, setIsChecked] = useState<boolean>(false);
+    const [isChecked, setIsChecked] = useState<boolean>(
+        props.initialValue || false
+    );
 
     useEffect(() => {
-        if (props !== undefined) {
-            if (props.initialValue) {
+        if (props.value !== undefined) {
+            if (props.value) {
                 setIsChecked(true);
             } else {
                 setIsChecked(false);
             }
         }
-    }, [props.initialValue]);
+    }, [props.value]);
 
     type HandleChangeFunction = (content: boolean) => void;
 

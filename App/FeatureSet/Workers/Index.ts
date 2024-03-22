@@ -75,6 +75,10 @@ import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement'
 
 import './Jobs/Workflow/TimeoutJobs';
 import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
+
+// Monitor Metrics
+import './Jobs/MonitorMetrics/MonitorMetricsByMinute';
+
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const APP_NAME: string = 'api/workers';

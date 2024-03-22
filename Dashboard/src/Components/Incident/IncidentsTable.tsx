@@ -34,6 +34,7 @@ import IncidentTemplateOwnerTeam from 'Model/Models/IncidentTemplateOwnerTeam';
 import ObjectID from 'Common/Types/ObjectID';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import BaseModel from 'Common/Models/BaseModel';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -41,6 +42,7 @@ export interface ComponentProps {
     noItemsMessage?: string | undefined;
     title?: string | undefined;
     description?: string | undefined;
+    createInitialValues?: FormValues<Incident> | undefined;
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
@@ -208,7 +210,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 isEditable={false}
                 isCreateable={true}
                 isViewable={true}
-                createInitialValues={initialValuesForIncident}
+                createInitialValues={
+                    Object.keys(initialValuesForIncident).length > 0
+                        ? initialValuesForIncident
+                        : props.createInitialValues
+                }
                 cardProps={{
                     title: props.title || 'Incidents',
                     buttons: [

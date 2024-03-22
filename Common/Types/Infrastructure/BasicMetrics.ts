@@ -7,7 +7,7 @@ export interface MemoryMetrics {
 }
 
 export interface CPUMetrics {
-    percentUsage: number;
+    percentUsed: number;
 }
 
 export interface BasicDiskMetrics {

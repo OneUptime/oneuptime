@@ -2,9 +2,11 @@ import Select, { ControlProps, GroupBase, OptionProps } from 'react-select';
 import React, {
     FunctionComponent,
     ReactElement,
-    useEffect,
+    useLayoutEffect,
+    useRef,
     useState,
 } from 'react';
+import ObjectID from 'Common/Types/ObjectID';
 
 export type DropdownValue = string | number | boolean;
 
@@ -28,6 +30,7 @@ export interface ComponentProps {
     isMultiSelect?: boolean;
     tabIndex?: number | undefined;
     error?: string | undefined;
+    id?: string | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -42,11 +45,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     type GetDropdownOptionFromValueFunction = (
         value: GetDropdownOptionFromValueFunctionProps
-    ) => DropdownOption | Array<DropdownOption>;
+    ) => DropdownOption | Array<DropdownOption> | undefined;
 
     const getDropdownOptionFromValue: GetDropdownOptionFromValueFunction = (
         value: GetDropdownOptionFromValueFunctionProps
-    ): DropdownOption | Array<DropdownOption> => {
+    ): DropdownOption | Array<DropdownOption> | undefined => {
+        if (value === undefined) {
+            return undefined;
+        }
+
+        if (value instanceof ObjectID) {
+            value = value.toString();
+        }
+
         if (
             Array.isArray(value) &&
             value.length > 0 &&
@@ -101,18 +112,25 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         DropdownOption | Array<DropdownOption> | undefined
     >(getDropdownOptionFromValue(props.initialValue));
 
-    useEffect(() => {
-        if (props.value) {
-            setValue(
-                getDropdownOptionFromValue(
-                    props.value ? props.value : undefined
-                )
-            );
+    const firstUpdate: React.MutableRefObject<boolean> = useRef(true);
+
+    useLayoutEffect(() => {
+        if (firstUpdate.current && props.initialValue) {
+            firstUpdate.current = false;
+            return;
         }
+
+        const value: DropdownOption | Array<DropdownOption> | undefined =
+            getDropdownOptionFromValue(
+                props.value === null ? undefined : props.value
+            );
+
+        setValue(value);
     }, [props.value]);
 
     return (
         <div
+            id={props.id}
             className={`${
                 props.className ||
                 'relative mt-2 mb-1 rounded-md w-full overflow-visible'
@@ -128,7 +146,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 }}
                 tabIndex={props.tabIndex}
                 isMulti={props.isMultiSelect}
-                value={value}
+                value={value || null}
                 onFocus={() => {
                     props.onFocus && props.onFocus();
                 }}

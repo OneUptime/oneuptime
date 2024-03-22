@@ -164,7 +164,7 @@ const Projects: FunctionComponent = (): ReactElement => {
         return (
             <Toggle
                 title="Yearly Plan"
-                initialValue={isSubscriptionPlanYearly}
+                value={isSubscriptionPlanYearly}
                 description="(Save 20%)"
                 onChange={(value: boolean) => {
                     setIsSubscriptionPlanYearly(value);

@@ -32,11 +32,7 @@ import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
     create: [Permission.Public],
-    read: [
-        Permission.CurrentUser,
-        Permission.ProjectAdmin,
-        Permission.ProjectOwner,
-    ],
+    read: [Permission.CurrentUser],
     delete: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
 })
@@ -56,11 +52,7 @@ import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 class User extends UserModel {
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [
-            Permission.CurrentUser,
-            Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+        read: [Permission.CurrentUser],
         update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Name, canReadOnRelationQuery: true })
@@ -75,11 +67,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [
-            Permission.CurrentUser,
-            Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+        read: [Permission.CurrentUser],
 
         update: [Permission.CurrentUser],
     })
@@ -247,11 +235,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser,
-            Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+        read: [Permission.CurrentUser],
 
         update: [Permission.CurrentUser],
     })
@@ -276,11 +260,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser,
-            Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+        read: [Permission.CurrentUser],
 
         update: [Permission.CurrentUser],
     })
@@ -297,11 +277,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser,
-            Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+        read: [Permission.CurrentUser],
 
         update: [Permission.CurrentUser],
     })
@@ -309,6 +285,7 @@ class User extends UserModel {
         isDefaultValueColumn: true,
         required: true,
         type: TableColumnType.Boolean,
+        canReadOnRelationQuery: true,
     })
     @Column({
         type: ColumnType.Boolean,
@@ -424,11 +401,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser,
-            Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+        read: [Permission.CurrentUser],
 
         update: [Permission.CurrentUser],
     })
@@ -543,11 +516,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.CurrentUser,
-            Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+        read: [Permission.CurrentUser],
 
         update: [Permission.CurrentUser],
     })

@@ -280,20 +280,19 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
 
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW,
+                        2
                     )}
                     element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPolicyViewLogsView
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap
-                                            .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
+                        <OnCallDutyPolicyViewLogsView
+                            {...props}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                                ] as Route
+                            }
+                        />
                     }
                 />
             </PageRoute>

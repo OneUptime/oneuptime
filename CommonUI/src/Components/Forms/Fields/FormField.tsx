@@ -286,6 +286,7 @@ const FormField: <T extends GenericObject>(
                                     ? props.error
                                     : undefined
                             }
+                            id={props.field.id}
                             tabIndex={index}
                             onChange={async (
                                 value:

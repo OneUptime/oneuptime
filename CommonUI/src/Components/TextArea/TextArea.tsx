@@ -9,7 +9,8 @@ import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);
-    initialValue: string;
+    initialValue?: string | undefined;
+    value?: string | undefined;
     placeholder?: undefined | string;
     onFocus?: () => void;
     onBlur?: () => void;
@@ -22,7 +23,7 @@ export interface ComponentProps {
 const TextArea: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [text, setText] = useState<string>('');
+    const [text, setText] = useState<string>(props.initialValue || '');
 
     let className: string = '';
 
@@ -39,10 +40,10 @@ const TextArea: FunctionComponent<ComponentProps> = (
     }
 
     useEffect(() => {
-        if (props.initialValue) {
-            setText(props.initialValue.toString());
+        if (props.value) {
+            setText(props.value.toString());
         }
-    }, [props.initialValue]);
+    }, [props.value]);
 
     type HandleChangeFunction = (content: string) => void;
 

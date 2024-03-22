@@ -101,7 +101,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     required={true}
                 />
                 <Input
-                    initialValue={
+                    value={
                         monitorCriteriaInstance?.data?.name?.toString() || ''
                     }
                     onBlur={() => {
@@ -159,7 +159,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     required={true}
                 />
                 <TextArea
-                    initialValue={
+                    value={
                         monitorCriteriaInstance?.data?.description?.toString() ||
                         ''
                     }
@@ -215,15 +215,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     required={true}
                 />
                 <Radio
-                    initialValue={filterConditionOptions.find(
-                        (i: DropdownOption) => {
-                            return (
-                                i.value ===
-                                (monitorCriteriaInstance?.data
-                                    ?.filterCondition || FilterCondition.All)
-                            );
-                        }
-                    )}
+                    value={filterConditionOptions.find((i: DropdownOption) => {
+                        return (
+                            i.value ===
+                            (monitorCriteriaInstance?.data?.filterCondition ||
+                                FilterCondition.All)
+                        );
+                    })}
                     options={filterConditionOptions}
                     onChange={(
                         value: DropdownValue | Array<DropdownValue> | null
@@ -262,7 +260,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
             <div className="mt-4">
                 <Toggle
-                    initialValue={Boolean(showMonitorStatusChangeControl)}
+                    value={Boolean(showMonitorStatusChangeControl)}
                     title="When filters match, change monitor status."
                     onChange={(value: boolean) => {
                         setShowMonitorStatusChangeControl(value);
@@ -290,7 +288,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         description="What would like the monitor status to be when the criteria is met?"
                     />
                     <Dropdown
-                        initialValue={props.monitorStatusDropdownOptions.find(
+                        value={props.monitorStatusDropdownOptions.find(
                             (i: DropdownOption) => {
                                 return (
                                     i.value ===
@@ -320,7 +318,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
             <div className="mt-4">
                 <Toggle
-                    initialValue={showIncidentControl}
+                    value={showIncidentControl}
                     title="When filters match, create an incident."
                     onChange={(value: boolean) => {
                         setShowIncidentControl(value);
