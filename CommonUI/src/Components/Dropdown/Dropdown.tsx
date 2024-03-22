@@ -2,7 +2,8 @@ import Select, { ControlProps, GroupBase, OptionProps } from 'react-select';
 import React, {
     FunctionComponent,
     ReactElement,
-    useEffect,
+    useLayoutEffect,
+    useRef,
     useState,
 } from 'react';
 import ObjectID from 'Common/Types/ObjectID';
@@ -21,8 +22,8 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?:
-        | undefined
-        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+    | undefined
+    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -81,10 +82,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                         | DropdownOption
                         | undefined
                         | Array<DropdownOption> = props.options.find(
-                        (option: DropdownOption) => {
-                            return option.value === item;
-                        }
-                    ) as DropdownOption | Array<DropdownOption>;
+                            (option: DropdownOption) => {
+                                return option.value === item;
+                            }
+                        ) as DropdownOption | Array<DropdownOption>;
 
                     if (option) {
                         options.push(option as DropdownOption);
@@ -111,9 +112,17 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         DropdownOption | Array<DropdownOption> | undefined
     >(getDropdownOptionFromValue(props.initialValue));
 
-    useEffect(() => {
+    const firstUpdate = useRef(true);
+
+    useLayoutEffect(() => {
+
+        if (firstUpdate.current && props.initialValue) {
+            firstUpdate.current = false;
+            return;
+        }
+
         const value: DropdownOption | Array<DropdownOption> | undefined =
-            getDropdownOptionFromValue(props.value ? props.value : undefined);
+            getDropdownOptionFromValue(props.value === null ? undefined : props.value);
 
         setValue(value);
     }, [props.value]);
@@ -121,10 +130,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     return (
         <div
             id={props.id}
-            className={`${
-                props.className ||
+            className={`${props.className ||
                 'relative mt-2 mb-1 rounded-md w-full overflow-visible'
-            }`}
+                }`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();
