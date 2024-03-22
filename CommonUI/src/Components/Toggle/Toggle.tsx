@@ -25,7 +25,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
     );
 
     useEffect(() => {
-        if (props !== undefined) {
+        if (props.value !== undefined) {
             if (props.value) {
                 setIsChecked(true);
             } else {
