@@ -122,6 +122,54 @@ describe('Toggle', () => {
         expect(toggle).toHaveAttribute('aria-checked', 'true');
     });
 
+    test('sets initial value to false', () => {
+        const { getByRole } = render(
+            <Toggle onChange={() => {}} initialValue={false} />
+        );
+        const toggle: HTMLElement = getByRole('switch');
+
+        expect(toggle).toHaveAttribute('aria-checked', 'false');
+    });
+
+
+    test('sets initial value to undefined', () => {
+        const { getByRole } = render(
+            <Toggle onChange={() => {}} />
+        );
+        const toggle: HTMLElement = getByRole('switch');
+
+        expect(toggle).toHaveAttribute('aria-checked', 'false');
+    });
+
+
+
+    test('sets value', () => {
+        const { getByRole } = render(
+            <Toggle onChange={() => {}} value={true} />
+        );
+        const toggle: HTMLElement = getByRole('switch');
+
+        expect(toggle).toHaveAttribute('aria-checked', 'true');
+    });
+
+    test('sets value to false', () => {
+        const { getByRole } = render(
+            <Toggle onChange={() => {}} value={false} />
+        );
+        const toggle: HTMLElement = getByRole('switch');
+
+        expect(toggle).toHaveAttribute('aria-checked', 'false');
+    });
+
+    test('sets value to undefined', () => {
+        const { getByRole } = render(
+            <Toggle onChange={() => {}} />
+        );
+        const toggle: HTMLElement = getByRole('switch');
+
+        expect(toggle).toHaveAttribute('aria-checked', 'false');
+    });
+
     test('styles toggle correctly', () => {
         const { getByRole } = render(
             <Toggle onChange={() => {}} initialValue={false} />
