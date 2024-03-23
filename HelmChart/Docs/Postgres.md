@@ -35,7 +35,7 @@ This will make the database accessible from the localhost:5432.
 Please fill the values in config.env file and run the following command to take the backup of the database.
 
 ```
-./backup.sh
+bash ./backup.sh
 ```
 
 ### Postgres Restore
@@ -43,5 +43,5 @@ Please fill the values in config.env file and run the following command to take 
 Please fill the values in config.env file and run the following command to restore the database.
 
 ```
-./restore.sh
+bash ./restore.sh
 ```
