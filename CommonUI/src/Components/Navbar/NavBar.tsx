@@ -14,7 +14,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
 
     return (
         <nav className={props.rightElement ? `flex justify-between` : ''}>
-            <div className={className}>{props.children}</div>
+            <div data-testid="nav-children" className={className}>
+                {props.children}
+            </div>
             {props.rightElement && (
                 <div className={className}>{props.rightElement}</div>
             )}

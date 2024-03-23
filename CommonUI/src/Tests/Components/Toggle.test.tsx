@@ -131,17 +131,12 @@ describe('Toggle', () => {
         expect(toggle).toHaveAttribute('aria-checked', 'false');
     });
 
-
     test('sets initial value to undefined', () => {
-        const { getByRole } = render(
-            <Toggle onChange={() => {}} />
-        );
+        const { getByRole } = render(<Toggle onChange={() => {}} />);
         const toggle: HTMLElement = getByRole('switch');
 
         expect(toggle).toHaveAttribute('aria-checked', 'false');
     });
-
-
 
     test('sets value', () => {
         const { getByRole } = render(
@@ -162,9 +157,7 @@ describe('Toggle', () => {
     });
 
     test('sets value to undefined', () => {
-        const { getByRole } = render(
-            <Toggle onChange={() => {}} />
-        );
+        const { getByRole } = render(<Toggle onChange={() => {}} />);
         const toggle: HTMLElement = getByRole('switch');
 
         expect(toggle).toHaveAttribute('aria-checked', 'false');
