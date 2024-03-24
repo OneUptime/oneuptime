@@ -9,7 +9,7 @@ kubectl port-forward --address 0.0.0.0 service/oneuptime-oneuptime 8123:8123
 then you should be able to access from the localhost and port 8123
 
 ```
-# Username for Postgres user is `clickhouse`
+# Username for Postgres user is `oneuptime`
 kubectl get secret/oneuptime-clickhouse -o go-template='{{(index .data "admin-password") | base64decode}}'
 ```
 
