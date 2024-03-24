@@ -30,11 +30,14 @@ import ApiPut from './API/Put';
 import Email from './Email';
 import IfElse from './Conditions/IfElse';
 import SlackSendMessageToChannel from './Slack/SendMessageToChannel';
+import MicrosoftTeamsSendMessageToChannel from './MicrosoftTeams/SendMessageToChannel';
 import DatabaseService from '../../../Services/DatabaseService';
 
 const Components: Dictionary<ComponentCode> = {
     [ComponentID.Webhook]: new WebhookTrigger(),
     [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
+    [ComponentID.MicrosoftTeamsSendMessageToChannel]:
+        new MicrosoftTeamsSendMessageToChannel(),
     [ComponentID.Log]: new Log(),
     [ComponentID.Schedule]: new Schedule(),
     [ComponentID.JavaScriptCode]: new JavaScriptCode(),

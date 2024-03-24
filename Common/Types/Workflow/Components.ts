@@ -10,6 +10,7 @@ import EmailComponents from './Components/Email';
 import WebhookComponents from './Components/Webhook';
 import ManualComponents from './Components/Manual';
 import WorkflowComponents from './Components/Workflow';
+import MicrosoftTeamsComponents from './Components/MicrosoftTeams';
 
 import IconProp from '../Icon/IconProp';
 
@@ -25,6 +26,7 @@ const components: Array<ComponentMetadata> = [
     ...WebhookComponents,
     ...WorkflowComponents,
     ...ManualComponents,
+    ...MicrosoftTeamsComponents,
 ];
 
 export default components;
@@ -43,6 +45,11 @@ export const Categories: Array<ComponentCategory> = [
     {
         name: 'Slack',
         description: 'Integrate OneUptime with your Slack team.',
+        icon: IconProp.SendMessage,
+    },
+    {
+        name: 'Microsoft Teams',
+        description: 'Integrate OneUptime with your Microsoft Teams.',
         icon: IconProp.SendMessage,
     },
     {

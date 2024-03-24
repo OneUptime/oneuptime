@@ -8,7 +8,7 @@ import ComponentMetadata, {
 const components: Array<ComponentMetadata> = [
     {
         id: ComponentID.SlackSendMessageToChannel,
-        title: 'Send Message to Channel',
+        title: 'Send Message to Slack',
         category: 'Slack',
         description: 'Send message to slack channel',
         iconProp: IconProp.SendMessage,

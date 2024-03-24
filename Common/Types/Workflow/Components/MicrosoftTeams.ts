@@ -8,7 +8,7 @@ import ComponentMetadata, {
 const components: Array<ComponentMetadata> = [
     {
         id: ComponentID.MicrosoftTeamsSendMessageToChannel,
-        title: 'Send Message to Channel',
+        title: 'Send Message to Teams',
         category: 'Microsoft Teams',
         description: 'Send message to teams channel',
         iconProp: IconProp.SendMessage,
@@ -18,11 +18,10 @@ const components: Array<ComponentMetadata> = [
                 id: 'webhook-url',
                 name: 'Teams Incoming Webhook URL',
                 description:
-                    'Need help creating a webhook? Check docs here: https://api.teams.com/messaging/webhooks',
+                    'Need help creating a webhook? Check docs here: https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook',
                 type: ComponentInputType.URL,
                 required: true,
-                placeholder:
-                    'https://hooks.teams.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX',
+                placeholder: 'https://xxxxx.webhook.office.com/xxxxxxxxx',
             },
             {
                 id: 'text',
