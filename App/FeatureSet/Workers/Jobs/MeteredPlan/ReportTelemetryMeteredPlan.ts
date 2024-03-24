@@ -12,7 +12,7 @@ import {
     LogDataIngestMeteredPlan,
     TracesDataIngestMetredPlan,
     MetricsDataIngestMeteredPlan,
-    ActiveMonitoringMeteredPlan
+    ActiveMonitoringMeteredPlan,
 } from 'CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans';
 import Sleep from 'Common/Types/Sleep';
 
