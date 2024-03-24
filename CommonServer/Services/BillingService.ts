@@ -304,7 +304,7 @@ export class BillingService extends BaseService {
 
         // add billing anchor, so that the billing cycle starts now. New quantity will be charged from now. https://stackoverflow.com/questions/44417047/immediately-charge-for-subscription-changes
         await this.stripe.subscriptions.update(subscriptionId, {
-            proration_behavior: 'always_invoice'
+            proration_behavior: 'always_invoice',
         });
     }
 
