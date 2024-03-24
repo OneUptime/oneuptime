@@ -115,6 +115,8 @@ export class BillingService extends BaseService {
         const meteredPlanSubscriptionParams: Stripe.SubscriptionCreateParams = {
             customer: data.customerId,
 
+            proration_behavior: 'always_invoice',
+
             items: data.serverMeteredPlans.map((item: ServerMeteredPlan) => {
                 return {
                     price: item.getPriceId(),
@@ -227,6 +229,8 @@ export class BillingService extends BaseService {
                 },
             ],
 
+            proration_behavior: 'always_invoice',
+
             trial_end:
                 trialDate && data.plan.getTrialPeriod() > 0
                     ? OneUptimeDate.toUnixTimestamp(trialDate)
@@ -298,9 +302,9 @@ export class BillingService extends BaseService {
             quantity: quantity,
         });
 
-        // add billing anchor, so that the billing cycle starts now. New quantity will be charged from now.
+        // add billing anchor, so that the billing cycle starts now. New quantity will be charged from now. https://stackoverflow.com/questions/44417047/immediately-charge-for-subscription-changes
         await this.stripe.subscriptions.update(subscriptionId, {
-            billing_cycle_anchor: 'now',
+            proration_behavior: 'always_invoice'
         });
     }
 
