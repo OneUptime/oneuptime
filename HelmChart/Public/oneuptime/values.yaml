@@ -38,6 +38,9 @@ postgresql:
     database: oneuptimedb
   architecture: standalone
   primary:
+    service:
+      ports: 
+         postgresql: "5432"
     terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
     persistence:
       size: 25Gi

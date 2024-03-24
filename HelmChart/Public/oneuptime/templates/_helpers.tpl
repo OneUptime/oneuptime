@@ -130,7 +130,7 @@
 - name: DATABASE_HOST
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: DATABASE_PORT 
-  value: {{ printf "5432" | squote}}
+  value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
 - name: DATABASE_USERNAME
   value: postgres
 - name: DATABASE_PASSWORD 
