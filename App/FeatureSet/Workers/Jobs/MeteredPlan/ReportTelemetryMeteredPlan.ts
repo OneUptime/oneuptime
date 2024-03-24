@@ -12,6 +12,7 @@ import {
     LogDataIngestMeteredPlan,
     TracesDataIngestMetredPlan,
     MetricsDataIngestMeteredPlan,
+    ActiveMonitoringMeteredPlan
 } from 'CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans';
 import Sleep from 'Common/Types/Sleep';
 
@@ -42,24 +43,36 @@ RunCron(
         });
 
         for (const project of projects) {
-            if (project.id) {
-                await LogDataIngestMeteredPlan.reportQuantityToBillingProvider(
-                    project.id
+            try {
+                if (project.id) {
+                    await LogDataIngestMeteredPlan.reportQuantityToBillingProvider(
+                        project.id
+                    );
+
+                    await Sleep.sleep(1000);
+
+                    await MetricsDataIngestMeteredPlan.reportQuantityToBillingProvider(
+                        project.id
+                    );
+
+                    await Sleep.sleep(1000);
+
+                    await TracesDataIngestMetredPlan.reportQuantityToBillingProvider(
+                        project.id
+                    );
+
+                    await Sleep.sleep(1000);
+
+                    await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
+                        project.id!
+                    );
+
+                    await Sleep.sleep(1000);
+                }
+            } catch (error) {
+                logger.error(
+                    `MeteredPlan:ReportTelemetryMeteredPlan Error while reporting telemetry for project ${project.id}: ${error}`
                 );
-
-                await Sleep.sleep(1000);
-
-                await MetricsDataIngestMeteredPlan.reportQuantityToBillingProvider(
-                    project.id
-                );
-
-                await Sleep.sleep(1000);
-
-                await TracesDataIngestMetredPlan.reportQuantityToBillingProvider(
-                    project.id
-                );
-
-                await Sleep.sleep(1000);
             }
         }
     }
