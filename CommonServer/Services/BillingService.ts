@@ -120,6 +120,7 @@ export class BillingService extends BaseService {
                     price: item.getPriceId(),
                 };
             }),
+
             trial_end:
                 data.trialDate && OneUptimeDate.isInTheFuture(data.trialDate)
                     ? OneUptimeDate.toUnixTimestamp(data.trialDate)
@@ -295,6 +296,11 @@ export class BillingService extends BaseService {
 
         await this.stripe.subscriptionItems.update(subscriptionItemId, {
             quantity: quantity,
+        });
+
+        // add billing anchor. 
+        await this.stripe.subscriptions.update(subscriptionId, {
+            billing_cycle_anchor: 'now',
         });
     }
 
