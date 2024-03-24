@@ -298,7 +298,7 @@ export class BillingService extends BaseService {
             quantity: quantity,
         });
 
-        // add billing anchor. 
+        // add billing anchor, so that the billing cycle starts now. New quantity will be charged from now.
         await this.stripe.subscriptions.update(subscriptionId, {
             billing_cycle_anchor: 'now',
         });
