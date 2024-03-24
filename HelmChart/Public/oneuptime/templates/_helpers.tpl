@@ -109,7 +109,7 @@
 - name: CLICKHOUSE_HOST
   value: {{ $.Release.Name }}-clickhouse.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: CLICKHOUSE_PORT
-  value: {{ printf "8123" | squote}}
+  value: {{ printf "%s" $.Values.clickhouse.service.ports.http | squote }}
 - name: CLICKHOUSE_DATABASE
   value: {{ printf "oneuptime" | squote}}
 
