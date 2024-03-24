@@ -134,13 +134,15 @@ probes:
     description: "Probe"
     monitoringWorkers: 3
     monitorFetchLimit: 10
-    key: 
+    key:
+    replicaCount: 1 
   # two: 
   #   name: "Probe 2"
   #   description: "Probe 2"
   #   monitoringWorkers: 3
   #   monitorFetchLimit: 10
   #   key:
+  #   replicaCount: 1
 
 port: 
   app: 3002
