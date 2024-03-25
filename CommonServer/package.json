@@ -17,7 +17,7 @@
         "@clickhouse/client": "^0.2.10",
         "@elastic/elasticsearch": "^8.12.1",
         "@opentelemetry/api": "^1.7.0",
-        "@opentelemetry/api-logs": "^0.48.0",
+        "@opentelemetry/api-logs": "^0.49.1",
         "@opentelemetry/exporter-logs-otlp-http": "^0.49.1",
         "@opentelemetry/exporter-metrics-otlp-proto": "^0.49.1",
         "@opentelemetry/exporter-trace-otlp-proto": "^0.49.1",
