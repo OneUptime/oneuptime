@@ -38,6 +38,7 @@ import ProjectUtil from 'CommonUI/src/Utils/Project';
 import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
+import LineChart from 'CommonUI/src/Components/Charts/Line/LineChart';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -353,6 +354,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+
+            <LineChart />
 
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
