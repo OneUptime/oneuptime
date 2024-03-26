@@ -238,6 +238,12 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
+      {{- if $.Values.securityContext.enabled }}
+      securityContext:
+        runAsUser: {{ $.Values.securityContext.runAsUser }}
+        runAsGroup: {{ $.Values.securityContext.runAsGroup }}
+        fsGroup: {{ $.Values.securityContext.fsGroup }}
+      {{- end }}
       {{- if $.Volumes }}
       volumes:
       {{- range $key, $val := $.Volumes }}

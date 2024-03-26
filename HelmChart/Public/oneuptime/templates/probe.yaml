@@ -21,6 +21,12 @@ spec:
         app: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
         date: "{{ now | unixEpoch }}"
     spec:
+      {{- if $.Values.securityContext.enabled }}
+      securityContext:
+        runAsUser: {{ $.Values.securityContext.runAsUser }}
+        runAsGroup: {{ $.Values.securityContext.runAsGroup }}
+        fsGroup: {{ $.Values.securityContext.fsGroup }}
+      {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "probe" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}

@@ -174,4 +174,10 @@ openTelemetryExporter:
     statusPage:
     probe: 
     adminDashboard:
+
+securityContext:
+  enabled: false
+  runAsUser: 
+  runAsGroup: 
+  fsGroup: 
   
