@@ -88,6 +88,17 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `incidents.disableAutomaticCreation` | Disable incident creation (use this when your team is overloaded with incidents or in emergencies) | `false` |  |
 
 
+### Security Context
+
+The Security Context section allows you to configure security settings for the OneUptime chart.
+
+| Parameter | Description | Default |
+| --------- | ----------- | ------- |
+| `securityContext.enabled` | Enable security context | `false` |
+| `securityContext.runAsUser` | User ID to run as |  |
+| `securityContext.runAsGroup` | Group ID to run as | |
+| `securityContext.fsGroup` | Group ID that owns the pod's volumes |  |
+
 ## Adding a Custom Domain to your Status Page
 
 **Step 1: Add a CNAME record to your DNS settings**
