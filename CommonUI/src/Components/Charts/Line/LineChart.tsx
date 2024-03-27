@@ -70,7 +70,7 @@ export interface ComponentProps {
     axisLeft: AxisLeft;
     onHoverXAxis?: (x: string | number | Date) => void;
     xAxisMarker?: {
-        value: string | number | Date;
+        value: string | number | Date | undefined;
     };
 }
 
@@ -92,7 +92,7 @@ const LineChart: FunctionComponent<ComponentProps> = (
 
     const markers: Array<CartesianMarkerProps> = [];
 
-    if (props.xAxisMarker) {
+    if (props.xAxisMarker && props.xAxisMarker.value) {
         markers.push({
             axis: 'x',
             legend: 'x marker',
@@ -100,7 +100,7 @@ const LineChart: FunctionComponent<ComponentProps> = (
                 stroke: '#b0413e',
                 strokeWidth: 2,
             },
-            value: props.xAxisMarker.value!,
+            value: props.xAxisMarker.value,
         });
     }
 
