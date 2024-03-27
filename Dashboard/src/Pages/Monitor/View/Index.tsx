@@ -355,7 +355,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-
             <LineChart />
 
             {/* Heartbeat URL */}

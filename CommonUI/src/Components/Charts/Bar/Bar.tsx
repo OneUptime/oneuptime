@@ -1,23 +1,11 @@
-import React, { FunctionComponent, ReactElement } from "react";
-import OneUptimeDate from "Common/Types/Date";
+import React, { FunctionComponent, ReactElement } from 'react';
 
-
-
-export interface ComponentProps {
-   
-}
+export interface ComponentProps {}
 
 const LineChart: FunctionComponent<ComponentProps> = (
     _props: ComponentProps
 ): ReactElement => {
-    
-
-    return (
-        <div className="h-96 w-full">
-
-          
-        </div>
-    );
+    return <div className="h-96 w-full"></div>;
 };
 
 export default LineChart;
