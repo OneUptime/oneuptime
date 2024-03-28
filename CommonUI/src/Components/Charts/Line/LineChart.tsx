@@ -66,6 +66,11 @@ export interface AxisLeft {
     legend: string;
 }
 
+export interface LineChartPoint {
+    x: XValue;
+    y: YValue;
+}
+
 export interface ComponentProps {
     data: Array<LineChartData>;
     curve?: ChartCurve;
@@ -77,7 +82,7 @@ export interface ComponentProps {
     xAxisMarker?: {
         value: XValue | undefined;
     };
-    getHoverTooltip?: (data: { points: readonly Point[] }) => ReactElement;
+    getHoverTooltip?: (data: { points: Array<LineChartPoint> }) => ReactElement;
 }
 
 const LineChart: FunctionComponent<ComponentProps> = (
@@ -143,7 +148,12 @@ const LineChart: FunctionComponent<ComponentProps> = (
                         return <></>;
                     }
 
-                    return props.getHoverTooltip({ points: data.slice.points });
+                    return props.getHoverTooltip({ points: data.slice.points.map((point) => {
+                        return {
+                            x: point.data.x as XValue,
+                            y: point.data.y as YValue,
+                        };
+                    })});
                 }}
                 colors={[Indigo500.toString()]} // Set the line color to purple
             />

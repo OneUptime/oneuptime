@@ -54,7 +54,7 @@ export default class MonitorCharts {
                             checkOn: dataType,
                         }),
                         axisBottom: {
-                            legend: 'Time',
+                            legend: '',
                             format: (value: XValue): string => {
                                 return OneUptimeDate.getLocalHourAndMinuteFromDate(
                                     value as Date
@@ -63,8 +63,8 @@ export default class MonitorCharts {
                         },
                         curve: MonitorCharts.getCurveFor({ checkOn: dataType }),
                         axisLeft: {
-                            legend: dataType,
-                        },
+                            legend: '',
+                        }
                     },
                     sync: true,
                 };
