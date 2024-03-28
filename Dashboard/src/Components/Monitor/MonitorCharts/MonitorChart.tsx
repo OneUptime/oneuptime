@@ -132,6 +132,12 @@ export class MonitorCharts {
                 min: 0,
                 max: 600,
             };
+        }else if (data.checkOn === CheckOn.DiskUsagePercent || data.checkOn === CheckOn.MemoryUsagePercent || data.checkOn === CheckOn.CPUUsagePercent) {
+            return {
+                type: YScaleType.LINEAR,
+                min: 0,
+                max: 100,
+            };
         }
 
         return {

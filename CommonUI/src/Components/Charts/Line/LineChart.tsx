@@ -128,7 +128,6 @@ const LineChart: FunctionComponent<ComponentProps> = (
                     min: props.yScale.min,
                     max: props.yScale.max,
                 }}
-                xFormat={props.axisBottom.format}
                 axisTop={null}
                 axisRight={null}
                 axisBottom={{
