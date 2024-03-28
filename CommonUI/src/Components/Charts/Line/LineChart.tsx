@@ -65,7 +65,7 @@ export enum AxisType {
 
 export interface AxisBottom {
     legend: string;
-    type: AxisType
+    type: AxisType;
 }
 
 export interface AxisLeft {

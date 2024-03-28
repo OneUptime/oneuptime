@@ -28,13 +28,11 @@ export class MonitorCharts {
 
         const charts: Array<Chart> = checkOns.map(
             (checkOn: CheckOn, index: number) => {
-
                 const axisBottom: AxisBottom = MonitorCharts.getAxisBottomFor();
 
                 const axisLeft: AxisLeft = MonitorCharts.getAxisLeftFor({
                     checkOn: checkOn,
                 });
-
 
                 return {
                     id: `chart-${index}`,
@@ -77,7 +75,12 @@ export class MonitorCharts {
                                         ...axisBottom,
                                         legend: MonitorCharts.getAxisBottomLegend(),
                                     }}
-                                    axisLeft={{...axisLeft, legend: MonitorCharts.getAxisLeftLegend({ checkOn })}}
+                                    axisLeft={{
+                                        ...axisLeft,
+                                        legend: MonitorCharts.getAxisLeftLegend(
+                                            { checkOn }
+                                        ),
+                                    }}
                                     points={data.points}
                                 />
                             );
@@ -92,13 +95,10 @@ export class MonitorCharts {
     }
 
     private static getAxisBottomLegend(): string {
-       return 'Time'
+        return 'Time';
     }
 
-
-    public static getAxisLeftLegend(data: {
-        checkOn: CheckOn;
-    }): string {
+    public static getAxisLeftLegend(data: { checkOn: CheckOn }): string {
         return data.checkOn;
     }
 
@@ -108,7 +108,6 @@ export class MonitorCharts {
             type: AxisType.Time,
         };
     }
-
 
     private static getAxisLeftFor(data: { checkOn: CheckOn }): AxisLeft {
         return {
