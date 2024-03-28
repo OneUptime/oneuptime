@@ -57,13 +57,20 @@ export interface YScale {
     max: YScaleMaxMin;
 }
 
+export enum AxisType {
+    Date = 'date',
+    Time = 'time',
+    Number = 'number',
+}
+
 export interface AxisBottom {
     legend: string;
-    format: (value: XValue) => string;
+    type: AxisType
 }
 
 export interface AxisLeft {
     legend: string;
+    type: AxisType;
 }
 
 export interface LineChartPoint {

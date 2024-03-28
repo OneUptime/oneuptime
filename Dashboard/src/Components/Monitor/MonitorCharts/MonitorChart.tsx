@@ -1,5 +1,4 @@
 import React from 'react';
-import OneUptimeDate from 'Common/Types/Date';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
 import {
     Chart,
@@ -8,12 +7,12 @@ import {
 import {
     AxisBottom,
     AxisLeft,
+    AxisType,
     ChartCurve,
     LineChartPoint,
     XScale,
     XScalePrecision,
     XScaleType,
-    XValue,
     YScale,
     YScaleType,
 } from 'CommonUI/src/Components/Charts/Line/LineChart';
@@ -106,11 +105,7 @@ export class MonitorCharts {
     private static getAxisBottomFor(): AxisBottom {
         return {
             legend: '',
-            format: (value: XValue): string => {
-                return OneUptimeDate.getLocalHourAndMinuteFromDate(
-                    value as Date
-                );
-            },
+            type: AxisType.Time,
         };
     }
 
@@ -118,6 +113,7 @@ export class MonitorCharts {
     private static getAxisLeftFor(data: { checkOn: CheckOn }): AxisLeft {
         return {
             legend: data.checkOn,
+            type: AxisType.Number,
         };
     }
 
