@@ -101,15 +101,10 @@ const LineChart: FunctionComponent<ComponentProps> = (
         <div className="h-96 w-full">
             <ResponsiveLine
                 data={props.data}
-                onMouseEnter={(data: Point) => {
+                onMouseMove={(data: Point) => {
                     if (props.onHoverXAxis) {
                         const xValue: XValue = ((data as any).points as Array<any>)?.[0]?.data?.x;
                         props.onHoverXAxis(xValue);
-                    }
-                }}
-                onMouseLeave={(data: Point) => {
-                    if (props.onHoverXAxis) {
-                        props.onHoverXAxis(data.x);
                     }
                 }}
                 margin={{ bottom: 30, left: 30 }}
