@@ -58,7 +58,7 @@ export interface YScale {
 
 export interface AxisBottom {
     legend: string;
-    format: string;
+    format: (value: XValue) => string;
 }
 
 export interface AxisLeft {

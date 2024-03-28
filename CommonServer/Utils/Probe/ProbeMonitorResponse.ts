@@ -481,6 +481,24 @@ export default class ProbeMonitorResponseService {
                 },
             });
         }
+
+        if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
+            const monitorMetricsByMinute: MonitorMetricsByMinute =
+                new MonitorMetricsByMinute();
+            monitorMetricsByMinute.monitorId = data.monitorId;
+            monitorMetricsByMinute.projectId = data.projectId;
+            monitorMetricsByMinute.metricType = CheckOn.ResponseStatusCode;
+            monitorMetricsByMinute.metricValue = (
+                data.dataToProcess as ProbeMonitorResponse
+            ).responseCode;
+
+            await MonitorMetricsByMinuteService.create({
+                data: monitorMetricsByMinute,
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
     }
 
     private static async checkOpenIncidentsAndCloseIfResolved(input: {

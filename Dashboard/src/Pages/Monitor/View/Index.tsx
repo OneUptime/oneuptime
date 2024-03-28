@@ -46,6 +46,7 @@ import ChartGroup, {
 import {
     XScalePrecision,
     XScaleType,
+    XValue,
     YScaleType,
 } from 'CommonUI/src/Components/Charts/Line/LineChart';
 import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
@@ -294,10 +295,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                             },
                             axisBottom: {
                                 legend: 'Time',
-                                format: 'time:%Y-%m-%d %H:%M:%S',
+                                format: (value: XValue): string => {
+                                    return OneUptimeDate.getLocalHourAndMinuteFromDate(value as Date);
+                                },
                             },
                             axisLeft: {
-                                legend: 'Response Time',
+                                legend: dataType,
                             },
                         },
                         sync: true,
