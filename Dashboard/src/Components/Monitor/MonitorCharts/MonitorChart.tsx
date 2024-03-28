@@ -1,3 +1,5 @@
+
+import React from 'react';
 import OneUptimeDate from 'Common/Types/Date';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
 import {
@@ -6,6 +8,7 @@ import {
 } from 'CommonUI/src/Components/Charts/ChartGroup/ChartGroup';
 import {
     ChartCurve,
+    LineChartPoint,
     XScale,
     XScalePrecision,
     XScaleType,
@@ -14,8 +17,9 @@ import {
     YScaleType,
 } from 'CommonUI/src/Components/Charts/Line/LineChart';
 import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
+import MonitorChartTooltip from './MonitorChartTooltip';
 
-export default class MonitorCharts {
+export class MonitorCharts {
     public static getMonitorCharts(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOns: Array<CheckOn>;
@@ -23,13 +27,13 @@ export default class MonitorCharts {
         const { monitorMetricsByMinute, checkOns } = data;
 
         const charts: Array<Chart> = checkOns.map(
-            (dataType: CheckOn, index: number) => {
+            (checkOn: CheckOn, index: number) => {
                 return {
                     id: `chart-${index}`,
                     type: ChartType.LINE,
-                    title: MonitorCharts.getChartTitle({ checkOn: dataType }),
+                    title: MonitorCharts.getChartTitle({ checkOn: checkOn }),
                     description: MonitorCharts.getChartDescription({
-                        checkOn: dataType,
+                        checkOn: checkOn,
                     }),
                     props: {
                         data: [
@@ -37,7 +41,7 @@ export default class MonitorCharts {
                                 id: `line-${index}`,
                                 data: monitorMetricsByMinute
                                     .filter((item: MonitorMetricsByMinute) => {
-                                        return item.metricType === dataType;
+                                        return item.metricType === checkOn;
                                     })
                                     .map((item: MonitorMetricsByMinute) => {
                                         return {
@@ -51,7 +55,7 @@ export default class MonitorCharts {
                             monitorMetricsByMinute,
                         }),
                         yScale: MonitorCharts.getYScaleFor({
-                            checkOn: dataType,
+                            checkOn: checkOn,
                         }),
                         axisBottom: {
                             legend: '',
@@ -61,9 +65,12 @@ export default class MonitorCharts {
                                 );
                             },
                         },
-                        curve: MonitorCharts.getCurveFor({ checkOn: dataType }),
+                        curve: MonitorCharts.getCurveFor({ checkOn: checkOn }),
                         axisLeft: {
                             legend: '',
+                        },
+                        getHoverTooltip: (data: { points: Array<LineChartPoint> }) => {
+                            return <MonitorChartTooltip xLegend='Time' yLegend={checkOn} points={data.points}  />;
                         }
                     },
                     sync: true,
