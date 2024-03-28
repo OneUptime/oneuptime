@@ -147,12 +147,14 @@ const LineChart: FunctionComponent<ComponentProps> = (
                         return <></>;
                     }
 
-                    return props.getHoverTooltip({ points: data.slice.points.map((point) => {
-                        return {
-                            x: point.data.x as XValue,
-                            y: point.data.y as YValue,
-                        };
-                    })});
+                    return props.getHoverTooltip({
+                        points: data.slice.points.map((point) => {
+                            return {
+                                x: point.data.x as XValue,
+                                y: point.data.y as YValue,
+                            };
+                        }),
+                    });
                 }}
                 colors={[Indigo500.toString()]} // Set the line color to purple
             />

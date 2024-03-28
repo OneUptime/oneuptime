@@ -1,4 +1,3 @@
-
 import React from 'react';
 import OneUptimeDate from 'Common/Types/Date';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
@@ -7,6 +6,8 @@ import {
     ChartType,
 } from 'CommonUI/src/Components/Charts/ChartGroup/ChartGroup';
 import {
+    AxisBottom,
+    AxisLeft,
     ChartCurve,
     LineChartPoint,
     XScale,
@@ -28,6 +29,14 @@ export class MonitorCharts {
 
         const charts: Array<Chart> = checkOns.map(
             (checkOn: CheckOn, index: number) => {
+
+                const axisBottom: AxisBottom = MonitorCharts.getAxisBottomFor();
+
+                const axisLeft: AxisLeft = MonitorCharts.getAxisLeftFor({
+                    checkOn: checkOn,
+                });
+
+
                 return {
                     id: `chart-${index}`,
                     type: ChartType.LINE,
@@ -57,21 +66,23 @@ export class MonitorCharts {
                         yScale: MonitorCharts.getYScaleFor({
                             checkOn: checkOn,
                         }),
-                        axisBottom: {
-                            legend: '',
-                            format: (value: XValue): string => {
-                                return OneUptimeDate.getLocalHourAndMinuteFromDate(
-                                    value as Date
-                                );
-                            },
-                        },
+                        axisBottom: axisBottom,
                         curve: MonitorCharts.getCurveFor({ checkOn: checkOn }),
-                        axisLeft: {
-                            legend: '',
+                        axisLeft: axisLeft,
+                        getHoverTooltip: (data: {
+                            points: Array<LineChartPoint>;
+                        }) => {
+                            return (
+                                <MonitorChartTooltip
+                                    axisBottom={{
+                                        ...axisBottom,
+                                        legend: MonitorCharts.getAxisBottomLegend(),
+                                    }}
+                                    axisLeft={{...axisLeft, legend: MonitorCharts.getAxisLeftLegend({ checkOn })}}
+                                    points={data.points}
+                                />
+                            );
                         },
-                        getHoverTooltip: (data: { points: Array<LineChartPoint> }) => {
-                            return <MonitorChartTooltip xLegend='Time' yLegend={checkOn} points={data.points}  />;
-                        }
                     },
                     sync: true,
                 };
@@ -79,6 +90,35 @@ export class MonitorCharts {
         );
 
         return charts;
+    }
+
+    private static getAxisBottomLegend(): string {
+       return 'Time'
+    }
+
+
+    public static getAxisLeftLegend(data: {
+        checkOn: CheckOn;
+    }): string {
+        return data.checkOn;
+    }
+
+    private static getAxisBottomFor(): AxisBottom {
+        return {
+            legend: '',
+            format: (value: XValue): string => {
+                return OneUptimeDate.getLocalHourAndMinuteFromDate(
+                    value as Date
+                );
+            },
+        };
+    }
+
+
+    private static getAxisLeftFor(data: { checkOn: CheckOn }): AxisLeft {
+        return {
+            legend: data.checkOn,
+        };
     }
 
     private static getCurveFor(data: { checkOn: CheckOn }): ChartCurve {
@@ -132,7 +172,11 @@ export class MonitorCharts {
                 min: 0,
                 max: 600,
             };
-        }else if (data.checkOn === CheckOn.DiskUsagePercent || data.checkOn === CheckOn.MemoryUsagePercent || data.checkOn === CheckOn.CPUUsagePercent) {
+        } else if (
+            data.checkOn === CheckOn.DiskUsagePercent ||
+            data.checkOn === CheckOn.MemoryUsagePercent ||
+            data.checkOn === CheckOn.CPUUsagePercent
+        ) {
             return {
                 type: YScaleType.LINEAR,
                 min: 0,
