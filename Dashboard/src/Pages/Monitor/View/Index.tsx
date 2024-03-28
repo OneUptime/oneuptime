@@ -51,7 +51,7 @@ import {
     CriteriaFilterUtil,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import MonitorCharts from '../../../Components/Monitor/MonitorCharts/MonitorChart';
+import { MonitorCharts } from '../../../Components/Monitor/MonitorCharts/MonitorChart';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -183,12 +183,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 });
 
             let monitorMetricsByMinute: AnalyticsListResult<MonitorMetricsByMinute> =
-                {
-                    data: [],
-                    count: 0,
-                    limit: 0,
-                    skip: 0,
-                };
+            {
+                data: [],
+                count: 0,
+                limit: 0,
+                skip: 0,
+            };
 
             if (!item) {
                 setError(`Monitor not found`);
@@ -378,7 +378,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
@@ -386,7 +386,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         text={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -416,7 +416,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                    [],
+                                                [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -437,8 +437,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
-            monitor?.incomingRequestSecretKey &&
-            !monitor.incomingRequestReceivedAt ? (
+                monitor?.incomingRequestSecretKey &&
+                !monitor.incomingRequestReceivedAt ? (
                 <IncomingMonitorLink
                     secretKey={monitor?.incomingRequestSecretKey}
                 />
@@ -447,8 +447,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             )}
 
             {monitorType === MonitorType.Server &&
-            monitor?.serverMonitorSecretKey &&
-            !monitor.serverMonitorRequestReceivedAt ? (
+                monitor?.serverMonitorSecretKey &&
+                !monitor.serverMonitorRequestReceivedAt ? (
                 <ServerMonitorDocumentation
                     secretKey={monitor?.serverMonitorSecretKey}
                 />
