@@ -38,7 +38,8 @@ import ProjectUtil from 'CommonUI/src/Utils/Project';
 import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
-import LineChart from 'CommonUI/src/Components/Charts/Line/LineChart';
+import ChartGroup, { ChartGroupInterval, ChartType } from 'CommonUI/src/Components/Charts/ChartGroup/ChartGroup';
+import { XScalePrecision, XScaleType, YScaleType } from 'CommonUI/src/Components/Charts/Line/LineChart';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -183,6 +184,19 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
         setIsLoading(false);
     };
 
+    const data = [
+        {
+            id: 'Response Time',
+            data: [
+                { x: OneUptimeDate.getCurrentDate(), y: 10 },
+                { x: OneUptimeDate.getSomeMinutesAfter(1), y: 15 },
+                { x: OneUptimeDate.getSomeMinutesAfter(2), y: 12 },
+                { x: OneUptimeDate.getSomeMinutesAfter(4), y: 8 },
+                { x: OneUptimeDate.getSomeMinutesAfter(5), y: 11 },
+            ],
+        },
+    ];
+
     return (
         <Fragment>
             <DisabledWarning monitorId={modelId} />
@@ -298,7 +312,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
@@ -306,7 +320,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         text={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -336,7 +350,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                    [],
+                                                [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -355,12 +369,66 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-            <LineChart />
+            <ChartGroup
+                interval={ChartGroupInterval.ONE_HOUR}
+                charts={[{
+                    id: 'chart-1',
+                    type: ChartType.LINE,
+                    props: {
+                        data: data,
+                        xScale: {
+                            type: XScaleType.TIME,
+                            min: 'auto',
+                            max: 'auto',
+                            precision: XScalePrecision.MINUTE,
+                        },
+                        yScale: {
+                            type: YScaleType.LINEAR,
+                            min: 'auto',
+                            max: 'auto',
+                        },
+                        axisBottom: {
+                            legend: 'Time',
+                            format: 'time:%Y-%m-%d %H:%M:%S',
+                        },
+                        axisLeft: {
+                            legend: 'Response Time',
+                        }
+                    },
+                    sync: true
+                }, {
+                    id: 'chart-2',
+                    type: ChartType.LINE,
+                    props: {
+                        data: data,
+                        xScale: {
+                            type: XScaleType.TIME,
+                            min: 'auto',
+                            max: 'auto',
+                            precision: XScalePrecision.MINUTE,
+                        },
+                        yScale: {
+                            type: YScaleType.LINEAR,
+                            min: 'auto',
+                            max: 'auto',
+                        },
+                        axisBottom: {
+                            legend: 'Time',
+                            format: 'time:%Y-%m-%d %H:%M:%S',
+                        },
+                        axisLeft: {
+                            legend: 'Response Time',
+                        }
+                    },
+                    sync: true
+                }]}
+            />
+
 
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
-            monitor?.incomingRequestSecretKey &&
-            !monitor.incomingRequestReceivedAt ? (
+                monitor?.incomingRequestSecretKey &&
+                !monitor.incomingRequestReceivedAt ? (
                 <IncomingMonitorLink
                     secretKey={monitor?.incomingRequestSecretKey}
                 />
@@ -369,8 +437,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             )}
 
             {monitorType === MonitorType.Server &&
-            monitor?.serverMonitorSecretKey &&
-            !monitor.serverMonitorRequestReceivedAt ? (
+                monitor?.serverMonitorSecretKey &&
+                !monitor.serverMonitorRequestReceivedAt ? (
                 <ServerMonitorDocumentation
                     secretKey={monitor?.serverMonitorSecretKey}
                 />

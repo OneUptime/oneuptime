@@ -1,12 +1,14 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import { Point, ResponsiveLine } from '@nivo/line';
-import OneUptimeDate from 'Common/Types/Date';
 import { Indigo500 } from 'Common/Types/BrandColors';
 import { CartesianMarkerProps } from '@nivo/core';
 
+export type XValue = string | number | Date;
+export type YValue = number;
+
 export interface LineChartDataItem {
-    x: string | number | Date;
-    y: number;
+    x: XValue;
+    y: YValue;
 }
 
 export enum ChartCurve {
@@ -30,10 +32,12 @@ export enum XScalePrecision {
     YEAR = 'year',
 }
 
+export type ScaleMaxMin = 'auto' | number;
+
 export interface XScale {
     type: XScaleType;
-    min: string | Date;
-    max: string | Date;
+    min: ScaleMaxMin;
+    max: ScaleMaxMin;
     precision: XScalePrecision;
 }
 
@@ -48,8 +52,8 @@ export enum YScaleType {
 
 export interface YScale {
     type: YScaleType;
-    min: 'auto' | number;
-    max: 'auto' | number;
+    min: ScaleMaxMin;
+    max: ScaleMaxMin;
 }
 
 export interface AxisBottom {
@@ -62,33 +66,22 @@ export interface AxisLeft {
 }
 
 export interface ComponentProps {
-    data: LineChartData;
+    data: Array<LineChartData>;
     curve?: ChartCurve;
     xScale: XScale;
     yScale: YScale;
     axisBottom: AxisBottom;
     axisLeft: AxisLeft;
-    onHoverXAxis?: (x: string | number | Date) => void;
+    onHoverXAxis?: (x: XValue) => void;
     xAxisMarker?: {
-        value: string | number | Date | undefined;
+        value: XValue | undefined;
     };
 }
 
 const LineChart: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const data = [
-        {
-            id: 'Response Time',
-            data: [
-                { x: OneUptimeDate.getCurrentDate(), y: 10 },
-                { x: OneUptimeDate.getSomeMinutesAfter(1), y: 15 },
-                { x: OneUptimeDate.getSomeMinutesAfter(2), y: 12 },
-                { x: OneUptimeDate.getSomeMinutesAfter(4), y: 8 },
-                { x: OneUptimeDate.getSomeMinutesAfter(5), y: 11 },
-            ],
-        },
-    ];
+
 
     const markers: Array<CartesianMarkerProps> = [];
 
@@ -107,15 +100,16 @@ const LineChart: FunctionComponent<ComponentProps> = (
     return (
         <div className="h-96 w-full">
             <ResponsiveLine
-                data={data}
+                data={props.data}
                 onMouseEnter={(data: Point) => {
                     if (props.onHoverXAxis) {
-                        props.onHoverXAxis(data.data.x);
+                        const xValue: XValue = ((data as any).points as Array<any>)?.[0]?.data?.x;
+                        props.onHoverXAxis(xValue);
                     }
                 }}
                 onMouseLeave={(data: Point) => {
                     if (props.onHoverXAxis) {
-                        props.onHoverXAxis(data.data.x);
+                        props.onHoverXAxis(data.x);
                     }
                 }}
                 margin={{ bottom: 30, left: 30 }}
@@ -123,8 +117,8 @@ const LineChart: FunctionComponent<ComponentProps> = (
                 markers={markers}
                 xScale={{
                     type: props.xScale.type,
-                    max: props.xScale.max,
-                    min: props.xScale.min,
+                    max: props.xScale.max as any,
+                    min: props.xScale.min as any,
                     precision: props.xScale.precision,
                 }}
                 yScale={{
