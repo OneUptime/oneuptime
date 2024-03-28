@@ -11,6 +11,8 @@ export enum ChartType {
 
 export interface Chart {
     id: string;
+    title: string;
+    description: string;
     type: ChartType;
     props: LineChartProps;
     sync: boolean;
@@ -29,25 +31,40 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     >(undefined);
 
     return (
-        <div>
+        <div className='lg:grid grid-cols-2 gap-5'>
             {props.charts.map((chart: Chart, index: number) => {
                 switch (chart.type) {
                     case ChartType.LINE:
                         return (
-                            <LineChart
-                                key={index}
-                                {...chart.props}
-                                xAxisMarker={{
-                                    value: chart.sync ? syncValue : undefined,
-                                }}
-                                onHoverXAxis={(
-                                    value: string | number | Date
-                                ) => {
-                                    if (chart.sync) {
-                                        setSyncValue(value);
-                                    }
-                                }}
-                            />
+                            <div className='p-6 rounded-md bg-white shadow'>
+                               <h2
+                                    data-testid="card-details-heading"
+                                    id="card-details-heading"
+                                    className="text-lg font-medium leading-6 text-gray-900"
+                                >
+                                    {chart.title}
+                                </h2>
+                                <p
+                                    data-testid="card-description"
+                                    className="mt-1 text-sm text-gray-500 w-full"
+                                >
+                                    {chart.description}
+                                </p>
+                                <LineChart
+                                    key={index}
+                                    {...chart.props}
+                                    xAxisMarker={{
+                                        value: chart.sync ? syncValue : undefined,
+                                    }}
+                                    onHoverXAxis={(
+                                        value: string | number | Date
+                                    ) => {
+                                        if (chart.sync) {
+                                            setSyncValue(value);
+                                        }
+                                    }}
+                                />
+                            </div>
                         );
                     default:
                         return <></>;

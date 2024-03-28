@@ -41,14 +41,7 @@ import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonito
 import ChartGroup, {
     Chart,
     ChartGroupInterval,
-    ChartType,
 } from 'CommonUI/src/Components/Charts/ChartGroup/ChartGroup';
-import {
-    XScalePrecision,
-    XScaleType,
-    XValue,
-    YScaleType,
-} from 'CommonUI/src/Components/Charts/Line/LineChart';
 import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
 import AnalyticsModelAPI, {
     ListResult as AnalyticsListResult,
@@ -58,6 +51,7 @@ import {
     CriteriaFilterUtil,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import MonitorCharts from '../../../Components/Monitor/MonitorCharts/MonitorChart';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -221,9 +215,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         metricValue: true,
                     },
                     sort: {
-                        createdAt: SortOrder.Ascending,
+                        createdAt: SortOrder.Descending,
                     },
                 });
+                
             }
 
 
@@ -236,7 +231,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 })
             );
             setStatusTimelines(monitorStatus.data);
-            setMonitorMetricsByMinute(monitorMetricsByMinute.data);
+            setMonitorMetricsByMinute(monitorMetricsByMinute.data.reverse());
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -257,56 +252,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             const chartsByDataType: Array<CheckOn> =
                 CriteriaFilterUtil.getTimeFiltersByMonitorType(monitorType!);
 
-            const charts: Array<Chart> = chartsByDataType.map(
-                (dataType: CheckOn, index: number) => {
-                    return {
-                        id: `chart-${index}`,
-                        type: ChartType.LINE,
-                        props: {
-                            data: [
-                                {
-                                    id: `line-${index}`,
-                                    data: monitorMetricsByMinute
-                                        .filter(
-                                            (item: MonitorMetricsByMinute) => {
-                                                return (
-                                                    item.metricType === dataType
-                                                );
-                                            }
-                                        )
-                                        .map((item: MonitorMetricsByMinute) => {
-                                            return {
-                                                x: item.createdAt!,
-                                                y: item.metricValue!,
-                                            };
-                                        }),
-                                },
-                            ],
-                            xScale: {
-                                type: XScaleType.TIME,
-                                min: 'auto',
-                                max: 'auto',
-                                precision: XScalePrecision.MINUTE,
-                            },
-                            yScale: {
-                                type: YScaleType.LINEAR,
-                                min: 'auto',
-                                max: 'auto',
-                            },
-                            axisBottom: {
-                                legend: 'Time',
-                                format: (value: XValue): string => {
-                                    return OneUptimeDate.getLocalHourAndMinuteFromDate(value as Date);
-                                },
-                            },
-                            axisLeft: {
-                                legend: dataType,
-                            },
-                        },
-                        sync: true,
-                    };
-                }
-            );
+            const charts: Array<Chart> = MonitorCharts.getMonitorCharts({
+                monitorMetricsByMinute: monitorMetricsByMinute,
+                checkOns: chartsByDataType,
+            });
 
             return (
                 <ChartGroup
@@ -488,7 +437,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-            {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}
+            
 
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
@@ -526,6 +475,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>
+
+            {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}
         </Fragment>
     );
 };

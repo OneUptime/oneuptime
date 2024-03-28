@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import { Point, ResponsiveLine } from '@nivo/line';
 import { Indigo500 } from 'Common/Types/BrandColors';
-import { CartesianMarkerProps, DatumValue } from '@nivo/core';
+import { CartesianMarkerProps } from '@nivo/core';
 
 export type XValue = string | number | Date;
 export type YValue = number;
@@ -32,12 +32,13 @@ export enum XScalePrecision {
     YEAR = 'year',
 }
 
-export type ScaleMaxMin = 'auto' | number;
+export type XScaleMaxMin = 'auto' | number | Date;
+export type YScaleMaxMin = 'auto' | number;
 
 export interface XScale {
     type: XScaleType;
-    min: ScaleMaxMin;
-    max: ScaleMaxMin;
+    min: XScaleMaxMin;
+    max: XScaleMaxMin;
     precision: XScalePrecision;
 }
 
@@ -52,8 +53,8 @@ export enum YScaleType {
 
 export interface YScale {
     type: YScaleType;
-    min: ScaleMaxMin;
-    max: ScaleMaxMin;
+    min: YScaleMaxMin;
+    max: YScaleMaxMin;
 }
 
 export interface AxisBottom {
@@ -76,6 +77,9 @@ export interface ComponentProps {
     xAxisMarker?: {
         value: XValue | undefined;
     };
+    getHoverTooltip?: (data: {
+        points: readonly Point[];
+    }) => ReactElement;
 }
 
 const LineChart: FunctionComponent<ComponentProps> = (
@@ -86,9 +90,9 @@ const LineChart: FunctionComponent<ComponentProps> = (
     if (props.xAxisMarker && props.xAxisMarker.value) {
         markers.push({
             axis: 'x',
-            legend: 'x marker',
+            legend: '',
             lineStyle: {
-                stroke: '#b0413e',
+                stroke: '#cbd5e1',
                 strokeWidth: 2,
             },
             value: props.xAxisMarker.value,
@@ -107,7 +111,7 @@ const LineChart: FunctionComponent<ComponentProps> = (
                         props.onHoverXAxis(xValue);
                     }
                 }}
-                margin={{ bottom: 30, left: 30 }}
+                margin={{ bottom: 60, left: 60, top: 20 }}
                 curve={props.curve || ChartCurve.LINEAR}
                 markers={markers}
                 xScale={{
@@ -132,44 +136,18 @@ const LineChart: FunctionComponent<ComponentProps> = (
                     legend: props.axisLeft.legend,
                 }}
                 enableSlices="x"
-                sliceTooltip={({
-                    slice,
-                }: {
+                sliceTooltip={(data: {
                     slice: {
-                        id: DatumValue;
-                        height: number;
-                        width: number;
-                        x0: number;
-                        x: number;
-                        y0: number;
-                        y: number;
                         points: readonly Point[];
                     };
                 }) => {
-                    return (
-                        <div
-                            style={{
-                                background: 'white',
-                                padding: '9px 12px',
-                                border: '1px solid #ccc',
-                            }}
-                        >
-                            {slice.points.map((point: Point) => {
-                                return (
-                                    <div
-                                        key={point.id}
-                                        style={{
-                                            color: Indigo500.toString(), // Set the line color to purple
-                                            padding: '3px 0',
-                                        }}
-                                    >
-                                        {point.serieId} [{point.data.xFormatted}
-                                        , {point.data.yFormatted}]
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
+
+                    if(!props.getHoverTooltip){
+                        return <></>
+                    }
+
+                    return props.getHoverTooltip({ points: data.slice.points });
+                    
                 }}
                 colors={[Indigo500.toString()]} // Set the line color to purple
             />
