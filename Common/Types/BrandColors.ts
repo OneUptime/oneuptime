@@ -16,6 +16,7 @@ export const Grey: Color = Color.fromString('#575757');
 export const LightGrey: Color = Color.fromString('#908B8B');
 export const Moroon: Color = Color.fromString('#b70400');
 export const Blue: Color = Color.fromString('#3686be');
+export const Indigo500: Color = Color.fromString('#6366f1');
 
 export const EventColorList: Color[] = [
     Color.fromString('#d50000'),

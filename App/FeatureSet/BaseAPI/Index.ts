@@ -426,6 +426,11 @@ import LogService, {
     LogService as LogServiceType,
 } from 'CommonServer/Services/LogService';
 
+import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
+import MonitorMetricsByMinuteService, {
+    MonitorMetricsByMinuteService as MonitorMetricsByMinuteServiceType,
+} from 'CommonServer/Services/MonitorMetricsByMinuteService';
+
 import Span from 'Model/AnalyticsModels/Span';
 import SpanService, {
     SpanService as SpanServiceType,
@@ -456,6 +461,14 @@ app.use(
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAnalyticsAPI<
+        MonitorMetricsByMinute,
+        MonitorMetricsByMinuteServiceType
+    >(MonitorMetricsByMinute, MonitorMetricsByMinuteService).getRouter()
 );
 
 app.use(

@@ -36,6 +36,11 @@ export default class OneUptimeDate {
         return date.getTime() * 1000000;
     }
 
+    public static getLocalHourAndMinuteFromDate(date: Date): string {
+        date = this.fromString(date);
+        return moment(date).format('HH:mm');
+    }
+
     public static getMillisecondsBetweenTwoUnixNanoDates(
         startDate: number,
         endDate: number
