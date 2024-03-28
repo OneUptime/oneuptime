@@ -183,12 +183,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 });
 
             let monitorMetricsByMinute: AnalyticsListResult<MonitorMetricsByMinute> =
-            {
-                data: [],
-                count: 0,
-                limit: 0,
-                skip: 0,
-            };
+                {
+                    data: [],
+                    count: 0,
+                    limit: 0,
+                    skip: 0,
+                };
 
             if (!item) {
                 setError(`Monitor not found`);
@@ -196,8 +196,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             }
 
             const shouldFetchMonitorMetrics: boolean =
-                CriteriaFilterUtil.getTimeFiltersByMonitorType(item.monitorType!)
-                    .length > 0;
+                CriteriaFilterUtil.getTimeFiltersByMonitorType(
+                    item.monitorType!
+                ).length > 0;
 
             setShouldFetchMonitorMetrics(shouldFetchMonitorMetrics);
 
@@ -218,10 +219,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         createdAt: SortOrder.Descending,
                     },
                 });
-                
             }
-
-
 
             setMonitorType(item.monitorType);
             setCurrentMonitorStatus(item.currentMonitorStatus);
@@ -380,7 +378,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
@@ -388,7 +386,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         text={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -418,7 +416,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             BaseModel.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -437,12 +435,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-            
-
             {/* Heartbeat URL */}
             {monitorType === MonitorType.IncomingRequest &&
-                monitor?.incomingRequestSecretKey &&
-                !monitor.incomingRequestReceivedAt ? (
+            monitor?.incomingRequestSecretKey &&
+            !monitor.incomingRequestReceivedAt ? (
                 <IncomingMonitorLink
                     secretKey={monitor?.incomingRequestSecretKey}
                 />
@@ -451,8 +447,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             )}
 
             {monitorType === MonitorType.Server &&
-                monitor?.serverMonitorSecretKey &&
-                !monitor.serverMonitorRequestReceivedAt ? (
+            monitor?.serverMonitorSecretKey &&
+            !monitor.serverMonitorRequestReceivedAt ? (
                 <ServerMonitorDocumentation
                     secretKey={monitor?.serverMonitorSecretKey}
                 />

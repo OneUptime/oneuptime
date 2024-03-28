@@ -95,9 +95,16 @@ export class CriteriaFilterUtil {
     public static getTimeFiltersByMonitorType(
         monitorType: MonitorType
     ): Array<CheckOn> {
-        if (monitorType === MonitorType.API || monitorType === MonitorType.Website) {
+        if (
+            monitorType === MonitorType.API ||
+            monitorType === MonitorType.Website
+        ) {
             return [CheckOn.ResponseStatusCode, CheckOn.ResponseTime];
-        } else if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP || monitorType === MonitorType.Port) {
+        } else if (
+            monitorType === MonitorType.Ping ||
+            monitorType === MonitorType.IP ||
+            monitorType === MonitorType.Port
+        ) {
             return [CheckOn.ResponseTime];
         } else if (monitorType === MonitorType.Server) {
             return [
@@ -105,8 +112,7 @@ export class CriteriaFilterUtil {
                 CheckOn.CPUUsagePercent,
                 CheckOn.MemoryUsagePercent,
             ];
-        } else {
-            return [];
         }
+        return [];
     }
 }

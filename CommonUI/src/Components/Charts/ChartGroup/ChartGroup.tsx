@@ -31,13 +31,13 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     >(undefined);
 
     return (
-        <div className='lg:grid grid-cols-2 gap-5'>
+        <div className="lg:grid grid-cols-2 gap-5">
             {props.charts.map((chart: Chart, index: number) => {
                 switch (chart.type) {
                     case ChartType.LINE:
                         return (
-                            <div className='p-6 rounded-md bg-white shadow'>
-                               <h2
+                            <div className="p-6 rounded-md bg-white shadow">
+                                <h2
                                     data-testid="card-details-heading"
                                     id="card-details-heading"
                                     className="text-lg font-medium leading-6 text-gray-900"
@@ -54,7 +54,9 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                                     key={index}
                                     {...chart.props}
                                     xAxisMarker={{
-                                        value: chart.sync ? syncValue : undefined,
+                                        value: chart.sync
+                                            ? syncValue
+                                            : undefined,
                                     }}
                                     onHoverXAxis={(
                                         value: string | number | Date

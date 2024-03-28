@@ -77,9 +77,7 @@ export interface ComponentProps {
     xAxisMarker?: {
         value: XValue | undefined;
     };
-    getHoverTooltip?: (data: {
-        points: readonly Point[];
-    }) => ReactElement;
+    getHoverTooltip?: (data: { points: readonly Point[] }) => ReactElement;
 }
 
 const LineChart: FunctionComponent<ComponentProps> = (
@@ -141,13 +139,11 @@ const LineChart: FunctionComponent<ComponentProps> = (
                         points: readonly Point[];
                     };
                 }) => {
-
-                    if(!props.getHoverTooltip){
-                        return <></>
+                    if (!props.getHoverTooltip) {
+                        return <></>;
                     }
 
                     return props.getHoverTooltip({ points: data.slice.points });
-                    
                 }}
                 colors={[Indigo500.toString()]} // Set the line color to purple
             />
