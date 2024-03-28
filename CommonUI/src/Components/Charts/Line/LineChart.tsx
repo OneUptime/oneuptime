@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import { Point, ResponsiveLine } from '@nivo/line';
 import { Indigo500 } from 'Common/Types/BrandColors';
-import { CartesianMarkerProps } from '@nivo/core';
+import { CartesianMarkerProps, DatumValue } from '@nivo/core';
 
 export type XValue = string | number | Date;
 export type YValue = number;
@@ -81,8 +81,6 @@ export interface ComponentProps {
 const LineChart: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     const markers: Array<CartesianMarkerProps> = [];
 
     if (props.xAxisMarker && props.xAxisMarker.value) {
@@ -103,7 +101,9 @@ const LineChart: FunctionComponent<ComponentProps> = (
                 data={props.data}
                 onMouseMove={(data: Point) => {
                     if (props.onHoverXAxis) {
-                        const xValue: XValue = ((data as any).points as Array<any>)?.[0]?.data?.x;
+                        const xValue: XValue = (
+                            (data as any).points as Array<any>
+                        )?.[0]?.data?.x;
                         props.onHoverXAxis(xValue);
                     }
                 }}
@@ -132,7 +132,20 @@ const LineChart: FunctionComponent<ComponentProps> = (
                     legend: props.axisLeft.legend,
                 }}
                 enableSlices="x"
-                sliceTooltip={({ slice }) => {
+                sliceTooltip={({
+                    slice,
+                }: {
+                    slice: {
+                        id: DatumValue;
+                        height: number;
+                        width: number;
+                        x0: number;
+                        x: number;
+                        y0: number;
+                        y: number;
+                        points: readonly Point[];
+                    };
+                }) => {
                     return (
                         <div
                             style={{
@@ -141,7 +154,7 @@ const LineChart: FunctionComponent<ComponentProps> = (
                                 border: '1px solid #ccc',
                             }}
                         >
-                            {slice.points.map(point => {
+                            {slice.points.map((point: Point) => {
                                 return (
                                     <div
                                         key={point.id}
