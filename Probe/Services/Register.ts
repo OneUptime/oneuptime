@@ -25,6 +25,14 @@ export default class Register {
         const websiteMonitoringCheck: boolean =
             await OnlineCheck.canProbeMonitorWebsiteMonitors();
 
+        if (!pingMonitoringCheck && websiteMonitoringCheck) {
+            // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
+            logger.warn(
+                'Ping monitoring is on this machine. Fallback to port monitoring'
+            );
+            LocalCache.setString('PROBE', 'PING_MONITORING', 'PORT');
+        }
+
         if (!pingMonitoringCheck || !websiteMonitoringCheck) {
             // Send an email to the admin.
 

@@ -19,6 +19,8 @@ import logger from 'CommonServer/Utils/Logger';
 import ProbeUtil from '../Probe';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
+import LocalCache from 'CommonServer/Infrastructure/LocalCache';
+import Port from 'Common/Types/Port';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -129,21 +131,43 @@ export default class MonitorUtil {
             monitor.monitorType === MonitorType.Ping ||
             monitor.monitorType === MonitorType.IP
         ) {
-            const response: PingResponse | null = await PingMonitor.ping(
-                monitorStep.data?.monitorDestination,
-                {
-                    retry: 5,
-                    monitorId: monitor.id!,
+            if (LocalCache.getString('PROBE', 'PING_MONITORING') === 'PORT') {
+                // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
+
+                const response: PortMonitorResponse | null =
+                    await PortMonitor.ping(
+                        monitorStep.data?.monitorDestination,
+                        new Port(80), // use port 80 by default.
+                        {
+                            retry: 5,
+                            monitorId: monitor.id!,
+                        }
+                    );
+
+                if (!response) {
+                    return null;
                 }
-            );
 
-            if (!response) {
-                return null;
+                result.isOnline = response.isOnline;
+                result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+                result.failureCause = response.failureCause;
+            } else {
+                const response: PingResponse | null = await PingMonitor.ping(
+                    monitorStep.data?.monitorDestination,
+                    {
+                        retry: 5,
+                        monitorId: monitor.id!,
+                    }
+                );
+
+                if (!response) {
+                    return null;
+                }
+
+                result.isOnline = response.isOnline;
+                result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+                result.failureCause = response.failureCause;
             }
-
-            result.isOnline = response.isOnline;
-            result.responseTimeInMs = response.responseTimeInMS?.toNumber();
-            result.failureCause = response.failureCause;
         }
 
         if (monitor.monitorType === MonitorType.Port) {
