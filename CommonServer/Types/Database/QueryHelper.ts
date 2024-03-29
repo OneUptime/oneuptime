@@ -278,6 +278,10 @@ export default class QueryHelper {
             value = JSON.parse(value.toString());
         }
 
+        if (value instanceof FindOperator) {
+            return value;
+        }
+
         const hasValue: boolean = value && Object.keys(value).length > 0;
 
         for (const key in value) {
