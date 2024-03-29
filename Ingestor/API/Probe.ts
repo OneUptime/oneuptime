@@ -66,9 +66,6 @@ router.post(
                 ] as boolean;
             }
 
-            isWebsiteCheckOffline = true;
-            isPingCheckOffline = true;
-
             if (isWebsiteCheckOffline || isPingCheckOffline) {
                 // email probe owner.
                 const probeId: ObjectID = new ObjectID(
@@ -166,12 +163,12 @@ router.post(
                 let issue: string = '';
 
                 if (isWebsiteCheckOffline) {
-                    issue += 'This probe cannot reach out to monitor websites';
+                    issue += 'This probe cannot reach out to monitor websites.';
                 }
 
                 if (isPingCheckOffline) {
                     issue +=
-                        'This probe cannot reach out to ping other servers / hostnames or IP addresses.';
+                        ' This probe cannot reach out to ping other servers / hostnames or IP addresses.';
                 }
 
                 // now send an email to all the emailsToNotify
