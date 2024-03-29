@@ -49,16 +49,22 @@ router.post(
             let isPingCheckOffline = false;
 
             if (statusReport['isWebsiteCheckOffline']) {
-                isWebsiteCheckOffline = statusReport['isWebsiteCheckOffline'] as boolean;
+                isWebsiteCheckOffline = statusReport[
+                    'isWebsiteCheckOffline'
+                ] as boolean;
             }
 
             if (statusReport['isPingCheckOffline']) {
-                isPingCheckOffline = statusReport['isPingCheckOffline'] as boolean;
+                isPingCheckOffline = statusReport[
+                    'isPingCheckOffline'
+                ] as boolean;
             }
 
             if (isWebsiteCheckOffline || isPingCheckOffline) {
                 // email probe owner.
-                const probeId: ObjectID = new ObjectID(data['probeId'] as string);
+                const probeId: ObjectID = new ObjectID(
+                    data['probeId'] as string
+                );
 
                 const probe: Probe | null = await ProbeService.findOneBy({
                     query: {
@@ -81,8 +87,8 @@ router.post(
                     );
                 }
 
-                // If global probe offline? If yes, then email master-admin. 
-                // If not a global probe then them email project owners. 
+                // If global probe offline? If yes, then email master-admin.
+                // If not a global probe then them email project owners.
 
                 const isGlobalProbe = !probe.projectId;
 
@@ -90,16 +96,14 @@ router.post(
                     // email master-admin
 
                     const globalConfig = await GlobalConfigService.findOneBy({
-                        query: {
-
-                        },
+                        query: {},
                         select: {
                             _id: true,
                             adminNotificationEmail: true,
                         },
                         props: {
-                            isRoot: true
-                        }
+                            isRoot: true,
+                        },
                     });
 
                     if (!globalConfig) {
@@ -110,23 +114,15 @@ router.post(
                         );
                     }
 
-                    const adminNotificationEmail: Email | undefined = globalConfig.adminNotificationEmail;
+                    const adminNotificationEmail: Email | undefined =
+                        globalConfig.adminNotificationEmail;
 
-                    if(adminNotificationEmail){
+                    if (adminNotificationEmail) {
                         // email adminNotificationEmail
-
-                        
                     }
-
                 } else {
-                    // email project owners. 
+                    // email project owners.
                 }
-
-
-
-
-
-
             }
 
             return Response.sendJsonObjectResponse(req, res, {
