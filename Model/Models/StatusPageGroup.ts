@@ -435,7 +435,6 @@ export default class StatusPageGroup extends BaseModel {
     })
     public isExpandedByDefault?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
