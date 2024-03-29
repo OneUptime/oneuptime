@@ -1,0 +1,26 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Probe cannot monitor your resources" }}
+
+{{> InfoBlock info="Your password has been updated. You can now log in."}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=incidentTitle text="" }}
+{{> DetailBoxField title="Probe Name: " text=probeName  }}
+{{> DetailBoxField title="Probe Description: " text=probeDescription  }}
+{{#if projectId}}
+{{> DetailBoxField title="Project ID: " text=projectId  }}
+{{else}}
+{{> DetailBoxField title="Global Probe: " text="This is a global probe."  }}
+{{/if}}
+{{> DetailBoxField title="Probe ID:" text=probeId  }}
+{{> DetailBoxField title="Issue:" text=issue  }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info=emailReason }}
+
+{{> Footer this}}
+
+{{> End this}}

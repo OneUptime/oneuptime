@@ -348,4 +348,24 @@ export default class GlobalConfig extends GlobalConfigModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public masterApiKey?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.Email,
+        title: 'Admin Notification Email',
+        description:
+            'Email to send admin notifications to (when probes are offline, etc.)',
+    })
+    @Column({
+        type: ColumnType.Email,
+        length: ColumnLength.Email,
+        nullable: true,
+        unique: true,
+        transformer: Email.getDatabaseTransformer(),
+    })
+    public adminNotificationEmail?: Email = undefined;
 }

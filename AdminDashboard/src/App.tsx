@@ -19,7 +19,7 @@ import Users from './Pages/Users/Index';
 import Logout from './Pages/Logout/Logout';
 
 // Settings Pages.
-import SettingsEmail from './Pages/Settings/SMTP/Index';
+import SettingsEmail from './Pages/Settings/Email/Index';
 import SettingsCallSMS from './Pages/Settings/CallSMS/Index';
 import SettingsProbes from './Pages/Settings/Probes/Index';
 import SettingsAuthentication from './Pages/Settings/Authentication/Index';
