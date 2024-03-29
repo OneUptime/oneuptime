@@ -18,6 +18,7 @@ import Probe from 'Model/Models/Probe';
 import ProbeService from 'CommonServer/Services/ProbeService';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Email from 'Common/Types/Email';
+import GlobalConfig from 'Model/Models/GlobalConfig';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -45,8 +46,8 @@ router.post(
 
             // process status report here.
 
-            let isWebsiteCheckOffline = false;
-            let isPingCheckOffline = false;
+            let isWebsiteCheckOffline: boolean = false;
+            let isPingCheckOffline: boolean = false;
 
             if (statusReport['isWebsiteCheckOffline']) {
                 isWebsiteCheckOffline = statusReport[
@@ -90,21 +91,22 @@ router.post(
                 // If global probe offline? If yes, then email master-admin.
                 // If not a global probe then them email project owners.
 
-                const isGlobalProbe = !probe.projectId;
+                const isGlobalProbe: boolean = !probe.projectId;
 
                 if (isGlobalProbe) {
                     // email master-admin
 
-                    const globalConfig = await GlobalConfigService.findOneBy({
-                        query: {},
-                        select: {
-                            _id: true,
-                            adminNotificationEmail: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const globalConfig: GlobalConfig | null =
+                        await GlobalConfigService.findOneBy({
+                            query: {},
+                            select: {
+                                _id: true,
+                                adminNotificationEmail: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     if (!globalConfig) {
                         return Response.sendErrorResponse(
