@@ -19,7 +19,7 @@ import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
 import OnlineCheck from '../Utils/OnlineCheck';
 
 export default class Register {
-    public static async reportOfflineStatus(): Promise<void> {
+    public static async reportIfOffline(): Promise<void> {
         const pingMonitoringCheck: boolean =
             await OnlineCheck.canProbeMonitorPingMonitors();
         const websiteMonitoringCheck: boolean =
@@ -41,7 +41,7 @@ export default class Register {
             await API.fetch<JSONObject>(
                 HTTPMethod.POST,
                 URL.fromString(INGESTOR_URL.toString()).addRoute(
-                    '/probe/response/ingest'
+                    '/probe/status-report/offline'
                 ),
                 {
                     ...ProbeAPIRequest.getDefaultRequestBody(),

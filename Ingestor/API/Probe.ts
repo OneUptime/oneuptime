@@ -66,6 +66,9 @@ router.post(
                 ] as boolean;
             }
 
+            isWebsiteCheckOffline = true;
+            isPingCheckOffline = true;
+
             if (isWebsiteCheckOffline || isPingCheckOffline) {
                 // email probe owner.
                 const probeId: ObjectID = new ObjectID(
@@ -160,18 +163,15 @@ router.post(
                         'This email is sent to you because you are listed as an owner of the project that this probe is associated with. To change this email, please visit the Project Dashboard > Settings > Teams and Members > Owners.';
                 }
 
-                const issue: string = '';
+                let issue: string = '';
 
                 if (isWebsiteCheckOffline) {
-                    issue.concat(
-                        'This probe cannot reach out to monitor websites'
-                    );
+                    issue += 'This probe cannot reach out to monitor websites';
                 }
 
                 if (isPingCheckOffline) {
-                    issue.concat(
-                        'This probe cannot reach out to ping other servers / hostnames or IP addresses.'
-                    );
+                    issue +=
+                        'This probe cannot reach out to ping other servers / hostnames or IP addresses.';
                 }
 
                 // now send an email to all the emailsToNotify
@@ -180,10 +180,11 @@ router.post(
                         {
                             toEmail: email,
                             templateType: EmailTemplateType.ProbeOffline,
-                            subject: 'Probe Offline Notification',
+                            subject:
+                                'ACTION REQUIRED: Probe Offline Notification',
                             vars: {
                                 probeName: probe.name || '',
-                                description: probe.description || '',
+                                probeDescription: probe.description || '',
                                 projectId: probe.projectId?.toString() || '',
                                 probeId: probe.id?.toString() || '',
                                 hostname:
