@@ -56,3 +56,5 @@ if (typeof monitorFetchLimit === 'string') {
 }
 
 export const PROBE_MONITOR_FETCH_LIMIT: number = monitorFetchLimit;
+
+export const HOSTNAME: string = process.env['HOSTNAME'] || 'localhost';

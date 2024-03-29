@@ -19,6 +19,11 @@ import ProbeService from 'CommonServer/Services/ProbeService';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Email from 'Common/Types/Email';
 import GlobalConfig from 'Model/Models/GlobalConfig';
+import ProjectService from 'CommonServer/Services/ProjectService';
+import User from 'Model/Models/User';
+import MailService from 'CommonServer/Services/MailService';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import logger from 'CommonServer/Utils/Logger';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -74,6 +79,8 @@ router.post(
                     select: {
                         _id: true,
                         projectId: true,
+                        name: true,
+                        description: true,
                     },
                     props: {
                         isRoot: true,
@@ -92,6 +99,9 @@ router.post(
                 // If not a global probe then them email project owners.
 
                 const isGlobalProbe: boolean = !probe.projectId;
+                const emailsToNotify: Email[] = [];
+
+                let emailReason: string = '';
 
                 if (isGlobalProbe) {
                     // email master-admin
@@ -121,9 +131,73 @@ router.post(
 
                     if (adminNotificationEmail) {
                         // email adminNotificationEmail
+                        emailsToNotify.push(adminNotificationEmail);
+
+                        emailReason =
+                            'This email is sent to you becuse you have listed this email as a notification email in the Admin Dashobard. To change this email, please visit the Admin Dashboard > Settings > Email.';
                     }
                 } else {
+                    if (!probe.projectId) {
+                        return Response.sendErrorResponse(
+                            req,
+                            res,
+                            new BadDataException('Invalid Project ID')
+                        );
+                    }
+
                     // email project owners.
+                    const owners: Array<User> = await ProjectService.getOwners(
+                        probe.projectId!
+                    );
+
+                    for (const owner of owners) {
+                        if (owner.email) {
+                            emailsToNotify.push(owner.email);
+                        }
+                    }
+
+                    emailReason =
+                        'This email is sent to you because you are listed as an owner of the project that this probe is associated with. To change this email, please visit the Project Dashboard > Settings > Teams and Members > Owners.';
+                }
+
+                const issue: string = '';
+
+                if (isWebsiteCheckOffline) {
+                    issue.concat(
+                        'This probe cannot reach out to monitor websites'
+                    );
+                }
+
+                if (isPingCheckOffline) {
+                    issue.concat(
+                        'This probe cannot reach out to ping other servers / hostnames or IP addresses.'
+                    );
+                }
+
+                // now send an email to all the emailsToNotify
+                for (const email of emailsToNotify) {
+                    MailService.sendMail(
+                        {
+                            toEmail: email,
+                            templateType: EmailTemplateType.ProbeOffline,
+                            subject: 'Probe Offline Notification',
+                            vars: {
+                                probeName: probe.name || '',
+                                description: probe.description || '',
+                                projectId: probe.projectId?.toString() || '',
+                                probeId: probe.id?.toString() || '',
+                                hostname:
+                                    statusReport['hostname']?.toString() || '',
+                                emailReason: emailReason,
+                                issue: issue,
+                            },
+                        },
+                        {
+                            projectId: probe.projectId,
+                        }
+                    ).catch((err: Error) => {
+                        logger.error(err);
+                    });
                 }
             }
 
