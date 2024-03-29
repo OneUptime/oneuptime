@@ -167,7 +167,7 @@ export default class WebsiteMonitor {
             }
 
             if (!options.isOnlineCheckRequest) {
-                if (!(await OnlineCheck.isProbeOnline())) {
+                if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
                     logger.error(
                         `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                     );

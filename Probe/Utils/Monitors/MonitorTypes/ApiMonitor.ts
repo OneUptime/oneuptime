@@ -153,7 +153,7 @@ export default class ApiMonitor {
             }
 
             if (!options.isOnlineCheckRequest) {
-                if (!(await OnlineCheck.isProbeOnline())) {
+                if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
                     logger.error(
                         `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                     );

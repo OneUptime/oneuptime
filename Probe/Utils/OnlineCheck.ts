@@ -1,9 +1,11 @@
 import URL from 'Common/Types/API/URL';
 import WebsiteMonitor from './Monitors/MonitorTypes/WebsiteMonitor';
+import PingMonitor from './Monitors/MonitorTypes/PingMonitor';
+import Hostname from 'Common/Types/API/Hostname';
 
 export default class OnlineCheck {
     // burn domain names into the code to see if this probe is online.
-    public static async isProbeOnline(): Promise<boolean> {
+    public static async canProbeMonitorWebsiteMonitors(): Promise<boolean> {
         const websiteNames: Array<string> = [
             'https://google.com',
             'https://facebook.com',
@@ -23,6 +25,34 @@ export default class OnlineCheck {
                 return true;
             }
         }
+
+        // TODO: Mail the team that the probe is offline.
+
+        return false;
+    }
+
+    public static async canProbeMonitorPingMonitors(): Promise<boolean> {
+        const domains: Array<string> = [
+            'google.com',
+            'facebook.com',
+            'microsoft.com',
+            'youtube.com',
+            'apple.com',
+        ];
+
+        for (const domain of domains) {
+            if (
+                (
+                    await PingMonitor.ping(new Hostname(domain), {
+                        isOnlineCheckRequest: true,
+                    })
+                )?.isOnline
+            ) {
+                return true;
+            }
+        }
+
+        // TODO: Mail the team that the probe is offline.
 
         return false;
     }

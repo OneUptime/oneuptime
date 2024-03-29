@@ -139,7 +139,7 @@ export default class PingMonitor {
 
             // check if the probe is online.
             if (!pingOptions.isOnlineCheckRequest) {
-                if (!(await OnlineCheck.isProbeOnline())) {
+                if (!(await OnlineCheck.canProbeMonitorPingMonitors())) {
                     logger.error(
                         `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                     );

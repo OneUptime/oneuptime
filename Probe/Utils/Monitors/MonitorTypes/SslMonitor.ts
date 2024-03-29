@@ -102,7 +102,7 @@ export default class SSLMonitor {
 
             // check if the probe is online.
             if (!pingOptions.isOnlineCheckRequest) {
-                if (!(await OnlineCheck.isProbeOnline())) {
+                if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
                     logger.error(
                         `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${url.toString()} - ERROR: ${err}`
                     );
