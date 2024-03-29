@@ -1,21 +1,21 @@
-import Hostname from 'Common/Types/API/Hostname';
-import PingMonitor from './Monitors/MonitorTypes/PingMonitor';
+import URL from 'Common/Types/API/URL';
+import WebsiteMonitor from './Monitors/MonitorTypes/WebsiteMonitor';
 
 export default class OnlineCheck {
     // burn domain names into the code to see if this probe is online.
     public static async isProbeOnline(): Promise<boolean> {
-        const domainNames: Array<string> = [
-            'google.com',
-            'facebook.com',
-            'microsoft.com',
-            'youtube.com',
-            'apple.com',
+        const websiteNames: Array<string> = [
+            'https://google.com',
+            'https://facebook.com',
+            'https://microsoft.com',
+            'https://youtube.com',
+            'https://apple.com',
         ];
 
-        for (const domainName of domainNames) {
+        for (const websiteName of websiteNames) {
             if (
                 (
-                    await PingMonitor.ping(new Hostname(domainName), {
+                    await WebsiteMonitor.ping(URL.fromString(websiteName), {
                         isOnlineCheckRequest: true,
                     })
                 )?.isOnline
