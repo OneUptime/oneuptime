@@ -755,7 +755,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     } as any,
                                 },
                                 sort: {
-                                    createdAt: SortOrder.Ascending,
+                                    createdAt: SortOrder.Descending,
                                 },
                                 skip: 0,
                                 limit: LIMIT_INFINITY, // This can be optimized.
@@ -763,6 +763,9 @@ export default class StatusPageAPI extends BaseAPI<
                                     isRoot: true,
                                 },
                             });
+
+                        monitorStatusTimelines =
+                            monitorStatusTimelines.reverse();
 
                         monitorStatusTimelines = monitorStatusTimelines.concat(
                             await MonitorStatusTimelineService.findBy({
@@ -783,7 +786,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     } as any,
                                 },
                                 sort: {
-                                    createdAt: SortOrder.Ascending,
+                                    createdAt: SortOrder.Descending,
                                 },
                                 skip: 0,
                                 limit: LIMIT_INFINITY, // This can be optimized.
@@ -792,6 +795,9 @@ export default class StatusPageAPI extends BaseAPI<
                                 },
                             })
                         );
+
+                        monitorStatusTimelines =
+                            monitorStatusTimelines.reverse();
                     }
 
                     // check if status page has active incident.
