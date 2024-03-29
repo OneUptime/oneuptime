@@ -168,7 +168,12 @@ router.post(
 
                 if (isPingCheckOffline) {
                     issue +=
-                        ' This probe cannot reach out to ping other servers / hostnames or IP addresses.';
+                        ' This probe cannot reach out to ping other servers / hostnames or IP addresses. ';
+                }
+
+                if (!isWebsiteCheckOffline && isPingCheckOffline) {
+                    issue +=
+                        'Looks like ICMP is blocked. We will fallback to port monitoring (on default port 80) to monitor the uptime of resources.';
                 }
 
                 // now send an email to all the emailsToNotify
