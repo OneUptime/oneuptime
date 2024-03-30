@@ -2,6 +2,8 @@ import URL from 'Common/Types/API/URL';
 import WebsiteMonitor from './Monitors/MonitorTypes/WebsiteMonitor';
 import PingMonitor from './Monitors/MonitorTypes/PingMonitor';
 import Hostname from 'Common/Types/API/Hostname';
+import PortMonitor from './Monitors/MonitorTypes/PortMonitor';
+import Port from 'Common/Types/Port';
 
 export default class OnlineCheck {
     // burn domain names into the code to see if this probe is online.
@@ -25,8 +27,6 @@ export default class OnlineCheck {
                 return true;
             }
         }
-
-        // TODO: Mail the team that the probe is offline.
 
         return false;
     }
@@ -52,7 +52,29 @@ export default class OnlineCheck {
             }
         }
 
-        // TODO: Mail the team that the probe is offline.
+        return false;
+    }
+
+    public static async canProbeMonitorPortMonitors(): Promise<boolean> {
+        const domains: Array<string> = [
+            'google.com',
+            'facebook.com',
+            'microsoft.com',
+            'youtube.com',
+            'apple.com',
+        ];
+
+        for (const domain of domains) {
+            if (
+                (
+                    await PortMonitor.ping(new Hostname(domain), new Port(80), {
+                        isOnlineCheckRequest: true,
+                    })
+                )?.isOnline
+            ) {
+                return true;
+            }
+        }
 
         return false;
     }

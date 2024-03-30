@@ -17,6 +17,7 @@ import Sleep from 'Common/Types/Sleep';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
 import OnlineCheck from '../Utils/OnlineCheck';
+import ProbeStatusReport from 'Common/Types/Probe/ProbeStatusReport';
 
 export default class Register {
     public static async reportIfOffline(): Promise<void> {
@@ -24,6 +25,8 @@ export default class Register {
             await OnlineCheck.canProbeMonitorPingMonitors();
         const websiteMonitoringCheck: boolean =
             await OnlineCheck.canProbeMonitorWebsiteMonitors();
+        const portMonitoringCheck: boolean =
+            await OnlineCheck.canProbeMonitorPortMonitors();
 
         if (!pingMonitoringCheck && websiteMonitoringCheck) {
             // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
@@ -46,6 +49,13 @@ export default class Register {
 
             // Send an email to the admin.
 
+            const stausReport: ProbeStatusReport = {
+                isPingCheckOffline: !pingMonitoringCheck,
+                isWebsiteCheckOffline: !websiteMonitoringCheck,
+                isPortCheckOffline: !portMonitoringCheck,
+                hostname: HOSTNAME,
+            };
+
             await API.fetch<JSONObject>(
                 HTTPMethod.POST,
                 URL.fromString(INGESTOR_URL.toString()).addRoute(
@@ -53,11 +63,7 @@ export default class Register {
                 ),
                 {
                     ...ProbeAPIRequest.getDefaultRequestBody(),
-                    statusReport: {
-                        isPingCheckOffline: !pingMonitoringCheck,
-                        isWebsiteCheckOffline: !websiteMonitoringCheck,
-                        hostname: HOSTNAME,
-                    },
+                    statusReport: stausReport as any,
                 },
                 {},
                 {}

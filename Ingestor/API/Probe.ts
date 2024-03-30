@@ -24,6 +24,7 @@ import User from 'Model/Models/User';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
+import ProbeStatusReport from 'Common/Types/Probe/ProbeStatusReport';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -37,9 +38,9 @@ router.post(
     ): Promise<void> => {
         try {
             const data: JSONObject = req.body;
-            const statusReport: JSONObject = JSONFunctions.deserialize(
-                (data as JSONObject)['statusReport'] as JSONObject
-            ) as JSONObject;
+            const statusReport: ProbeStatusReport = JSONFunctions.deserialize(
+                (data as JSONObject)['statusReport'] as any
+            ) as any;
 
             if (!statusReport) {
                 return Response.sendErrorResponse(
@@ -53,6 +54,7 @@ router.post(
 
             let isWebsiteCheckOffline: boolean = false;
             let isPingCheckOffline: boolean = false;
+            let isPortCheckOffline: boolean = false;
 
             if (statusReport['isWebsiteCheckOffline']) {
                 isWebsiteCheckOffline = statusReport[
@@ -66,7 +68,17 @@ router.post(
                 ] as boolean;
             }
 
-            if (isWebsiteCheckOffline || isPingCheckOffline) {
+            if (statusReport['isPortCheckOffline']) {
+                isPortCheckOffline = statusReport[
+                    'isPortCheckOffline'
+                ] as boolean;
+            }
+
+            if (
+                isWebsiteCheckOffline ||
+                isPingCheckOffline ||
+                isPortCheckOffline
+            ) {
                 // email probe owner.
                 const probeId: ObjectID = new ObjectID(
                     data['probeId'] as string
@@ -174,6 +186,10 @@ router.post(
                 if (!isWebsiteCheckOffline && isPingCheckOffline) {
                     issue +=
                         'Looks like ICMP is blocked. We will fallback to port monitoring (on default port 80) to monitor the uptime of resources.';
+                }
+
+                if (isPortCheckOffline) {
+                    issue += ' This probe cannot reach out to monitor ports.';
                 }
 
                 // now send an email to all the emailsToNotify
