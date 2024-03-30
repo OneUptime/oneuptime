@@ -16,7 +16,6 @@
     "dependencies": {
         "@babel/runtime": "^7.24.0",
         "@monaco-editor/react": "^4.4.6",
-        "@nivo/bar": "^0.85.1",
         "@nivo/core": "^0.85.1",
         "@nivo/line": "^0.85.1",
         "@opentelemetry/api": "^1.8.0",
