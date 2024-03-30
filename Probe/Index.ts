@@ -18,6 +18,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         try {
             // Register this probe.
             await Register.registerProbe();
+
+            logger.info('Probe registered');
+
+            await Register.reportIfOffline();
         } catch (err) {
             logger.error('Register probe failed');
             logger.error(err);

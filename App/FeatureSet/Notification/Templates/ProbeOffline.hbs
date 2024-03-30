@@ -1,0 +1,28 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="ACTION REQUIRED: OneUptime Probe cannot monitor your resources." }}
+
+{{> InfoBlock info="We have detected that the OneUptime Probe is offline and cannot monitor your resources. This may be due to a network issue, a firewall blocking the probe, or the probe being powered off. Please take the necessary steps to bring the probe back online." }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Probe Name: " text=probeName  }}
+{{> DetailBoxField title="Probe Description: " text=probeDescription  }}
+{{#if projectId}}
+{{> DetailBoxField title="Project ID: " text=projectId  }}
+{{else}}
+{{> DetailBoxField title="Global Probe: " text="This is a global probe."  }}
+{{/if}}
+{{> DetailBoxField title="Probe ID: " text=probeId  }}
+{{#if hostname}}
+{{> DetailBoxField title="Hostname: " text=hostname  }}
+{{/if}}
+{{> DetailBoxField title="Issue: " text=issue  }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info=emailReason }}
+
+{{> Footer this}}
+
+{{> End this}}

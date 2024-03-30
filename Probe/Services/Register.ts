@@ -1,5 +1,6 @@
 import API from 'Common/Utils/API';
 import {
+    HOSTNAME,
     INGESTOR_URL,
     PROBE_DESCRIPTION,
     PROBE_ID,
@@ -13,8 +14,63 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONObject } from 'Common/Types/JSON';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import Sleep from 'Common/Types/Sleep';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
+import OnlineCheck from '../Utils/OnlineCheck';
+import ProbeStatusReport from 'Common/Types/Probe/ProbeStatusReport';
 
 export default class Register {
+    public static async reportIfOffline(): Promise<void> {
+        const pingMonitoringCheck: boolean =
+            await OnlineCheck.canProbeMonitorPingMonitors();
+        const websiteMonitoringCheck: boolean =
+            await OnlineCheck.canProbeMonitorWebsiteMonitors();
+        const portMonitoringCheck: boolean =
+            await OnlineCheck.canProbeMonitorPortMonitors();
+
+        if (!pingMonitoringCheck && websiteMonitoringCheck) {
+            // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
+            logger.warn(
+                'Ping monitoring is on this machine. Fallback to port monitoring'
+            );
+            LocalCache.setString('PROBE', 'PING_MONITORING', 'PORT');
+        }
+
+        if (!pingMonitoringCheck || !websiteMonitoringCheck) {
+            // Send an email to the admin.
+
+            if (!pingMonitoringCheck) {
+                logger.error('Ping monitoring is disabled');
+            }
+
+            if (!websiteMonitoringCheck) {
+                logger.error('Website monitoring is disabled');
+            }
+
+            // Send an email to the admin.
+
+            const stausReport: ProbeStatusReport = {
+                isPingCheckOffline: !pingMonitoringCheck,
+                isWebsiteCheckOffline: !websiteMonitoringCheck,
+                isPortCheckOffline: !portMonitoringCheck,
+                hostname: HOSTNAME,
+            };
+
+            await API.fetch<JSONObject>(
+                HTTPMethod.POST,
+                URL.fromString(INGESTOR_URL.toString()).addRoute(
+                    '/probe/status-report/offline'
+                ),
+                {
+                    ...ProbeAPIRequest.getDefaultRequestBody(),
+                    statusReport: stausReport as any,
+                },
+                {},
+                {}
+            );
+        }
+    }
+
     public static async registerProbe(): Promise<void> {
         // register probe with 5 retry and 15 seocnd interval between each retry.
 

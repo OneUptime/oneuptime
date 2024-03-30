@@ -90,6 +90,42 @@ const Settings: FunctionComponent = (): ReactElement => {
             {/* Project Settings View  */}
 
             <CardModelDetail
+                name="Admin Notification Email"
+                cardProps={{
+                    title: 'Admin Notification Email',
+                    description:
+                        'Enter the email address where you would like to receive admin-level notifications.',
+                }}
+                isEditable={true}
+                editButtonText="Edit Email"
+                formFields={[
+                    {
+                        field: {
+                            adminNotificationEmail: true,
+                        },
+                        title: 'Admin Notification Email',
+                        fieldType: FormFieldSchemaType.Email,
+                        required: false,
+                    },
+                ]}
+                modelDetailProps={{
+                    modelType: GlobalConfig,
+                    id: 'model-detail-global-config',
+                    fields: [
+                        {
+                            field: {
+                                adminNotificationEmail: true,
+                            },
+                            title: 'Admin Notification Email',
+                            fieldType: FieldType.Email,
+                            placeholder: 'None',
+                        },
+                    ],
+                    modelId: ObjectID.getZeroObjectID(),
+                }}
+            />
+
+            <CardModelDetail
                 name="Internal SMTP Settings"
                 cardProps={{
                     title: 'Email Server Settings',

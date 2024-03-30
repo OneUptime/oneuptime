@@ -11,6 +11,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Port from 'Common/Types/Port';
 import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
 import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
+import OnlineCheck from '../../OnlineCheck';
 
 // TODO - make sure it  work for the IPV6
 export interface PortMonitorResponse {
@@ -28,73 +29,6 @@ export interface PingOptions {
 }
 
 export default class PortMonitor {
-    // burn domain names into the code to see if this probe is online.
-    public static async isProbeOnline(): Promise<boolean> {
-        if (
-            (
-                await PortMonitor.ping(
-                    new Hostname('google.com'),
-                    new Port(80),
-                    {
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PortMonitor.ping(
-                    new Hostname('facebook.com'),
-                    new Port(80),
-                    {
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PortMonitor.ping(
-                    new Hostname('microsoft.com'),
-                    new Port(80),
-                    {
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PortMonitor.ping(
-                    new Hostname('youtube.com'),
-                    new Port(80),
-                    {
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        } else if (
-            (
-                await PortMonitor.ping(
-                    new Hostname('apple.com'),
-                    new Port(80),
-                    {
-                        isOnlineCheckRequest: true,
-                    }
-                )
-            )?.isOnline
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
     public static async ping(
         host: Hostname | IPv4 | IPv6 | URL,
         port: Port,
@@ -249,7 +183,7 @@ export default class PortMonitor {
 
             // check if the probe is online.
             if (!pingOptions.isOnlineCheckRequest) {
-                if (!(await PortMonitor.isProbeOnline())) {
+                if (!(await OnlineCheck.canProbeMonitorPortMonitors())) {
                     logger.error(
                         `PortMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                     );

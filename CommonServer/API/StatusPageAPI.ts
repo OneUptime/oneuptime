@@ -15,7 +15,10 @@ import Response from '../Utils/Response';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageFooterLinkService from '../Services/StatusPageFooterLinkService';
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import {
+    LIMIT_INFINITY,
+    LIMIT_PER_PROJECT,
+} from 'Common/Types/Database/LimitMax';
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import StatusPageHeaderLinkService from '../Services/StatusPageHeaderLinkService';
 import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
@@ -752,14 +755,17 @@ export default class StatusPageAPI extends BaseAPI<
                                     } as any,
                                 },
                                 sort: {
-                                    createdAt: SortOrder.Ascending,
+                                    createdAt: SortOrder.Descending,
                                 },
                                 skip: 0,
-                                limit: LIMIT_MAX, // This can be optimized.
+                                limit: LIMIT_INFINITY, // This can be optimized.
                                 props: {
                                     isRoot: true,
                                 },
                             });
+
+                        monitorStatusTimelines =
+                            monitorStatusTimelines.reverse();
 
                         monitorStatusTimelines = monitorStatusTimelines.concat(
                             await MonitorStatusTimelineService.findBy({
@@ -780,15 +786,18 @@ export default class StatusPageAPI extends BaseAPI<
                                     } as any,
                                 },
                                 sort: {
-                                    createdAt: SortOrder.Ascending,
+                                    createdAt: SortOrder.Descending,
                                 },
                                 skip: 0,
-                                limit: LIMIT_MAX, // This can be optimized.
+                                limit: LIMIT_INFINITY, // This can be optimized.
                                 props: {
                                     isRoot: true,
                                 },
                             })
                         );
+
+                        monitorStatusTimelines =
+                            monitorStatusTimelines.reverse();
                     }
 
                     // check if status page has active incident.
