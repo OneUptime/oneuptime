@@ -36,7 +36,7 @@ export default class OneUptimeDate {
         return date.getTime() * 1000000;
     }
 
-    public static getLocalHourAndMinuteFromDate(date: Date): string {
+    public static getLocalHourAndMinuteFromDate(date: Date | string): string {
         date = this.fromString(date);
         return moment(date).format('HH:mm');
     }

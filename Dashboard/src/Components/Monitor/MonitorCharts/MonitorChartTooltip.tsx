@@ -18,7 +18,12 @@ export interface ComponentProps {
 const MonitorChartTooltip: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const formatAxisValue = (
+    type FormatAxisValueFunction = (
+        value: XValue | YValue,
+        type: AxisType
+    ) => string;
+
+    const formatAxisValue: FormatAxisValueFunction = (
         value: XValue | YValue,
         type: AxisType
     ): string => {
@@ -26,11 +31,11 @@ const MonitorChartTooltip: FunctionComponent<ComponentProps> = (
             return value.toFixed(2);
         }
 
-        if (value instanceof Date && type === AxisType.Date) {
+        if (type === AxisType.Date) {
             return OneUptimeDate.getDateAsLocalFormattedString(value);
         }
 
-        if (value instanceof Date && type === AxisType.Time) {
+        if (type === AxisType.Time) {
             return OneUptimeDate.getLocalHourAndMinuteFromDate(value);
         }
 

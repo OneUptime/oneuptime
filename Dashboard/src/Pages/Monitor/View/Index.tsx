@@ -214,6 +214,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         createdAt: true,
                         metricType: true,
                         metricValue: true,
+                        miscData: true,
                     },
                     sort: {
                         createdAt: SortOrder.Descending,

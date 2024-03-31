@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import { Point, ResponsiveLine } from '@nivo/line';
 import { Indigo500 } from 'Common/Types/BrandColors';
 import { CartesianMarkerProps } from '@nivo/core';
+import OneUptimeDate from 'Common/Types/Date';
 
 export type XValue = string | number | Date;
 export type YValue = number;
@@ -139,6 +140,21 @@ const LineChart: FunctionComponent<ComponentProps> = (
                 axisRight={null}
                 axisBottom={{
                     legend: props.axisBottom.legend,
+                    format: (value: XValue) => {
+                        if (props.axisBottom.type === AxisType.Date) {
+                            return OneUptimeDate.getDateAsLocalFormattedString(
+                                value as Date
+                            );
+                        }
+
+                        if (props.axisBottom.type === AxisType.Time) {
+                            return OneUptimeDate.getLocalHourAndMinuteFromDate(
+                                value as Date
+                            );
+                        }
+
+                        return value.toString();
+                    },
                 }}
                 useMesh={true}
                 axisLeft={{
@@ -155,7 +171,7 @@ const LineChart: FunctionComponent<ComponentProps> = (
                     }
 
                     return props.getHoverTooltip({
-                        points: data.slice.points.map((point) => {
+                        points: data.slice.points.map((point: Point) => {
                             return {
                                 x: point.data.x as XValue,
                                 y: point.data.y as YValue,
