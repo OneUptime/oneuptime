@@ -764,8 +764,6 @@ export default class StatusPageAPI extends BaseAPI<
                                 },
                             });
 
-                        
-
                         monitorStatusTimelines = monitorStatusTimelines.concat(
                             await MonitorStatusTimelineService.findBy({
                                 query: {
