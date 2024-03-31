@@ -18,6 +18,44 @@ export default class JSONFunctions {
         return Object.keys(obj).length === 0;
     }
 
+    public static isEqualObject(
+        obj1: JSONObject | undefined,
+        obj2: JSONObject | undefined
+    ): boolean {
+        // check if all the keys are the same
+
+        if (!obj1 && !obj2) {
+            return true;
+        }
+
+        if (!obj1 || !obj2) {
+            return false;
+        }
+
+        const keys1: Array<string> = Object.keys(obj1);
+        const keys2: Array<string> = Object.keys(obj2);
+
+        if (keys1.length !== keys2.length) {
+            return false;
+        }
+
+        for (const key of keys1) {
+            if (!keys2.includes(key)) {
+                return false;
+            }
+        }
+
+        // check if all the values are the same
+
+        for (const key of keys1) {
+            if (obj1[key] !== obj2[key]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static toCompressedString(val: JSONValue): string {
         return JSON.stringify(val, null, 2);
     }

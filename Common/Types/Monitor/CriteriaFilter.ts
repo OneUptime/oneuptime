@@ -1,3 +1,5 @@
+import MonitorType from './MonitorType';
+
 export enum CheckOn {
     ResponseTime = 'Response Time (in ms)',
     ResponseStatusCode = 'Response Status Code',
@@ -88,5 +90,29 @@ export class CriteriaFilterUtil {
             checkOn === CheckOn.CPUUsagePercent ||
             checkOn === CheckOn.MemoryUsagePercent
         );
+    }
+
+    public static getTimeFiltersByMonitorType(
+        monitorType: MonitorType
+    ): Array<CheckOn> {
+        if (
+            monitorType === MonitorType.API ||
+            monitorType === MonitorType.Website
+        ) {
+            return [CheckOn.ResponseStatusCode, CheckOn.ResponseTime];
+        } else if (
+            monitorType === MonitorType.Ping ||
+            monitorType === MonitorType.IP ||
+            monitorType === MonitorType.Port
+        ) {
+            return [CheckOn.ResponseTime];
+        } else if (monitorType === MonitorType.Server) {
+            return [
+                CheckOn.DiskUsagePercent,
+                CheckOn.CPUUsagePercent,
+                CheckOn.MemoryUsagePercent,
+            ];
+        }
+        return [];
     }
 }

@@ -38,6 +38,20 @@ import ProjectUtil from 'CommonUI/src/Utils/Project';
 import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
+import ChartGroup, {
+    Chart,
+    ChartGroupInterval,
+} from 'CommonUI/src/Components/Charts/ChartGroup/ChartGroup';
+import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
+import AnalyticsModelAPI, {
+    ListResult as AnalyticsListResult,
+} from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
+import {
+    CheckOn,
+    CriteriaFilterUtil,
+} from 'Common/Types/Monitor/CriteriaFilter';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { MonitorCharts } from '../../../Components/Monitor/MonitorCharts/MonitorChart';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -61,6 +75,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
         undefined
     );
+
+    const [monitorMetricsByMinute, setMonitorMetricsByMinute] = useState<
+        Array<MonitorMetricsByMinute>
+    >([]);
+
+    const [shouldFetchMonitorMetrics, setShouldFetchMonitorMetrics] =
+        useState<boolean>(false);
 
     const [monitor, setMonitor] = useState<Monitor | null>(null);
 
@@ -161,10 +182,44 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     },
                 });
 
+            let monitorMetricsByMinute: AnalyticsListResult<MonitorMetricsByMinute> =
+                {
+                    data: [],
+                    count: 0,
+                    limit: 0,
+                    skip: 0,
+                };
+
             if (!item) {
                 setError(`Monitor not found`);
-
                 return;
+            }
+
+            const shouldFetchMonitorMetrics: boolean =
+                CriteriaFilterUtil.getTimeFiltersByMonitorType(
+                    item.monitorType!
+                ).length > 0;
+
+            setShouldFetchMonitorMetrics(shouldFetchMonitorMetrics);
+
+            if (shouldFetchMonitorMetrics) {
+                monitorMetricsByMinute = await AnalyticsModelAPI.getList({
+                    query: {
+                        monitorId: modelId,
+                    },
+                    modelType: MonitorMetricsByMinute,
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                        createdAt: true,
+                        metricType: true,
+                        metricValue: true,
+                        miscData: true,
+                    },
+                    sort: {
+                        createdAt: SortOrder.Descending,
+                    },
+                });
             }
 
             setMonitorType(item.monitorType);
@@ -175,12 +230,39 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 })
             );
             setStatusTimelines(monitorStatus.data);
+            setMonitorMetricsByMinute(monitorMetricsByMinute.data.reverse());
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
 
         setIsLoading(false);
     };
+
+    const getMonitorMetricsChartGroup: GetReactElementFunction =
+        (): ReactElement => {
+            if (isLoading) {
+                return <></>;
+            }
+
+            if (!shouldFetchMonitorMetrics) {
+                return <></>;
+            }
+
+            const chartsByDataType: Array<CheckOn> =
+                CriteriaFilterUtil.getTimeFiltersByMonitorType(monitorType!);
+
+            const charts: Array<Chart> = MonitorCharts.getMonitorCharts({
+                monitorMetricsByMinute: monitorMetricsByMinute,
+                checkOns: chartsByDataType,
+            });
+
+            return (
+                <ChartGroup
+                    interval={ChartGroupInterval.ONE_HOUR}
+                    charts={charts}
+                />
+            );
+        };
 
     return (
         <Fragment>
@@ -390,6 +472,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>
+
+            {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}
         </Fragment>
     );
 };
