@@ -439,7 +439,10 @@ export default class ProbeMonitorResponseService {
                 itemsToSave.push(monitorMetricsByMinute);
             }
 
-            if (basicMetrics.diskMetrics) {
+            if (
+                basicMetrics.diskMetrics &&
+                basicMetrics.diskMetrics.length > 0
+            ) {
                 for (const diskMetric of basicMetrics.diskMetrics) {
                     const monitorMetricsByMinute: MonitorMetricsByMinute =
                         new MonitorMetricsByMinute();
