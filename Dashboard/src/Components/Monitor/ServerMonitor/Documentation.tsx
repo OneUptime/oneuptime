@@ -31,7 +31,7 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
 curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install-linux.sh | bash 
 
 # Run the agent
-oneuptime-infrastructure-agent@${VERSION.toString()} --secret-key=${props.secretKey.toString()} ${
+oneuptime-infrastructure-agent --secret-key=${props.secretKey.toString()} ${
                                 showHost ? '--oneuptime-url=' + host : ''
                             }
 
