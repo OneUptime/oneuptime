@@ -237,6 +237,15 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                     },
                 },
                 {
+                    name: 'VM or Server Monitoring',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
                     name: 'Container Monitoring',
                     plans: {
                         free: 'Coming Soon',
@@ -246,15 +255,6 @@ app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
                     },
                 },
 
-                {
-                    name: 'VM or Server Monitoring',
-                    plans: {
-                        free: 'Coming Soon',
-                        growth: 'Coming Soon',
-                        scale: 'Coming Soon',
-                        enterprise: 'Coming Soon',
-                    },
-                },
                 {
                     name: 'Network Monitoring',
                     plans: {
