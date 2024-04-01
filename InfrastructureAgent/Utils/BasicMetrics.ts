@@ -5,7 +5,9 @@ import BasicInfrastructureMetrics, {
     CPUMetrics,
     MemoryMetrics,
 } from '../Types/BasicMetrics';
-import drivelist from 'drivelist';
+
+// This is a workaround for a bug in the type definitions of the drivelist package. import does not work.
+const drivelist: any = require('drivelist');
 
 export class BasicMetircs {
     public static async getBasicMetrics(): Promise<BasicInfrastructureMetrics> {
@@ -23,7 +25,7 @@ export class BasicMetircs {
     }
 
     public static async getDiskPaths(): Promise<Array<string>> {
-        const drives: Array<drivelist.Drive> = await drivelist.list();
+        const drives: Array<any> = await drivelist.list();
 
         const mountPoints: Array<string> = [];
 
@@ -33,7 +35,8 @@ export class BasicMetircs {
             }
         }
 
-        return mountPoints;
+        // remove duplicates
+        return Array.from(new Set(mountPoints));
     }
 
     public static async getDiskUsage(
