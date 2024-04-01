@@ -399,6 +399,8 @@ export default class ProbeMonitorResponseService {
             return;
         }
 
+        const itemsToSave: Array<MonitorMetricsByMinute> = [];
+
         if (
             (data.dataToProcess as ServerMonitorResponse)
                 .basicInfrastructureMetrics
@@ -413,7 +415,7 @@ export default class ProbeMonitorResponseService {
                 return;
             }
 
-            const itemsToSave: Array<MonitorMetricsByMinute> = [];
+            
 
             if (basicMetrics.cpuMetrics) {
                 const monitorMetricsByMinute: MonitorMetricsByMinute =
@@ -459,12 +461,7 @@ export default class ProbeMonitorResponseService {
                 }
             }
 
-            await MonitorMetricsByMinuteService.createMany({
-                items: itemsToSave,
-                props: {
-                    isRoot: true,
-                },
-            });
+           
         }
 
         if ((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs) {
@@ -477,12 +474,7 @@ export default class ProbeMonitorResponseService {
                 data.dataToProcess as ProbeMonitorResponse
             ).responseTimeInMs;
 
-            await MonitorMetricsByMinuteService.create({
-                data: monitorMetricsByMinute,
-                props: {
-                    isRoot: true,
-                },
-            });
+            itemsToSave.push(monitorMetricsByMinute);   
         }
 
         if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
@@ -495,13 +487,16 @@ export default class ProbeMonitorResponseService {
                 data.dataToProcess as ProbeMonitorResponse
             ).responseCode;
 
-            await MonitorMetricsByMinuteService.create({
-                data: monitorMetricsByMinute,
-                props: {
-                    isRoot: true,
-                },
-            });
+            itemsToSave.push(monitorMetricsByMinute);
         }
+
+
+        await MonitorMetricsByMinuteService.createMany({
+            items: itemsToSave,
+            props: {
+                isRoot: true,
+            },
+        });
     }
 
     private static async checkOpenIncidentsAndCloseIfResolved(input: {
