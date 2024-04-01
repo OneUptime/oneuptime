@@ -1,8 +1,10 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import { Point, ResponsiveLine } from '@nivo/line';
-import { Indigo500 } from 'Common/Types/BrandColors';
-import { CartesianMarkerProps } from '@nivo/core';
+import { ChartColors } from 'Common/Types/BrandColors';
+import { Box, CartesianMarkerProps } from '@nivo/core';
 import OneUptimeDate from 'Common/Types/Date';
+import Color from 'Common/Types/Color';
+import { LegendProps } from '@nivo/legends';
 
 export type XValue = string | number | Date;
 export type YValue = number;
@@ -44,7 +46,7 @@ export interface XScale {
 }
 
 export interface LineChartData {
-    id: string;
+    seriesName: string;
     data: Array<LineChartDataItem>;
 }
 
@@ -110,10 +112,52 @@ const LineChart: FunctionComponent<ComponentProps> = (
         });
     }
 
+    let legends: Array<LegendProps> = [];
+
+    const showLegends: boolean = props.data.length > 1;
+
+    const margin: Box = { bottom: 60, left: 60, top: 20 };
+
+    if (showLegends) {
+        margin.right = 200;
+
+        legends = [
+            {
+                anchor: 'bottom-right',
+                direction: 'column',
+                justify: false,
+                translateX: 100,
+                translateY: 0,
+                itemsSpacing: 0,
+                itemDirection: 'left-to-right',
+                itemWidth: 80,
+                itemHeight: 20,
+                itemOpacity: 0.75,
+                symbolSize: 12,
+                symbolShape: 'circle',
+                symbolBorderColor: 'rgba(0, 0, 0, .5)',
+                effects: [
+                    {
+                        on: 'hover',
+                        style: {
+                            itemBackground: 'rgba(0, 0, 0, .03)',
+                            itemOpacity: 1,
+                        },
+                    },
+                ],
+            },
+        ];
+    }
+
     return (
         <div className="h-96 w-full">
             <ResponsiveLine
-                data={props.data}
+                data={props.data.map((series: LineChartData) => {
+                    return {
+                        id: series.seriesName,
+                        data: series.data,
+                    };
+                })}
                 onMouseMove={(data: Point) => {
                     if (props.onHoverXAxis) {
                         const xValue: XValue = (
@@ -122,7 +166,7 @@ const LineChart: FunctionComponent<ComponentProps> = (
                         props.onHoverXAxis(xValue);
                     }
                 }}
-                margin={{ bottom: 60, left: 60, top: 20 }}
+                margin={margin}
                 curve={props.curve || ChartCurve.LINEAR}
                 markers={markers}
                 xScale={{
@@ -179,7 +223,10 @@ const LineChart: FunctionComponent<ComponentProps> = (
                         }),
                     });
                 }}
-                colors={[Indigo500.toString()]} // Set the line color to purple
+                colors={ChartColors.map((item: Color) => {
+                    return item.toString();
+                })}
+                legends={legends}
             />
         </div>
     );

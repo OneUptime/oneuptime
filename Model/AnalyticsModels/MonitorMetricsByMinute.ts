@@ -8,6 +8,11 @@ import Permission from 'Common/Types/Permission';
 import { JSONObject } from 'Common/Types/JSON';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
 
+export interface MonitorMetricsMiscData {
+    diskPath?: string;
+    probeId?: string;
+}
+
 export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
     public constructor() {
         super({
@@ -156,11 +161,13 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
         this.setColumnValue('metricValue', v);
     }
 
-    public get miscData(): JSONObject | undefined {
-        return this.getColumnValue('miscData') as JSONObject | undefined;
+    public get miscData(): MonitorMetricsMiscData | undefined {
+        return this.getColumnValue('miscData') as
+            | MonitorMetricsMiscData
+            | undefined;
     }
 
-    public set miscData(v: JSONObject | undefined) {
-        this.setColumnValue('miscData', v);
+    public set miscData(v: MonitorMetricsMiscData | undefined) {
+        this.setColumnValue('miscData', v as JSONObject);
     }
 }

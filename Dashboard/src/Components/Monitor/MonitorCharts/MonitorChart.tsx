@@ -18,23 +18,29 @@ import {
     YScale,
     YScaleType,
 } from 'CommonUI/src/Components/Charts/Line/LineChart';
-import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
+import MonitorMetricsByMinute, {
+    MonitorMetricsMiscData,
+} from 'Model/AnalyticsModels/MonitorMetricsByMinute';
 import MonitorChartTooltip from './MonitorChartTooltip';
-import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Text from 'Common/Types/Text';
+import Probe from 'Model/Models/Probe';
+import { JSONObject } from 'Common/Types/JSON';
 
 export class MonitorCharts {
     public static getDataForCharts(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOn: CheckOn;
-        miscData: JSONObject | undefined;
+        miscData: MonitorMetricsMiscData | undefined;
     }): Array<LineChartDataItem> {
         return data.monitorMetricsByMinute
             .filter((item: MonitorMetricsByMinute) => {
                 return (
                     item.metricType === data.checkOn &&
-                    JSONFunctions.isEqualObject(item.miscData, data.miscData)
+                    JSONFunctions.isEqualObject(
+                        item.miscData as JSONObject,
+                        data.miscData as JSONObject
+                    )
                 );
             })
             .map((item: MonitorMetricsByMinute) => {
@@ -48,8 +54,8 @@ export class MonitorCharts {
     public static getDistinctMiscDataFromMonitorMetricsByMinute(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOn: CheckOn;
-    }): Array<JSONObject> {
-        const miscData: Array<JSONObject | undefined> =
+    }): Array<MonitorMetricsMiscData> {
+        const miscData: Array<MonitorMetricsMiscData | undefined> =
             data.monitorMetricsByMinute
                 .filter((item: MonitorMetricsByMinute) => {
                     return item.metricType === data.checkOn;
@@ -61,31 +67,68 @@ export class MonitorCharts {
         return miscData
             .filter(
                 (
-                    value: JSONObject | undefined,
+                    value: MonitorMetricsMiscData | undefined,
                     index: number,
-                    self: Array<JSONObject | undefined>
+                    self: Array<MonitorMetricsMiscData | undefined>
                 ) => {
                     return (
-                        self.findIndex((t: JSONObject | undefined) => {
-                            return JSONFunctions.isEqualObject(t, value);
-                        }) === index
+                        self.findIndex(
+                            (t: MonitorMetricsMiscData | undefined) => {
+                                return JSONFunctions.isEqualObject(
+                                    t as JSONObject,
+                                    value as JSONObject
+                                );
+                            }
+                        ) === index
                     );
                 }
             )
-            .filter((item: JSONObject | undefined) => {
+            .filter((item: MonitorMetricsMiscData | undefined) => {
                 return Boolean(item);
-            }) as Array<JSONObject>;
+            }) as Array<MonitorMetricsMiscData>;
+    }
+
+    public static getSeriesName(data: {
+        checkOn: CheckOn;
+        miscData: MonitorMetricsMiscData | undefined;
+        probes: Array<Probe>;
+    }): string {
+        if (data.miscData) {
+            if (data.miscData.diskPath) {
+                return data.miscData.diskPath;
+            }
+
+            if (data.miscData.probeId) {
+                const probe: Probe | undefined = data.probes.find((probe: Probe) => {
+                    return (
+                        probe._id?.toString() ===
+                        data.miscData?.probeId?.toString()
+                    );
+                });
+
+                if (probe) {
+                    return probe.name || 'Probe';
+                }
+            }
+        }
+
+        return data.checkOn;
     }
 
     public static getChartData(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOn: CheckOn;
-        miscData: JSONObject | undefined;
+        miscData: MonitorMetricsMiscData | undefined;
+        probes?: Array<Probe>;
     }): LineChartData {
         const { monitorMetricsByMinute, checkOn } = data;
 
         return {
-            id: `line-${Text.generateRandomNumber()}`,
+            seriesName: this.getSeriesName({
+                checkOn: checkOn,
+                miscData: data.miscData,
+                probes: data.probes || [],
+            }),
             data: MonitorCharts.getDataForCharts({
                 monitorMetricsByMinute,
                 checkOn: checkOn,
@@ -97,7 +140,8 @@ export class MonitorCharts {
     public static getChartProps(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOn: CheckOn;
-        miscData: Array<JSONObject> | undefined;
+        miscData: Array<MonitorMetricsMiscData> | undefined;
+        probes: Array<Probe>;
     }): Chart {
         const { monitorMetricsByMinute, checkOn } = data;
 
@@ -125,6 +169,7 @@ export class MonitorCharts {
                     monitorMetricsByMinute,
                     checkOn,
                     miscData: miscData,
+                    probes: data.probes,
                 })
             );
         }
@@ -174,17 +219,18 @@ export class MonitorCharts {
     public static getMonitorCharts(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOns: Array<CheckOn>;
+        probes: Array<Probe>;
     }): Array<Chart> {
         const { monitorMetricsByMinute, checkOns } = data;
 
         const charts: Array<Chart> = [];
 
         for (const checkOn of checkOns) {
-            const distinctMiscData: Array<JSONObject> =
+            const distinctMiscData: Array<MonitorMetricsMiscData> =
                 MonitorCharts.getDistinctMiscDataFromMonitorMetricsByMinute({
                     monitorMetricsByMinute,
                     checkOn,
-                }).filter((item: JSONObject | undefined) => {
+                }).filter((item: MonitorMetricsMiscData | undefined) => {
                     return Boolean(item);
                 });
 
@@ -194,6 +240,7 @@ export class MonitorCharts {
                         monitorMetricsByMinute,
                         checkOn,
                         miscData: distinctMiscData,
+                        probes: data.probes,
                     })
                 );
             } else {
@@ -202,6 +249,7 @@ export class MonitorCharts {
                         monitorMetricsByMinute,
                         checkOn,
                         miscData: undefined,
+                        probes: data.probes,
                     })
                 );
             }

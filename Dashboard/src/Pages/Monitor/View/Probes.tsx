@@ -12,7 +12,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -23,9 +23,6 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import URL from 'Common/Types/API/URL';
-import { APP_API_URL } from 'CommonUI/src/Config';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
@@ -34,6 +31,7 @@ import useAsyncEffect from 'use-async-effect';
 import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ProbeUtil from '../../../Utils/Probe';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -67,38 +65,9 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 return;
             }
 
-            const projectProbeList: ListResult<Probe> = await ModelAPI.getList({
-                modelType: Probe,
-                query: {
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                    name: true,
-                    _id: true,
-                },
-                sort: {},
-            });
+            const probes: Array<Probe> = await ProbeUtil.getAllProbes();
 
-            const globalProbeList: ListResult<Probe> = await ModelAPI.getList({
-                modelType: Probe,
-                query: {},
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                    name: true,
-                    _id: true,
-                },
-                sort: {},
-                requestOptions: {
-                    overrideRequestUrl: URL.fromString(
-                        APP_API_URL.toString()
-                    ).addRoute('/probe/global-probes'),
-                },
-            });
-
-            setProbes([...projectProbeList.data, ...globalProbeList.data]);
+            setProbes(probes);
             setMonitorType(item.monitorType);
         } catch (err) {
             setError(API.getFriendlyMessage(err));

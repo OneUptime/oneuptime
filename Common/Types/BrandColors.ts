@@ -18,6 +18,17 @@ export const Moroon: Color = Color.fromString('#b70400');
 export const Blue: Color = Color.fromString('#3686be');
 export const Indigo500: Color = Color.fromString('#6366f1');
 
+export const ChartColors: Color[] = [
+    Indigo500,
+    Green,
+    Red,
+    Cyan,
+    Pink,
+    Orange,
+    Purple,
+    Yellow,
+];
+
 export const EventColorList: Color[] = [
     Color.fromString('#d50000'),
     Color.fromString('#e67c73'),

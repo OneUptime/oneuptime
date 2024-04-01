@@ -52,6 +52,10 @@ import {
 } from 'Common/Types/Monitor/CriteriaFilter';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { MonitorCharts } from '../../../Components/Monitor/MonitorCharts/MonitorChart';
+import Probe from 'Model/Models/Probe';
+import ProbeUtil from '../../../Utils/Probe';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -84,6 +88,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
         useState<boolean>(false);
 
     const [monitor, setMonitor] = useState<Monitor | null>(null);
+
+    const [probes, setProbes] = useState<Array<Probe>>([]);
 
     const getUptimePercent: () => ReactElement = (): ReactElement => {
         if (isLoading) {
@@ -231,6 +237,18 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             );
             setStatusTimelines(monitorStatus.data);
             setMonitorMetricsByMinute(monitorMetricsByMinute.data.reverse());
+
+            const isMonitoredByProbe: boolean =
+                item.monitorType === MonitorType.Ping ||
+                item.monitorType === MonitorType.IP ||
+                item.monitorType === MonitorType.Website ||
+                item.monitorType === MonitorType.API;
+
+            if (isMonitoredByProbe) {
+                // get a list of probes
+                const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+                setProbes(probes);
+            }
         } catch (err) {
             setError(API.getFriendlyMessage(err));
         }
@@ -254,6 +272,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             const charts: Array<Chart> = MonitorCharts.getMonitorCharts({
                 monitorMetricsByMinute: monitorMetricsByMinute,
                 checkOns: chartsByDataType,
+                probes: probes,
             });
 
             return (
@@ -263,6 +282,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 />
             );
         };
+
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
+    }
+
+    if (error) {
+        return <ErrorMessage error={error} />;
+    }
 
     return (
         <Fragment>
