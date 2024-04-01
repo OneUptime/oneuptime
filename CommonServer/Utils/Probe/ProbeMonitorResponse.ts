@@ -415,8 +415,6 @@ export default class ProbeMonitorResponseService {
                 return;
             }
 
-            
-
             if (basicMetrics.cpuMetrics) {
                 const monitorMetricsByMinute: MonitorMetricsByMinute =
                     new MonitorMetricsByMinute();
@@ -460,8 +458,6 @@ export default class ProbeMonitorResponseService {
                     itemsToSave.push(monitorMetricsByMinute);
                 }
             }
-
-           
         }
 
         if ((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs) {
@@ -474,7 +470,7 @@ export default class ProbeMonitorResponseService {
                 data.dataToProcess as ProbeMonitorResponse
             ).responseTimeInMs;
 
-            itemsToSave.push(monitorMetricsByMinute);   
+            itemsToSave.push(monitorMetricsByMinute);
         }
 
         if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
@@ -489,7 +485,6 @@ export default class ProbeMonitorResponseService {
 
             itemsToSave.push(monitorMetricsByMinute);
         }
-
 
         await MonitorMetricsByMinuteService.createMany({
             items: itemsToSave,
