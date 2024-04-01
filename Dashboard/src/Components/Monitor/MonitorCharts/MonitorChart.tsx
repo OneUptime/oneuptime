@@ -99,12 +99,14 @@ export class MonitorCharts {
             }
 
             if (data.miscData.probeId) {
-                const probe: Probe | undefined = data.probes.find((probe: Probe) => {
-                    return (
-                        probe._id?.toString() ===
-                        data.miscData?.probeId?.toString()
-                    );
-                });
+                const probe: Probe | undefined = data.probes.find(
+                    (probe: Probe) => {
+                        return (
+                            probe._id?.toString() ===
+                            data.miscData?.probeId?.toString()
+                        );
+                    }
+                );
 
                 if (probe) {
                     return probe.name || 'Probe';
