@@ -469,6 +469,9 @@ export default class ProbeMonitorResponseService {
             monitorMetricsByMinute.metricValue = (
                 data.dataToProcess as ProbeMonitorResponse
             ).responseTimeInMs;
+            monitorMetricsByMinute.miscData = {
+                probeId: (data.dataToProcess as ProbeMonitorResponse).probeId,
+            };
 
             itemsToSave.push(monitorMetricsByMinute);
         }
@@ -482,6 +485,9 @@ export default class ProbeMonitorResponseService {
             monitorMetricsByMinute.metricValue = (
                 data.dataToProcess as ProbeMonitorResponse
             ).responseCode;
+            monitorMetricsByMinute.miscData = {
+                probeId: (data.dataToProcess as ProbeMonitorResponse).probeId,
+            };
 
             itemsToSave.push(monitorMetricsByMinute);
         }
