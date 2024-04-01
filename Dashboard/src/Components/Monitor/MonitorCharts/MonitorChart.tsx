@@ -58,21 +58,23 @@ export class MonitorCharts {
                     return item.miscData || undefined;
                 });
 
-        return miscData.filter(
-            (
-                value: JSONObject | undefined,
-                index: number,
-                self: Array<JSONObject | undefined>
-            ) => {
-                return (
-                    self.findIndex((t: JSONObject | undefined) => {
-                        return JSONFunctions.isEqualObject(t, value);
-                    }) === index
-                );
-            }
-        ).filter((item: JSONObject | undefined) => {
-            return !!item;
-        }) as Array<JSONObject>;
+        return miscData
+            .filter(
+                (
+                    value: JSONObject | undefined,
+                    index: number,
+                    self: Array<JSONObject | undefined>
+                ) => {
+                    return (
+                        self.findIndex((t: JSONObject | undefined) => {
+                            return JSONFunctions.isEqualObject(t, value);
+                        }) === index
+                    );
+                }
+            )
+            .filter((item: JSONObject | undefined) => {
+                return Boolean(item);
+            }) as Array<JSONObject>;
     }
 
     public static getChartData(data: {
@@ -80,7 +82,6 @@ export class MonitorCharts {
         checkOn: CheckOn;
         miscData: JSONObject | undefined;
     }): LineChartData {
-
         const { monitorMetricsByMinute, checkOn } = data;
 
         return {
@@ -90,8 +91,7 @@ export class MonitorCharts {
                 checkOn: checkOn,
                 miscData: data.miscData,
             }),
-        }
-
+        };
     }
 
     public static getChartProps(data: {
@@ -109,28 +109,31 @@ export class MonitorCharts {
 
         const chartData: Array<LineChartData> = [];
 
-        if(!data.miscData) {
-            chartData.push(MonitorCharts.getChartData({
-                monitorMetricsByMinute,
-                checkOn,
-                miscData: undefined,
-            }));
+        if (!data.miscData) {
+            chartData.push(
+                MonitorCharts.getChartData({
+                    monitorMetricsByMinute,
+                    checkOn,
+                    miscData: undefined,
+                })
+            );
         }
 
-
         for (const miscData of data.miscData || []) {
-            chartData.push(MonitorCharts.getChartData({
-                monitorMetricsByMinute,
-                checkOn,
-                miscData: miscData,
-            }));
+            chartData.push(
+                MonitorCharts.getChartData({
+                    monitorMetricsByMinute,
+                    checkOn,
+                    miscData: miscData,
+                })
+            );
         }
 
         return {
             id: `chart-${Text.generateRandomNumber()}`,
             type: ChartType.LINE,
             title: MonitorCharts.getChartTitle({
-                checkOn: checkOn
+                checkOn: checkOn,
             }),
             description: MonitorCharts.getChartDescription({
                 checkOn: checkOn,
@@ -182,7 +185,7 @@ export class MonitorCharts {
                     monitorMetricsByMinute,
                     checkOn,
                 }).filter((item: JSONObject | undefined) => {
-                    return !!item;
+                    return Boolean(item);
                 });
 
             if (distinctMiscData.length > 0) {
@@ -237,9 +240,7 @@ export class MonitorCharts {
         return ChartCurve.LINEAR;
     }
 
-    public static getChartTitle(data: {
-        checkOn: CheckOn;
-    }): string {
+    public static getChartTitle(data: { checkOn: CheckOn }): string {
         return data.checkOn;
     }
 

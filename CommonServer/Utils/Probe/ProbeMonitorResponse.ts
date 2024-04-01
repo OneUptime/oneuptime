@@ -470,7 +470,9 @@ export default class ProbeMonitorResponseService {
                 data.dataToProcess as ProbeMonitorResponse
             ).responseTimeInMs;
             monitorMetricsByMinute.miscData = {
-                probeId: (data.dataToProcess as ProbeMonitorResponse).probeId.toString(),
+                probeId: (
+                    data.dataToProcess as ProbeMonitorResponse
+                ).probeId.toString(),
             };
 
             itemsToSave.push(monitorMetricsByMinute);
@@ -486,7 +488,9 @@ export default class ProbeMonitorResponseService {
                 data.dataToProcess as ProbeMonitorResponse
             ).responseCode;
             monitorMetricsByMinute.miscData = {
-                probeId: (data.dataToProcess as ProbeMonitorResponse).probeId.toString(),
+                probeId: (
+                    data.dataToProcess as ProbeMonitorResponse
+                ).probeId.toString(),
             };
 
             itemsToSave.push(monitorMetricsByMinute);
