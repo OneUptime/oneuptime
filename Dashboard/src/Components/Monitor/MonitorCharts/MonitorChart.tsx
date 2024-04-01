@@ -9,6 +9,7 @@ import {
     AxisLeft,
     AxisType,
     ChartCurve,
+    LineChartData,
     LineChartDataItem,
     LineChartPoint,
     XScale,
@@ -47,7 +48,7 @@ export class MonitorCharts {
     public static getDistinctMiscDataFromMonitorMetricsByMinute(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOn: CheckOn;
-    }): Array<JSONObject | undefined> {
+    }): Array<JSONObject> {
         const miscData: Array<JSONObject | undefined> =
             data.monitorMetricsByMinute
                 .filter((item: MonitorMetricsByMinute) => {
@@ -69,13 +70,34 @@ export class MonitorCharts {
                     }) === index
                 );
             }
-        );
+        ).filter((item: JSONObject | undefined) => {
+            return !!item;
+        }) as Array<JSONObject>;
+    }
+
+    public static getChartData(data: {
+        monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
+        checkOn: CheckOn;
+        miscData: JSONObject | undefined;
+    }): LineChartData {
+
+        const { monitorMetricsByMinute, checkOn } = data;
+
+        return {
+            id: `line-${Text.generateRandomNumber()}`,
+            data: MonitorCharts.getDataForCharts({
+                monitorMetricsByMinute,
+                checkOn: checkOn,
+                miscData: data.miscData,
+            }),
+        }
+
     }
 
     public static getChartProps(data: {
         monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
         checkOn: CheckOn;
-        miscData: JSONObject | undefined;
+        miscData: Array<JSONObject> | undefined;
     }): Chart {
         const { monitorMetricsByMinute, checkOn } = data;
 
@@ -85,27 +107,36 @@ export class MonitorCharts {
             checkOn: checkOn,
         });
 
+        const chartData: Array<LineChartData> = [];
+
+        if(!data.miscData) {
+            chartData.push(MonitorCharts.getChartData({
+                monitorMetricsByMinute,
+                checkOn,
+                miscData: undefined,
+            }));
+        }
+
+
+        for (const miscData of data.miscData || []) {
+            chartData.push(MonitorCharts.getChartData({
+                monitorMetricsByMinute,
+                checkOn,
+                miscData: miscData,
+            }));
+        }
+
         return {
             id: `chart-${Text.generateRandomNumber()}`,
             type: ChartType.LINE,
             title: MonitorCharts.getChartTitle({
-                checkOn: checkOn,
-                miscData: data.miscData,
+                checkOn: checkOn
             }),
             description: MonitorCharts.getChartDescription({
                 checkOn: checkOn,
             }),
             props: {
-                data: [
-                    {
-                        id: `line-${Text.generateRandomNumber()}`,
-                        data: MonitorCharts.getDataForCharts({
-                            monitorMetricsByMinute,
-                            checkOn: checkOn,
-                            miscData: data.miscData,
-                        }),
-                    },
-                ],
+                data: chartData,
                 xScale: MonitorCharts.getXScaleFor({
                     monitorMetricsByMinute,
                 }),
@@ -146,22 +177,22 @@ export class MonitorCharts {
         const charts: Array<Chart> = [];
 
         for (const checkOn of checkOns) {
-            const distinctMiscData: Array<JSONObject | undefined> =
+            const distinctMiscData: Array<JSONObject> =
                 MonitorCharts.getDistinctMiscDataFromMonitorMetricsByMinute({
                     monitorMetricsByMinute,
                     checkOn,
+                }).filter((item: JSONObject | undefined) => {
+                    return !!item;
                 });
 
             if (distinctMiscData.length > 0) {
-                for (const miscData of distinctMiscData) {
-                    charts.push(
-                        MonitorCharts.getChartProps({
-                            monitorMetricsByMinute,
-                            checkOn,
-                            miscData,
-                        })
-                    );
-                }
+                charts.push(
+                    MonitorCharts.getChartProps({
+                        monitorMetricsByMinute,
+                        checkOn,
+                        miscData: distinctMiscData,
+                    })
+                );
             } else {
                 charts.push(
                     MonitorCharts.getChartProps({
@@ -208,15 +239,7 @@ export class MonitorCharts {
 
     public static getChartTitle(data: {
         checkOn: CheckOn;
-        miscData: JSONObject | undefined;
     }): string {
-        if (data.checkOn === CheckOn.DiskUsagePercent) {
-            return (
-                'Disk Usage (in %)' +
-                (data.miscData ? ` for ${data.miscData['diskPath']}` : '')
-            );
-        }
-
         return data.checkOn;
     }
 
