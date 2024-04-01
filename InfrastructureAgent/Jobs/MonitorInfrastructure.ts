@@ -2,7 +2,7 @@ import ServerMonitorResponse from '../Types/ServerMonitorResponse';
 import BasicCron from '../Utils/BasicCron';
 import { BasicMetircs } from '../Utils/BasicMetrics';
 import Logger from '../Utils/Logger';
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 
 export default class MonitorInfrastructure {
     public static initJob(secretKey: string, oneuptimeHost: string): void {
