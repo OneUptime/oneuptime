@@ -43,11 +43,23 @@ const MonitorChartTooltip: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div className="bg-white rounded-md shadow-md p-5 text-sm">
+        <div className="bg-white rounded-md shadow-md p-5 text-sm space-y-2">
             {props.points.map((point: LineChartPoint, index: number) => {
                 return (
-                    <div key={index} className="space-y-2">
-                        <div className="flex">
+                    <div key={index} className="space-y-1">
+                        <div className="font-medium flex">
+                            <div>
+                                <div
+                                    className="w-3 h-3 mr-2 mt-1 rounded-full"
+                                    style={{
+                                        backgroundColor:
+                                            point.seriesColor.toString(),
+                                    }}
+                                ></div>
+                            </div>
+                            {point.seriesName}
+                        </div>
+                        <div className="flex text-gray-600 text-xs">
                             <div className="w-1/2 text-left font-medium">
                                 {props.axisLeft.legend}
                             </div>
@@ -58,7 +70,7 @@ const MonitorChartTooltip: FunctionComponent<ComponentProps> = (
                                 )}
                             </div>
                         </div>
-                        <div className="flex">
+                        <div className="flex text-gray-600 text-xs">
                             <div className="w-1/2 text-left font-medium">
                                 {props.axisBottom.legend}
                             </div>

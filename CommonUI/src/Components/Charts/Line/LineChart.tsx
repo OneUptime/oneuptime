@@ -79,6 +79,8 @@ export interface AxisLeft {
 export interface LineChartPoint {
     x: XValue;
     y: YValue;
+    seriesName: string;
+    seriesColor: Color;
 }
 
 export interface ComponentProps {
@@ -219,6 +221,8 @@ const LineChart: FunctionComponent<ComponentProps> = (
                             return {
                                 x: point.data.x as XValue,
                                 y: point.data.y as YValue,
+                                seriesName: point.serieId.toString(),
+                                seriesColor: new Color(point.color),
                             };
                         }),
                     });
