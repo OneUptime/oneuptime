@@ -22,39 +22,11 @@ export default class MonitorInfrastructure {
                         );
                     }
 
-                    // get monitor steps to get disk paths.
-                    const monitorResult: AxiosResponse = await axios.get(
-                        `${oneuptimeHost}/server-monitor/${secretKey}`
-                    );
-
-                    const monitor: any = monitorResult.data;
-                    // get disk paths to monitor.
-
-                    const diskPaths: string[] = [];
-
-                    for (const step of monitor.monitorSteps?.data
-                        ?.monitorStepsInstanceArray || []) {
-                        for (const criteriaInstance of step.data
-                            ?.monitorCriteria.data
-                            ?.monitorCriteriaInstanceArray || []) {
-                            for (const filter of criteriaInstance.data
-                                ?.filters || []) {
-                                if (filter.serverMonitorOptions?.diskPath) {
-                                    diskPaths.push(
-                                        filter.serverMonitorOptions?.diskPath
-                                    );
-                                }
-                            }
-                        }
-                    }
-
                     const serverMonitorResponse: ServerMonitorResponse = {
-                        monitorId: monitor.id!,
+                        secretKey: secretKey,
                         requestReceivedAt: new Date(),
                         basicInfrastructureMetrics:
-                            await BasicMetircs.getBasicMetrics({
-                                diskPaths: diskPaths,
-                            }),
+                            await BasicMetircs.getBasicMetrics(),
                         onlyCheckRequestReceivedAt: false,
                     };
 

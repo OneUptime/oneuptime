@@ -5,20 +5,35 @@ import BasicInfrastructureMetrics, {
     CPUMetrics,
     MemoryMetrics,
 } from '../Types/BasicMetrics';
+import drivelist from 'drivelist';
 
 export class BasicMetircs {
-    public static async getBasicMetrics(data: {
-        diskPaths: string[];
-    }): Promise<BasicInfrastructureMetrics> {
+    public static async getBasicMetrics(): Promise<BasicInfrastructureMetrics> {
+        const diskPaths: Array<string> = await this.getDiskPaths();
+
         return {
             memoryMetrics: await this.getMemoryMetrics(),
             cpuMetrics: await this.getCPUMetrics(),
             diskMetrics: await Promise.all(
-                data.diskPaths.map(async (diskPath: string) => {
+                diskPaths.map(async (diskPath: string) => {
                     return this.getDiskUsage(diskPath);
                 })
             ),
         };
+    }
+
+    public static async getDiskPaths(): Promise<Array<string>> {
+        const drives: Array<drivelist.Drive> = await drivelist.list();
+
+        const mountPoints: Array<string> = [];
+
+        for (const drive of drives) {
+            for (const mountPoint of drive.mountpoints) {
+                mountPoints.push(mountPoint.path);
+            }
+        }
+
+        return mountPoints;
     }
 
     public static async getDiskUsage(

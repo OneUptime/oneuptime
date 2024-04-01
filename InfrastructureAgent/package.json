@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "node --require ts-node/register Index.ts --secret-key=412d0d60-e3c8-11ee-b6b0-472ce913f697 --oneuptime-url=http://localhost",
+    "start": "node --require ts-node/register Index.ts",
     "build": "esbuild Index.ts --bundle --platform=node --outfile=./build/Index.js --loader:.node=file",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
@@ -17,17 +17,18 @@
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^17.0.31",
+    "@types/node-cron": "^3.0.11",
+    "@types/yargs": "^17.0.32",
     "axios": "^1.6.8",
     "diskusage": "^1.2.0",
+    "drivelist": "^11.2.2",
     "esbuild": "^0.20.1",
     "node-cron": "^3.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^5.4.2",
-    "yargs": "^17.7.2",
-    "@types/jest": "^29.5.11",
-    "@types/node": "^17.0.31",
-    "@types/node-cron": "^3.0.11",
-    "@types/yargs": "^17.0.32"
+    "yargs": "^17.7.2"
   },
   "bin": {
     "oneuptime-infrastructure-agent": "./Index.ts"

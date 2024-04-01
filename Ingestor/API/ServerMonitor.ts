@@ -18,6 +18,7 @@ import { JSONObject } from 'Common/Types/JSON';
 
 const router: ExpressRouter = Express.getRouter();
 
+// @deprecated - Delete soon.
 router.get(
     '/server-monitor/:secretkey',
     async (

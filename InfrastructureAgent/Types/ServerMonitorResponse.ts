@@ -1,7 +1,7 @@
 import BasicInfrastructureMetrics from './BasicMetrics';
 
 export default interface ServerMonitorResponse {
-    monitorId: string;
+    secretKey: string;
     basicInfrastructureMetrics?: BasicInfrastructureMetrics | undefined;
     requestReceivedAt: Date;
     onlyCheckRequestReceivedAt: boolean;

@@ -14,3 +14,12 @@ oneuptime-infrastructure-agent --secret-key=YOUR_SECRET_KEY --oneuptime-url=http
 ```
 
 Once its up and running you should see the metrics on the OneUptime Dashboard.
+
+
+## Local Development
+
+When you're developing locally, you can run the agent in development mode to send metrics to local oneuptime server. 
+
+```
+npm run start -- --secret-key=YOUR_SECRET_KEY --oneuptime-url=http://localhost
+```
