@@ -8,6 +8,9 @@ export enum CheckOn {
     ResponseBody = 'Response Body',
     IsOnline = 'Is Online',
     IncomingRequest = 'Incoming Request',
+    ServerProcessName = 'Server Process Name',
+    ServerProcessCommand = 'Server Process Command',
+    ServerProcessPID = 'Server Process PID',
     RequestBody = 'Request Body',
     RequestHeader = 'Request Header',
     RequestHeaderValue = 'Request Header Value',
@@ -74,6 +77,8 @@ export enum FilterType {
     NotRecievedInMinutes = 'Not Recieved In Minutes',
     RecievedInMinutes = 'Recieved In Minutes',
     EvaluatesToTrue = 'Evaluates To True',
+    IsExecuting = 'Is Executing',
+    IsNotExecuting = 'Is Not Executing',
 }
 
 export enum FilterCondition {
