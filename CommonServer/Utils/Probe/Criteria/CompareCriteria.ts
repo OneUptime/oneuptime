@@ -150,6 +150,14 @@ export default class CompareCriteria {
         threshold: number;
         criteriaFilter: CriteriaFilter;
     }): string | null {
+        if (data.value === null || data.value === undefined) {
+            return null;
+        }
+
+        if (data.threshold === null || data.threshold === undefined) {
+            return null;
+        }
+
         if (data.criteriaFilter.filterType === FilterType.GreaterThan) {
             if (
                 CompareCriteria.greaterThan({
