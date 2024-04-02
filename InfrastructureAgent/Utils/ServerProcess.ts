@@ -17,6 +17,9 @@ export default class ServerProcessUtil {
                 });
             }
 
+            Logger.info('Server processes:');
+            Logger.info(JSON.stringify(processes, null, 2));
+
             return processes;
         } catch (err) {
             Logger.error('Cannot get a list of server processes');
