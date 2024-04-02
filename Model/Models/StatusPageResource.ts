@@ -768,4 +768,49 @@ export default class StatusPageResource extends BaseModel {
         type: ColumnType.Number,
     })
     public order?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'deletedByUserId',
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'deletedByUserId' })
+    public deletedByUser?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID = undefined;
 }
