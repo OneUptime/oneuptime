@@ -4,8 +4,7 @@ import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import Dictionary from 'Common/Types/Dictionary';
 import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import {
     BatchLogRecordProcessor,
@@ -145,8 +144,7 @@ export default class Telemetry {
                 {
                     idGenerator: new AWSXRayIdGenerator(),
                     instrumentations: [
-                        new HttpInstrumentation(),
-                        new ExpressInstrumentation(),
+                        getNodeAutoInstrumentations(),
                     ],
                     resource: this.getResource({
                         serviceName: data.serviceName,
