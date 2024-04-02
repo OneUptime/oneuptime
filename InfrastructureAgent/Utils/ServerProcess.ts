@@ -4,12 +4,11 @@ import Logger from './Logger';
 
 export default class ServerProcessUtil {
     public static async getServerProcesses(): Promise<ServerProcess[]> {
-
-        try{
+        try {
             const processes: ServerProcess[] = [];
 
             const processList: any[] = await psList();
-    
+
             for (const process of processList) {
                 processes.push({
                     pid: process.pid,
@@ -17,10 +16,10 @@ export default class ServerProcessUtil {
                     command: process.command,
                 });
             }
-    
+
             return processes;
-        }catch(err){
-            Logger.error("Cannot get a list of server processes");
+        } catch (err) {
+            Logger.error('Cannot get a list of server processes');
             Logger.error(err);
             return [];
         }

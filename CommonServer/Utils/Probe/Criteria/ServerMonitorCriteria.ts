@@ -4,7 +4,9 @@ import {
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
-import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
+import ServerMonitorResponse, {
+    ServerProcess,
+} from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
 import OneUptimeDate from 'Common/Types/Date';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import EvaluateOverTime from './EvaluateOverTime';
@@ -152,6 +154,178 @@ export default class ServerMonitorCriteria {
                 threshold: threshold as number,
                 criteriaFilter: input.criteriaFilter,
             });
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.ServerProcessName &&
+            threshold &&
+            !(input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
+        ) {
+            const thresholdProcessName: string = threshold
+                .toString()
+                .trim()
+                .toLowerCase();
+
+            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
+                const processNames: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.name.trim().toLowerCase();
+                    }) || [];
+
+                if (processNames.includes(thresholdProcessName)) {
+                    return `Process ${threshold} is executing.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
+                const processNames: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.name.trim().toLowerCase();
+                    }) || [];
+
+                if (!processNames.includes(thresholdProcessName)) {
+                    return `Process ${threshold} is not executing.`;
+                }
+
+                return null;
+            }
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.ServerProcessName &&
+            threshold &&
+            !(input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
+        ) {
+            const thresholdProcessName: string = threshold
+                .toString()
+                .trim()
+                .toLowerCase();
+
+            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
+                const processNames: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.name.trim().toLowerCase();
+                    }) || [];
+
+                if (processNames.includes(thresholdProcessName)) {
+                    return `Process ${threshold} is executing.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
+                const processNames: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.name.trim().toLowerCase();
+                    }) || [];
+
+                if (!processNames.includes(thresholdProcessName)) {
+                    return `Process ${threshold} is not executing.`;
+                }
+
+                return null;
+            }
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.ServerProcessPID &&
+            threshold &&
+            !(input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
+        ) {
+            const thresholdProcessPID: string = threshold
+                .toString()
+                .trim()
+                .toLowerCase();
+
+            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
+                const processPIDs: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.pid.toString().trim().toLowerCase();
+                    }) || [];
+
+                if (processPIDs.includes(thresholdProcessPID)) {
+                    return `Process with PID ${threshold} is executing.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
+                const processPIDs: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.pid.toString().trim().toLowerCase();
+                    }) || [];
+
+                if (!processPIDs.includes(thresholdProcessPID)) {
+                    return `Process with PID ${threshold} is not executing.`;
+                }
+
+                return null;
+            }
+
+            return null;
+        }
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.ServerProcessCommand &&
+            threshold &&
+            !(input.dataToProcess as ServerMonitorResponse)
+                .onlyCheckRequestReceivedAt
+        ) {
+            const thresholdProcessCommand: string = threshold
+                .toString()
+                .trim()
+                .toLowerCase();
+
+            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
+                const processCommands: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.command.trim().toLowerCase();
+                    }) || [];
+
+                if (processCommands.includes(thresholdProcessCommand)) {
+                    return `Process with command ${threshold} is executing.`;
+                }
+
+                return null;
+            }
+
+            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
+                const processCommands: Array<string> =
+                    (
+                        input.dataToProcess as ServerMonitorResponse
+                    )?.processes?.map((item: ServerProcess) => {
+                        return item.command.trim().toLowerCase();
+                    }) || [];
+
+                if (!processCommands.includes(thresholdProcessCommand)) {
+                    return `Process with command ${threshold} is not executing.`;
+                }
+
+                return null;
+            }
+
+            return null;
         }
 
         return null;
