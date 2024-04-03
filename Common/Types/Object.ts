@@ -1,2 +1,2 @@
-// @eslint-ignore typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/ban-types
 export type GlobalObject = object;
