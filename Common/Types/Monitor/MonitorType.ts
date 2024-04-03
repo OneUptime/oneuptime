@@ -10,7 +10,7 @@ enum MonitorType {
     IncomingRequest = 'Incoming Request',
     Port = 'Port',
     Server = 'Server',
-    SSL = 'SSL',
+    SSLCertificate = 'SSL Certificate',
 }
 
 export default MonitorType;
@@ -79,8 +79,8 @@ export class MonitorTypeHelper {
                     'This monitor types lets you monitor any server, VM, or any machine.',
             },
             {
-                monitorType: MonitorType.SSL,
-                title: 'SSL',
+                monitorType: MonitorType.SSLCertificate,
+                title: 'SSL Certificate',
                 description:
                     'This monitor types lets you monitor SSL certificates of any domain.',
             },

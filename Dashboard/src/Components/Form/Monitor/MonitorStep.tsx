@@ -188,7 +188,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                             destination = URL.fromString(value);
                                         } else if (
                                             props.monitorType ===
-                                            MonitorType.SSL
+                                            MonitorType.SSLCertificate
                                         ) {
                                             destination = URL.fromString(value);
                                         }

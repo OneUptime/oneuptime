@@ -14,10 +14,6 @@ export default class ServerMonitorCriteria {
         dataToProcess: DataToProcess;
         criteriaFilter: CriteriaFilter;
     }): Promise<string | null> {
-        // Server Monitoring Checks
-
-        debugger;
-
         let threshold: number | string | undefined | null =
             input.criteriaFilter.value;
 

@@ -136,7 +136,7 @@ export default class MonitorStep extends DatabaseProperty {
                 monitorType === MonitorType.Ping ||
                 monitorType === MonitorType.Website ||
                 monitorType === MonitorType.IP ||
-                monitorType === MonitorType.SSL)
+                monitorType === MonitorType.SSLCertificate)
         ) {
             return 'Monitor Destination is required';
         }

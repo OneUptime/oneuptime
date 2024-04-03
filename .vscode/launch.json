@@ -141,34 +141,6 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Ingestor",
-            "name": "Probe API: Debug with Docker",
-            "port": 9251,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Identity",
-            "name": "File: Debug with Docker",
-            "port": 9012,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/HttpTestServer",
             "name": "HTTP Test Server: Debug with Docker",
             "port": 9234,

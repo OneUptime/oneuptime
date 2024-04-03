@@ -79,7 +79,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             return monitorCriteriaInstance;
         }
 
-        if (arg.monitorType === MonitorType.SSL) {
+        if (arg.monitorType === MonitorType.SSLCertificate) {
             const monitorCriteriaInstance: MonitorCriteriaInstance =
                 new MonitorCriteriaInstance();
 
@@ -282,7 +282,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             };
         }
 
-        if (arg.monitorType === MonitorType.SSL) {
+        if (arg.monitorType === MonitorType.SSLCertificate) {
             monitorCriteriaInstance.data = {
                 id: ObjectID.generate().toString(),
                 monitorStatusId: arg.monitorStatusId,

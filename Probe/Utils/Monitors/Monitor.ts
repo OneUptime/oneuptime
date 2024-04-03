@@ -198,7 +198,7 @@ export default class MonitorUtil {
             result.failureCause = response.failureCause;
         }
 
-        if (monitor.monitorType === MonitorType.SSL) {
+        if (monitor.monitorType === MonitorType.SSLCertificate) {
             if (!monitorStep.data?.monitorDestination) {
                 result.isOnline = false;
                 result.responseTimeInMs = 0;

@@ -183,7 +183,7 @@ export default class CriteriaFilterUtil {
             });
         }
 
-        if (monitorType === MonitorType.SSL) {
+        if (monitorType === MonitorType.SSLCertificate) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === CheckOn.IsValidCertificate ||

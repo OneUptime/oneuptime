@@ -124,7 +124,7 @@ export default class ProbeMonitorResponseService {
             monitor.monitorType === MonitorType.IP ||
             monitor.monitorType === MonitorType.Ping ||
             monitor.monitorType === MonitorType.Website ||
-            monitor.monitorType === MonitorType.SSL
+            monitor.monitorType === MonitorType.SSLCertificate
         ) {
             dataToProcess = dataToProcess as ProbeMonitorResponse;
             if ((dataToProcess as ProbeMonitorResponse).probeId) {
@@ -1077,7 +1077,7 @@ export default class ProbeMonitorResponseService {
             }
         }
 
-        if (input.monitor.monitorType === MonitorType.SSL) {
+        if (input.monitor.monitorType === MonitorType.SSLCertificate) {
             // check server monitor
             const sslMonitorResult: string | null =
                 await SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
