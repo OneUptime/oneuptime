@@ -89,8 +89,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                 filterCondition: FilterCondition.All,
                 filters: [
                     {
-                        checkOn: CheckOn.SSLCertificate,
-                        filterType: FilterType.IsValidCertificate,
+                        checkOn: CheckOn.IsValidCertificate,
+                        filterType: FilterType.True,
                         value: undefined,
                     },
                 ],
@@ -103,7 +103,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
             return monitorCriteriaInstance;
         }
-
 
         if (arg.monitorType === MonitorType.Server) {
             const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -130,7 +129,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             return monitorCriteriaInstance;
         }
 
-        if (arg.monitorType === MonitorType.Website || arg.monitorType === MonitorType.API || arg.monitorType === MonitorType.Ping || arg.monitorType === MonitorType.IP || arg.monitorType === MonitorType.Port) {
+        if (
+            arg.monitorType === MonitorType.Website ||
+            arg.monitorType === MonitorType.API ||
+            arg.monitorType === MonitorType.Ping ||
+            arg.monitorType === MonitorType.IP ||
+            arg.monitorType === MonitorType.Port
+        ) {
             const monitorCriteriaInstance: MonitorCriteriaInstance =
                 new MonitorCriteriaInstance();
 
@@ -165,8 +170,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
             return monitorCriteriaInstance;
         }
-
-
 
         return null;
     }
@@ -279,16 +282,15 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             };
         }
 
-
-        if(arg.monitorType === MonitorType.SSL) {
+        if (arg.monitorType === MonitorType.SSL) {
             monitorCriteriaInstance.data = {
                 id: ObjectID.generate().toString(),
                 monitorStatusId: arg.monitorStatusId,
                 filterCondition: FilterCondition.Any,
                 filters: [
                     {
-                        checkOn: CheckOn.SSLCertificate,
-                        filterType: FilterType.IsNotAValidCertificate,
+                        checkOn: CheckOn.IsNotAValidCertificate,
+                        filterType: FilterType.True,
                         value: undefined,
                     },
                 ],

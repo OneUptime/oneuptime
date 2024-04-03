@@ -185,7 +185,14 @@ export default class CriteriaFilterUtil {
 
         if (monitorType === MonitorType.SSL) {
             options = options.filter((i: DropdownOption) => {
-                return i.value === CheckOn.SSLCertificate;
+                return (
+                    i.value === CheckOn.IsValidCertificate ||
+                    i.value === CheckOn.IsSelfSignedCertificate ||
+                    i.value === CheckOn.IsExpiredCertificate ||
+                    i.value === CheckOn.IsNotAValidCertificate ||
+                    i.value === CheckOn.ExpiresInDays ||
+                    i.value === CheckOn.ExpiresInHours
+                );
             });
         }
 
@@ -322,15 +329,29 @@ export default class CriteriaFilterUtil {
             });
         }
 
-        if (checkOn === CheckOn.SSLCertificate) {
+        if (
+            checkOn === CheckOn.IsValidCertificate ||
+            checkOn === CheckOn.IsSelfSignedCertificate ||
+            checkOn === CheckOn.IsExpiredCertificate ||
+            checkOn === CheckOn.IsNotAValidCertificate
+        ) {
             options = options.filter((i: DropdownOption) => {
                 return (
-                    i.value === FilterType.IsValidCertificate ||
-                    i.value === FilterType.IsSelfSignedCertificate ||
-                    i.value === FilterType.ExpiresInDays ||
-                    i.value === FilterType.ExpiresInHours ||
-                    i.value === FilterType.IsExpiredCertificate || 
-                    i.value === FilterType.IsNotAValidCertificate
+                    i.value === FilterType.True || i.value === FilterType.False
+                );
+            });
+        }
+
+        if (
+            checkOn === CheckOn.ExpiresInDays ||
+            checkOn === CheckOn.ExpiresInHours
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.GreaterThan ||
+                    i.value === FilterType.LessThan ||
+                    i.value === FilterType.LessThanOrEqualTo ||
+                    i.value === FilterType.GreaterThanOrEqualTo
                 );
             });
         }
@@ -338,25 +359,20 @@ export default class CriteriaFilterUtil {
         return options;
     }
 
-    public static hasValueField(data: {
-        checkOn: CheckOn;
-        filterType?: FilterType | undefined;
-    }): boolean {
-        const { checkOn, filterType } = data;
+    public static hasValueField(data: { checkOn: CheckOn }): boolean {
+        const { checkOn } = data;
 
         if (checkOn === CheckOn.IsOnline) {
             return false;
         }
 
-        if (checkOn === CheckOn.SSLCertificate) {
-            if (
-                filterType === FilterType.IsValidCertificate ||
-                filterType === FilterType.IsSelfSignedCertificate ||
-                filterType === FilterType.IsExpiredCertificate || 
-                filterType === FilterType.IsNotAValidCertificate
-            ) {
-                return false;
-            }
+        if (
+            checkOn === CheckOn.IsValidCertificate ||
+            checkOn === CheckOn.IsSelfSignedCertificate ||
+            checkOn === CheckOn.IsExpiredCertificate ||
+            checkOn === CheckOn.IsNotAValidCertificate
+        ) {
+            return false;
         }
 
         return true;
@@ -365,9 +381,8 @@ export default class CriteriaFilterUtil {
     public static getFilterTypePlaceholderValueByCheckOn(data: {
         monitorType: MonitorType;
         checkOn: CheckOn;
-        filterType?: FilterType | undefined;
     }): string {
-        const { monitorType, checkOn, filterType } = data;
+        const { monitorType, checkOn } = data;
 
         if (!checkOn) {
             return '';
@@ -423,13 +438,12 @@ export default class CriteriaFilterUtil {
             return '200';
         }
 
-        if (checkOn === CheckOn.SSLCertificate) {
-            if (filterType === FilterType.ExpiresInDays) {
-                return '30';
-            }
-            if (filterType === FilterType.ExpiresInHours) {
-                return '24';
-            }
+        if (checkOn === CheckOn.ExpiresInDays) {
+            return '30';
+        }
+
+        if (checkOn === CheckOn.ExpiresInHours) {
+            return '24';
         }
 
         return '';

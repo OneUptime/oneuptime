@@ -43,6 +43,7 @@ import ServerMonitorCriteria from './Criteria/ServerMonitorCriteria';
 import IncomingRequestCriteria from './Criteria/IncomingRequestCriteria';
 import APIRequestCriteria from './Criteria/APIRequestCriteria';
 import DataToProcess from './DataToProcess';
+import SSLMonitorCriteria from './Criteria/SSLMonitorCriteria';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -122,7 +123,8 @@ export default class ProbeMonitorResponseService {
             monitor.monitorType === MonitorType.API ||
             monitor.monitorType === MonitorType.IP ||
             monitor.monitorType === MonitorType.Ping ||
-            monitor.monitorType === MonitorType.Website
+            monitor.monitorType === MonitorType.Website ||
+            monitor.monitorType === MonitorType.SSL
         ) {
             dataToProcess = dataToProcess as ProbeMonitorResponse;
             if ((dataToProcess as ProbeMonitorResponse).probeId) {
@@ -1072,6 +1074,19 @@ export default class ProbeMonitorResponseService {
 
             if (incomingRequestResult) {
                 return incomingRequestResult;
+            }
+        }
+
+        if (input.monitor.monitorType === MonitorType.SSL) {
+            // check server monitor
+            const sslMonitorResult: string | null =
+                await SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+                    dataToProcess: input.dataToProcess,
+                    criteriaFilter: input.criteriaFilter,
+                });
+
+            if (sslMonitorResult) {
+                return sslMonitorResult;
             }
         }
 

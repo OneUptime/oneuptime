@@ -18,7 +18,12 @@ export enum CheckOn {
     DiskUsagePercent = 'Disk Usage (in %)',
     CPUUsagePercent = 'CPU Usage (in %)',
     MemoryUsagePercent = 'Memory Usage (in %)',
-    SSLCertificate = 'SSL Certificate',
+    ExpiresInHours = 'Expires In Hours',
+    ExpiresInDays = 'Expires In Days',
+    IsSelfSignedCertificate = 'Is Self Signed Certificate',
+    IsExpiredCertificate = 'Is Expired Certificate',
+    IsValidCertificate = 'Is Valid Certificate',
+    IsNotAValidCertificate = 'Is Not A Valid Certificate',
 }
 
 export interface ServerMonitorOptions {
@@ -80,12 +85,6 @@ export enum FilterType {
     EvaluatesToTrue = 'Evaluates To True',
     IsExecuting = 'Is Executing',
     IsNotExecuting = 'Is Not Executing',
-    ExpiresInHours = 'Expires In Hours',
-    ExpiresInDays = 'Expires In Days',
-    IsSelfSignedCertificate = 'Is Self Signed Certificate',
-    IsExpiredCertificate = 'Is Expired Certificate',
-    IsValidCertificate = 'Is Valid Certificate',
-    IsNotAValidCertificate = 'Is Not A Valid Certificate',
 }
 
 export enum FilterCondition {

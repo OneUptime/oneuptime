@@ -6,25 +6,14 @@ import OnlineCheck from '../../OnlineCheck';
 import Sleep from 'Common/Types/Sleep';
 import URL from 'Common/Types/API/URL';
 import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
+import SSLMonitorReponse from 'Common/Types/Monitor/SSLMonitor/SslMonitorResponse';
 
-export interface SslMonitorResponse {
+export interface SslResponse extends SSLMonitorReponse {
     isOnline: boolean;
-    isSelfSigned?: boolean;
-    createdAt?: Date;
-    expiresAt?: Date;
-    commonName?: string;
-    organizationalUnit?: string;
-    organization?: string;
-    locality?: string;
-    state?: string;
-    country?: string;
-    serialNumber?: string;
-    fingerprint?: string;
-    fingerprint256?: string;
     failureCause: string;
 }
 
-export interface PingOptions {
+export interface SSLMonitorOptions {
     timeout?: PositiveNumber;
     retry?: number | undefined;
     currentRetryCount?: number | undefined;
@@ -37,8 +26,8 @@ export default class SSLMonitor {
 
     public static async ping(
         url: URL,
-        pingOptions?: PingOptions
-    ): Promise<SslMonitorResponse | null> {
+        pingOptions?: SSLMonitorOptions
+    ): Promise<SslResponse | null> {
         if (!pingOptions) {
             pingOptions = {};
         }
@@ -54,7 +43,7 @@ export default class SSLMonitor {
         );
 
         try {
-            const res: SslMonitorResponse = await this.getSslMonitorResponse(
+            const res: SslResponse = await this.getSslMonitorResponse(
                 url.hostname.hostname,
                 url.hostname.port.toNumber() || 443
             );
@@ -120,7 +109,7 @@ export default class SSLMonitor {
     public static async getSslMonitorResponse(
         host: string,
         port = 443
-    ): Promise<SslMonitorResponse> {
+    ): Promise<SslResponse> {
         const options: tls.ConnectionOptions = {
             host: host,
             port: port,
@@ -128,7 +117,7 @@ export default class SSLMonitor {
 
         return new Promise(
             (
-                resolve: (result: SslMonitorResponse) => void,
+                resolve: (result: SslResponse) => void,
                 reject: PromiseRejectErrorFunction
             ) => {
                 const req: tls.TLSSocket = tls.connect(options, () => {
