@@ -26,15 +26,18 @@ export default class ServerMonitorCriteria {
             dataToProcess.sslResponse;
 
         if (input.criteriaFilter.checkOn === CheckOn.IsValidCertificate) {
-            const isValidCertificate =
+            const isValidCertificate: boolean = Boolean(
                 sslResponse &&
-                sslResponse.expiresAt &&
-                !sslResponse.isSelfSigned &&
-                OneUptimeDate.isAfter(
-                    sslResponse.expiresAt,
-                    OneUptimeDate.getCurrentDate()
-                );
-            const isTrue = input.criteriaFilter.filterType === FilterType.True;
+                    sslResponse.expiresAt &&
+                    !sslResponse.isSelfSigned &&
+                    OneUptimeDate.isAfter(
+                        sslResponse.expiresAt,
+                        OneUptimeDate.getCurrentDate()
+                    )
+            );
+
+            const isTrue: boolean =
+                input.criteriaFilter.filterType === FilterType.True;
 
             if (isValidCertificate && isTrue) {
                 return 'SSL certificate is valid';
@@ -43,8 +46,11 @@ export default class ServerMonitorCriteria {
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsSelfSignedCertificate) {
-            const isSelfSigned = sslResponse && sslResponse.isSelfSigned;
-            const isTrue = input.criteriaFilter.filterType === FilterType.True;
+            const isSelfSigned: boolean = Boolean(
+                sslResponse && sslResponse.isSelfSigned
+            );
+            const isTrue: boolean =
+                input.criteriaFilter.filterType === FilterType.True;
 
             if (isSelfSigned && isTrue) {
                 return 'SSL Certificate is self signed';
@@ -53,31 +59,37 @@ export default class ServerMonitorCriteria {
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsExpiredCertificate) {
-            const isExpired =
+            const isExpired: boolean = Boolean(
                 sslResponse &&
-                sslResponse.expiresAt &&
-                OneUptimeDate.isBefore(
-                    sslResponse.expiresAt,
-                    OneUptimeDate.getCurrentDate()
-                );
-            const isTrue = input.criteriaFilter.filterType === FilterType.True;
+                    sslResponse.expiresAt &&
+                    OneUptimeDate.isBefore(
+                        sslResponse.expiresAt,
+                        OneUptimeDate.getCurrentDate()
+                    )
+            );
+
+            const isTrue: boolean =
+                input.criteriaFilter.filterType === FilterType.True;
 
             if (isExpired && isTrue) {
                 return 'SSL certificate is expired';
             }
+
             return 'SSL certificate is not expired';
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsNotAValidCertificate) {
-            const isNotValid =
+            const isNotValid: boolean = Boolean(
                 sslResponse &&
-                sslResponse.expiresAt &&
-                (sslResponse.isSelfSigned ||
-                    OneUptimeDate.isBefore(
-                        sslResponse.expiresAt,
-                        OneUptimeDate.getCurrentDate()
-                    ));
-            const isTrue = input.criteriaFilter.filterType === FilterType.True;
+                    sslResponse.expiresAt &&
+                    (sslResponse.isSelfSigned ||
+                        OneUptimeDate.isBefore(
+                            sslResponse.expiresAt,
+                            OneUptimeDate.getCurrentDate()
+                        ))
+            );
+            const isTrue: boolean =
+                input.criteriaFilter.filterType === FilterType.True;
 
             if (isNotValid && isTrue) {
                 return 'SSL certificate is not valid';
@@ -92,8 +104,9 @@ export default class ServerMonitorCriteria {
                 return null;
             }
 
-            const expiresAt = sslResponse && sslResponse.expiresAt;
-            const hours =
+            const expiresAt: Date | undefined =
+                sslResponse && sslResponse.expiresAt;
+            const hours: number | undefined =
                 expiresAt &&
                 OneUptimeDate.getHoursBetweenTwoDates(
                     OneUptimeDate.getCurrentDate(),
@@ -118,8 +131,9 @@ export default class ServerMonitorCriteria {
                 return null;
             }
 
-            const expiresAt = sslResponse && sslResponse.expiresAt;
-            const days =
+            const expiresAt: Date | undefined =
+                sslResponse && sslResponse.expiresAt;
+            const days: number | undefined =
                 expiresAt &&
                 OneUptimeDate.getDaysBetweenTwoDates(
                     OneUptimeDate.getCurrentDate(),
