@@ -41,7 +41,8 @@ export default class SSLMonitor {
         }
 
         logger.info(
-            `Pinging host: ${pingOptions?.monitorId?.toString()} ${url.toString()} - Retry: ${pingOptions?.currentRetryCount
+            `Pinging host: ${pingOptions?.monitorId?.toString()} ${url.toString()} - Retry: ${
+                pingOptions?.currentRetryCount
             }`
         );
 
@@ -113,35 +114,47 @@ export default class SSLMonitor {
         host: string,
         port = 443
     ): Promise<SslResponse> {
-
         debugger;
 
-        const sslPromise = new Promise((resolve: (value: tls.PeerCertificate) => void, reject: (err: Error) => void) => {
+        const sslPromise = new Promise(
+            (
+                resolve: (value: tls.PeerCertificate) => void,
+                reject: (err: Error) => void
+            ) => {
+                const requestOptions = this.getOptions(host, port);
 
-            const requestOptions = this.getOptions(host, port);
+                let isResolvedOrRejected = false;
 
-            let isResolvedOrRejected = false;
+                const req = https.get(
+                    requestOptions,
+                    (res: IncomingMessage) => {
+                        const certificate: tls.PeerCertificate = (
+                            res.socket as TLSSocket
+                        ).getPeerCertificate();
+                        if (
+                            ObjectUtil.isEmpty(certificate) ||
+                            certificate === null
+                        ) {
+                            isResolvedOrRejected = true;
+                            return reject(
+                                new BadDataException('No certificate found')
+                            );
+                        }
+                        isResolvedOrRejected = true;
+                        return resolve(certificate);
+                    }
+                );
 
-            const req = https.get(requestOptions, (res: IncomingMessage) => {
-                var certificate: tls.PeerCertificate = ((res.socket) as TLSSocket).getPeerCertificate();
-                if (ObjectUtil.isEmpty(certificate) || certificate === null) {
-                    isResolvedOrRejected = true;
-                    return reject(new BadDataException('No certificate found'));
-                } else {
-                    isResolvedOrRejected = true;
-                    return resolve(certificate);
-                }
-            });
+                req.end();
 
-            req.end();
-
-            req.on('error', (err: Error) => {
-                if (!isResolvedOrRejected) {
-                    isResolvedOrRejected = true;
-                    return reject(err);
-                }
-            });
-        })
+                req.on('error', (err: Error) => {
+                    if (!isResolvedOrRejected) {
+                        isResolvedOrRejected = true;
+                        return reject(err);
+                    }
+                });
+            }
+        );
 
         const certificate: tls.PeerCertificate = await sslPromise;
 
@@ -163,9 +176,7 @@ export default class SSLMonitor {
         };
 
         return res;
-
     }
-
 
     private static getOptions(url: string, port: number): RequestOptions {
         return {

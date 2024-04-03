@@ -160,7 +160,7 @@ export class Service extends DatabaseService<Model> {
                 createdItem.monitorType === MonitorType.Website ||
                 createdItem.monitorType === MonitorType.Ping ||
                 createdItem.monitorType === MonitorType.IP ||
-                createdItem.monitorType === MonitorType.Port || 
+                createdItem.monitorType === MonitorType.Port ||
                 createdItem.monitorType === MonitorType.SSL)
         ) {
             await this.addDefaultProbesToMonitor(

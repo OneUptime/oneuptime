@@ -30,7 +30,7 @@ export default class ServerMonitorCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.IsValidCertificate) {
             const isValidCertificate: boolean = Boolean(
                 sslResponse &&
-                dataToProcess.isOnline &&
+                    dataToProcess.isOnline &&
                     sslResponse.expiresAt &&
                     !sslResponse.isSelfSigned &&
                     OneUptimeDate.isAfter(
@@ -51,8 +51,7 @@ export default class ServerMonitorCriteria {
 
             if (!isValidCertificate && isFalse) {
                 return 'SSL certificate is not valid.';
-            } 
-
+            }
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsSelfSignedCertificate) {
@@ -62,7 +61,7 @@ export default class ServerMonitorCriteria {
             const isTrue: boolean =
                 input.criteriaFilter.filterType === FilterType.True;
 
-                const isFalse: boolean =
+            const isFalse: boolean =
                 input.criteriaFilter.filterType === FilterType.False;
 
             if (isSelfSigned && isTrue) {
@@ -72,7 +71,6 @@ export default class ServerMonitorCriteria {
             if (!isSelfSigned && isFalse) {
                 return 'SSL Certificate is not self signed.';
             }
-
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsExpiredCertificate) {
@@ -88,7 +86,7 @@ export default class ServerMonitorCriteria {
             const isTrue: boolean =
                 input.criteriaFilter.filterType === FilterType.True;
 
-                const isFalse: boolean =
+            const isFalse: boolean =
                 input.criteriaFilter.filterType === FilterType.False;
 
             if (isExpired && isTrue) {
@@ -101,20 +99,23 @@ export default class ServerMonitorCriteria {
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsNotAValidCertificate) {
-            const isNotValid: boolean = !sslResponse || !dataToProcess.isOnline || Boolean(
-                sslResponse &&
-                    sslResponse.expiresAt &&
-                    (sslResponse.isSelfSigned ||
-                        OneUptimeDate.isBefore(
-                            sslResponse.expiresAt,
-                            OneUptimeDate.getCurrentDate()
-                        ))
-            );
+            const isNotValid: boolean =
+                !sslResponse ||
+                !dataToProcess.isOnline ||
+                Boolean(
+                    sslResponse &&
+                        sslResponse.expiresAt &&
+                        (sslResponse.isSelfSigned ||
+                            OneUptimeDate.isBefore(
+                                sslResponse.expiresAt,
+                                OneUptimeDate.getCurrentDate()
+                            ))
+                );
             const isTrue: boolean =
                 input.criteriaFilter.filterType === FilterType.True;
 
-                const isFalse: boolean =
-                input.criteriaFilter.filterType === FilterType.False;   
+            const isFalse: boolean =
+                input.criteriaFilter.filterType === FilterType.False;
 
             if (isNotValid && isTrue) {
                 return 'SSL certificate is not valid.';
