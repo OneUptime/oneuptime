@@ -183,6 +183,12 @@ export default class CriteriaFilterUtil {
             });
         }
 
+        if (monitorType === MonitorType.SSL) {
+            options = options.filter((i: DropdownOption) => {
+                return i.value === CheckOn.SSLCertificate;
+            });
+        }
+
         if (monitorType === MonitorType.IncomingRequest) {
             options = options.filter((i: DropdownOption) => {
                 return (
@@ -316,13 +322,51 @@ export default class CriteriaFilterUtil {
             });
         }
 
+        if (checkOn === CheckOn.SSLCertificate) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.IsValidCertificate ||
+                    i.value === FilterType.IsSelfSignedCertificate ||
+                    i.value === FilterType.ExpiresInDays ||
+                    i.value === FilterType.ExpiresInHours ||
+                    i.value === FilterType.IsExpiredCertificate
+                );
+            });
+        }
+
         return options;
     }
 
-    public static getFilterTypePlaceholderValueByCheckOn(
-        monitorType: MonitorType,
-        checkOn: CheckOn
-    ): string {
+    public static hasValueField(data: {
+        checkOn: CheckOn;
+        filterType?: FilterType | undefined;
+    }): boolean {
+        const { checkOn, filterType } = data;
+
+        if (checkOn === CheckOn.IsOnline) {
+            return false;
+        }
+
+        if (checkOn === CheckOn.SSLCertificate) {
+            if (
+                filterType === FilterType.IsValidCertificate ||
+                filterType === FilterType.IsSelfSignedCertificate ||
+                filterType === FilterType.IsExpiredCertificate
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static getFilterTypePlaceholderValueByCheckOn(data: {
+        monitorType: MonitorType;
+        checkOn: CheckOn;
+        filterType?: FilterType | undefined;
+    }): string {
+        const { monitorType, checkOn, filterType } = data;
+
         if (!checkOn) {
             return '';
         }
@@ -375,6 +419,15 @@ export default class CriteriaFilterUtil {
 
         if (checkOn === CheckOn.ResponseStatusCode) {
             return '200';
+        }
+
+        if (checkOn === CheckOn.SSLCertificate) {
+            if (filterType === FilterType.ExpiresInDays) {
+                return '30';
+            }
+            if (filterType === FilterType.ExpiresInHours) {
+                return '24';
+            }
         }
 
         return '';

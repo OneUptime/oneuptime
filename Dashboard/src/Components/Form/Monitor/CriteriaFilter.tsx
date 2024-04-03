@@ -70,10 +70,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         );
         setValuePlaceholder(
             criteriaFilter?.checkOn
-                ? CriteriaFilterUiUtil.getFilterTypePlaceholderValueByCheckOn(
-                      props.monitorType,
-                      criteriaFilter?.checkOn
-                  )
+                ? CriteriaFilterUiUtil.getFilterTypePlaceholderValueByCheckOn({
+                      monitorType: props.monitorType,
+                      checkOn: criteriaFilter?.checkOn,
+                      filterType: criteriaFilter?.filterType,
+                  })
                 : ''
         );
     }, [criteriaFilter]);
@@ -295,7 +296,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
                 {!criteriaFilter?.checkOn ||
                     (criteriaFilter?.checkOn &&
-                        criteriaFilter?.checkOn !== CheckOn.IsOnline && (
+                        CriteriaFilterUiUtil.hasValueField({
+                            checkOn: criteriaFilter?.checkOn,
+                            filterType: criteriaFilter?.filterType,
+                        }) && (
                             <div className="mt-1">
                                 <FieldLabelElement title="Value" />
                                 <Input
