@@ -85,6 +85,7 @@ export enum FilterType {
     IsSelfSignedCertificate = 'Is Self Signed Certificate',
     IsExpiredCertificate = 'Is Expired Certificate',
     IsValidCertificate = 'Is Valid Certificate',
+    IsNotAValidCertificate = 'Is Not A Valid Certificate',
 }
 
 export enum FilterCondition {

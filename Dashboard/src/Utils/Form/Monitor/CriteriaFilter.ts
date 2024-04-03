@@ -329,7 +329,8 @@ export default class CriteriaFilterUtil {
                     i.value === FilterType.IsSelfSignedCertificate ||
                     i.value === FilterType.ExpiresInDays ||
                     i.value === FilterType.ExpiresInHours ||
-                    i.value === FilterType.IsExpiredCertificate
+                    i.value === FilterType.IsExpiredCertificate || 
+                    i.value === FilterType.IsNotAValidCertificate
                 );
             });
         }
@@ -351,7 +352,8 @@ export default class CriteriaFilterUtil {
             if (
                 filterType === FilterType.IsValidCertificate ||
                 filterType === FilterType.IsSelfSignedCertificate ||
-                filterType === FilterType.IsExpiredCertificate
+                filterType === FilterType.IsExpiredCertificate || 
+                filterType === FilterType.IsNotAValidCertificate
             ) {
                 return false;
             }
