@@ -21,7 +21,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="mt-4 bg-gray-50 rounded rounded-xl p-5">
+        <div className="mt-4 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
             <Detail
                 id={'monitor-criteria-instance'}
                 item={props.incident as any}

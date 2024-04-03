@@ -14,7 +14,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="ml-5 mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5">
+        <div className="ml-5 mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
             <ul role="list" className="space-y-6">
                 {props.criteriaFilters.map(
                     (i: CriteriaFilter, index: number) => {
