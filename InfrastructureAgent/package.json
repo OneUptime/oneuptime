@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "node --require ts-node/register Index.ts",
+    "start": "npx tsx Index.ts",
     "build": "esbuild Index.ts --bundle --platform=node --outfile=./build/Index.js --loader:.node=file",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
@@ -26,9 +26,10 @@
     "drivelist": "^11.2.2",
     "esbuild": "^0.20.1",
     "node-cron": "^3.0.3",
-    "ts-node": "^10.9.1",
+    "ps-list": "^8.1.1",
     "typescript": "^5.4.2",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "tsx": "^4.7.1"
   },
   "bin": {
     "oneuptime-infrastructure-agent": "./Index.ts"
@@ -36,5 +37,6 @@
   "devDependencies": {
     "jest": "^28.1.0",
     "nodemon": "^2.0.20"
+    
   }
 }

@@ -141,7 +141,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Domain',
                             description:
-                                'Please select a verified domain from this list. If you do not see any domains in this list, please head over to settings to add some.',
+                                'Please select a verified domain from this list. If you do not see any domains in this list, please head over to More -> Project Settings -> Custom Domains to add one.',
                             fieldType: FormFieldSchemaType.Dropdown,
                             dropdownModal: {
                                 type: Domain,

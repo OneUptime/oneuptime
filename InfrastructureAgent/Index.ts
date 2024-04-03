@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env tsx
 
 import yargs from 'yargs';
 import MonitorInfrastructure from './Jobs/MonitorInfrastructure';

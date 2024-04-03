@@ -175,7 +175,10 @@ export default class CriteriaFilterUtil {
                     i.value === CheckOn.IsOnline ||
                     i.value === CheckOn.DiskUsagePercent ||
                     i.value === CheckOn.CPUUsagePercent ||
-                    i.value === CheckOn.MemoryUsagePercent
+                    i.value === CheckOn.MemoryUsagePercent ||
+                    i.value === CheckOn.ServerProcessCommand ||
+                    i.value === CheckOn.ServerProcessName ||
+                    i.value === CheckOn.ServerProcessPID
                 );
             });
         }
@@ -248,6 +251,19 @@ export default class CriteriaFilterUtil {
             });
         }
 
+        if (
+            checkOn === CheckOn.ServerProcessPID ||
+            checkOn === CheckOn.ServerProcessCommand ||
+            checkOn === CheckOn.ServerProcessName
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.IsExecuting ||
+                    i.value === FilterType.IsNotExecuting
+                );
+            });
+        }
+
         if (checkOn === CheckOn.IncomingRequest) {
             options = options.filter((i: DropdownOption) => {
                 return (
@@ -313,6 +329,18 @@ export default class CriteriaFilterUtil {
 
         if (checkOn === CheckOn.ResponseTime) {
             return '5000';
+        }
+
+        if (checkOn === CheckOn.ServerProcessPID) {
+            return '1234';
+        }
+
+        if (checkOn === CheckOn.ServerProcessCommand) {
+            return 'node index.js';
+        }
+
+        if (checkOn === CheckOn.ServerProcessName) {
+            return 'node';
         }
 
         if (
