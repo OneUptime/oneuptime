@@ -73,7 +73,6 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 ? CriteriaFilterUiUtil.getFilterTypePlaceholderValueByCheckOn({
                       monitorType: props.monitorType,
                       checkOn: criteriaFilter?.checkOn,
-                      filterType: criteriaFilter?.filterType,
                   })
                 : ''
         );
@@ -298,7 +297,6 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     (criteriaFilter?.checkOn &&
                         CriteriaFilterUiUtil.hasValueField({
                             checkOn: criteriaFilter?.checkOn,
-                            filterType: criteriaFilter?.filterType,
                         }) && (
                             <div className="mt-1">
                                 <FieldLabelElement title="Value" />
