@@ -31,7 +31,7 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
 curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install-linux.sh | bash 
 
 # For Windows and MacOS, install NodeJS and NPM and then...
-npm install -g @oneuptime/infrastructure-agent
+npm install -g @oneuptime/infrastructure-agent tsx
 
 # Run the agent
 oneuptime-infrastructure-agent --secret-key=${props.secretKey.toString()} ${
