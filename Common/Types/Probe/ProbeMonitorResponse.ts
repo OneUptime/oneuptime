@@ -1,5 +1,6 @@
 import Dictionary from '../Dictionary';
 import { JSONObject } from '../JSON';
+import SslMonitorResponse from '../Monitor/SSLMonitor/SslMonitorResponse';
 import ObjectID from '../ObjectID';
 
 export default interface ProbeMonitorResponse {
@@ -12,4 +13,5 @@ export default interface ProbeMonitorResponse {
     monitorId: ObjectID;
     probeId: ObjectID;
     failureCause: string;
+    sslResponse?: SslMonitorResponse | undefined;
 }

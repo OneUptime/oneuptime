@@ -175,7 +175,23 @@ export default class CriteriaFilterUtil {
                     i.value === CheckOn.IsOnline ||
                     i.value === CheckOn.DiskUsagePercent ||
                     i.value === CheckOn.CPUUsagePercent ||
-                    i.value === CheckOn.MemoryUsagePercent
+                    i.value === CheckOn.MemoryUsagePercent ||
+                    i.value === CheckOn.ServerProcessCommand ||
+                    i.value === CheckOn.ServerProcessName ||
+                    i.value === CheckOn.ServerProcessPID
+                );
+            });
+        }
+
+        if (monitorType === MonitorType.SSLCertificate) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === CheckOn.IsValidCertificate ||
+                    i.value === CheckOn.IsSelfSignedCertificate ||
+                    i.value === CheckOn.IsExpiredCertificate ||
+                    i.value === CheckOn.IsNotAValidCertificate ||
+                    i.value === CheckOn.ExpiresInDays ||
+                    i.value === CheckOn.ExpiresInHours
                 );
             });
         }
@@ -248,6 +264,19 @@ export default class CriteriaFilterUtil {
             });
         }
 
+        if (
+            checkOn === CheckOn.ServerProcessPID ||
+            checkOn === CheckOn.ServerProcessCommand ||
+            checkOn === CheckOn.ServerProcessName
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.IsExecuting ||
+                    i.value === FilterType.IsNotExecuting
+                );
+            });
+        }
+
         if (checkOn === CheckOn.IncomingRequest) {
             options = options.filter((i: DropdownOption) => {
                 return (
@@ -300,19 +329,79 @@ export default class CriteriaFilterUtil {
             });
         }
 
+        if (
+            checkOn === CheckOn.IsValidCertificate ||
+            checkOn === CheckOn.IsSelfSignedCertificate ||
+            checkOn === CheckOn.IsExpiredCertificate ||
+            checkOn === CheckOn.IsNotAValidCertificate
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.True || i.value === FilterType.False
+                );
+            });
+        }
+
+        if (
+            checkOn === CheckOn.ExpiresInDays ||
+            checkOn === CheckOn.ExpiresInHours
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.GreaterThan ||
+                    i.value === FilterType.LessThan ||
+                    i.value === FilterType.LessThanOrEqualTo ||
+                    i.value === FilterType.GreaterThanOrEqualTo
+                );
+            });
+        }
+
         return options;
     }
 
-    public static getFilterTypePlaceholderValueByCheckOn(
-        monitorType: MonitorType,
-        checkOn: CheckOn
-    ): string {
+    public static hasValueField(data: { checkOn: CheckOn }): boolean {
+        const { checkOn } = data;
+
+        if (checkOn === CheckOn.IsOnline) {
+            return false;
+        }
+
+        if (
+            checkOn === CheckOn.IsValidCertificate ||
+            checkOn === CheckOn.IsSelfSignedCertificate ||
+            checkOn === CheckOn.IsExpiredCertificate ||
+            checkOn === CheckOn.IsNotAValidCertificate
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static getFilterTypePlaceholderValueByCheckOn(data: {
+        monitorType: MonitorType;
+        checkOn: CheckOn;
+    }): string {
+        const { monitorType, checkOn } = data;
+
         if (!checkOn) {
             return '';
         }
 
         if (checkOn === CheckOn.ResponseTime) {
             return '5000';
+        }
+
+        if (checkOn === CheckOn.ServerProcessPID) {
+            return '1234';
+        }
+
+        if (checkOn === CheckOn.ServerProcessCommand) {
+            return 'node index.js';
+        }
+
+        if (checkOn === CheckOn.ServerProcessName) {
+            return 'node';
         }
 
         if (
@@ -347,6 +436,14 @@ export default class CriteriaFilterUtil {
 
         if (checkOn === CheckOn.ResponseStatusCode) {
             return '200';
+        }
+
+        if (checkOn === CheckOn.ExpiresInDays) {
+            return '30';
+        }
+
+        if (checkOn === CheckOn.ExpiresInHours) {
+            return '24';
         }
 
         return '';

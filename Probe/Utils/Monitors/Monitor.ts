@@ -21,6 +21,7 @@ import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstanc
 import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import Port from 'Common/Types/Port';
+import SSLMonitor, { SslResponse } from './MonitorTypes/SslMonitor';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -195,6 +196,34 @@ export default class MonitorUtil {
             result.isOnline = response.isOnline;
             result.responseTimeInMs = response.responseTimeInMS?.toNumber();
             result.failureCause = response.failureCause;
+        }
+
+        if (monitor.monitorType === MonitorType.SSLCertificate) {
+            if (!monitorStep.data?.monitorDestination) {
+                result.isOnline = false;
+                result.responseTimeInMs = 0;
+                result.failureCause = 'Port is not specified';
+
+                return result;
+            }
+
+            const response: SslResponse | null = await SSLMonitor.ping(
+                monitorStep.data?.monitorDestination as URL,
+                {
+                    retry: 5,
+                    monitorId: monitor.id!,
+                }
+            );
+
+            if (!response) {
+                return null;
+            }
+
+            result.isOnline = response.isOnline;
+            result.failureCause = response.failureCause;
+            result.sslResponse = {
+                ...response,
+            };
         }
 
         if (monitor.monitorType === MonitorType.Website) {

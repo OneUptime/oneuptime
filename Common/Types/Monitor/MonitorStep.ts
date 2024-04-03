@@ -131,8 +131,12 @@ export default class MonitorStep extends DatabaseProperty {
         // If the monitor type is incoming request, then the monitor destination is not required
         if (
             !value.data.monitorDestination &&
-            monitorType !== MonitorType.IncomingRequest &&
-            monitorType !== MonitorType.Server
+            (monitorType === MonitorType.Port ||
+                monitorType === MonitorType.API ||
+                monitorType === MonitorType.Ping ||
+                monitorType === MonitorType.Website ||
+                monitorType === MonitorType.IP ||
+                monitorType === MonitorType.SSLCertificate)
         ) {
             return 'Monitor Destination is required';
         }

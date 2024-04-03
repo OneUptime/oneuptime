@@ -1,30 +1,23 @@
-import tls from 'tls';
+import tls, { TLSSocket } from 'tls';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import ObjectID from 'Common/Types/ObjectID';
 import logger from 'CommonServer/Utils/Logger';
 import OnlineCheck from '../../OnlineCheck';
 import Sleep from 'Common/Types/Sleep';
 import URL from 'Common/Types/API/URL';
-import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
+import SSLMonitorReponse from 'Common/Types/Monitor/SSLMonitor/SslMonitorResponse';
+import https, { RequestOptions } from 'https';
+import ObjectUtil from 'Common/Utils/ObjectUtil';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import OneUptimeDate from 'Common/Types/Date';
+import { ClientRequest, IncomingMessage } from 'http';
 
-export interface SslMonitorResponse {
+export interface SslResponse extends SSLMonitorReponse {
     isOnline: boolean;
-    isSelfSigned?: boolean;
-    createdAt?: Date;
-    expiresAt?: Date;
-    commonName?: string;
-    organizationalUnit?: string;
-    organization?: string;
-    locality?: string;
-    state?: string;
-    country?: string;
-    serialNumber?: string;
-    fingerprint?: string;
-    fingerprint256?: string;
     failureCause: string;
 }
 
-export interface PingOptions {
+export interface SSLMonitorOptions {
     timeout?: PositiveNumber;
     retry?: number | undefined;
     currentRetryCount?: number | undefined;
@@ -37,8 +30,8 @@ export default class SSLMonitor {
 
     public static async ping(
         url: URL,
-        pingOptions?: PingOptions
-    ): Promise<SslMonitorResponse | null> {
+        pingOptions?: SSLMonitorOptions
+    ): Promise<SslResponse | null> {
         if (!pingOptions) {
             pingOptions = {};
         }
@@ -54,9 +47,9 @@ export default class SSLMonitor {
         );
 
         try {
-            const res: SslMonitorResponse = await this.getSslMonitorResponse(
+            const res: SslResponse = await this.getSslMonitorResponse(
                 url.hostname.hostname,
-                url.hostname.port.toNumber() || 443
+                url.hostname.port?.toNumber() || 443
             );
 
             logger.info(
@@ -120,61 +113,134 @@ export default class SSLMonitor {
     public static async getSslMonitorResponse(
         host: string,
         port = 443
-    ): Promise<SslMonitorResponse> {
-        const options: tls.ConnectionOptions = {
-            host: host,
-            port: port,
-        };
+    ): Promise<SslResponse> {
+        let isSelfSigned: boolean = false;
+        let certificate: tls.PeerCertificate | null = null;
 
-        return new Promise(
-            (
-                resolve: (result: SslMonitorResponse) => void,
-                reject: PromiseRejectErrorFunction
-            ) => {
-                const req: tls.TLSSocket = tls.connect(options, () => {
-                    const cert: tls.PeerCertificate = req.getPeerCertificate();
-                    if (req.authorized) {
-                        resolve({
-                            isOnline: true,
-                            isSelfSigned: false,
-                            createdAt: new Date(cert.valid_from),
-                            expiresAt: new Date(cert.valid_to),
-                            commonName: cert.subject.CN,
-                            organizationalUnit: cert.subject.OU,
-                            organization: cert.subject.O,
-                            locality: cert.subject.L,
-                            state: cert.subject.ST,
-                            country: cert.subject.C,
-                            serialNumber: cert.serialNumber,
-                            fingerprint: cert.fingerprint,
-                            fingerprint256: cert.fingerprint256,
-                            failureCause: '',
-                        });
-                    } else {
-                        resolve({
-                            isOnline: true,
-                            isSelfSigned: true,
-                            createdAt: new Date(cert.valid_from),
-                            expiresAt: new Date(cert.valid_to),
-                            commonName: cert.subject.CN,
-                            organizationalUnit: cert.subject.OU,
-                            organization: cert.subject.O,
-                            locality: cert.subject.L,
-                            state: cert.subject.ST,
-                            country: cert.subject.C,
-                            serialNumber: cert.serialNumber,
-                            fingerprint: cert.fingerprint,
-                            fingerprint256: cert.fingerprint256,
-                            failureCause: '',
-                        });
-                    }
-                    req.end();
+        try {
+            certificate = await this.getCertificate({
+                host,
+                port,
+                rejectUnauthorized: true,
+            });
+        } catch (err) {
+            try {
+                certificate = await this.getCertificate({
+                    host,
+                    port,
+                    rejectUnauthorized: false,
                 });
 
+                isSelfSigned = true;
+            } catch (err) {
+                return {
+                    isOnline: false,
+                    failureCause: (err as any).toString(),
+                };
+            }
+        }
+
+        if (!certificate) {
+            return {
+                isOnline: false,
+                failureCause: 'No certificate found',
+            };
+        }
+
+        const res: SslResponse = {
+            isOnline: true,
+            isSelfSigned: isSelfSigned,
+            createdAt: OneUptimeDate.fromString(certificate.valid_from),
+            expiresAt: OneUptimeDate.fromString(certificate.valid_to),
+            commonName: certificate.subject.CN,
+            organizationalUnit: certificate.subject.OU,
+            organization: certificate.subject.O,
+            locality: certificate.subject.L,
+            state: certificate.subject.ST,
+            country: certificate.subject.C,
+            serialNumber: certificate.serialNumber,
+            fingerprint: certificate.fingerprint,
+            fingerprint256: certificate.fingerprint256,
+            failureCause: '',
+        };
+
+        return res;
+    }
+
+    public static async getCertificate(data: {
+        host: string;
+        port: number;
+        rejectUnauthorized: boolean;
+    }): Promise<tls.PeerCertificate> {
+        const { host, rejectUnauthorized } = data;
+
+        let { port } = data;
+
+        if (!port) {
+            port = 443;
+        }
+
+        const sslPromise: Promise<tls.PeerCertificate> = new Promise(
+            (
+                resolve: (value: tls.PeerCertificate) => void,
+                reject: (err: Error) => void
+            ) => {
+                const requestOptions: https.RequestOptions = this.getOptions(
+                    host,
+                    port,
+                    rejectUnauthorized
+                );
+
+                let isResolvedOrRejected: boolean = false;
+
+                const req: ClientRequest = https.get(
+                    requestOptions,
+                    (res: IncomingMessage) => {
+                        const certificate: tls.PeerCertificate = (
+                            res.socket as TLSSocket
+                        ).getPeerCertificate();
+                        if (
+                            ObjectUtil.isEmpty(certificate) ||
+                            certificate === null
+                        ) {
+                            isResolvedOrRejected = true;
+                            return reject(
+                                new BadDataException('No certificate found')
+                            );
+                        }
+                        isResolvedOrRejected = true;
+                        return resolve(certificate);
+                    }
+                );
+
+                req.end();
+
                 req.on('error', (err: Error) => {
-                    reject(err);
+                    if (!isResolvedOrRejected) {
+                        isResolvedOrRejected = true;
+                        return reject(err);
+                    }
                 });
             }
         );
+
+        const certificate: tls.PeerCertificate = await sslPromise;
+
+        return certificate;
+    }
+
+    private static getOptions(
+        url: string,
+        port: number,
+        rejectUnauthorized: boolean
+    ): RequestOptions {
+        return {
+            hostname: url,
+            agent: false,
+            rejectUnauthorized: rejectUnauthorized,
+            ciphers: 'ALL',
+            port,
+            protocol: 'https:',
+        };
     }
 }

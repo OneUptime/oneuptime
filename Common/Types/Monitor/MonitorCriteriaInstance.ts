@@ -55,42 +55,123 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         monitorStatusId: ObjectID;
     }): MonitorCriteriaInstance | null {
         if (arg.monitorType === MonitorType.IncomingRequest) {
-            return null;
+            const monitorCriteriaInstance: MonitorCriteriaInstance =
+                new MonitorCriteriaInstance();
+
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.All,
+                filters: [
+                    {
+                        checkOn: CheckOn.IncomingRequest,
+                        filterType: FilterType.RecievedInMinutes,
+                        value: 30,
+                    },
+                ],
+                incidents: [],
+                changeMonitorStatus: true,
+                createIncidents: false,
+                name: 'Check if online',
+                description: `This criteria checks if the ${arg.monitorType} is online`,
+            };
+
+            return monitorCriteriaInstance;
         }
 
-        const monitorCriteriaInstance: MonitorCriteriaInstance =
-            new MonitorCriteriaInstance();
+        if (arg.monitorType === MonitorType.SSLCertificate) {
+            const monitorCriteriaInstance: MonitorCriteriaInstance =
+                new MonitorCriteriaInstance();
 
-        monitorCriteriaInstance.data = {
-            id: ObjectID.generate().toString(),
-            monitorStatusId: arg.monitorStatusId,
-            filterCondition: FilterCondition.All,
-            filters: [
-                {
-                    checkOn: CheckOn.IsOnline,
-                    filterType: FilterType.True,
-                    value: undefined,
-                },
-            ],
-            incidents: [],
-            changeMonitorStatus: true,
-            createIncidents: false,
-            name: 'Check if online',
-            description: `This criteria checks if the ${arg.monitorType} is online`,
-        };
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.All,
+                filters: [
+                    {
+                        checkOn: CheckOn.IsValidCertificate,
+                        filterType: FilterType.True,
+                        value: undefined,
+                    },
+                ],
+                incidents: [],
+                changeMonitorStatus: true,
+                createIncidents: false,
+                name: 'Check if online',
+                description: `This criteria checks if the ${arg.monitorType} is online`,
+            };
+
+            return monitorCriteriaInstance;
+        }
+
+        if (arg.monitorType === MonitorType.Server) {
+            const monitorCriteriaInstance: MonitorCriteriaInstance =
+                new MonitorCriteriaInstance();
+
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.All,
+                filters: [
+                    {
+                        checkOn: CheckOn.IsOnline,
+                        filterType: FilterType.True,
+                        value: undefined,
+                    },
+                ],
+                incidents: [],
+                changeMonitorStatus: true,
+                createIncidents: false,
+                name: 'Check if online',
+                description: `This criteria checks if the ${arg.monitorType} is online`,
+            };
+
+            return monitorCriteriaInstance;
+        }
 
         if (
             arg.monitorType === MonitorType.Website ||
-            arg.monitorType === MonitorType.API
+            arg.monitorType === MonitorType.API ||
+            arg.monitorType === MonitorType.Ping ||
+            arg.monitorType === MonitorType.IP ||
+            arg.monitorType === MonitorType.Port
         ) {
-            monitorCriteriaInstance.data.filters.push({
-                checkOn: CheckOn.ResponseStatusCode,
-                filterType: FilterType.EqualTo,
-                value: 200,
-            });
+            const monitorCriteriaInstance: MonitorCriteriaInstance =
+                new MonitorCriteriaInstance();
+
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.All,
+                filters: [
+                    {
+                        checkOn: CheckOn.IsOnline,
+                        filterType: FilterType.True,
+                        value: undefined,
+                    },
+                ],
+                incidents: [],
+                changeMonitorStatus: true,
+                createIncidents: false,
+                name: 'Check if online',
+                description: `This criteria checks if the ${arg.monitorType} is online`,
+            };
+
+            if (
+                arg.monitorType === MonitorType.Website ||
+                arg.monitorType === MonitorType.API
+            ) {
+                monitorCriteriaInstance.data.filters.push({
+                    checkOn: CheckOn.ResponseStatusCode,
+                    filterType: FilterType.EqualTo,
+                    value: 200,
+                });
+            }
+
+            return monitorCriteriaInstance;
         }
 
-        return monitorCriteriaInstance;
+        return null;
     }
 
     public static getDefaultOfflineMonitorCriteriaInstance(arg: {
@@ -182,6 +263,35 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                         checkOn: CheckOn.IncomingRequest,
                         filterType: FilterType.NotRecievedInMinutes,
                         value: 30, // if the request is not recieved in 30 minutes, then the monitor is offline
+                    },
+                ],
+                incidents: [
+                    {
+                        title: `${arg.monitorType} is offline`,
+                        description: `${arg.monitorType} is currently offline.`,
+                        incidentSeverityId: arg.incidentSeverityId,
+                        autoResolveIncident: true,
+                        id: ObjectID.generate().toString(),
+                        onCallPolicyIds: [],
+                    },
+                ],
+                changeMonitorStatus: true,
+                createIncidents: true,
+                name: 'Check if offline',
+                description: `This criteria checks if the ${arg.monitorType} is offline`,
+            };
+        }
+
+        if (arg.monitorType === MonitorType.SSLCertificate) {
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.Any,
+                filters: [
+                    {
+                        checkOn: CheckOn.IsNotAValidCertificate,
+                        filterType: FilterType.True,
+                        value: undefined,
                     },
                 ],
                 incidents: [

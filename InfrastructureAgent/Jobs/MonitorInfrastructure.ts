@@ -3,6 +3,7 @@ import BasicCron from '../Utils/BasicCron';
 import { BasicMetircs } from '../Utils/BasicMetrics';
 import Logger from '../Utils/Logger';
 import axios from 'axios';
+import ServerProcessUtil from '../Utils/ServerProcess';
 
 export default class MonitorInfrastructure {
     public static initJob(secretKey: string, oneuptimeHost: string): void {
@@ -27,6 +28,7 @@ export default class MonitorInfrastructure {
                         requestReceivedAt: new Date(),
                         basicInfrastructureMetrics:
                             await BasicMetircs.getBasicMetrics(),
+                        processes: await ServerProcessUtil.getServerProcesses(),
                         onlyCheckRequestReceivedAt: false,
                     };
 
