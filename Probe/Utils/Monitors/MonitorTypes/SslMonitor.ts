@@ -114,7 +114,7 @@ export default class SSLMonitor {
         host: string,
         port = 443
     ): Promise<SslResponse> {
-        let isSelfSigned = false;
+        let isSelfSigned: boolean = false;
         let certificate: tls.PeerCertificate | null = null;
 
         try {

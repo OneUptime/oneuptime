@@ -1,11 +1,6 @@
 export default class ObjectUtil {
-    public static isEmpty(object: Object): boolean {
-        for (const prop in object) {
-            if (object.hasOwnProperty(prop)) {
-                return false;
-            }
-        }
-
-        return true;
+    public static isEmpty(object: object): boolean {
+        // check if object is empty
+        return Object.keys(object).length === 0;
     }
 }
