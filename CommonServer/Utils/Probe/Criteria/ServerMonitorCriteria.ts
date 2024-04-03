@@ -162,8 +162,6 @@ export default class ServerMonitorCriteria {
             !(input.dataToProcess as ServerMonitorResponse)
                 .onlyCheckRequestReceivedAt
         ) {
-
-            debugger;
             const thresholdProcessName: string = threshold
                 .toString()
                 .trim()
