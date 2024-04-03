@@ -16,6 +16,8 @@ export default class ServerMonitorCriteria {
     }): Promise<string | null> {
         // Server Monitoring Checks
 
+        debugger;
+
         let threshold: number | string | undefined | null =
             input.criteriaFilter.value;
 
@@ -28,6 +30,7 @@ export default class ServerMonitorCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.IsValidCertificate) {
             const isValidCertificate: boolean = Boolean(
                 sslResponse &&
+                dataToProcess.isOnline &&
                     sslResponse.expiresAt &&
                     !sslResponse.isSelfSigned &&
                     OneUptimeDate.isAfter(
@@ -39,10 +42,17 @@ export default class ServerMonitorCriteria {
             const isTrue: boolean =
                 input.criteriaFilter.filterType === FilterType.True;
 
+            const isFalse: boolean =
+                input.criteriaFilter.filterType === FilterType.False;
+
             if (isValidCertificate && isTrue) {
-                return 'SSL certificate is valid';
+                return 'SSL certificate is valid.';
             }
-            return 'SSL certificate is not valid';
+
+            if (!isValidCertificate && isFalse) {
+                return 'SSL certificate is not valid.';
+            } 
+
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsSelfSignedCertificate) {
@@ -52,10 +62,17 @@ export default class ServerMonitorCriteria {
             const isTrue: boolean =
                 input.criteriaFilter.filterType === FilterType.True;
 
+                const isFalse: boolean =
+                input.criteriaFilter.filterType === FilterType.False;
+
             if (isSelfSigned && isTrue) {
-                return 'SSL Certificate is self signed';
+                return 'SSL Certificate is self signed.';
             }
-            return 'SSL Certificate is not self signed';
+
+            if (!isSelfSigned && isFalse) {
+                return 'SSL Certificate is not self signed.';
+            }
+
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsExpiredCertificate) {
@@ -71,15 +88,20 @@ export default class ServerMonitorCriteria {
             const isTrue: boolean =
                 input.criteriaFilter.filterType === FilterType.True;
 
+                const isFalse: boolean =
+                input.criteriaFilter.filterType === FilterType.False;
+
             if (isExpired && isTrue) {
-                return 'SSL certificate is expired';
+                return 'SSL certificate is expired.';
             }
 
-            return 'SSL certificate is not expired';
+            if (!isExpired && isFalse) {
+                return 'SSL certificate is not expired.';
+            }
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.IsNotAValidCertificate) {
-            const isNotValid: boolean = Boolean(
+            const isNotValid: boolean = !sslResponse || !dataToProcess.isOnline || Boolean(
                 sslResponse &&
                     sslResponse.expiresAt &&
                     (sslResponse.isSelfSigned ||
@@ -91,10 +113,16 @@ export default class ServerMonitorCriteria {
             const isTrue: boolean =
                 input.criteriaFilter.filterType === FilterType.True;
 
+                const isFalse: boolean =
+                input.criteriaFilter.filterType === FilterType.False;   
+
             if (isNotValid && isTrue) {
-                return 'SSL certificate is not valid';
+                return 'SSL certificate is not valid.';
             }
-            return 'SSL certificate is valid';
+
+            if (!isNotValid && isFalse) {
+                return 'SSL certificate is valid.';
+            }
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.ExpiresInHours) {

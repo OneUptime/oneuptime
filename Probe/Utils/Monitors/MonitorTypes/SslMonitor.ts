@@ -5,11 +5,12 @@ import logger from 'CommonServer/Utils/Logger';
 import OnlineCheck from '../../OnlineCheck';
 import Sleep from 'Common/Types/Sleep';
 import URL from 'Common/Types/API/URL';
-import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
 import SSLMonitorReponse from 'Common/Types/Monitor/SSLMonitor/SslMonitorResponse';
 import https, { RequestOptions } from 'https';
 import ObjectUtil from 'Common/Utils/ObjectUtil';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import OneUptimeDate from 'Common/Types/Date';
+import { IncomingMessage } from 'http';
 
 export interface SslResponse extends SSLMonitorReponse {
     isOnline: boolean;
@@ -119,13 +120,25 @@ export default class SSLMonitor {
 
             const requestOptions = this.getOptions(host, port);
 
-            https.get(requestOptions, function (res) {
+            let isResolvedOrRejected = false;
 
+            const req = https.get(requestOptions, (res: IncomingMessage) => {
                 var certificate: tls.PeerCertificate = ((res.socket) as TLSSocket).getPeerCertificate();
                 if (ObjectUtil.isEmpty(certificate) || certificate === null) {
-                    reject(new BadDataException('No certificate found'));
+                    isResolvedOrRejected = true;
+                    return reject(new BadDataException('No certificate found'));
                 } else {
-                    resolve(certificate);
+                    isResolvedOrRejected = true;
+                    return resolve(certificate);
+                }
+            });
+
+            req.end();
+
+            req.on('error', (err: Error) => {
+                if (!isResolvedOrRejected) {
+                    isResolvedOrRejected = true;
+                    return reject(err);
                 }
             });
         })
@@ -135,8 +148,8 @@ export default class SSLMonitor {
         const res: SslResponse = {
             isOnline: true,
             isSelfSigned: certificate.issuer.CN === certificate.subject.CN,
-            createdAt: new Date(certificate.valid_from),
-            expiresAt: new Date(certificate.valid_to),
+            createdAt: OneUptimeDate.fromString(certificate.valid_from),
+            expiresAt: OneUptimeDate.fromString(certificate.valid_to),
             commonName: certificate.subject.CN,
             organizationalUnit: certificate.subject.OU,
             organization: certificate.subject.O,
