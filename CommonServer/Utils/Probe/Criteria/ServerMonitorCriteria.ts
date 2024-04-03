@@ -162,48 +162,8 @@ export default class ServerMonitorCriteria {
             !(input.dataToProcess as ServerMonitorResponse)
                 .onlyCheckRequestReceivedAt
         ) {
-            const thresholdProcessName: string = threshold
-                .toString()
-                .trim()
-                .toLowerCase();
 
-            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
-                const processNames: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.name.trim().toLowerCase();
-                    }) || [];
-
-                if (processNames.includes(thresholdProcessName)) {
-                    return `Process ${threshold} is executing.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
-                const processNames: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.name.trim().toLowerCase();
-                    }) || [];
-
-                if (!processNames.includes(thresholdProcessName)) {
-                    return `Process ${threshold} is not executing.`;
-                }
-
-                return null;
-            }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.ServerProcessName &&
-            threshold &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
+            debugger;
             const thresholdProcessName: string = threshold
                 .toString()
                 .trim()
