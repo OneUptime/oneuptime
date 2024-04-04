@@ -7,7 +7,6 @@ import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import DashboardNavigation from '../../../../Utils/Navigation';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -52,7 +51,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Number,
                         },
                     ],
-                    modelId: DashboardNavigation.getProjectId()!,
+                    modelId: modelId,
                 }}
             />
 
