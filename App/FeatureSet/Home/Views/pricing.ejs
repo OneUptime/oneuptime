@@ -1425,7 +1425,7 @@
         }
 
         let numberOfGb = 1;
-        let numberOfDays = 30;
+        let numberOfDays = 15;
 
         function updateTelemetryPrice(updatedNumberOfGb, updatedNumberOfDays) {
 
@@ -1458,7 +1458,7 @@
 
           // set description
 
-          document.getElementById("total-telemetry-price-description").innerHTML = `for ${numberOfGb} GB for ${numberOfDays} days.`;
+          document.getElementById("total-telemetry-price-description").innerHTML = `for ${numberOfGb} GB ingested, retained for ${numberOfDays} days.`;
 
           // update telemetry count - total-number-of-telemetry
 
