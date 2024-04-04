@@ -25,6 +25,7 @@ RunCron(
                 skip: 0,
                 select: {
                     retainTelemetryDataForDays: true,
+                    projectId: true,
                     _id: true,
                 },
                 props: {
@@ -33,7 +34,8 @@ RunCron(
             });
 
         for (const service of telemetryService) {
-            let dataRententionDays: number | undefined = service.retainTelemetryDataForDays;
+            let dataRententionDays: number | undefined =
+                service.retainTelemetryDataForDays;
 
             if (!dataRententionDays) {
                 dataRententionDays = 15; // default to 15 days.
@@ -46,6 +48,8 @@ RunCron(
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getSomeDaysAgo(dataRententionDays)
                     ),
+                    serviceId: service.id,
+                    projectId: service.projectId,
                 },
                 props: {
                     isRoot: true,
@@ -59,6 +63,8 @@ RunCron(
                     createdAt: QueryHelper.lessThan(
                         OneUptimeDate.getSomeDaysAgo(dataRententionDays)
                     ),
+                    serviceId: service.id,
+                    projectId: service.projectId,
                 },
                 props: {
                     isRoot: true,
