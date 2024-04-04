@@ -1,9 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
@@ -17,12 +15,12 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Decimal from 'Common/Types/Decimal';
+import BaseModel from 'Common/Models/BaseModel';
 
 export enum ProductType {
     Logs = 'Logs',
     Traces = 'Traces',
     Metrics = 'Metrics',
-    ActiveMonitoring = 'ActiveMonitoring', // eventually this will be migrated to this table. For now, it's in Project table.
 }
 
 @TenantColumn('projectId')
@@ -36,20 +34,19 @@ export enum ProductType {
     delete: [],
     update: [],
 })
-@CrudApiEndpoint(new Route('/usage-billing'))
-@SlugifyColumn('name', 'slug')
+@CrudApiEndpoint(new Route('/telemetry-usage-billing'))
 @TableMetadata({
-    tableName: 'UsageBilling',
-    singularName: 'UsageBilling',
-    pluralName: 'UsageBillings',
+    tableName: 'TelemetryUsageBilling',
+    singularName: 'Telemetry Usage Billing',
+    pluralName: 'Telemetry Usage Billings',
     icon: IconProp.Billing,
     tableDescription:
-        'Stores historical usage billing data for your OneUptime Project',
+        'Stores historical usage billing data for your telemetry data like Logs, Metrics, and Traces.',
 })
 @Entity({
-    name: 'UsageBilling',
+    name: 'TelemetryUsageBilling',
 })
-export default class UsageBilling extends AccessControlModel {
+export default class TelemetryUsageBilling extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [

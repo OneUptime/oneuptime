@@ -1,5 +1,4 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -19,6 +18,7 @@ import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import Monitor from './Monitor';
 import Probe from './Probe';
 import { JSONObject } from 'Common/Types/JSON';
+import BaseModel from 'Common/Models/BaseModel';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -63,7 +63,7 @@ import { JSONObject } from 'Common/Types/JSON';
 @Entity({
     name: 'MonitorProbe',
 })
-export default class MonitorProbe extends AccessControlModel {
+export default class MonitorProbe extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

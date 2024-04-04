@@ -1,5 +1,4 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -17,6 +16,7 @@ import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import StatusPage from './StatusPage';
+import BaseModel from 'Common/Models/BaseModel';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -61,7 +61,7 @@ import StatusPage from './StatusPage';
 @Entity({
     name: 'StatusPageOwnerUser',
 })
-export default class StatusPageOwnerUser extends AccessControlModel {
+export default class StatusPageOwnerUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

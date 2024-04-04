@@ -1,5 +1,4 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -17,6 +16,7 @@ import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import ScheduledMaintenance from './ScheduledMaintenance';
+import BaseModel from 'Common/Models/BaseModel';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -64,7 +64,7 @@ import ScheduledMaintenance from './ScheduledMaintenance';
 @Entity({
     name: 'ScheduledMaintenanceOwnerUser',
 })
-export default class ScheduledMaintenanceOwnerUser extends AccessControlModel {
+export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

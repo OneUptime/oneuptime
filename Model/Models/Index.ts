@@ -139,7 +139,7 @@ import OnCallDutyPolicyScheduleLayer from './OnCallDutyPolicyScheduleLayer';
 import OnCallDutyPolicyScheduleLayerUser from './OnCallDutyPolicyScheduleLayerUser';
 import OnCallDutyPolicyEscalationRuleSchedule from './OnCallDutyPolicyEscalationRuleSchedule';
 
-import UsageBilling from './UsageBilling';
+import UsageBilling from './TelemetryUsageBilling';
 
 import ProjectCallSMSConfig from './ProjectCallSMSConfig';
 

@@ -1,3 +1,4 @@
+
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';

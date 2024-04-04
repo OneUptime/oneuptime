@@ -1,5 +1,4 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -18,6 +17,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import MonitorGroup from './MonitorGroup';
 import Team from './Team';
+import BaseModel from 'Common/Models/BaseModel';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -64,7 +64,7 @@ import Team from './Team';
 @Entity({
     name: 'MonitorGroupOwnerTeam',
 })
-export default class MonitorGroupOwnerTeam extends AccessControlModel {
+export default class MonitorGroupOwnerTeam extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
