@@ -27,6 +27,9 @@ import './Jobs/ScheduledMaintenance/ChangeStateToEnded';
 import './Jobs/ScheduledMaintenance/SendNotificationToSubscribers';
 import './Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers';
 
+// Telemetry Service
+import './Jobs/TelemetryService/DeleteOldData';
+
 // Scheduled Event Notes
 import './Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers';
 
