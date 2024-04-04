@@ -2,7 +2,7 @@ import NotImplementedException from 'Common/Types/Exception/NotImplementedExcept
 import ObjectID from 'Common/Types/ObjectID';
 import BillingService from '../../../Services/BillingService';
 import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
-import { ProductType } from 'Model/Models/UsageBilling';
+import { ProductType } from 'Model/Models/TelemetryUsageBilling';
 
 export default class ServerMeteredPlan {
     public getProductType(): ProductType {

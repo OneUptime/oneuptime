@@ -3,8 +3,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import ProjectService from '../../../Services/ProjectService';
 import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
-import UsageBilling, { ProductType } from 'Model/Models/UsageBilling';
-import UsageBillingService from '../../../Services/TelemetryUsageBillingService';
+import TelemetryUsageBilling, { ProductType } from 'Model/Models/TelemetryUsageBilling';
+import TelemetryUsageBillingService from '../../../Services/TelemetryUsageBillingService';
 import OneUptimeDate from 'Common/Types/Date';
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
@@ -16,9 +16,27 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
         this._productType = v;
     }
 
-    public constructor(productType: ProductType) {
+    
+    private _unitCostInUSD : number = 0;
+    public get unitCostInUSD() : number {
+        return this._unitCostInUSD;
+    }
+    public set unitCostInUSD(v : number) {
+        this._unitCostInUSD = v;
+    }
+    
+
+    public constructor(data: {productType: ProductType, unitCostInUSD: number}) {
         super();
-        this.productType = productType;
+        this.productType = data.productType;
+        this.unitCostInUSD = data.unitCostInUSD;
+    }
+
+    public getTotalCostInUSD(data:{
+        dataIngestedInGB: number;
+        retentionInDays: number;
+    }): number {
+        return data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD;
     }
 
     public override getProductType(): ProductType {
@@ -33,8 +51,8 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
     ): Promise<void> {
         // get all unreported logs
 
-        const usageBillings: Array<UsageBilling> =
-            await UsageBillingService.getUnreportedUsageBilling({
+        const usageBillings: Array<TelemetryUsageBilling> =
+            await TelemetryUsageBillingService.getUnreportedUsageBilling({
                 projectId: projectId,
                 productType: this.productType,
             });
@@ -97,7 +115,7 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
                 if (usageBilling.id) {
                     // now mark it as reported.
 
-                    await UsageBillingService.updateOneById({
+                    await TelemetryUsageBillingService.updateOneById({
                         id: usageBilling.id,
                         data: {
                             isReportedToBillingProvider: true,

@@ -37,7 +37,6 @@ export class Service extends DatabaseService<Model> {
             limit: LIMIT_PER_PROJECT,
             select: {
                 _id: true,
-                usageCount: true,
                 totalCostInUSD: true,
             },
             props: {
@@ -50,7 +49,8 @@ export class Service extends DatabaseService<Model> {
         projectId: ObjectID;
         productType: ProductType;
         telemetryServiceId: ObjectID;
-        usageCount: number;
+        dataIngestedInGB: number;
+        retentionInDays: number;
     }): Promise<void> {
         const serverMeteredPlan: ServerMeteredPlan =
             MeteredPlanUtil.getServerMeteredPlanByProductType(data.productType);
@@ -80,7 +80,7 @@ export class Service extends DatabaseService<Model> {
             },
             select: {
                 _id: true,
-                usageCount: true,
+                dataIngestedInGB: true,
                 totalCostInUSD: true,
             },
             props: {
@@ -100,7 +100,7 @@ export class Service extends DatabaseService<Model> {
                     ),
                     totalCostInUSD: new Decimal(
                         (usageBilling.totalCostInUSD?.value || 0) +
-                            totalCostOfThisOperationInUSD
+                        totalCostOfThisOperationInUSD
                     ),
                 },
                 props: {
