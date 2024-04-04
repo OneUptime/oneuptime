@@ -1,5 +1,4 @@
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 import OneUptimeDate from 'Common/Types/Date';
 import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -15,7 +14,7 @@ import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
 import Errors from '../Utils/Errors';
-import { ProductType } from 'Model/Models/UsageBilling';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -874,59 +873,6 @@ export class BillingService extends BaseService {
 
         throw new BadDataException(
             'Plan with productType ' + productType + ' not found'
-        );
-    }
-
-    public async getMeteredPlan(data: {
-        productType: ProductType;
-        projectId: ObjectID;
-    }): Promise<MeteredPlan> {
-        if (data.productType === ProductType.ActiveMonitoring) {
-            return new MeteredPlan({
-                priceId: this.getMeteredPlanPriceId(data.productType),
-                pricePerUnitInUSD: 1,
-                unitName: 'Active Monitor',
-            });
-        }
-
-        // const dataRetentionDays: number =
-        //     await ProjectService.getTelemetryDataRetentionInDays(
-        //         data.projectId
-        //     );
-
-        const dataRetentionDays: number = 15;
-
-        const dataRetentionMultiplier: number = 0.1; // if the retention is 10 days for example, the cost per GB will be 0.01$ per GB per day (0.10 * dataRetentionDays * dataRetentionMultiplier).
-
-        if (data.productType === ProductType.Logs) {
-            return new MeteredPlan({
-                priceId: this.getMeteredPlanPriceId(data.productType),
-                pricePerUnitInUSD:
-                    0.1 * dataRetentionDays * dataRetentionMultiplier,
-                unitName: `GB (${dataRetentionDays} days data retention)`,
-            });
-        }
-
-        if (data.productType === ProductType.Traces) {
-            return new MeteredPlan({
-                priceId: this.getMeteredPlanPriceId(data.productType),
-                pricePerUnitInUSD:
-                    0.1 * dataRetentionDays * dataRetentionMultiplier,
-                unitName: `GB (${dataRetentionDays} days data retention)`,
-            });
-        }
-
-        if (data.productType === ProductType.Metrics) {
-            return new MeteredPlan({
-                priceId: this.getMeteredPlanPriceId(data.productType),
-                pricePerUnitInUSD:
-                    0.1 * dataRetentionDays * dataRetentionMultiplier,
-                unitName: `GB (${dataRetentionDays} days data retention)`,
-            });
-        }
-
-        throw new BadDataException(
-            'Plan with name ' + data.productType + ' not found'
         );
     }
 }

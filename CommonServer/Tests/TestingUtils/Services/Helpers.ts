@@ -14,7 +14,7 @@ import {
     ChangePlan,
     CouponData,
 } from '../../TestingUtils/Services/Types';
-import { ProductType } from 'Model/Models/UsageBilling';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 

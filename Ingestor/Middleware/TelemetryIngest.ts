@@ -8,15 +8,17 @@ import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
 import DiskSize from 'Common/Types/DiskSize';
 import ObjectID from 'Common/Types/ObjectID';
-import UsageBillingService from 'CommonServer/Services/UsageBillingService';
-import { ProductType } from 'Model/Models/UsageBilling';
+import TelemetryUsageBillingService from 'CommonServer/Services/TelemetryUsageBillingService';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 import TelemetryServiceService from 'CommonServer/Services/TelemetryServiceService';
 import TelemetryService from 'Model/Models/TelemetryService';
 import logger from 'CommonServer/Utils/Logger';
+import { DEFAULT_RETENTION_IN_DAYS } from 'Model/Models/TelemetryUsageBilling';
 
 export interface TelemetryRequest extends ExpressRequest {
     serviceId: ObjectID; // Service ID
     projectId: ObjectID; // Project ID
+    dataRententionInDays: number; // how long the data should be retained.
     productType: ProductType; // what is the product type of the request - logs, metrics or traces.
 }
 
@@ -68,6 +70,7 @@ export default class TelemetryIngest {
                         select: {
                             _id: true,
                             projectId: true,
+                            retainTelemetryDataForDays: true,
                         },
                         props: {
                             isRoot: true,
@@ -92,6 +95,7 @@ export default class TelemetryIngest {
                 (req as TelemetryRequest).serviceId = service.id as ObjectID;
                 (req as TelemetryRequest).projectId =
                     service.projectId as ObjectID;
+                (req as TelemetryRequest).dataRententionInDays = service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
             }
 
             (req as TelemetryRequest).serviceId = ObjectID.fromString(
@@ -102,10 +106,12 @@ export default class TelemetryIngest {
             );
 
             // report to Usage Service.
-            UsageBillingService.updateUsageBilling({
+            TelemetryUsageBillingService.updateUsageBilling({
                 projectId: (req as TelemetryRequest).projectId,
                 productType: (req as TelemetryRequest).productType,
-                usageCount: sizeToGb,
+                dataIngestedInGB: sizeToGb,
+                telemetryServiceId: (req as TelemetryRequest).serviceId,
+                retentionInDays: (req as TelemetryRequest).dataRententionInDays,
             }).catch((err: Error) => {
                 logger.error('Failed to update usage billing for OTel');
                 logger.error(err);

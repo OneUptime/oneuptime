@@ -17,12 +17,11 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Decimal from 'Common/Types/Decimal';
 import BaseModel from 'Common/Models/BaseModel';
 import TelemetryService from './TelemetryService';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
-export enum ProductType {
-    Logs = 'Logs',
-    Traces = 'Traces',
-    Metrics = 'Metrics',
-}
+
+export const DEFAULT_RETENTION_IN_DAYS: number = 15;
+
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -169,7 +168,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         type: ColumnType.Number,
         nullable: true,
         unique: false,
-        default: 15,
+        default: DEFAULT_RETENTION_IN_DAYS,
     })
     public retainTelemetryDataForDays?: number = undefined;
 

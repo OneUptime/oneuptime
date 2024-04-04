@@ -1,27 +1,27 @@
 import ActiveMonitoringMeteredPlanType from './ActiveMonitoringMeteredPlan';
 import ServerMeteredPlan from './ServerMeteredPlan';
 import TelemetryMeteredPlanType from './TelemetryMeteredPlan';
-import { ProductType as TelemetryProductType } from 'Model/Models/TelemetryUsageBilling';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
 export const ActiveMonitoringMeteredPlan: ActiveMonitoringMeteredPlanType =
     new ActiveMonitoringMeteredPlanType();
 
 export const LogDataIngestMeteredPlan: TelemetryMeteredPlanType =
     new TelemetryMeteredPlanType({
-        productType: TelemetryProductType.Logs,
+        productType: ProductType.Logs,
         unitCostInUSD: 0.10 / 15, // 0.10 per 15 days per GB
     });
 
 export const MetricsDataIngestMeteredPlan: TelemetryMeteredPlanType =
     new TelemetryMeteredPlanType({
-        productType: TelemetryProductType.Metrics,
+        productType: ProductType.Metrics,
         unitCostInUSD: 0.10 / 15, // 0.10 per 15 days per GB
     });
 
 export const TracesDataIngestMetredPlan: TelemetryMeteredPlanType =
     new TelemetryMeteredPlanType({
-        productType: TelemetryProductType.Traces,
+        productType: ProductType.Traces,
         unitCostInUSD: 0.10 / 15, // 0.10 per 15 days per GB
     });
 
@@ -33,16 +33,19 @@ const AllMeteredPlans: Array<ServerMeteredPlan> = [
 ];
 
 export class MeteredPlanUtil {
-    public static getTelemetryMeteredPlanByProductType(
-        productType: TelemetryProductType
-    ): TelemetryMeteredPlanType {
-        if (productType === TelemetryProductType.Logs) {
+    public static getMeteredPlanByProductType(
+        productType: ProductType
+    ): ServerMeteredPlan {
+        if (productType === ProductType.Logs) {
             return LogDataIngestMeteredPlan;
-        } else if (productType === TelemetryProductType.Metrics) {
+        } else if (productType === ProductType.Metrics) {
             return MetricsDataIngestMeteredPlan;
-        } else if (productType === TelemetryProductType.Traces) {
+        } else if (productType === ProductType.Traces) {
             return TracesDataIngestMetredPlan;
+        } else if (productType === ProductType.ActiveMonitoring) {
+           return ActiveMonitoringMeteredPlan;
         }
+
         throw new BadDataException(`Unknown product type ${productType}`);
     }
 }

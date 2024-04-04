@@ -7,7 +7,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import ProjectService from '../../../Services/ProjectService';
 import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
-import { ProductType } from 'Model/Models/UsageBilling';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
     public override getProductType(): ProductType {

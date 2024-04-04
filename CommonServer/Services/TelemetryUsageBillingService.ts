@@ -1,5 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model, { ProductType } from 'Model/Models/TelemetryUsageBilling';
+import Model from 'Model/Models/TelemetryUsageBilling';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -7,10 +8,9 @@ import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from '../Types/Database/QueryHelper';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import { MeteredPlanUtil } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
-import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
-import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 import Decimal from 'Common/Types/Decimal';
 import TelemetryMeteredPlan from '../Types/Billing/MeteredPlan/TelemetryMeteredPlan';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -53,8 +53,13 @@ export class Service extends DatabaseService<Model> {
         dataIngestedInGB: number;
         retentionInDays: number;
     }): Promise<void> {
+
+        if(data.productType !== ProductType.Traces && data.productType !== ProductType.Metrics && data.productType !== ProductType.Logs) {
+            throw new BadDataException("This product type is not a telemetry product type.");
+        }
+
         const serverMeteredPlan: TelemetryMeteredPlan =
-            MeteredPlanUtil.getTelemetryMeteredPlanByProductType(data.productType);
+            MeteredPlanUtil.getMeteredPlanByProductType(data.productType) as TelemetryMeteredPlan;
 
         const totalCostOfThisOperationInUSD: number =
             serverMeteredPlan.getTotalCostInUSD(
@@ -95,8 +100,8 @@ export class Service extends DatabaseService<Model> {
             await this.updateOneById({
                 id: usageBilling.id,
                 data: {
-                    usageCount: new Decimal(
-                        (usageBilling.usageCount?.value || 0) + data.usageCount
+                    dataIngestedInGB: new Decimal(
+                        (usageBilling.dataIngestedInGB?.value || 0) + data.dataIngestedInGB
                     ),
                     totalCostInUSD: new Decimal(
                         (usageBilling.totalCostInUSD?.value || 0) +
@@ -111,12 +116,16 @@ export class Service extends DatabaseService<Model> {
             const usageBilling: Model = new Model();
             usageBilling.projectId = data.projectId;
             usageBilling.productType = data.productType;
-            usageBilling.usageCount = new Decimal(data.usageCount);
+            usageBilling.dataIngestedInGB = new Decimal(data.dataIngestedInGB);
+            usageBilling.telemetryServiceId = data.telemetryServiceId;
+            usageBilling.retainTelemetryDataForDays = data.retentionInDays;
             usageBilling.isReportedToBillingProvider = false;
             usageBilling.createdAt = OneUptimeDate.getCurrentDate();
+
             usageBilling.day = OneUptimeDate.getDateString(
                 OneUptimeDate.getCurrentDate()
             );
+
             usageBilling.totalCostInUSD = new Decimal(
                 totalCostOfThisOperationInUSD
             );

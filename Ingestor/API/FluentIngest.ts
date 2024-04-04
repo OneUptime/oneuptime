@@ -1,4 +1,4 @@
-import { ProductType } from 'Model/Models/UsageBilling';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 import Express, {
     ExpressRequest,
     ExpressResponse,

@@ -3,9 +3,11 @@ import ObjectID from 'Common/Types/ObjectID';
 import ProjectService from '../../../Services/ProjectService';
 import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
-import TelemetryUsageBilling, { ProductType } from 'Model/Models/TelemetryUsageBilling';
+import TelemetryUsageBilling from 'Model/Models/TelemetryUsageBilling';
 import TelemetryUsageBillingService from '../../../Services/TelemetryUsageBillingService';
 import OneUptimeDate from 'Common/Types/Date';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
+
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
     private _productType!: ProductType;
