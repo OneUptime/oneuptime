@@ -21,7 +21,7 @@ import MetricHistogram from 'Model/AnalyticsModels/MetricHistogram';
 import LogService from 'CommonServer/Services/LogService';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
-import { ProductType } from 'Model/Models/UsageBilling';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 import TelemetryIngest, {
     TelemetryRequest,
 } from '../Middleware/TelemetryIngest';
