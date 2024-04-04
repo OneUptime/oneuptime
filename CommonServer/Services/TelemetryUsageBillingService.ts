@@ -10,6 +10,7 @@ import { MeteredPlanUtil } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
 import ServerMeteredPlan from '../Types/Billing/MeteredPlan/ServerMeteredPlan';
 import Decimal from 'Common/Types/Decimal';
+import TelemetryMeteredPlan from '../Types/Billing/MeteredPlan/TelemetryMeteredPlan';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -52,23 +53,22 @@ export class Service extends DatabaseService<Model> {
         dataIngestedInGB: number;
         retentionInDays: number;
     }): Promise<void> {
-        const serverMeteredPlan: ServerMeteredPlan =
-            MeteredPlanUtil.getServerMeteredPlanByProductType(data.productType);
-
-        const meteredPlan: MeteredPlan = await serverMeteredPlan.getMeteredPlan(
-            data.projectId
-        );
+        const serverMeteredPlan: TelemetryMeteredPlan =
+            MeteredPlanUtil.getTelemetryMeteredPlanByProductType(data.productType);
 
         const totalCostOfThisOperationInUSD: number =
-            serverMeteredPlan.getCostByMeteredPlan(
-                meteredPlan,
-                data.usageCount
+            serverMeteredPlan.getTotalCostInUSD(
+                {
+                    dataIngestedInGB: data.dataIngestedInGB,
+                    retentionInDays: data.retentionInDays,
+                }
             );
 
         const usageBilling: Model | null = await this.findOneBy({
             query: {
                 projectId: data.projectId,
                 productType: data.productType,
+                telemetryServiceId: data.telemetryServiceId,
                 isReportedToBillingProvider: false,
                 createdAt: QueryHelper.inBetween(
                     OneUptimeDate.addRemoveDays(
@@ -120,7 +120,7 @@ export class Service extends DatabaseService<Model> {
             usageBilling.totalCostInUSD = new Decimal(
                 totalCostOfThisOperationInUSD
             );
-            usageBilling.usageUnitName = meteredPlan.getUnitName(); // e.g. "GB"
+           
 
             await this.create({
                 data: usageBilling,

@@ -33,9 +33,9 @@ const AllMeteredPlans: Array<ServerMeteredPlan> = [
 ];
 
 export class MeteredPlanUtil {
-    public static getServerMeteredPlanByProductType(
+    public static getTelemetryMeteredPlanByProductType(
         productType: TelemetryProductType
-    ): ServerMeteredPlan {
+    ): TelemetryMeteredPlanType {
         if (productType === TelemetryProductType.Logs) {
             return LogDataIngestMeteredPlan;
         } else if (productType === TelemetryProductType.Metrics) {
