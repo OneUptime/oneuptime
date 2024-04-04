@@ -436,10 +436,10 @@ import SpanService, {
     SpanService as SpanServiceType,
 } from 'CommonServer/Services/SpanService';
 
-import UsageBilling from 'Model/Models/UsageBilling';
-import UsageBillingService, {
-    Service as UsageBillingServiceType,
-} from 'CommonServer/Services/UsageBillingService';
+import TelemetryUsageBilling from 'Model/Models/TelemetryUsageBilling';
+import TelemetryUsageBillingService, {
+    Service as TelemetryUsageBillingServiceType,
+} from 'CommonServer/Services/TelemetryUsageBillingService';
 import BaseAPI from 'CommonServer/API/BaseAPI';
 import BaseAnalyticsAPI from 'CommonServer/API/BaseAnalyticsAPI';
 
@@ -478,9 +478,9 @@ app.use(
 
 app.use(
     `/${APP_NAME.toLocaleLowerCase()}`,
-    new BaseAPI<UsageBilling, UsageBillingServiceType>(
-        UsageBilling,
-        UsageBillingService
+    new BaseAPI<TelemetryUsageBilling, TelemetryUsageBillingServiceType>(
+        TelemetryUsageBilling,
+        TelemetryUsageBillingService
     ).getRouter()
 );
 

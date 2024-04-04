@@ -4,7 +4,7 @@ import ProjectService from '../../../Services/ProjectService';
 import BillingService from '../../../Services/BillingService';
 import Project from 'Model/Models/Project';
 import UsageBilling, { ProductType } from 'Model/Models/UsageBilling';
-import UsageBillingService from '../../../Services/UsageBillingService';
+import UsageBillingService from '../../../Services/TelemetryUsageBillingService';
 import OneUptimeDate from 'Common/Types/Date';
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {

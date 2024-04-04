@@ -136,7 +136,7 @@ import OnCallDutyPolicyScheduleLayerUserService from './OnCallDutyPolicySchedule
 import OnCallDutyPolicyScheduleLayerService from './OnCallDutyPolicyScheduleLayerService';
 import OnCallDutyPolicyEscalationRuleScheduleService from './OnCallDutyPolicyEscalationRuleScheduleService';
 
-import UsageBillingService from './UsageBillingService';
+import UsageBillingService from './TelemetryUsageBillingService';
 import ProjectCallSMSConfigService from './ProjectCallSMSConfigService';
 import MonitorMetricsByMinuteService from './MonitorMetricsByMinuteService';
 

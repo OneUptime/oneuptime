@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model, { ProductType } from 'Model/Models/UsageBilling';
+import Model, { ProductType } from 'Model/Models/TelemetryUsageBilling';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -49,6 +49,7 @@ export class Service extends DatabaseService<Model> {
     public async updateUsageBilling(data: {
         projectId: ObjectID;
         productType: ProductType;
+        telemetryServiceId: ObjectID;
         usageCount: number;
     }): Promise<void> {
         const serverMeteredPlan: ServerMeteredPlan =

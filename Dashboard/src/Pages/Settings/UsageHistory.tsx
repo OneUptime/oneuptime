@@ -2,12 +2,14 @@ import { JSONObject } from 'Common/Types/JSON';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import UsageBilling from 'Model/Models/UsageBilling';
+import TelemetryUsageBilling from 'Model/Models/TelemetryUsageBilling';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DashboardNavigation from '../../Utils/Navigation';
 import Currency from 'Common/Types/Currency';
 import DiskSize from 'Common/Types/DiskSize';
 import Decimal from 'Common/Types/Decimal';
+import TelemetryServiceElement from '../../Components/TelemetryService/TelemetryServiceElement';
+import TelemetryService from 'Model/Models/TelemetryService';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -16,8 +18,8 @@ const Settings: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <Fragment>
-            <ModelTable<UsageBilling>
-                modelType={UsageBilling}
+            <ModelTable<TelemetryUsageBilling>
+                modelType={TelemetryUsageBilling}
                 id="usage-history-table"
                 isDeleteable={false}
                 name="Settings > Billing > Usage History"
@@ -25,9 +27,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                 isCreateable={false}
                 isViewable={false}
                 cardProps={{
-                    title: 'Usage History',
+                    title: 'Telemetry Usage History',
                     description:
-                        'Here is the usage history for this project. Please refer to the pricing page for more details.',
+                        'Here is the telemetry usage history for this project. Please refer to the pricing page for more details.',
                 }}
                 noItemsMessage={
                     'No usage history found. Maybe you have not used Telemetry features yet?'
@@ -37,9 +39,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                 }}
                 showRefreshButton={true}
                 showFilterButton={false}
-                selectMoreFields={{
-                    usageUnitName: true,
-                }}
                 columns={[
                     {
                         field: {
@@ -59,16 +58,60 @@ const Settings: FunctionComponent<ComponentProps> = (
                     },
                     {
                         field: {
-                            usageCount: true,
+                            dataIngestedInGB: true,
                         },
-                        title: 'Usage',
+                        title: 'Data Ingested (in GB)',
                         type: FieldType.Text,
                         getElement: (item: JSONObject) => {
                             return (
                                 <div>{`${DiskSize.convertToDecimalPlaces(
-                                    (item['usageCount'] as Decimal)
+                                    (item['dataIngestedInGB'] as Decimal)
                                         .value as number
-                                )} ${item['usageUnitName'] as string}`}</div>
+                                )} GB`}</div>
+                            );
+                        },
+                    },
+                    {
+                        field: {
+                            telemetryService: {
+                                name: true,
+                                _id: true,
+                            },
+                        },
+                        title: 'Telemetry Service',
+                        type: FieldType.Element,
+                        getElement: (item: JSONObject) => {
+                            return (
+                                <TelemetryServiceElement telemetryService={item['telemetryService'] as TelemetryService} />
+                            )
+                        },
+                    },
+                    {
+                        field: {
+                            retainTelemetryDataForDays: true,
+                        },
+                        title: 'Data Retention (in Days)',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject) => {
+                            return (
+                                <div>{`${(item['retainTelemetryDataForDays']?.toString())
+                                        
+                                } Days`}</div>
+                            );
+                        },
+                    },
+                    {
+                        field: {
+                            dataIngestedInGB: true,
+                        },
+                        title: 'Data Ingested (in GB)',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject) => {
+                            return (
+                                <div>{`${DiskSize.convertToDecimalPlaces(
+                                    (item['dataIngestedInGB'] as Decimal)
+                                        .value as number
+                                )} GB`}</div>
                             );
                         },
                     },

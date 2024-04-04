@@ -16,6 +16,7 @@ import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Decimal from 'Common/Types/Decimal';
 import BaseModel from 'Common/Models/BaseModel';
+import TelemetryService from './TelemetryService';
 
 export enum ProductType {
     Logs = 'Logs',
@@ -159,18 +160,19 @@ export default class TelemetryUsageBilling extends BaseModel {
         update: [],
     })
     @TableColumn({
-        required: true,
         type: TableColumnType.Number,
-        canReadOnRelationQuery: true,
-        title: 'Usage Count',
-        description: 'Usage Count this usage billing was generated for',
+        title: 'Retain Telemetry Data For Days',
+        description:
+            'Number of days to retain telemetry data for this service.',
     })
     @Column({
-        nullable: false,
-        type: ColumnType.Decimal,
-        transformer: Decimal.getDatabaseTransformer(),
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+        default: 15,
     })
-    public usageCount?: Decimal = undefined;
+    public retainTelemetryDataForDays?: number = undefined;
+
 
     @ColumnAccessControl({
         create: [],
@@ -183,18 +185,18 @@ export default class TelemetryUsageBilling extends BaseModel {
     })
     @TableColumn({
         required: true,
-        type: TableColumnType.ShortText,
+        type: TableColumnType.Number,
         canReadOnRelationQuery: true,
-        title: 'Usage Unit Name',
-        description:
-            'Usage Unit Name this usage billing was generated for (eg: GB, MB, etc.)',
+        title: 'Data Ingested (in GB)',
+        description: 'Data Ingested in GB this usage billing was generated for',
     })
     @Column({
         nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
+        type: ColumnType.Decimal,
+        transformer: Decimal.getDatabaseTransformer(),
     })
-    public usageUnitName?: string = undefined;
+    public dataIngestedInGB?: Decimal = undefined;
+
 
     @ColumnAccessControl({
         create: [],
@@ -238,6 +240,66 @@ export default class TelemetryUsageBilling extends BaseModel {
         default: false,
     })
     public isReportedToBillingProvider?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+           
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanManageProjectBilling,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'telemetryServiceId',
+        type: TableColumnType.Entity,
+        modelType: TelemetryService,
+        title: 'Telemetry Service',
+        description:
+            'Relation to Telemetry Service Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return TelemetryService;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'telemetryServiceId' })
+    public telemetryService?: TelemetryService = undefined;
+
+    @ColumnAccessControl({
+        create: [
+           
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanManageProjectBilling,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        title: 'Telemetry Service ID',
+        description:
+            'ID of your Telemetry Service resource where this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public telemetryServiceId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
