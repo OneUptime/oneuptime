@@ -473,84 +473,120 @@
               <p id="total-number-of-monitors" class="text-base font-semibold text-gray-600">1 Monitor</p>
             </div>
             <input id="default-range" type="range" value="1" max="100" min="0" step="1"
-              onchange="updateMonitorPrice(this.value)"
-              oninput="updateMonitorPrice(this.value)"
+              onchange="updateMonitorPrice(this.value)" oninput="updateMonitorPrice(this.value)"
               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
 
-              <div>
-                <p id="more-than-100-monitors-message" style="display: none;" class="text-base text-gray-600">If you have more than 100 monitors, contact sales@oneuptime.com for a discount.</p>
-              </div>
+            <div>
+              <p id="more-than-100-monitors-message" style="display: none;" class="text-base text-gray-600">If you have
+                more than 100 monitors, contact sales@oneuptime.com for a discount.</p>
+            </div>
           </div>
 
         </div>
 
 
-        <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:flex lg:max-w-none">
-          <div class="p-8 sm:p-10 lg:flex-auto">
-            <h3 class="text-2xl font-bold tracking-tight text-gray-900">Telemetry: Logs, Traces and Metrics.</h3>
-            <p class="mt-6 text-base leading-7 text-gray-600">We charge $0.10 for every GB of data ingested (for 15 day
-              retention). It's the lowest in the industry and 8X cheaper than DataDog. </p>
-            <div class="mt-10 flex items-center gap-x-4">
-              <h4 class="flex-none text-sm font-semibold leading-6 text-indigo-600">What’s included</h4>
-              <div class="h-px flex-auto bg-gray-100"></div>
+        <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:max-w-none">
+          <div class="lg:flex">
+            <div class="p-8 sm:p-10 lg:flex-auto">
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900">Telemetry: Logs, Traces and Metrics.</h3>
+              <p class="mt-6 text-base leading-7 text-gray-600">We charge $0.10 for every GB of data ingested (for 15
+                day
+                retention). It's the lowest in the industry and 8X cheaper than DataDog. </p>
+              <div class="mt-10 flex items-center gap-x-4">
+                <h4 class="flex-none text-sm font-semibold leading-6 text-indigo-600">What’s included</h4>
+                <div class="h-px flex-auto bg-gray-100"></div>
+              </div>
+              <ul role="list"
+                class="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-gray-600 sm:grid-cols-2 sm:gap-6">
+                <li class="flex gap-x-3">
+                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                    aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  Ingest logs, traces and metrics from any service or app.
+                </li>
+                <li class="flex gap-x-3">
+                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                    aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  Custom data retention. We store your data for 15 days by default.
+                </li>
+                <li class="flex gap-x-3">
+                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                    aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  Search TB's of data in seconds.
+                </li>
+                <li class="flex gap-x-3">
+                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
+                    aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  Native integration with OpenTelemetry.
+                </li>
+              </ul>
             </div>
-            <ul role="list" class="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-gray-600 sm:grid-cols-2 sm:gap-6">
-              <li class="flex gap-x-3">
-                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                  aria-hidden="true">
-                  <path fill-rule="evenodd"
-                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                    clip-rule="evenodd" />
-                </svg>
-                Ingest logs, traces and metrics from any service or app.
-              </li>
-              <li class="flex gap-x-3">
-                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                  aria-hidden="true">
-                  <path fill-rule="evenodd"
-                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                    clip-rule="evenodd" />
-                </svg>
-                Custom data retention. We store your data for 15 days by default.
-              </li>
-              <li class="flex gap-x-3">
-                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                  aria-hidden="true">
-                  <path fill-rule="evenodd"
-                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                    clip-rule="evenodd" />
-                </svg>
-                Search TB's of data in seconds.
-              </li>
-              <li class="flex gap-x-3">
-                <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                  aria-hidden="true">
-                  <path fill-rule="evenodd"
-                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                    clip-rule="evenodd" />
-                </svg>
-                Native integration with OpenTelemetry.
-              </li>
-            </ul>
-          </div>
-          <div class="-mt-2 p-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
-            <div
-              class="rounded-lg bg-gray-50 py-10 text-center ring-1 ring-inset ring-gray-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
-              <div class="mx-auto max-w-xs px-8">
-                <p class="text-base font-semibold text-gray-600">Only pay for what you use.</p>
-                <p class="mt-6 flex items-baseline justify-center gap-x-2">
-                <div class="text-5xl font-bold tracking-tight text-gray-900">$0.10</div>
-                <div class="text-sm font-semibold leading-6 tracking-wide text-gray-600">per GB ingested (15 day
-                  retention)</div>
-                </p>
-                <a href="/accounts/register"
-                  class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
-                  14 day trial</a>
-                <p class="mt-6 text-xs leading-5 text-gray-600">If you ingest more than 10 TB of data every month.
-                  Contact us for a discount.</p>
+            <div class="-mt-2 p-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
+              <div
+                class="rounded-lg bg-gray-50 py-10 text-center ring-1 ring-inset ring-gray-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
+                <div class="mx-auto max-w-xs px-8">
+                  <p class="text-base font-semibold text-gray-600">Only pay for what you use.</p>
+                  <p class="mt-6 flex items-baseline justify-center gap-x-2">
+                  <div id="total-telemetry-price" class="text-5xl font-bold tracking-tight text-gray-900">$0.10</div>
+                  <div id="total-telemetry-price-description"
+                    class="text-sm font-semibold leading-6 tracking-wide text-gray-600">per GB ingested (15 day
+                    retention)</div>
+                  </p>
+                  <a href="/accounts/register"
+                    class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
+                    14 day trial</a>
+                  <p class="mt-6 text-xs leading-5 text-gray-600">If you ingest more than 1 TB of data every month.
+                    Contact us for a discount.</p>
+                </div>
               </div>
             </div>
           </div>
+
+          <div class="p-8 sm:p-10">
+            <div class="flex justify-between">
+              <p class="text-base font-semibold text-gray-500">GB's ingested per month</p>
+              <p id="total-number-of-gb-ingested" class="text-base font-semibold text-gray-600">1 GB</p>
+            </div>
+            <input id="default-range" type="range" value="1" max="1000" min="0" step="1"
+              onchange="updateTelemetryPrice(this.value, null)" oninput="updateTelemetryPrice(this.value, null)"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+            <div>
+              <p id="more-than-10-tb-ingested-message" style="display: none;" class="text-base text-gray-600">If you are
+                ingesting more than 1 TB of data every month, contact sales@oneuptime.com for a discount.</p>
+            </div>
+          </div>
+
+          <div class="p-8 sm:p-10 -mt-8">
+            <div class="flex justify-between">
+              <p class="text-base font-semibold text-gray-500">Data Rentention (in days)</p>
+              <p id="data-rentention-in-days" class="text-base font-semibold text-gray-600">15 Days</p>
+            </div>
+            <input id="default-range" type="range" value="15" max="180" min="0" step="1"
+              onchange="updateTelemetryPrice(null, this.value)" oninput="updateTelemetryPrice(null,this.value)"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+            <div>
+              <p id="more-than-6-months-rentention" style="display: none;" class="text-base text-gray-600">If you're
+                looking for data rention of more than 6 months. contact sales@oneuptime.com for a discount. </p>
+            </div>
+
+          </div>
+
+
         </div>
 
 
@@ -1374,16 +1410,78 @@
           // update monitor count - total-number-of-monitors
           document.getElementById("total-number-of-monitors").innerHTML = monitorCount + " Monitors";
 
-          if(monitorCount <= 1) {
+          if (monitorCount <= 1) {
             document.getElementById("total-number-of-monitors").innerHTML = monitorCount + " Monitor";
           }
 
-          if(monitorCount === 100){
+          if (monitorCount === 100) {
             // show more than 100 monitors message
             document.getElementById("more-than-100-monitors-message").style.display = "block";
-          }else{
+          } else {
             // hide more than 100 monitors
             document.getElementById("more-than-100-monitors-message").style.display = "none";
+          }
+
+        }
+
+        let numberOfGb = 1;
+        let numberOfDays = 30;
+
+        function updateTelemetryPrice(updatedNumberOfGb, updatedNumberOfDays) {
+
+          if (typeof updatedNumberOfGb !== 'number' && updatedNumberOfGb) {
+            updatedNumberOfGb = parseInt(updatedNumberOfGb);
+          }
+
+          if (typeof updatedNumberOfDays !== 'number' && updatedNumberOfDays) {
+            updatedNumberOfDays = parseInt(updatedNumberOfDays);
+          }
+
+          if (updatedNumberOfGb) {
+            numberOfGb = updatedNumberOfGb;
+          }
+
+          if (updatedNumberOfDays) {
+            numberOfDays = updatedNumberOfDays;
+          }
+
+
+
+          const perGbPerDayPrice = 0.10 / 15; // 0.10 USD per GB for 15 days. 
+
+          const monthlyPrice = numberOfGb * numberOfDays * perGbPerDayPrice;
+
+
+          // set the price in the UI
+
+          document.getElementById("total-telemetry-price").innerHTML = `$${monthlyPrice.toFixed(2)}`;
+
+          // set description
+
+          document.getElementById("total-telemetry-price-description").innerHTML = `for ${numberOfGb} GB for ${numberOfDays} days.`;
+
+          // update telemetry count - total-number-of-telemetry
+
+          document.getElementById("total-number-of-gb-ingested").innerHTML = numberOfGb + " GB";
+          document.getElementById("data-rentention-in-days").innerHTML = numberOfDays + " Days";
+
+
+
+          if (numberOfGb === 1000) {
+            // show more than 100 monitors message
+            document.getElementById("more-than-10-tb-ingested-message").style.display = "block";
+          } else {
+            // hide more than 100 monitors
+            document.getElementById("more-than-10-tb-ingested-message").style.display = "none";
+          }
+
+
+          if (numberOfDays === 180) {
+            // show more than 100 monitors message
+            document.getElementById("more-than-6-months-rentention").style.display = "block";
+          } else {
+            // hide more than 100 monitors
+            document.getElementById("more-than-6-months-rentention").style.display = "none";
           }
 
         }

@@ -143,9 +143,7 @@ export default class Telemetry {
             const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
                 {
                     idGenerator: new AWSXRayIdGenerator(),
-                    instrumentations: [
-                        getNodeAutoInstrumentations(),
-                    ],
+                    instrumentations: [getNodeAutoInstrumentations()],
                     resource: this.getResource({
                         serviceName: data.serviceName,
                     }),

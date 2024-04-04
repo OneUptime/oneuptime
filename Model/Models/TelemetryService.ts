@@ -452,7 +452,6 @@ export default class TelemetryService extends BaseModel {
     })
     public telemetryServiceToken?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

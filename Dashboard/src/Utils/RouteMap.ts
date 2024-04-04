@@ -922,7 +922,7 @@ const RouteMap: Dictionary<Route> = {
             SettingsRoutePath[PageMap.SETTINGS_BILLING]
         }`
     ),
-    
+
     [PageMap.SETTINGS_BILLING_INVOICES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
             SettingsRoutePath[PageMap.SETTINGS_BILLING_INVOICES]

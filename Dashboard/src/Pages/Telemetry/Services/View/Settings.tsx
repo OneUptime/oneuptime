@@ -16,7 +16,6 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Fragment>
-
             <CardModelDetail
                 name="Data Retention"
                 cardProps={{
@@ -56,7 +55,6 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                     modelId: DashboardNavigation.getProjectId()!,
                 }}
             />
-
 
             <ResetObjectID<TelemetryService>
                 modelType={TelemetryService}
