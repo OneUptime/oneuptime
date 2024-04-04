@@ -159,11 +159,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
             'Settings',
             'SSO',
         ]),
-        ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DATA_RETENTION, [
-            'Project',
-            'Settings',
-            'Data Retention',
-        ]),
         ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DANGERZONE, [
             'Project',
             'Settings',

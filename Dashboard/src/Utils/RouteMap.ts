@@ -132,7 +132,6 @@ export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
     [PageMap.SETTINGS_LABELS]: 'labels',
     [PageMap.SETTINGS_PROBES]: 'probes',
-    [PageMap.SETTINGS_DATA_RETENTION]: 'data-retention',
 };
 
 export const OnCallDutyRoutePath: Dictionary<string> = {
@@ -923,13 +922,7 @@ const RouteMap: Dictionary<Route> = {
             SettingsRoutePath[PageMap.SETTINGS_BILLING]
         }`
     ),
-
-    [PageMap.SETTINGS_DATA_RETENTION]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/${
-            SettingsRoutePath[PageMap.SETTINGS_DATA_RETENTION]
-        }`
-    ),
-
+    
     [PageMap.SETTINGS_BILLING_INVOICES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
             SettingsRoutePath[PageMap.SETTINGS_BILLING_INVOICES]

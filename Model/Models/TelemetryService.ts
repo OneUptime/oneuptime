@@ -451,4 +451,40 @@ export default class TelemetryService extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public telemetryServiceToken?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateTelemetryService,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.CanReadTelemetryService,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditTelemetryService,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.Number,
+        title: 'Retain Telemetry Data For Days',
+        description:
+            'Number of days to retain telemetry data for this service.',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+        default: 15,
+    })
+    public retainTelemetryDataForDays?: number = undefined;
 }

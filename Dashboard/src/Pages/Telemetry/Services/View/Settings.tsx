@@ -4,6 +4,10 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import TelemetryService from 'Model/Models/TelemetryService';
 import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DashboardNavigation from '../../../../Utils/Navigation';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -12,6 +16,48 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Fragment>
+
+            <CardModelDetail
+                name="Data Retention"
+                cardProps={{
+                    title: 'Telemetry Data Retention',
+                    description:
+                        'Configure how long you want to keep your telemetry data - like Logs, Metrics, and Traces.',
+                }}
+                isEditable={true}
+                editButtonText="Edit Data Retention"
+                formFields={[
+                    {
+                        field: {
+                            retainTelemetryDataForDays: true,
+                        },
+                        title: 'Telemetry Data Retention (Days)',
+                        description:
+                            'How long do you want to keep your telemetry data - like Logs, Metrics, and Traces.',
+                        fieldType: FormFieldSchemaType.Number,
+                        required: true,
+                        placeholder: '15',
+                    },
+                ]}
+                modelDetailProps={{
+                    modelType: TelemetryService,
+                    id: 'model-detail-project',
+                    fields: [
+                        {
+                            field: {
+                                retainTelemetryDataForDays: true,
+                            },
+                            title: 'Telemetry Data Retention (Days)',
+                            description:
+                                'How long do you want to keep your telemetry data - like Logs, Metrics, and Traces.',
+                            fieldType: FieldType.Number,
+                        },
+                    ],
+                    modelId: DashboardNavigation.getProjectId()!,
+                }}
+            />
+
+
             <ResetObjectID<TelemetryService>
                 modelType={TelemetryService}
                 fieldName={'telemetryServiceToken'}

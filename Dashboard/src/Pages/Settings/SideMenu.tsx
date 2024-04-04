@@ -325,17 +325,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     icon={IconProp.Lock}
                 />
             </SideMenuSection>
-            <SideMenuSection title="Data">
-                <SideMenuItem
-                    link={{
-                        title: 'Data Rentention',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route
-                        ),
-                    }}
-                    icon={IconProp.Database}
-                />
-            </SideMenuSection>
             <SideMenuSection title="Danger Zone">
                 <SideMenuItem
                     link={{
