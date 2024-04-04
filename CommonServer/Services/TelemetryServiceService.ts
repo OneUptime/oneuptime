@@ -4,6 +4,7 @@ import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import { OnCreate } from '../Types/Database/Hooks';
 import ObjectID from 'Common/Types/ObjectID';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -19,6 +20,26 @@ export class Service extends DatabaseService<Model> {
             carryForward: null,
             createBy: createBy,
         };
+    }
+
+    public async getTelemetryDataRetentionInDays(
+        telemetryServiceId: ObjectID
+    ): Promise<number> {
+        const project: Model | null = await this.findOneById({
+            id: telemetryServiceId,
+            select: {
+                retainTelemetryDataForDays: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (!project) {
+            throw new BadDataException('Project not found');
+        }
+
+        return project.retainTelemetryDataForDays || 15; // default is 15 days.
     }
 }
 

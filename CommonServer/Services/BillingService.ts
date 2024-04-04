@@ -15,7 +15,6 @@ import BaseService from './BaseService';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
 import Errors from '../Utils/Errors';
-import ProjectService from './ProjectService';
 import { ProductType } from 'Model/Models/UsageBilling';
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
@@ -890,10 +889,12 @@ export class BillingService extends BaseService {
             });
         }
 
-        const dataRetentionDays: number =
-            await ProjectService.getTelemetryDataRetentionInDays(
-                data.projectId
-            );
+        // const dataRetentionDays: number =
+        //     await ProjectService.getTelemetryDataRetentionInDays(
+        //         data.projectId
+        //     );
+
+        const dataRetentionDays: number = 15;
 
         const dataRetentionMultiplier: number = 0.1; // if the retention is 10 days for example, the cost per GB will be 0.01$ per GB per day (0.10 * dataRetentionDays * dataRetentionMultiplier).
 
