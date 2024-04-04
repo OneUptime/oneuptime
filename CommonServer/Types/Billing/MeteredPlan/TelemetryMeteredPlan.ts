@@ -8,7 +8,6 @@ import TelemetryUsageBillingService from '../../../Services/TelemetryUsageBillin
 import OneUptimeDate from 'Common/Types/Date';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
-
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
     private _productType!: ProductType;
     public get productType(): ProductType {
@@ -18,27 +17,30 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
         this._productType = v;
     }
 
-    
-    private _unitCostInUSD : number = 0;
-    public get unitCostInUSD() : number {
+    private _unitCostInUSD: number = 0;
+    public get unitCostInUSD(): number {
         return this._unitCostInUSD;
     }
-    public set unitCostInUSD(v : number) {
+    public set unitCostInUSD(v: number) {
         this._unitCostInUSD = v;
     }
-    
 
-    public constructor(data: {productType: ProductType, unitCostInUSD: number}) {
+    public constructor(data: {
+        productType: ProductType;
+        unitCostInUSD: number;
+    }) {
         super();
         this.productType = data.productType;
         this.unitCostInUSD = data.unitCostInUSD;
     }
 
-    public getTotalCostInUSD(data:{
+    public getTotalCostInUSD(data: {
         dataIngestedInGB: number;
         retentionInDays: number;
     }): number {
-        return data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD;
+        return (
+            data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD
+        );
     }
 
     public override getProductType(): ProductType {

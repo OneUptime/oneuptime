@@ -3,7 +3,7 @@ import Model from 'Model/Models/TelemetryUsageBilling';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from '../Types/Database/QueryHelper';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
@@ -35,7 +35,7 @@ export class Service extends DatabaseService<Model> {
                 ), // we need to get everything that's not today.
             },
             skip: 0,
-            limit: LIMIT_PER_PROJECT,
+            limit: LIMIT_MAX, /// because a project can have MANY telemetry services.
             select: {
                 _id: true,
                 totalCostInUSD: true,
@@ -53,21 +53,26 @@ export class Service extends DatabaseService<Model> {
         dataIngestedInGB: number;
         retentionInDays: number;
     }): Promise<void> {
-
-        if(data.productType !== ProductType.Traces && data.productType !== ProductType.Metrics && data.productType !== ProductType.Logs) {
-            throw new BadDataException("This product type is not a telemetry product type.");
+        if (
+            data.productType !== ProductType.Traces &&
+            data.productType !== ProductType.Metrics &&
+            data.productType !== ProductType.Logs
+        ) {
+            throw new BadDataException(
+                'This product type is not a telemetry product type.'
+            );
         }
 
         const serverMeteredPlan: TelemetryMeteredPlan =
-            MeteredPlanUtil.getMeteredPlanByProductType(data.productType) as TelemetryMeteredPlan;
+            MeteredPlanUtil.getMeteredPlanByProductType(
+                data.productType
+            ) as TelemetryMeteredPlan;
 
         const totalCostOfThisOperationInUSD: number =
-            serverMeteredPlan.getTotalCostInUSD(
-                {
-                    dataIngestedInGB: data.dataIngestedInGB,
-                    retentionInDays: data.retentionInDays,
-                }
-            );
+            serverMeteredPlan.getTotalCostInUSD({
+                dataIngestedInGB: data.dataIngestedInGB,
+                retentionInDays: data.retentionInDays,
+            });
 
         const usageBilling: Model | null = await this.findOneBy({
             query: {
@@ -101,11 +106,12 @@ export class Service extends DatabaseService<Model> {
                 id: usageBilling.id,
                 data: {
                     dataIngestedInGB: new Decimal(
-                        (usageBilling.dataIngestedInGB?.value || 0) + data.dataIngestedInGB
+                        (usageBilling.dataIngestedInGB?.value || 0) +
+                            data.dataIngestedInGB
                     ),
                     totalCostInUSD: new Decimal(
                         (usageBilling.totalCostInUSD?.value || 0) +
-                        totalCostOfThisOperationInUSD
+                            totalCostOfThisOperationInUSD
                     ),
                 },
                 props: {
@@ -129,7 +135,6 @@ export class Service extends DatabaseService<Model> {
             usageBilling.totalCostInUSD = new Decimal(
                 totalCostOfThisOperationInUSD
             );
-           
 
             await this.create({
                 data: usageBilling,

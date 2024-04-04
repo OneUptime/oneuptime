@@ -95,7 +95,9 @@ export default class TelemetryIngest {
                 (req as TelemetryRequest).serviceId = service.id as ObjectID;
                 (req as TelemetryRequest).projectId =
                     service.projectId as ObjectID;
-                (req as TelemetryRequest).dataRententionInDays = service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
+                (req as TelemetryRequest).dataRententionInDays =
+                    service.retainTelemetryDataForDays ||
+                    DEFAULT_RETENTION_IN_DAYS;
             }
 
             (req as TelemetryRequest).serviceId = ObjectID.fromString(

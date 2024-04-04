@@ -82,8 +82,14 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Element,
                         getElement: (item: JSONObject) => {
                             return (
-                                <TelemetryServiceElement telemetryService={item['telemetryService'] as TelemetryService} />
-                            )
+                                <TelemetryServiceElement
+                                    telemetryService={
+                                        item[
+                                            'telemetryService'
+                                        ] as TelemetryService
+                                    }
+                                />
+                            );
                         },
                     },
                     {
@@ -94,9 +100,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         getElement: (item: JSONObject) => {
                             return (
-                                <div>{`${(item['retainTelemetryDataForDays']?.toString())
-                                        
-                                } Days`}</div>
+                                <div>{`${item[
+                                    'retainTelemetryDataForDays'
+                                ]?.toString()} Days`}</div>
                             );
                         },
                     },

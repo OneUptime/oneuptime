@@ -19,9 +19,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import TelemetryService from './TelemetryService';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
-
 export const DEFAULT_RETENTION_IN_DAYS: number = 15;
-
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -172,7 +170,6 @@ export default class TelemetryUsageBilling extends BaseModel {
     })
     public retainTelemetryDataForDays?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -195,7 +192,6 @@ export default class TelemetryUsageBilling extends BaseModel {
         transformer: Decimal.getDatabaseTransformer(),
     })
     public dataIngestedInGB?: Decimal = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -240,11 +236,8 @@ export default class TelemetryUsageBilling extends BaseModel {
     })
     public isReportedToBillingProvider?: boolean = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
@@ -275,9 +268,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     public telemetryService?: TelemetryService = undefined;
 
     @ColumnAccessControl({
-        create: [
-           
-        ],
+        create: [],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

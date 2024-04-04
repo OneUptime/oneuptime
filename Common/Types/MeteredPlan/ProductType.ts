@@ -1,4 +1,4 @@
- enum ProductType {
+enum ProductType {
     Logs = 'Logs',
     Traces = 'Traces',
     Metrics = 'Metrics',

@@ -10,19 +10,19 @@ export const ActiveMonitoringMeteredPlan: ActiveMonitoringMeteredPlanType =
 export const LogDataIngestMeteredPlan: TelemetryMeteredPlanType =
     new TelemetryMeteredPlanType({
         productType: ProductType.Logs,
-        unitCostInUSD: 0.10 / 15, // 0.10 per 15 days per GB
+        unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
     });
 
 export const MetricsDataIngestMeteredPlan: TelemetryMeteredPlanType =
     new TelemetryMeteredPlanType({
         productType: ProductType.Metrics,
-        unitCostInUSD: 0.10 / 15, // 0.10 per 15 days per GB
+        unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
     });
 
 export const TracesDataIngestMetredPlan: TelemetryMeteredPlanType =
     new TelemetryMeteredPlanType({
         productType: ProductType.Traces,
-        unitCostInUSD: 0.10 / 15, // 0.10 per 15 days per GB
+        unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
     });
 
 const AllMeteredPlans: Array<ServerMeteredPlan> = [
@@ -43,7 +43,7 @@ export class MeteredPlanUtil {
         } else if (productType === ProductType.Traces) {
             return TracesDataIngestMetredPlan;
         } else if (productType === ProductType.ActiveMonitoring) {
-           return ActiveMonitoringMeteredPlan;
+            return ActiveMonitoringMeteredPlan;
         }
 
         throw new BadDataException(`Unknown product type ${productType}`);
