@@ -589,10 +589,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                                 RouteMap[
                                                     PageMap.SETTINGS_DANGERZONE
                                                 ] as Route
-                                            ),
-                                            {
-                                                openInNewTab: true,
-                                            }
+                                            )
                                         );
                                     },
                                     icon: IconProp.Close,
