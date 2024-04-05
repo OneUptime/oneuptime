@@ -36,6 +36,13 @@ export default class logger {
         });
     }
 
+    public static debug(message: LogBody): void {
+        this.emit({
+            body: message,
+            severityNumber: SeverityNumber.DEBUG,
+        });
+    }
+
     public static emit(data: {
         body: LogBody;
         severityNumber: SeverityNumber;
