@@ -1,5 +1,5 @@
 {
-    "name": "@oneuptime/ingestor",
+    "name": "@oneuptime/isolated-vm",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
