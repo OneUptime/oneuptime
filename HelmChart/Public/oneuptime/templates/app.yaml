@@ -22,12 +22,15 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
-      {{- if $.Values.securityContext.enabled }}
-      {{- include "oneuptime.securityContext" $ | nindent 8 }}
+      {{- if $.Values.podSecurityContext }}
+      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "app" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "app"  }}
+          {{- if $.Values.containerSecurityContext }}
+          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             {{- include "oneuptime.env.common" . | nindent 12 }}

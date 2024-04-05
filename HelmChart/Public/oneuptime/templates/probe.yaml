@@ -21,12 +21,13 @@ spec:
         app: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
         date: "{{ now | unixEpoch }}"
     spec:
-      {{- if $.Values.securityContext.enabled }}
-      {{- include "oneuptime.securityContext" $ | nindent 8 }}
-      {{- end }}
+      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "probe" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
+          {{- if $.Values.containerSecurityContext }}
+          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             - name: PORT

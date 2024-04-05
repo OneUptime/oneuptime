@@ -60,26 +60,6 @@
   value: {{ $.Values.port.adminDashboard | squote }}
 {{- end }}
 
-{{- define "oneuptime.securityContext" }}
-securityContext:
-  runAsUser: {{ $.Values.securityContext.runAsUser }}
-  runAsGroup: {{ $.Values.securityContext.runAsGroup }}
-  fsGroup: {{ $.Values.securityContext.fsGroup }}
-  privileged: {{ $.Values.securityContext.privileged }}
-  seLinuxOptions:
-    type: {{ $.Values.securityContext.seLinuxOptions.type }}
-  runAsNonRoot: {{ $.Values.securityContext.runAsNonRoot }}
-  readOnlyRootFilesystem: {{ $.Values.securityContext.readOnlyRootFilesystem }}
-  allowPrivilegeEscalation: {{ $.Values.securityContext.allowPrivilegeEscalation }}
-  capabilities:
-    drop:
-      {{- range $key, $val := $.Values.securityContext.capabilities.drop }}
-      - {{ $val }}
-      {{- end }}
-  seccompProfile:
-    type: {{ $.Values.securityContext.seccompProfile.type }}
-{{- end }}
-
 
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
@@ -258,10 +238,8 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
-      {{- if $.Values.securityContext.enabled }}
-      {{- include "oneuptime.securityContext" $ | nindent 8 }}
-      {{- end }}
-      {{- if $.Values.image.pullSecrets }}
+      {{- if $.Values.podSecurityContext }}
+      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
       {{- if $.Volumes }}
       volumes:
@@ -278,6 +256,9 @@ spec:
         - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
         {{- end}}
           name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+          {{- if $.Values.containerSecurityContext }}
+          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             {{- include "oneuptime.env.common" . | nindent 12 }}

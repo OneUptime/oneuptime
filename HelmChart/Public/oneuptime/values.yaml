@@ -175,21 +175,8 @@ openTelemetryExporter:
     probe: 
     adminDashboard:
 
-securityContext:
-  enabled: false
-  seLinuxOptions:
-  runAsUser: 1001
-  runAsGroup: 1001
-  runAsNonRoot: true
-  privileged: false
-  readOnlyRootFilesystem: true
-  allowPrivilegeEscalation: false
-  fsGroup:
-  capabilities: 
-    drop:
-      - ALL
-  seccompProfile:
-    type: RuntimeDefault
+containerSecurityContext:
+podSecurityContext:
 
 
   
