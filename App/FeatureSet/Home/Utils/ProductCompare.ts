@@ -58,7 +58,7 @@ export default (product: string): Product => {
                 {
                     question:
                         'Do I need to buy a monitoring solution to monitor my resources?',
-                    answer: 'PagerDuty needs a seperate monitoring solution that you need to buy which then sends data to PagerDuty for on-call and incident management. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
+                    answer: 'PagerDuty needs a separate monitoring solution that you need to buy which then sends data to PagerDuty for on-call and incident management. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:
@@ -215,7 +215,7 @@ export default (product: string): Product => {
                 {
                     question:
                         'Do I need to buy a monitoring solution to monitor my resources?',
-                    answer: 'StatusPage.io needs a seperate monitoring solution that you need to buy which then sends data to StatusPage.io. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
+                    answer: 'StatusPage.io needs a separate monitoring solution that you need to buy which then sends data to StatusPage.io. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:
