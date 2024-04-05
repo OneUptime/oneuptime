@@ -111,6 +111,9 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                     props.className ? props.className : ''
                 }  ${linkClassName} flex justify-between`}
                 to={props.link.to}
+                onClick={() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
             >
                 <div className="flex">
                     {props.icon ? (
@@ -166,6 +169,9 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                         props.className ? props.className : ''
                     }  ${subItemLinkClassName} flex justify-between`}
                     to={props.subItemLink.to}
+                    onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                 >
                     <div className="ml-8 flex">
                         {props.icon ? (
