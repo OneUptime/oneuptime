@@ -30,6 +30,8 @@ spec:
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
+            - name: LOG_LEVEL
+              value: {{ $.Values.logLevel }}
             - name: PORT
               value: {{ $.Values.port.probe | squote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS

@@ -2,6 +2,7 @@ import { SeverityNumber } from '@opentelemetry/api-logs';
 import OneUptimeTelemetry from './Telemetry';
 import Exception from 'Common/Types/Exception/Exception';
 import { JSONObject } from 'Common/Types/JSON';
+import { ConfigLogLevel, LogLevel } from '../EnvironmentConfig';
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
@@ -16,31 +17,51 @@ export default class logger {
     }
 
     public static info(message: LogBody): void {
-        this.emit({
-            body: message,
-            severityNumber: SeverityNumber.INFO,
-        });
+        if (
+            LogLevel === ConfigLogLevel.DEBUG ||
+            LogLevel === ConfigLogLevel.INFO
+        ) {
+            this.emit({
+                body: message,
+                severityNumber: SeverityNumber.INFO,
+            });
+        }
     }
 
     public static error(message: LogBody): void {
-        this.emit({
-            body: message,
-            severityNumber: SeverityNumber.ERROR,
-        });
+        if (
+            LogLevel === ConfigLogLevel.DEBUG ||
+            LogLevel === ConfigLogLevel.INFO ||
+            LogLevel === ConfigLogLevel.WARN ||
+            LogLevel === ConfigLogLevel.ERROR
+        ) {
+            this.emit({
+                body: message,
+                severityNumber: SeverityNumber.ERROR,
+            });
+        }
     }
 
     public static warn(message: LogBody): void {
-        this.emit({
-            body: message,
-            severityNumber: SeverityNumber.WARN,
-        });
+        if (
+            LogLevel === ConfigLogLevel.DEBUG ||
+            LogLevel === ConfigLogLevel.INFO ||
+            LogLevel === ConfigLogLevel.WARN
+        ) {
+            this.emit({
+                body: message,
+                severityNumber: SeverityNumber.WARN,
+            });
+        }
     }
 
     public static debug(message: LogBody): void {
-        this.emit({
-            body: message,
-            severityNumber: SeverityNumber.DEBUG,
-        });
+        if (LogLevel === ConfigLogLevel.DEBUG) {
+            this.emit({
+                body: message,
+                severityNumber: SeverityNumber.DEBUG,
+            });
+        }
     }
 
     public static emit(data: {

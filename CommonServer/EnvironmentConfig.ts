@@ -5,6 +5,13 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 import BillingConfig from './BillingConfig';
 
+export enum ConfigLogLevel {
+    INFO = 'INFO',
+    WARN = 'WARN',
+    ERROR = 'ERROR',
+    DEBUG = 'DEBUG',
+}
+
 export const getAllEnvVars: () => JSONObject = (): JSONObject => {
     return process.env;
 };
@@ -139,3 +146,6 @@ export const ClickhouseDatabase: string =
 export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
+
+export const LogLevel: ConfigLogLevel =
+    (process.env['LOG_LEVEL'] as ConfigLogLevel) || ConfigLogLevel.ERROR;

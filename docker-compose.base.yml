@@ -9,6 +9,8 @@ x-common-variables: &common-variables
 
     FLUENTD_HOST: ${FLUENTD_HOST}
 
+    LOG_LEVEL: ${LOG_LEVEL}
+
     NODE_ENV: ${ENVIRONMENT}
     BILLING_ENABLED: ${BILLING_ENABLED}
     BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
