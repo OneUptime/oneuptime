@@ -102,6 +102,18 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (usageBilling && usageBilling.id) {
+            let totalCostInUSD: number =
+                usageBilling.totalCostInUSD?.value || 0;
+
+            if (
+                isNaN(totalCostInUSD) ||
+                totalCostInUSD === undefined ||
+                totalCostInUSD === null ||
+                (typeof totalCostInUSD === 'string' && totalCostInUSD === 'NaN')
+            ) {
+                totalCostInUSD = 0;
+            }
+
             await this.updateOneById({
                 id: usageBilling.id,
                 data: {
@@ -110,9 +122,9 @@ export class Service extends DatabaseService<Model> {
                             data.dataIngestedInGB
                     ),
                     totalCostInUSD: new Decimal(
-                        (usageBilling.totalCostInUSD?.value || 0) +
-                            totalCostOfThisOperationInUSD
+                        totalCostInUSD + totalCostOfThisOperationInUSD
                     ),
+                    retainTelemetryDataForDays: data.retentionInDays,
                 },
                 props: {
                     isRoot: true,

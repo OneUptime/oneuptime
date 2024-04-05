@@ -5,7 +5,6 @@ import {
 } from 'CommonServer/Utils/Express';
 import { ProbeExpressRequest } from '../Types/Request';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import GlobalCache from 'CommonServer/Infrastructure/GlobalCache';
 import DiskSize from 'Common/Types/DiskSize';
 import ObjectID from 'Common/Types/ObjectID';
 import TelemetryUsageBillingService from 'CommonServer/Services/TelemetryUsageBillingService';
@@ -48,64 +47,35 @@ export default class TelemetryIngest {
 
             const sizeToGb: number = DiskSize.byteSizeToGB(sizeInBytes);
 
-            const cachedServiceId: string | null = await GlobalCache.getString(
-                'service-token',
-                serviceTokenInHeader as string
-            );
+            // load from the database and set the cache.
+            const service: TelemetryService | null =
+                await TelemetryServiceService.findOneBy({
+                    query: {
+                        telemetryServiceToken: new ObjectID(
+                            serviceTokenInHeader as string
+                        ),
+                    },
+                    select: {
+                        _id: true,
+                        projectId: true,
+                        retainTelemetryDataForDays: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
-            const serviceProjectId: string | null = await GlobalCache.getString(
-                'service-project-id',
-                serviceTokenInHeader as string
-            );
-
-            if (!cachedServiceId || !serviceProjectId) {
-                // load from the database and set the cache.
-                const service: TelemetryService | null =
-                    await TelemetryServiceService.findOneBy({
-                        query: {
-                            telemetryServiceToken: new ObjectID(
-                                serviceTokenInHeader as string
-                            ),
-                        },
-                        select: {
-                            _id: true,
-                            projectId: true,
-                            retainTelemetryDataForDays: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-
-                if (!service) {
-                    throw new BadRequestException('Invalid service token');
-                }
-
-                await GlobalCache.setString(
-                    'service-token',
-                    serviceTokenInHeader as string,
-                    service._id?.toString() as string
-                );
-                await GlobalCache.setString(
-                    'service-project-id',
-                    serviceTokenInHeader as string,
-                    service.projectId?.toString() as string
-                );
-
-                (req as TelemetryRequest).serviceId = service.id as ObjectID;
-                (req as TelemetryRequest).projectId =
-                    service.projectId as ObjectID;
-                (req as TelemetryRequest).dataRententionInDays =
-                    service.retainTelemetryDataForDays ||
-                    DEFAULT_RETENTION_IN_DAYS;
+            if (!service) {
+                throw new BadRequestException('Invalid service token');
             }
 
-            (req as TelemetryRequest).serviceId = ObjectID.fromString(
-                cachedServiceId as string
-            );
-            (req as TelemetryRequest).projectId = ObjectID.fromString(
-                serviceProjectId as string
-            );
+            (req as TelemetryRequest).serviceId = service.id as ObjectID;
+            (req as TelemetryRequest).projectId = service.projectId as ObjectID;
+            (req as TelemetryRequest).dataRententionInDays =
+                service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
+
+            (req as TelemetryRequest).serviceId = service.id as ObjectID;
+            (req as TelemetryRequest).projectId = service.projectId as ObjectID;
 
             // report to Usage Service.
             TelemetryUsageBillingService.updateUsageBilling({
