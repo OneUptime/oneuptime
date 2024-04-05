@@ -26,7 +26,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Route from 'Common/Types/API/Route';
 import logger from 'CommonServer/Utils/Logger';
-import PartialEntity from 'Common/Types/Database/PartialEntity';
 import Email from 'Common/Types/Email';
 import Name from 'Common/Types/Name';
 import AuthenticationEmail from '../Utils/AuthenticationEmail';
@@ -60,7 +59,10 @@ router.post(
             const data: JSONObject = req.body['data'];
 
             /* Creating a type that is a partial of the TBaseModel type. */
-            const partialUser: PartialEntity<User> = data;
+            const partialUser: User = BaseModel.fromJSON(
+                data as JSONObject,
+                User
+            ) as User;
 
             if (IsBillingEnabled) {
                 //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
@@ -106,10 +108,14 @@ router.post(
             let savedUser: User | null = null;
 
             if (alreadySavedUser) {
-                //@ts-ignore
                 savedUser = await UserService.updateOneByIdAndFetch({
                     id: alreadySavedUser.id!,
-                    data: partialUser,
+                    data: {
+                        password: partialUser.password!,
+                        name: partialUser.name!,
+                        companyPhoneNumber: partialUser.companyPhoneNumber!,
+                        companyName: partialUser.companyName!
+                    },
                     select: {
                         email: true,
                         _id: true,
@@ -121,10 +127,7 @@ router.post(
                     },
                 });
             } else {
-                const user: User = BaseModel.fromJSON(
-                    partialUser as JSONObject,
-                    User
-                ) as User;
+                const user: User = partialUser;
 
                 savedUser = await UserService.create({
                     data: user,
