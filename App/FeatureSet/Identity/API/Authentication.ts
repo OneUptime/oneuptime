@@ -114,7 +114,7 @@ router.post(
                         password: partialUser.password!,
                         name: partialUser.name!,
                         companyPhoneNumber: partialUser.companyPhoneNumber!,
-                        companyName: partialUser.companyName!
+                        companyName: partialUser.companyName!,
                     },
                     select: {
                         email: true,
