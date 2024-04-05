@@ -35,6 +35,7 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
+      - run: cd CommonServer && npm install
       - run: cd IsolatedVM && npm install && npm run compile && npm run dep-check
 
   compile-common-server:
