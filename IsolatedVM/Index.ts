@@ -9,6 +9,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
+        logger.info('App Init Success');
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
