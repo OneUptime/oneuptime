@@ -246,6 +246,30 @@ services:
             network: host
             context: .
             dockerfile: ./Probe/Dockerfile
+
+    isolated-vm:
+        volumes:
+            - ./IsolatedVM:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        ports:
+          - '9974:9229' # Debugging port.
+        extends:
+            file: ./docker-compose.base.yml
+            service: isolated-vm
+        build:
+            network: host
+            context: .
+            dockerfile: ./IsolatedVM/Dockerfile
     
     ingestor:
         volumes:

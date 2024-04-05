@@ -29,6 +29,8 @@
   value: {{ $.Values.analytics.host }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_ISOLATED_VM_HOSTNAME
+  value: {{ $.Release.Name }}-isolated-vm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME
@@ -54,6 +56,8 @@
   value: {{ $.Values.port.testServer | squote }}
 - name: ACCOUNTS_PORT
   value: {{ $.Values.port.accounts | squote }}
+- name: ISOLATED_VM_PORT
+  value: {{ $.Values.port.isolatedVM | squote }}
 - name: STATUS_PAGE_PORT
   value: {{ $.Values.port.statusPage | squote }}
 - name: DASHBOARD_PORT
