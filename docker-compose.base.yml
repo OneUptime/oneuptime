@@ -310,6 +310,17 @@ services:
             options:
                 max-size: "1000m"
 
+    isolated-vm:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            PORT: ${ISOLATED_VM_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
     ingestor:
         networks:
           - oneuptime

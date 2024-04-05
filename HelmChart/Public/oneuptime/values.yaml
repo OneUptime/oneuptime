@@ -157,6 +157,7 @@ port:
   probe: 3500
   otelCollectorGrpc: 4317
   otelCollectorHttp: 4318
+  isolatedVMP: 4572
 
 
 testServer: 

@@ -1,5 +1,5 @@
 #
-# OneUptime-ingestor Dockerfile
+# OneUptime-IsolatedVM Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -52,19 +52,19 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Ingestor/package*.json /usr/src/app/
+COPY ./IsolatedVM/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-#   - 3400: OneUptime-ingestor
-EXPOSE 3400
+#   - 4572: OneUptime-IsolatedVM
+EXPOSE 4572
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Ingestor /usr/src/app
+COPY ./IsolatedVM /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app

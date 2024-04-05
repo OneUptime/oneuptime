@@ -1,0 +1,10 @@
+# OneUptime isolatedVM Deployment
+{{- $isolatedVMEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers.isolatedVM "PORT" $.Values.port.isolatedVM -}}
+{{- $isolatedVMDeploymentArgs :=dict "ServiceName" "isolated-vm" "Port" $.Values.port.isolatedVM "Release" $.Release "Values" $.Values "Env" $isolatedVMEnv -}}
+{{- include "oneuptime.deployment" $isolatedVMDeploymentArgs }}
+---
+
+# OneUptime isolatedVM autoscaler
+{{- $isolatedVMAutoScalerArgs := dict "ServiceName" "isolated-vm" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $isolatedVMAutoScalerArgs }}
+---
