@@ -1,10 +1,7 @@
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import process from 'process';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-
-const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'isolated-vm';
 
