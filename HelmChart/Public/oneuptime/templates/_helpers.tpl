@@ -60,6 +60,26 @@
   value: {{ $.Values.port.adminDashboard | squote }}
 {{- end }}
 
+{{- define "oneuptime.securityContext" }}
+securityContext:
+  runAsUser: {{ $.Values.securityContext.runAsUser }}
+  runAsGroup: {{ $.Values.securityContext.runAsGroup }}
+  fsGroup: {{ $.Values.securityContext.fsGroup }}
+  privileged: {{ $.Values.securityContext.privileged }}
+  seLinuxOptions:
+    type: {{ $.Values.securityContext.seLinuxOptions.type }}
+  runAsNonRoot: {{ $.Values.securityContext.runAsNonRoot }}
+  readOnlyRootFilesystem: {{ $.Values.securityContext.readOnlyRootFilesystem }}
+  allowPrivilegeEscalation: {{ $.Values.securityContext.allowPrivilegeEscalation }}
+  capabilities:
+    drop:
+      {{- range $key, $val := $.Values.securityContext.capabilities.drop }}
+      - {{ $val }}
+      {{- end }}
+  seccompProfile:
+    type: {{ $.Values.securityContext.seccompProfile.type }}
+{{- end }}
+
 
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
@@ -239,10 +259,9 @@ spec:
         appname: oneuptime
     spec:
       {{- if $.Values.securityContext.enabled }}
-      securityContext:
-        runAsUser: {{ $.Values.securityContext.runAsUser }}
-        runAsGroup: {{ $.Values.securityContext.runAsGroup }}
-        fsGroup: {{ $.Values.securityContext.fsGroup }}
+      {{- include "oneuptime.securityContext" $ | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.image.pullSecrets }}
       {{- end }}
       {{- if $.Volumes }}
       volumes:

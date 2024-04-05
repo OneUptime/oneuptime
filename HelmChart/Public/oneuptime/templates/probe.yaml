@@ -22,10 +22,7 @@ spec:
         date: "{{ now | unixEpoch }}"
     spec:
       {{- if $.Values.securityContext.enabled }}
-      securityContext:
-        runAsUser: {{ $.Values.securityContext.runAsUser }}
-        runAsGroup: {{ $.Values.securityContext.runAsGroup }}
-        fsGroup: {{ $.Values.securityContext.fsGroup }}
+      {{- include "oneuptime.securityContext" $ | nindent 8 }}
       {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "probe" $.Values.image.tag }}

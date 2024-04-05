@@ -177,7 +177,19 @@ openTelemetryExporter:
 
 securityContext:
   enabled: false
-  runAsUser: 
-  runAsGroup: 
-  fsGroup: 
+  seLinuxOptions:
+  runAsUser: 1001
+  runAsGroup: 1001
+  runAsNonRoot: true
+  privileged: false
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  fsGroup:
+  capabilities: 
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+
   

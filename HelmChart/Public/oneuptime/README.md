@@ -94,10 +94,16 @@ The Security Context section allows you to configure security settings for the O
 
 | Parameter | Description | Default |
 | --------- | ----------- | ------- |
-| `securityContext.enabled` | Enable security context | `false` |
-| `securityContext.runAsUser` | User ID to run as |  |
-| `securityContext.runAsGroup` | Group ID to run as | |
-| `securityContext.fsGroup` | Group ID that owns the pod's volumes |  |
+| `securityContext.enabled`                  | Enabled containers' Security Context                                                                                                                                                                                              | `false`                |
+| `securityContext.seLinuxOptions`           | Set SELinux options in container                                                                                                                                                                                                  | `{}`                  |
+| `securityContext.runAsUser`                | Set containers' Security Context runAsUser                                                                                                                                                                                        | `1001`                |
+| `securityContext.runAsGroup`               | Set containers' Security Context runAsGroup                                                                                                                                                                                       | `1001`                |
+| `securityContext.runAsNonRoot`             | Set container's Security Context runAsNonRoot                                                                                                                                                                                     | `true`                |
+| `securityContext.privileged`               | Set container's Security Context privileged                                                                                                                                                                                       | `false`               |
+| `securityContext.readOnlyRootFilesystem`   | Set container's Security Context readOnlyRootFilesystem                                                                                                                                                                           | `true`                |
+| `securityContext.allowPrivilegeEscalation` | Set container's Security Context allowPrivilegeEscalation                                                                                                                                                                         | `false`               |
+| `securityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                                                                                                                                | `["ALL"]`             |
+| `securityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                                                                                                                                  | `RuntimeDefault`      |
 
 ## Adding a Custom Domain to your Status Page
 
