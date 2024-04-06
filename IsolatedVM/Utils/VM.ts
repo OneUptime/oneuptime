@@ -37,7 +37,8 @@ export default class VMUtil {
 
         vm.createContext(sandbox); // Contextify the object.
 
-        const script: string = `(async()=>{
+        const script: string =
+            `(async()=>{
             ${code}
         })()` || '';
 

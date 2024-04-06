@@ -22,7 +22,6 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             if (!req.body.code) {
                 return Response.sendErrorResponse(
                     req,
@@ -37,15 +36,13 @@ router.post(
             let result: ReturnResult | null = null;
 
             try {
-
-                result  = await VMUtil.runCodeInSandbox({
+                result = await VMUtil.runCodeInSandbox({
                     code: req.body.code,
                     options: {
                         timeout: 5000,
                         args: req.body?.['options']?.['args'] || {},
                     },
                 });
-
             } catch (err) {
                 logger.error(err);
                 throw new BadDataException((err as Error).message);
@@ -54,7 +51,7 @@ router.post(
             logger.info('Code execution completed');
             logger.info(result.returnValue);
 
-            logger.info('Code Logs ')
+            logger.info('Code Logs ');
             logger.info(result.logMessages);
 
             return Response.sendJsonObjectResponse(req, res, {
