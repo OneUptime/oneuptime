@@ -43,6 +43,8 @@ router.post(
                         args: req.body?.['options']?.['args'] || {},
                     },
                 });
+                
+                result.returnValue = await result.returnValue;
             } catch (err) {
                 logger.error(err);
                 throw new BadDataException((err as Error).message);
