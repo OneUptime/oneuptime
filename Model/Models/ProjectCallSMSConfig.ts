@@ -430,4 +430,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
         transformer: Phone.getDatabaseTransformer(),
     })
     public twilioPhoneNumber?: Phone = undefined;
+
+    
 }

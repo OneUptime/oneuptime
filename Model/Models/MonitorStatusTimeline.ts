@@ -528,4 +528,6 @@ export default class MonitorStatusTimeline extends BaseModel {
         unique: false,
     })
     public startsAt?: Date = undefined;
+
+    
 }

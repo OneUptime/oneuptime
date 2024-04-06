@@ -1647,4 +1647,6 @@ export default class StatusPage extends BaseModel {
         },
     })
     public downtimeMonitorStatuses?: Array<MonitorStatus> = undefined;
+
+    
 }

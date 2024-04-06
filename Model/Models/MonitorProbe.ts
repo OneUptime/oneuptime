@@ -478,4 +478,6 @@ export default class MonitorProbe extends BaseModel {
         unique: false,
     })
     public lastMonitoringLog?: JSONObject = undefined;
+
+    
 }

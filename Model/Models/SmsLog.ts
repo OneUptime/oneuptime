@@ -18,6 +18,7 @@ import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import Phone from 'Common/Types/Phone';
+import User from './User';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -256,4 +257,51 @@ export default class SmsLog extends BaseModel {
         type: ColumnType.Number,
     })
     public smsCostInUSDCents?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'deletedByUserId',
+        type: TableColumnType.Entity,
+        title: 'Deleted by User',
+        description:
+            'Relation to User who deleted this object (if this object was deleted by a User)',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'deletedByUserId' })
+    public deletedByUser?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'Deleted by User ID',
+        description:
+            'User ID who deleted this object (if this object was deleted by a User)',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID = undefined;
 }

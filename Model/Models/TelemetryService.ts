@@ -486,4 +486,6 @@ export default class TelemetryService extends BaseModel {
         default: 15,
     })
     public retainTelemetryDataForDays?: number = undefined;
+
+    
 }

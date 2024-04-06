@@ -521,4 +521,6 @@ export default class ProjectSmtpConfig extends BaseModel {
         default: true,
     })
     public secure?: boolean = undefined;
+
+    
 }

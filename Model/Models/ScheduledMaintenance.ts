@@ -881,4 +881,6 @@ export default class ScheduledMaintenance extends BaseModel {
         default: false,
     })
     public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
+
+    
 }

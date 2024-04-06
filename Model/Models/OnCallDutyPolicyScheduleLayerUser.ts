@@ -494,4 +494,6 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userId?: ObjectID = undefined;
+
+    
 }

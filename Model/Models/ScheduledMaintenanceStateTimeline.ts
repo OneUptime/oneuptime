@@ -527,4 +527,5 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         unique: false,
     })
     public startsAt?: Date = undefined;
+    
 }

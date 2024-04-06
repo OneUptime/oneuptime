@@ -421,4 +421,6 @@ export default class TeamMember extends BaseModel {
         unique: false,
     })
     public invitationAcceptedAt?: Date = undefined;
+
+    
 }

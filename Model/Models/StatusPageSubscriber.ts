@@ -550,4 +550,7 @@ export default class StatusPageSubscriber extends BaseModel {
         },
     })
     public statusPageResources?: Array<StatusPageResource> = undefined;
+
+
+    
 }

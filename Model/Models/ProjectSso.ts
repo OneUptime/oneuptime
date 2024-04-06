@@ -581,4 +581,6 @@ export default class ProjectSSO extends BaseModel {
         default: false,
     })
     public isTested?: boolean = undefined;
+
+    
 }

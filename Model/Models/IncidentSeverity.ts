@@ -425,4 +425,6 @@ export default class IncidentSeverity extends BaseModel {
         type: ColumnType.SmallNumber,
     })
     public order?: number = undefined;
+
+    
 }

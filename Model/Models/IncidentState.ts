@@ -525,4 +525,6 @@ export default class IncidentState extends BaseModel {
         type: ColumnType.SmallNumber,
     })
     public order?: number = undefined;
+
+    
 }

@@ -282,6 +282,8 @@ class UserCall extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public verificationCode?: string = undefined;
+
+    
 }
 
 export default UserCall;

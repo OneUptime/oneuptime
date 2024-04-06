@@ -699,4 +699,6 @@ export default class UserOnCallLog extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public onCallDutyScheduleId?: ObjectID = undefined;
+
+    
 }

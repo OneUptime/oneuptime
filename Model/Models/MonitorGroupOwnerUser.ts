@@ -416,4 +416,8 @@ export default class MonitorGroupOwnerUser extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
+
+    
+
+    
 }

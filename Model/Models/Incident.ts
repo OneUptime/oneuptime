@@ -1016,4 +1016,6 @@ export default class Incident extends BaseModel {
         default: false,
     })
     public isCreatedAutomatically?: boolean = undefined;
+
+    
 }

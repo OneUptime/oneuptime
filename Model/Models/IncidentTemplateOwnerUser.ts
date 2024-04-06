@@ -428,4 +428,6 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
+
+    
 }

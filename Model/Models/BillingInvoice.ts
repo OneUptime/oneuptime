@@ -338,4 +338,6 @@ export default class BillingInvoice extends BaseModel {
         unique: false,
     })
     public paymentProviderInvoiceId?: string = undefined;
+
+    
 }

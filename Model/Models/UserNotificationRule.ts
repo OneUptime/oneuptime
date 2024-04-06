@@ -455,6 +455,8 @@ class UserNotificationRule extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public incidentSeverityId?: ObjectID = undefined;
+
+    
 }
 
 export default UserNotificationRule;

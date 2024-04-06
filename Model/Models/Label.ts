@@ -393,4 +393,6 @@ export default class Label extends AccessControlModel {
         transformer: Color.getDatabaseTransformer(),
     })
     public color?: Color = undefined;
+
+    
 }

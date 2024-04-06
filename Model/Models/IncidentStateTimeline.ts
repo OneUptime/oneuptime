@@ -579,4 +579,6 @@ export default class IncidentStateTimeline extends BaseModel {
         unique: false,
     })
     public startsAt?: Date = undefined;
+
+    
 }
