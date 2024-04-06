@@ -1100,7 +1100,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create Workflow in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
             {
                 permission: Permission.CanDeleteWorkflow,
@@ -1108,7 +1108,7 @@ export class PermissionHelper {
                 description:
                     'This permission can delete Workflow in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
             {
                 permission: Permission.CanEditWorkflow,
@@ -1116,7 +1116,7 @@ export class PermissionHelper {
                 description:
                     'This permission can edit Workflow in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
             {
                 permission: Permission.CanReadWorkflow,
@@ -1124,7 +1124,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read Workflow in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
 
             {
@@ -1287,7 +1287,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create Monitor Group in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
             {
                 permission: Permission.CanDeleteMonitorGroup,
@@ -1295,7 +1295,7 @@ export class PermissionHelper {
                 description:
                     'This permission can delete Monitor Group in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
             {
                 permission: Permission.CanEditMonitorGroup,
@@ -1303,7 +1303,7 @@ export class PermissionHelper {
                 description:
                     'This permission can edit Monitor Group in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
             {
                 permission: Permission.CanReadMonitorGroup,
@@ -1311,7 +1311,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read Monitor Group in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: false,
+                isAccessControlPermission: true,
             },
 
             {
@@ -1728,7 +1728,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read teams in on-call duty execution log timeline.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
 
             {
@@ -1738,7 +1738,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read teams in on-call duty execution log.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
 
             {
@@ -1748,7 +1748,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create teams in on-call duty escalation rule this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1757,7 +1757,7 @@ export class PermissionHelper {
                 description:
                     'This permission can delete teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1766,7 +1766,7 @@ export class PermissionHelper {
                 description:
                     'This permission can edit teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1775,7 +1775,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
 
             {
@@ -1785,7 +1785,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create teams in on-call duty escalation rule schedule this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1794,7 +1794,7 @@ export class PermissionHelper {
                 description:
                     'This permission can delete teams in on-call duty escalation rule schedule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1803,7 +1803,7 @@ export class PermissionHelper {
                 description:
                     'This permission can edit teams in on-call duty escalation rule schedule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1812,7 +1812,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read teams in on-call duty escalation rule schedule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
 
             {
@@ -1822,7 +1822,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create on-call duty escalation rule this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1831,7 +1831,7 @@ export class PermissionHelper {
                 description:
                     'This permission can delete on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1840,7 +1840,7 @@ export class PermissionHelper {
                 description:
                     'This permission can edit on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1849,7 +1849,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
 
             {
@@ -1859,7 +1859,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create on-call duty escalation rule this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1868,7 +1868,7 @@ export class PermissionHelper {
                 description:
                     'This permission can delete on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1877,7 +1877,7 @@ export class PermissionHelper {
                 description:
                     'This permission can edit on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission:
@@ -1886,7 +1886,7 @@ export class PermissionHelper {
                 description:
                     'This permission can read on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
 
             {
