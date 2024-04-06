@@ -19,7 +19,7 @@ upstream admin-dashboard {
 }
 
 upstream isolated-vm {
-    server ${SERVER_ISOLATED_VM_HOSTNAME}:${ADMIN_ISOLATED_VM_PORT} weight=10 max_fails=3 fail_timeout=30s;
+    server ${SERVER_ISOLATED_VM_HOSTNAME}:${ISOLATED_VM_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream status-page {
