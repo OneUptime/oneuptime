@@ -18,6 +18,26 @@ export default class JSONFunctions {
         return Object.keys(obj).length === 0;
     }
 
+    public static removeCircularReferences(obj: JSONObject): JSONObject {
+        const cache: any[] = [];
+        const returnValue: string = JSON.stringify(
+            obj,
+            (_key: string, value: any) => {
+                if (typeof value === 'object' && value !== null) {
+                    if (cache.includes(value)) {
+                        return;
+                    }
+
+                    cache.push(value);
+                }
+
+                return value;
+            }
+        );
+
+        return JSON.parse(returnValue);
+    }
+
     public static isEqualObject(
         obj1: JSONObject | undefined,
         obj2: JSONObject | undefined

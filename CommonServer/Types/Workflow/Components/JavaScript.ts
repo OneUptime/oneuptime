@@ -63,21 +63,7 @@ export default class JavaScriptCode extends ComponentCode {
                 scriptArgs = JSON.parse(scriptArgs);
             }
 
-            const codeLines: Array<string> = ((args['code'] as string) || '')
-                .trim()
-                .split('\n');
-
-            const uncommentedLines: Array<string> = codeLines
-                .map((line: string) => {
-                    // remove comment lines and remove comments from lines
-                    return line.replace(/\/\/.*$/, '').trim();
-                })
-                .filter((line: string) => {
-                    // remove empty lines
-                    return line.trim().length > 0;
-                });
-
-            const code: string = uncommentedLines.join(' ');
+            const code: string = (args['code'] as string) || '';
 
             const returnResult: ReturnResult = await VMUtil.runCodeInSandbox({
                 code,

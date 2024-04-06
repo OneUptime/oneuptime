@@ -10,6 +10,7 @@ import VMUtil from '../Utils/VM';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 import logger from 'CommonServer/Utils/Logger';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -43,8 +44,6 @@ router.post(
                         args: req.body?.['options']?.['args'] || {},
                     },
                 });
-                
-                
             } catch (err) {
                 logger.error(err);
                 throw new BadDataException((err as Error).message);
@@ -55,6 +54,12 @@ router.post(
 
             logger.info('Code Logs ');
             logger.info(result.logMessages);
+
+            if (typeof result.returnValue === 'object') {
+                result.returnValue = JSONFunctions.removeCircularReferences(
+                    result.returnValue
+                );
+            }
 
             return Response.sendJsonObjectResponse(req, res, {
                 returnValue: result.returnValue,
