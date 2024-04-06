@@ -37,9 +37,9 @@ export default class VMUtil {
 
         vm.createContext(sandbox); // Contextify the object.
 
-        const script: string = `module.exports = async function(args) { ${
-            (code as string) || ''
-        } }`;
+        const script: string = `(async()=>{
+            ${code}
+        })()` || '';
 
         const returnVal: any = vm.runInContext(script, sandbox, {
             timeout: options.timeout || 5000,

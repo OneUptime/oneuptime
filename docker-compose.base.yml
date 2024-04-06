@@ -318,6 +318,7 @@ services:
         restart: always
         environment:
             PORT: ${ISOLATED_VM_PORT}
+            ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
         logging:
             driver: "local"
             options:
