@@ -44,7 +44,7 @@ router.post(
                     },
                 });
                 
-                result.returnValue = await result.returnValue;
+                
             } catch (err) {
                 logger.error(err);
                 throw new BadDataException((err as Error).message);

@@ -42,7 +42,7 @@ export default class VMUtil {
             ${code}
         })()` || '';
 
-        const returnVal: any = vm.runInContext(script, sandbox, {
+        const returnVal: any = await vm.runInContext(script, sandbox, {
             timeout: options.timeout || 5000,
         }); // run the script
 
