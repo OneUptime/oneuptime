@@ -50,8 +50,7 @@
         "stripe": "^10.17.0",
         "twilio": "^4.22.0",
         "typeorm": "^0.3.20",
-        "typeorm-extension": "^2.2.13",
-        "vm2": "^3.9.14"
+        "typeorm-extension": "^2.2.13"
     },
     "devDependencies": {
         "@faker-js/faker": "^6.3.1",
