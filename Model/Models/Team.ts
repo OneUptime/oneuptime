@@ -438,6 +438,4 @@ export default class Team extends BaseModel {
         default: true,
     })
     public isTeamEditable?: boolean = undefined;
-
-    
 }

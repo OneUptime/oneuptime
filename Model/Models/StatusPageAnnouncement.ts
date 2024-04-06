@@ -511,7 +511,4 @@ export default class StatusPageAnnouncement extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
-
-
-    
 }

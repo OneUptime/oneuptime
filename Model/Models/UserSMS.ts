@@ -282,8 +282,6 @@ class UserSMS extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public verificationCode?: string = undefined;
-
-    
 }
 
 export default UserSMS;

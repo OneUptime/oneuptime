@@ -413,6 +413,4 @@ export default class TeamPermission extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
-
-    
 }

@@ -385,7 +385,4 @@ export default class ApiKey extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public apiKey?: ObjectID = undefined;
-
-
-    
 }

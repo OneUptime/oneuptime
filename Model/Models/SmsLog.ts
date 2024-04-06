@@ -260,9 +260,7 @@ export default class SmsLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

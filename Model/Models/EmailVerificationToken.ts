@@ -117,9 +117,7 @@ export default class EmailVerificationToken extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

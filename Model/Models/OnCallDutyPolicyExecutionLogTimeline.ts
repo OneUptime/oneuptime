@@ -726,6 +726,4 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-    
 }

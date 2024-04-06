@@ -372,12 +372,9 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
     })
     public order?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

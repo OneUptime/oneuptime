@@ -470,6 +470,4 @@ export default class Probe extends BaseModel {
         default: false,
     })
     public shouldAutoEnableProbeOnNewMonitors?: boolean = undefined;
-
-    
 }

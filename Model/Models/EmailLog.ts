@@ -295,9 +295,7 @@ export default class EmailLog extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

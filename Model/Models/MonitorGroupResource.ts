@@ -346,9 +346,7 @@ export default class MonitorGroupResource extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

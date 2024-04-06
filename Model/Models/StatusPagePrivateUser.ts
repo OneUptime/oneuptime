@@ -447,7 +447,6 @@ export default class StatusPagePrivateUser extends BaseModel {
     })
     public isSsoUser?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],

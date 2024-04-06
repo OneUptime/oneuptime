@@ -498,6 +498,4 @@ export default class OnCallDutyPolicy extends BaseModel {
         nullable: true,
     })
     public customFields?: JSONObject = undefined;
-
-    
 }

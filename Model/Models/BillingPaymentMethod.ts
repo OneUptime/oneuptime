@@ -344,6 +344,4 @@ export default class BillingPaymentMethod extends BaseModel {
         unique: false,
     })
     public isDefault?: boolean = undefined;
-
-    
 }

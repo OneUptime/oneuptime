@@ -813,7 +813,4 @@ export default class StatusPageResource extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-
-    
 }

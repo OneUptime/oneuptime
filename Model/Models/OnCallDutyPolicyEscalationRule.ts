@@ -438,6 +438,4 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
         type: ColumnType.Number,
     })
     public order?: number = undefined;
-
-    
 }

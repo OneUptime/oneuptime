@@ -370,7 +370,4 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
-
-
-    
 }

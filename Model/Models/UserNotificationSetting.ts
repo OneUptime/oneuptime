@@ -277,8 +277,6 @@ class UserNotificationSetting extends BaseModel {
         default: false,
     })
     public alertByCall?: boolean = undefined;
-
-    
 }
 
 export default UserNotificationSetting;

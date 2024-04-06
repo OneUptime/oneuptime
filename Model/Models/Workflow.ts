@@ -523,6 +523,4 @@ export default class Workflow extends BaseModel {
         nullable: true,
     })
     public repeatableJobKey?: string = undefined;
-
-    
 }

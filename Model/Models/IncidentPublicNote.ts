@@ -451,6 +451,4 @@ export default class IncidentPublicNote extends BaseModel {
         unique: false,
     })
     public postedAt?: Date = undefined;
-
-    
 }

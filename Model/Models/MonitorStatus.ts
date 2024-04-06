@@ -492,6 +492,4 @@ export default class MonitorStatus extends BaseModel {
         type: ColumnType.Number,
     })
     public priority?: number = undefined;
-
-    
 }

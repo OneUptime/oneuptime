@@ -258,12 +258,9 @@ export default class CallLog extends BaseModel {
     })
     public callCostInUSDCents?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
-        read: [
-            
-        ],
+        read: [],
         update: [],
     })
     @TableColumn({

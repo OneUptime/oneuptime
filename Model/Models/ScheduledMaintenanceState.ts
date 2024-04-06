@@ -558,6 +558,4 @@ export default class ScheduledMaintenanceState extends BaseModel {
         type: ColumnType.SmallNumber,
     })
     public order?: number = undefined;
-
-    
 }

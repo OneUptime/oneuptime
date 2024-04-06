@@ -282,8 +282,6 @@ class UserEmail extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public verificationCode?: string = undefined;
-
-    
 }
 
 export default UserEmail;

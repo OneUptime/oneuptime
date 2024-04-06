@@ -370,7 +370,4 @@ export default class IncidentInternalNote extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
-
-
-    
 }

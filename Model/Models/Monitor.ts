@@ -868,6 +868,4 @@ export default class Monitor extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public incomingRequestSecretKey?: ObjectID = undefined;
-
-    
 }

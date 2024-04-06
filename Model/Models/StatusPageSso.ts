@@ -583,6 +583,4 @@ export default class StatusPageSSO extends BaseModel {
         default: false,
     })
     public isTested?: boolean = undefined;
-
-    
 }

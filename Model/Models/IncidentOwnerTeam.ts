@@ -417,6 +417,4 @@ export default class IncidentOwnerTeam extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
-
-    
 }

@@ -1123,6 +1123,4 @@ export default class Model extends TenantModel {
         length: ColumnLength.ShortText,
     })
     public resellerLicenseId?: string = undefined;
-
-    
 }

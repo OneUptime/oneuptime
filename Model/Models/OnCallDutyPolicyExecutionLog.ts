@@ -664,6 +664,4 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
         default: 1,
     })
     public onCallPolicyExecutionRepeatCount?: number = undefined;
-
-    
 }

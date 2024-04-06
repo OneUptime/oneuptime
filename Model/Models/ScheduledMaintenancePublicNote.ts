@@ -452,6 +452,4 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
         unique: false,
     })
     public postedAt?: Date = undefined;
-
-    
 }

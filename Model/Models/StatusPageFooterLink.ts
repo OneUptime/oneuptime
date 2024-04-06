@@ -404,7 +404,6 @@ export default class StatusPageFooterLink extends BaseModel {
     })
     public order?: number = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],

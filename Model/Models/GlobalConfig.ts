@@ -368,5 +368,4 @@ export default class GlobalConfig extends GlobalConfigModel {
         transformer: Email.getDatabaseTransformer(),
     })
     public adminNotificationEmail?: Email = undefined;
-
 }

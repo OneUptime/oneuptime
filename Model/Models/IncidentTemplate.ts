@@ -745,6 +745,4 @@ export default class IncidentTemplate extends BaseModel {
         nullable: true,
     })
     public customFields?: JSONObject = undefined;
-
-    
 }

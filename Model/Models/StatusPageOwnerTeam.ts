@@ -415,6 +415,4 @@ export default class StatusPageOwnerTeam extends BaseModel {
         default: false,
     })
     public isOwnerNotified?: boolean = undefined;
-
-    
 }

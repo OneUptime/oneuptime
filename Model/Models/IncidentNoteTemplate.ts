@@ -343,6 +343,4 @@ export default class IncidentNoteTemplate extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-    
 }

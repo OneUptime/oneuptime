@@ -353,6 +353,4 @@ export default class Domain extends BaseModel {
         unique: true,
     })
     public domainVerificationText?: string = undefined;
-
-    
 }
