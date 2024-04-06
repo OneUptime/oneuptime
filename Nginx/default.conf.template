@@ -18,6 +18,10 @@ upstream admin-dashboard {
     server ${SERVER_ADMIN_DASHBOARD_HOSTNAME}:${ADMIN_DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
+upstream isolated-vm {
+    server ${SERVER_ISOLATED_VM_HOSTNAME}:${ADMIN_ISOLATED_VM_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
 upstream status-page {
     server ${SERVER_STATUS_PAGE_HOSTNAME}:${STATUS_PAGE_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
@@ -518,6 +522,19 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_pass http://admin-dashboard;
+    }
+
+    location /isolated-vm {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme; 
+
+        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass http://isolated-vm;
     }
 
     location /status-page {

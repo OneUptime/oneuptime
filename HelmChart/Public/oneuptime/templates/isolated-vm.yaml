@@ -1,7 +1,52 @@
-# OneUptime isolatedVM Deployment
-{{- $isolatedVMEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers.isolatedVM "PORT" $.Values.port.isolatedVM -}}
-{{- $isolatedVMDeploymentArgs :=dict "ServiceName" "isolated-vm" "Port" $.Values.port.isolatedVM "Release" $.Release "Values" $.Values "Env" $isolatedVMEnv -}}
-{{- include "oneuptime.deployment" $isolatedVMDeploymentArgs }}
+
+# OneUptime app Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    date: "{{ now | unixEpoch }}"
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
+        date: "{{ now | unixEpoch }}"
+        appname: oneuptime
+    spec:
+      {{- if $.Values.podSecurityContext }}
+      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "isolated-vm" $.Values.image.tag }}
+          name: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
+          {{- if $.Values.containerSecurityContext }}
+          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers.isolatedVM }}
+            - name: PORT
+              value: {{ $.Values.port.isolatedVM | quote }} 
+        
+          ports:
+            - containerPort: {{ $.Values.port.isolatedVM }}
+              protocol: TCP
+              name: http
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+
 ---
 
 # OneUptime isolatedVM autoscaler
