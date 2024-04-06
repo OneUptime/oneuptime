@@ -1,22 +1,21 @@
-import { JSONObject, JSONValue } from "Common/Types/JSON";
-import http from "http";
-import https from "https";
-import axios from "axios";
-import vm, { Context } from "node:vm";
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
+import http from 'http';
+import https from 'https';
+import axios from 'axios';
+import vm, { Context } from 'node:vm';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 
 export default class VMUtil {
-    public static async runCodeInSandbox(
-        code: string,
+    public static async runCodeInSandbox(data: {
+        code: string;
         options: {
             timeout?: number;
             args?: JSONObject | undefined;
-        }
-    ): Promise<{
-        returnValue: any;
-        logMessages: string[];
-    }> {
+        };
+    }): Promise<ReturnResult> {
+        const { code, options } = data;
 
-        let logMessages: string[] = [];
+        const logMessages: string[] = [];
 
         let sandbox: Context = {
             console: {
@@ -38,11 +37,13 @@ export default class VMUtil {
 
         vm.createContext(sandbox); // Contextify the object.
 
-        const script: string = `module.exports = async function(args) { ${(code as string) || ''} }`;
+        const script: string = `module.exports = async function(args) { ${
+            (code as string) || ''
+        } }`;
 
         const returnVal: any = vm.runInContext(script, sandbox, {
             timeout: options.timeout || 5000,
-        }); // run the script 
+        }); // run the script
 
         return {
             returnValue: returnVal,
