@@ -9,6 +9,7 @@ import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthoriza
 import VMUtil from '../Utils/VM';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import logger from 'CommonServer/Utils/Logger';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -21,6 +22,7 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
+
             if (!req.body.code) {
                 return Response.sendErrorResponse(
                     req,
@@ -29,6 +31,9 @@ router.post(
                 );
             }
 
+            logger.info('Running code in sandbox');
+            logger.info(req.body.code);
+
             const result: ReturnResult = await VMUtil.runCodeInSandbox({
                 code: req.body.code,
                 options: {
@@ -36,6 +41,12 @@ router.post(
                     args: req.body.args || {},
                 },
             });
+
+            logger.info('Code execution completed');
+            logger.info(result.returnValue);
+
+            logger.info('Code Logs ')
+            logger.info(result.logMessages);
 
             return Response.sendJsonObjectResponse(req, res, {
                 returnValue: result.returnValue,
