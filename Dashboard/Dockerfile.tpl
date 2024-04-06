@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:21.6-alpine3.18
+FROM node:21.7.2-alpine3.18
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 
