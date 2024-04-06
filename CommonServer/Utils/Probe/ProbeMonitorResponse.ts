@@ -44,6 +44,7 @@ import IncomingRequestCriteria from './Criteria/IncomingRequestCriteria';
 import APIRequestCriteria from './Criteria/APIRequestCriteria';
 import DataToProcess from './DataToProcess';
 import SSLMonitorCriteria from './Criteria/SSLMonitorCriteria';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -1023,21 +1024,21 @@ export default class ProbeMonitorResponseService {
             ); // now pass this to the VM.
 
             const code: string = `return Boolean(${expression});`;
-            let result: any = null;
+            let result: ReturnResult | null = null;
 
             try {
-                result = await VMUtil.runCodeInSandbox(code, {
-                    timeout: 1000,
-                    allowAsync: false,
-                    args: {},
-                    includeHttpPackage: false,
+                result = await VMUtil.runCodeInSandbox({
+                    code: code,
+                    options: {
+                        args: {},
+                    },
                 });
             } catch (err) {
                 logger.error(err);
                 return null;
             }
 
-            if (result) {
+            if (result.returnValue) {
                 return `JavaScript Expression - ${expression} - evaluated to true.`;
             }
 

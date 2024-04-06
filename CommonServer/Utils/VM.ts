@@ -9,29 +9,30 @@ import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
-
 export default class VMUtil {
     public static async runCodeInSandbox(data: {
-        code: string,
+        code: string;
         options: {
             args?: JSONObject | undefined;
-        }
+        };
     }): Promise<ReturnResult> {
-        const returnResultHttpResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =  await API.post<JSONObject>(
+        const returnResultHttpResponse:
+            | HTTPErrorResponse
+            | HTTPResponse<JSONObject> = await API.post<JSONObject>(
             new URL(
                 Protocol.HTTP,
                 IsolatedVMHostname,
                 new Route('/isolated-vm/run-code')
             ),
             {
-                ...data
+                ...data,
             },
             {
                 ...ClusterKeyAuthorization.getClusterKeyHeaders(),
             }
         );
 
-        if(returnResultHttpResponse instanceof HTTPErrorResponse) {
+        if (returnResultHttpResponse instanceof HTTPErrorResponse) {
             throw returnResultHttpResponse;
         }
 

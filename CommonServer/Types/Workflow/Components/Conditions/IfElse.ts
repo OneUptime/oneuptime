@@ -4,7 +4,8 @@ import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import Components from 'Common/Types/Workflow/Components/Condition';
 import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
-import VM, { VMScript } from 'vm2';
+import VMUtil from '../../../../Utils/VM';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 
 export default class IfElse extends ComponentCode {
     public constructor() {
@@ -78,19 +79,6 @@ export default class IfElse extends ComponentCode {
                 args[key] = shouldHaveQuotes ? `"${args[key]}"` : args[key];
             }
 
-            const vm: VM.NodeVM = new VM.NodeVM({
-                timeout: 5000,
-                allowAsync: true,
-                sandbox: {
-                    args: args,
-                    console: {
-                        log: (logValue: JSONValue) => {
-                            options.log(logValue);
-                        },
-                    },
-                },
-            });
-
             type SerializeFunction = (arg: string) => string;
 
             const serialize: SerializeFunction = (arg: string): string => {
@@ -101,9 +89,7 @@ export default class IfElse extends ComponentCode {
                 return arg;
             };
 
-            const script: VMScript = new VMScript(
-                `module.exports = function() {  
-                    
+            const code: string = `
                     const input1 = ${
                         serialize(args['input-1'] as string) || ''
                     };
@@ -114,19 +100,29 @@ export default class IfElse extends ComponentCode {
                     
                     return input1 ${
                         (args['operator'] as string) || '=='
-                    } input2 }`
-            ).compile();
+                    } input2`;
 
-            const functionToRun: any = vm.run(script);
+            const returnResult: ReturnResult = await VMUtil.runCodeInSandbox({
+                code,
+                options: {
+                    args: args as JSONObject,
+                },
+            });
 
-            const returnVal: any = await functionToRun();
+            const logMessages: string[] = returnResult.logMessages;
 
-            if (returnVal) {
+            // add to option.log
+            logMessages.forEach((msg: string) => {
+                options.log(msg);
+            });
+
+            if (returnResult.returnValue) {
                 return {
                     returnValues: {},
                     executePort: yesPort,
                 };
             }
+
             return {
                 returnValues: {},
                 executePort: noPort,

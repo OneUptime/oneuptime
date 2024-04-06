@@ -5,6 +5,7 @@ import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JavaScriptComponents from 'Common/Types/Workflow/Components/JavaScript';
 import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 import VMUtil from '../../../Utils/VM';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 
 export default class JavaScriptCode extends ComponentCode {
     public constructor() {
@@ -78,15 +79,21 @@ export default class JavaScriptCode extends ComponentCode {
 
             const code: string = uncommentedLines.join(' ');
 
-            const returnVal: any = await VMUtil.runCodeInSandbox(code, {
-                timeout: 5000,
-                allowAsync: true,
-                includeHttpPackage: true,
-                consoleLog: (logValue: JSONValue) => {
-                    options.log(logValue);
+            const returnResult: ReturnResult = await VMUtil.runCodeInSandbox({
+                code,
+                options: {
+                    args: scriptArgs as JSONObject,
                 },
-                args: scriptArgs as JSONObject,
             });
+
+            const logMessages: string[] = returnResult.logMessages;
+
+            // add to option.log
+            logMessages.forEach((msg: string) => {
+                options.log(msg);
+            });
+
+            const returnVal: JSONValue = returnResult.returnValue;
 
             return {
                 returnValues: {
