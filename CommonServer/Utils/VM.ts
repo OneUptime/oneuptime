@@ -1,69 +1,43 @@
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
-import VM, { VMScript } from 'vm2';
-import axios from 'axios';
-import http from 'http';
-import https from 'https';
-import JSONFunctions from 'Common/Types/JSONFunctions';
+import API from 'Common/Utils/API';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import Protocol from 'Common/Types/API/Protocol';
+import URL from 'Common/Types/API/URL';
+import { IsolatedVMHostname } from '../EnvironmentConfig';
+import Route from 'Common/Types/API/Route';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+
 
 export default class VMUtil {
-    public static async runCodeInSandbox(
+    public static async runCodeInSandbox(data: {
         code: string,
         options: {
-            timeout?: number;
-            allowAsync?: boolean;
-            includeHttpPackage: boolean;
-            consoleLog?: (logValue: JSONValue) => void | undefined;
             args?: JSONObject | undefined;
         }
-    ): Promise<any> {
-        let sandbox: any = {};
-
-        if (options.includeHttpPackage) {
-            sandbox = {
-                ...sandbox,
-                http: http,
-                https: https,
-                axios: axios,
-            };
-        }
-
-        if (options.args) {
-            sandbox = {
-                ...sandbox,
-                args: options.args,
-            };
-        }
-
-        if (options.consoleLog) {
-            sandbox = {
-                ...sandbox,
-                console: {
-                    log: options.consoleLog,
-                },
-            };
-        }
-
-        const vm: VM.NodeVM = new VM.NodeVM({
-            timeout: options.timeout || 5000,
-            allowAsync: options.allowAsync || false,
-            sandbox: sandbox,
-        });
-
-        const script: VMScript = new VMScript(
-            `module.exports = async function(args) { ${
-                (code as string) || ''
-            } }`
-        ).compile();
-
-        const functionToRun: any = vm.run(script);
-
-        const returnVal: any = await functionToRun(
-            JSONFunctions.parse(
-                (JSON.stringify(options.args) as string) || '{}'
-            )
+    }): Promise<ReturnResult> {
+        const returnResultHttpResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =  await API.post<JSONObject>(
+            new URL(
+                Protocol.HTTP,
+                IsolatedVMHostname,
+                new Route('/isolated-vm/run-code')
+            ),
+            {
+                ...data
+            },
+            {
+                ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+            }
         );
 
-        return returnVal;
+        if(returnResultHttpResponse instanceof HTTPErrorResponse) {
+            throw returnResultHttpResponse;
+        }
+
+        const returnResult: ReturnResult = returnResultHttpResponse.data as any;
+
+        return returnResult;
     }
 
     public static replaceValueInPlace(
