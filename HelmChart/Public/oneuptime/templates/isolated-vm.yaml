@@ -49,6 +49,13 @@ spec:
 
 ---
 
+# OneUptime isolatedVM Service
+
+{{- $isolatedVMServiceArgs := dict "ServiceName" "isolated-vm" "Port" $.Values.port.isolatedVM "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $isolatedVMServiceArgs }}
+---
+
+
 # OneUptime isolatedVM autoscaler
 {{- $isolatedVMAutoScalerArgs := dict "ServiceName" "isolated-vm" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $isolatedVMAutoScalerArgs }}
