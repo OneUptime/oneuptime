@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import yargs from 'yargs';
-import { ChildProcess, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import Logger from './Utils/Logger';
 import PackageJson from './package.json';
 import MonitorInfrastructure from './Jobs/MonitorInfrastructure';
@@ -14,8 +14,6 @@ export interface ArgumentType {
     _: (string | number)[];
     $0: string;
 }
-
-let daemon: ChildProcess | null = null;
 
 const usage: string =
     '\nUsage: oneuptime-infrastructure-agent start --secret-key <secret-key>.';
@@ -101,10 +99,13 @@ const returnValue:
                 fs.writeFileSync('./out.log', '');
                 fs.writeFileSync('./err.log', '');
 
-                daemon = spawn('tsx', startArguments, {
+                const daemon = spawn('tsx', startArguments, {
                     detached: true,
                     stdio: ['ignore', out, err],
                 });
+
+                // save the process id to a file
+                fs.writeFileSync('./daemon.pid', daemon?.pid?.toString() || '');
 
                 daemon.unref();
                 Logger.info('OneUptime Infrastructure Agent started as daemon');
@@ -119,8 +120,21 @@ const returnValue:
         'Stop the daemon',
         () => {},
         () => {
-            if (daemon && daemon.pid) {
-                process.kill(daemon.pid);
+            // read the pid from file
+            let pid: string | number = fs
+                .readFileSync('./daemon.pid', 'utf-8')
+                .trim();
+
+            if (pid) {
+                if (typeof pid === 'string') {
+                    pid = parseInt(pid);
+                }
+
+                process.kill(pid);
+
+                // remove the pid file
+                fs.unlinkSync('./daemon.pid');
+
                 Logger.info('OneUptime Infrastructure Agent stopped');
             } else {
                 Logger.info('OneUptime Infrastructure Agent not running');
@@ -132,7 +146,11 @@ const returnValue:
         'Show status of daemon',
         () => {},
         () => {
-            if (daemon && daemon.pid) {
+            const pid: string | number = fs
+                .readFileSync('./daemon.pid', 'utf-8')
+                .trim();
+
+            if (pid) {
                 Logger.info('OneUptime Infrastructure Agent is running');
             } else {
                 Logger.info('OneUptime Infrastructure Agent is not running');
@@ -146,7 +164,11 @@ const returnValue:
         () => {
             // show logs from daemon
 
-            if (daemon && daemon.pid) {
+            const pid: string | number = fs
+                .readFileSync('./daemon.pid', 'utf-8')
+                .trim();
+
+            if (pid) {
                 const logs: string = fs.readFileSync('./out.log', 'utf-8');
                 Logger.info(logs);
             } else {
