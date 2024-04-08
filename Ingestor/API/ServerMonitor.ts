@@ -18,9 +18,9 @@ import { JSONObject } from 'Common/Types/JSON';
 
 const router: ExpressRouter = Express.getRouter();
 
-// @deprecated - Delete soon.
+// an api to see if secret key is valid
 router.get(
-    '/server-monitor/:secretkey',
+    '/server-monitor/secret-key/verify/:secretkey',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -42,7 +42,7 @@ router.get(
                     monitorType: MonitorType.Server,
                 },
                 select: {
-                    monitorSteps: true,
+                    _id: true,
                 },
                 props: {
                     isRoot: true,
@@ -53,7 +53,7 @@ router.get(
                 throw new BadDataException('Monitor not found');
             }
 
-            return Response.sendEntityResponse(req, res, monitor, Monitor);
+            return Response.sendEmptyResponse(req, res);
         } catch (err) {
             return next(err);
         }

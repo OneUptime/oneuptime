@@ -1,8 +1,8 @@
-import MonitorInfrastructure from "./Jobs/MonitorInfrastructure";
+import MonitorInfrastructure from './Jobs/MonitorInfrastructure';
 import { argv } from 'yargs';
 
 const secretKey: string | undefined = (argv as any)['secret-key'];
-const oneuptimeHost: string =
+const oneuptimeUrl: string =
     (argv as any)['oneuptime-url'] || 'https://oneuptime.com';
 
 if (!secretKey) {
@@ -11,4 +11,4 @@ if (!secretKey) {
     );
 }
 
-MonitorInfrastructure.initJob(secretKey, oneuptimeHost);
+MonitorInfrastructure.initJob(secretKey, oneuptimeUrl);

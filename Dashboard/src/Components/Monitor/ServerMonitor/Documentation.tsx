@@ -34,10 +34,12 @@ curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-ag
 npm install -g @oneuptime/infrastructure-agent tsx
 
 # Run the agent
-oneuptime-infrastructure-agent --secret-key=${props.secretKey.toString()} ${
+oneuptime-infrastructure-agent start --secret-key=${props.secretKey.toString()} ${
                                 showHost ? '--oneuptime-url=' + host : ''
                             }
 
+# To Stop
+oneuptime-infrastructure-agent stop
 `}
                         />
                     </div>

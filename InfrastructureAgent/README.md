@@ -10,11 +10,29 @@ npm i @oneuptime/infrastructure-agent -g
 # You can change the host to your own host if you're self hosting the OneUptime platform. 
 # You can find the secret key on OneUptime Dashboard. Click on "View Monitor" and go to "Settings" tab.
 
-oneuptime-infrastructure-agent --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+oneuptime-infrastructure-agent start --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
 ```
 
 Once its up and running you should see the metrics on the OneUptime Dashboard.
 
+
+## Stopping the agent
+
+```
+oneuptime-infrastructure-agent stop
+```
+
+## Uninstalling the agent
+
+```
+npm uninstall -g @oneuptime/infrastructure-agent
+```
+
+## Supported Platforms
+
+- Linux
+- MacOS
+- Windows
 
 ## Local Development
 
