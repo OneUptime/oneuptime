@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import yargs from 'yargs';
-import { spawn } from 'node:child_process';
+import { ChildProcess, spawn } from 'node:child_process';
 import Logger from './Utils/Logger';
 import PackageJson from './package.json';
 import MonitorInfrastructure from './Jobs/MonitorInfrastructure';
@@ -99,7 +99,7 @@ const returnValue:
                 fs.writeFileSync('./out.log', '');
                 fs.writeFileSync('./err.log', '');
 
-                const daemon = spawn('tsx', startArguments, {
+                const daemon: ChildProcess = spawn('tsx', startArguments, {
                     detached: true,
                     stdio: ['ignore', out, err],
                 });
