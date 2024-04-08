@@ -59,11 +59,13 @@ yargs
             startArguments.push('--oneuptime-url=https://oneuptime.com');
         }
 
+        // before we run as daemon, we need to verify if the credentials are correc
 
         daemon = spawn('tsx', startArguments, {
             detached: true,
             stdio: 'ignore'
         });
+
         daemon.unref();
         Logger.info('OneUptime Infrastructure Agent started as daemon');
     })
