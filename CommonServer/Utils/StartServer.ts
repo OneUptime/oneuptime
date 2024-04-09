@@ -27,6 +27,7 @@ import { AppVersion } from '../EnvironmentConfig';
 import ServerException from 'Common/Types/Exception/ServerException';
 import zlib from 'zlib';
 import CookieParser from 'cookie-parser';
+import { api } from '@opentelemetry/sdk-node';
 
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
@@ -117,6 +118,16 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     }
 });
 
+app.use((_req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+    // set span status code to OK by default. If the error occurs, it will be updated in the error handler.
+    const span: api.Span | undefined = api.trace.getSpan(api.context.active());
+    if (span) {
+        span.setStatus({ code: api.SpanStatusCode.OK });
+    }
+
+    next();
+});
+
 type InitFunction = (
     appName: string,
     port?: Port,
@@ -185,6 +196,23 @@ const init: InitFunction = async (
             next: NextFunction
         ) => {
             logger.error(err);
+
+            // Mark span as error.
+            if (err) {
+                const span: api.Span | undefined = api.trace.getSpan(
+                    api.context.active()
+                );
+                if (span) {
+                    // record exception
+                    span.recordException(err);
+
+                    // set span status code to ERROR
+                    span.setStatus({
+                        code: api.SpanStatusCode.ERROR,
+                        message: err.message,
+                    });
+                }
+            }
 
             if (res.headersSent) {
                 return next(err);

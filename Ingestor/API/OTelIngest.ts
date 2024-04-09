@@ -150,6 +150,50 @@ router.post(
                         dbSpan.endTimeUnixNano = span[
                             'endTimeUnixNano'
                         ] as number;
+
+                        let spanStatusCode: number = 0;
+
+                        if (
+                            span['status'] &&
+                            (span['status'] as JSONObject)?.['code'] &&
+                            typeof (span['status'] as JSONObject)?.['code'] ===
+                                'number'
+                        ) {
+                            spanStatusCode = (span['status'] as JSONObject)?.[
+                                'code'
+                            ] as number;
+                        }
+
+                        if (
+                            span['status'] &&
+                            (span['status'] as JSONObject)?.['code'] &&
+                            typeof (span['status'] as JSONObject)?.['code'] ===
+                                'string'
+                        ) {
+                            if (
+                                (span['status'] as JSONObject)?.['code'] ===
+                                'STATUS_CODE_UNSET'
+                            ) {
+                                spanStatusCode = 0;
+                            } else if (
+                                (span['status'] as JSONObject)?.['code'] ===
+                                'STATUS_CODE_OK'
+                            ) {
+                                spanStatusCode = 1;
+                            } else if (
+                                (span['status'] as JSONObject)?.['code'] ===
+                                'STATUS_CODE_ERROR'
+                            ) {
+                                spanStatusCode = 2;
+                            }
+                        }
+
+                        dbSpan.statusCode = spanStatusCode;
+
+                        dbSpan.statusMessage = (span['status'] as JSONObject)?.[
+                            'message'
+                        ] as string;
+
                         dbSpan.startTime = OneUptimeDate.fromUnixNano(
                             span['startTimeUnixNano'] as number
                         );
