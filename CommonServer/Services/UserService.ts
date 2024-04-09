@@ -23,6 +23,7 @@ import UserNotificationRuleService from './UserNotificationRuleService';
 import UserNotificationSettingService from './UserNotificationSettingService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import { IsBillingEnabled } from '../EnvironmentConfig';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -231,6 +232,11 @@ export class Service extends DatabaseService<Model> {
     ): Promise<Model> {
         const user: Model = new Model();
         user.email = email;
+
+        if (!IsBillingEnabled) {
+            // if billing is not enabled, then email is verified by default.
+            user.isEmailVerified = true;
+        }
 
         return await this.create({
             data: user,
