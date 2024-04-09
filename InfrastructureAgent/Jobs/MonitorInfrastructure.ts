@@ -75,7 +75,7 @@ export default class MonitorInfrastructure {
             };
 
             Logger.info('Server Monitor Response');
-            Logger.info(JSON.stringify(serverMonitorResponse));
+            Logger.info(JSON.stringify(serverMonitorResponse, null, 2));
 
             // now we send this data back to server.
 

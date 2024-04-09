@@ -52,8 +52,8 @@ const returnValue:
                     demandOption: false,
                 });
         },
-        async (y: any) => {
-            const argv: ArgumentType = y.argv as ArgumentType;
+        async (y: yargs.ArgumentsCamelCase) => {
+            const argv: ArgumentType = y as ArgumentType;
 
             // add secrt key and oneuptime url
 
@@ -146,6 +146,15 @@ const returnValue:
         'Show status of daemon',
         () => {},
         () => {
+            // check if daemon.pid file exists
+
+            const doesFileExist: boolean = fs.existsSync('./daemon.pid');
+
+            if (!doesFileExist) {
+                Logger.info('OneUptime Infrastructure Agent is not running');
+                return;
+            }
+
             const pid: string | number = fs
                 .readFileSync('./daemon.pid', 'utf-8')
                 .trim();

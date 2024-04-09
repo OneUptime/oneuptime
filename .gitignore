@@ -103,3 +103,8 @@ Examples/otel-dotnet/obj/*
 InfrastructureAgent/sea-prep.blob
 InfrastructureAgent/InfrastructureAgent
 InfrastructureAgent/build/*
+
+
+InfrastructureAgent/err.log
+InfrastructureAgent/out.log
+InfrastructureAgent/daemon.pid

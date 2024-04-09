@@ -22,6 +22,18 @@ Once its up and running you should see the metrics on the OneUptime Dashboard.
 oneuptime-infrastructure-agent stop
 ```
 
+## Check the status of the agent
+
+```
+oneuptime-infrastructure-agent status
+```
+
+## Logs
+
+```
+oneuptime-infrastructure-agent logs
+```
+
 ## Uninstalling the agent
 
 ```
