@@ -19,6 +19,9 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { Logger, logs } from '@opentelemetry/api-logs';
 import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
 
+// Enable this line to see debug logs
+// diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+
 export default class Telemetry {
     public static sdk: opentelemetry.NodeSDK | null = null;
     public static logger: Logger | null = null;
