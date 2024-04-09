@@ -7,6 +7,10 @@ ARG APP_VERSION
 ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
 
+
+# IF APP_VERSION is not set, set it to 1.0.0
+RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=2.0.0; fi
+
 # Install bash. 
 RUN apk add bash && apk add curl && apk add openssl
 
@@ -28,18 +32,23 @@ RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
+# Set version in ./Common/package.json to the APP_VERSION
+RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN npm install
 COPY ./Common /usr/src/Common
 
 
 WORKDIR /usr/src/Model
 COPY ./Model/package*.json /usr/src/Model/
+# Set version in ./Model/package.json to the APP_VERSION
+RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Model/package.json
 RUN npm install
 COPY ./Model /usr/src/Model
 
 
 WORKDIR /usr/src/CommonServer
-COPY ./CommonServer/package*.json /usr/src/CommonServer/
+# Set version in ./CommonServer/package.json to the APP_VERSION
+RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonServer/package.json
 RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 
