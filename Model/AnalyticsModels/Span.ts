@@ -16,6 +16,12 @@ export enum SpanKind {
     Internal = 'SPAN_KIND_INTERNAL',
 }
 
+export enum SpanStatus {
+    Unset = 0,
+    Ok = 1,
+    Error = 2,
+}
+
 export class SpanEvent extends NestedModel {
     public constructor() {
         super({
@@ -693,11 +699,11 @@ export default class Span extends AnalyticsBaseModel {
         this.setColumnValue('links', v);
     }
 
-    public get statusCode(): number | undefined {
-        return this.getColumnValue('statusCode') as number | undefined;
+    public get statusCode(): SpanStatus | undefined {
+        return this.getColumnValue('statusCode') as SpanStatus | undefined;
     }
 
-    public set statusCode(v: number | undefined) {
+    public set statusCode(v: SpanStatus | undefined) {
         this.setColumnValue('statusCode', v);
     }
 

@@ -8,7 +8,7 @@ import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
+import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 import SpanService from 'CommonServer/Services/SpanService';
@@ -151,7 +151,7 @@ router.post(
                             'endTimeUnixNano'
                         ] as number;
 
-                        let spanStatusCode: number = 0;
+                        let spanStatusCode: SpanStatus =  SpanStatus.Unset;
 
                         if (
                             span['status'] &&
@@ -174,17 +174,17 @@ router.post(
                                 (span['status'] as JSONObject)?.['code'] ===
                                 'STATUS_CODE_UNSET'
                             ) {
-                                spanStatusCode = 0;
+                                spanStatusCode = SpanStatus.Unset;
                             } else if (
                                 (span['status'] as JSONObject)?.['code'] ===
                                 'STATUS_CODE_OK'
                             ) {
-                                spanStatusCode = 1;
+                                spanStatusCode = SpanStatus.Ok;
                             } else if (
                                 (span['status'] as JSONObject)?.['code'] ===
                                 'STATUS_CODE_ERROR'
                             ) {
-                                spanStatusCode = 2;
+                                spanStatusCode = SpanStatus.Error;
                             }
                         }
 
