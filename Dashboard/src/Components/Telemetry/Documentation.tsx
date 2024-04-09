@@ -29,7 +29,7 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
         <Card
             title={'Documentation'}
             description={
-                'Learn how to integrate OneUptime with your application or resources to collect logs, metriics and traces data.'
+                'Learn how to integrate OneUptime with your application or resources to collect logs, metrics and traces data.'
             }
         >
             <ImageTiles
