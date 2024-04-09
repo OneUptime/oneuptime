@@ -47,6 +47,7 @@ COPY ./Model /usr/src/Model
 
 
 WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
 # Set version in ./CommonServer/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonServer/package.json
 RUN npm install
