@@ -27,6 +27,7 @@ import { AppVersion } from '../EnvironmentConfig';
 import ServerException from 'Common/Types/Exception/ServerException';
 import zlib from 'zlib';
 import CookieParser from 'cookie-parser';
+import { api } from '@opentelemetry/sdk-node';
 
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
@@ -185,6 +186,18 @@ const init: InitFunction = async (
             next: NextFunction
         ) => {
             logger.error(err);
+
+            // Mark span as error.
+
+            if (err) {
+                const span = api.trace.getSpan(api.context.active());
+                if (span) {
+                    span.setStatus({
+                        code: api.SpanStatusCode.ERROR,
+                        message: err.message,
+                    });
+                }
+            }
 
             if (res.headersSent) {
                 return next(err);
