@@ -180,6 +180,36 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showTableAs={ShowTableAs.List}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+
+
+
+                    {
+                        field: {
+                            createdByUser: {
+                                name: true,
+                            },
+                        },
+                        type: FieldType.Text,
+                        title: 'User',
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        type: FieldType.DateTime,
+                        title: 'Created At',
+                    },
+
+                    {
+                        field: {
+                            note: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Note',
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -192,7 +222,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         title: '',
 
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -218,7 +248,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        isFilterable: true,
+                        
                         alignItem: AlignItem.Right,
                         title: '',
                         type: FieldType.DateTime,
@@ -229,7 +259,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                        isFilterable: true,
+                        
                         title: '',
                         type: FieldType.Markdown,
                         contentClassName:

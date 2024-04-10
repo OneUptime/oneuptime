@@ -67,6 +67,30 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Name',
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Description',
+                    },
+                    {
+                        field: {
+                            expiresAt: true,
+                        },
+                        type: FieldType.Date,
+                        title: 'Expires',
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -74,7 +98,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -82,7 +106,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -90,7 +114,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Expires',
                         type: FieldType.Date,
-                        isFilterable: true,
+                        
                     },
                 ]}
             />

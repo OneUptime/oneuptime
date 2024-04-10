@@ -491,6 +491,23 @@ const Settings: FunctionComponent<ComponentProps> = (
                         }}
                         showRefreshButton={true}
                         showFilterButton={true}
+                        filters={[
+                            {
+                                field: {
+                                    type: true,
+                                },
+                                title: 'Payment Method Type',
+                                type: FieldType.Text,
+                            },
+                            {
+                                field: {
+                                    last4Digits: true,
+                                },
+                                title: 'Number',
+                                type: FieldType.Text,
+                            },
+                        
+                        ]}
                         columns={[
                             {
                                 field: {
@@ -498,7 +515,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 },
                                 title: 'Payment Method Type',
                                 type: FieldType.Text,
-                                isFilterable: true,
+                                
                                 getElement: (item: JSONObject) => {
                                     return (
                                         <span>{`${Text.uppercaseFirstLetter(
@@ -513,7 +530,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 },
                                 title: 'Number',
                                 type: FieldType.Text,
-                                isFilterable: true,
+                                
                                 getElement: (item: JSONObject) => {
                                     return (
                                         <span>{`*****${item['last4Digits']}`}</span>

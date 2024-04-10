@@ -19,6 +19,7 @@ import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import Filter from 'CommonUI/src/Components/ModelTable/Filter';
 
 const CallLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -28,20 +29,20 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
     const [callText, setCallText] = useState<string>('');
     const [callModelTitle, setCallModalTitle] = useState<string>('');
 
-    const modelTableColumns: Columns<CallLog> = [
+    const filters: Array<Filter<CallLog>> = [
         {
             field: {
                 _id: true,
             },
             title: 'Log ID',
             type: FieldType.Text,
-            isFilterable: true,
+            
         },
         {
             field: {
                 fromNumber: true,
             },
-            isFilterable: true,
+            
             title: 'From Number',
             type: FieldType.Phone,
         },
@@ -49,7 +50,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             field: {
                 toNumber: true,
             },
-            isFilterable: true,
+            
 
             title: 'To Number',
             type: FieldType.Phone,
@@ -60,7 +61,53 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Sent at',
             type: FieldType.DateTime,
-            isFilterable: true,
+            
+        },
+
+        {
+            field: {
+                status: true,
+            },
+            title: 'Status',
+            type: FieldType.Text,
+            
+            
+        },
+    ];
+
+    const modelTableColumns: Columns<CallLog> = [
+        {
+            field: {
+                _id: true,
+            },
+            title: 'Log ID',
+            type: FieldType.Text,
+            
+        },
+        {
+            field: {
+                fromNumber: true,
+            },
+            
+            title: 'From Number',
+            type: FieldType.Phone,
+        },
+        {
+            field: {
+                toNumber: true,
+            },
+            
+
+            title: 'To Number',
+            type: FieldType.Phone,
+        },
+        {
+            field: {
+                createdAt: true,
+            },
+            title: 'Sent at',
+            type: FieldType.DateTime,
+            
         },
 
         {
@@ -86,7 +133,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
 
                 return <></>;
             },
-            isFilterable: true,
+            
         },
     ];
 
@@ -165,6 +212,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                     }
                     showRefreshButton={true}
                     showFilterButton={true}
+                    filters={filters}
                     columns={modelTableColumns}
                 />
 

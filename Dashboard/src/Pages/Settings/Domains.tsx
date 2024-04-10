@@ -106,14 +106,13 @@ const Domains: FunctionComponent<PageComponentProps> = (
                 }}
                 showRefreshButton={true}
                 showFilterButton={true}
-                columns={[
+                filters={[
                     {
                         field: {
                             domain: true,
                         },
-                        title: 'Domain',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        title: 'Domain',
                     },
                     {
                         field: {
@@ -121,7 +120,25 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Verified',
                         type: FieldType.Boolean,
-                        isFilterable: true,
+                    },
+                
+                ]}
+                columns={[
+                    {
+                        field: {
+                            domain: true,
+                        },
+                        title: 'Domain',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            isVerified: true,
+                        },
+                        title: 'Verified',
+                        type: FieldType.Boolean,
+                        
                     },
                 ]}
             />

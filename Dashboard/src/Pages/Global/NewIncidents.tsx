@@ -77,6 +77,10 @@ const Home: FunctionComponent<PageComponentProps> = (
                         )
                     );
                 }}
+                filters={[
+                    
+                
+                ]}
                 columns={[
                     {
                         field: {

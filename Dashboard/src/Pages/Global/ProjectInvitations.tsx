@@ -119,6 +119,27 @@ const Home: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 deleteButtonText="Reject"
+                filters={[
+                    {
+                        field: {
+                            project: {
+                                name: true,
+                            },
+                        },
+                        type: FieldType.Text,
+                        title: 'Project',
+                    },
+                    {
+                        field: {
+                            team: {
+                                name: true,
+                            },
+                        },
+                        type: FieldType.Text,
+                        title: 'Team',
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -128,7 +149,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Project Invited to',
                         type: FieldType.Text,
-                        isFilterable: true,
                         selectedProperty: 'name',
                     },
                     {
