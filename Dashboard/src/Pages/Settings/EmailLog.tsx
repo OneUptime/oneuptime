@@ -19,6 +19,7 @@ import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
+import Filter from 'CommonUI/src/Components/ModelTable/Filter';
 
 const EmailLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -27,6 +28,44 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
         useState<boolean>(false);
     const [EmailText, setEmailText] = useState<string>('');
     const [EmailModelTitle, setEmailModalTitle] = useState<string>('');
+
+    const filters: Array<Filter<EmailLog>> = [
+        {
+            field: {
+                _id: true,
+            },
+            title: 'Log ID',
+            type: FieldType.Text,
+        },
+        {
+            field: {
+                fromEmail: true,
+            },
+            title: 'From Email',
+            type: FieldType.Email,
+        },
+        {
+            field: {
+                toEmail: true,
+            },
+            title: 'To Email',
+            type: FieldType.Email,
+        },
+        {
+            field: {
+                createdAt: true,
+            },
+            title: 'Sent at',
+            type: FieldType.DateTime,
+        },
+        {
+            field: {
+                status: true,
+            },
+            title: 'Status',
+            type: FieldType.Text,
+        },
+    ];
 
     const modelTableColumns: Columns<EmailLog> = [
         {
@@ -44,13 +83,13 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                     />
                 );
             },
-            isFilterable: false,
+            
         },
         {
             field: {
                 fromEmail: true,
             },
-            isFilterable: true,
+            
 
             title: 'From Email',
             type: FieldType.Email,
@@ -60,7 +99,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             field: {
                 toEmail: true,
             },
-            isFilterable: true,
+            
 
             title: 'To Email',
             type: FieldType.Email,
@@ -71,7 +110,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Sent at',
             type: FieldType.DateTime,
-            isFilterable: true,
+            
         },
         {
             field: {
@@ -96,7 +135,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
 
                 return <></>;
             },
-            isFilterable: true,
+            
         },
     ];
 
@@ -155,6 +194,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                             },
                         },
                     ]}
+                    filters={filters}
                     isViewable={false}
                     cardProps={{
                         title: 'Email Logs',
