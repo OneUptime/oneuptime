@@ -19,6 +19,7 @@ import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import Filter from 'CommonUI/src/Components/ModelTable/Filter';
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -28,20 +29,20 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
     const [smsText, setSmsText] = useState<string>('');
     const [smsModelTitle, setSmsModalTitle] = useState<string>('');
 
-    const modelTableColumns: Columns<SmsLog> = [
+    const filters: Array<Filter<SmsLog>> = [
         {
             field: {
                 _id: true,
             },
             title: 'Log ID',
             type: FieldType.Text,
-            isFilterable: true,
+            
         },
+
         {
             field: {
                 fromNumber: true,
             },
-            isFilterable: true,
             title: 'From Number',
             type: FieldType.Phone,
         },
@@ -49,7 +50,49 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
             field: {
                 toNumber: true,
             },
-            isFilterable: true,
+            title: 'To Number',
+            type: FieldType.Phone,
+        },
+        {
+            field: {
+                createdAt: true,
+            },
+            title: 'Sent at',
+            type: FieldType.DateTime,
+        },
+        {
+            field: {
+                status: true,
+            },
+            title: 'Status',
+            type: FieldType.Text,
+        },
+    ];
+
+
+
+    const modelTableColumns: Columns<SmsLog> = [
+        {
+            field: {
+                _id: true,
+            },
+            title: 'Log ID',
+            type: FieldType.Text,
+            
+        },
+        {
+            field: {
+                fromNumber: true,
+            },
+            
+            title: 'From Number',
+            type: FieldType.Phone,
+        },
+        {
+            field: {
+                toNumber: true,
+            },
+            
 
             title: 'To Number',
             type: FieldType.Phone,
@@ -60,7 +103,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Sent at',
             type: FieldType.DateTime,
-            isFilterable: true,
+            
         },
 
         {
@@ -86,7 +129,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
 
                 return <></>;
             },
-            isFilterable: true,
+            
         },
     ];
 
@@ -118,6 +161,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                         smsText: true,
                         statusMessage: true,
                     }}
+                    filters={filters}
                     actionButtons={[
                         {
                             title: 'View SMS Text',

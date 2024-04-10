@@ -73,6 +73,42 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Name',
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Description',
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        type: FieldType.EntityArray,
+                        title: 'Labels',
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                ]
+                   }
                 columns={[
                     {
                         field: {
@@ -80,7 +116,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -88,7 +124,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -99,16 +135,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true,
-                        filterEntityType: Label,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

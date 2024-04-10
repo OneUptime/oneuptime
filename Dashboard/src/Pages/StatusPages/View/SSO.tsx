@@ -225,14 +225,14 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                         },
                     ]}
-                    columns={[
+                    filters={[
                         {
                             field: {
                                 name: true,
                             },
                             title: 'Name',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            
                         },
                         {
                             field: {
@@ -240,7 +240,33 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Description',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            
+                        },
+                        {
+                            field: {
+                                isEnabled: true,
+                            },
+                            title: 'Enabled',
+                            type: FieldType.Boolean,
+                            
+                        },
+                    ]}
+                    columns={[
+                        {
+                            field: {
+                                name: true,
+                            },
+                            title: 'Name',
+                            type: FieldType.Text,
+                            
+                        },
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                            type: FieldType.Text,
+                            
                         },
 
                         {
@@ -249,7 +275,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Enabled',
                             type: FieldType.Boolean,
-                            isFilterable: true,
+                            
                         },
                     ]}
                 />

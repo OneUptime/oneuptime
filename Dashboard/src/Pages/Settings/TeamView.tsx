@@ -149,6 +149,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 deleteButtonText="Remove Member"
                 showFilterButton={true}
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
+                filters={[
+                    {
+                        field: {
+                            hasAcceptedInvitation: true,
+                        },
+                        type: FieldType.Boolean,
+                        title: 'Status'
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -182,7 +192,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Boolean,
-                        isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['hasAcceptedInvitation']) {
                                 return <Pill text="Member" color={Green} />;

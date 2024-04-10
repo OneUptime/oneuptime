@@ -110,6 +110,23 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     isOfflineState: true,
                     priority: true,
                 }}
+                filters={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Name',
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Description',
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -117,7 +134,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -135,7 +152,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <div>

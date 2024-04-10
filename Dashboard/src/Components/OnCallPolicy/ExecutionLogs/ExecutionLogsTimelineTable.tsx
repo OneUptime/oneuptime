@@ -79,6 +79,33 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                     },
                 ]}
+                filters={[
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        type: FieldType.DateTime,
+                        title: 'Started At',
+                    },
+                    {
+                        field: {
+                            acknowledgedAt: true,
+                        },
+                        type: FieldType.DateTime,
+                        title: 'Acknowledged At',
+                    },
+                    {
+                        field: {
+                            status: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Status',
+                        filterDropdownOptions:
+                        DropdownUtil.getDropdownOptionsFromEnum(
+                            OnCallDutyExecutionLogTimelineStatus
+                        ),
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -113,7 +140,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Started At',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -149,7 +176,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Acknowledged At',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+                        
                         noValueMessage: '-',
                     },
                     {
@@ -158,11 +185,8 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Element,
-                        isFilterable: true,
-                        filterDropdownOptions:
-                            DropdownUtil.getDropdownOptionsFromEnum(
-                                OnCallDutyExecutionLogTimelineStatus
-                            ),
+                        
+                       
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===

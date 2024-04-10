@@ -50,6 +50,38 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 sortBy="startTime"
                 sortOrder={SortOrder.Descending}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            traceId: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Trace ID',
+
+                    },
+                    {
+                        field: {
+                            name: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Root Span Name',
+                    },
+                    {
+                        field: {
+                            kind: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Root Span Kind',
+                        filterDropdownOptions: spanKindDropdownOptions,
+                    },
+                    {
+                        field: {
+                            startTime: true,
+                        },
+                        type: FieldType.DateTime,
+                        title: 'Seen At',
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -57,7 +89,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Trace ID',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -65,7 +97,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Root Span Name',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -73,8 +105,8 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Root Span Kind',
                         type: FieldType.Text,
-                        filterDropdownOptions: spanKindDropdownOptions,
-                        isFilterable: true,
+                        
+                        
                         getElement: (span: JSONObject): ReactElement => {
                             const spanKind: SpanKind = span['kind'] as SpanKind;
 
@@ -90,7 +122,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Seen At',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+                        
                     },
                 ]}
             />

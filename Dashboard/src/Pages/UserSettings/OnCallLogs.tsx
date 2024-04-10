@@ -82,16 +82,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 viewButtonText={'View Timeline'}
-                columns={[
+                filters={[
                     {
                         field: {
                             onCallDutyPolicy: {
                                 name: true,
                             },
                         },
-                        title: 'On-Call Policy',
-                        type: FieldType.Element,
-                        isFilterable: true,
                         filterEntityType: OnCallDutyPolicy,
                         filterQuery: {
                             projectId:
@@ -101,13 +98,66 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             label: 'name',
                             value: '_id',
                         },
+                        title: 'On-Call Policy',
+                        type: FieldType.Entity,
+                    },
+                    {
+                        field: {
+                            onCallDutyPolicyEscalationRule: {
+                                name: true,
+                            },
+                        },
+                        filterEntityType: OnCallDutyPolicyEscalationRule,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        title: 'Escalation Rule',
+                        type: FieldType.Entity,
+                    },
+                    {
+                        field: {
+                            status: true,
+                        },
+                        title: 'Status',
+                        type: FieldType.Dropdown,
+                        filterDropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                UserNotificationExecutionStatus
+                            ),
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Created At',
+                        type: FieldType.DateTime,
+                    },
+
+
+                ]}
+                columns={[
+                    {
+                        field: {
+                            onCallDutyPolicy: {
+                                name: true,
+                            },
+                        },
+                        title: 'On-Call Policy',
+                        type: FieldType.Element,
+
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['onCallDutyPolicy']) {
                                 return (
                                     <OnCallDutyPolicyView
                                         onCallPolicy={
                                             item[
-                                                'onCallDutyPolicy'
+                                            'onCallDutyPolicy'
                                             ] as OnCallDutyPolicy
                                         }
                                     />
@@ -124,23 +174,15 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Escalation Rule',
                         type: FieldType.Element,
-                        isFilterable: true,
-                        filterEntityType: OnCallDutyPolicyEscalationRule,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+
+                       
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['onCallDutyPolicyEscalationRule']) {
                                 return (
                                     <EscalationRuleView
                                         escalationRule={
                                             item[
-                                                'onCallDutyPolicyEscalationRule'
+                                            'onCallDutyPolicyEscalationRule'
                                             ] as OnCallDutyPolicyEscalationRule
                                         }
                                     />
@@ -155,7 +197,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+
                     },
                     {
                         field: {
@@ -163,11 +205,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Element,
-                        isFilterable: true,
-                        filterDropdownOptions:
-                            DropdownUtil.getDropdownOptionsFromEnum(
-                                UserNotificationExecutionStatus
-                            ),
+
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===

@@ -450,6 +450,26 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                     {
                         field: {
+                            currentIncidentState: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'State',
+                        type: FieldType.Entity,
+
+                        filterEntityType: IncidentState,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
                             monitors: {
                                 name: true,
                                 _id: true,
