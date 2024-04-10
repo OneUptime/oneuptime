@@ -75,6 +75,7 @@ import {
 } from 'Common/Types/FunctionTypes';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import SelectEntityField from '../../Types/SelectEntityField';
+import { FilterData } from '../Table/Filter';
 
 export enum ShowTableAs {
     Table,
@@ -392,39 +393,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     };
                 }
 
-                // get filter options if they were already loaded.
-
-                let filterDropdownOptions: Array<DropdownOption> | undefined =
-                    undefined;
+                // get filter options if they were already loaded
 
                 const columnKey: string | null = column.selectedProperty
                     ? key + '.' + column.selectedProperty
                     : key;
 
-                const existingTableColumn: TableColumn | undefined =
-                    tableColumns.find((i: TableColumn) => {
-                        return i.key === columnKey;
-                    });
-
-                if (column.filterDropdownOptions) {
-                    filterDropdownOptions = column.filterDropdownOptions;
-                }
-
-                if (
-                    tableColumns &&
-                    existingTableColumn &&
-                    existingTableColumn.filterDropdownOptions
-                ) {
-                    filterDropdownOptions =
-                        existingTableColumn.filterDropdownOptions;
-                }
 
                 columns.push({
                     ...column,
                     disableSort: column.disableSort || shouldDisableSort(key),
                     key: columnKey,
                     tooltipText,
-                    filterDropdownOptions: filterDropdownOptions,
+
                 });
 
                 if (key) {
@@ -492,36 +473,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setTableFilterError('');
             setIsTableFilterFetchLoading(true);
 
-            const classicColumns: Array<TableColumn> = [...tableColumns];
+            const filters: Array<Filter<TBaseModel>> = [...props.filters];
 
             try {
-                for (const column of props.columns) {
-                    const key: string | null = getColumnKey(column);
-
-                    const classicColumn: TableColumn | undefined =
-                        classicColumns.find((i: TableColumn) => {
-                            return i.key === key;
-                        });
-
-                    if (!classicColumn) {
-                        continue;
-                    }
+                for (const filter of filters) {
+                    const key: string | null = getFilterKey(filter);
 
                     if (!key) {
                         continue;
                     }
 
-                    if (!column.filterEntityType) {
+                    if (!filter.filterEntityType) {
                         continue;
                     }
 
-                    if (!column.isFilterable) {
-                        continue;
-                    }
-
-                    if (!column.filterDropdownField) {
+                    if (!filter.filterDropdownField) {
                         Logger.warn(
-                            `Cannot filter on ${key} because column.dropdownField is not set.`
+                            `Cannot filter on ${key} because filter.dropdownField is not set.`
                         );
                         continue;
                     }
@@ -810,6 +778,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return key;
     };
 
+    type GetFilterKeyFunction = (
+        filter: Filter<TBaseModel>
+    ) => string | null;
+
+    const getFilterKey: GetFilterKeyFunction = (
+        filter: Filter<TBaseModel>
+    ): string | null => {
+        const key: string | null = filter.field
+            ? (Object.keys(filter.field)[0] as string)
+            : null;
+
+        return key;
+    };
+
     type HasPermissionToReadColumnFunction = (
         column: ModelTableColumn<TBaseModel>
     ) => boolean;
@@ -823,6 +805,43 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const userPermissions: Array<Permission> = getUserPermissions();
 
         const key: string | null = getColumnKey(column);
+
+        // check permissions.
+        let hasPermission: boolean = false;
+
+        if (!key) {
+            hasPermission = true;
+        }
+
+        if (key) {
+            hasPermission = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions = accessControl[key as string]?.read || [];
+
+            if (
+                accessControl[key]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermission = false;
+            }
+        }
+
+        return hasPermission;
+    };
+
+
+    const hasPermissionToReadFilter: HasPermissionToReadColumnFunction = (
+        filter: Filter<TBaseModel>
+    ): boolean => {
+        const accessControl: Dictionary<ColumnAccessControl> =
+            model.getColumnAccessControlForAllColumns();
+
+        const userPermissions: Array<Permission> = getUserPermissions();
+
+        const key: string | null = getFilterKey(filter);
 
         // check permissions.
         let hasPermission: boolean = false;
