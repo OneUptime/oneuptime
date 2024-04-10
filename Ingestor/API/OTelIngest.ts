@@ -8,7 +8,7 @@ import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
 import protobuf from 'protobufjs';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
+import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 import SpanService from 'CommonServer/Services/SpanService';
@@ -151,7 +151,7 @@ router.post(
                             'endTimeUnixNano'
                         ] as number;
 
-                        let spanStatusCode: number = 0;
+                        let spanStatusCode: SpanStatus = SpanStatus.Unset;
 
                         if (
                             span['status'] &&
@@ -174,17 +174,17 @@ router.post(
                                 (span['status'] as JSONObject)?.['code'] ===
                                 'STATUS_CODE_UNSET'
                             ) {
-                                spanStatusCode = 0;
+                                spanStatusCode = SpanStatus.Unset;
                             } else if (
                                 (span['status'] as JSONObject)?.['code'] ===
                                 'STATUS_CODE_OK'
                             ) {
-                                spanStatusCode = 1;
+                                spanStatusCode = SpanStatus.Ok;
                             } else if (
                                 (span['status'] as JSONObject)?.['code'] ===
                                 'STATUS_CODE_ERROR'
                             ) {
-                                spanStatusCode = 2;
+                                spanStatusCode = SpanStatus.Error;
                             }
                         }
 
@@ -197,6 +197,7 @@ router.post(
                         dbSpan.startTime = OneUptimeDate.fromUnixNano(
                             span['startTimeUnixNano'] as number
                         );
+
                         dbSpan.endTime = OneUptimeDate.fromUnixNano(
                             span['endTimeUnixNano'] as number
                         );
@@ -212,6 +213,51 @@ router.post(
                         dbSpan.attributes = OTelIngestService.getAttributes(
                             span['attributes'] as JSONArray
                         );
+
+                        // add events
+
+                        if (span['events'] && span['events'] instanceof Array) {
+                            dbSpan.events = [];
+
+                            for (const event of span['events'] as JSONArray) {
+                                const eventTimeUnixNano: number = event[
+                                    'timeUnixNano'
+                                ] as number;
+                                const eventTime: Date =
+                                    OneUptimeDate.fromUnixNano(
+                                        eventTimeUnixNano
+                                    );
+
+                                dbSpan.events.push({
+                                    time: eventTime,
+                                    timeUnixNano: eventTimeUnixNano,
+                                    name: event['name'] as string,
+                                    attributes: OTelIngestService.getAttributes(
+                                        event['attributes'] as JSONArray
+                                    ),
+                                });
+                            }
+                        }
+
+                        // add links
+
+                        if (span['links'] && span['links'] instanceof Array) {
+                            dbSpan.links = [];
+
+                            for (const link of span['links'] as JSONArray) {
+                                dbSpan.links.push({
+                                    traceId: Text.convertBase64ToHex(
+                                        link['traceId'] as string
+                                    ),
+                                    spanId: Text.convertBase64ToHex(
+                                        link['spanId'] as string
+                                    ),
+                                    attributes: OTelIngestService.getAttributes(
+                                        link['attributes'] as JSONArray
+                                    ),
+                                });
+                            }
+                        }
 
                         dbSpans.push(dbSpan);
                     }

@@ -210,6 +210,11 @@ spec:
       targetPort: 443
       name: https
     {{- end }}
+    {{- if $.Port2 }}
+    - port: {{ $.Port2 }}
+      targetPort: {{ $.Port2 }}
+      name: port2
+    {{- end }}
   selector:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   {{- if $.ServiceType }}
@@ -297,6 +302,11 @@ spec:
             - containerPort: 443
               protocol: TCP
               name: https
+              {{- end }}
+              {{- if $.Port2 }}
+            - containerPort: {{ $.Port2 }}
+              protocol: TCP
+              name: port2
               {{- end }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
