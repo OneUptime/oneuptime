@@ -447,10 +447,27 @@ import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
 import ProjectCallSMSConfigService, {
     Service as ProjectCallSMSConfigServiceType,
 } from 'CommonServer/Services/ProjectCallSMSConfigService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
+
+console.log('REMOVE THIS');
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}/error`,
+    (_req: any, _res: any, next: any) => {
+        try {
+            console.log('API HIT');
+
+            throw new BadDataException('ERROR IN API');
+        } catch (err) {
+            console.log(err);
+            next(err);
+        }
+    }
+);
 
 //attach api's
 app.use(
