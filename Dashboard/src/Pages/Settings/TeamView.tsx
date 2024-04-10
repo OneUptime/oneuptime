@@ -292,6 +292,34 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            permission: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Permission',
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                            },
+                        },
+                        type: FieldType.EntityArray,
+                        title: 'Labels',
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    }
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -299,7 +327,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Permission',
                         type: FieldType.Text,
-                        isFilterable: true,
+                       
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <p>
@@ -319,16 +347,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true,
-                        filterEntityType: Label,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+                       
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item &&

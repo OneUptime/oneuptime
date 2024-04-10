@@ -273,6 +273,106 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             showRefreshButton={true}
             showFilterButton={true}
             viewPageRoute={props.viewPageRoute}
+            filters={[
+                {
+                    field: {
+                        title: true,
+                    },
+                    title: 'Title',
+                    type: FieldType.Text,
+                },
+                {
+                    field: {
+                        currentScheduledMaintenanceState: {
+                            name: true,
+                        },
+                    },
+                    title: 'Current State',
+                    type: FieldType.Entity,
+                    filterEntityType: ScheduledMaintenanceState,
+                    filterQuery: {
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
+                    },
+                    filterDropdownField: {
+                        label: 'name',
+                        value: '_id',
+                    },
+                },
+                {
+                    field: {
+                        monitors: {
+                            name: true,
+                            _id: true,
+                            projectId: true,
+                        },
+                    },
+                    title: 'Monitors Affected',
+                    type: FieldType.EntityArray,
+                    filterEntityType: Monitor,
+                    filterQuery: {
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
+                    },
+                    filterDropdownField: {
+                        label: 'name',
+                        value: '_id',
+                    },
+                },
+                {
+                    field: {
+                        statusPages: {
+                            name: true,
+                            _id: true,
+                            projectId: true,
+                        },
+                    },
+                    title: 'Shown on Status Page',
+                    type: FieldType.EntityArray,
+                    filterEntityType: StatusPage,
+                    filterQuery: {
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
+                    },
+                    filterDropdownField: {
+                        label: 'name',
+                        value: '_id',
+                    },
+                },
+                {
+                    field: {
+                        startsAt: true,
+                    },
+                    title: 'Starts At',
+                    type: FieldType.DateTime,
+                },
+                {
+                    field: {
+                        endsAt: true,
+                    },
+                    title: 'Ends At',
+                    type: FieldType.DateTime,
+                },
+                {
+                    field: {
+                        labels: {
+                            name: true,
+                            color: true,
+                        },
+                    },
+                    title: 'Labels',
+                    type: FieldType.EntityArray,
+                    filterEntityType: Label,
+                    filterQuery: {
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
+                    },
+                    filterDropdownField: {
+                        label: 'name',
+                        value: '_id',
+                    },
+                },
+            ]}
             columns={[
                 {
                     field: {
@@ -280,7 +380,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Title',
                     type: FieldType.Text,
-                    isFilterable: true,
+                    
                 },
                 {
                     field: {
@@ -291,16 +391,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Current State',
                     type: FieldType.Entity,
-                    isFilterable: true,
-                    filterEntityType: ScheduledMaintenanceState,
-                    filterQuery: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    filterDropdownField: {
-                        label: 'name',
-                        value: '_id',
-                    },
+                    
+                  
                     getElement: (item: JSONObject): ReactElement => {
                         if (item['currentScheduledMaintenanceState']) {
                             return (
@@ -337,16 +429,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Monitors Affected',
                     type: FieldType.EntityArray,
-                    isFilterable: true,
-                    filterEntityType: Monitor,
-                    filterQuery: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    filterDropdownField: {
-                        label: 'name',
-                        value: '_id',
-                    },
+                    
+                   
                     getElement: (item: JSONObject): ReactElement => {
                         return (
                             <MonitorsElement
@@ -370,16 +454,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Shown on Status Page',
                     type: FieldType.EntityArray,
-                    isFilterable: true,
-                    filterEntityType: StatusPage,
-                    filterQuery: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    filterDropdownField: {
-                        label: 'name',
-                        value: '_id',
-                    },
+                    
+                   
                     getElement: (item: JSONObject): ReactElement => {
                         return (
                             <StatusPagesElement
@@ -400,7 +476,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Starts At',
                     type: FieldType.DateTime,
-                    isFilterable: true,
+                    
                 },
                 {
                     field: {
@@ -408,7 +484,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Ends At',
                     type: FieldType.DateTime,
-                    isFilterable: true,
+                    
                 },
                 {
                     field: {
@@ -419,16 +495,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Labels',
                     type: FieldType.EntityArray,
-                    isFilterable: true,
-                    filterEntityType: Label,
-                    filterQuery: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    filterDropdownField: {
-                        label: 'name',
-                        value: '_id',
-                    },
+                    
+                   
                     getElement: (item: JSONObject): ReactElement => {
                         return (
                             <LabelsElement

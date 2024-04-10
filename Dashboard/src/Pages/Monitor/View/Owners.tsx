@@ -71,6 +71,15 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            team: true,
+                        },
+                        type: FieldType.Entity,
+                        title: 'Team',
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -80,7 +89,6 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');

@@ -82,22 +82,21 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                columns={[
+                filters={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
+                
                     {
                         field: {
                             description: true,
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -108,7 +107,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true,
+                       
                         filterEntityType: Label,
                         filterQuery: {
                             projectId:
@@ -118,6 +117,35 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                             label: 'name',
                             value: '_id',
                         },
+                    },
+                ]}
+                columns={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+                       
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        type: FieldType.Text,
+                       
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                    
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement
