@@ -151,7 +151,7 @@ router.post(
                             'endTimeUnixNano'
                         ] as number;
 
-                        let spanStatusCode: SpanStatus =  SpanStatus.Unset;
+                        let spanStatusCode: SpanStatus = SpanStatus.Unset;
 
                         if (
                             span['status'] &&
@@ -197,6 +197,7 @@ router.post(
                         dbSpan.startTime = OneUptimeDate.fromUnixNano(
                             span['startTimeUnixNano'] as number
                         );
+
                         dbSpan.endTime = OneUptimeDate.fromUnixNano(
                             span['endTimeUnixNano'] as number
                         );
@@ -212,6 +213,51 @@ router.post(
                         dbSpan.attributes = OTelIngestService.getAttributes(
                             span['attributes'] as JSONArray
                         );
+
+                        // add events
+
+                        if (span['events'] && span['events'] instanceof Array) {
+                            dbSpan.events = [];
+
+                            for (const event of span['events'] as JSONArray) {
+                                const eventTimeUnixNano: number = event[
+                                    'timeUnixNano'
+                                ] as number;
+                                const eventTime: Date =
+                                    OneUptimeDate.fromUnixNano(
+                                        eventTimeUnixNano
+                                    );
+
+                                dbSpan.events.push({
+                                    time: eventTime,
+                                    timeUnixNano: eventTimeUnixNano,
+                                    name: event['name'] as string,
+                                    attributes: OTelIngestService.getAttributes(
+                                        event['attributes'] as JSONArray
+                                    ),
+                                });
+                            }
+                        }
+
+                        // add links
+
+                        if (span['links'] && span['links'] instanceof Array) {
+                            dbSpan.links = [];
+
+                            for (const link of span['links'] as JSONArray) {
+                                dbSpan.links.push({
+                                    traceId: Text.convertBase64ToHex(
+                                        link['traceId'] as string
+                                    ),
+                                    spanId: Text.convertBase64ToHex(
+                                        link['spanId'] as string
+                                    ),
+                                    attributes: OTelIngestService.getAttributes(
+                                        link['attributes'] as JSONArray
+                                    ),
+                                });
+                            }
+                        }
 
                         dbSpans.push(dbSpan);
                     }

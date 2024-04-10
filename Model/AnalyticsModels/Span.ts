@@ -3,7 +3,6 @@ import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import ObjectID from 'Common/Types/ObjectID';
-import NestedModel from 'Common/AnalyticsModels/NestedModel';
 import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
 import { JSONObject } from 'Common/Types/JSON';
@@ -22,93 +21,17 @@ export enum SpanStatus {
     Error = 2,
 }
 
-export class SpanEvent extends NestedModel {
-    public constructor() {
-        super({
-            tableColumns: [
-                new AnalyticsTableColumn({
-                    key: 'time',
-                    title: 'Time',
-                    description: 'Time',
-                    required: false,
-                    type: TableColumnType.Date,
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'name',
-                    title: 'Name',
-                    description: 'Name of the span event',
-                    required: false,
-                    type: TableColumnType.Text,
-                }),
-
-                // new AnalyticsTableColumn({
-                //     key: 'attributes',
-                //     title: 'Attributes',
-                //     description: 'Attributes',
-                //     required: false,
-                //     type: TableColumnType.NestedModel,
-                //     nestedModelType: KeyValueNestedModel,
-                // }),
-            ],
-        });
-    }
-
-    public get time(): Date | undefined {
-        return this.getColumnValue('time') as Date | undefined;
-    }
-
-    public set time(v: Date | undefined) {
-        this.setColumnValue('time', v);
-    }
-
-    public get name(): string | undefined {
-        return this.getColumnValue('name') as string | undefined;
-    }
-
-    public set name(v: string | undefined) {
-        this.setColumnValue('name', v);
-    }
-
-    public get attributes(): JSONObject | undefined {
-        return this.getColumnValue('attributes') as JSONObject | undefined;
-    }
-
-    public set attributes(v: JSONObject | undefined) {
-        this.setColumnValue('attributes', v);
-    }
+export interface SpanEvent {
+    name: string;
+    time: Date;
+    timeUnixNano: number;
+    attributes: JSONObject;
 }
 
-export class SpanLink extends NestedModel {
-    public constructor() {
-        super({
-            tableColumns: [
-                new AnalyticsTableColumn({
-                    key: 'traceId',
-                    title: 'Trace ID',
-                    description: 'ID of the trace',
-                    required: false,
-                    type: TableColumnType.Text,
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'spanId',
-                    title: 'Span ID',
-                    description: 'ID of the span',
-                    required: false,
-                    type: TableColumnType.Text,
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'traceState',
-                    title: 'Trace State',
-                    description: 'Trace State',
-                    required: false,
-                    type: TableColumnType.Text,
-                }),
-            ],
-        });
-    }
+export interface SpanLink {
+    traceId: string;
+    spanId: string;
+    attributes?: JSONObject;
 }
 
 export default class Span extends AnalyticsBaseModel {
@@ -688,7 +611,7 @@ export default class Span extends AnalyticsBaseModel {
     }
 
     public set events(v: Array<SpanEvent> | undefined) {
-        this.setColumnValue('events', v);
+        this.setColumnValue('events', v as Array<JSONObject> | undefined);
     }
 
     public get links(): Array<SpanLink> | undefined {
@@ -696,7 +619,7 @@ export default class Span extends AnalyticsBaseModel {
     }
 
     public set links(v: Array<SpanLink> | undefined) {
-        this.setColumnValue('links', v);
+        this.setColumnValue('links', v as Array<JSONObject> | undefined);
     }
 
     public get statusCode(): SpanStatus | undefined {
