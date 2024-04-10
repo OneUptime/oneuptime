@@ -1,10 +1,12 @@
 # OneUptime nginx Deployment
-{{- $nginxDeploymentArgs :=dict "isHTTPSPortEnabled" true "IsServer" true "ServiceName" "nginx" "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values -}}
+{{- $nginxPorts := dict "http" $.Values.port.nginxHttp "https" $.Values.port.nginxHttps -}}
+{{- $nginxDeploymentArgs :=dict "IsServer" true "Ports" $nginxPorts "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.deployment" $nginxDeploymentArgs }}
 ---
 
 # OneUptime nginx Service
-{{- $nginxServiceArgs := dict "IsMetalLbEnabled" $.Values.metalLb.enabled "ExternalIPs" $.Values.ingress.service.externalIPs "ServiceName" "nginx" "isHTTPSPortEnabled" true "Port" $.Values.port.nginx "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
+{{- $nginxPorts := dict "http" $.Values.port.nginxHttp "https" $.Values.port.nginxHttps -}}
+{{- $nginxServiceArgs := dict "IsMetalLbEnabled" $.Values.metalLb.enabled "ExternalIPs" $.Values.ingress.service.externalIPs "ServiceName" "nginx" "Ports" $nginxPorts "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
 {{- include "oneuptime.service" $nginxServiceArgs }}
 ---
 

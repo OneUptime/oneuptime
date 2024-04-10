@@ -152,7 +152,8 @@ port:
   statusPage: 3105
   dashboard: 3009
   adminDashboard: 3158
-  nginx: 80
+  nginxHttp: 80
+  nginxHttps: 443
   haraka: 2525
   probe: 3500
   otelCollectorGrpc: 4317
