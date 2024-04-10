@@ -204,8 +204,8 @@ spec:
   {{- if $.Ports }}
   ports:
     {{- range $key, $val := $.Ports }}
-    - containerPort: {{ $val }}
-      protocol: TCP
+    - port: {{ $val }}
+      targetPort: {{ $val }}
       name: {{ $key }}
     {{- end }}
   {{- end }}

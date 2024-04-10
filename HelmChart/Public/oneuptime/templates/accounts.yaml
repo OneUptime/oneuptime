@@ -1,12 +1,12 @@
 # OneUptime accounts Deployment
 {{- $accountsEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers.accounts "PORT" $.Values.port.accounts -}}
-{{- $accountsPorts := dict "Port" $.Values.port.accounts -}}
+{{- $accountsPorts := dict "port" $.Values.port.accounts -}}
 {{- $accountsDeploymentArgs :=dict "IsUI" true "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values "Env" $accountsEnv -}}
 {{- include "oneuptime.deployment" $accountsDeploymentArgs }}
 ---
 
 # OneUptime accounts Service
-{{- $accountsPorts := dict "Port" $.Values.port.accounts -}}
+{{- $accountsPorts := dict "port" $.Values.port.accounts -}}
 {{- $accountsServiceArgs := dict "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $accountsServiceArgs }}
 ---

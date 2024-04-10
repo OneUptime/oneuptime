@@ -66,7 +66,7 @@ spec:
 ---
 
 # OneUptime app Service
-{{- $appPorts := dict "Port" $.Values.port.app -}}
+{{- $appPorts := dict "port" $.Values.port.app -}}
 {{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $appServiceArgs }}
 ---

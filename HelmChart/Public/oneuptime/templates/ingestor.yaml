@@ -1,12 +1,12 @@
 # OneUptime ingestor Deployment
-{{- $ingestorPorts := dict "Port" $.Values.port.ingestor -}}
+{{- $ingestorPorts := dict "port" $.Values.port.ingestor -}}
 {{- $ingestorEnv := dict "PORT"  $.Values.port.ingestor -}}
 {{- $ingestorDeploymentArgs :=dict "IsServer" true "ServiceName" "ingestor" "Ports" $ingestorPorts "Release" $.Release "Values" $.Values "Env" $ingestorEnv -}}
 {{- include "oneuptime.deployment" $ingestorDeploymentArgs }}
 ---
 
 # OneUptime ingestor Service
-{{- $ingestorPorts := dict "Port" $.Values.port.ingestor -}}
+{{- $ingestorPorts := dict "port" $.Values.port.ingestor -}}
 {{- $ingestorServiceArgs := dict "ServiceName" "ingestor" "Ports" $ingestorPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $ingestorServiceArgs }}
 ---

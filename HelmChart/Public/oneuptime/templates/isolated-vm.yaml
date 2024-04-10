@@ -50,7 +50,7 @@ spec:
 ---
 
 # OneUptime isolatedVM Service
-{{- $isolatedVMPorts := dict "Port" $.Values.port.isolatedVM -}}
+{{- $isolatedVMPorts := dict "port" $.Values.port.isolatedVM -}}
 {{- $isolatedVMServiceArgs := dict "ServiceName" "isolated-vm" "Ports" $isolatedVMPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $isolatedVMServiceArgs }}
 ---
