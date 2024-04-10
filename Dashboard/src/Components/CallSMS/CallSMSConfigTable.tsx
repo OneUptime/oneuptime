@@ -189,6 +189,36 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        title: 'Name',
+                        type: FieldType.Text,
+                        field: {
+                            name: true,
+                        },
+                    },
+                    {
+                        title: 'Description',
+                        type: FieldType.Text,
+                        field: {
+                            description: true,
+                        },
+                    },
+                    {
+                        title: 'Twilio Account SID',
+                        type: FieldType.Text,
+                        field: {
+                            twilioAccountSID: true,
+                        },
+                    },
+                    {
+                        title: 'Twilio Phone Number',
+                        type: FieldType.Phone,
+                        field: {
+                            twilioPhoneNumber: true,
+                        },
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -196,7 +226,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -204,7 +233,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -212,7 +240,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Twilio Account SID',
                         type: FieldType.Text,
-                        isFilterable: true,
+
                     },
                     {
                         field: {
@@ -220,7 +248,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Twilio Phone Number',
                         type: FieldType.Phone,
-                        isFilterable: true,
                     },
                 ]}
             />

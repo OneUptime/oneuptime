@@ -46,6 +46,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     userId: User.getUserId().toString(),
                 }}
+                filters={[]}
                 refreshToggle={refreshToggle}
                 onBeforeCreate={(model: UserCall): Promise<UserCall> => {
                     model.projectId = DashboardNavigation.getProjectId()!;
@@ -137,6 +138,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                 ]}
                 showRefreshButton={true}
                 showFilterButton={false}
+                
                 columns={[
                     {
                         field: {
@@ -144,7 +146,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                         },
                         title: 'Phone Number',
                         type: FieldType.Phone,
-                        isFilterable: false,
+                        
                     },
                     {
                         field: {

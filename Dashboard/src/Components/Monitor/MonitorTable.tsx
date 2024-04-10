@@ -69,7 +69,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         return (
                             values.monitorType !== MonitorType.Manual &&
                             values.monitorType !==
-                                MonitorType.IncomingRequest &&
+                            MonitorType.IncomingRequest &&
                             values.monitorType !== MonitorType.Server
                         );
                     },
@@ -169,33 +169,25 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             showRefreshButton={true}
             showFilterButton={true}
             viewPageRoute={props.viewPageRoute}
-            columns={[
+            filters={[
                 {
-                    field: {
-                        name: true,
-                    },
-                    title: 'Name',
+                    title: 'Monitor Type',
                     type: FieldType.Text,
-                    isFilterable: true,
-                },
-                {
                     field: {
                         monitorType: true,
                     },
-                    title: 'Monitor Type',
-                    type: FieldType.Text,
-                    isFilterable: true,
                     filterDropdownOptions:
                         MonitorTypeUtil.monitorTypesAsDropdownOptions(),
                 },
                 {
+                    title: 'Monitor Status',
+                    type: FieldType.Entity,
                     field: {
                         currentMonitorStatus: {
                             color: true,
                             name: true,
                         },
                     },
-                    isFilterable: true,
                     filterEntityType: MonitorStatus,
                     filterQuery: {
                         projectId:
@@ -205,6 +197,55 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         label: 'name',
                         value: '_id',
                     },
+                },
+                {
+                    title: 'Labels',
+                    type: FieldType.EntityArray,
+                    field: {
+                        labels: {
+                            name: true,
+                            color: true,
+                        },
+                    },
+                    filterEntityType: Label,
+                    filterQuery: {
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
+                    },
+                    filterDropdownField: {
+                        label: 'name',
+                        value: '_id',
+                    },
+                },
+
+            ]}
+            columns={[
+                {
+                    field: {
+                        name: true,
+                    },
+                    title: 'Name',
+                    type: FieldType.Text,
+
+                },
+                {
+                    field: {
+                        monitorType: true,
+                    },
+                    title: 'Monitor Type',
+                    type: FieldType.Text,
+
+
+                },
+                {
+                    field: {
+                        currentMonitorStatus: {
+                            color: true,
+                            name: true,
+                        },
+                    },
+
+
                     title: 'Monitor Status',
                     type: FieldType.Entity,
                     getElement: (item: JSONObject): ReactElement => {
@@ -229,7 +270,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                 color={
                                     (
                                         item[
-                                            'currentMonitorStatus'
+                                        'currentMonitorStatus'
                                         ] as JSONObject
                                     )['color'] as Color
                                 }
@@ -237,7 +278,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                 text={
                                     (
                                         item[
-                                            'currentMonitorStatus'
+                                        'currentMonitorStatus'
                                         ] as JSONObject
                                     )['name'] as string
                                 }
@@ -254,16 +295,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Labels',
                     type: FieldType.EntityArray,
-                    isFilterable: true,
-                    filterEntityType: Label,
-                    filterQuery: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    filterDropdownField: {
-                        label: 'name',
-                        value: '_id',
-                    },
+
+
                     getElement: (item: JSONObject): ReactElement => {
                         return (
                             <LabelsElement

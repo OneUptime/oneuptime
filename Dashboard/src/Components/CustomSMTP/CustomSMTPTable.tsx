@@ -196,6 +196,29 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        title: 'Name',
+                        type: FieldType.Text,
+                        field: {
+                            name: true,
+                        },
+                    },
+                    {
+                        title: 'Description',
+                        type: FieldType.Text,
+                        field: {
+                            description: true,
+                        },
+                    },
+                    {
+                        title: 'Server Host',
+                        type: FieldType.Text,
+                        field: {
+                            hostname: true,
+                        },
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -203,7 +226,6 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -211,7 +233,6 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -219,7 +240,6 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Server Host',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                 ]}
             />

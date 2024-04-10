@@ -87,6 +87,32 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                     },
                 ]}
+                filters={[
+
+                   
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Notification Sent At',
+                        type: FieldType.DateTime,
+                    },
+
+                    {
+                        field: {
+                            status: true,
+                        },
+                        title: 'Status',
+                        type: FieldType.Element,
+                       
+                        filterDropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                UserNotificationStatus
+                            ),
+                     
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -111,7 +137,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Sent At',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -119,11 +145,8 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Element,
-                        isFilterable: true,
-                        filterDropdownOptions:
-                            DropdownUtil.getDropdownOptionsFromEnum(
-                                UserNotificationStatus
-                            ),
+                        
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] === UserNotificationStatus.Sent

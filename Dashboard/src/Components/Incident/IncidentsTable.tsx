@@ -420,6 +420,83 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 showFilterButton={true}
                 showViewIdButton={true}
                 viewPageRoute={props.viewPageRoute}
+                filters={[
+                    {
+                        field: {
+                            title: true,
+                        },
+                        title: 'Title',
+                        type: FieldType.Text,
+
+                    },
+                    {
+                        field: {
+                            incidentSeverity: {
+                                name: true,
+                            },
+                        },
+                        title: 'Severity',
+                        type: FieldType.Entity,
+
+                        filterEntityType: IncidentSeverity,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
+                            monitors: {
+                                name: true,
+                                _id: true,
+                                projectId: true,
+                            },
+                        },
+                        title: 'Monitors Affected',
+                        type: FieldType.EntityArray,
+
+                        filterEntityType: Monitor,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Created',
+                        type: FieldType.DateTime,
+
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -427,7 +504,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Title',
                         type: FieldType.Text,
-                        isFilterable: true,
+
                     },
                     {
                         field: {
@@ -438,16 +515,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'State',
                         type: FieldType.Entity,
-                        isFilterable: true,
-                        filterEntityType: IncidentState,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (
@@ -456,14 +525,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -481,16 +550,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                 color: true,
                             },
                         },
-                        isFilterable: true,
-                        filterEntityType: IncidentSeverity,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+
+
                         title: 'Severity',
                         type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
@@ -501,14 +562,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'incidentSeverity'
+                                                'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'incidentSeverity'
+                                                'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -529,23 +590,15 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Monitors Affected',
                         type: FieldType.EntityArray,
-                        isFilterable: true,
-                        filterEntityType: Monitor,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <MonitorsElement
                                     monitors={
                                         BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
-                                                [],
+                                            [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }
@@ -559,7 +612,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Created',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+
                     },
                     {
                         field: {
@@ -570,16 +623,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true,
-                        filterEntityType: Label,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

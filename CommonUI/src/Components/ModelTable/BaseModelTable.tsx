@@ -58,7 +58,6 @@ import { ModalWidth } from '../Modal/Modal';
 import ProjectUtil from '../../Utils/Project';
 import API from '../../Utils/API/API';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import { DropdownOption } from '../Dropdown/Dropdown';
 import { FormStep } from '../Forms/Types/FormStep';
 import URL from 'Common/Types/API/URL';
 import { ListDetailProps } from '../List/ListRow';
@@ -76,6 +75,7 @@ import {
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import SelectEntityField from '../../Types/SelectEntityField';
 import { FilterData } from '../Table/Filter';
+import ClassicFilterType from '../Table/Types/Filter';
 
 export enum ShowTableAs {
     Table,
@@ -216,6 +216,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
     const [viewId, setViewId] = useState<string | null>(null);
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
+    
+
+    const [classicTableFilters, setClassicTableFilters] = useState<Array<ClassicFilterType>>([]);
+
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
 
     const [actionButtonSchema, setActionButtonSchema] = useState<
@@ -495,55 +499,50 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     }
 
                     const hasPermission: boolean =
-                        hasPermissionToReadColumn(column);
+                        hasPermissionToReadFilter(filter);
 
                     if (!hasPermission) {
                         continue;
                     }
 
-                    const query: Query<TBaseModel> = column.filterQuery || {};
+                    const query: Query<TBaseModel> = filter.filterQuery || {};
 
                     const listResult: ListResult<TBaseModel> =
                         await props.callbacks.getList({
-                            modelType: column.filterEntityType,
+                            modelType: filter.filterEntityType,
                             query: query,
                             limit: LIMIT_PER_PROJECT,
                             skip: 0,
                             select: {
-                                [column.filterDropdownField.label]: true,
-                                [column.filterDropdownField.value]: true,
+                                [filter.filterDropdownField.label]: true,
+                                [filter.filterDropdownField.value]: true,
                             } as any,
                             sort: {},
                         });
 
-                    classicColumn.filterDropdownOptions = [];
+                        filter.filterDropdownOptions = [];
+
                     for (const item of listResult.data) {
-                        classicColumn.filterDropdownOptions.push({
+                        filter.filterDropdownOptions.push({
                             value: item.getColumnValue(
-                                column.filterDropdownField.value
+                                filter.filterDropdownField.value
                             ) as string,
                             label: item.getColumnValue(
-                                column.filterDropdownField.label
+                                filter.filterDropdownField.label
                             ) as string,
                         });
                     }
 
-                    if (column.tooltipText) {
-                        classicColumn.tooltipText = (
-                            item: JSONObject
-                        ): string => {
-                            return column.tooltipText!(
-                                props.callbacks.getModelFromJSON(item)
-                            );
-                        };
-                    }
-
-                    classicColumn.colSpan = column.colSpan;
-                    classicColumn.alignItem = column.alignItem;
-                    classicColumn.contentClassName = column.contentClassName;
                 }
 
-                setColumns(classicColumns);
+                setClassicTableFilters(filters.map((filter) => {
+                    return {
+                        title: filter.title,
+                        filterDropdownOptions: filter.filterDropdownOptions,
+                        key: getFilterKey(filter) || '',
+                        type: filter.type,
+                    };
+                }));
             } catch (err) {
                 setTableFilterError(API.getFriendlyMessage(err));
             }
@@ -799,50 +798,51 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const hasPermissionToReadColumn: HasPermissionToReadColumnFunction = (
         column: ModelTableColumn<TBaseModel>
     ): boolean => {
-        const accessControl: Dictionary<ColumnAccessControl> =
-            model.getColumnAccessControlForAllColumns();
-
-        const userPermissions: Array<Permission> = getUserPermissions();
+      
 
         const key: string | null = getColumnKey(column);
 
-        // check permissions.
-        let hasPermission: boolean = false;
-
-        if (!key) {
-            hasPermission = true;
+        if(!key){
+            return true;
         }
 
-        if (key) {
-            hasPermission = true;
-            let fieldPermissions: Array<Permission> = [];
-            fieldPermissions = accessControl[key as string]?.read || [];
-
-            if (
-                accessControl[key]?.read &&
-                !PermissionHelper.doesPermissionsIntersect(
-                    userPermissions,
-                    fieldPermissions
-                )
-            ) {
-                hasPermission = false;
-            }
-        }
-
-        return hasPermission;
+        return hasPermissionToReadField(key);
     };
 
+    type HasPermissionToReadFilterColumn = (
+        filter: Filter<TBaseModel>
+    ) => boolean;
 
-    const hasPermissionToReadFilter: HasPermissionToReadColumnFunction = (
+
+    const hasPermissionToReadFilter: HasPermissionToReadFilterColumn = (
         filter: Filter<TBaseModel>
     ): boolean => {
-        const accessControl: Dictionary<ColumnAccessControl> =
-            model.getColumnAccessControlForAllColumns();
-
-        const userPermissions: Array<Permission> = getUserPermissions();
+       
 
         const key: string | null = getFilterKey(filter);
 
+        if(!key){
+            return true;
+        }
+
+        return hasPermissionToReadField(key);
+    };
+
+
+    type HasPermissionToReadFieldFunction = (
+        field: string
+    ) => boolean;
+
+    const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
+        field: string
+    ): boolean => {
+
+        const accessControl: Dictionary<ColumnAccessControl> =
+        model.getColumnAccessControlForAllColumns();
+
+    const userPermissions: Array<Permission> = getUserPermissions();
+    
+        const key = field;
         // check permissions.
         let hasPermission: boolean = false;
 
@@ -867,7 +867,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
 
         return hasPermission;
-    };
+    }
 
     type GetUserPermissionsFunction = () => Array<Permission>;
 
@@ -1113,6 +1113,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 singularLabel={
                     props.singularName || model.singularName || 'Item'
                 }
+                filters={classicTableFilters}
                 pluralLabel={props.pluralName || model.pluralName || 'Items'}
                 error={error}
                 currentPageNumber={currentPageNumber}

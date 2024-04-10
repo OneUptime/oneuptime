@@ -22,6 +22,7 @@ import OnCallPolicyView from '../OnCallPolicy';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
+import Filter from 'CommonUI/src/Components/ModelTable/Filter';
 
 export interface ComponentProps {
     onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -43,6 +44,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
     }
 
     let columns: Columns<OnCallDutyPolicyExecutionLog> = [];
+    let filters: Array<Filter<OnCallDutyPolicyExecutionLog>> = [];
 
     if (!props.onCallDutyPolicyId) {
         // add a column for the policy name
@@ -55,7 +57,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 },
                 title: 'Policy Name',
                 type: FieldType.Element,
-                isFilterable: true,
                 getElement: (item: JSONObject): ReactElement => {
                     if (item['onCallDutyPolicy']) {
                         return (
@@ -70,7 +71,41 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 },
             },
         ]);
+
+        filters = filters.concat([
+            {
+                title: 'Policy Name',
+                type: FieldType.Element,
+                field: {
+                    onCallDutyPolicy: {
+                        name: true,
+                    },
+                },
+            },
+        ]);
     }
+
+
+    filters = filters.concat([
+        {
+            title: 'Status',
+            type: FieldType.Element,
+            field: {
+                status: true,
+            },
+            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+                OnCallDutyPolicyStatus
+            ),
+        },
+        {
+            title: 'Triggered at',
+            type: FieldType.DateTime,
+            field: {
+                createdAt: true,
+            },
+        }
+    ]);
+
 
     columns = columns.concat([
         {
@@ -81,7 +116,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
             title: 'Triggered By Incident',
             type: FieldType.Element,
-            isFilterable: false,
             getElement: (item: JSONObject): ReactElement => {
                 if (item['triggeredByIncident']) {
                     return (
@@ -99,7 +133,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
             title: 'Triggered at',
             type: FieldType.DateTime,
-            isFilterable: true,
         },
         {
             field: {
@@ -107,10 +140,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
             title: 'Status',
             type: FieldType.Element,
-            isFilterable: true,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                OnCallDutyPolicyStatus
-            ),
+            
             getElement: (item: JSONObject): ReactElement => {
                 if (item['status'] === OnCallDutyPolicyStatus.Completed) {
                     return (
@@ -158,7 +188,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
             title: 'Acknowledged By',
             type: FieldType.Element,
-            isFilterable: false,
             getElement: (item: JSONObject): ReactElement => {
                 if (item['acknowledgedByUser']) {
                     return (
@@ -203,6 +232,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 showViewIdButton={true}
+                filters={filters}
                 actionButtons={[
                     {
                         title: 'View Status Message',

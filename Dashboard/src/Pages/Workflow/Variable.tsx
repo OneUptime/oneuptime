@@ -77,14 +77,13 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                columns={[
+                filters={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -92,7 +91,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -100,7 +98,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Secret',
                         type: FieldType.Boolean,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -108,7 +105,41 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+                    },
+                
+                ]}
+                columns={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            isSecret: true,
+                        },
+                        title: 'Secret',
+                        type: FieldType.Boolean,
+                        
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Created At',
+                        type: FieldType.DateTime,
+                        
                     },
                 ]}
             />

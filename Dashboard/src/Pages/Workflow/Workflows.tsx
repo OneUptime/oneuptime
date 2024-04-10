@@ -135,30 +135,71 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     showRefreshButton={true}
                     showFilterButton={true}
                     viewPageRoute={Navigation.getCurrentRoute()}
+                    filters={[
+                        {
+                            title: 'Name',
+                            type: FieldType.Text,
+                            field: {
+                                name: true,
+                            },
+                        },
+                        {
+                            title: 'Description',
+                            type: FieldType.Text,
+                            field: {
+                                description: true,
+                            },
+                        },
+                        {
+                            title: 'Enabled',
+                            type: FieldType.Boolean,
+                            field: {
+                                isEnabled: true,
+                            },
+                        },
+                        {
+                            title: 'Labels',
+                            type: FieldType.EntityArray,
+                            field: {
+                                labels: {
+                                    name: true,
+                                    color: true,
+                                },
+                            },
+                            filterEntityType: Label,
+                            filterQuery: {
+                                projectId:
+                                    DashboardNavigation.getProjectId()?.toString(),
+                            },
+                            filterDropdownField: {
+                                label: 'name',
+                                value: '_id',
+                            },
+                            filterDropdownOptions: [],
+                        },
+                    
+                    ]}
                     columns={[
                         {
                             field: {
                                 name: true,
                             },
                             title: 'Name',
-                            type: FieldType.Text,
-                            isFilterable: true,
+                            type: FieldType.Text
                         },
                         {
                             field: {
                                 description: true,
                             },
                             title: 'Description',
-                            type: FieldType.Text,
-                            isFilterable: true,
+                            type: FieldType.Text
                         },
                         {
                             field: {
                                 isEnabled: true,
                             },
                             title: 'Enabled',
-                            type: FieldType.Boolean,
-                            isFilterable: true,
+                            type: FieldType.Boolean
                         },
                         {
                             field: {
@@ -169,16 +210,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             type: FieldType.EntityArray,
-                            isFilterable: true,
-                            filterEntityType: Label,
-                            filterQuery: {
-                                projectId:
-                                    DashboardNavigation.getProjectId()?.toString(),
-                            },
-                            filterDropdownField: {
-                                label: 'name',
-                                value: '_id',
-                            },
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <LabelsElement

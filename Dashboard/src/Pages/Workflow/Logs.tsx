@@ -67,6 +67,45 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     showRefreshButton={true}
                     showFilterButton={true}
                     viewPageRoute={Navigation.getCurrentRoute()}
+                    filters={[
+                        {
+                            field: {
+                                workflow: {
+                                    name: true,
+                                },
+                            },
+                            title: 'Workflow Name',
+                            type: FieldType.Text,
+                        },
+                        {
+                            field: {
+                                workflowStatus: true,
+                            },
+                            title: 'Workflow Status',
+                            type: FieldType.Text,
+                        },
+                        {
+                            field: {
+                                createdAt: true,
+                            },
+                            title: 'Scheduled At',
+                            type: FieldType.DateTime,
+                        },
+                        {
+                            field: {
+                                startedAt: true,
+                            },
+                            title: 'Started At',
+                            type: FieldType.DateTime,
+                        },
+                        {
+                            field: {
+                                completedAt: true,
+                            },
+                            title: 'Completed At',
+                            type: FieldType.DateTime,
+                        },
+                    ]}
                     columns={[
                         {
                             field: {
@@ -76,7 +115,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Workflow Name',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <WorkflowElement
@@ -96,7 +135,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             field: {
                                 workflowStatus: true,
                             },
-                            isFilterable: true,
+                            
 
                             title: 'Workflow Status',
                             type: FieldType.Text,
@@ -124,7 +163,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Scheduled At',
                             type: FieldType.DateTime,
-                            isFilterable: true,
+                            
                         },
                         {
                             field: {
@@ -132,7 +171,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Started At',
                             type: FieldType.DateTime,
-                            isFilterable: true,
+                            
                         },
                         {
                             field: {
@@ -140,7 +179,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Completed At',
                             type: FieldType.DateTime,
-                            isFilterable: true,
+                            
                         },
                     ]}
                 />

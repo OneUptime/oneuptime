@@ -10,12 +10,14 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import Filter, { FilterData } from './Filter';
+import FilterType from './Types/Filter';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
     id: string;
     columns: Columns;
+    filters?: Array<FilterType>;
     disablePagination?: undefined | boolean;
     onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
     currentPageNumber: number;
@@ -124,7 +126,7 @@ const Table: FunctionComponent<ComponentProps> = (
                 isTableFilterLoading={props.isTableFilterLoading}
                 filterError={props.filterError}
                 onTableFilterRefreshClick={props.onTableFilterRefreshClick}
-                columns={props.columns}
+                filters={props.filters || []}
             />
             <DragDropContext
                 onDragEnd={(result: DropResult) => {

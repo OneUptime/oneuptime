@@ -137,6 +137,7 @@ const Email: () => JSX.Element = (): ReactElement => {
                 ]}
                 showRefreshButton={true}
                 showFilterButton={false}
+                filters={[]} // No filters
                 columns={[
                     {
                         field: {
@@ -144,7 +145,6 @@ const Email: () => JSX.Element = (): ReactElement => {
                         },
                         title: 'Email',
                         type: FieldType.Email,
-                        isFilterable: false,
                     },
                     {
                         field: {

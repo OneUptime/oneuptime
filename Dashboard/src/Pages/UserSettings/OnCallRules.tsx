@@ -179,6 +179,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         phone: true,
                     },
                 }}
+                filters={[
+                   
+                ]}
                 columns={[
                     {
                         field: {
@@ -196,7 +199,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                                 />
                             );
                         },
-                        isFilterable: false,
                     },
                     {
                         field: {
