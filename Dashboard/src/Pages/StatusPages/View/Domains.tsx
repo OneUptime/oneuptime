@@ -154,6 +154,47 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ]}
                     showRefreshButton={true}
                     showFilterButton={true}
+                    filters={[
+                        {
+                            field: {
+                                fullDomain: true,
+                            },
+                            title: 'Domain',
+                            type: FieldType.Text,
+                        },
+                        {
+                            field: {
+                            },
+                            title: 'CNAME Valid',
+                            type: FieldType.Boolean,
+                            filterDropdownOptions: [
+                                {
+                                    label: 'Yes',
+                                    value: true,
+                                },
+                                {
+                                    label: 'No',
+                                    value: false,
+                                },
+                            ],
+                        },
+                        {
+                            field: {
+                            },
+                            title: 'SSL Provisioned',
+                            type: FieldType.Boolean,
+                            filterDropdownOptions: [
+                                {
+                                    label: 'Yes',
+                                    value: true,
+                                },
+                                {
+                                    label: 'No',
+                                    value: false,
+                                },
+                            ],
+                        },
+                    ]}
                     columns={[
                         {
                             field: {
@@ -161,7 +202,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Name',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            
                         },
                         {
                             field: {
@@ -169,7 +210,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'CNAME Valid',
                             type: FieldType.Boolean,
-                            isFilterable: true,
+                            
                             tooltipText: (item: StatusPageDomain): string => {
                                 if (item['isCnameVerified']) {
                                     return 'We have verified your CNAME record.';
@@ -183,7 +224,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'SSL Provisioned',
                             type: FieldType.Boolean,
-                            isFilterable: true,
+                            
                             tooltipText: (_item: StatusPageDomain): string => {
                                 return 'This will happen automatically after CNAME is verified. Please allow 24 hours for SSL to be provisioned after CNAME is verified. If that does not happen in 24 hours, please contact support.';
                             },

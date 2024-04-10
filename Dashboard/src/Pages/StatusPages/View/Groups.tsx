@@ -82,14 +82,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                columns={[
+                filters={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Resource Group Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -97,7 +96,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Expanded on Status Page by Default',
                         type: FieldType.Boolean,
-                        isFilterable: true,
+                    },
+                ]}
+                columns={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Resource Group Name',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            isExpandedByDefault: true,
+                        },
+                        title: 'Expanded on Status Page by Default',
+                        type: FieldType.Boolean,
                     },
                 ]}
             />

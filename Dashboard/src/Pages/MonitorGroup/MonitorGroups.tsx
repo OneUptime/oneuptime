@@ -94,14 +94,43 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
                 showFilterButton={true}
-                columns={[
+                filters={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Group Name',
                         type: FieldType.Text,
-                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                        
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    }
+                
+                ]}
+                columns={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Group Name',
+                        type: FieldType.Text
                     },
                     {
                         field: {
@@ -134,16 +163,8 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true,
-                        filterEntityType: Label,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+                        
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

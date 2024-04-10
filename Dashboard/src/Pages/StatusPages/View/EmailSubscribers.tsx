@@ -219,6 +219,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         noItemsMessage={'No subscribers found.'}
                         formFields={formFields}
                         showRefreshButton={true}
+                        filters={[]}
                         viewPageRoute={Navigation.getCurrentRoute()}
                         columns={[
                             {

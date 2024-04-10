@@ -126,6 +126,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[]}
                 columns={[
                     {
                         field: {
@@ -133,7 +134,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'When Uptime Percent >=',
                         type: FieldType.Percent,
-                        isFilterable: false,
                     },
                     {
                         field: {
@@ -141,7 +141,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Then, Bar Color is',
                         type: FieldType.Color,
-                        isFilterable: false,
                     },
                 ]}
             />
