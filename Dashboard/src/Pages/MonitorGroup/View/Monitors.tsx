@@ -144,6 +144,27 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                     showRefreshButton={true}
                     showFilterButton={true}
                     viewPageRoute={Navigation.getCurrentRoute()}
+                    filters={[
+                        {
+                            field: {
+                                monitor: {
+                                    name: true,
+                                },
+                            },
+                            type: FieldType.Entity,
+                            filterEntityType: Monitor,
+                            filterQuery: {
+                                projectId:
+                                    DashboardNavigation.getProjectId()?.toString(),
+                            },
+                            filterDropdownField: {
+                                label: 'name',
+                                value: '_id',
+                            },
+                            title: 'Monitor Name',
+                        },
+                        
+                    ]}
                     columns={[
                         {
                             field: {
@@ -155,16 +176,8 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitor',
                             type: FieldType.Entity,
-                            isFilterable: true,
-                            filterEntityType: Monitor,
-                            filterQuery: {
-                                projectId:
-                                    DashboardNavigation.getProjectId()?.toString(),
-                            },
-                            filterDropdownField: {
-                                label: 'name',
-                                value: '_id',
-                            },
+                            
+                            
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <MonitorElement

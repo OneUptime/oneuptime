@@ -201,6 +201,24 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={false}
+                filters={[
+                    {
+                        field: {
+                            probe: {
+                                name: true,
+                            },
+                        },
+                        type: FieldType.Text,
+                        title: 'Probe Name',
+                    },
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        type: FieldType.Boolean,
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -209,7 +227,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                                 iconFileId: true,
                             },
                         },
-                        isFilterable: false,
+                        
                         title: 'Probe',
                         type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
@@ -228,7 +246,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Probe Status',
                         type: FieldType.Text,
-                        isFilterable: false,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <ProbeStatusElement
@@ -243,7 +261,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Last Monitored At',
                         type: FieldType.DateTime,
-                        isFilterable: false,
+                        
                         noValueMessage: 'Will be picked up by this probe soon.',
                     },
                     {
@@ -252,7 +270,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Enabled',
                         type: FieldType.Boolean,
-                        isFilterable: false,
+                        
                     },
                 ]}
             />

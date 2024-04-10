@@ -71,15 +71,76 @@ const Home: FunctionComponent<PageComponentProps> = (
                 onViewPage={(item: Incident): Promise<Route> => {
                     return Promise.resolve(
                         new Route(
-                            `/dashboard/${
-                                item.projectId || item.project?._id || ''
+                            `/dashboard/${item.projectId || item.project?._id || ''
                             }/incidents/${item._id}`
                         )
                     );
                 }}
                 filters={[
-                    
-                
+
+                    {
+                        field: {
+                            project: {
+                                name: true,
+                                _id: true,
+                            },
+
+                        },
+                        type: FieldType.Text,
+                        title: 'Project',
+                    },
+                    {
+                        field: {
+                            _id: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Incident ID',
+                    },
+                    {
+                        field: {
+                            title: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Title',
+                    },
+                    {
+                        field: {
+                            currentIncidentState: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        type: FieldType.Entity,
+                        title: 'Current State',
+                    },
+                    {
+                        field: {
+                            incidentSeverity: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        type: FieldType.Entity,
+                        title: 'Incident Severity',
+                    },
+                    {
+                        field: {
+                            monitors: {
+                                name: true,
+                                _id: true,
+                                projectId: true,
+                            },
+                        },
+                        type: FieldType.Text,
+                        title: 'Monitors Affected',
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        type: FieldType.DateTime,
+                        title: 'Created At',
+                    },
                 ]}
                 columns={[
                     {
@@ -91,7 +152,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Project',
                         type: FieldType.Text,
-                        isFilterable: true,
+                       
                         selectedProperty: 'name',
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -99,7 +160,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                     project={
                                         BaseModel.fromJSON(
                                             (item['project'] as JSONObject) ||
-                                                [],
+                                            [],
                                             Project
                                         ) as Project
                                     }
@@ -113,7 +174,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Incident ID',
                         type: FieldType.Text,
-                        isFilterable: true,
+                       
                     },
                     {
                         field: {
@@ -121,7 +182,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Title',
                         type: FieldType.Text,
-                        isFilterable: true,
+                       
                     },
                     {
                         field: {
@@ -139,14 +200,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -173,14 +234,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'incidentSeverity'
+                                                'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'incidentSeverity'
+                                                'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -207,7 +268,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                     monitors={
                                         BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
-                                                [],
+                                            [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }
