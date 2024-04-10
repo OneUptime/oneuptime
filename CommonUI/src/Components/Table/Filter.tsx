@@ -4,8 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Column from './Types/Column';
-import Columns from './Types/Columns';
+import Filter from './Types/Filter';
 import Dictionary from 'Common/Types/Dictionary';
 import Input, { InputType } from '../Input/Input';
 import FieldType from '../Types/FieldType';
@@ -35,7 +34,7 @@ export type FilterData = Dictionary<
 >;
 
 export interface ComponentProps {
-    columns: Columns;
+    filters: Array<Filter>;
     id: string;
     showFilter: boolean;
     onFilterChanged?: undefined | ((filterData: FilterData) => void);
@@ -78,17 +77,14 @@ const Filter: FunctionComponent<ComponentProps> = (
                     {props.showFilter &&
                         !props.isTableFilterLoading &&
                         !props.filterError &&
-                        props.columns &&
-                        props.columns
-                            .filter((column: Column) => {
-                                return column.isFilterable && column.key;
-                            })
-                            .map((column: Column, i: number) => {
+                        props.filters &&
+                        props.filters
+                            .map((filter: Filter, i: number) => {
                                 let inputType: InputType = InputType.TEXT;
 
-                                if (column.type === FieldType.Date) {
+                                if (filter.type === FieldType.Date) {
                                     inputType = InputType.DATE;
-                                } else if (column.type === FieldType.DateTime) {
+                                } else if (filter.type === FieldType.DateTime) {
                                     inputType = InputType.DATETIME_LOCAL;
                                 }
 
@@ -98,15 +94,15 @@ const Filter: FunctionComponent<ComponentProps> = (
                                         className="col-span-3 sm:col-span-3 "
                                     >
                                         <label className="block text-sm font-medium text-gray-700">
-                                            {column.title}
+                                            {filter.title}
                                         </label>
-                                        {(column.type === FieldType.Entity ||
-                                            column.type ===
+                                        {(filter.type === FieldType.Entity ||
+                                            filter.type ===
                                                 FieldType.EntityArray) &&
-                                            column.filterDropdownOptions && (
+                                                filter.filterDropdownOptions && (
                                                 <Dropdown
                                                     options={
-                                                        column.filterDropdownOptions
+                                                        filter.filterDropdownOptions
                                                     }
                                                     onChange={(
                                                         value:
@@ -114,7 +110,7 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                             | Array<DropdownValue>
                                                             | null
                                                     ) => {
-                                                        if (!column.key) {
+                                                        if (!filter.key) {
                                                             return;
                                                         }
 
@@ -127,11 +123,11 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                                     0)
                                                         ) {
                                                             delete filterData[
-                                                                column.key
+                                                                filter.key
                                                             ];
                                                         } else {
                                                             filterData[
-                                                                column.key
+                                                                filter.key
                                                             ] = value;
                                                         }
 
@@ -148,20 +144,20 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                         }
                                                     }}
                                                     isMultiSelect={
-                                                        column.type ===
+                                                        filter.type ===
                                                         FieldType.EntityArray
                                                     }
-                                                    placeholder={`Filter by ${column.title}`}
+                                                    placeholder={`Filter by ${filter.title}`}
                                                 />
                                             )}
 
-                                        {column.type !== FieldType.Entity &&
-                                            column.type !==
+                                        {filter.type !== FieldType.Entity &&
+                                            filter.type !==
                                                 FieldType.EntityArray &&
-                                            column.filterDropdownOptions && (
+                                            filter.filterDropdownOptions && (
                                                 <Dropdown
                                                     options={
-                                                        column.filterDropdownOptions
+                                                        filter.filterDropdownOptions
                                                     }
                                                     onChange={(
                                                         value:
@@ -169,7 +165,7 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                             | Array<DropdownValue>
                                                             | null
                                                     ) => {
-                                                        if (!column.key) {
+                                                        if (!filter.key) {
                                                             return;
                                                         }
 
@@ -182,11 +178,11 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                                     0)
                                                         ) {
                                                             delete filterData[
-                                                                column.key
+                                                                filter.key
                                                             ];
                                                         } else {
                                                             filterData[
-                                                                column.key
+                                                                filter.key
                                                             ] = value;
                                                         }
 
@@ -203,11 +199,11 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                         }
                                                     }}
                                                     isMultiSelect={false}
-                                                    placeholder={`Filter by ${column.title}`}
+                                                    placeholder={`Filter by ${filter.title}`}
                                                 />
                                             )}
 
-                                        {column.type === FieldType.Boolean && (
+                                        {filter.type === FieldType.Boolean && (
                                             <Dropdown
                                                 options={[
                                                     {
@@ -225,16 +221,16 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                         | Array<DropdownValue>
                                                         | null
                                                 ) => {
-                                                    if (!column.key) {
+                                                    if (!filter.key) {
                                                         return;
                                                     }
 
                                                     if (value === null) {
                                                         delete filterData[
-                                                            column.key
+                                                            filter.key
                                                         ];
                                                     } else {
-                                                        filterData[column.key] =
+                                                        filterData[filter.key] =
                                                             value;
                                                     }
 
@@ -246,26 +242,26 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                         );
                                                     }
                                                 }}
-                                                placeholder={`Filter by ${column.title}`}
+                                                placeholder={`Filter by ${filter.title}`}
                                             />
                                         )}
 
-                                        {!column.filterDropdownOptions &&
-                                            (column.type === FieldType.Date ||
-                                                column.type ===
+                                        {!filter.filterDropdownOptions &&
+                                            (filter.type === FieldType.Date ||
+                                                filter.type ===
                                                     FieldType.Email ||
-                                                column.type ===
+                                                filter.type ===
                                                     FieldType.Phone ||
-                                                column.type ===
+                                                filter.type ===
                                                     FieldType.Name ||
-                                                column.type ===
+                                                filter.type ===
                                                     FieldType.Port ||
-                                                column.type === FieldType.URL ||
-                                                column.type ===
+                                                filter.type === FieldType.URL ||
+                                                filter.type ===
                                                     FieldType.DateTime ||
-                                                column.type ===
+                                                filter.type ===
                                                     FieldType.ObjectID ||
-                                                column.type ===
+                                                filter.type ===
                                                     FieldType.Text) && (
                                                 <Input
                                                     onChange={(
@@ -273,22 +269,22 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                             | string
                                                             | Date
                                                     ) => {
-                                                        if (column.key) {
+                                                        if (filter.key) {
                                                             if (!changedValue) {
                                                                 delete filterData[
-                                                                    column.key
+                                                                    filter.key
                                                                 ];
                                                             }
 
                                                             if (
                                                                 changedValue &&
-                                                                (column.type ===
+                                                                (filter.type ===
                                                                     FieldType.Date ||
-                                                                    column.type ===
+                                                                    filter.type ===
                                                                         FieldType.DateTime)
                                                             ) {
                                                                 filterData[
-                                                                    column.key
+                                                                    filter.key
                                                                 ] = OneUptimeDate.asFilterDateForDatabaseQuery(
                                                                     changedValue as string
                                                                 );
@@ -296,11 +292,11 @@ const Filter: FunctionComponent<ComponentProps> = (
 
                                                             if (
                                                                 changedValue &&
-                                                                column.type ===
+                                                                filter.type ===
                                                                     FieldType.DateTime
                                                             ) {
                                                                 filterData[
-                                                                    column.key
+                                                                    filter.key
                                                                 ] =
                                                                     DatabaseDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
                                                                         changedValue
@@ -309,11 +305,11 @@ const Filter: FunctionComponent<ComponentProps> = (
 
                                                             if (
                                                                 changedValue &&
-                                                                column.type ===
+                                                                filter.type ===
                                                                     FieldType.Text
                                                             ) {
                                                                 filterData[
-                                                                    column.key
+                                                                    filter.key
                                                                 ] = new Search(
                                                                     changedValue as string
                                                                 );
@@ -334,10 +330,10 @@ const Filter: FunctionComponent<ComponentProps> = (
                                                     }}
                                                     initialValue={(
                                                         filterData[
-                                                            column.key || ''
+                                                            filter.key || ''
                                                         ] || ''
                                                     ).toString()}
-                                                    placeholder={`Filter by ${column.title}`}
+                                                    placeholder={`Filter by ${filter.title}`}
                                                     type={inputType}
                                                 />
                                             )}

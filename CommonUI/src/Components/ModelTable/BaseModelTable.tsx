@@ -43,7 +43,7 @@ import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
 import FormValues from '../Forms/Types/FormValues';
-import { FilterData } from '../Table/Filter';
+import Filter from './Filter';
 import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -128,6 +128,7 @@ export interface BaseTableProps<
     cardProps?: CardComponentProps | undefined;
     showCreateForm?: undefined | boolean;
     columns: Columns<TBaseModel>;
+    filters: Array<Filter<TBaseModel>>
     listDetailOptions?: undefined | ListDetailProps;
     selectMoreFields?: Select<TBaseModel>;
     initialItemsOnPage?: number;
