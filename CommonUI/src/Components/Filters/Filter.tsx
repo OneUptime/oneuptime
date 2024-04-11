@@ -282,12 +282,16 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                                             changedValue &&
                                                             (filter.type ===
                                                                 FieldType.Text || 
-                                                            filter.type === FieldType.Email)
+                                                            filter.type === FieldType.Email || 
+                                                            filter.type === FieldType.Phone ||
+                                                            filter.type === FieldType.Name ||
+                                                            filter.type === FieldType.Port ||
+                                                            filter.type === FieldType.URL)
                                                         ) {
                                                             filterData[
                                                                 filter.key
                                                             ] = new Search(
-                                                                changedValue as string
+                                                                changedValue.toString()
                                                             );
                                                         }
 
