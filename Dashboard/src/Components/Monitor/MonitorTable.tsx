@@ -167,7 +167,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 },
             ]}
             showRefreshButton={true}
-            showFilterButton={true}
+            
             viewPageRoute={props.viewPageRoute}
             filters={[
                 {

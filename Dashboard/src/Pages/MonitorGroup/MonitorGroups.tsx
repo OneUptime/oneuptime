@@ -93,7 +93,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                 ]}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 filters={[
                     {
                         field: {

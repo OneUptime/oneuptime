@@ -417,7 +417,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 showViewIdButton={true}
                 viewPageRoute={props.viewPageRoute}
                 filters={[

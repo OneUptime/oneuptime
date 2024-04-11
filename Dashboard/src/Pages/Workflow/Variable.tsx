@@ -76,7 +76,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 filters={[
                     {
                         field: {

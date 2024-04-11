@@ -69,7 +69,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -170,7 +170,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {

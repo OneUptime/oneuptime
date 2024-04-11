@@ -78,7 +78,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 modelAPI={AdminModelAPI}
                 noItemsMessage={'No probes found.'}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 onBeforeCreate={(item: Probe) => {
                     item.isGlobalProbe = true;
                     return Promise.resolve(item);

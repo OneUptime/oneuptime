@@ -62,7 +62,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 }}
                 noItemsMessage={'No notifications sent out so far.'}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 showViewIdButton={true}
                 actionButtons={[
                     {

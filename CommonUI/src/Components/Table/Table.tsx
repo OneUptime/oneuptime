@@ -9,15 +9,15 @@ import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
-import Filter, { FilterData } from './Filter';
-import FilterType from './Types/Filter';
+import Filter, { FilterData } from '../Filters/Filter';
+import FilterType from '../Filters/Types/Filter';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
     id: string;
     columns: Columns;
-    filters?: Array<FilterType>;
+    
     disablePagination?: undefined | boolean;
     onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
     currentPageNumber: number;
@@ -29,13 +29,17 @@ export interface ComponentProps {
     pluralLabel: string;
     actionButtons?: undefined | Array<ActionButtonSchema>;
     onRefreshClick?: undefined | (() => void);
-    onTableFilterRefreshClick?: undefined | (() => void);
+    
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
+    
+    isFilterLoading?: undefined | boolean;
+    filters?: Array<FilterType>;
     showFilter?: undefined | boolean;
-    isTableFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
     onFilterChanged?: undefined | ((filterData: FilterData) => void);
+    onFilterRefreshClick?: undefined | (() => void);
+
     enableDragAndDrop?: boolean | undefined;
     dragDropIndexField?: string | undefined;
     dragDropIdField?: string | undefined;
@@ -123,9 +127,9 @@ const Table: FunctionComponent<ComponentProps> = (
                 id={`${props.id}-filter`}
                 showFilter={props.showFilter || false}
                 onFilterChanged={props.onFilterChanged || undefined}
-                isTableFilterLoading={props.isTableFilterLoading}
+                isFilterLoading={props.isFilterLoading}
                 filterError={props.filterError}
-                onTableFilterRefreshClick={props.onTableFilterRefreshClick}
+                onFilterRefreshClick={props.onFilterRefreshClick}
                 filters={props.filters || []}
             />
             <DragDropContext

@@ -317,7 +317,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 formFields={formFields}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 selectMoreFields={{
                     monitorGroup: {

@@ -81,7 +81,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 filters={[
                     {

@@ -9,6 +9,8 @@ import Field from '../Detail/Field';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { ListDetailProps } from './ListRow';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
+import FilterType from '../Filters/Types/Filter';
+import Filter, { FilterData } from '../Filters/Filter';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -31,6 +33,13 @@ export interface ComponentProps {
     onRefreshClick?: undefined | (() => void);
     noItemsMessage?: undefined | string;
     listDetailOptions?: undefined | ListDetailProps;
+
+    isFilterLoading?: undefined | boolean;
+    filters?: Array<FilterType>;
+    showFilter?: undefined | boolean;
+    filterError?: string | undefined;
+    onFilterChanged?: undefined | ((filterData: FilterData) => void);
+    onFilterRefreshClick?: undefined | (() => void);
 }
 
 const List: FunctionComponent<ComponentProps> = (
@@ -80,6 +89,16 @@ const List: FunctionComponent<ComponentProps> = (
 
     return (
         <div data-testid="list-container">
+             <Filter
+                id={`${props.id}-filter`}
+                showFilter={props.showFilter || false}
+                onFilterChanged={props.onFilterChanged || undefined}
+                isFilterLoading={props.isFilterLoading}
+                filterError={props.filterError}
+                onFilterRefreshClick={props.onFilterRefreshClick}
+                filters={props.filters || []}
+            />
+
             <DragDropContext
                 onDragEnd={(result: DropResult) => {
                     result.destination?.index &&

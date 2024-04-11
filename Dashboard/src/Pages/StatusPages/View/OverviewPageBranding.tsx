@@ -124,7 +124,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[]}
                 columns={[

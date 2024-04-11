@@ -46,7 +46,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 sortBy="startTime"
                 sortOrder={SortOrder.Descending}
                 viewPageRoute={Navigation.getCurrentRoute()}

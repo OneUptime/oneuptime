@@ -403,7 +403,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -491,7 +491,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {

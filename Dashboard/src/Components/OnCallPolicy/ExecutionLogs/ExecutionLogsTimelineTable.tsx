@@ -54,7 +54,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 }}
                 noItemsMessage={'No notifications sent out so far.'}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 showViewIdButton={true}
                 actionButtons={[
                     {

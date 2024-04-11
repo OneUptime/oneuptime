@@ -147,7 +147,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 deleteButtonText="Remove Member"
-                showFilterButton={true}
+                
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 filters={[
                     {
@@ -290,7 +290,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {

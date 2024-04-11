@@ -92,7 +92,7 @@ const CustomFieldsPageBase: (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 filters={[
                     {
                         field: {

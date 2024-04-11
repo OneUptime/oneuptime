@@ -105,7 +105,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                     domainVerificationText: true,
                 }}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 filters={[
                     {
                         field: {

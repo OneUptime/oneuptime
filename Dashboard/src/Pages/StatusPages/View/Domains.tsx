@@ -153,7 +153,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     filters={[
                         {
                             field: {

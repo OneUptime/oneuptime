@@ -93,7 +93,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             DashboardNavigation.getProjectId()?.toString(),
                     }}
                     showRefreshButton={true}
-                    showFilterButton={false}
+                    
                     selectMoreFields={{
                         currencyCode: true,
                         paymentProviderCustomerId: true,

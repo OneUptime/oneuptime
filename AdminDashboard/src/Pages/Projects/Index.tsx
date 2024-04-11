@@ -222,7 +222,7 @@ const Projects: FunctionComponent = (): ReactElement => {
                 noItemsMessage={'No projects found.'}
                 formFields={fields}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {

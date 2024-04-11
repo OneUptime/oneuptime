@@ -19,7 +19,7 @@ import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import Filter from 'CommonUI/src/Components/ModelTable/Filter';
+import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -206,7 +206,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                         'Looks like no SMS is sent by this project in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     columns={modelTableColumns}
                 />
 

@@ -141,7 +141,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -150,9 +150,32 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                                 name: true,
                             },
                         },
-                        title: 'Incident Status',
-                        type: FieldType.Text,
+                        title: 'Incident State',
+                        type: FieldType.Entity,
+                        filterEntityType: IncidentState,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Starts At',
+                        type: FieldType.Date,
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Ends At',
+                        type: FieldType.Date,
+                    }
                 
                 ]}
                 columns={[

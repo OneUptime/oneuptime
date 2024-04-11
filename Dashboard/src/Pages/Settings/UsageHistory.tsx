@@ -38,7 +38,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 showRefreshButton={true}
-                showFilterButton={false}
+                
                 filters={[
                     {
                         field: {

@@ -65,7 +65,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 selectMoreFields={{
                     color: true,
                 }}

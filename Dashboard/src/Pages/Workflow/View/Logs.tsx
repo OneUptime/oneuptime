@@ -71,7 +71,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         'Looks like this workflow did not run so far in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     viewPageRoute={Navigation.getCurrentRoute()}
                     filters={[
                         {

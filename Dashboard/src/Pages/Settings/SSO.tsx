@@ -206,7 +206,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     actionButtons={[
                         {
                             title: 'View SSO URL',

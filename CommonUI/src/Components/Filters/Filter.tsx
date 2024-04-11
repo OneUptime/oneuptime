@@ -38,9 +38,9 @@ export interface ComponentProps {
     id: string;
     showFilter: boolean;
     onFilterChanged?: undefined | ((filterData: FilterData) => void);
-    isTableFilterLoading?: undefined | boolean;
+    isFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
-    onTableFilterRefreshClick?: undefined | (() => void);
+    onFilterRefreshClick?: undefined | (() => void);
 }
 
 const Filter: FunctionComponent<ComponentProps> = (
@@ -75,7 +75,7 @@ const Filter: FunctionComponent<ComponentProps> = (
             <div className="pt-3 pb-5">
                 <div className="grid grid-cols-6 sm:grid-cols-12 md:grid-cols-12 gap-6">
                     {props.showFilter &&
-                        !props.isTableFilterLoading &&
+                        !props.isFilterLoading &&
                         !props.filterError &&
                         props.filters &&
                         props.filters
@@ -343,13 +343,13 @@ const Filter: FunctionComponent<ComponentProps> = (
                 </div>
             </div>
             {props.showFilter &&
-                props.isTableFilterLoading &&
+                props.isFilterLoading &&
                 !props.filterError && <ComponentLoader />}
 
             {props.showFilter && props.filterError && (
                 <ErrorMessage
                     error={props.filterError}
-                    onRefreshClick={props.onTableFilterRefreshClick}
+                    onRefreshClick={props.onFilterRefreshClick}
                 />
             )}
         </div>

@@ -200,7 +200,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={false}
+                
                 filters={[
                     {
                         field: {

@@ -136,7 +136,7 @@ const Email: () => JSX.Element = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={false}
+                
                 filters={[]} // No filters
                 columns={[
                     {

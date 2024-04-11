@@ -19,7 +19,7 @@ import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
-import Filter from 'CommonUI/src/Components/ModelTable/Filter';
+import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
 
 const EmailLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -205,7 +205,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                         'Looks like no email is sent by this project in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     columns={modelTableColumns}
                 />
 

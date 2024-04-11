@@ -136,7 +136,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={false}
+                
                 filters={[
                     {
                         field: {

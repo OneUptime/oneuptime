@@ -65,7 +65,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         'Looks like no workflow ran so far in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     viewPageRoute={Navigation.getCurrentRoute()}
                     filters={[
                         {

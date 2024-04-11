@@ -22,7 +22,7 @@ import OnCallPolicyView from '../OnCallPolicy';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
-import Filter from 'CommonUI/src/Components/ModelTable/Filter';
+import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
 
 export interface ComponentProps {
     onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -230,7 +230,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 noItemsMessage={'This policy has not executed so far.'}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 showViewIdButton={true}
                 filters={filters}
                 actionButtons={[

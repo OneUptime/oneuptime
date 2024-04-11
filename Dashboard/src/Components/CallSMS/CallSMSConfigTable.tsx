@@ -187,7 +187,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {

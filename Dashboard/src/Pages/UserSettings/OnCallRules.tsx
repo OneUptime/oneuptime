@@ -170,7 +170,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={false}
+                
                 selectMoreFields={{
                     userEmail: {
                         email: true,

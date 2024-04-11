@@ -81,7 +81,7 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 filters={[
                     {

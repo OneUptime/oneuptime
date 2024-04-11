@@ -137,7 +137,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={false}
+                
                 
                 columns={[
                     {

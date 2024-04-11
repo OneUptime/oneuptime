@@ -55,7 +55,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={'No notifications sent out so far.'}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
-                showFilterButton={true}
+                
                 showViewIdButton={true}
                 isViewable={true}
                 actionButtons={[

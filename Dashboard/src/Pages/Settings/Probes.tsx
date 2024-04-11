@@ -54,7 +54,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     }}
                     noItemsMessage={'No probes found.'}
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     filters={[
                         {
                             field: {
@@ -179,7 +179,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     showRefreshButton={true}
-                    showFilterButton={true}
+                    
                     actionButtons={[
                         {
                             title: 'Show ID and Key',
