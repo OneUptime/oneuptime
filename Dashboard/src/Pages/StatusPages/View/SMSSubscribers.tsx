@@ -283,7 +283,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                     createdAt: true,
                                 },
                                 title: 'Subscribed At',
-                                type: FieldType.DateTime,
+                                type: FieldType.Date,
                             },
                         ]}
                     />

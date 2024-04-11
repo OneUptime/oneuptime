@@ -165,31 +165,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             field: {},
                             title: 'CNAME Valid',
                             type: FieldType.Boolean,
-                            filterDropdownOptions: [
-                                {
-                                    label: 'Yes',
-                                    value: true,
-                                },
-                                {
-                                    label: 'No',
-                                    value: false,
-                                },
-                            ],
+                            
                         },
                         {
                             field: {},
                             title: 'SSL Provisioned',
                             type: FieldType.Boolean,
-                            filterDropdownOptions: [
-                                {
-                                    label: 'Yes',
-                                    value: true,
-                                },
-                                {
-                                    label: 'No',
-                                    value: false,
-                                },
-                            ],
+                            
                         },
                     ]}
                     columns={[
@@ -197,7 +179,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             field: {
                                 fullDomain: true,
                             },
-                            title: 'Name',
+                            title: 'Domain',
                             type: FieldType.Text,
                         },
                         {
