@@ -8,7 +8,7 @@ import PageComponentProps from '../../PageComponentProps';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenanceInternalNote from 'Model/Models/ScheduledMaintenanceInternalNote';
-import { ShowTableAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -178,7 +178,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showTableAs={ShowTableAs.List}
+                showAs={ShowAs.List}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
 

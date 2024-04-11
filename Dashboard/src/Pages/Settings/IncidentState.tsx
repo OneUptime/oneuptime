@@ -1,6 +1,6 @@
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import { ShowTableAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import IncidentState from 'Model/Models/IncidentState';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -149,7 +149,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showTableAs={ShowTableAs.OrderedStatesList}
+                showAs={ShowAs.OrderedStatesList}
                 orderedStatesListProps={{
                     titleField: 'name',
                     descriptionField: 'description',

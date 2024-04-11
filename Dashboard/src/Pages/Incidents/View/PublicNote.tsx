@@ -9,7 +9,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import { ShowTableAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -199,7 +199,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         defaultValue: OneUptimeDate.getCurrentDate(),
                     },
                 ]}
-                showTableAs={ShowTableAs.List}
+                showAs={ShowAs.List}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
 

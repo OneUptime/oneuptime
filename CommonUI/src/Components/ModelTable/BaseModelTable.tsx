@@ -77,7 +77,7 @@ import SelectEntityField from '../../Types/SelectEntityField';
 import { FilterData } from '../Filters/Filter';
 import ClassicFilterType from '../Filters/Types/Filter';
 
-export enum ShowTableAs {
+export enum ShowAs {
     Table,
     List,
     OrderedStatesList,
@@ -154,7 +154,7 @@ export interface BaseTableProps<
     | undefined;
     onCreateSuccess?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
-    showTableAs?: ShowTableAs | undefined;
+    showAs?: ShowAs | undefined;
     singularName?: string | undefined;
     pluralName?: string | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
@@ -206,10 +206,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ): ReactElement => {
         const model: TBaseModel = new props.modelType();
 
-        let showTableAs: ShowTableAs | undefined = props.showTableAs;
+        let showAs: ShowAs | undefined = props.showAs;
 
-        if (!showTableAs) {
-            showTableAs = ShowTableAs.Table;
+        if (!showAs) {
+            showAs = ShowAs.Table;
         }
 
         const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
@@ -690,7 +690,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             if (
                 props.isCreateable &&
                 hasPermissionToCreate &&
-                showTableAs !== ShowTableAs.OrderedStatesList
+                showAs !== ShowAs.OrderedStatesList
             ) {
                 headerbuttons.push({
                     title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
@@ -1187,7 +1187,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const getOrderedStatesList: GetReactElementFunction = (): ReactElement => {
             if (!props.orderedStatesListProps) {
                 throw new BadDataException(
-                    'props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList'
+                    'props.orderedStatesListProps required when showAs === ShowAs.OrderedStatesList'
                 );
             }
 
@@ -1370,39 +1370,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         };
 
         const getCardComponent: GetReactElementFunction = (): ReactElement => {
-            if (showTableAs === ShowTableAs.List) {
-                return (
-                    <div>
-                        {props.cardProps && (
-                            <Card
-                                bodyClassName="-ml-6 -mr-6 bg-gray-50 border-top"
-                                {...props.cardProps}
-                                buttons={cardButtons}
-                                title={getCardTitle(props.cardProps.title)}
-                            >
-                                <div className="mt-6 border-t border-gray-200">
-                                    <div className="ml-6 mr-6  pt-6">
-                                        {tableColumns.length === 0 &&
-                                            props.columns.length > 0 && (
-                                                <ErrorMessage
-                                                    error={`You are not authorized to view this list. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                                        model.getReadPermissions()
-                                                    ).join(', ')}`}
-                                                />
-                                            )}
-                                        {!(
-                                            tableColumns.length === 0 &&
-                                            props.columns.length > 0
-                                        ) && getList()}
-                                    </div>
-                                </div>
-                            </Card>
-                        )}
 
-                        {!props.cardProps && getList()}
-                    </div>
-                );
-            } else if (showTableAs === ShowTableAs.Table) {
+            
+            if (showAs === ShowAs.Table || showAs === ShowAs.List) {
                 return (
                     <div>
                         {props.cardProps && (
@@ -1423,16 +1393,29 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                                 )}
                                 {!(
                                     tableColumns.length === 0 &&
-                                    props.columns.length > 0
+                                    props.columns.length > 0 && 
+                                    showAs === ShowAs.Table
                                 ) ? (
                                     getTable()
                                 ) : (
                                     <></>
                                 )}
+
+{!(
+                                    tableColumns.length === 0 &&
+                                    props.columns.length > 0 && 
+                                    showAs === ShowAs.List
+                                ) ? (
+                                    getList()
+                                ) : (
+                                    <></>
+                                )}
+                                
                             </Card>
                         )}
 
-                        {!props.cardProps && getTable()}
+                        {!props.cardProps && showAs === ShowAs.Table ? getTable() : <></>}
+                        {!props.cardProps && showAs === ShowAs.List ? getList() : <></>}
                     </div>
                 );
             }
@@ -1469,7 +1452,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             miscDataProps: JSONObject
                         ) => {
                             if (
-                                showTableAs === ShowTableAs.OrderedStatesList &&
+                                showAs === ShowAs.OrderedStatesList &&
                                 props.orderedStatesListProps?.orderField &&
                                 orderedStatesListNewItemOrder
                             ) {
