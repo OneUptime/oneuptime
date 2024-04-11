@@ -286,7 +286,8 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                                             filter.type === FieldType.Phone ||
                                                             filter.type === FieldType.Name ||
                                                             filter.type === FieldType.Port ||
-                                                            filter.type === FieldType.URL)
+                                                            filter.type === FieldType.URL || 
+                                                            filter.type === FieldType.ObjectID)
                                                         ) {
                                                             filterData[
                                                                 filter.key

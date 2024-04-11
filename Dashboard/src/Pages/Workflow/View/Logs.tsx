@@ -18,6 +18,7 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 import WorkflowStatusElement from 'CommonUI/src/Components/Workflow/WorkflowStatus';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -75,31 +76,39 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     filters={[
                         {
                             field: {
+                                _id: true,
+                            },
+                            title: 'Run ID',
+                            type: FieldType.ObjectID,
+                        },
+                        {
+                            field: {
                                 workflowStatus: true,
                             },
                             title: 'Workflow Status',
-                            type: FieldType.Text,
+                            type: FieldType.Dropdown,
+                            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(WorkflowStatus)
                         },
                         {
                             field: {
                                 createdAt: true,
                             },
                             title: 'Scheduled At',
-                            type: FieldType.DateTime,
+                            type: FieldType.Date,
                         },
                         {
                             field: {
                                 startedAt: true,
                             },
                             title: 'Started At',
-                            type: FieldType.DateTime,
+                            type: FieldType.Date,
                         },
                         {
                             field: {
                                 completedAt: true,
                             },
                             title: 'Completed At',
-                            type: FieldType.DateTime,
+                            type: FieldType.Date,
                         },
                     ]}
                     columns={[

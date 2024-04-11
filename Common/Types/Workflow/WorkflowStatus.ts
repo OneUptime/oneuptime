@@ -4,7 +4,7 @@ enum WorkflowStatus {
     Success = 'Success',
     Error = 'Error',
     Timeout = 'Timeout',
-    WorkflowCountExceeded = 'WorkflowCountExceeded',
+    WorkflowCountExceeded = 'Workflow Count Exceeded',
 }
 
 export default WorkflowStatus;

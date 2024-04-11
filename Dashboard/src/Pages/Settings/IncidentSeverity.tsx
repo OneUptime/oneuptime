@@ -34,20 +34,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                     order: true,
                 }}
                 filters={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        title: 'Name',
-                        type: FieldType.Text,
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        title: 'Description',
-                        type: FieldType.Text,
-                    },
+                   
                 ]}
                 columns={[
                     {

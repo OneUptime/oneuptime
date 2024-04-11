@@ -111,20 +111,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     priority: true,
                 }}
                 filters={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        type: FieldType.Text,
-                        title: 'Name',
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        type: FieldType.Text,
-                        title: 'Description',
-                    },
+                    
                 ]}
                 columns={[
                     {

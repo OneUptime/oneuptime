@@ -32,6 +32,7 @@ import { Green, Yellow } from 'Common/Types/BrandColors';
 import DashboardNavigation from '../../Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
 import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
+import ProjectUser from '../../Utils/ProjectUser';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -151,10 +152,27 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
+                            user:true,
+                        },
+                        type: FieldType.Entity,
+                        title: 'User',
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
                             hasAcceptedInvitation: true,
                         },
                         type: FieldType.Boolean,
-                        title: 'Status',
+                        title: 'Accepted Invite',
                     },
                 ]}
                 columns={[
