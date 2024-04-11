@@ -143,6 +143,23 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                     },
                 ]}
+                filters={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        type: FieldType.Text,
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -150,7 +167,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             return <ProbeElement probe={item} />;
                         },
@@ -161,7 +178,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                     {
                         field: {
@@ -169,7 +186,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Status',
                         type: FieldType.Text,
-                        isFilterable: false,
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item &&

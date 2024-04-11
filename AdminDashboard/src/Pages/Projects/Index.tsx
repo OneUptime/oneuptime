@@ -224,14 +224,13 @@ const Projects: FunctionComponent = (): ReactElement => {
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                columns={[
+                filters={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -239,7 +238,25 @@ const Projects: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-                        isFilterable: true,
+                    },
+                
+                ]}
+                columns={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Created At',
+                        type: FieldType.DateTime,
+                        
                     },
                 ]}
             />
