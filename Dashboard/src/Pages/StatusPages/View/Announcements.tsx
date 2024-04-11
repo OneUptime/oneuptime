@@ -122,6 +122,36 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            title: true,
+                        },
+                        title: 'Title',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            showAnnouncementAt: true,
+                        },
+                        title: 'Show Announcement At',
+                        type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            endAnnouncementAt: true,
+                        },
+                        title: 'End Announcement At',
+                        type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotified: true,
+                        },
+                        title: 'Subscribers Notified',
+                        type: FieldType.Boolean,
+                    },
+                ]}
                 columns={[
                     {
                         field: {

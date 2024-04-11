@@ -33,6 +33,25 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                     color: true,
                     order: true,
                 }}
+                filters={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        type: FieldType.Text,
+                        
+                    },
+
+                ]}
                 columns={[
                     {
                         field: {
@@ -56,7 +75,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <div>

@@ -93,14 +93,13 @@ const CustomFieldsPageBase: (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                columns={[
+                filters={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Field Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -108,7 +107,6 @@ const CustomFieldsPageBase: (
                         },
                         title: 'Field Description',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -116,7 +114,32 @@ const CustomFieldsPageBase: (
                         },
                         title: 'Field Type',
                         type: FieldType.Text,
-                        isFilterable: true,
+                    }
+                ]}
+                columns={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Field Name',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Field Description',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            type: true,
+                        },
+                        title: 'Field Type',
+                        type: FieldType.Text,
+                        
                     },
                 ]}
             />

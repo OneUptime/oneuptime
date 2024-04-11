@@ -326,6 +326,33 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         projectId: true,
                     },
                 }}
+                filters={[
+                    {
+                        field: {
+                            monitor: {
+                                name: true,
+                            }
+                        },
+                        title: 'Monitor',
+                        type: FieldType.Entity,
+                        filterEntityType: Monitor,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
+                            displayName: true,
+                        },
+                        title: 'Display Name',
+                        type: FieldType.Text,
+                    }
+                ]}
                 columns={[
                     {
                         field: {
@@ -340,16 +367,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             ? 'Resource'
                             : 'Monitor',
                         type: FieldType.Entity,
-                        isFilterable: true,
-                        filterEntityType: Monitor,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+                        
+                      
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['monitor']) {
                                 return (
@@ -400,7 +419,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Display Name',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                     },
                 ]}
             />

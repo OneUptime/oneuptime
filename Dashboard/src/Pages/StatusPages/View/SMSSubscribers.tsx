@@ -222,6 +222,30 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         formFields={formFields}
                         showRefreshButton={true}
                         viewPageRoute={Navigation.getCurrentRoute()}
+                        filters={[
+                            {
+                                field: {
+                                    subscriberPhone: true,
+                                },
+                                title: 'Phone Number',
+                                type: FieldType.Phone,
+                            },
+                            {
+                                field: {
+                                    isUnsubscribed: true,
+                                },
+                                title: 'Is Unsubscribed',
+                                type: FieldType.Boolean,
+                            },
+                            {
+                                field: {
+                                    createdAt: true,
+                                },
+                                title: 'Subscribed At',
+                                type: FieldType.DateTime,
+                            },
+                            
+                        ]}
                         columns={[
                             {
                                 field: {

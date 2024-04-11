@@ -81,6 +81,38 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            scheduledMaintenanceState: {
+                                name: true,
+                            },
+                        },
+                        title: 'Scheduled Maintenance Status',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Starts At',
+                        type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Ends At',
+                        type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotified: true,
+                        },
+                        title: 'Subscribers Notified',
+                        type: FieldType.Boolean,
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -91,7 +123,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Scheduled Maintenance Status',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['scheduledMaintenanceState']) {
                                 throw new BadDataException(

@@ -109,14 +109,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                columns={[
+                filters={[
                     {
                         field: {
                             title: true,
                         },
                         title: 'Title',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -124,7 +123,24 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Link',
                         type: FieldType.URL,
-                        isFilterable: true,
+                    },
+                ]}
+                columns={[
+                    {
+                        field: {
+                            title: true,
+                        },
+                        title: 'Title',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            link: true,
+                        },
+                        title: 'Link',
+                        type: FieldType.URL,
+                        
                     },
                 ]}
             />
