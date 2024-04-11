@@ -172,11 +172,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
-                            user: {
-                                name: true,
-                                email: true,
-                                profilePictureId: true,
-                            },
+                            user: true,
                         },
                         title: 'User',
                         type: FieldType.Entity,
@@ -196,7 +192,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                             createdAt: true,
                         },
                         title: 'Owner since',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                     },
                 
                 ]}

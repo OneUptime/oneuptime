@@ -74,20 +74,27 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
-                            team: {
-                                name: true,
-                            },
+                            team: true,
                         },
+                        type: FieldType.Entity,
                         title: 'Team',
-                        type: FieldType.Text,
+                        filterEntityType: Team,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
                     {
                         field: {
                             createdAt: true,
                         },
                         title: 'Owner since',
-                        type: FieldType.DateTime,
-                    },
+                        type: FieldType.Date,
+                    }
                 ]}
                 columns={[
                     {
@@ -168,20 +175,27 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
-                            user: {
-                                name: true,
-                                email: true,
-                            },
+                            user: true,
                         },
                         title: 'User',
-                        type: FieldType.Text,
+                        type: FieldType.Entity,
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
                     {
                         field: {
                             createdAt: true,
                         },
                         title: 'Owner since',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                     },
                 
                 ]}
