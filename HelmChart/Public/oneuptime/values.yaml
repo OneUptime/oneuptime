@@ -179,6 +179,9 @@ openTelemetryExporter:
 
 containerSecurityContext:
 podSecurityContext:
+affinity:
+tolerations:
+nodeSelector:
 
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR
