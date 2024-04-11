@@ -153,6 +153,27 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            user: {
+                                name: true,
+                                email: true,
+                                profilePictureId: true,
+                            },
+                        },
+                        title: 'User',
+                        type: FieldType.Entity,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner from',
+                        type: FieldType.DateTime,
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -164,7 +185,6 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');

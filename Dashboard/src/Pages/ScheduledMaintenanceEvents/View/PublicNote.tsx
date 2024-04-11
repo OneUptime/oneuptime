@@ -209,6 +209,41 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showTableAs={ShowTableAs.List}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            note: true,
+                        },
+                        title: 'Note',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            postedAt: true,
+                        },
+                        title: 'Posted At',
+                        type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+                                true,
+                        },
+                        title: 'Notify Status Page Subscribers',
+                        type: FieldType.Boolean,
+                    },
+                    {
+                        field: {
+                            createdByUser: {
+                                name: true,
+                                email: true,
+                            },
+                        },
+                        title: 'Created By',
+                        type: FieldType.Text,
+                    }
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -221,7 +256,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         title: '',
 
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -247,7 +282,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             postedAt: true,
                         },
-                        isFilterable: true,
+                        
                         alignItem: AlignItem.Right,
                         title: '',
                         type: FieldType.DateTime,
@@ -258,7 +293,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                        isFilterable: true,
+                        
                         title: '',
                         type: FieldType.Markdown,
                         contentClassName:

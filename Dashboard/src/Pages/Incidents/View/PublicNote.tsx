@@ -202,6 +202,34 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 showTableAs={ShowTableAs.List}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+
+                filters={[
+                    {
+                        field: {
+                            createdByUser: {
+                                name: true
+                            }
+                        },
+                        title: 'Created By',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            note: true,
+                        },
+                        title: 'Note',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            postedAt: true,
+                        },
+                        title: 'Posted At',
+                        type: FieldType.DateTime,
+                    },
+                
+                ]}
+
                 columns={[
                     {
                         field: {
@@ -214,7 +242,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         title: '',
 
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -240,7 +268,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             postedAt: true,
                         },
-                        isFilterable: true,
+                        
                         alignItem: AlignItem.Right,
                         title: '',
                         type: FieldType.DateTime,
@@ -252,7 +280,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                        isFilterable: true,
+                        
                         title: '',
                         type: FieldType.Markdown,
                         contentClassName:

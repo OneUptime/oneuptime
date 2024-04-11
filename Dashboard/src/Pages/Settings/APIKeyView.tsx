@@ -216,6 +216,34 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            permission: true,
+                        },
+                        title: 'Permission',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    
+                ]}
                 columns={[
                     {
                         field: {
@@ -223,7 +251,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Permission',
                         type: FieldType.Text,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <p>
@@ -243,16 +271,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true,
-                        filterEntityType: Label,
-                        filterQuery: {
-                            projectId:
-                                DashboardNavigation.getProjectId()?.toString(),
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
+                    
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item &&

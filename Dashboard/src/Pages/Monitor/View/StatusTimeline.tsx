@@ -132,6 +132,32 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            monitorStatus: {
+                                name: true,
+                            },
+                        },
+                        title: 'Monitor Status',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Starts At',
+                        type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Ends At',
+                        type: FieldType.DateTime,
+                    }
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -142,7 +168,6 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitor Status',
                         type: FieldType.Text,
-                        isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['monitorStatus']) {
                                 throw new BadDataException(

@@ -405,6 +405,18 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            team: {
+                                name: true,
+                            },
+                        },
+                        title: 'Team',
+                        type: FieldType.Text,
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -414,7 +426,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
@@ -481,6 +493,19 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            user: {
+                                name: true,
+                                email: true,
+                            },
+                        },
+                        title: 'User',
+                        type: FieldType.Entity,
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -492,7 +517,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');

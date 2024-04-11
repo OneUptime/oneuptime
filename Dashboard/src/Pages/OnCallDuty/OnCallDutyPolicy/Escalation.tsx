@@ -174,12 +174,36 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showTableAs={ShowTableAs.List}
+                filters={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            escalateAfterInMinutes: true,
+                        },
+                        title: 'Escalate after (in minutes)',
+                        type: FieldType.Number,
+                    }
+                
+                ]}
                 columns={[
                     {
                         field: {
                             order: true,
                         },
-                        isFilterable: false,
+                        
                         title: 'Escalation Rule Order',
                         description: 'The order of the escalation rule.',
                         type: FieldType.Number,
@@ -188,7 +212,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             name: true,
                         },
-                        isFilterable: true,
+                        
                         title: 'Name',
                         description: 'The name of the escalation rule.',
                         type: FieldType.Text,
@@ -197,7 +221,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                        isFilterable: true,
+                        
                         title: 'Description',
                         description: 'The description of the escalation rule.',
                         type: FieldType.Text,
@@ -243,7 +267,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             escalateAfterInMinutes: true,
                         },
-                        isFilterable: true,
+                        
                         title: 'Escalate after (in minutes)',
                         description:
                             'The amount of minutes to wait before escalating to the next escalation rule.',

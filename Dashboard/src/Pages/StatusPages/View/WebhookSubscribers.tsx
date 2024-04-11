@@ -61,6 +61,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            subscriberWebhook: true,
+                        },
+                        title: 'Webhook URL',
+                        type: FieldType.URL,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Subscribed At',
+                        type: FieldType.DateTime,
+                    }
+                ]}
                 columns={[
                     {
                         field: {

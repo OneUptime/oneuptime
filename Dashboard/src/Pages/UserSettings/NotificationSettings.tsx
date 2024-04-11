@@ -100,6 +100,36 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={false}
+                filters={[
+                    {
+                        field: {
+                            eventType: true,
+                        },
+                        title: 'Event Type',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            alertByEmail: true,
+                        },
+                        title: 'Email Alerts',
+                        type: FieldType.Boolean,
+                    },
+                    {
+                        field: {
+                            alertBySMS: true,
+                        },
+                        title: 'SMS Alerts',
+                        type: FieldType.Boolean,
+                    },
+                    {
+                        field: {
+                            alertByCall: true,
+                        },
+                        title: 'Call Alerts',
+                        type: FieldType.Boolean,
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -107,7 +137,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Event Type',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {

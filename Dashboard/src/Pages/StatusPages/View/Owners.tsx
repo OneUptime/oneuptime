@@ -71,6 +71,24 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            team: {
+                                name: true,
+                            },
+                        },
+                        title: 'Team',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner from',
+                        type: FieldType.DateTime,
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -80,7 +98,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
@@ -147,6 +165,26 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            user: {
+                                name: true,
+                                email: true,
+                            },
+                        },
+                        title: 'User',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner from',
+                        type: FieldType.DateTime,
+                    },
+                
+                ]}
                 columns={[
                     {
                         field: {
@@ -158,7 +196,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');

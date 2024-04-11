@@ -71,6 +71,17 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            team: {
+                                name: true,
+                            },
+                        },
+                        title: 'Team Name',
+                        type: FieldType.Text,
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -80,7 +91,7 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
@@ -147,6 +158,24 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            user: {
+                                name: true,
+                            },
+                        },
+                        title: 'User Name',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner from',
+                        type: FieldType.DateTime,
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -158,7 +187,7 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');

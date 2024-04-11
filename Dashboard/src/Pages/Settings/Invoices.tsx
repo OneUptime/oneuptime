@@ -98,6 +98,29 @@ const Settings: FunctionComponent<ComponentProps> = (
                         currencyCode: true,
                         paymentProviderCustomerId: true,
                     }}
+                    filters={[
+                        {
+                            field: {
+                                paymentProviderInvoiceId: true,
+                            },
+                            title: 'Invoice ID',
+                            type: FieldType.Text,
+                        },
+                        {
+                            field: {
+                                amount: true,
+                            },
+                            title: 'Amount',
+                            type: FieldType.Text,
+                        },
+                        {
+                            field: {
+                                status: true,
+                            },
+                            title: 'Invoice Status',
+                            type: FieldType.Text,
+                        },
+                    ]}
                     columns={[
                         {
                             field: {
@@ -112,7 +135,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Amount',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            
                             getElement: (item: JSONObject) => {
                                 return (
                                     <span>{`${
@@ -129,7 +152,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Invoice Status',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            
                             getElement: (item: JSONObject) => {
                                 if (item['status'] === InvoiceStatus.Paid) {
                                     return (
@@ -157,7 +180,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Actions',
                             type: FieldType.Text,
-                            isFilterable: true,
+                            
                             getElement: (item: JSONObject) => {
                                 return (
                                     <div>

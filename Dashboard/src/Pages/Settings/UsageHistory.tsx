@@ -39,14 +39,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                 }}
                 showRefreshButton={true}
                 showFilterButton={false}
-                columns={[
+                filters={[
                     {
                         field: {
                             productType: true,
                         },
                         title: 'Product',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                     {
                         field: {
@@ -54,7 +53,34 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Day',
                         type: FieldType.Date,
-                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            telemetryService: {
+                                name: true,
+                                _id: true,
+                            },
+                        },
+                        title: 'Telemetry Service',
+                        type: FieldType.Entity,
+                    }
+                ]}
+                columns={[
+                    {
+                        field: {
+                            productType: true,
+                        },
+                        title: 'Product',
+                        type: FieldType.Text,
+                        
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Day',
+                        type: FieldType.Date,
+                        
                     },
                     {
                         field: {
