@@ -7,7 +7,7 @@ import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 import ObjectID from 'Common/Types/ObjectID';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import MonitorType, { MonitorTypeHelper } from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     modelId: ObjectID;
@@ -17,6 +17,9 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const isProbeableMonitor = MonitorTypeHelper.isProbableMonitors(props.monitorType);
+
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
@@ -119,7 +122,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 ) : (
                     <></>
                 )}
-                {props.monitorType !== MonitorType.Manual ? (
+                {isProbeableMonitor ? (
                     <SideMenuItem
                         link={{
                             title: 'Probes',

@@ -140,21 +140,30 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         title: 'Monitor Status',
-                        type: FieldType.Text,
+                        type: FieldType.Entity,
+                        filterEntityType: MonitorStatus,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
                     {
                         field: {
                             createdAt: true,
                         },
                         title: 'Starts At',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                     },
                     {
                         field: {
                             endsAt: true,
                         },
                         title: 'Ends At',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                     }
                 
                 ]}

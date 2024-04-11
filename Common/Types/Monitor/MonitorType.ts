@@ -118,4 +118,9 @@ export class MonitorTypeHelper {
 
         return monitorTypeProps[0].title;
     }
+
+    public static isProbableMonitors(monitorType: MonitorType): boolean {
+        const isProbeableMonitor =monitorType === MonitorType.API ||monitorType === MonitorType.Website ||monitorType === MonitorType.IP || monitorType === MonitorType.Ping ||monitorType === MonitorType.Port ||monitorType === MonitorType.SSLCertificate
+        return isProbeableMonitor;
+    }
 }
