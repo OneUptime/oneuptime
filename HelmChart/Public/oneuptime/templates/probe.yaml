@@ -32,6 +32,7 @@ spec:
       {{- end }}
       {{- if $.Values.nodeSelector }}
       nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
+      {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "probe" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}

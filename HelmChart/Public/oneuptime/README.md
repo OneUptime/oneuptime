@@ -89,6 +89,10 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `incidents.disableAutomaticCreation` | Disable incident creation (use this when your team is overloaded with incidents or in emergencies) | `false` |  |
 | `podSecurityContext` | Pod Security Context. Please refer to Kubernetes docuemntation to set these. This chart depends on other bitnami charts. You will have to set security context for those as well | `{}` |  |
 | `conatinerSecurityContext` | Container Security Context. Please refer to kubernetes documentation to set these. This chart depends on other bitnami charts. You will have to set security context for those as well | `{}` |  |
+| `nodeSelector` | Node Selector. Please refer to Kubernetes documentation on how to use them. | `{}` |  |
+| `tolerations` | Tolerations. Please refer to Kubernetes documentation on how to use them. | `[]` |  |
+| `affinity` | Affinity. Please refer to Kubernetes documentation on how to use them. | `{}` |  |
+
 
 ## Adding a Custom Domain to your Status Page
 
