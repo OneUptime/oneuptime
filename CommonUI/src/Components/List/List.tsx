@@ -89,43 +89,50 @@ const List: FunctionComponent<ComponentProps> = (
 
     return (
         <div data-testid="list-container">
-            <Filter
-                id={`${props.id}-filter`}
-                showFilter={props.showFilter || false}
-                onFilterChanged={props.onFilterChanged || undefined}
-                isFilterLoading={props.isFilterLoading}
-                filterError={props.filterError}
-                onFilterRefreshClick={props.onFilterRefreshClick}
-                filters={props.filters || []}
-            />
-
-            <DragDropContext
-                onDragEnd={(result: DropResult) => {
-                    result.destination?.index &&
-                        props.onDragDrop &&
-                        props.onDragDrop(
-                            result.draggableId,
-                            result.destination.index
-                        );
-                }}
-            >
-                {getListbody()}
-            </DragDropContext>
-            {!props.disablePagination && (
-                <div className=" -ml-6 mt-5 -mr-6 -mb-6">
-                    <Pagination
-                        singularLabel={props.singularLabel}
-                        pluralLabel={props.pluralLabel}
-                        currentPageNumber={props.currentPageNumber}
-                        totalItemsCount={props.totalItemsCount}
-                        itemsOnPage={props.itemsOnPage}
-                        onNavigateToPage={props.onNavigateToPage}
-                        isLoading={props.isLoading}
-                        isError={Boolean(props.error)}
-                        dataTestId="list-pagination"
+            <div className="mt-6">
+                
+                    <div className='bg-white pr-6 pl-6'>
+                    <Filter
+                        id={`${props.id}-filter`}
+                        showFilter={props.showFilter || false}
+                        onFilterChanged={props.onFilterChanged || undefined}
+                        isFilterLoading={props.isFilterLoading}
+                        filterError={props.filterError}
+                        onFilterRefreshClick={props.onFilterRefreshClick}
+                        filters={props.filters || []}
                     />
+                    </div>
+                    <div className="">
+
+                    <DragDropContext
+                        onDragEnd={(result: DropResult) => {
+                            result.destination?.index &&
+                                props.onDragDrop &&
+                                props.onDragDrop(
+                                    result.draggableId,
+                                    result.destination.index
+                                );
+                        }}
+                    >
+                        {getListbody()}
+                    </DragDropContext>
+                    {!props.disablePagination && (
+                        <div className="mt-5 -mb-6">
+                            <Pagination
+                                singularLabel={props.singularLabel}
+                                pluralLabel={props.pluralLabel}
+                                currentPageNumber={props.currentPageNumber}
+                                totalItemsCount={props.totalItemsCount}
+                                itemsOnPage={props.itemsOnPage}
+                                onNavigateToPage={props.onNavigateToPage}
+                                isLoading={props.isLoading}
+                                isError={Boolean(props.error)}
+                                dataTestId="list-pagination"
+                            />
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };

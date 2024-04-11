@@ -30,7 +30,7 @@ const ListBody: FunctionComponent<ComponentProps> = (
                 ref={provided?.innerRef}
                 {...provided?.droppableProps}
                 id={props.id}
-                className="space-y-6"
+                className="space-y-6 p-6 border-t border-gray-200"
             >
                 {props.data &&
                     props.data.map((item: JSONObject, i: number) => {

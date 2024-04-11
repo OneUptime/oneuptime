@@ -1352,6 +1352,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         <Card
                             {...props.cardProps}
                             buttons={cardButtons}
+                            bodyClassName={showAs === ShowAs.List ? "-ml-6 -mr-6 bg-gray-50 border-top": ''}
                             title={getCardTitle(props.cardProps.title)}
                         >
                             {tableColumns.length === 0 &&
@@ -1364,9 +1365,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             ) : (
                                 <></>
                             )}
-                            {!(
-                                tableColumns.length === 0 &&
-                                props.columns.length > 0 &&
+                            {(
+                                tableColumns.length > 0 &&
                                 showAs === ShowAs.Table
                             ) ? (
                                 getTable()
@@ -1374,9 +1374,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                                 <></>
                             )}
 
-                            {!(
-                                tableColumns.length === 0 &&
-                                props.columns.length > 0 &&
+                            {(
+                                tableColumns.length > 0 &&
                                 showAs === ShowAs.List
                             ) ? (
                                 getList()
