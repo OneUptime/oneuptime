@@ -125,7 +125,6 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                         title: 'Description',
                     },
-                
                 ]}
                 columns={[
                     {
@@ -134,7 +133,6 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -152,7 +150,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <div>

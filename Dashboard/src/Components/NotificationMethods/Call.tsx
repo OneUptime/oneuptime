@@ -137,8 +137,6 @@ const Call: () => JSX.Element = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                
-                
                 columns={[
                     {
                         field: {
@@ -146,7 +144,6 @@ const Call: () => JSX.Element = (): ReactElement => {
                         },
                         title: 'Phone Number',
                         type: FieldType.Phone,
-                        
                     },
                     {
                         field: {

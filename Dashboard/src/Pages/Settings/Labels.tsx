@@ -65,7 +65,6 @@ const Labels: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 selectMoreFields={{
                     color: true,
                 }}
@@ -85,7 +84,6 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                         title: 'Description',
                     },
-                    
                 ]}
                 columns={[
                     {
@@ -94,7 +92,6 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -111,7 +108,6 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                 ]}
             />

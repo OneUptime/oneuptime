@@ -92,7 +92,6 @@ const CustomFieldsPageBase: (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {
@@ -114,7 +113,7 @@ const CustomFieldsPageBase: (
                         },
                         title: 'Field Type',
                         type: FieldType.Text,
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -123,7 +122,6 @@ const CustomFieldsPageBase: (
                         },
                         title: 'Field Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -131,7 +129,6 @@ const CustomFieldsPageBase: (
                         },
                         title: 'Field Description',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -139,7 +136,6 @@ const CustomFieldsPageBase: (
                         },
                         title: 'Field Type',
                         type: FieldType.Text,
-                        
                     },
                 ]}
             />

@@ -54,7 +54,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                     }}
                     noItemsMessage={'No probes found.'}
                     showRefreshButton={true}
-                    
                     filters={[
                         {
                             field: {
@@ -62,7 +61,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Name',
                             type: FieldType.Text,
-
                         },
                         {
                             field: {
@@ -79,7 +77,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Name',
                             type: FieldType.Text,
-                            
+
                             getElement: (item: JSONObject): ReactElement => {
                                 return <ProbeElement probe={item} />;
                             },
@@ -90,7 +88,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Description',
                             type: FieldType.Text,
-                            
                         },
                         {
                             field: {
@@ -98,7 +95,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Probe Status',
                             type: FieldType.Text,
-                            
+
                             getElement: (item: JSONObject): ReactElement => {
                                 return <ProbeStatusElement probe={item} />;
                             },
@@ -179,7 +176,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     showRefreshButton={true}
-                    
                     actionButtons={[
                         {
                             title: 'Show ID and Key',
@@ -222,9 +218,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Enable Monitoring by Default',
                             type: FieldType.Boolean,
-                        }
+                        },
                     ]}
-                    
                     columns={[
                         {
                             field: {
@@ -232,7 +227,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Name',
                             type: FieldType.Text,
-                            
+
                             getElement: (item: JSONObject): ReactElement => {
                                 return <ProbeElement probe={item} />;
                             },
@@ -243,7 +238,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Description',
                             type: FieldType.Text,
-                            
                         },
                         {
                             field: {
@@ -251,7 +245,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Enable Monitoring by Default',
                             type: FieldType.Boolean,
-                            
                         },
                         {
                             field: {
@@ -259,7 +252,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Status',
                             type: FieldType.Text,
-                           
+
                             getElement: (item: JSONObject): ReactElement => {
                                 if (
                                     item &&

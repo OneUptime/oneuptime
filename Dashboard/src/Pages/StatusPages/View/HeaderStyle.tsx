@@ -130,7 +130,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -155,7 +154,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Title',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -163,7 +161,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Link',
                         type: FieldType.URL,
-                        
                     },
                 ]}
             />

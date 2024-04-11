@@ -181,9 +181,6 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 showAs={ShowAs.List}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
-
-
-
                     {
                         field: {
                             createdByUser: {
@@ -208,7 +205,6 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                         title: 'Note',
                     },
-                
                 ]}
                 columns={[
                     {
@@ -222,7 +218,6 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         title: '',
 
                         type: FieldType.Entity,
-                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -248,7 +243,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        
+
                         alignItem: AlignItem.Right,
                         title: '',
                         type: FieldType.DateTime,
@@ -259,7 +254,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                        
+
                         title: '',
                         type: FieldType.Markdown,
                         contentClassName:

@@ -237,7 +237,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 filters={[
                     {
@@ -254,7 +253,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                     },
-                    
                 ]}
                 columns={[
                     {
@@ -263,7 +261,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -271,7 +268,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                 ]}
             />

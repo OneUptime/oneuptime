@@ -68,7 +68,6 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     order: true,
                 }}
                 filters={[
-                    
                     {
                         field: {
                             name: true,
@@ -83,7 +82,6 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                     },
-
                 ]}
                 columns={[
                     {
@@ -107,7 +105,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <div>

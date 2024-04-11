@@ -83,13 +83,11 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                     />
                 );
             },
-            
         },
         {
             field: {
                 fromEmail: true,
             },
-            
 
             title: 'From Email',
             type: FieldType.Email,
@@ -99,7 +97,6 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             field: {
                 toEmail: true,
             },
-            
 
             title: 'To Email',
             type: FieldType.Email,
@@ -110,7 +107,6 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Sent at',
             type: FieldType.DateTime,
-            
         },
         {
             field: {
@@ -135,7 +131,6 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
 
                 return <></>;
             },
-            
         },
     ];
 
@@ -205,7 +200,6 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                         'Looks like no email is sent by this project in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    
                     columns={modelTableColumns}
                 />
 

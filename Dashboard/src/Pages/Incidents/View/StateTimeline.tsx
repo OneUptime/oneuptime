@@ -141,7 +141,6 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -175,8 +174,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Ends At',
                         type: FieldType.Date,
-                    }
-                
+                    },
                 ]}
                 columns={[
                     {
@@ -188,7 +186,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Incident Status',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['incidentState']) {
                                 throw new BadDataException(

@@ -130,7 +130,6 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -164,8 +163,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Ends At',
                         type: FieldType.Date,
-                    }
-                
+                    },
                 ]}
                 columns={[
                     {

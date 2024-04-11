@@ -69,7 +69,6 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -94,7 +93,7 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Owner since',
                         type: FieldType.Date,
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -105,7 +104,7 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
@@ -170,7 +169,6 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -209,7 +207,7 @@ const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');

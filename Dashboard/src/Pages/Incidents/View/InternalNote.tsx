@@ -172,8 +172,6 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 showAs={ShowAs.List}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-
-
                 filters={[
                     {
                         field: {
@@ -197,9 +195,8 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         },
                         type: FieldType.DateTime,
                         title: 'Created At',
-                    }
+                    },
                 ]}
-
                 columns={[
                     {
                         field: {
@@ -212,7 +209,6 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         title: '',
 
                         type: FieldType.Entity,
-                       
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -238,7 +234,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                       
+
                         alignItem: AlignItem.Right,
                         title: '',
                         type: FieldType.DateTime,
@@ -249,7 +245,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                       
+
                         title: '',
                         type: FieldType.Markdown,
                         contentClassName:

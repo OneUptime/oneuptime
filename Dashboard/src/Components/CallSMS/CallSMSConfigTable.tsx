@@ -187,7 +187,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -240,7 +239,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Twilio Account SID',
                         type: FieldType.Text,
-
                     },
                     {
                         field: {

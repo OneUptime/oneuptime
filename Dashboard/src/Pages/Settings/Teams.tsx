@@ -53,7 +53,6 @@ const Teams: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 filters={[
                     {
@@ -70,7 +69,6 @@ const Teams: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                     },
-                    
                 ]}
                 columns={[
                     {
@@ -79,7 +77,6 @@ const Teams: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -87,7 +84,6 @@ const Teams: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                 ]}
             />

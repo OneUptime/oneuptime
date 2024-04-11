@@ -105,7 +105,6 @@ const Domains: FunctionComponent<PageComponentProps> = (
                     domainVerificationText: true,
                 }}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {
@@ -121,7 +120,6 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         title: 'Verified',
                         type: FieldType.Boolean,
                     },
-                
                 ]}
                 columns={[
                     {
@@ -130,7 +128,6 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Domain',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -138,7 +135,6 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Verified',
                         type: FieldType.Boolean,
-                        
                     },
                 ]}
             />

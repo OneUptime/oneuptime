@@ -62,7 +62,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 }}
                 noItemsMessage={'No notifications sent out so far.'}
                 showRefreshButton={true}
-                
                 showViewIdButton={true}
                 actionButtons={[
                     {
@@ -88,8 +87,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 filters={[
-
-                   
                     {
                         field: {
                             createdAt: true,
@@ -104,14 +101,12 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Element,
-                       
+
                         filterDropdownOptions:
                             DropdownUtil.getDropdownOptionsFromEnum(
                                 UserNotificationStatus
                             ),
-                     
                     },
-                
                 ]}
                 columns={[
                     {
@@ -137,7 +132,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Sent At',
                         type: FieldType.DateTime,
-                        
                     },
                     {
                         field: {
@@ -145,8 +139,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Element,
-                        
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] === UserNotificationStatus.Sent

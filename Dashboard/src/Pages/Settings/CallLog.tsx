@@ -36,13 +36,12 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Log ID',
             type: FieldType.Text,
-            
         },
         {
             field: {
                 fromNumber: true,
             },
-            
+
             title: 'From Number',
             type: FieldType.Phone,
         },
@@ -50,7 +49,6 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             field: {
                 toNumber: true,
             },
-            
 
             title: 'To Number',
             type: FieldType.Phone,
@@ -61,7 +59,6 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Sent at',
             type: FieldType.DateTime,
-            
         },
 
         {
@@ -70,8 +67,6 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Status',
             type: FieldType.Text,
-            
-            
         },
     ];
 
@@ -82,13 +77,12 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Log ID',
             type: FieldType.Text,
-            
         },
         {
             field: {
                 fromNumber: true,
             },
-            
+
             title: 'From Number',
             type: FieldType.Phone,
         },
@@ -96,7 +90,6 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             field: {
                 toNumber: true,
             },
-            
 
             title: 'To Number',
             type: FieldType.Phone,
@@ -107,7 +100,6 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Sent at',
             type: FieldType.DateTime,
-            
         },
 
         {
@@ -133,7 +125,6 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
 
                 return <></>;
             },
-            
         },
     ];
 
@@ -211,7 +202,6 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                         'Looks like no Call is sent by this project in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    
                     filters={filters}
                     columns={modelTableColumns}
                 />

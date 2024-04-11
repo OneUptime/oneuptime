@@ -71,7 +71,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -107,8 +106,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                             value: '_id',
                         },
                     },
-                ]
-                   }
+                ]}
                 columns={[
                     {
                         field: {
@@ -116,7 +114,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -124,7 +121,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {

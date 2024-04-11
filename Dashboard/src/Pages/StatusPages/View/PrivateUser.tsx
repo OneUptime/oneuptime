@@ -57,7 +57,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {
@@ -66,7 +65,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Email',
                         type: FieldType.Email,
                     },
-
                 ]}
                 columns={[
                     {
@@ -75,7 +73,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Email',
                         type: FieldType.Email,
-                       
                     },
                     {
                         field: {
@@ -83,7 +80,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Password,
-                       
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['password']) {
                                 return (

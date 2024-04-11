@@ -92,9 +92,7 @@ const Services: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
-
                 filters={[
                     {
                         field: {
@@ -119,7 +117,7 @@ const Services: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        
+
                         filterEntityType: Label,
                         filterQuery: {
                             projectId:
@@ -128,10 +126,9 @@ const Services: FunctionComponent<PageComponentProps> = (
                         filterDropdownField: {
                             label: 'name',
                             value: '_id',
-                        }
-                    }
+                        },
+                    },
                 ]}
-
                 columns={[
                     {
                         field: {
@@ -139,7 +136,6 @@ const Services: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -147,7 +143,6 @@ const Services: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -158,7 +153,7 @@ const Services: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

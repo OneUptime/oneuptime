@@ -170,7 +170,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 selectMoreFields={{
                     userEmail: {
                         email: true,
@@ -179,9 +178,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         phone: true,
                     },
                 }}
-                filters={[
-                   
-                ]}
+                filters={[]}
                 columns={[
                     {
                         field: {

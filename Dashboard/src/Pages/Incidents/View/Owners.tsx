@@ -69,35 +69,32 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
-                filters={
-                    [
-                        {
-                            field: {
-                                team: true,
-                            },
-                            type: FieldType.Entity,
-                            title: 'Team',
-                            filterEntityType: Team,
-                            filterQuery: {
-                                projectId:
-                                    DashboardNavigation.getProjectId()?.toString(),
-                            },
-                            filterDropdownField: {
-                                label: 'name',
-                                value: '_id',
-                            },
+                filters={[
+                    {
+                        field: {
+                            team: true,
                         },
-                        {
-                            field: {
-                                createdAt: true,
-                            },
-                            title: 'Owner since',
-                            type: FieldType.Date,
-                        }
-                    ]
-                }
+                        type: FieldType.Entity,
+                        title: 'Team',
+                        filterEntityType: Team,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner since',
+                        type: FieldType.Date,
+                    },
+                ]}
                 columns={[
                     {
                         field: {
@@ -107,7 +104,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
@@ -172,7 +169,6 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -199,7 +195,6 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         title: 'Owner since',
                         type: FieldType.Date,
                     },
-                
                 ]}
                 columns={[
                     {
@@ -212,7 +207,7 @@ const IncidentOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');

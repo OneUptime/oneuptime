@@ -317,7 +317,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 formFields={formFields}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 selectMoreFields={{
                     monitorGroup: {
@@ -331,7 +330,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             monitor: {
                                 name: true,
-                            }
+                            },
                         },
                         title: 'Monitor',
                         type: FieldType.Entity,
@@ -351,7 +350,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Display Name',
                         type: FieldType.Text,
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -367,8 +366,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             ? 'Resource'
                             : 'Monitor',
                         type: FieldType.Entity,
-                        
-                      
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['monitor']) {
                                 return (
@@ -419,7 +417,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Display Name',
                         type: FieldType.Text,
-                        
                     },
                 ]}
             />

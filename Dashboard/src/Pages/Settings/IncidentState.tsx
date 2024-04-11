@@ -99,7 +99,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <div>

@@ -138,7 +138,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                         title: 'Team',
                     },
-                
                 ]}
                 columns={[
                     {

@@ -86,7 +86,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         title: 'Name',
@@ -116,7 +115,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             createdAt: true,
                         },
                     },
-                
                 ]}
                 columns={[
                     {
@@ -125,7 +123,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -133,7 +130,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -141,7 +137,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Secret',
                         type: FieldType.Boolean,
-                        
                     },
                     {
                         field: {
@@ -149,7 +144,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-                        
                     },
                 ]}
             />

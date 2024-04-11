@@ -93,7 +93,6 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                 ]}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {
@@ -111,7 +110,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        
+
                         filterEntityType: Label,
                         filterQuery: {
                             projectId:
@@ -121,8 +120,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                             label: 'name',
                             value: '_id',
                         },
-                    }
-                
+                    },
                 ]}
                 columns={[
                     {
@@ -130,7 +128,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Group Name',
-                        type: FieldType.Text
+                        type: FieldType.Text,
                     },
                     {
                         field: {
@@ -163,8 +161,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

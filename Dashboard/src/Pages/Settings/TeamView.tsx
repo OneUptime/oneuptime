@@ -147,7 +147,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 deleteButtonText="Remove Member"
-                
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 filters={[
                     {
@@ -155,9 +154,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             hasAcceptedInvitation: true,
                         },
                         type: FieldType.Boolean,
-                        title: 'Status'
+                        title: 'Status',
                     },
-                
                 ]}
                 columns={[
                     {
@@ -290,7 +288,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -317,8 +314,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             label: 'name',
                             value: '_id',
                         },
-                    }
-                
+                    },
                 ]}
                 columns={[
                     {
@@ -327,7 +323,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Permission',
                         type: FieldType.Text,
-                       
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <p>
@@ -347,7 +343,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                       
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item &&

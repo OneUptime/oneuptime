@@ -83,7 +83,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -118,8 +117,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                             label: 'name',
                             value: '_id',
                         },
-                        
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -128,7 +126,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -136,7 +133,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -147,8 +143,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

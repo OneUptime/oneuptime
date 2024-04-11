@@ -17,7 +17,7 @@ export interface ComponentProps {
     data: Array<JSONObject>;
     id: string;
     columns: Columns;
-    
+
     disablePagination?: undefined | boolean;
     onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
     currentPageNumber: number;
@@ -29,10 +29,10 @@ export interface ComponentProps {
     pluralLabel: string;
     actionButtons?: undefined | Array<ActionButtonSchema>;
     onRefreshClick?: undefined | (() => void);
-    
+
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
-    
+
     isFilterLoading?: undefined | boolean;
     filters?: Array<FilterType>;
     showFilter?: undefined | boolean;

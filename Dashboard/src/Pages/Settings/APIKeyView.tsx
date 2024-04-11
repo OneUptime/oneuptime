@@ -214,7 +214,6 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -242,7 +241,6 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             value: '_id',
                         },
                     },
-                    
                 ]}
                 columns={[
                     {
@@ -251,7 +249,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Permission',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <p>
@@ -271,7 +269,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                    
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item &&

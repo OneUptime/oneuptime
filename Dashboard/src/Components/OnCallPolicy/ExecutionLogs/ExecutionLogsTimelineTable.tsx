@@ -54,7 +54,6 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 }}
                 noItemsMessage={'No notifications sent out so far.'}
                 showRefreshButton={true}
-                
                 showViewIdButton={true}
                 actionButtons={[
                     {
@@ -101,9 +100,9 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         title: 'Status',
                         filterDropdownOptions:
-                        DropdownUtil.getDropdownOptionsFromEnum(
-                            OnCallDutyExecutionLogTimelineStatus
-                        ),
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                OnCallDutyExecutionLogTimelineStatus
+                            ),
                     },
                 ]}
                 columns={[
@@ -140,7 +139,6 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Started At',
                         type: FieldType.DateTime,
-                        
                     },
                     {
                         field: {
@@ -176,7 +174,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Acknowledged At',
                         type: FieldType.DateTime,
-                        
+
                         noValueMessage: '-',
                     },
                     {
@@ -185,8 +183,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Element,
-                        
-                       
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (
                                 item['status'] ===

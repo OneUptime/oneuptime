@@ -202,13 +202,12 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 showAs={ShowAs.List}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-
                 filters={[
                     {
                         field: {
                             createdByUser: {
-                                name: true
-                            }
+                                name: true,
+                            },
                         },
                         title: 'Created By',
                         type: FieldType.Text,
@@ -227,9 +226,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         title: 'Posted At',
                         type: FieldType.DateTime,
                     },
-                
                 ]}
-
                 columns={[
                     {
                         field: {
@@ -242,7 +239,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         title: '',
 
                         type: FieldType.Entity,
-                        
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -268,7 +264,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             postedAt: true,
                         },
-                        
+
                         alignItem: AlignItem.Right,
                         title: '',
                         type: FieldType.DateTime,
@@ -280,7 +276,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                        
+
                         title: '',
                         type: FieldType.Markdown,
                         contentClassName:

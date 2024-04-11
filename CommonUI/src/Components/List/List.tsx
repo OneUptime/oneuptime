@@ -89,7 +89,7 @@ const List: FunctionComponent<ComponentProps> = (
 
     return (
         <div data-testid="list-container">
-             <Filter
+            <Filter
                 id={`${props.id}-filter`}
                 showFilter={props.showFilter || false}
                 onFilterChanged={props.onFilterChanged || undefined}

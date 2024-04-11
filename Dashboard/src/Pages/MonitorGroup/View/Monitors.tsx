@@ -142,7 +142,6 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     showRefreshButton={true}
-                    
                     viewPageRoute={Navigation.getCurrentRoute()}
                     filters={[
                         {
@@ -163,7 +162,6 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitor Name',
                         },
-                        
                     ]}
                     columns={[
                         {
@@ -176,8 +174,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitor',
                             type: FieldType.Entity,
-                            
-                            
+
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <MonitorElement

@@ -222,7 +222,6 @@ const Projects: FunctionComponent = (): ReactElement => {
                 noItemsMessage={'No projects found.'}
                 formFields={fields}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -239,7 +238,6 @@ const Projects: FunctionComponent = (): ReactElement => {
                         title: 'Created At',
                         type: FieldType.DateTime,
                     },
-                
                 ]}
                 columns={[
                     {
@@ -248,7 +246,6 @@ const Projects: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -256,7 +253,6 @@ const Projects: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-                        
                     },
                 ]}
             />

@@ -46,7 +46,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
                 showRefreshButton={true}
-                
                 sortBy="startTime"
                 sortOrder={SortOrder.Descending}
                 viewPageRoute={Navigation.getCurrentRoute()}
@@ -57,7 +56,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         type: FieldType.Text,
                         title: 'Trace ID',
-
                     },
                     {
                         field: {
@@ -89,7 +87,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Trace ID',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -97,7 +94,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Root Span Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -105,8 +101,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Root Span Kind',
                         type: FieldType.Text,
-                        
-                        
+
                         getElement: (span: JSONObject): ReactElement => {
                             const spanKind: SpanKind = span['kind'] as SpanKind;
 
@@ -122,7 +117,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Seen At',
                         type: FieldType.DateTime,
-                        
                     },
                 ]}
             />

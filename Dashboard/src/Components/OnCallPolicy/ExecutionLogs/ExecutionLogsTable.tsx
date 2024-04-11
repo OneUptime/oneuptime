@@ -85,7 +85,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         ]);
     }
 
-
     filters = filters.concat([
         {
             title: 'Status',
@@ -103,9 +102,8 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             field: {
                 createdAt: true,
             },
-        }
+        },
     ]);
-
 
     columns = columns.concat([
         {
@@ -140,7 +138,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
             title: 'Status',
             type: FieldType.Element,
-            
+
             getElement: (item: JSONObject): ReactElement => {
                 if (item['status'] === OnCallDutyPolicyStatus.Completed) {
                     return (
@@ -230,7 +228,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 noItemsMessage={'This policy has not executed so far.'}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
-                
                 showViewIdButton={true}
                 filters={filters}
                 actionButtons={[

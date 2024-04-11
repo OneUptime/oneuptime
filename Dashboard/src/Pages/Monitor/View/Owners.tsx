@@ -69,7 +69,6 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -94,7 +93,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Owner since',
                         type: FieldType.Date,
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -167,7 +166,6 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -194,7 +192,6 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         title: 'Owner since',
                         type: FieldType.Date,
                     },
-                
                 ]}
                 columns={[
                     {

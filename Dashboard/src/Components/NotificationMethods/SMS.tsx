@@ -136,7 +136,6 @@ const SMS: () => JSX.Element = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {
@@ -152,7 +151,6 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         title: 'Verified',
                         type: FieldType.Boolean,
                     },
-                
                 ]}
                 columns={[
                     {
@@ -161,7 +159,6 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         },
                         title: 'Phone Number',
                         type: FieldType.Phone,
-                        
                     },
                     {
                         field: {

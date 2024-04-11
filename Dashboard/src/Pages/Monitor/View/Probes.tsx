@@ -200,7 +200,6 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {
@@ -227,7 +226,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                                 iconFileId: true,
                             },
                         },
-                        
+
                         title: 'Probe',
                         type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
@@ -246,7 +245,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Probe Status',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <ProbeStatusElement
@@ -261,7 +260,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Last Monitored At',
                         type: FieldType.DateTime,
-                        
+
                         noValueMessage: 'Will be picked up by this probe soon.',
                     },
                     {
@@ -270,7 +269,6 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Enabled',
                         type: FieldType.Boolean,
-                        
                     },
                 ]}
             />

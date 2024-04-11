@@ -80,7 +80,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -90,7 +89,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                     },
-                
+
                     {
                         field: {
                             description: true,
@@ -107,7 +106,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                       
+
                         filterEntityType: Label,
                         filterQuery: {
                             projectId:
@@ -126,7 +125,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                       
                     },
                     {
                         field: {
@@ -134,7 +132,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                       
                     },
                     {
                         field: {
@@ -145,7 +142,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                    
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

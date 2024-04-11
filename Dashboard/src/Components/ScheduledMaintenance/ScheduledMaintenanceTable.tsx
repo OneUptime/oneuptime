@@ -271,7 +271,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             showViewIdButton={true}
             viewButtonText="View Event"
             showRefreshButton={true}
-            
             viewPageRoute={props.viewPageRoute}
             filters={[
                 {
@@ -387,7 +386,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Title',
                     type: FieldType.Text,
-                    
                 },
                 {
                     field: {
@@ -398,8 +396,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Current State',
                     type: FieldType.Entity,
-                    
-                  
+
                     getElement: (item: JSONObject): ReactElement => {
                         if (item['currentScheduledMaintenanceState']) {
                             return (
@@ -436,8 +433,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Monitors Affected',
                     type: FieldType.EntityArray,
-                    
-                   
+
                     getElement: (item: JSONObject): ReactElement => {
                         return (
                             <MonitorsElement
@@ -461,8 +457,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Shown on Status Page',
                     type: FieldType.EntityArray,
-                    
-                   
+
                     getElement: (item: JSONObject): ReactElement => {
                         return (
                             <StatusPagesElement
@@ -483,7 +478,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Starts At',
                     type: FieldType.DateTime,
-                    
                 },
                 {
                     field: {
@@ -491,7 +485,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Ends At',
                     type: FieldType.DateTime,
-                    
                 },
                 {
                     field: {
@@ -502,8 +495,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Labels',
                     type: FieldType.EntityArray,
-                    
-                   
+
                     getElement: (item: JSONObject): ReactElement => {
                         return (
                             <LabelsElement

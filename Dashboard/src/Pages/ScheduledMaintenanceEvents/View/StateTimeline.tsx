@@ -79,7 +79,6 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -123,7 +122,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Scheduled Maintenance Status',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['scheduledMaintenanceState']) {
                                 throw new BadDataException(

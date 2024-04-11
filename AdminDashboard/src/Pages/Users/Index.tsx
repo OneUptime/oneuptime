@@ -72,7 +72,6 @@ const Users: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -96,7 +95,6 @@ const Users: FunctionComponent = (): ReactElement => {
                         title: 'Created At',
                         type: FieldType.DateTime,
                     },
-                
                 ]}
                 columns={[
                     {
@@ -105,7 +103,6 @@ const Users: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Full Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -113,7 +110,6 @@ const Users: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Email',
                         type: FieldType.Email,
-                        
                     },
                     {
                         field: {
@@ -121,7 +117,6 @@ const Users: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-                        
                     },
                 ]}
             />

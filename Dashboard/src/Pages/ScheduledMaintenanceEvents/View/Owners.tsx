@@ -69,7 +69,6 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -94,9 +93,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Owner since',
                         type: FieldType.Date,
-                    }
-                    
-                
+                    },
                 ]}
                 columns={[
                     {
@@ -107,7 +104,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
@@ -172,7 +169,6 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -211,7 +207,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');

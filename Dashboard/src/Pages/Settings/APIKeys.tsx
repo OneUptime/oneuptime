@@ -65,7 +65,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -89,7 +88,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Date,
                         title: 'Expires',
                     },
-                
                 ]}
                 columns={[
                     {
@@ -98,7 +96,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -106,7 +103,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -114,7 +110,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Expires',
                         type: FieldType.Date,
-                        
                     },
                 ]}
             />

@@ -78,7 +78,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                 modelAPI={AdminModelAPI}
                 noItemsMessage={'No probes found.'}
                 showRefreshButton={true}
-                
                 onBeforeCreate={(item: Probe) => {
                     item.isGlobalProbe = true;
                     return Promise.resolve(item);
@@ -158,7 +157,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                         title: 'Description',
                         type: FieldType.Text,
                     },
-                
                 ]}
                 columns={[
                     {
@@ -167,7 +165,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return <ProbeElement probe={item} />;
                         },
@@ -178,7 +176,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {

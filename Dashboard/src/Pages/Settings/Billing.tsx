@@ -490,7 +490,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 DashboardNavigation.getProjectId()?.toString(),
                         }}
                         showRefreshButton={true}
-                        
                         filters={[
                             {
                                 field: {
@@ -506,7 +505,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 title: 'Number',
                                 type: FieldType.Text,
                             },
-                        
                         ]}
                         columns={[
                             {
@@ -515,7 +513,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 },
                                 title: 'Payment Method Type',
                                 type: FieldType.Text,
-                                
+
                                 getElement: (item: JSONObject) => {
                                     return (
                                         <span>{`${Text.uppercaseFirstLetter(
@@ -530,7 +528,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 },
                                 title: 'Number',
                                 type: FieldType.Text,
-                                
+
                                 getElement: (item: JSONObject) => {
                                     return (
                                         <span>{`*****${item['last4Digits']}`}</span>

@@ -36,7 +36,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Log ID',
             type: FieldType.Text,
-            
         },
 
         {
@@ -69,8 +68,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
         },
     ];
 
-
-
     const modelTableColumns: Columns<SmsLog> = [
         {
             field: {
@@ -78,13 +75,12 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Log ID',
             type: FieldType.Text,
-            
         },
         {
             field: {
                 fromNumber: true,
             },
-            
+
             title: 'From Number',
             type: FieldType.Phone,
         },
@@ -92,7 +88,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
             field: {
                 toNumber: true,
             },
-            
 
             title: 'To Number',
             type: FieldType.Phone,
@@ -103,7 +98,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Sent at',
             type: FieldType.DateTime,
-            
         },
 
         {
@@ -129,7 +123,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
 
                 return <></>;
             },
-            
         },
     ];
 
@@ -206,7 +199,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                         'Looks like no SMS is sent by this project in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    
                     columns={modelTableColumns}
                 />
 

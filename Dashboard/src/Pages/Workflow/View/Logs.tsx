@@ -71,7 +71,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         'Looks like this workflow did not run so far in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    
                     viewPageRoute={Navigation.getCurrentRoute()}
                     filters={[
                         {
@@ -84,7 +83,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         {
                             field: {
                                 createdAt: true,
-                            
                             },
                             title: 'Scheduled At',
                             type: FieldType.DateTime,
@@ -92,7 +90,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         {
                             field: {
                                 startedAt: true,
-                            
                             },
                             title: 'Started At',
                             type: FieldType.DateTime,
@@ -100,13 +97,10 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         {
                             field: {
                                 completedAt: true,
-                            
-                            
                             },
                             title: 'Completed At',
                             type: FieldType.DateTime,
                         },
-                    
                     ]}
                     columns={[
                         {
@@ -115,13 +109,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Run ID',
                             type: FieldType.Text,
-                            
                         },
                         {
                             field: {
                                 workflowStatus: true,
                             },
-                            
 
                             title: 'Workflow Status',
                             type: FieldType.Text,
@@ -149,7 +141,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Scheduled At',
                             type: FieldType.DateTime,
-                            
                         },
                         {
                             field: {
@@ -157,7 +148,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Started At',
                             type: FieldType.DateTime,
-                            
                         },
                         {
                             field: {
@@ -165,7 +155,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Completed At',
                             type: FieldType.DateTime,
-                            
                         },
                     ]}
                 />

@@ -206,7 +206,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     showRefreshButton={true}
-                    
                     actionButtons={[
                         {
                             title: 'View SSO URL',
@@ -244,7 +243,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             title: 'Enabled',
                             type: FieldType.Boolean,
                         },
-                    
                     ]}
                     columns={[
                         {
@@ -253,7 +251,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Name',
                             type: FieldType.Text,
-                            
                         },
                         {
                             field: {
@@ -261,7 +258,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Description',
                             type: FieldType.Text,
-                            
                         },
                         {
                             field: {
@@ -293,7 +289,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Enabled',
                             type: FieldType.Boolean,
-                            
                         },
                     ]}
                 />

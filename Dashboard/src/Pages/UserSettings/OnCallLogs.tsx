@@ -55,7 +55,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={'No notifications sent out so far.'}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 showRefreshButton={true}
-                
                 showViewIdButton={true}
                 isViewable={true}
                 actionButtons={[
@@ -137,8 +136,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Created At',
                         type: FieldType.DateTime,
                     },
-
-
                 ]}
                 columns={[
                     {
@@ -150,14 +147,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'On-Call Policy',
                         type: FieldType.Element,
 
-
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['onCallDutyPolicy']) {
                                 return (
                                     <OnCallDutyPolicyView
                                         onCallPolicy={
                                             item[
-                                            'onCallDutyPolicy'
+                                                'onCallDutyPolicy'
                                             ] as OnCallDutyPolicy
                                         }
                                     />
@@ -175,14 +171,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Escalation Rule',
                         type: FieldType.Element,
 
-                       
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['onCallDutyPolicyEscalationRule']) {
                                 return (
                                     <EscalationRuleView
                                         escalationRule={
                                             item[
-                                            'onCallDutyPolicyEscalationRule'
+                                                'onCallDutyPolicyEscalationRule'
                                             ] as OnCallDutyPolicyEscalationRule
                                         }
                                     />
@@ -197,7 +192,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-
                     },
                     {
                         field: {
@@ -205,7 +199,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Element,
-
 
                         getElement: (item: JSONObject): ReactElement => {
                             if (

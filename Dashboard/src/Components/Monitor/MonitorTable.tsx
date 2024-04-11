@@ -69,7 +69,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         return (
                             values.monitorType !== MonitorType.Manual &&
                             values.monitorType !==
-                            MonitorType.IncomingRequest &&
+                                MonitorType.IncomingRequest &&
                             values.monitorType !== MonitorType.Server
                         );
                     },
@@ -167,7 +167,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 },
             ]}
             showRefreshButton={true}
-            
             viewPageRoute={props.viewPageRoute}
             filters={[
                 {
@@ -224,7 +223,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         value: '_id',
                     },
                 },
-
             ]}
             columns={[
                 {
@@ -233,7 +231,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Name',
                     type: FieldType.Text,
-
                 },
                 {
                     field: {
@@ -241,8 +238,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Monitor Type',
                     type: FieldType.Text,
-
-
                 },
                 {
                     field: {
@@ -251,7 +246,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                             name: true,
                         },
                     },
-
 
                     title: 'Monitor Status',
                     type: FieldType.Entity,
@@ -277,7 +271,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                 color={
                                     (
                                         item[
-                                        'currentMonitorStatus'
+                                            'currentMonitorStatus'
                                         ] as JSONObject
                                     )['color'] as Color
                                 }
@@ -285,7 +279,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                 text={
                                     (
                                         item[
-                                        'currentMonitorStatus'
+                                            'currentMonitorStatus'
                                         ] as JSONObject
                                     )['name'] as string
                                 }
@@ -302,7 +296,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     },
                     title: 'Labels',
                     type: FieldType.EntityArray,
-
 
                     getElement: (item: JSONObject): ReactElement => {
                         return (

@@ -7,7 +7,9 @@ import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
 import ObjectID from 'Common/Types/ObjectID';
-import MonitorType, { MonitorTypeHelper } from 'Common/Types/Monitor/MonitorType';
+import MonitorType, {
+    MonitorTypeHelper,
+} from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     modelId: ObjectID;
@@ -17,8 +19,9 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const isProbeableMonitor = MonitorTypeHelper.isProbableMonitors(props.monitorType);
+    const isProbeableMonitor: boolean = MonitorTypeHelper.isProbableMonitors(
+        props.monitorType
+    );
 
     return (
         <SideMenu>
@@ -43,7 +46,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Team}
                 />
-                {MonitorTypeHelper.doesMonitorTypeHaveCriteria(props.monitorType) ? (
+                {MonitorTypeHelper.doesMonitorTypeHaveCriteria(
+                    props.monitorType
+                ) ? (
                     <SideMenuItem
                         link={{
                             title: 'Criteria',
@@ -103,7 +108,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
-                {MonitorTypeHelper.doesMonitorTypeHaveDocumentation(props.monitorType) ? (
+                {MonitorTypeHelper.doesMonitorTypeHaveDocumentation(
+                    props.monitorType
+                ) ? (
                     <SideMenuItem
                         link={{
                             title: 'Documentation',

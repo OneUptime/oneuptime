@@ -81,7 +81,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 filters={[
                     {
@@ -97,7 +96,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -106,7 +105,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -114,7 +112,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        
                     },
                 ]}
             />

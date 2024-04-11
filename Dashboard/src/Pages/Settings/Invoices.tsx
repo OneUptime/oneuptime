@@ -93,7 +93,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                             DashboardNavigation.getProjectId()?.toString(),
                     }}
                     showRefreshButton={true}
-                    
                     selectMoreFields={{
                         currencyCode: true,
                         paymentProviderCustomerId: true,
@@ -135,7 +134,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Amount',
                             type: FieldType.Text,
-                            
+
                             getElement: (item: JSONObject) => {
                                 return (
                                     <span>{`${
@@ -152,7 +151,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Invoice Status',
                             type: FieldType.Text,
-                            
+
                             getElement: (item: JSONObject) => {
                                 if (item['status'] === InvoiceStatus.Paid) {
                                     return (
@@ -180,7 +179,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Actions',
                             type: FieldType.Text,
-                            
+
                             getElement: (item: JSONObject) => {
                                 return (
                                     <div>

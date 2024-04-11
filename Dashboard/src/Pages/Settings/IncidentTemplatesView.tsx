@@ -403,7 +403,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -415,7 +414,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Team',
                         type: FieldType.Text,
                     },
-                
                 ]}
                 columns={[
                     {
@@ -426,7 +424,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Team',
                         type: FieldType.Entity,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
@@ -491,7 +489,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
@@ -504,7 +501,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'User',
                         type: FieldType.Entity,
                     },
-                
                 ]}
                 columns={[
                     {

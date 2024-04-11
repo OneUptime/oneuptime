@@ -417,7 +417,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 showViewIdButton={true}
                 viewPageRoute={props.viewPageRoute}
                 filters={[
@@ -427,7 +426,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Title',
                         type: FieldType.Text,
-
                     },
                     {
                         field: {
@@ -495,7 +493,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Created',
                         type: FieldType.Date,
-
                     },
                     {
                         field: {
@@ -524,7 +521,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Title',
                         type: FieldType.Text,
-
                     },
                     {
                         field: {
@@ -536,7 +532,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         title: 'State',
                         type: FieldType.Entity,
 
-
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (
@@ -545,14 +540,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -571,7 +566,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             },
                         },
 
-
                         title: 'Severity',
                         type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
@@ -582,14 +576,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -611,14 +605,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         title: 'Monitors Affected',
                         type: FieldType.EntityArray,
 
-
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <MonitorsElement
                                     monitors={
                                         BaseModel.fromJSON(
                                             (item['monitors'] as JSONArray) ||
-                                            [],
+                                                [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }
@@ -632,7 +625,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Created',
                         type: FieldType.DateTime,
-
                     },
                     {
                         field: {
@@ -643,7 +635,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-
 
                         getElement: (item: JSONObject): ReactElement => {
                             return (

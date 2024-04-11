@@ -38,7 +38,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {
@@ -63,7 +62,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Telemetry Service',
                         type: FieldType.Entity,
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -72,7 +71,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Product',
                         type: FieldType.Text,
-                        
                     },
                     {
                         field: {
@@ -80,7 +78,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Day',
                         type: FieldType.Date,
-                        
                     },
                     {
                         field: {

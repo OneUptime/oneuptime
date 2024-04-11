@@ -195,15 +195,14 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Escalate after (in minutes)',
                         type: FieldType.Number,
-                    }
-                
+                    },
                 ]}
                 columns={[
                     {
                         field: {
                             order: true,
                         },
-                        
+
                         title: 'Escalation Rule Order',
                         description: 'The order of the escalation rule.',
                         type: FieldType.Number,
@@ -212,7 +211,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             name: true,
                         },
-                        
+
                         title: 'Name',
                         description: 'The name of the escalation rule.',
                         type: FieldType.Text,
@@ -221,7 +220,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                        
+
                         title: 'Description',
                         description: 'The description of the escalation rule.',
                         type: FieldType.Text,
@@ -267,7 +266,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             escalateAfterInMinutes: true,
                         },
-                        
+
                         title: 'Escalate after (in minutes)',
                         description:
                             'The amount of minutes to wait before escalating to the next escalation rule.',

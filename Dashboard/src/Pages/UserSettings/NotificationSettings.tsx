@@ -99,7 +99,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                
                 filters={[
                     {
                         field: {

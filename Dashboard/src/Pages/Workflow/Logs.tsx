@@ -65,7 +65,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         'Looks like no workflow ran so far in the last 30 days.'
                     }
                     showRefreshButton={true}
-                    
                     viewPageRoute={Navigation.getCurrentRoute()}
                     filters={[
                         {
@@ -115,7 +114,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Workflow Name',
                             type: FieldType.Text,
-                            
+
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <WorkflowElement
@@ -135,7 +134,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             field: {
                                 workflowStatus: true,
                             },
-                            
 
                             title: 'Workflow Status',
                             type: FieldType.Text,
@@ -163,7 +161,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Scheduled At',
                             type: FieldType.DateTime,
-                            
                         },
                         {
                             field: {
@@ -171,7 +168,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Started At',
                             type: FieldType.DateTime,
-                            
                         },
                         {
                             field: {
@@ -179,7 +175,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Completed At',
                             type: FieldType.DateTime,
-                            
                         },
                     ]}
                 />

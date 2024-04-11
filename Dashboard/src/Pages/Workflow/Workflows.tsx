@@ -133,7 +133,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     showRefreshButton={true}
-                    
                     viewPageRoute={Navigation.getCurrentRoute()}
                     filters={[
                         {
@@ -177,7 +176,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             filterDropdownOptions: [],
                         },
-                    
                     ]}
                     columns={[
                         {
@@ -185,21 +183,21 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                 name: true,
                             },
                             title: 'Name',
-                            type: FieldType.Text
+                            type: FieldType.Text,
                         },
                         {
                             field: {
                                 description: true,
                             },
                             title: 'Description',
-                            type: FieldType.Text
+                            type: FieldType.Text,
                         },
                         {
                             field: {
                                 isEnabled: true,
                             },
                             title: 'Enabled',
-                            type: FieldType.Boolean
+                            type: FieldType.Boolean,
                         },
                         {
                             field: {

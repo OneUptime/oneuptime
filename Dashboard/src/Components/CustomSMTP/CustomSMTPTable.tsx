@@ -194,7 +194,6 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                     },
                 ]}
                 showRefreshButton={true}
-                
                 viewPageRoute={Navigation.getCurrentRoute()}
                 filters={[
                     {
