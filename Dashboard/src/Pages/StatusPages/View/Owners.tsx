@@ -85,7 +85,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 ]}
@@ -111,7 +111,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 ]}
@@ -180,7 +180,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 
@@ -209,7 +209,7 @@ const StatusPageOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 ]}

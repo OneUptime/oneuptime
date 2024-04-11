@@ -341,17 +341,24 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 },
                 {
                     field: {
+                        createdAt: true,
+                    },
+                    title: 'Created At',
+                    type: FieldType.Date,
+                },
+                {
+                    field: {
                         startsAt: true,
                     },
                     title: 'Starts At',
-                    type: FieldType.DateTime,
+                    type: FieldType.Date,
                 },
                 {
                     field: {
                         endsAt: true,
                     },
                     title: 'Ends At',
-                    type: FieldType.DateTime,
+                    type: FieldType.Date,
                 },
                 {
                     field: {

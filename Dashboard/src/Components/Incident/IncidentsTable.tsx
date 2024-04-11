@@ -494,7 +494,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             createdAt: true,
                         },
                         title: 'Created',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
 
                     },
                     {

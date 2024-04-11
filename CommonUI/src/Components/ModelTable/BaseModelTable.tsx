@@ -505,6 +505,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         continue;
                     }
 
+                    if(filter.fetchFilterDropdownOptions){
+
+                        // fetch filter dropdown options.
+                        filter.filterDropdownOptions = await filter.fetchFilterDropdownOptions();
+                        continue;
+                    }
+
                     const query: Query<TBaseModel> = filter.filterQuery || {};
 
                     const listResult: ListResult<TBaseModel> =

@@ -19,5 +19,6 @@ export default interface Filter<
         value: string;
     }
     | undefined;
-    filterDropdownOptions?: Array<DropdownOption> | undefined;
+    filterDropdownOptions?:  Array<DropdownOption> | undefined;
+    fetchFilterDropdownOptions?: () => Promise<Array<DropdownOption>> | undefined;
 }

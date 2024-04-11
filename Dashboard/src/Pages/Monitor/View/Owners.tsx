@@ -78,7 +78,23 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         },
                         type: FieldType.Entity,
                         title: 'Team',
+                        filterEntityType: Team,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Owner since',
+                        type: FieldType.Date,
+                    }
                 ]}
                 columns={[
                     {
@@ -101,7 +117,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 ]}
@@ -164,12 +180,22 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
                     {
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 
@@ -197,7 +223,7 @@ const MonitorOwners: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 ]}

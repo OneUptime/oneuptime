@@ -439,7 +439,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 ]}
@@ -529,7 +529,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Owner from',
+                        title: 'Owner since',
                         type: FieldType.DateTime,
                     },
                 ]}

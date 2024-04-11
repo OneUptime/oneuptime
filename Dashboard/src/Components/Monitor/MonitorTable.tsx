@@ -171,6 +171,13 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             viewPageRoute={props.viewPageRoute}
             filters={[
                 {
+                    title: 'Name',
+                    type: FieldType.Text,
+                    field: {
+                        name: true,
+                    },
+                },
+                {
                     title: 'Monitor Type',
                     type: FieldType.Text,
                     field: {
