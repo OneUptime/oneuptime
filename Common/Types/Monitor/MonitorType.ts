@@ -123,4 +123,17 @@ export class MonitorTypeHelper {
         const isProbeableMonitor =monitorType === MonitorType.API ||monitorType === MonitorType.Website ||monitorType === MonitorType.IP || monitorType === MonitorType.Ping ||monitorType === MonitorType.Port ||monitorType === MonitorType.SSLCertificate
         return isProbeableMonitor;
     }
+
+    public static doesMonitorTypeHaveDocumentation(monitorType: MonitorType): boolean {
+        return monitorType === MonitorType.IncomingRequest ||
+        monitorType === MonitorType.Server
+    }
+
+    public static doesMonitorTypeHaveInterval(monitorType: MonitorType): boolean {
+        return this.isProbableMonitors(monitorType);
+    }
+
+    public static doesMonitorTypeHaveCriteria(monitorType: MonitorType): boolean {
+        return monitorType !== MonitorType.Manual;
+    }
 }

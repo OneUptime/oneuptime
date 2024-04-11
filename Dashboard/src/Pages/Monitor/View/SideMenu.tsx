@@ -43,7 +43,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Team}
                 />
-                {props.monitorType !== MonitorType.Manual ? (
+                {MonitorTypeHelper.doesMonitorTypeHaveCriteria(props.monitorType) ? (
                     <SideMenuItem
                         link={{
                             title: 'Criteria',
@@ -59,9 +59,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 ) : (
                     <></>
                 )}
-                {props.monitorType !== MonitorType.Manual &&
-                props.monitorType !== MonitorType.Server &&
-                props.monitorType !== MonitorType.IncomingRequest ? (
+                {MonitorTypeHelper.isProbableMonitors(props.monitorType) ? (
                     <SideMenuItem
                         link={{
                             title: 'Interval',
@@ -105,8 +103,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
-                {props.monitorType === MonitorType.IncomingRequest ||
-                props.monitorType === MonitorType.Server ? (
+                {MonitorTypeHelper.doesMonitorTypeHaveDocumentation(props.monitorType) ? (
                     <SideMenuItem
                         link={{
                             title: 'Documentation',
