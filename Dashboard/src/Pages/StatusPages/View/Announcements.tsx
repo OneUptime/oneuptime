@@ -135,14 +135,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showAnnouncementAt: true,
                         },
                         title: 'Show Announcement At',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                     },
                     {
                         field: {
                             endAnnouncementAt: true,
                         },
                         title: 'End Announcement At',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                     },
                     {
                         field: {

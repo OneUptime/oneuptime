@@ -280,8 +280,9 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
 
                                                         if (
                                                             changedValue &&
-                                                            filter.type ===
-                                                                FieldType.Text
+                                                            (filter.type ===
+                                                                FieldType.Text || 
+                                                            filter.type === FieldType.Email)
                                                         ) {
                                                             filterData[
                                                                 filter.key

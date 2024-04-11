@@ -31,6 +31,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ScheduledMaintenanceNoteTemplate from 'Model/Models/ScheduledMaintenanceNoteTemplate';
 import OneUptimeDate from 'Common/Types/Date';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
+import ProjectUser from '../../../Utils/ProjectUser';
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -212,35 +213,34 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
+                            createdByUser: true,
+                        },
+                        type: FieldType.Entity,
+                        title: 'Created By',
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
                             note: true,
                         },
+                        type: FieldType.Text,
                         title: 'Note',
-                        type: FieldType.Text,
                     },
                     {
                         field: {
-                            postedAt: true,
+                            createdAt: true,
                         },
-                        title: 'Posted At',
-                        type: FieldType.DateTime,
-                    },
-                    {
-                        field: {
-                            shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
-                                true,
-                        },
-                        title: 'Notify Status Page Subscribers',
-                        type: FieldType.Boolean,
-                    },
-                    {
-                        field: {
-                            createdByUser: {
-                                name: true,
-                                email: true,
-                            },
-                        },
-                        title: 'Created By',
-                        type: FieldType.Text,
+                        type: FieldType.Date,
+                        title: 'Created At',
                     },
                 ]}
                 columns={[

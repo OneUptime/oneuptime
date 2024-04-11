@@ -29,6 +29,7 @@ import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ScheduledMaintenanceNoteTemplate from 'Model/Models/ScheduledMaintenanceNoteTemplate';
 import BaseModel from 'Common/Models/BaseModel';
+import ProjectUser from '../../../Utils/ProjectUser';
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -183,27 +184,34 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
-                            createdByUser: {
-                                name: true,
-                            },
+                            createdByUser: true,
                         },
-                        type: FieldType.Text,
-                        title: 'User',
-                    },
-                    {
-                        field: {
-                            createdAt: true,
+                        type: FieldType.Entity,
+                        title: 'Created By',
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
                         },
-                        type: FieldType.DateTime,
-                        title: 'Created At',
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
-
                     {
                         field: {
                             note: true,
                         },
                         type: FieldType.Text,
                         title: 'Note',
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        type: FieldType.Date,
+                        title: 'Created At',
                     },
                 ]}
                 columns={[

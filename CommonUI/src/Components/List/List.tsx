@@ -52,15 +52,18 @@ const List: FunctionComponent<ComponentProps> = (
 
         if (props.error) {
             return (
+                <div className='p-6'>
                 <ErrorMessage
                     error={props.error}
                     onRefreshClick={props.onRefreshClick}
                 />
+                </div>
             );
         }
 
         if (props.data.length === 0) {
             return (
+                <div className='p-6'>
                 <ErrorMessage
                     error={
                         props.noItemsMessage
@@ -69,6 +72,7 @@ const List: FunctionComponent<ComponentProps> = (
                     }
                     onRefreshClick={props.onRefreshClick}
                 />
+                </div>
             );
         }
 

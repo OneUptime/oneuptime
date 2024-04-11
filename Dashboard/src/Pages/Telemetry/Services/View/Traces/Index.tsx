@@ -76,7 +76,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         field: {
                             startTime: true,
                         },
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                         title: 'Seen At',
                     },
                 ]}

@@ -29,6 +29,7 @@ import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
+import ProjectUser from '../../../Utils/ProjectUser';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -175,12 +176,20 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
-                            createdByUser: {
-                                name: true,
-                            },
+                            createdByUser: true,
                         },
-                        type: FieldType.Text,
+                        type: FieldType.Entity,
                         title: 'Created By',
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
                     {
                         field: {
@@ -193,7 +202,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                         title: 'Created At',
                     },
                 ]}

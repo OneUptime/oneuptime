@@ -219,7 +219,30 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         noItemsMessage={'No subscribers found.'}
                         formFields={formFields}
                         showRefreshButton={true}
-                        filters={[]}
+                        filters={[
+                            {
+                                field: {
+                                    subscriberEmail: true,
+                                },
+                                title: 'Email',
+                                type: FieldType.Text,
+                            },
+                            {
+                                field: {
+                                    isUnsubscribed: true,
+                                },
+                                title: 'Unsubscribed',
+                                type: FieldType.Boolean,
+                                
+                            },
+                            {
+                                field: {
+                                    createdAt: true,
+                                },
+                                title: 'Subscribed At',
+                                type: FieldType.Date,
+                            }
+                        ]}
                         viewPageRoute={Navigation.getCurrentRoute()}
                         columns={[
                             {

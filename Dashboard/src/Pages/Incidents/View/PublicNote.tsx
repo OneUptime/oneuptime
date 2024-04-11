@@ -31,6 +31,7 @@ import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import OneUptimeDate from 'Common/Types/Date';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
+import ProjectUser from '../../../Utils/ProjectUser';
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -205,26 +206,34 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
-                            createdByUser: {
-                                name: true,
-                            },
+                            createdByUser: true,
                         },
+                        type: FieldType.Entity,
                         title: 'Created By',
-                        type: FieldType.Text,
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!
+                            );
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
                     {
                         field: {
                             note: true,
                         },
-                        title: 'Note',
                         type: FieldType.Text,
+                        title: 'Note',
                     },
                     {
                         field: {
-                            postedAt: true,
+                            createdAt: true,
                         },
-                        title: 'Posted At',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
+                        title: 'Created At',
                     },
                 ]}
                 columns={[
