@@ -246,6 +246,15 @@ spec:
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
+      {{- if $.Values.affinity }}
+      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.nodeSelector }}
+      nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
+      {{- end }}
       {{- if $.Volumes }}
       volumes:
       {{- range $key, $val := $.Volumes }}
