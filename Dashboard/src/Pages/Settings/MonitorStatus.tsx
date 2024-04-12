@@ -110,9 +110,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     isOfflineState: true,
                     priority: true,
                 }}
-                filters={[
-                    
-                ]}
+                filters={[]}
                 columns={[
                     {
                         field: {

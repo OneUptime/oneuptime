@@ -165,13 +165,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             field: {},
                             title: 'CNAME Valid',
                             type: FieldType.Boolean,
-                            
                         },
                         {
                             field: {},
                             title: 'SSL Provisioned',
                             type: FieldType.Boolean,
-                            
                         },
                     ]}
                     columns={[

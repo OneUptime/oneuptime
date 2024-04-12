@@ -233,7 +233,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 },
                                 title: 'Unsubscribed',
                                 type: FieldType.Boolean,
-                                
                             },
                             {
                                 field: {
@@ -241,7 +240,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 },
                                 title: 'Subscribed At',
                                 type: FieldType.Date,
-                            }
+                            },
                         ]}
                         viewPageRoute={Navigation.getCurrentRoute()}
                         columns={[

@@ -87,7 +87,10 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Workflow Status',
                             type: FieldType.Dropdown,
-                            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(WorkflowStatus)
+                            filterDropdownOptions:
+                                DropdownUtil.getDropdownOptionsFromEnum(
+                                    WorkflowStatus
+                                ),
                         },
                         {
                             field: {

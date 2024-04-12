@@ -60,9 +60,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     isResolvedState: true,
                     order: true,
                 }}
-                filters={[
-                   
-                ]}
+                filters={[]}
                 columns={[
                     {
                         field: {

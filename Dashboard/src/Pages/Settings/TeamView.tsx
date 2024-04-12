@@ -152,7 +152,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 filters={[
                     {
                         field: {
-                            user:true,
+                            user: true,
                         },
                         type: FieldType.Entity,
                         title: 'User',

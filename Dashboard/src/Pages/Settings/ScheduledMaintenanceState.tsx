@@ -67,9 +67,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     isEndedState: true,
                     order: true,
                 }}
-                filters={[
-                   
-                ]}
+                filters={[]}
                 columns={[
                     {
                         field: {

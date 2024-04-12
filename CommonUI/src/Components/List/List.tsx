@@ -52,26 +52,26 @@ const List: FunctionComponent<ComponentProps> = (
 
         if (props.error) {
             return (
-                <div className='p-6'>
-                <ErrorMessage
-                    error={props.error}
-                    onRefreshClick={props.onRefreshClick}
-                />
+                <div className="p-6">
+                    <ErrorMessage
+                        error={props.error}
+                        onRefreshClick={props.onRefreshClick}
+                    />
                 </div>
             );
         }
 
         if (props.data.length === 0) {
             return (
-                <div className='p-6'>
-                <ErrorMessage
-                    error={
-                        props.noItemsMessage
-                            ? props.noItemsMessage
-                            : `No ${props.singularLabel.toLocaleLowerCase()}`
-                    }
-                    onRefreshClick={props.onRefreshClick}
-                />
+                <div className="p-6">
+                    <ErrorMessage
+                        error={
+                            props.noItemsMessage
+                                ? props.noItemsMessage
+                                : `No ${props.singularLabel.toLocaleLowerCase()}`
+                        }
+                        onRefreshClick={props.onRefreshClick}
+                    />
                 </div>
             );
         }
@@ -94,8 +94,7 @@ const List: FunctionComponent<ComponentProps> = (
     return (
         <div data-testid="list-container">
             <div className="mt-6">
-                
-                    <div className='bg-white pr-6 pl-6'>
+                <div className="bg-white pr-6 pl-6">
                     <Filter
                         id={`${props.id}-filter`}
                         showFilter={props.showFilter || false}
@@ -105,9 +104,8 @@ const List: FunctionComponent<ComponentProps> = (
                         onFilterRefreshClick={props.onFilterRefreshClick}
                         filters={props.filters || []}
                     />
-                    </div>
-                    <div className="">
-
+                </div>
+                <div className="">
                     <DragDropContext
                         onDragEnd={(result: DropResult) => {
                             result.destination?.index &&

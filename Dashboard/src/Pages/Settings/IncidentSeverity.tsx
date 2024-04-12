@@ -33,9 +33,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                     color: true,
                     order: true,
                 }}
-                filters={[
-                   
-                ]}
+                filters={[]}
                 columns={[
                     {
                         field: {
