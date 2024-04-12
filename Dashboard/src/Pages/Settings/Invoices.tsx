@@ -24,6 +24,7 @@ import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLo
 import DashboardNavigation from '../../Utils/Navigation';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -119,16 +120,18 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Invoice Status',
                             type: FieldType.Dropdown,
-                            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                                InvoiceStatus
-                            ).map((option) => {
-                                return {
-                                    value: option.value,
-                                    label: Text.uppercaseFirstLetter(
-                                        option.value as string || 'Undefined'
-                                    ),
-                                }
-                            })
+                            filterDropdownOptions:
+                                DropdownUtil.getDropdownOptionsFromEnum(
+                                    InvoiceStatus
+                                ).map((option: DropdownOption) => {
+                                    return {
+                                        value: option.value,
+                                        label: Text.uppercaseFirstLetter(
+                                            (option.value as string) ||
+                                                'Undefined'
+                                        ),
+                                    };
+                                }),
                         },
                     ]}
                     columns={[

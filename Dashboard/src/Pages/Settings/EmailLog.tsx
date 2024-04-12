@@ -66,9 +66,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             title: 'Status',
             type: FieldType.Dropdown,
             filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(
-                    EmailStatus
-                ),
+                DropdownUtil.getDropdownOptionsFromEnum(EmailStatus),
         },
     ];
 

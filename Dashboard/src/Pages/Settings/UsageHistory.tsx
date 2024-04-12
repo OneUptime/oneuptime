@@ -12,6 +12,7 @@ import TelemetryServiceElement from '../../Components/TelemetryService/Telemetry
 import TelemetryService from 'Model/Models/TelemetryService';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -48,9 +49,14 @@ const Settings: FunctionComponent<ComponentProps> = (
                         title: 'Product',
                         type: FieldType.Dropdown,
                         filterDropdownOptions:
-                        DropdownUtil.getDropdownOptionsFromEnum(
-                            ProductType
-                        ).filter((option) => option.value !== ProductType.ActiveMonitoring), // Remove Active Monitoring from the dropdown
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                ProductType
+                            ).filter((option: DropdownOption) => {
+                                return (
+                                    option.value !==
+                                    ProductType.ActiveMonitoring
+                                );
+                            }), // Remove Active Monitoring from the dropdown
                     },
                     {
                         field: {

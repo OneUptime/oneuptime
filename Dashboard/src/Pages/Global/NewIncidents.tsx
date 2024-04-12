@@ -78,7 +78,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                     );
                 }}
                 filters={[
-                   
                     {
                         field: {
                             _id: true,

@@ -69,9 +69,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             title: 'Status',
             type: FieldType.Dropdown,
             filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(
-                    CallStatus
-                ),
+                DropdownUtil.getDropdownOptionsFromEnum(CallStatus),
         },
     ];
 

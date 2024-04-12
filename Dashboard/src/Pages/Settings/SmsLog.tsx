@@ -67,9 +67,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
             title: 'Status',
             type: FieldType.Dropdown,
             filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(
-                    SmsStatus
-                ),
+                DropdownUtil.getDropdownOptionsFromEnum(SmsStatus),
         },
     ];
 
