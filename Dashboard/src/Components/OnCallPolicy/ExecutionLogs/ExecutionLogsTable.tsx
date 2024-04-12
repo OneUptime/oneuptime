@@ -74,12 +74,18 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
         filters = filters.concat([
             {
-                title: 'Policy Name',
-                type: FieldType.Element,
+                title: 'On Call Policy',
+                type: FieldType.Entity,
                 field: {
-                    onCallDutyPolicy: {
-                        name: true,
-                    },
+                    onCallDutyPolicy: true,
+                },
+                filterEntityType: OnCallDutyPolicy,
+                filterQuery: {
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                },
+                filterDropdownField: {
+                    label: 'name',
+                    value: '_id',
                 },
             },
         ]);
@@ -88,7 +94,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
     filters = filters.concat([
         {
             title: 'Status',
-            type: FieldType.Element,
+            type: FieldType.Dropdown,
             field: {
                 status: true,
             },
@@ -98,7 +104,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         },
         {
             title: 'Triggered at',
-            type: FieldType.DateTime,
+            type: FieldType.Date,
             field: {
                 createdAt: true,
             },

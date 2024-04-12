@@ -81,23 +81,39 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 filters={[
                     {
                         field: {
+                            onCallDutyPolicyEscalationRule: true,
+                        },
+                        type: FieldType.Entity,
+                        title: 'Escalation Rule',
+                        filterEntityType: OnCallDutyPolicyEscalationRule,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                    },
+                    {
+                        field: {
                             createdAt: true,
                         },
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                         title: 'Started At',
                     },
                     {
                         field: {
                             acknowledgedAt: true,
                         },
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                         title: 'Acknowledged At',
                     },
                     {
                         field: {
                             status: true,
                         },
-                        type: FieldType.Text,
+                        type: FieldType.Dropdown,
                         title: 'Status',
                         filterDropdownOptions:
                             DropdownUtil.getDropdownOptionsFromEnum(

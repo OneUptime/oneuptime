@@ -189,13 +189,6 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                     },
-                    {
-                        field: {
-                            escalateAfterInMinutes: true,
-                        },
-                        title: 'Escalate after (in minutes)',
-                        type: FieldType.Number,
-                    },
                 ]}
                 columns={[
                     {
