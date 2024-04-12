@@ -103,7 +103,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             createdAt: true,
                         },
                         title: 'Created At',
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                     },
                 ]}
                 columns={[

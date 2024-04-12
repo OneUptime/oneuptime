@@ -104,7 +104,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `(LOWER(${alias}) LIKE (:${rid}))`;
+                return `((CAST(${alias} AS TEXT) ILIKE :${rid}))`;
             },
             {
                 [rid]: `%${name}%`,

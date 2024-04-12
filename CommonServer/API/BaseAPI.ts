@@ -218,6 +218,8 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+
+        debugger;
         await this.onBeforeList(req, res);
 
         const skip: PositiveNumber = req.query['skip']
