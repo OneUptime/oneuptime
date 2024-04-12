@@ -20,6 +20,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 const EmailLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -35,7 +36,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                 _id: true,
             },
             title: 'Log ID',
-            type: FieldType.Text,
+            type: FieldType.ObjectID,
         },
         {
             field: {
@@ -56,14 +57,18 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                 createdAt: true,
             },
             title: 'Sent at',
-            type: FieldType.DateTime,
+            type: FieldType.Date,
         },
         {
             field: {
                 status: true,
             },
             title: 'Status',
-            type: FieldType.Text,
+            type: FieldType.Dropdown,
+            filterDropdownOptions:
+                DropdownUtil.getDropdownOptionsFromEnum(
+                    EmailStatus
+                ),
         },
     ];
 

@@ -10,6 +10,8 @@ import DiskSize from 'Common/Types/DiskSize';
 import Decimal from 'Common/Types/Decimal';
 import TelemetryServiceElement from '../../Components/TelemetryService/TelemetryServiceElement';
 import TelemetryService from 'Model/Models/TelemetryService';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -44,7 +46,11 @@ const Settings: FunctionComponent<ComponentProps> = (
                             productType: true,
                         },
                         title: 'Product',
-                        type: FieldType.Text,
+                        type: FieldType.Dropdown,
+                        filterDropdownOptions:
+                        DropdownUtil.getDropdownOptionsFromEnum(
+                            ProductType
+                        ).filter((option) => option.value !== ProductType.ActiveMonitoring), // Remove Active Monitoring from the dropdown
                     },
                     {
                         field: {
@@ -55,13 +61,19 @@ const Settings: FunctionComponent<ComponentProps> = (
                     },
                     {
                         field: {
-                            telemetryService: {
-                                name: true,
-                                _id: true,
-                            },
+                            telemetryService: true,
                         },
                         title: 'Telemetry Service',
                         type: FieldType.Entity,
+                        filterEntityType: TelemetryService,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                     },
                 ]}
                 columns={[

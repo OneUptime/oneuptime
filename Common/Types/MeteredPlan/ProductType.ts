@@ -2,7 +2,7 @@ enum ProductType {
     Logs = 'Logs',
     Traces = 'Traces',
     Metrics = 'Metrics',
-    ActiveMonitoring = 'ActiveMonitoring',
+    ActiveMonitoring = 'Active Monitoring',
 }
 
 export default ProductType;

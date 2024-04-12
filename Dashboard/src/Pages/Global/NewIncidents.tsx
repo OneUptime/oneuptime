@@ -78,21 +78,12 @@ const Home: FunctionComponent<PageComponentProps> = (
                     );
                 }}
                 filters={[
-                    {
-                        field: {
-                            project: {
-                                name: true,
-                                _id: true,
-                            },
-                        },
-                        type: FieldType.Text,
-                        title: 'Project',
-                    },
+                   
                     {
                         field: {
                             _id: true,
                         },
-                        type: FieldType.Text,
+                        type: FieldType.ObjectID,
                         title: 'Incident ID',
                     },
                     {
@@ -104,40 +95,9 @@ const Home: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            currentIncidentState: {
-                                name: true,
-                                color: true,
-                            },
-                        },
-                        type: FieldType.Entity,
-                        title: 'Current State',
-                    },
-                    {
-                        field: {
-                            incidentSeverity: {
-                                name: true,
-                                color: true,
-                            },
-                        },
-                        type: FieldType.Entity,
-                        title: 'Incident Severity',
-                    },
-                    {
-                        field: {
-                            monitors: {
-                                name: true,
-                                _id: true,
-                                projectId: true,
-                            },
-                        },
-                        type: FieldType.Text,
-                        title: 'Monitors Affected',
-                    },
-                    {
-                        field: {
                             createdAt: true,
                         },
-                        type: FieldType.DateTime,
+                        type: FieldType.Date,
                         title: 'Created At',
                     },
                 ]}

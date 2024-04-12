@@ -20,6 +20,7 @@ import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -35,7 +36,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                 _id: true,
             },
             title: 'Log ID',
-            type: FieldType.Text,
+            type: FieldType.ObjectID,
         },
 
         {
@@ -57,14 +58,18 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                 createdAt: true,
             },
             title: 'Sent at',
-            type: FieldType.DateTime,
+            type: FieldType.Date,
         },
         {
             field: {
                 status: true,
             },
             title: 'Status',
-            type: FieldType.Text,
+            type: FieldType.Dropdown,
+            filterDropdownOptions:
+                DropdownUtil.getDropdownOptionsFromEnum(
+                    SmsStatus
+                ),
         },
     ];
 
