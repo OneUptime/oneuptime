@@ -23,6 +23,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import DashboardNavigation from '../../Utils/Navigation';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -117,7 +118,17 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 status: true,
                             },
                             title: 'Invoice Status',
-                            type: FieldType.Text,
+                            type: FieldType.Dropdown,
+                            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+                                InvoiceStatus
+                            ).map((option) => {
+                                return {
+                                    value: option.value,
+                                    label: Text.uppercaseFirstLetter(
+                                        option.value as string || 'Undefined'
+                                    ),
+                                }
+                            })
                         },
                     ]}
                     columns={[
