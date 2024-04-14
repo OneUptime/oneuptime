@@ -2,7 +2,7 @@ import Color from '../../Types/Color';
 import {
     Black,
     White,
-    slate,
+    Slate,
     Purple,
     Pink,
     Red,
@@ -41,9 +41,9 @@ describe('Color', () => {
     });
     describe('slate', () => {
         it('should be an instance with the hex code of slate', () => {
-            const color: Color = slate;
-            expect(slate).toBe(color);
-            expect(slate.color).toBe('#564ab1');
+            const color: Color = Slate;
+            expect(Slate).toBe(color);
+            expect(Slate.color).toBe('#564ab1');
         });
     });
     describe('Purple', () => {
