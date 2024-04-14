@@ -2,7 +2,7 @@ import Color from './Color';
 
 export const Black: Color = Color.fromString('#000000');
 export const White: Color = Color.fromString('#ffffff');
-export const slate: Color = Color.fromString('#564ab1');
+export const Slate: Color = Color.fromString('#564ab1');
 export const Purple: Color = Color.fromString('#6f42c1');
 export const Pink: Color = Color.fromString('#e83e8c');
 export const Red: Color = Color.fromString('#fd625e');
