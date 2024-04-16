@@ -2,13 +2,11 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import Timeline, { GanttChartTimeline } from './Timeline/Index';
 import { GanttChartRow } from './Row/Index';
 import ChartContainer from './ChartContainer';
-import { GanttChartBar } from './Bar/Index';
 import Rows from './Rows';
 
 export interface GanttChartProps {
     id: string;
     rows: GanttChartRow[];
-    bars: GanttChartBar[];
     timeline: GanttChartTimeline;
     onBarSelectChange: (barIds: string[]) => void;
 }
@@ -74,7 +72,6 @@ const GanttChart: FunctionComponent<ComponentProps> = (
                     chartTimelineEnd={props.chart.timeline.end}
                     chartTimelineStart={props.chart.timeline.start}
                     rows={props.chart.rows}
-                    bars={props.chart.bars}
                     selectedBarIds={selectedBarIds}
                     onBarSelectChange={(barIds: string[]) => {
                         setSelectedBarIds(barIds);
