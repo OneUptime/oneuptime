@@ -25,12 +25,20 @@ export interface ComponentProps {
 const Row: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    type GetRowFunction = (data: { row: GanttChartRow }) => ReactElement;
+    type GetRowFunction = (data: { row: GanttChartRow, level: number }) => ReactElement;
 
     const getRow: GetRowFunction = (data: {
         row: GanttChartRow;
+        level: number;
     }): ReactElement => {
+
         const { row } = data;
+
+        let {level} = data;
+
+        if(!level) {
+            level = 0;
+        }
 
         return (
             // rectangle div with curved corners and text inside in tailwindcss
@@ -38,7 +46,7 @@ const Row: FunctionComponent<ComponentProps> = (
                 <div
                     className={`flex w-full border-b-2 border-gray-200  border-l-2 border-l-gray-400 border-r-2 border-r-gray-400`}
                 >
-                    <div className="w-1/4 p-2 border-r-2 border-gray-300">
+                    <div className={`w-1/4 p-2 border-r-2 border-gray-300`}>
                         <RowLabel
                             title={row.rowInfo.title}
                             description={row.rowInfo.description}
@@ -94,20 +102,23 @@ const Row: FunctionComponent<ComponentProps> = (
                         })}
                     </div>
                 </div>
-                {row.childRows.map((childRow: GanttChartRow, i: number) => {
-                    return (
-                        <div key={i}>
-                            {getRow({
-                                row: childRow,
-                            })}
-                        </div>
-                    );
-                })}
+                <div className={`ml-4`}>
+                    {row.childRows.map((childRow: GanttChartRow, i: number) => {
+                        return (
+                            <div key={i}>
+                                {getRow({
+                                    row: childRow,
+                                    level: level + 1
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         );
     };
 
-    return getRow({ row: props.row });
+    return getRow({ row: props.row, level: 0});
 };
 
 export default Row;
