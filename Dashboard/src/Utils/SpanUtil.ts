@@ -1,11 +1,11 @@
 import {
     Black,
-    Cyan,
-    Green,
-    Purple,
-    Red,
+    Cyan500,
+    Green500,
+    Purple500,
+    Red500,
     White,
-    Yellow,
+    Yellow500,
 } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
@@ -35,27 +35,27 @@ export default class SpanUtil {
     } {
         if (span.kind === SpanKind.Server) {
             return {
-                barColor: Green,
+                barColor: Green500,
                 titleColor: White,
             };
         } else if (span.kind === SpanKind.Client) {
             return {
-                barColor: Yellow,
+                barColor: Yellow500,
                 titleColor: Black,
             };
         } else if (span.kind === SpanKind.Producer) {
             return {
-                barColor: Purple,
+                barColor: Purple500,
                 titleColor: White,
             };
         } else if (span.kind === SpanKind.Consumer) {
             return {
-                barColor: Cyan,
+                barColor: Cyan500,
                 titleColor: White,
             };
         }
         return {
-            barColor: Red,
+            barColor: Red500,
             titleColor: White,
         };
     }

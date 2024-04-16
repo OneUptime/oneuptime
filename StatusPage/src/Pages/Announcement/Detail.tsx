@@ -28,7 +28,7 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { Blue } from 'Common/Types/BrandColors';
+import { Blue500 } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import API from '../../Utils/API';
 import StatusPageUtil from '../../Utils/StatusPage';
@@ -63,7 +63,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
                   announcement.id!
               ),
         isDetailItem: !isSummary,
-        eventTypeColor: Blue,
+        eventTypeColor: Blue500,
         eventSecondDescription: announcement.showAnnouncementAt!
             ? 'Announced at ' +
               OneUptimeDate.getDateAsLocalFormattedString(

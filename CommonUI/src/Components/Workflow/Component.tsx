@@ -10,7 +10,7 @@ import {
 } from 'Common/Types/Workflow/Component';
 import Tooltip from '../Tooltip/Tooltip';
 import Pill from '../Pill/Pill';
-import { Green } from 'Common/Types/BrandColors';
+import { Green500 } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     data: NodeDataProp;
@@ -141,7 +141,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 {props.data.metadata.componentType === ComponentType.Trigger &&
                     props.data.nodeType !== NodeType.PlaceholderNode &&
                     !props.data.isPreview && (
-                        <Pill text="Trigger" color={Green} />
+                        <Pill text="Trigger" color={Green500} />
                     )}
             </div>
             {!props.data.isPreview &&

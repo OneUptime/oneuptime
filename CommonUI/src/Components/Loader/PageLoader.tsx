@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Loader, { LoaderType } from './Loader';
-import { VeryLightGrey } from 'Common/Types/BrandColors';
+import { VeryLightGray } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     isVisible: boolean;
@@ -14,7 +14,7 @@ const PageLoader: FunctionComponent<ComponentProps> = (
             <div className="m-auto w-full text-center w-max mt-52 align-middle flex items-center">
                 <Loader
                     loaderType={LoaderType.Bar}
-                    color={VeryLightGrey}
+                    color={VeryLightGray}
                     size={200}
                 />
             </div>

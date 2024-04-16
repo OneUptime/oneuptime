@@ -30,7 +30,7 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Color from 'Common/Types/Color';
-import { Green, Grey, Yellow } from 'Common/Types/BrandColors';
+import { Green500, Gray, Yellow500 } from 'Common/Types/BrandColors';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
@@ -72,7 +72,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     /// get timeline.
 
     let currentStateStatus: string = '';
-    let currentStatusColor: Color = Green;
+    let currentStatusColor: Color = Green500;
 
     const timeline: Array<TimelineItem> = [];
 
@@ -113,7 +113,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
                 date: scheduledMaintenancePublicNote?.postedAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
-                iconColor: Grey,
+                iconColor: Gray,
             });
 
             if (isSummary) {
@@ -147,7 +147,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
                     : IconProp.ArrowCircleRight,
                 iconColor:
                     scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState.color || Grey,
+                        .scheduledMaintenanceState.color || Gray,
             });
 
             if (!currentStateStatus) {
@@ -156,7 +156,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
                         .scheduledMaintenanceState?.name || '';
                 currentStatusColor =
                     scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState?.color || Green;
+                        .scheduledMaintenanceState?.color || Green500;
             }
 
             if (isSummary) {
@@ -245,7 +245,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
-        eventTypeColor: Yellow,
+        eventTypeColor: Yellow500,
         eventSecondDescription: scheduledMaintenance.startsAt
             ? 'Scheduled at ' +
               OneUptimeDate.getDateAsLocalFormattedString(

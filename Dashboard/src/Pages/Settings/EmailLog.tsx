@@ -14,7 +14,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import EmailStatus from 'Common/Types/Mail/MailStatus';
-import { Green, Red } from 'Common/Types/BrandColors';
+import { Green500, Red500 } from 'Common/Types/BrandColors';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
@@ -124,8 +124,8 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                             isMinimal={false}
                             color={
                                 item['status'] === EmailStatus.Success
-                                    ? Green
-                                    : Red
+                                    ? Green500
+                                    : Red500
                             }
                             text={item['status'] as string}
                         />

@@ -6,7 +6,7 @@ import Select from '../../Utils/BaseDatabase/Select';
 import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
-import { VeryLightGrey } from 'Common/Types/BrandColors';
+import { VeryLightGray } from 'Common/Types/BrandColors';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
@@ -229,7 +229,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
             >
                 <Loader
                     loaderType={LoaderType.Bar}
-                    color={VeryLightGrey}
+                    color={VeryLightGray}
                     size={200}
                 />
             </div>
@@ -239,7 +239,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     if (error) {
         return (
             <p
-                className="text-center color-light-grey"
+                className="text-center color-light-Gray"
                 style={{
                     marginTop: '50px',
                     marginBottom: '50px',

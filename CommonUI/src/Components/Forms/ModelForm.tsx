@@ -15,7 +15,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import useAsyncEffect from 'use-async-effect';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
-import { Black, VeryLightGrey } from 'Common/Types/BrandColors';
+import { Black, VeryLightGray } from 'Common/Types/BrandColors';
 import Permission, {
     PermissionHelper,
     UserPermission,
@@ -760,7 +760,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             <div className="row flex justify-center mt-20 mb-20">
                 <Loader
                     loaderType={LoaderType.Bar}
-                    color={VeryLightGrey}
+                    color={VeryLightGray}
                     size={200}
                 />
             </div>

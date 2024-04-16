@@ -53,7 +53,7 @@ import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
 import Pill from '../Pill/Pill';
-import { Yellow } from 'Common/Types/BrandColors';
+import { Yellow500 } from 'Common/Types/BrandColors';
 import { ModalWidth } from '../Modal/Modal';
 import ProjectUtil from '../../Utils/Project';
 import API from '../../Utils/API/API';
@@ -1337,7 +1337,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             marginLeft: '5px',
                         }}
                     >
-                        <Pill text={`${planName} Plan`} color={Yellow} />
+                        <Pill text={`${planName} Plan`} color={Yellow500} />
                     </span>
                 )}
             </span>

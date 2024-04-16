@@ -8,7 +8,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green, Yellow } from 'Common/Types/BrandColors';
+import { Green500, Yellow500 } from 'Common/Types/BrandColors';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
@@ -84,10 +84,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['password']) {
                                 return (
-                                    <Pill color={Green} text={'Signed up'} />
+                                    <Pill color={Green500} text={'Signed up'} />
                                 );
                             }
-                            return <Pill color={Yellow} text={'Invite Sent'} />;
+                            return <Pill color={Yellow500} text={'Invite Sent'} />;
                         },
                     },
                 ]}

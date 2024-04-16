@@ -1,7 +1,7 @@
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import CreateBy from '../../../Types/Database/CreateBy';
-import { Black, Yellow } from 'Common/Types/BrandColors';
+import { Black, Yellow500 } from 'Common/Types/BrandColors';
 
 export default class ScheduledMaintenanceStateTestService {
     public static generateScheduledState(
@@ -36,7 +36,7 @@ export default class ScheduledMaintenanceStateTestService {
         ongoingState.name = 'Ongoing';
         ongoingState.description =
             'When an event is ongoing, it belongs to this state.';
-        ongoingState.color = Yellow;
+        ongoingState.color = Yellow500;
         ongoingState.isOngoingState = true;
         ongoingState.projectId = projectId;
         ongoingState.order = 2;

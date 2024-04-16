@@ -181,7 +181,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.OUTLINE) {
-        buttonStyleCssClass = `flex btn-outline-secondary background-very-light-grey-on-hover sm:text-sm ml-1`;
+        buttonStyleCssClass = `flex btn-outline-secondary background-very-light-Gray-on-hover sm:text-sm ml-1`;
     }
 
     if (buttonStyle === ButtonStyleType.SUCCESS) {

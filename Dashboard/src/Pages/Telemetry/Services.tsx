@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -16,6 +16,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import SideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
+import { Black } from 'Common/Types/BrandColors';
 
 const Services: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -129,13 +131,40 @@ const Services: FunctionComponent<PageComponentProps> = (
                         },
                     },
                 ]}
+                selectMoreFields={{
+                    serviceColor: true,
+                }}
                 columns={[
                     {
                         field: {
                             name: true,
                         },
                         title: 'Name',
-                        type: FieldType.Text,
+                        type: FieldType.Element,
+                        getElement: (serviceObj: JSONObject): ReactElement => {
+                            const service: TelemetryService =
+                                BaseModel.fromJSON(
+                                    serviceObj,
+                                    TelemetryService
+                                ) as TelemetryService;
+
+                            return (
+                                <Fragment>
+                                    <div className="flex space-x-2">
+                                        <div className="mt-1">
+                                            <ColorSquareCube
+                                                color={
+                                                    service.serviceColor ||
+                                                    Black
+                                                }
+                                                tooltip={`${service.name?.toString()} Service Color`}
+                                            />
+                                        </div>
+                                        <span>{service.name?.toString()}</span>
+                                    </div>
+                                </Fragment>
+                            );
+                        },
                     },
                     {
                         field: {

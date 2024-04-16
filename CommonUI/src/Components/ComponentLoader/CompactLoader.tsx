@@ -1,4 +1,4 @@
-import { VeryLightGrey } from 'Common/Types/BrandColors';
+import { VeryLightGray } from 'Common/Types/BrandColors';
 import React, { ReactElement } from 'react';
 import Loader, { LoaderType } from '../Loader/Loader';
 
@@ -7,7 +7,7 @@ const CompactLoader: () => JSX.Element = (): ReactElement => {
         <div className="my-5 w-full flex justify-center">
             <Loader
                 loaderType={LoaderType.Bar}
-                color={VeryLightGrey}
+                color={VeryLightGray}
                 size={200}
             />
         </div>

@@ -33,7 +33,7 @@ import EventItem, {
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
 import Color from 'Common/Types/Color';
-import { Green, Grey, Red } from 'Common/Types/BrandColors';
+import { Green500, Gray, Red500 } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import API from '../../Utils/API';
@@ -73,7 +73,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     const timeline: Array<TimelineItem> = [];
 
     let currentStateStatus: string = '';
-    let currentStatusColor: Color = Green;
+    let currentStatusColor: Color = Green500;
 
     if (isSummary) {
         // If this is summary then reverse the order so we show the latest first
@@ -106,7 +106,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
                 date: incidentPublicNote?.postedAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
-                iconColor: Grey,
+                iconColor: Gray,
             });
 
             // If this incident is a sumamry then don't include all the notes .
@@ -133,14 +133,14 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
                     : incidentStateTimeline.incidentState.isResolvedState
                     ? IconProp.CheckCircle
                     : IconProp.ArrowCircleRight,
-                iconColor: incidentStateTimeline.incidentState.color || Grey,
+                iconColor: incidentStateTimeline.incidentState.color || Gray,
             });
 
             if (!currentStateStatus) {
                 currentStateStatus =
                     incidentStateTimeline.incidentState?.name || '';
                 currentStatusColor =
-                    incidentStateTimeline.incidentState?.color || Green;
+                    incidentStateTimeline.incidentState?.color || Green500;
             }
 
             // If this incident is a sumamry then don't include all the notes .
@@ -219,7 +219,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
             ? 'Created at ' +
               OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
             : '',
-        eventTypeColor: Red,
+        eventTypeColor: Red500,
         labels:
             incident.labels?.map((label: Label) => {
                 return {
