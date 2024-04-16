@@ -5,8 +5,8 @@ import Bar, { GanttChartBar } from '../Bar/Index';
 export interface GanttChartRow {
     rowInfo: {
         id: string;
-        title: string;
-        description: string;
+        title: string | ReactElement;
+        description: string | ReactElement;
     };
     childRows: GanttChartRow[];
     bars: Array<GanttChartBar>; // usually will have only one bar, this is for future proofing
@@ -25,11 +25,11 @@ export interface ComponentProps {
 const Row: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     type GetRowFunction = (data: { row: GanttChartRow }) => ReactElement;
 
-    const getRow: GetRowFunction = (data: { row: GanttChartRow }): ReactElement => {
+    const getRow: GetRowFunction = (data: {
+        row: GanttChartRow;
+    }): ReactElement => {
         const { row } = data;
 
         return (

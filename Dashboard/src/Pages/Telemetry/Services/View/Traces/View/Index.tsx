@@ -26,6 +26,7 @@ import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refresh';
+import TelemetryServiceElement from '../../../../../../Components/TelemetryService/TelemetryServiceElement';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -291,10 +292,23 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             return [];
         }
 
+        const telemetryService: TelemetryService | undefined =
+            telemetryServices.find((service: TelemetryService) => {
+                return (
+                    service._id?.toString() === rootSpan.serviceId?.toString()
+                );
+            });
+
         const rootRow: GanttChartRow = {
             rowInfo: {
-                title: rootSpan.name!,
-                description: '',
+                title: <div>{rootSpan.name!}</div>,
+                description: telemetryService ? (
+                    <TelemetryServiceElement
+                        telemetryService={telemetryService}
+                    />
+                ) : (
+                    <></>
+                ),
                 id: ObjectID.generate().toString(),
             },
             bars: [

@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
-    title: string;
-    description: string;
+    title: string | ReactElement;
+    description: string | ReactElement;
 }
 
 const RowLabel: FunctionComponent<ComponentProps> = (
