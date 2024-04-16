@@ -22,7 +22,7 @@ import {
     Yellow500,
     Green500,
     Red500,
-    Moroon,
+    Moroon500,
     Black,
 } from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
@@ -620,7 +620,7 @@ export class Service extends DatabaseService<Model> {
         criticalIncident.name = 'Critical Incident';
         criticalIncident.description =
             'Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.';
-        criticalIncident.color = Moroon;
+        criticalIncident.color = Moroon500;
         criticalIncident.projectId = createdItem.id!;
         criticalIncident.order = 1;
 
