@@ -48,7 +48,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new ChangeLogSeverityColumnTypeFromTextToNumber(),
     new AddAttributeColumnToSpanAndLog(),
     new AddSecretKeyToIncomingRequestMonitor(),
-    new AddTelemetryServiceColor()
+    new AddTelemetryServiceColor(),
 ];
 
 export default DataMigrations;
