@@ -21,6 +21,7 @@ import MigrateToMeteredSubscription from './MigrateToMeteredSubscription';
 import MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage from './MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage';
 import UpdateActiveMonitorCountToBillingProvider from './UpdateActiveMonitorCountToBillingProvider';
 import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
+import AddTelemetryServiceColor from './AddTelemetryServiceColor';
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -47,6 +48,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new ChangeLogSeverityColumnTypeFromTextToNumber(),
     new AddAttributeColumnToSpanAndLog(),
     new AddSecretKeyToIncomingRequestMonitor(),
+    new AddTelemetryServiceColor()
 ];
 
 export default DataMigrations;
