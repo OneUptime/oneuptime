@@ -15,7 +15,7 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div
-            className="flex bottom-grey-border"
+            className="flex bottom-Gray500-border"
             style={{
                 marginLeft: '-10px',
                 marginRight: '-10px',

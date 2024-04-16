@@ -3,7 +3,7 @@ import Probe from 'Model/Models/Probe';
 import { JSONObject } from 'Common/Types/JSON';
 import OneUptimeDate from 'Common/Types/Date';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import { Green, Red } from 'Common/Types/BrandColors';
+import { Green500, Red500 } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     probe: Probe | JSONObject;
@@ -23,14 +23,18 @@ const ProbeStatusElement: FunctionComponent<ComponentProps> = (
         return (
             <Statusbubble
                 text={'Connected'}
-                color={Green}
+                color={Green500}
                 shouldAnimate={true}
             />
         );
     }
 
     return (
-        <Statusbubble text={'Disconnected'} color={Red} shouldAnimate={false} />
+        <Statusbubble
+            text={'Disconnected'}
+            color={Red500}
+            shouldAnimate={false}
+        />
     );
 };
 

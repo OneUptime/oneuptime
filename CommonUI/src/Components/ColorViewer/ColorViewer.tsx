@@ -1,4 +1,4 @@
-import { Grey } from 'Common/Types/BrandColors';
+import { Gray500 } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
 
@@ -27,7 +27,7 @@ const ColorInput: FunctionComponent<ComponentProps> = (
                         backgroundColor: props.value.toString(),
                         height: '20px',
                         borderWidth: '1px',
-                        borderColor: Grey.toString(),
+                        borderColor: Gray500.toString(),
                         width: '20px',
                         borderRadius: '300px',
                         boxShadow: 'rgb(149 157 165 / 20%) 0px 8px 24px',

@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import { VeryLightGrey } from 'Common/Types/BrandColors';
+import { VeryLightGray } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../Link/Link';
@@ -153,7 +153,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                         <Pill
                                             key={i}
                                             text={item}
-                                            color={VeryLightGrey}
+                                            color={VeryLightGray}
                                             style={{
                                                 backgroundColor: '#f3f4f6',
                                                 color: '#9ca3af',

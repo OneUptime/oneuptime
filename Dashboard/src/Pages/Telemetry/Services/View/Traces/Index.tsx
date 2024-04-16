@@ -1,17 +1,18 @@
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../../../PageComponentProps';
 import AnalyticsModelTable from 'CommonUI/src/Components/ModelTable/AnalyticsModelTable';
-import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
+import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import { JSONObject } from 'Common/Types/JSON';
-import SpanUtil from '../../../../../Utils/SpanUtil';
+import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import { Green500, Red500 } from 'Common/Types/BrandColors';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -19,7 +20,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     const spanKindDropdownOptions: Array<DropdownOption> =
-        DropdownUtil.getDropdownOptionsFromEnum(SpanKind, true);
+        DropdownUtil.getDropdownOptionsFromEnum(SpanKind);
 
     return (
         <Fragment>
@@ -41,7 +42,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
                     serviceId: modelId,
-                    parentSpanId: new IsNull(),
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
@@ -56,6 +56,24 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         type: FieldType.Text,
                         title: 'Trace ID',
+                    },
+                    {
+                        field: {
+                            statusCode: true,
+                        },
+                        type: FieldType.Dropdown,
+                        filterDropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                SpanStatus,
+                                true
+                            ).filter((dropdownOption: DropdownOption) => {
+                                return (
+                                    dropdownOption.label === 'Unset' ||
+                                    dropdownOption.label === 'Ok' ||
+                                    dropdownOption.label === 'Error'
+                                );
+                            }),
+                        title: 'Span Status',
                     },
                     {
                         field: {
@@ -80,36 +98,72 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         title: 'Seen At',
                     },
                 ]}
+                selectMoreFields={{
+                    statusCode: true,
+                }}
                 columns={[
                     {
                         field: {
                             traceId: true,
                         },
-                        title: 'Trace ID',
-                        type: FieldType.Text,
+                        title: 'Span ID',
+                        type: FieldType.Element,
+                        getElement: (span: JSONObject): ReactElement => {
+                            const spanObj: Span = AnalyticsBaseModel.fromJSON(
+                                span,
+                                Span
+                            ) as Span;
+
+                            return (
+                                <Fragment>
+                                    <div className="flex space-x-2">
+                                        <div className="mt-1">
+                                            {spanObj &&
+                                            (spanObj.statusCode ===
+                                                SpanStatus.Unset ||
+                                                !spanObj.statusCode) ? (
+                                                <ColorSquareCube
+                                                    color={Green500}
+                                                    tooltip="Span Status: Unset"
+                                                />
+                                            ) : (
+                                                <></>
+                                            )}
+                                            {spanObj &&
+                                            spanObj.statusCode ===
+                                                SpanStatus.Ok ? (
+                                                <ColorSquareCube
+                                                    color={Green500}
+                                                    tooltip="Span Status: Ok"
+                                                />
+                                            ) : (
+                                                <></>
+                                            )}
+                                            {spanObj &&
+                                            spanObj.statusCode ===
+                                                SpanStatus.Error ? (
+                                                <ColorSquareCube
+                                                    color={Red500}
+                                                    tooltip="Span Status: Error"
+                                                />
+                                            ) : (
+                                                <></>
+                                            )}
+                                        </div>
+                                        <span>
+                                            {spanObj.traceId?.toString()}
+                                        </span>
+                                    </div>
+                                </Fragment>
+                            );
+                        },
                     },
                     {
                         field: {
                             name: true,
                         },
-                        title: 'Root Span Name',
+                        title: 'Span Name',
                         type: FieldType.Text,
-                    },
-                    {
-                        field: {
-                            kind: true,
-                        },
-                        title: 'Root Span Kind',
-                        type: FieldType.Text,
-
-                        getElement: (span: JSONObject): ReactElement => {
-                            const spanKind: SpanKind = span['kind'] as SpanKind;
-
-                            const spanKindText: string =
-                                SpanUtil.getSpanKindFriendlyName(spanKind);
-
-                            return <span>{spanKindText}</span>;
-                        },
                     },
                     {
                         field: {

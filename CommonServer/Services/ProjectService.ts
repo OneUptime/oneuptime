@@ -18,7 +18,13 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { Yellow, Green, Red, Moroon, Black } from 'Common/Types/BrandColors';
+import {
+    Yellow500,
+    Green500,
+    Red500,
+    Moroon500,
+    Black,
+} from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
@@ -421,7 +427,7 @@ export class Service extends DatabaseService<Model> {
         ongoingScheduledMaintenanceState.name = 'Ongoing';
         ongoingScheduledMaintenanceState.description =
             'When an event is ongoing, it belongs to this state.';
-        ongoingScheduledMaintenanceState.color = Yellow;
+        ongoingScheduledMaintenanceState.color = Yellow500;
         ongoingScheduledMaintenanceState.isOngoingState = true;
         ongoingScheduledMaintenanceState.projectId = createdItem.id!;
         ongoingScheduledMaintenanceState.order = 2;
@@ -457,7 +463,7 @@ export class Service extends DatabaseService<Model> {
         completedScheduledMaintenanceState.name = 'Completed';
         completedScheduledMaintenanceState.description =
             'When an event is completed, it belongs to this state.';
-        completedScheduledMaintenanceState.color = Green;
+        completedScheduledMaintenanceState.color = Green500;
         completedScheduledMaintenanceState.isResolvedState = true;
         completedScheduledMaintenanceState.projectId = createdItem.id!;
         completedScheduledMaintenanceState.order = 4;
@@ -560,7 +566,7 @@ export class Service extends DatabaseService<Model> {
         createdIncidentState.name = 'Identified';
         createdIncidentState.description =
             'When an incident is created, it belongs to this state';
-        createdIncidentState.color = Red;
+        createdIncidentState.color = Red500;
         createdIncidentState.isCreatedState = true;
         createdIncidentState.projectId = createdItem.id!;
         createdIncidentState.order = 1;
@@ -576,7 +582,7 @@ export class Service extends DatabaseService<Model> {
         acknowledgedIncidentState.name = 'Acknowledged';
         acknowledgedIncidentState.description =
             'When an incident is acknowledged, it belongs to this state.';
-        acknowledgedIncidentState.color = Yellow;
+        acknowledgedIncidentState.color = Yellow500;
         acknowledgedIncidentState.isAcknowledgedState = true;
         acknowledgedIncidentState.projectId = createdItem.id!;
         acknowledgedIncidentState.order = 2;
@@ -592,7 +598,7 @@ export class Service extends DatabaseService<Model> {
         resolvedIncidentState.name = 'Resolved';
         resolvedIncidentState.description =
             'When an incident is resolved, it belongs to this state.';
-        resolvedIncidentState.color = Green;
+        resolvedIncidentState.color = Green500;
         resolvedIncidentState.isResolvedState = true;
         resolvedIncidentState.projectId = createdItem.id!;
         resolvedIncidentState.order = 3;
@@ -614,7 +620,7 @@ export class Service extends DatabaseService<Model> {
         criticalIncident.name = 'Critical Incident';
         criticalIncident.description =
             'Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.';
-        criticalIncident.color = Moroon;
+        criticalIncident.color = Moroon500;
         criticalIncident.projectId = createdItem.id!;
         criticalIncident.order = 1;
 
@@ -629,7 +635,7 @@ export class Service extends DatabaseService<Model> {
         majorIncident.name = 'Major Incident';
         majorIncident.description =
             'Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing.';
-        majorIncident.color = Red;
+        majorIncident.color = Red500;
         majorIncident.projectId = createdItem.id!;
         majorIncident.order = 2;
 
@@ -644,7 +650,7 @@ export class Service extends DatabaseService<Model> {
         minorIncident.name = 'Minor Incident';
         minorIncident.description =
             'Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance.';
-        minorIncident.color = Yellow;
+        minorIncident.color = Yellow500;
         minorIncident.projectId = createdItem.id!;
         minorIncident.order = 3;
 
@@ -665,7 +671,7 @@ export class Service extends DatabaseService<Model> {
         operationalStatus.projectId = createdItem.id!;
         operationalStatus.priority = 1;
         operationalStatus.isOperationalState = true;
-        operationalStatus.color = Green;
+        operationalStatus.color = Green500;
 
         operationalStatus = await MonitorStatusService.create({
             data: operationalStatus,
@@ -680,7 +686,7 @@ export class Service extends DatabaseService<Model> {
             'Monitor is operating at reduced performance.';
         degradedStatus.priority = 2;
         degradedStatus.projectId = createdItem.id!;
-        degradedStatus.color = Yellow;
+        degradedStatus.color = Yellow500;
 
         degradedStatus = await MonitorStatusService.create({
             data: degradedStatus,
@@ -695,7 +701,7 @@ export class Service extends DatabaseService<Model> {
         downStatus.isOfflineState = true;
         downStatus.projectId = createdItem.id!;
         downStatus.priority = 3;
-        downStatus.color = Red;
+        downStatus.color = Red500;
 
         downStatus = await MonitorStatusService.create({
             data: downStatus,

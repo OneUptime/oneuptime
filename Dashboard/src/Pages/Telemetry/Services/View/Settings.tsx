@@ -55,6 +55,45 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
+            <CardModelDetail
+                name="Telemetry Service Settings"
+                cardProps={{
+                    title: 'Telemetry Service Settings',
+                    description:
+                        'Configure settings for your telemetry service.',
+                }}
+                isEditable={true}
+                editButtonText="Edit Settings"
+                formFields={[
+                    {
+                        field: {
+                            serviceColor: true,
+                        },
+                        title: 'Service Color',
+                        description:
+                            'Choose a color for your telemetry service.',
+                        fieldType: FormFieldSchemaType.Color,
+                        required: true,
+                        placeholder: '15',
+                    },
+                ]}
+                modelDetailProps={{
+                    modelType: TelemetryService,
+                    id: 'model-detail-project',
+                    fields: [
+                        {
+                            field: {
+                                serviceColor: true,
+                            },
+                            title: 'Service Color',
+                            description: 'Color for your telemetry service.',
+                            fieldType: FieldType.Color,
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
             <ResetObjectID<TelemetryService>
                 modelType={TelemetryService}
                 fieldName={'telemetryServiceToken'}

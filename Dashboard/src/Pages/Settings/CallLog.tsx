@@ -14,7 +14,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import CallStatus from 'Common/Types/Call/CallStatus';
-import { Green, Red } from 'Common/Types/BrandColors';
+import { Green500, Red500 } from 'Common/Types/BrandColors';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
@@ -118,8 +118,8 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                             isMinimal={false}
                             color={
                                 item['status'] === CallStatus.Success
-                                    ? Green
-                                    : Red
+                                    ? Green500
+                                    : Red500
                             }
                             text={item['status'] as string}
                         />

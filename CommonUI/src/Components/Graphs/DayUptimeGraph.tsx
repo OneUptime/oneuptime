@@ -1,4 +1,4 @@
-import { Green } from 'Common/Types/BrandColors';
+import { Green500 } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
@@ -54,7 +54,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     const getUptimeBar: GetUptimeBarFunction = (
         dayNumber: number
     ): ReactElement => {
-        let color: Color = props.defaultBarColor || Green;
+        let color: Color = props.defaultBarColor || Green500;
 
         const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
             props.startDate,
@@ -227,7 +227,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         if (!hasEvents) {
             toolTipText += ` - No data for this day.`;
-            color = props.defaultBarColor || Green;
+            color = props.defaultBarColor || Green500;
         }
 
         let className: string = 'h-20 w-20';

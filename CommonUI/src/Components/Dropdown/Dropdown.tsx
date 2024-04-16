@@ -156,7 +156,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                     ): string => {
                         return state.isFocused
                             ? '!border-indigo-500'
-                            : 'border-grey-300';
+                            : 'border-Gray500-300';
                     },
                     option: (
                         state: OptionProps<any, boolean, GroupBase<any>>

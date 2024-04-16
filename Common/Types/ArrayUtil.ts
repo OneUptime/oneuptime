@@ -33,6 +33,10 @@ export default class ArrayUtil {
         };
     }
 
+    public static selectItemByRandom<T>(array: Array<T>): T {
+        return array[Math.floor(Math.random() * array.length)]!;
+    }
+
     public static distinctByFieldName(
         array: Array<any>,
         fieldName: string

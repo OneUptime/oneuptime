@@ -25,6 +25,7 @@ import DashboardNavigation from '../../../../../../Utils/Navigation';
 import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refresh';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -46,7 +47,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
     const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
-    const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);
+    const spanIdFromUrl: ObjectID = Navigation.getLastParamAsObjectID(0);
 
     const [error, setError] = React.useState<string | null>(null);
 
@@ -80,6 +81,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     select: {
                         name: true,
                         _id: true,
+                        serviceColor: true,
                     },
                 });
 
@@ -99,14 +101,14 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 durationUnixNano: true,
             };
 
-            const parentSpan: Span | null =
+            const spanFromUrl: Span | null =
                 await AnalyticsModelAPI.getItem<Span>({
-                    id: oneuptimeSpanId,
+                    id: spanIdFromUrl,
                     modelType: Span,
                     select: select,
                 });
 
-            if (parentSpan === null) {
+            if (spanFromUrl === null) {
                 setError('Span not found');
                 setIsLoading(false);
                 return;
@@ -114,11 +116,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             // now get all the spans with the traceId
 
-            const traceId: string = parentSpan.traceId!;
+            const traceId: string = spanFromUrl.traceId!;
 
             setTraceId(traceId);
 
-            const childSpans: ListResult<Span> =
+            const allSpans: ListResult<Span> =
                 await AnalyticsModelAPI.getList<Span>({
                     modelType: Span,
                     select: select,
@@ -132,7 +134,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     limit: LIMIT_PER_PROJECT,
                 });
 
-            let spans: Span[] = [parentSpan, ...childSpans.data];
+            let spans: Span[] = [...allSpans.data];
 
             // filter by unique span id.
 
@@ -172,6 +174,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 <div className="bar-tooltip-description text-gray-600 text-xs space-y-1 my-2">
                     <div className="flex space-x-1">
                         <div>Span ID:</div> <div>{span.spanId?.toString()}</div>
+                    </div>
+                    <div className="flex space-x-1">
+                        <div>Service:</div> <div>{span.spanId?.toString()}</div>
                     </div>
                     <div className="flex space-x-1">
                         <div>Seen at:</div>{' '}
@@ -246,7 +251,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         const spanColor: {
             barColor: Color;
             titleColor: Color;
-        } = SpanUtil.getGanttChartBarColor(span);
+        } = SpanUtil.getGanttChartBarColor({
+            span: span,
+            telemetryServices: telemetryServices,
+        });
 
         return {
             id: span.spanId!,
@@ -491,6 +499,16 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             <Card
                 title={'Traces'}
                 description={'Traces for the request operation.'}
+                buttons={[
+                    {
+                        ...getRefreshButton(),
+                        className: 'py-0 pr-0 pl-1 mt-1',
+                        onClick: async () => {
+                            await fetchItems();
+                        },
+                        disabled: isLoading,
+                    },
+                ]}
             >
                 <div className="overflow-x-auto">
                     {ganttChart ? (

@@ -6,7 +6,7 @@ import ButtonType from '../Button/ButtonTypes';
 import Loader, { LoaderType } from '../Loader/Loader';
 import Icon, { IconType, SizeProp, ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { VeryLightGrey } from 'Common/Types/BrandColors';
+import { VeryLightGray } from 'Common/Types/BrandColors';
 
 export enum ModalWidth {
     Normal,
@@ -144,7 +144,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                                             <div className="modal-body mt-20 mb-20 flex justify-center">
                                                 <Loader
                                                     loaderType={LoaderType.Bar}
-                                                    color={VeryLightGrey}
+                                                    color={VeryLightGray}
                                                     size={200}
                                                 />
                                             </div>

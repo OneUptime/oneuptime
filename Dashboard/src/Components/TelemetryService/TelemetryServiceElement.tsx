@@ -5,6 +5,9 @@ import Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import ObjectID from 'Common/Types/ObjectID';
+import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
+import { Black } from 'Common/Types/BrandColors';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     telemetryService: TelemetryService;
@@ -14,6 +17,20 @@ export interface ComponentProps {
 const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const getServiceElement: GetReactElementFunction = (): ReactElement => {
+        return (
+            <div className="flex space-x-2">
+                <div className="mt-1">
+                    <ColorSquareCube
+                        color={props.telemetryService.serviceColor || Black}
+                        tooltip={`${props.telemetryService.name?.toString()} Service Color`}
+                    />
+                </div>
+                <span>{props.telemetryService.name?.toString()}</span>
+            </div>
+        );
+    };
+
     if (props.telemetryService._id) {
         return (
             <Link
@@ -28,12 +45,12 @@ const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
                     }
                 )}
             >
-                <span>{props.telemetryService.name}</span>
+                {getServiceElement()}
             </Link>
         );
     }
 
-    return <span>{props.telemetryService.name}</span>;
+    return <div>{getServiceElement()}</div>;
 };
 
 export default TelemetryServiceElement;

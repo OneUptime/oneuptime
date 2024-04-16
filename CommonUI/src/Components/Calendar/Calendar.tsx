@@ -11,7 +11,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
 import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
 import Color from 'Common/Types/Color';
-import { Blue } from 'Common/Types/BrandColors';
+import { Blue500 } from 'Common/Types/BrandColors';
 
 const localizer: DateLocalizer = momentLocalizer(moment);
 
@@ -42,7 +42,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         event: CalendarEvent
     ): { className?: string | undefined; style?: React.CSSProperties } => {
         const backgroundColor: string =
-            event.color?.toString() || Blue.toString();
+            event.color?.toString() || Blue500.toString();
         const style: React.CSSProperties = {
             backgroundColor: backgroundColor,
             borderRadius: '0px',

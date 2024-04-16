@@ -28,7 +28,7 @@ import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green, Yellow } from 'Common/Types/BrandColors';
+import { Green500, Yellow500 } from 'Common/Types/BrandColors';
 import DashboardNavigation from '../../Utils/Navigation';
 import BaseModel from 'Common/Models/BaseModel';
 import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
@@ -210,10 +210,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Boolean,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['hasAcceptedInvitation']) {
-                                return <Pill text="Member" color={Green} />;
+                                return <Pill text="Member" color={Green500} />;
                             }
                             return (
-                                <Pill text="Invitation Sent" color={Yellow} />
+                                <Pill
+                                    text="Invitation Sent"
+                                    color={Yellow500}
+                                />
                             );
                         },
                     },

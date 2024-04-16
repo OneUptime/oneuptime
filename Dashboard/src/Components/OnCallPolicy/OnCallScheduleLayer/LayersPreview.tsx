@@ -12,7 +12,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
 import LayerUtil, { LayerProps } from 'Common/Types/OnCallDutyPolicy/Layer';
 import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
-import { Blue, EventColorList } from 'Common/Types/BrandColors';
+import { Blue500, BrightColors } from 'Common/Types/BrandColors';
 import HashCode from 'Common/Types/HashCode';
 import User from 'Model/Models/User';
 import Color from 'Common/Types/Color';
@@ -90,7 +90,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
         // Assign colors to each user based on id. Hash the id and mod it by the length of the color list.
 
-        const colorListLength: number = EventColorList.length;
+        const colorListLength: number = BrightColors.length;
 
         events.forEach((event: CalendarEvent) => {
             const userId: string = event.title;
@@ -107,8 +107,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
                 HashCode.fromString(userId) % colorListLength;
 
             event.color =
-                (EventColorList[colorIndex] as Color)?.toString() ||
-                Blue.toString();
+                (BrightColors[colorIndex] as Color)?.toString() ||
+                Blue500.toString();
 
             event.title = `${
                 (user.name?.toString() || '') +
