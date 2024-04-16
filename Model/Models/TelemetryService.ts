@@ -29,6 +29,7 @@ import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import BaseModel from 'Common/Models/BaseModel';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
+import Color from 'Common/Types/Color';
 
 @AccessControlColumn('labels')
 @EnableDocumentation()
@@ -486,4 +487,38 @@ export default class TelemetryService extends BaseModel {
         default: 15,
     })
     public retainTelemetryDataForDays?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateTelemetryService,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.CanReadTelemetryService,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditTelemetryService,
+        ],
+    })
+    @TableColumn({
+        type: TableColumnType.Color,
+        title: 'Service Color',
+        description: 'Color for this telemetry service',
+    })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true,
+        unique: false,
+        transformer: Color.getDatabaseTransformer(),
+    })
+    public serviceColor?: Color = undefined;
 }

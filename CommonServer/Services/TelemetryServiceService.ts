@@ -5,6 +5,8 @@ import CreateBy from '../Types/Database/CreateBy';
 import { OnCreate } from '../Types/Database/Hooks';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import { BrightColors } from 'Common/Types/BrandColors';
+import ArrayUtil from 'Common/Types/ArrayUtil';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -15,6 +17,9 @@ export class Service extends DatabaseService<Model> {
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
         createBy.data.telemetryServiceToken = ObjectID.generate();
+
+        // select a random color.
+        createBy.data.serviceColor = ArrayUtil.selectItemByRandom(BrightColors);
 
         return {
             carryForward: null,
