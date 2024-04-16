@@ -46,7 +46,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
     const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
-    const oneuptimeSpanId: ObjectID = Navigation.getLastParamAsObjectID(0);
+    const spanIdFromUrl: ObjectID = Navigation.getLastParamAsObjectID(0);
 
     const [error, setError] = React.useState<string | null>(null);
 
@@ -80,6 +80,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     select: {
                         name: true,
                         _id: true,
+                        serviceColor: true,
                     },
                 });
 
@@ -99,14 +100,14 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 durationUnixNano: true,
             };
 
-            const parentSpan: Span | null =
+            const spanFromUrl: Span | null =
                 await AnalyticsModelAPI.getItem<Span>({
-                    id: oneuptimeSpanId,
+                    id: spanIdFromUrl,
                     modelType: Span,
                     select: select,
                 });
 
-            if (parentSpan === null) {
+            if (spanFromUrl === null) {
                 setError('Span not found');
                 setIsLoading(false);
                 return;
@@ -114,11 +115,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             // now get all the spans with the traceId
 
-            const traceId: string = parentSpan.traceId!;
+            const traceId: string = spanFromUrl.traceId!;
 
             setTraceId(traceId);
 
-            const childSpans: ListResult<Span> =
+            const allSpans: ListResult<Span> =
                 await AnalyticsModelAPI.getList<Span>({
                     modelType: Span,
                     select: select,
@@ -132,7 +133,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     limit: LIMIT_PER_PROJECT,
                 });
 
-            let spans: Span[] = [parentSpan, ...childSpans.data];
+            let spans: Span[] = [...allSpans.data];
 
             // filter by unique span id.
 
