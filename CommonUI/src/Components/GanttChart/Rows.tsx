@@ -13,7 +13,10 @@ export interface ComponentProps {
 const Rows: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const getRow = (data: { row: GanttChartRow }) => {
+
+    type GetRowFunction = (data: { row: GanttChartRow }) => ReactElement;
+
+    const getRow: GetRowFunction = (data: { row: GanttChartRow }): ReactElement => {
         const { row } = data;
 
         return (

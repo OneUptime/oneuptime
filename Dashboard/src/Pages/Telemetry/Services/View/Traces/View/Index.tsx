@@ -26,7 +26,6 @@ import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refresh';
-import { GanttChartBarGroup } from 'CommonUI/src/Components/GanttChart/Rows';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -275,13 +274,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type GetBarsFunction = (
-        data: GetBarsFunctionProps
-    ) => GanttChartBarGroup | null;
+    type GetRowsFunction = (data: GetBarsFunctionProps) => Array<GanttChartRow>;
 
-    const getBarGroup: GetBarsFunction = (
+    const getRows: GetRowsFunction = (
         data: GetBarsFunctionProps
-    ): GanttChartBarGroup | null => {
+    ): Array<GanttChartRow> => {
         const {
             rootSpan,
             allSpans,
@@ -291,17 +288,24 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         } = data;
 
         if (!rootSpan) {
-            return null;
+            return [];
         }
 
-        const finalResult: GanttChartBarGroup = {
-            rootBar: spanToBar({
-                span: rootSpan,
-                timelineStartTimeUnixNano,
-                divisibilityFactor,
-                divisibilityFactorAndIntervalUnit,
-            }),
-            childBars: [],
+        const rootRow: GanttChartRow = {
+            rowInfo: {
+                title: rootSpan.name!,
+                description: '',
+                id: ObjectID.generate().toString(),
+            },
+            bars: [
+                spanToBar({
+                    span: rootSpan,
+                    timelineStartTimeUnixNano,
+                    divisibilityFactor,
+                    divisibilityFactorAndIntervalUnit,
+                }),
+            ],
+            childRows: [],
         };
 
         const currentSpan: Span = rootSpan;
@@ -313,7 +317,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         });
 
         for (const span of childSpans) {
-            const barGroup: GanttChartBarGroup | null = getBarGroup({
+            const childRows: Array<GanttChartRow> | null = getRows({
                 rootSpan: span,
                 allSpans,
                 timelineStartTimeUnixNano,
@@ -321,14 +325,12 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 divisibilityFactorAndIntervalUnit,
             });
 
-            if (!barGroup) {
-                continue;
+            for (const row of childRows) {
+                rootRow.childRows.push(row);
             }
-
-            finalResult.childBars.push(barGroup);
         }
 
-        return finalResult;
+        return [rootRow];
     };
 
     React.useEffect(() => {
@@ -371,41 +373,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             divisibilityFactor: divisibilityFactor,
             intervalUnit: intervalUnit,
         };
-    };
-
-    type GetRowsFromBarsFunction = (
-        bars: Array<GanttChartBar>
-    ) => Array<GanttChartRow>;
-
-    const getRowsFromBars: GetRowsFromBarsFunction = (
-        bars: Array<GanttChartBar>
-    ): Array<GanttChartRow> => {
-        return bars.map((bars: GanttChartBar) => {
-            const span: Span | undefined = spans.find((span: Span) => {
-                return span.spanId === bars.id;
-            });
-
-            if (!span) {
-                return {
-                    id: bars.id,
-                    title: bars.title,
-                    description: '',
-                };
-            }
-
-            return {
-                id: span.spanId!,
-                title: span.name!,
-                description:
-                    telemetryServices.find((service: TelemetryService) => {
-                        return (
-                            service._id &&
-                            service._id.toString() ===
-                                span.serviceId?.toString()
-                        );
-                    })?.name || '',
-            };
-        });
     };
 
     React.useEffect(() => {
@@ -453,22 +420,19 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
 
-        const barGroup: GanttChartBarGroup | null = getBarGroup({
-            rootSpan: spans[0]!,
-            allSpans: spans,
-            timelineStartTimeUnixNano,
-            divisibilityFactor,
-            divisibilityFactorAndIntervalUnit:
-                divisibilityFactorAndIntervalUnit.intervalUnit,
-        });
-
         const ganttChart: GanttChartProps = {
             id: 'chart',
-            rows: getRowsFromBars(bars),
+            rows: getRows({
+                rootSpan: spans[0]!,
+                allSpans: spans,
+                timelineStartTimeUnixNano,
+                divisibilityFactor,
+                divisibilityFactorAndIntervalUnit:
+                    divisibilityFactorAndIntervalUnit.intervalUnit,
+            }),
             onBarSelectChange(barIds: Array<string>) {
                 setSelectedSpans(barIds);
             },
-            bars: bars,
             timeline: {
                 start: startTimeline,
                 end: Math.ceil(endTimeline / interval) * interval,
