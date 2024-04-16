@@ -135,13 +135,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     limit: LIMIT_PER_PROJECT,
                 });
 
-            let spans: Span[] = [...allSpans.data];
+            const spans: Span[] = [...allSpans.data];
 
             setSpans(spans);
-            
         } catch (err) {
             setError(API.getFriendlyMessage(err));
-           
         }
 
         setIsLoading(false);
@@ -277,7 +275,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         divisibilityFactorAndIntervalUnit: string;
     };
 
-    type GetBarsFunction = (data: GetBarsFunctionProps) => GanttChartBarGroup | null ;
+    type GetBarsFunction = (
+        data: GetBarsFunctionProps
+    ) => GanttChartBarGroup | null;
 
     const getBarGroup: GetBarsFunction = (
         data: GetBarsFunctionProps
@@ -294,8 +294,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             return null;
         }
 
-
-        let finalResult: GanttChartBarGroup = {
+        const finalResult: GanttChartBarGroup = {
             rootBar: spanToBar({
                 span: rootSpan,
                 timelineStartTimeUnixNano,
@@ -303,7 +302,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 divisibilityFactorAndIntervalUnit,
             }),
             childBars: [],
-        }
+        };
 
         const currentSpan: Span = rootSpan;
 
@@ -314,7 +313,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         });
 
         for (const span of childSpans) {
-
             const barGroup: GanttChartBarGroup | null = getBarGroup({
                 rootSpan: span,
                 allSpans,
@@ -323,12 +321,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 divisibilityFactorAndIntervalUnit,
             });
 
-            if(!barGroup) {
+            if (!barGroup) {
                 continue;
             }
 
             finalResult.childBars.push(barGroup);
-
         }
 
         return finalResult;

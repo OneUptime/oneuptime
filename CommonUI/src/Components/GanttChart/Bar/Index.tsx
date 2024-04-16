@@ -18,9 +18,6 @@ export interface GanttChartBar {
     tooltip?: ReactElement;
 }
 
-
-
-
 export interface ComponentProps {
     bar: GanttChartBar;
     chartTimelineStart: number;

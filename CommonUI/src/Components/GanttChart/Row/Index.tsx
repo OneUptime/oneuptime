@@ -1,14 +1,13 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import RowLabel from './RowLabel';
 import Bar, { GanttChartBar } from '../Bar/Index';
-import { get } from 'lodash';
 
 export interface GanttChartRow {
     rowInfo: {
         id: string;
         title: string;
         description: string;
-    },
+    };
     childRows: GanttChartRow[];
     bars: Array<GanttChartBar>; // usually will have only one bar, this is for future proofing
 }
@@ -26,12 +25,7 @@ export interface ComponentProps {
 const Row: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
-    const getRow = (data: {
-        row: GanttChartRow;
-    }) => {
-
+    const getRow = (data: { row: GanttChartRow }) => {
         const { row } = data;
 
         return (
@@ -53,17 +47,21 @@ const Row: FunctionComponent<ComponentProps> = (
                                     key={i}
                                     bar={bar}
                                     chartTimelineEnd={props.chartTimelineEnd}
-                                    chartTimelineStart={props.chartTimelineStart}
+                                    chartTimelineStart={
+                                        props.chartTimelineStart
+                                    }
                                     timelineWidth={props.timelineWidth}
                                     areOtherBarsSelected={
                                         props.selectedBarIds.length > 0
                                     }
                                     onSelect={(barId: string) => {
                                         // check if the bar is already selected
-                                        if (props.selectedBarIds.includes(barId)) {
+                                        if (
+                                            props.selectedBarIds.includes(barId)
+                                        ) {
                                             return;
                                         }
-    
+
                                         props.onBarSelectChange([
                                             ...props.selectedBarIds,
                                             barId,
@@ -71,10 +69,14 @@ const Row: FunctionComponent<ComponentProps> = (
                                     }}
                                     onDeselect={(barId: string) => {
                                         // check if the bar is already selected
-                                        if (!props.selectedBarIds.includes(barId)) {
+                                        if (
+                                            !props.selectedBarIds.includes(
+                                                barId
+                                            )
+                                        ) {
                                             return;
                                         }
-    
+
                                         props.onBarSelectChange(
                                             props.selectedBarIds.filter(
                                                 (id: string) => {
@@ -83,9 +85,9 @@ const Row: FunctionComponent<ComponentProps> = (
                                             )
                                         );
                                     }}
-                                />)
+                                />
+                            );
                         })}
-    
                     </div>
                 </div>
                 {row.childRows.map((childRow: GanttChartRow, i: number) => {
@@ -99,10 +101,9 @@ const Row: FunctionComponent<ComponentProps> = (
                 })}
             </div>
         );
-       
-    }
+    };
 
-    return (getRow({ row: props.row }));
+    return getRow({ row: props.row });
 };
 
 export default Row;
