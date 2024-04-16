@@ -24,7 +24,7 @@ import {
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
-import { Gray } from 'Common/Types/BrandColors';
+import { Gray500 } from 'Common/Types/BrandColors';
 import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
@@ -260,7 +260,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                             return (
                                 <Statusbubble
                                     shouldAnimate={false}
-                                    color={Gray}
+                                    color={Gray500}
                                     text={'Disabled'}
                                 />
                             );

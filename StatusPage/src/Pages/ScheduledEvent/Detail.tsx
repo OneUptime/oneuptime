@@ -30,7 +30,7 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Color from 'Common/Types/Color';
-import { Green500, Gray, Yellow500 } from 'Common/Types/BrandColors';
+import { Green500, Gray500, Yellow500 } from 'Common/Types/BrandColors';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
@@ -113,7 +113,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
                 date: scheduledMaintenancePublicNote?.postedAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
-                iconColor: Gray,
+                iconColor: Gray500,
             });
 
             if (isSummary) {
@@ -147,7 +147,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
                     : IconProp.ArrowCircleRight,
                 iconColor:
                     scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState.color || Gray,
+                        .scheduledMaintenanceState.color || Gray500,
             });
 
             if (!currentStateStatus) {

@@ -239,7 +239,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     if (error) {
         return (
             <p
-                className="text-center color-light-Gray"
+                className="text-center color-light-Gray500"
                 style={{
                     marginTop: '50px',
                     marginBottom: '50px',

@@ -30,7 +30,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
-import { Green500, Gray } from 'Common/Types/BrandColors';
+import { Green500, Gray500 } from 'Common/Types/BrandColors';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
@@ -394,7 +394,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 if (item && item['disableActiveMonitoring']) {
                                     return (
                                         <Statusbubble
-                                            color={Gray}
+                                            color={Gray500}
                                             text={'Disabled'}
                                             shouldAnimate={false}
                                         />

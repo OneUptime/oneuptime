@@ -33,7 +33,7 @@ import EventItem, {
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
 import Color from 'Common/Types/Color';
-import { Green500, Gray, Red500 } from 'Common/Types/BrandColors';
+import { Green500, Gray500, Red500 } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import API from '../../Utils/API';
@@ -106,7 +106,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
                 date: incidentPublicNote?.postedAt as Date,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
-                iconColor: Gray,
+                iconColor: Gray500,
             });
 
             // If this incident is a sumamry then don't include all the notes .
@@ -133,7 +133,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
                     : incidentStateTimeline.incidentState.isResolvedState
                     ? IconProp.CheckCircle
                     : IconProp.ArrowCircleRight,
-                iconColor: incidentStateTimeline.incidentState.color || Gray,
+                iconColor: incidentStateTimeline.incidentState.color || Gray500,
             });
 
             if (!currentStateStatus) {

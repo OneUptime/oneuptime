@@ -12,7 +12,7 @@ import {
     Teal,
     Cyan500,
     VeryLightGray,
-    Gray,
+    Gray500,
     LightGray,
     Moroon,
     Blue500,
@@ -109,11 +109,11 @@ describe('Color', () => {
             expect(VeryLightGray.color).toBe('#c2c2c2');
         });
     });
-    describe('Gray', () => {
-        it('should be an instance with the hex code of Gray', () => {
-            const color: Color = Gray;
-            expect(Gray).toBe(color);
-            expect(Gray.color).toBe('#575757');
+    describe('Gray500', () => {
+        it('should be an instance with the hex code of Gray500', () => {
+            const color: Color = Gray500;
+            expect(Gray500).toBe(color);
+            expect(Gray500.color).toBe('#575757');
         });
     });
     describe('LightGray', () => {

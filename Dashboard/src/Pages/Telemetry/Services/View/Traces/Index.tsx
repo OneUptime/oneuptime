@@ -14,7 +14,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import SpanUtil from '../../../../../Utils/SpanUtil';
 import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import { Green500, Gray, Red500 } from 'Common/Types/BrandColors';
+import { Green500, Gray500, Red500 } from 'Common/Types/BrandColors';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -120,7 +120,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                                 SpanStatus.Unset ||
                                                 !spanObj.statusCode) ? (
                                                 <ColorSquareCube
-                                                    color={Gray}
+                                                    color={Gray500}
                                                     tooltip="Span Status: Unset"
                                                 />
                                             ) : (
