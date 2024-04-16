@@ -136,17 +136,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
             let spans: Span[] = [...allSpans.data];
 
-            // filter by unique span id.
-
-            spans = spans.filter((span: Span, index: number, self: Span[]) => {
-                return (
-                    index ===
-                    self.findIndex((s: Span) => {
-                        return s.spanId?.toString() === span.spanId?.toString();
-                    })
-                );
-            });
-
             setSpans(spans);
             
         } catch (err) {
