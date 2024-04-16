@@ -43,35 +43,35 @@ describe('Color', () => {
         it('should be an instance with the hex code of slate', () => {
             const color: Color = Slate500;
             expect(Slate500).toBe(color);
-            expect(Slate500.color).toBe('#564ab1');
+            expect(Slate500.color).toBe('#64748b');
         });
     });
     describe('Purple500', () => {
         it('should be an instance with the hex code of Purple500', () => {
             const color: Color = Purple500;
             expect(Purple500).toBe(color);
-            expect(Purple500.color).toBe('#6f42c1');
+            expect(Purple500.color).toBe('#a855f7');
         });
     });
     describe('Pink500', () => {
         it('should be an instance with the hex code of Pink500', () => {
             const color: Color = Pink500;
             expect(Pink500).toBe(color);
-            expect(Pink500.color).toBe('#e83e8c');
+            expect(Pink500.color).toBe('#ec4899');
         });
     });
     describe('Red500', () => {
         it('should be an instance with the hex code of Red500', () => {
             const color: Color = Red500;
             expect(Red500).toBe(color);
-            expect(Red500.color).toBe('#fd625e');
+            expect(Red500.color).toBe('#ef4444');
         });
     });
     describe('Orange500', () => {
         it('should be an instance with the hex code of Orange500', () => {
             const color: Color = Orange500;
             expect(Orange500).toBe(color);
-            expect(Orange500.color).toBe('#f1734f');
+            expect(Orange500.color).toBe('#f97316');
         });
     });
     describe('Yellow500', () => {
@@ -85,21 +85,21 @@ describe('Color', () => {
         it('should be an instance with the hex code of Green500', () => {
             const color: Color = Green500;
             expect(Green500).toBe(color);
-            expect(Green500.color).toBe('#2ab57d');
+            expect(Green500.color).toBe('#22c55e');
         });
     });
     describe('Teal500', () => {
         it('should be an instance with the hex code of Teal500', () => {
             const color: Color = Teal500;
             expect(Teal500).toBe(color);
-            expect(Teal500.color).toBe('#050505');
+            expect(Teal500.color).toBe('#14b8a6');
         });
     });
     describe('Cyan500', () => {
         it('should be an instance with the hex code of Cyan500', () => {
             const color: Color = Cyan500;
             expect(Cyan500).toBe(color);
-            expect(Cyan500.color).toBe('#4ba6ef');
+            expect(Cyan500.color).toBe('#06b6d4');
         });
     });
     describe('VeryLightGray', () => {
@@ -113,7 +113,7 @@ describe('Color', () => {
         it('should be an instance with the hex code of Gray500', () => {
             const color: Color = Gray500;
             expect(Gray500).toBe(color);
-            expect(Gray500.color).toBe('#575757');
+            expect(Gray500.color).toBe('#6b7280');
         });
     });
     describe('LightGray', () => {
@@ -134,7 +134,7 @@ describe('Color', () => {
         it('should be an instance with the hex code of Blue500', () => {
             const color: Color = Blue500;
             expect(Blue500).toBe(color);
-            expect(Blue500.color).toBe('#3686be');
+            expect(Blue500.color).toBe('#3b82f6');
         });
     });
 });
