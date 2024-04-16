@@ -6,15 +6,13 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import { JSONObject } from 'Common/Types/JSON';
-import SpanUtil from '../../../../../Utils/SpanUtil';
 import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import { Green500, Gray500, Red500 } from 'Common/Types/BrandColors';
+import { Green500, Red500 } from 'Common/Types/BrandColors';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -22,7 +20,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     const spanKindDropdownOptions: Array<DropdownOption> =
-        DropdownUtil.getDropdownOptionsFromEnum(SpanKind, true);
+        DropdownUtil.getDropdownOptionsFromEnum(SpanKind);
 
     return (
         <Fragment>
@@ -44,7 +42,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
                     serviceId: modelId,
-                    parentSpanId: new IsNull(),
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No traces found for this service.'}
@@ -69,7 +66,13 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                             DropdownUtil.getDropdownOptionsFromEnum(
                                 SpanStatus,
                                 true
-                            ),
+                            ).filter((dropdownOption: DropdownOption) => {
+                                return (
+                                    dropdownOption.label === 'Unset' ||
+                                    dropdownOption.label === 'Ok' ||
+                                    dropdownOption.label === 'Error'
+                                );
+                            }),
                         title: 'Span Status',
                     },
                     {
@@ -103,7 +106,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         field: {
                             traceId: true,
                         },
-                        title: 'Trace ID',
+                        title: 'Span ID',
                         type: FieldType.Element,
                         getElement: (span: JSONObject): ReactElement => {
                             const spanObj: Span = AnalyticsBaseModel.fromJSON(
@@ -120,7 +123,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                                 SpanStatus.Unset ||
                                                 !spanObj.statusCode) ? (
                                                 <ColorSquareCube
-                                                    color={Gray500}
+                                                    color={Green500}
                                                     tooltip="Span Status: Unset"
                                                 />
                                             ) : (
@@ -131,7 +134,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                                 SpanStatus.Ok ? (
                                                 <ColorSquareCube
                                                     color={Green500}
-                                                    tooltip="Span Status: Success"
+                                                    tooltip="Span Status: Ok"
                                                 />
                                             ) : (
                                                 <></>
@@ -159,24 +162,8 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         field: {
                             name: true,
                         },
-                        title: 'Root Span Name',
+                        title: 'Span Name',
                         type: FieldType.Text,
-                    },
-                    {
-                        field: {
-                            kind: true,
-                        },
-                        title: 'Root Span Kind',
-                        type: FieldType.Text,
-
-                        getElement: (span: JSONObject): ReactElement => {
-                            const spanKind: SpanKind = span['kind'] as SpanKind;
-
-                            const spanKindText: string =
-                                SpanUtil.getSpanKindFriendlyName(spanKind);
-
-                            return <span>{spanKindText}</span>;
-                        },
                     },
                     {
                         field: {
