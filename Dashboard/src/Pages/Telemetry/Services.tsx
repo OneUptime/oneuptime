@@ -16,8 +16,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import SideMenu from './SideMenu';
 import BaseModel from 'Common/Models/BaseModel';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
-import { Black } from 'Common/Types/BrandColors';
+import TelemetryServiceElement from '../../Components/TelemetryService/TelemetryServiceElement';
 
 const Services: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -150,18 +149,9 @@ const Services: FunctionComponent<PageComponentProps> = (
 
                             return (
                                 <Fragment>
-                                    <div className="flex space-x-2">
-                                        <div className="mt-1">
-                                            <ColorSquareCube
-                                                color={
-                                                    service.serviceColor ||
-                                                    Black
-                                                }
-                                                tooltip={`${service.name?.toString()} Service Color`}
-                                            />
-                                        </div>
-                                        <span>{service.name?.toString()}</span>
-                                    </div>
+                                    <TelemetryServiceElement
+                                        telemetryService={service}
+                                    />
                                 </Fragment>
                             );
                         },

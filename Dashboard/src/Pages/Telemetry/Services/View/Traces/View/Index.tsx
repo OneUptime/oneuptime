@@ -25,6 +25,7 @@ import DashboardNavigation from '../../../../../../Utils/Navigation';
 import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refresh';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -173,6 +174,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         <div>Span ID:</div> <div>{span.spanId?.toString()}</div>
                     </div>
                     <div className="flex space-x-1">
+                        <div>Service:</div> <div>{span.spanId?.toString()}</div>
+                    </div>
+                    <div className="flex space-x-1">
                         <div>Seen at:</div>{' '}
                         <div>
                             {OneUptimeDate.getDateAsFormattedString(
@@ -245,7 +249,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         const spanColor: {
             barColor: Color;
             titleColor: Color;
-        } = SpanUtil.getGanttChartBarColor(span);
+        } = SpanUtil.getGanttChartBarColor({
+            span: span,
+            telemetryServices: telemetryServices,
+        });
 
         return {
             id: span.spanId!,
@@ -490,6 +497,16 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             <Card
                 title={'Traces'}
                 description={'Traces for the request operation.'}
+                buttons={[
+                    {
+                        ...getRefreshButton(),
+                        className: 'py-0 pr-0 pl-1 mt-1',
+                        onClick: async () => {
+                            await fetchItems();
+                        },
+                        disabled: isLoading,
+                    },
+                ]}
             >
                 <div className="overflow-x-auto">
                     {ganttChart ? (

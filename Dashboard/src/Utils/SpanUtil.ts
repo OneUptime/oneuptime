@@ -1,14 +1,7 @@
-import {
-    Black,
-    Cyan500,
-    Green500,
-    Purple500,
-    Red500,
-    White,
-    Yellow500,
-} from 'Common/Types/BrandColors';
+import { Black, White } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
+import TelemetryService from 'Model/Models/TelemetryService';
 
 export default class SpanUtil {
     public static getSpanKindFriendlyName(spanKind: SpanKind): string {
@@ -29,34 +22,35 @@ export default class SpanUtil {
         return spanKindText;
     }
 
-    public static getGanttChartBarColor(span: Span): {
+    public static getGanttChartBarColor(data: {
+        span: Span;
+        telemetryServices: Array<TelemetryService>;
+    }): {
         barColor: Color;
         titleColor: Color;
     } {
-        if (span.kind === SpanKind.Server) {
+        const service: TelemetryService | undefined =
+            data.telemetryServices.find((service: TelemetryService) => {
+                return (
+                    service.id?.toString() === data.span.serviceId?.toString()
+                );
+            });
+
+        if (!service || !service.serviceColor) {
             return {
-                barColor: Green500,
-                titleColor: White,
-            };
-        } else if (span.kind === SpanKind.Client) {
-            return {
-                barColor: Yellow500,
-                titleColor: Black,
-            };
-        } else if (span.kind === SpanKind.Producer) {
-            return {
-                barColor: Purple500,
-                titleColor: White,
-            };
-        } else if (span.kind === SpanKind.Consumer) {
-            return {
-                barColor: Cyan500,
+                barColor: Black,
                 titleColor: White,
             };
         }
+
+        const barColor: Color = service.serviceColor;
+        const titleColor: Color = Color.shouldUseDarkText(barColor)
+            ? White
+            : Black;
+
         return {
-            barColor: Red500,
-            titleColor: White,
+            barColor,
+            titleColor,
         };
     }
 }

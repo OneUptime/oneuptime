@@ -76,6 +76,7 @@ import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import SelectEntityField from '../../Types/SelectEntityField';
 import { FilterData } from '../Filters/Filter';
 import ClassicFilterType from '../Filters/Types/Filter';
+import { getRefreshButton } from '../Card/CardButtons/Refresh';
 
 export enum ShowAs {
     Table,
@@ -708,16 +709,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         if (props.showRefreshButton) {
             headerbuttons.push({
-                title: '',
+                ...getRefreshButton(),
                 className: showFilterButton
                     ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
                     : 'py-0 pr-0 pl-1 mt-1',
-                buttonStyle: ButtonStyleType.ICON,
+
                 onClick: async () => {
                     await fetchItems();
                 },
                 disabled: isFilterFetchLoading,
-                icon: IconProp.Refresh,
             });
         }
 
