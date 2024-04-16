@@ -87,7 +87,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                     <Pill color={Green500} text={'Signed up'} />
                                 );
                             }
-                            return <Pill color={Yellow500} text={'Invite Sent'} />;
+                            return (
+                                <Pill color={Yellow500} text={'Invite Sent'} />
+                            );
                         },
                     },
                 ]}

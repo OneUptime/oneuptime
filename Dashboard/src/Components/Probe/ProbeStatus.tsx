@@ -30,7 +30,11 @@ const ProbeStatusElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <Statusbubble text={'Disconnected'} color={Red500} shouldAnimate={false} />
+        <Statusbubble
+            text={'Disconnected'}
+            color={Red500}
+            shouldAnimate={false}
+        />
     );
 };
 

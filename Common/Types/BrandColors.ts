@@ -1,6 +1,5 @@
 import Color from './Color';
 
-
 // Standard Colors
 export const Black: Color = Color.fromString('#000000');
 export const White: Color = Color.fromString('#ffffff');
@@ -54,6 +53,5 @@ export const BrightColors: Color[] = [
     Sky500,
     Emerald500,
     Lime500,
-    Amber500, 
+    Amber500,
 ];
-

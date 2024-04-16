@@ -213,7 +213,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 return <Pill text="Member" color={Green500} />;
                             }
                             return (
-                                <Pill text="Invitation Sent" color={Yellow500} />
+                                <Pill
+                                    text="Invitation Sent"
+                                    color={Yellow500}
+                                />
                             );
                         },
                     },
