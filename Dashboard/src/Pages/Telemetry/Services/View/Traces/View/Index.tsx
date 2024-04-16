@@ -146,11 +146,13 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             });
 
             setSpans(spans);
-
-            setIsLoading(false);
+            
         } catch (err) {
             setError(API.getFriendlyMessage(err));
+           
         }
+
+        setIsLoading(false);
     };
 
     const getBarTooltip: GetBarTooltipFunction = (
