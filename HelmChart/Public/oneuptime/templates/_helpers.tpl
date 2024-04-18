@@ -259,8 +259,8 @@ spec:
       volumes:
       {{- range $key, $val := $.Volumes }}
         - name: {{ $key }}
-          persistentVolumeClaim:
-            claimName: {{ $val.Name }}
+          emptyDir:
+            sizeLimit: {{ $val.SizeLimit }}
       {{- end }}
       {{- end }}
       containers:
