@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Row, { GanttChartRow } from './Row/Index';
+import Row from './Row/Index';
+import { GanttChartRow } from './Row/Row';
 
 export interface ComponentProps {
     rows: Array<GanttChartRow>;

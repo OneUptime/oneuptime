@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import Timeline, { GanttChartTimeline } from './Timeline/Index';
-import { GanttChartRow } from './Row/Index';
 import ChartContainer from './ChartContainer';
 import Rows from './Rows';
+import { GanttChartRow } from './Row/Row';
 
 export interface GanttChartProps {
     id: string;

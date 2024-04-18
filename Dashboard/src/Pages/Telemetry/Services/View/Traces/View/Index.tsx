@@ -23,10 +23,10 @@ import TelemetryService from 'Model/Models/TelemetryService';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import DashboardNavigation from '../../../../../../Utils/Navigation';
 import { GanttChartBar } from 'CommonUI/src/Components/GanttChart/Bar/Index';
-import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Index';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refresh';
 import TelemetryServiceElement from '../../../../../../Components/TelemetryService/TelemetryServiceElement';
+import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Row';
 
 type BarTooltipFunctionProps = {
     span: Span;
