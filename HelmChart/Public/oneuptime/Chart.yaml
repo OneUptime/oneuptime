@@ -41,6 +41,6 @@ dependencies:
   version: "19.1.2"
   repository: "https://charts.bitnami.com/bitnami"
 - name: clickhouse
-  version: "4.6.0"
+  version: "5.1.0"
   repository: "https://charts.bitnami.com/bitnami"
 
