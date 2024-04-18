@@ -115,7 +115,8 @@ analytics:
   host:
   key: 
 
-internalSmtp: 
+internalSmtp:
+  enabled: true
   sendingDomain: 
   dkimPrivateKey: 
   dkimPublicKey: 

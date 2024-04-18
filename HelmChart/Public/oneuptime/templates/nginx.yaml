@@ -1,6 +1,8 @@
 # OneUptime nginx Deployment
+{{- $statusPageCertsVolume := dict "SizeLimit" "1Gi" "MountPath" "/etc/nginx/certs/StatusPageCerts" -}}
+{{- $nginxVolumes := dict "status-page-certs" $statusPageCertsVolume -}}
 {{- $nginxPorts := dict "http" $.Values.port.nginxHttp "https" $.Values.port.nginxHttps -}}
-{{- $nginxDeploymentArgs :=dict "IsServer" true "Ports" $nginxPorts "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
+{{- $nginxDeploymentArgs :=dict "IsServer" true "Ports" $nginxPorts "ServiceName" "nginx" "Release" $.Release "Values" $.Values "Volumes" $nginxVolumes -}}
 {{- include "oneuptime.deployment" $nginxDeploymentArgs }}
 ---
 
