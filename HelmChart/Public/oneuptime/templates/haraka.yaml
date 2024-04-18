@@ -1,3 +1,5 @@
+{{- if $.Values.internalSmtp.enabled -}}
+
 # OneUptime haraka Deployment
 {{- $harakaPorts := dict "port" $.Values.port.haraka -}}
 {{- $harakaEnv := dict "SMTP_EMAIL" $.Values.internalSmtp.email "SMTP_PASSWORD" "internal_smtp_password" "DKIM_SELECTOR" "oneuptime" "DOMAIN" $.Values.internalSmtp.sendingDomain "DKIM_PRIVATE_KEY" $.Values.internalSmtp.dkimPrivateKey "DKIM_PUBLIC_KEY" $.Values.internalSmtp.dkimPublicKey -}}
@@ -15,3 +17,5 @@
 {{- $harakaAutoScalerArgs := dict "ServiceName" "haraka" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $harakaAutoScalerArgs }}
 ---
+
+{{- end -}}
