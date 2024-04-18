@@ -35,12 +35,12 @@ annotations:
 
 dependencies:
 - name: postgresql
-  version: "12.12.10"
+  version: "15.2.5"
   repository: "https://charts.bitnami.com/bitnami"
 - name: redis
-  version: "18.1.0"
+  version: "19.1.2"
   repository: "https://charts.bitnami.com/bitnami"
 - name: clickhouse
-  version: "4.0.2"
+  version: "5.1.0"
   repository: "https://charts.bitnami.com/bitnami"
 
