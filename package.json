@@ -5,7 +5,7 @@
     "main": "ts",
     "type": "module",
     "dependencies": {
-        "@types/lodash": "^4.14.202",
+        "@types/lodash": "^4.17.0",
         "eslint-plugin-progress": "^0.0.1",
         "ts-node": "^10.9.2",
         "typeorm": "^0.3.20"
