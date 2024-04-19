@@ -43,7 +43,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80 http2;
+    listen 7849 http2;
 
     server_name oneuptime-opentelemetry-collector ${OTEL_COLLECTOR_HOST};
 
@@ -83,7 +83,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80 http2;
+    listen 7849 http2;
 
     server_name oneuptime-fluentd-collector ${FLUENTD_HOST};
 
@@ -118,7 +118,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 80 default_server;
+    listen 7849 default_server;
 
     server_name  _; # All domains. 
 
@@ -231,7 +231,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
 
-    listen 443 ssl default_server; # Port HTTPS
+    listen 7850 ssl default_server; # Port HTTPS
 
 
     ssl_certificate /etc/nginx/certs/StatusPageCerts/$ssl_server_name.crt; 
@@ -327,7 +327,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
     
-    listen 80 http2;
+    listen 7849 http2;
 
     server_name localhost ingress ${HOST}; #All domains
 

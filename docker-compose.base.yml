@@ -346,8 +346,8 @@ services:
         environment:
             <<: *common-server-variables
         ports:
-            - '${ONEUPTIME_HTTP_PORT}:80'
-            - '${ONEUPTIME_HTTPS_PORT}:443'
+            - '${ONEUPTIME_HTTP_PORT}:7849'
+            - '${ONEUPTIME_HTTPS_PORT}:7850'
         logging:
             driver: "local"
             options:
