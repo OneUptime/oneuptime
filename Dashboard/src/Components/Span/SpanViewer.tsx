@@ -117,9 +117,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
 
     return (
         <div id={props.id}>
-            {span && (
-                <></>
-            )}
+            {span && <></>}
             <LogsViewer
                 isLoading={isLoading}
                 onFilterChanged={() => {}}
