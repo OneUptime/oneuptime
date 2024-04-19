@@ -27,6 +27,7 @@ metalLb:
 
 ingress:
   service: 
+    loadBalancerIP: 
     type: LoadBalancer
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses

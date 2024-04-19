@@ -1,17 +1,52 @@
+
 # OneUptime nginx Deployment
 {{- $confDir := dict "SizeLimit" "1Gi" "MountPath" "/etc/nginx/conf.d" -}}
 {{- $nginxCache := dict "SizeLimit" "1Gi" "MountPath" "/var/cache/nginx" -}}
 {{- $statusPageCertsVolume := dict "SizeLimit" "1Gi" "MountPath" "/etc/nginx/certs/StatusPageCerts" -}}
 {{- $nginxVolumes := dict "status-page-certs" $statusPageCertsVolume "cache" $nginxCache "conf" $confDir -}}
-{{- $nginxPorts := dict "http" $.Values.port.nginxHttp "https" $.Values.port.nginxHttps -}}
+{{- $nginxPorts := dict "http" "7849" "https" "7850" -}}
 {{- $nginxDeploymentArgs :=dict "IsServer" true "Ports" $nginxPorts "ServiceName" "nginx" "Release" $.Release "Values" $.Values "Volumes" $nginxVolumes -}}
 {{- include "oneuptime.deployment" $nginxDeploymentArgs }}
 ---
 
-# OneUptime nginx Service
-{{- $nginxPorts := dict "http" $.Values.port.nginxHttp "https" $.Values.port.nginxHttps -}}
-{{- $nginxServiceArgs := dict "IsMetalLbEnabled" $.Values.metalLb.enabled "ExternalIPs" $.Values.ingress.service.externalIPs "ServiceName" "nginx" "Ports" $nginxPorts "Release" $.Release "Values" $.Values "ServiceType" $.Values.ingress.service.type -}}
-{{- include "oneuptime.service" $nginxServiceArgs }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+  name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+  {{- if $.Values.metalLb.enabled }}
+    metallb.universe.tf/address-pool: {{ printf "%s-%s" $.Release.Name "metallb-address-pool"  }}
+  {{- end }}
+spec:
+  {{- if $.Values.ingress.service.loadBalancerIP }}
+  loadBalancerIP: {{ $.Values.ingress.service.loadBalancerIP }}
+  {{- end }}
+  {{- if $.Values.ingress.service.externalIPs }}
+  externalIPs:
+    {{- range $key, $val := $.Values.ingress.service.externalIPs }}
+    - {{ $val }}
+    {{- end }}
+  {{- end }}
+  ports:
+    - port: {{ $.Values.port.nginxHttp }}
+      targetPort: 7849
+      name: http
+    - port: {{ $.Values.port.nginxHttps }}
+      targetPort: 7850
+      name: https
+  selector:
+      app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
+  {{- if $.Values.ingress.service.type }}
+  type: {{ $.Values.ingress.service.type }}
+  {{- else }}
+  type: ClusterIP
+  {{- end}}
 ---
 
 # OneUptime nginx autoscaler
