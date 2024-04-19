@@ -180,9 +180,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                     );
                 }
 
-                return (
-                    <Pill color={Red} text={OnCallDutyPolicyStatus.Error} />
-                );
+                return <Pill color={Red} text={OnCallDutyPolicyStatus.Error} />;
             },
         },
         {

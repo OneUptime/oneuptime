@@ -18,13 +18,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import {
-    Yellow,
-    Green,
-    Red,
-    Moroon500,
-    Black,
-} from 'Common/Types/BrandColors';
+import { Yellow, Green, Red, Moroon500, Black } from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';

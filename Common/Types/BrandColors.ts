@@ -43,7 +43,6 @@ export const Violet500: Color = Color.fromString('#8b5cf6');
 export const Fuchsia500: Color = Color.fromString('#d946ef');
 export const Rose500: Color = Color.fromString('#f43f5e');
 
-
 export const BrightColors: Color[] = [
     Black,
     Indigo500,

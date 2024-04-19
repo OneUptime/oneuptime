@@ -10,7 +10,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import { JSONObject } from 'Common/Types/JSON';
-import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
+import ColorCircle from 'CommonUI/src/Components/ColorCircle/ColorCircle';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import { Green, Red } from 'Common/Types/BrandColors';
 
@@ -122,7 +122,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                             (spanObj.statusCode ===
                                                 SpanStatus.Unset ||
                                                 !spanObj.statusCode) ? (
-                                                <ColorSquareCube
+                                                <ColorCircle
                                                     color={Green}
                                                     tooltip="Span Status: Unset"
                                                 />
@@ -132,7 +132,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                             {spanObj &&
                                             spanObj.statusCode ===
                                                 SpanStatus.Ok ? (
-                                                <ColorSquareCube
+                                                <ColorCircle
                                                     color={Green}
                                                     tooltip="Span Status: Ok"
                                                 />
@@ -142,7 +142,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                             {spanObj &&
                                             spanObj.statusCode ===
                                                 SpanStatus.Error ? (
-                                                <ColorSquareCube
+                                                <ColorCircle
                                                     color={Red}
                                                     tooltip="Span Status: Error"
                                                 />

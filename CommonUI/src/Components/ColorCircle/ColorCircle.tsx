@@ -13,7 +13,7 @@ const ColorCircle: FunctionComponent<ComponentProps> = (
     return (
         <Tooltip text={props.tooltip}>
             <div
-                className="rounded-max h-3 w-3"
+                className="rounded-full h-3 w-3"
                 style={{
                     backgroundColor: props.color.toString(),
                 }}
