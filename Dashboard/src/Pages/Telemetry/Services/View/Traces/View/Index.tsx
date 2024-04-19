@@ -17,7 +17,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import SpanUtil from '../../../../../../Utils/SpanUtil';
 import OneUptimeDate from 'Common/Types/Date';
 import Color from 'Common/Types/Color';
-import DashboardLogsViewer from '../../../../../../Components/LogsViewer/LogsViewer';
+import DashboardLogsViewer from '../../../../../../Components/Logs/LogsViewer';
 import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import TelemetryService from 'Model/Models/TelemetryService';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -28,6 +28,8 @@ import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refre
 import TelemetryServiceElement from '../../../../../../Components/TelemetryService/TelemetryServiceElement';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Row';
 import SpanStatusElement from '../../../../../../Components/Span/SpanStatusElement';
+import SideOver, { SideOverSize } from 'CommonUI/src/Components/SideOver/SideOver';
+import SpanViewer from '../../../../../../Components/Span/SpanViewer';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -544,9 +546,24 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     id={'traces-logs-viewer'}
                     noLogsMessage="No logs found for this trace."
                     traceIds={[traceId]}
-                    spanIds={selectedSpans}
                     enableRealtime={false}
                 />
+            )}
+
+            {selectedSpans.length > 0 && (
+                <SideOver
+                    title="View Span"
+                    description="View the span details."
+                    onClose={() => {
+                        setSelectedSpans([]);
+                    }}
+                    size={SideOverSize.Large}
+                >
+                    <SpanViewer
+                        id={'span-viewer'}
+                        openTelemetrySpanId={selectedSpans[0] as string}
+                    />
+                </SideOver>
             )}
         </Fragment>
     );

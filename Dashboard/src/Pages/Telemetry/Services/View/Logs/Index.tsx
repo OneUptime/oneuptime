@@ -2,7 +2,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../../../PageComponentProps';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import DashboardLogsViewer from '../../../../../Components/LogsViewer/LogsViewer';
+import DashboardLogsViewer from '../../../../../Components/Logs/LogsViewer';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
