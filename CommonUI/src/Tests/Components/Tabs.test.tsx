@@ -5,14 +5,16 @@ import Tabs from '../../Components/Tabs/Tabs';
 import { Tab } from '../../Components/Tabs/Tab';
 
 describe('Tabs', () => {
+    const activeClass: string = 'bg-gray-100 text-gray-700';
 
-    const activeClass: string = "bg-gray-100 text-gray-700"
-
-    const tabs: Array<Tab> = [{
-        name: 'tab1',
-    }, {
-        name: 'tab2',
-    }];
+    const tabs: Array<Tab> = [
+        {
+            name: 'tab1',
+        },
+        {
+            name: 'tab2',
+        },
+    ];
 
     test('it should render all props passed', () => {
         const onTabChange: jest.Mock = jest.fn();
