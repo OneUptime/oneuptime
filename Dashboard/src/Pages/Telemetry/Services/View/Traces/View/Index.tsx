@@ -161,23 +161,36 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 <div className="bar-tooltip-title text-sm text-gray-700 font-medium my-2">
                     {span.name}
                 </div>
-                <div className="bar-tooltip-description text-gray-600 text-xs space-y-1 my-2">
-                    <div className="flex space-x-1">
-                        <div>Span ID:</div> <div>{span.spanId?.toString()}</div>
+                <div className="bar-tooltip-description text-gray-600 text-xs space-y-1.5 my-2">
+                    <div className="">
+                        <div className="font-semibold">Span ID:</div>{' '}
+                        <div>{span.spanId?.toString()}</div>
                     </div>
-                    <div className="flex space-x-1">
-                        <div>Service:</div> <div>{span.spanId?.toString()}</div>
+                    <div className="">
+                        <div className="font-semibold">Span Status:</div>{' '}
+                        <div>
+                            <SpanStatusElement
+                                span={span}
+                                title={
+                                    'Status: ' +
+                                    SpanUtil.getSpanStatusCodeFriendlyName(
+                                        span.statusCode!
+                                    )
+                                }
+                                titleClassName="mt-0.5"
+                            />{' '}
+                        </div>
                     </div>
-                    <div className="flex space-x-1">
-                        <div>Seen at:</div>{' '}
+                    <div className="">
+                        <div className="font-semibold">Seen at:</div>{' '}
                         <div>
                             {OneUptimeDate.getDateAsFormattedString(
                                 span.startTime!
                             )}
                         </div>
                     </div>
-                    <div className="flex space-x-1">
-                        <div>Start:</div>{' '}
+                    <div className="">
+                        <div className="font-semibold">Start:</div>{' '}
                         <div>
                             {Math.round(
                                 (span.startTimeUnixNano! -
@@ -187,8 +200,8 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                             {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
                     </div>
-                    <div className="flex space-x-1">
-                        <div>End:</div>{' '}
+                    <div className="">
+                        <div className="font-semibold">End:</div>{' '}
                         <div>
                             {Math.round(
                                 (span.endTimeUnixNano! -
@@ -198,8 +211,8 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                             {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
                     </div>
-                    <div className="flex space-x-1">
-                        <div>Duration:</div>{' '}
+                    <div className="">
+                        <div className="font-semibold">Duration:</div>{' '}
                         <div>
                             {Math.round(
                                 span.durationUnixNano! /
@@ -208,8 +221,8 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                             {divisibilityFactorAndIntervalUnit.intervalUnit}
                         </div>
                     </div>
-                    <div className="flex space-x-1">
-                        <div>Span Kind:</div>{' '}
+                    <div className="">
+                        <div className="font-semibold">Span Kind:</div>{' '}
                         <div>
                             {SpanUtil.getSpanKindFriendlyName(span.kind!)}
                         </div>
