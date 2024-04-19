@@ -38,10 +38,11 @@ const Tabs: FunctionComponent<ComponentProps> = (
                     name="tabs"
                     className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
                     defaultValue={currentTab?.name || ''}
-                    onChange={(event) => {
-
-                        const selectedTab = props.tabs.find(
-                            (tab) => tab.name === event.target.value
+                    onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                        const selectedTab: Tab | undefined = props.tabs.find(
+                            (tab: Tab) => {
+                                return tab.name === event.target.value;
+                            }
                         );
 
                         if (!selectedTab) {
@@ -51,18 +52,25 @@ const Tabs: FunctionComponent<ComponentProps> = (
                         setCurrentTab(selectedTab);
                     }}
                 >
-                    {props.tabs.map((tab) => (
-                        <option key={tab.name}>{tab.name}</option>
-                    ))}
+                    {props.tabs.map((tab: Tab) => {
+                        return <option key={tab.name}>{tab.name}</option>;
+                    })}
                 </select>
             </div>
             <div className="hidden sm:block">
                 <nav className="flex space-x-4" aria-label="Tabs">
-                    {props.tabs.map((tab) => (
-                        <TabElement key={tab.name} tab={tab} onClick={()=>{
-                            setCurrentTab(tab);
-                        }} isSelected={tab === currentTab} />
-                    ))}
+                    {props.tabs.map((tab: Tab) => {
+                        return (
+                            <TabElement
+                                key={tab.name}
+                                tab={tab}
+                                onClick={() => {
+                                    setCurrentTab(tab);
+                                }}
+                                isSelected={tab === currentTab}
+                            />
+                        );
+                    })}
                 </nav>
             </div>
         </div>

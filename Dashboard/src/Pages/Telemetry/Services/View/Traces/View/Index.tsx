@@ -28,8 +28,6 @@ import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refre
 import TelemetryServiceElement from '../../../../../../Components/TelemetryService/TelemetryServiceElement';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Row';
 import SpanStatusElement from '../../../../../../Components/Span/SpanStatusElement';
-import SideOver, { SideOverSize } from 'CommonUI/src/Components/SideOver/SideOver';
-import SpanViewer from '../../../../../../Components/Span/SpanViewer';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -551,19 +549,20 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             )}
 
             {selectedSpans.length > 0 && (
-                <SideOver
-                    title="View Span"
-                    description="View the span details."
-                    onClose={() => {
-                        setSelectedSpans([]);
-                    }}
-                    size={SideOverSize.Large}
-                >
-                    <SpanViewer
-                        id={'span-viewer'}
-                        openTelemetrySpanId={selectedSpans[0] as string}
-                    />
-                </SideOver>
+                // <SideOver
+                //     title="View Span"
+                //     description="View the span details."
+                //     onClose={() => {
+                //         setSelectedSpans([]);
+                //     }}
+                //     size={SideOverSize.Large}
+                // >
+                //     <SpanViewer
+                //         id={'span-viewer'}
+                //         openTelemetrySpanId={selectedSpans[0] as string}
+                //     />
+                // </SideOver>
+                <></>
             )}
         </Fragment>
     );

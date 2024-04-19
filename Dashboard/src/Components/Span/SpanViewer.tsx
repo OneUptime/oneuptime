@@ -52,7 +52,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     };
 
     useEffect(() => {
-        fetchItems().catch((err) => {
+        fetchItems().catch((err: Error) => {
             setError(API.getFriendlyMessage(err));
         });
     }, []);
@@ -117,6 +117,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
 
     return (
         <div id={props.id}>
+            {span && (
+                <></>
+            )}
             <LogsViewer
                 isLoading={isLoading}
                 onFilterChanged={() => {}}

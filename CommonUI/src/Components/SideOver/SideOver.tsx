@@ -3,7 +3,6 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import Icon from '../Icon/Icon';
 
-
 export enum SideOverSize {
     Small = 'Small',
     Medium = 'Medium',
@@ -25,16 +24,14 @@ export interface ComponentProps {
 const SideOver: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
-    let widthClass: string = "max-w-2xl";
+    let widthClass: string = 'max-w-2xl';
 
     if (props.size === SideOverSize.Small) {
-        widthClass = "max-w-2xl";
+        widthClass = 'max-w-2xl';
     } else if (props.size === SideOverSize.Medium) {
-        widthClass = "max-w-5xl";
+        widthClass = 'max-w-5xl';
     } else if (props.size === SideOverSize.Large) {
-        widthClass = "max-w-7xl";
+        widthClass = 'max-w-7xl';
     }
 
     return (
@@ -49,7 +46,9 @@ const SideOver: FunctionComponent<ComponentProps> = (
             <div className="fixed inset-0 overflow-hidden">
                 <div className="absolute inset-0 overflow-hidden">
                     <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
-                        <div className={`pointer-events-auto w-screen ${widthClass}`}>
+                        <div
+                            className={`pointer-events-auto w-screen ${widthClass}`}
+                        >
                             <div className="flex h-full flex-col bg-white shadow-xl">
                                 <div className="flex-shrink-0 flex flex-col bg-gray-50 px-4 py-6 sm:px-6">
                                     <div className="flex items-start justify-between space-x-3">
