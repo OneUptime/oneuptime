@@ -70,10 +70,10 @@ describe('SideOver', () => {
         expect(screen.getByText(leftFooterElementText)).toBeInTheDocument();
     });
 
-    test('should call onClose when Cancel button is clicked', () => {
+    test('should call onClose when Close button is clicked', () => {
         renderComponent(props);
 
-        const cancelButton: HTMLElement = screen.getByText('Cancel');
+        const cancelButton: HTMLElement = screen.getByText('Close');
         expect(cancelButton).toBeInTheDocument();
 
         fireEvent.click(cancelButton);
