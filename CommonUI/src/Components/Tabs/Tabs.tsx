@@ -28,35 +28,6 @@ const Tabs: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <div className="sm:hidden">
-                <label htmlFor="tabs" className="sr-only">
-                    Select a tab
-                </label>
-                {/* Use an "onChange" listener to redirect the user to the selected tab URL. */}
-                <select
-                    id="tabs"
-                    name="tabs"
-                    className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                    defaultValue={currentTab?.name || ''}
-                    onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                        const selectedTab: Tab | undefined = props.tabs.find(
-                            (tab: Tab) => {
-                                return tab.name === event.target.value;
-                            }
-                        );
-
-                        if (!selectedTab) {
-                            return;
-                        }
-
-                        setCurrentTab(selectedTab);
-                    }}
-                >
-                    {props.tabs.map((tab: Tab) => {
-                        return <option key={tab.name}>{tab.name}</option>;
-                    })}
-                </select>
-            </div>
             <div className="hidden sm:block">
                 <nav className="flex space-x-4" aria-label="Tabs">
                     {props.tabs.map((tab: Tab) => {
