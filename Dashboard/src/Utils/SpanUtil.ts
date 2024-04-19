@@ -1,6 +1,6 @@
-import { Black, White } from 'Common/Types/BrandColors';
+import { Black } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
-import Span, { SpanKind } from 'Model/AnalyticsModels/Span';
+import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import TelemetryService from 'Model/Models/TelemetryService';
 
 export default class SpanUtil {
@@ -22,12 +22,27 @@ export default class SpanUtil {
         return spanKindText;
     }
 
+    public static getSpanStatusCodeFriendlyName(
+        statusCode: SpanStatus
+    ): string {
+        let statusCodeText: string = 'Unset'; // by default spans are always unset
+
+        if (statusCode === SpanStatus.Ok) {
+            statusCodeText = 'Ok';
+        } else if (statusCode === SpanStatus.Error) {
+            statusCodeText = 'Error';
+        } else {
+            statusCodeText = 'Unset';
+        }
+
+        return statusCodeText;
+    }
+
     public static getGanttChartBarColor(data: {
         span: Span;
         telemetryServices: Array<TelemetryService>;
     }): {
         barColor: Color;
-        titleColor: Color;
     } {
         const service: TelemetryService | undefined =
             data.telemetryServices.find((service: TelemetryService) => {
@@ -39,18 +54,13 @@ export default class SpanUtil {
         if (!service || !service.serviceColor) {
             return {
                 barColor: Black,
-                titleColor: White,
             };
         }
 
         const barColor: Color = service.serviceColor;
-        const titleColor: Color = Color.shouldUseDarkText(barColor)
-            ? White
-            : Black;
 
         return {
             barColor,
-            titleColor,
         };
     }
 }

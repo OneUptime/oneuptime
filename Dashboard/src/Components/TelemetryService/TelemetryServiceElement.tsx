@@ -12,6 +12,7 @@ import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 export interface ComponentProps {
     telemetryService: TelemetryService;
     onNavigateComplete?: (() => void) | undefined;
+    telemetryServiceNameClassName?: string;
 }
 
 const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
@@ -26,7 +27,9 @@ const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
                         tooltip={`${props.telemetryService.name?.toString()} Service Color`}
                     />
                 </div>
-                <span>{props.telemetryService.name?.toString()}</span>
+                <div className={props.telemetryServiceNameClassName}>
+                    {props.telemetryService.name?.toString()}
+                </div>
             </div>
         );
     };

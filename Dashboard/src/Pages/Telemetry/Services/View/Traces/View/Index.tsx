@@ -27,6 +27,7 @@ import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import { getRefreshButton } from 'CommonUI/src/Components/Card/CardButtons/Refresh';
 import TelemetryServiceElement from '../../../../../../Components/TelemetryService/TelemetryServiceElement';
 import { GanttChartRow } from 'CommonUI/src/Components/GanttChart/Row/Row';
+import SpanStatusElement from '../../../../../../Components/Span/SpanStatusElement';
 
 type BarTooltipFunctionProps = {
     span: Span;
@@ -100,6 +101,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 kind: true,
                 serviceId: true,
                 durationUnixNano: true,
+                statusCode: true,
             };
 
             const spanFromUrl: Span | null =
@@ -238,7 +240,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const spanColor: {
             barColor: Color;
-            titleColor: Color;
         } = SpanUtil.getGanttChartBarColor({
             span: span,
             telemetryServices: telemetryServices,
@@ -246,8 +247,19 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         return {
             id: span.spanId!,
-            title: span.name!,
-            titleColor: spanColor.titleColor,
+            label: (
+                <div className="mt-0.5">
+                    <SpanStatusElement
+                        span={span}
+                        title={
+                            'Status: ' +
+                            SpanUtil.getSpanStatusCodeFriendlyName(
+                                span.statusCode!
+                            )
+                        }
+                    />
+                </div>
+            ),
             barColor: spanColor.barColor,
             barTimelineStart:
                 (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
@@ -273,6 +285,27 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         timelineStartTimeUnixNano: number;
         divisibilityFactor: number;
         divisibilityFactorAndIntervalUnit: string;
+    };
+
+    type GetRowDescriptionFunction = (data: {
+        telemetryService: TelemetryService;
+        span: Span;
+    }) => ReactElement;
+
+    const getRowDescription: GetRowDescriptionFunction = (data: {
+        telemetryService: TelemetryService;
+        span: Span;
+    }): ReactElement => {
+        const { telemetryService } = data;
+
+        return (
+            <div className="flex space-x-5">
+                <TelemetryServiceElement
+                    telemetryService={telemetryService}
+                    telemetryServiceNameClassName="mt-0.5"
+                />
+            </div>
+        );
     };
 
     type GetRowsFunction = (data: GetBarsFunctionProps) => Array<GanttChartRow>;
@@ -303,9 +336,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             rowInfo: {
                 title: <div>{rootSpan.name!}</div>,
                 description: telemetryService ? (
-                    <TelemetryServiceElement
-                        telemetryService={telemetryService}
-                    />
+                    getRowDescription({
+                        telemetryService,
+                        span: rootSpan,
+                    })
                 ) : (
                     <></>
                 ),

@@ -1,9 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Color from 'Common/Types/Color';
 
 export interface ComponentProps {
-    titleColor: Color;
-    title: string;
+    label: string | ReactElement;
 }
 
 const BarLabel: FunctionComponent<ComponentProps> = (
@@ -12,14 +10,7 @@ const BarLabel: FunctionComponent<ComponentProps> = (
     return (
         // rectangle div with curved corners and text inside in tailwindcss
 
-        <div
-            className="text-center text-sm font-medium"
-            style={{
-                color: `${props.titleColor.toString()}`,
-            }}
-        >
-            {props.title}
-        </div>
+        <div className="text-center text-sm font-medium">{props.label}</div>
     );
 };
 

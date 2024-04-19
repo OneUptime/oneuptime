@@ -10,9 +10,8 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import { JSONObject } from 'Common/Types/JSON';
-import ColorCircle from 'CommonUI/src/Components/ColorCircle/ColorCircle';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import { Green, Red } from 'Common/Types/BrandColors';
+import SpanStatusElement from '../../../../../Components/Span/SpanStatusElement';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -108,52 +107,18 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Span ID',
                         type: FieldType.Element,
-                        getElement: (span: JSONObject): ReactElement => {
-                            const spanObj: Span = AnalyticsBaseModel.fromJSON(
-                                span,
+                        getElement: (spanObj: JSONObject): ReactElement => {
+                            const span: Span = AnalyticsBaseModel.fromJSON(
+                                spanObj,
                                 Span
                             ) as Span;
 
                             return (
                                 <Fragment>
-                                    <div className="flex space-x-2">
-                                        <div className="mt-1">
-                                            {spanObj &&
-                                            (spanObj.statusCode ===
-                                                SpanStatus.Unset ||
-                                                !spanObj.statusCode) ? (
-                                                <ColorCircle
-                                                    color={Green}
-                                                    tooltip="Span Status: Unset"
-                                                />
-                                            ) : (
-                                                <></>
-                                            )}
-                                            {spanObj &&
-                                            spanObj.statusCode ===
-                                                SpanStatus.Ok ? (
-                                                <ColorCircle
-                                                    color={Green}
-                                                    tooltip="Span Status: Ok"
-                                                />
-                                            ) : (
-                                                <></>
-                                            )}
-                                            {spanObj &&
-                                            spanObj.statusCode ===
-                                                SpanStatus.Error ? (
-                                                <ColorCircle
-                                                    color={Red}
-                                                    tooltip="Span Status: Error"
-                                                />
-                                            ) : (
-                                                <></>
-                                            )}
-                                        </div>
-                                        <span>
-                                            {spanObj.traceId?.toString()}
-                                        </span>
-                                    </div>
+                                    <SpanStatusElement
+                                        span={span}
+                                        title={span.traceId?.toString()}
+                                    />
                                 </Fragment>
                             );
                         },

@@ -9,8 +9,7 @@ import BarLabel from './BarLabel';
 
 export interface GanttChartBar {
     id: string;
-    title: string;
-    titleColor: Color;
+    label: string | ReactElement;
     barColor: Color;
     barTimelineStart: number;
     barTimelineEnd: number;
@@ -53,10 +52,6 @@ const Bar: FunctionComponent<ComponentProps> = (
     if (barWidth < 5) {
         barWidth = 5;
     }
-
-    const eachCharacterWidth: number = 8;
-    const showLabelOutsideBar: boolean =
-        barWidth < props.bar.title.length * eachCharacterWidth;
 
     const handleMouseEnter: MouseEventHandler = (): void => {
         setIsHovered(true);
@@ -102,32 +97,22 @@ const Bar: FunctionComponent<ComponentProps> = (
                     setIsSelected(!isSelected);
                 }}
             >
-                {!showLabelOutsideBar && (
-                    <BarLabel
-                        title={props.bar.title}
-                        titleColor={props.bar.titleColor}
-                    />
-                )}
                 {isHovered && props.bar.tooltip && (
                     <div className="bar-tooltip cursor-pointer bg-white shadow rounded p-2 w-fit z-40 absolute">
                         {props.bar.tooltip}
                     </div>
                 )}
             </div>
-            {showLabelOutsideBar && (
-                <div
-                    className="h-8 pt-1 pb-1 mt-2.5 mb-2.5"
-                    style={{
-                        marginLeft: `${barWidth + 15}px`,
-                        opacity: barOpacity,
-                    }}
-                >
-                    <BarLabel
-                        title={props.bar.title}
-                        titleColor={props.bar.barColor}
-                    />
-                </div>
-            )}
+
+            <div
+                className="h-8 pt-1 pb-1 mt-2.5 mb-2.5"
+                style={{
+                    marginLeft: `${barWidth + 15}px`,
+                    opacity: barOpacity,
+                }}
+            >
+                <BarLabel label={props.bar.label} />
+            </div>
         </div>
     );
 };
