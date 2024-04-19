@@ -82,6 +82,9 @@ export default class SendMessageToChannel extends ComponentCode {
                         content: {
                             $schema:
                                 'http://adaptivecards.io/schemas/adaptive-card.json',
+                            msteams: {
+                                width: 'Full',
+                            },
                             type: 'AdaptiveCard',
                             version: '1.2',
                             body: [
