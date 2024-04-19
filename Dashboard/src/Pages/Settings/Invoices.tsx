@@ -15,7 +15,7 @@ import BillingInvoice, { InvoiceStatus } from 'Model/Models/BillingInvoice';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import URL from 'Common/Types/API/URL';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green500, Yellow500 } from 'Common/Types/BrandColors';
+import { Green, Yellow } from 'Common/Types/BrandColors';
 import { APP_API_URL } from 'CommonUI/src/Config';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -173,7 +173,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                             text={Text.uppercaseFirstLetter(
                                                 item['status'] as string
                                             )}
-                                            color={Green500}
+                                            color={Green}
                                         />
                                     );
                                 }
@@ -182,7 +182,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         text={Text.uppercaseFirstLetter(
                                             item['status'] as string
                                         )}
-                                        color={Yellow500}
+                                        color={Yellow}
                                     />
                                 );
                             },

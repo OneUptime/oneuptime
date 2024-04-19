@@ -12,7 +12,7 @@ import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import { JSONObject } from 'Common/Types/JSON';
 import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import { Green500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Red } from 'Common/Types/BrandColors';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -123,7 +123,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                                 SpanStatus.Unset ||
                                                 !spanObj.statusCode) ? (
                                                 <ColorSquareCube
-                                                    color={Green500}
+                                                    color={Green}
                                                     tooltip="Span Status: Unset"
                                                 />
                                             ) : (
@@ -133,7 +133,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                             spanObj.statusCode ===
                                                 SpanStatus.Ok ? (
                                                 <ColorSquareCube
-                                                    color={Green500}
+                                                    color={Green}
                                                     tooltip="Span Status: Ok"
                                                 />
                                             ) : (
@@ -143,7 +143,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                                             spanObj.statusCode ===
                                                 SpanStatus.Error ? (
                                                 <ColorSquareCube
-                                                    color={Red500}
+                                                    color={Red}
                                                     tooltip="Span Status: Error"
                                                 />
                                             ) : (

@@ -18,7 +18,7 @@ import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalat
 import EscalationRuleView from '../../Components/OnCallPolicy/EscalationRule/EscalationRule';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
-import { Green500, Red500, Yellow500 } from 'Common/Types/BrandColors';
+import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
@@ -207,7 +207,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Green500}
+                                        color={Green}
                                         text={
                                             UserNotificationExecutionStatus.Completed
                                         }
@@ -219,7 +219,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={
                                             UserNotificationExecutionStatus.Started
                                         }
@@ -231,7 +231,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={
                                             UserNotificationExecutionStatus.Scheduled
                                         }
@@ -243,7 +243,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={
                                             UserNotificationExecutionStatus.Executing
                                         }
@@ -253,7 +253,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
                             return (
                                 <Pill
-                                    color={Red500}
+                                    color={Red}
                                     text={UserNotificationExecutionStatus.Error}
                                 />
                             );

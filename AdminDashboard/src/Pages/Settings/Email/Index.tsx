@@ -15,7 +15,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import { JSONObject } from 'Common/Types/JSON';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Red } from 'Common/Types/BrandColors';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent = (): ReactElement => {
@@ -385,28 +385,28 @@ const Settings: FunctionComponent = (): ReactElement => {
                                         return (
                                             <Pill
                                                 text="Enabled"
-                                                color={Green500}
+                                                color={Green}
                                             />
                                         );
                                     } else if (!item['sendgridApiKey']) {
                                         return (
                                             <Pill
                                                 text="Not Enabled. Please add the API key."
-                                                color={Red500}
+                                                color={Red}
                                             />
                                         );
                                     } else if (!item['sendgridFromEmail']) {
                                         return (
                                             <Pill
                                                 text="Not Enabled. Please add the From Email."
-                                                color={Red500}
+                                                color={Red}
                                             />
                                         );
                                     } else if (!item['sendgridFromName']) {
                                         return (
                                             <Pill
                                                 text="Not Enabled. Please add the From Name."
-                                                color={Red500}
+                                                color={Red}
                                             />
                                         );
                                     }

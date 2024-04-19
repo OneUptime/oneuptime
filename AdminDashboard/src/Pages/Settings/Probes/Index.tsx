@@ -9,7 +9,7 @@ import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import OneUptimeDate from 'Common/Types/Date';
-import { Green500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Red } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
@@ -197,7 +197,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 return (
                                     <Statusbubble
                                         text={'Connected'}
-                                        color={Green500}
+                                        color={Green}
                                         shouldAnimate={true}
                                     />
                                 );
@@ -206,7 +206,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                             return (
                                 <Statusbubble
                                     text={'Disconnected'}
-                                    color={Red500}
+                                    color={Red}
                                     shouldAnimate={false}
                                 />
                             );

@@ -4,7 +4,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green500, Red500, Yellow500 } from 'Common/Types/BrandColors';
+import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
@@ -207,7 +207,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Green500}
+                                        color={Green}
                                         text={
                                             OnCallDutyExecutionLogTimelineStatus.NotificationSent
                                         }
@@ -219,7 +219,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Green500}
+                                        color={Green}
                                         text={
                                             OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
                                         }
@@ -231,7 +231,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Red500}
+                                        color={Red}
                                         text={
                                             OnCallDutyExecutionLogTimelineStatus.Error
                                         }
@@ -243,7 +243,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={
                                             OnCallDutyExecutionLogTimelineStatus.Skipped
                                         }
@@ -255,7 +255,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={
                                             OnCallDutyExecutionLogTimelineStatus.Executing
                                         }
@@ -267,7 +267,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={
                                             OnCallDutyExecutionLogTimelineStatus.Started
                                         }
@@ -277,7 +277,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
 
                             return (
                                 <Pill
-                                    color={Red500}
+                                    color={Red}
                                     text={
                                         OnCallDutyExecutionLogTimelineStatus.Error
                                     }

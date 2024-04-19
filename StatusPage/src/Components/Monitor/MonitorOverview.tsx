@@ -1,4 +1,4 @@
-import { Green500 } from 'Common/Types/BrandColors';
+import { Green } from 'Common/Types/BrandColors';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -67,7 +67,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                     style={{
                         color:
                             props.currentStatus?.color?.toString() ||
-                            Green500.toString(),
+                            Green.toString(),
                     }}
                 >
                     {uptimePercent}% uptime
@@ -82,7 +82,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                     style={{
                         color:
                             props.currentStatus?.color?.toString() ||
-                            Green500.toString(),
+                            Green.toString(),
                     }}
                 >
                     {props.currentStatus?.name || 'Operational'}

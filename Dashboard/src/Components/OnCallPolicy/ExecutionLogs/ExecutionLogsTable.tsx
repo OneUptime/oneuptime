@@ -5,7 +5,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green500, Red500, Yellow500 } from 'Common/Types/BrandColors';
+import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import IncidentView from '../../../Components/Incident/Incident';
@@ -149,14 +149,14 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 if (item['status'] === OnCallDutyPolicyStatus.Completed) {
                     return (
                         <Pill
-                            color={Green500}
+                            color={Green}
                             text={OnCallDutyPolicyStatus.Completed}
                         />
                     );
                 } else if (item['status'] === OnCallDutyPolicyStatus.Started) {
                     return (
                         <Pill
-                            color={Yellow500}
+                            color={Yellow}
                             text={OnCallDutyPolicyStatus.Started}
                         />
                     );
@@ -165,7 +165,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 ) {
                     return (
                         <Pill
-                            color={Yellow500}
+                            color={Yellow}
                             text={OnCallDutyPolicyStatus.Scheduled}
                         />
                     );
@@ -174,14 +174,14 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 ) {
                     return (
                         <Pill
-                            color={Yellow500}
+                            color={Yellow}
                             text={OnCallDutyPolicyStatus.Executing}
                         />
                     );
                 }
 
                 return (
-                    <Pill color={Red500} text={OnCallDutyPolicyStatus.Error} />
+                    <Pill color={Red} text={OnCallDutyPolicyStatus.Error} />
                 );
             },
         },

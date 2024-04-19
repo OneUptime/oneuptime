@@ -14,7 +14,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import SmsStatus from 'Common/Types/SmsStatus';
-import { Green500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Red } from 'Common/Types/BrandColors';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Column from 'CommonUI/src/Components/ModelTable/Column';
 import Columns from 'CommonUI/src/Components/ModelTable/Columns';
@@ -116,8 +116,8 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (
                             isMinimal={false}
                             color={
                                 item['status'] === SmsStatus.Success
-                                    ? Green500
-                                    : Red500
+                                    ? Green
+                                    : Red
                             }
                             text={item['status'] as string}
                         />

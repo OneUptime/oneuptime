@@ -29,7 +29,7 @@ import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
-import { Green500 } from 'Common/Types/BrandColors';
+import { Green } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
@@ -71,7 +71,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                 style={{
                     color:
                         currentGroupStatus?.color?.toString() ||
-                        Green500.toString(),
+                        Green.toString(),
                 }}
             >
                 {uptimePercent}% uptime
@@ -87,7 +87,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
         return (
             <Statusbubble
                 text={currentGroupStatus?.name || 'Operational'}
-                color={currentGroupStatus?.color || Green500}
+                color={currentGroupStatus?.color || Green}
                 shouldAnimate={true}
             />
         );
@@ -306,7 +306,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
                     isLoading={isLoading}
-                    defaultBarColor={Green500}
+                    defaultBarColor={Green}
                     downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>

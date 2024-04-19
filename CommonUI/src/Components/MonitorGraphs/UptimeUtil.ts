@@ -2,7 +2,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { MonitorEvent } from './Uptime';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import OneUptimeDate from 'Common/Types/Date';
-import { Green500 } from 'Common/Types/BrandColors';
+import { Green } from 'Common/Types/BrandColors';
 import { Event } from '../Graphs/DayUptimeGraph';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
@@ -51,7 +51,7 @@ export default class UptimeUtil {
                 endDate: endDate,
                 label: monitorEvents[i]?.monitorStatus?.name || 'Operational',
                 priority: monitorEvents[i]?.monitorStatus?.priority || 0,
-                color: monitorEvents[i]?.monitorStatus?.color || Green500,
+                color: monitorEvents[i]?.monitorStatus?.color || Green,
                 monitorId: monitorEvents[i]!.monitorId!,
                 eventStatusId: monitorEvents[i]!.monitorStatus!.id!,
             });

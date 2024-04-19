@@ -30,7 +30,7 @@ import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import MonitorOverview from '../../Components/Monitor/MonitorOverview';
-import { Green500 } from 'Common/Types/BrandColors';
+import { Green } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentGroup from '../../Types/IncidentGroup';
@@ -414,7 +414,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         if (!currentStatus) {
                             currentStatus = new MonitorStatus();
                             currentStatus.name = 'Operational';
-                            currentStatus.color = Green500;
+                            currentStatus.color = Green;
                         }
 
                         elements.push(
@@ -457,7 +457,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 showCurrentStatus={resource.showCurrentStatus}
                                 uptimeGraphHeight={10}
                                 defaultBarColor={
-                                    statusPage?.defaultBarColor || Green500
+                                    statusPage?.defaultBarColor || Green
                                 }
                             />
                         );
@@ -480,7 +480,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         if (!currentStatus) {
                             currentStatus = new MonitorStatus();
                             currentStatus.name = 'Operational';
-                            currentStatus.color = Green500;
+                            currentStatus.color = Green;
                         }
 
                         elements.push(
@@ -539,7 +539,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 showCurrentStatus={resource.showCurrentStatus}
                                 uptimeGraphHeight={10}
                                 defaultBarColor={
-                                    statusPage?.defaultBarColor || Green500
+                                    statusPage?.defaultBarColor || Green
                                 }
                             />
                         );
@@ -666,7 +666,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     ): ReactElement => {
         let currentStatus: MonitorStatus = new MonitorStatus();
         currentStatus.name = 'Operational';
-        currentStatus.color = Green500;
+        currentStatus.color = Green;
         let hasResource: boolean = false;
 
         for (const resource of statusPageResources) {
@@ -708,7 +708,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     style={{
                         color:
                             currentStatus?.color?.toString() ||
-                            Green500.toString(),
+                            Green.toString(),
                     }}
                 >
                     {currentStatus?.name || 'Operational'}

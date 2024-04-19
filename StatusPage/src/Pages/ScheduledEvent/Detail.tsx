@@ -30,7 +30,7 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Color from 'Common/Types/Color';
-import { Green500, Gray500, Yellow500 } from 'Common/Types/BrandColors';
+import { Green, Gray500, Yellow } from 'Common/Types/BrandColors';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import IconProp from 'Common/Types/Icon/IconProp';
 import API from '../../Utils/API';
@@ -72,7 +72,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     /// get timeline.
 
     let currentStateStatus: string = '';
-    let currentStatusColor: Color = Green500;
+    let currentStatusColor: Color = Green;
 
     const timeline: Array<TimelineItem> = [];
 
@@ -156,7 +156,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
                         .scheduledMaintenanceState?.name || '';
                 currentStatusColor =
                     scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState?.color || Green500;
+                        .scheduledMaintenanceState?.color || Green;
             }
 
             if (isSummary) {
@@ -245,7 +245,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
-        eventTypeColor: Yellow500,
+        eventTypeColor: Yellow,
         eventSecondDescription: scheduledMaintenance.startsAt
             ? 'Scheduled at ' +
               OneUptimeDate.getDateAsLocalFormattedString(

@@ -3,6 +3,20 @@ import Color from './Color';
 // Standard Colors
 export const Black: Color = Color.fromString('#000000');
 export const White: Color = Color.fromString('#ffffff');
+export const slate: Color = Color.fromString('#564ab1');
+export const Purple: Color = Color.fromString('#6f42c1');
+export const Pink: Color = Color.fromString('#e83e8c');
+export const Red: Color = Color.fromString('#fd625e');
+export const Orange: Color = Color.fromString('#f1734f');
+export const Yellow: Color = Color.fromString('#ffbf53');
+export const Green: Color = Color.fromString('#2ab57d');
+export const Teal: Color = Color.fromString('#050505');
+export const Cyan: Color = Color.fromString('#4ba6ef');
+export const VeryLightGray: Color = Color.fromString('#c2c2c2');
+export const Grey: Color = Color.fromString('#575757');
+export const LightGray: Color = Color.fromString('#908B8B');
+export const Moroon: Color = Color.fromString('#b70400');
+export const Blue: Color = Color.fromString('#3686be');
 
 // these are *-500 colors from tailwindcss
 export const Zinc500: Color = Color.fromString('#71717a');
@@ -29,9 +43,6 @@ export const Violet500: Color = Color.fromString('#8b5cf6');
 export const Fuchsia500: Color = Color.fromString('#d946ef');
 export const Rose500: Color = Color.fromString('#f43f5e');
 
-export const LightGray: Color = Color.fromString('#908B8B');
-
-export const VeryLightGray: Color = Color.fromString('#c2c2c2');
 
 export const BrightColors: Color[] = [
     Black,

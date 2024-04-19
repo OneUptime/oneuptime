@@ -33,7 +33,7 @@ import EventItem, {
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
 import Color from 'Common/Types/Color';
-import { Green500, Gray500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Gray500, Red } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import API from '../../Utils/API';
@@ -73,7 +73,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     const timeline: Array<TimelineItem> = [];
 
     let currentStateStatus: string = '';
-    let currentStatusColor: Color = Green500;
+    let currentStatusColor: Color = Green;
 
     if (isSummary) {
         // If this is summary then reverse the order so we show the latest first
@@ -140,7 +140,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
                 currentStateStatus =
                     incidentStateTimeline.incidentState?.name || '';
                 currentStatusColor =
-                    incidentStateTimeline.incidentState?.color || Green500;
+                    incidentStateTimeline.incidentState?.color || Green;
             }
 
             // If this incident is a sumamry then don't include all the notes .
@@ -219,7 +219,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
             ? 'Created at ' +
               OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
             : '',
-        eventTypeColor: Red500,
+        eventTypeColor: Red,
         labels:
             incident.labels?.map((label: Label) => {
                 return {

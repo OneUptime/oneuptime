@@ -4,7 +4,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from 'CommonServer/Services/MonitorStatusService';
-import { Green500 } from 'Common/Types/BrandColors';
+import { Green } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 
 export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationBase {
@@ -61,7 +61,7 @@ export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationB
                 id: statusPage.id!,
                 data: {
                     downtimeMonitorStatuses: getNonOperationStatuses as any,
-                    defaultBarColor: new Color(Green500.toString()) as any,
+                    defaultBarColor: new Color(Green.toString()) as any,
                 },
                 props: {
                     isRoot: true,

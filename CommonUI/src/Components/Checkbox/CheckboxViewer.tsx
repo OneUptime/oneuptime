@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { Green500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Red } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Icon from '../Icon/Icon';
 
@@ -19,13 +19,13 @@ const CheckboxViewer: FunctionComponent<ComponentProps> = (
                         <Icon
                             className="h-5 w-5"
                             icon={IconProp.CheckCircle}
-                            color={Green500}
+                            color={Green}
                         />
                     ) : (
                         <Icon
                             className="h-5 w-5"
                             icon={IconProp.CircleClose}
-                            color={Red500}
+                            color={Red}
                         />
                     )}
                 </div>

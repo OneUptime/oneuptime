@@ -13,7 +13,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
-import { Green500, Red500, Yellow500 } from 'Common/Types/BrandColors';
+import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ObjectID from 'Common/Types/ObjectID';
@@ -146,7 +146,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Green500}
+                                        color={Green}
                                         text={UserNotificationStatus.Sent}
                                     />
                                 );
@@ -156,7 +156,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Green500}
+                                        color={Green}
                                         text={
                                             UserNotificationStatus.Acknowledged
                                         }
@@ -167,7 +167,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={UserNotificationStatus.Error}
                                     />
                                 );
@@ -177,7 +177,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <Pill
-                                        color={Yellow500}
+                                        color={Yellow}
                                         text={UserNotificationStatus.Skipped}
                                     />
                                 );
@@ -185,7 +185,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
                             return (
                                 <Pill
-                                    color={Red500}
+                                    color={Red}
                                     text={UserNotificationStatus.Error}
                                 />
                             );

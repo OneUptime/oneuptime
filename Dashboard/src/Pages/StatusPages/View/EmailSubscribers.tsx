@@ -16,7 +16,7 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import NotNull from 'Common/Types/BaseDatabase/NotNull';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Red } from 'Common/Types/BrandColors';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import StatusPage from 'Model/Models/StatusPage';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -263,14 +263,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                     if (item['isUnsubscribed']) {
                                         return (
                                             <Pill
-                                                color={Red500}
+                                                color={Red}
                                                 text={'Unsubscribed'}
                                             />
                                         );
                                     }
                                     return (
                                         <Pill
-                                            color={Green500}
+                                            color={Green}
                                             text={'Subscribed'}
                                         />
                                     );

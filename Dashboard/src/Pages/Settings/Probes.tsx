@@ -17,7 +17,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import { Green500, Red500 } from 'Common/Types/BrandColors';
+import { Green, Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
 import { APP_API_URL } from 'CommonUI/src/Config';
@@ -267,7 +267,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                                     return (
                                         <Statusbubble
                                             text={'Connected'}
-                                            color={Green500}
+                                            color={Green}
                                             shouldAnimate={true}
                                         />
                                     );
@@ -276,7 +276,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Statusbubble
                                         text={'Disconnected'}
-                                        color={Red500}
+                                        color={Red}
                                         shouldAnimate={false}
                                     />
                                 );

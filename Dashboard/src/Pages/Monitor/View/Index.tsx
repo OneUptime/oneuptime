@@ -30,7 +30,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
-import { Green500, Gray500 } from 'Common/Types/BrandColors';
+import { Green, Gray500 } from 'Common/Types/BrandColors';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
@@ -108,7 +108,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 style={{
                     color:
                         currentMonitorStatus?.color?.toString() ||
-                        Green500.toString(),
+                        Green.toString(),
                 }}
             >
                 {uptimePercent}% uptime
@@ -495,7 +495,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
                     isLoading={isLoading}
-                    defaultBarColor={Green500}
+                    defaultBarColor={Green}
                     downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>
