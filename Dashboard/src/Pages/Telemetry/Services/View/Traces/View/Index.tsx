@@ -483,6 +483,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const ganttChart: GanttChartProps = {
             id: 'chart',
+            selectedBarIds: selectedSpans,
             rows: getRows({
                 rootSpan: spans[0]!,
                 allSpans: spans,
@@ -503,7 +504,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         };
 
         setGanttChart(ganttChart);
-    }, [spans]);
+    }, [spans, selectedSpans]);
 
     if (isLoading) {
         return <PageLoader isVisible={true} />;

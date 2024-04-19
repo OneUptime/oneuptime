@@ -25,14 +25,13 @@ export interface ComponentProps {
     areOtherBarsSelected: boolean;
     onSelect: (barId: string) => void;
     onDeselect: (barId: string) => void;
+    isSelected?: boolean;
 }
 
 const Bar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [isHovered, setIsHovered] = useState(false);
-
-    const [isSelected, setIsSelected] = useState(false);
 
     // calculate bar width.
     let barWidth: number =
@@ -63,7 +62,7 @@ const Bar: FunctionComponent<ComponentProps> = (
 
     let barOpacity: number = 0.9;
 
-    if (props.areOtherBarsSelected && !isSelected) {
+    if (props.areOtherBarsSelected && !props.isSelected) {
         barOpacity = 0.5;
     }
 
@@ -89,12 +88,11 @@ const Bar: FunctionComponent<ComponentProps> = (
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 onClick={() => {
-                    if (isSelected) {
+                    if (props.isSelected) {
                         props.onDeselect(props.bar.id);
                     } else {
                         props.onSelect(props.bar.id);
                     }
-                    setIsSelected(!isSelected);
                 }}
             >
                 {isHovered && props.bar.tooltip && (

@@ -9,6 +9,7 @@ export interface ComponentProps {
     selectedBarIds: string[];
     onBarSelectChange: (barIds: string[]) => void;
     children?: ReactElement;
+    multiSelect?: boolean | undefined;
 }
 
 const RowIndex: FunctionComponent<ComponentProps> = (

@@ -22,6 +22,7 @@ export interface ComponentProps {
     selectedBarIds: string[];
     onBarSelectChange: (barIds: string[]) => void;
     level: number;
+    multiSelect?: boolean | undefined;
 }
 
 const Row: FunctionComponent<ComponentProps> = (
@@ -84,9 +85,17 @@ const Row: FunctionComponent<ComponentProps> = (
                                 areOtherBarsSelected={
                                     props.selectedBarIds.length > 0
                                 }
+                                isSelected={props.selectedBarIds.includes(
+                                    bar.id
+                                )}
                                 onSelect={(barId: string) => {
                                     // check if the bar is already selected
                                     if (props.selectedBarIds.includes(barId)) {
+                                        return;
+                                    }
+
+                                    if (!props.multiSelect) {
+                                        props.onBarSelectChange([barId]);
                                         return;
                                     }
 
