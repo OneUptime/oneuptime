@@ -14,7 +14,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import API from 'CommonUI/src/Utils/API/API';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import SpanUtil from '../../../../../../Utils/SpanUtil';
+import SpanUtil, { DivisibilityFactor, IntervalUnit } from '../../../../../../Utils/SpanUtil';
 import OneUptimeDate from 'Common/Types/Date';
 import Color from 'Common/Types/Color';
 import DashboardLogsViewer from '../../../../../../Components/Logs/LogsViewer';
@@ -32,14 +32,12 @@ import SideOver, {
     SideOverSize,
 } from 'CommonUI/src/Components/SideOver/SideOver';
 import SpanViewer from '../../../../../../Components/Span/SpanViewer';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 type BarTooltipFunctionProps = {
     span: Span;
     timelineStartTimeUnixNano: number;
-    divisibilityFactorAndIntervalUnit: {
-        divisibilityFactor: number;
-        intervalUnit: string;
-    };
+    divisibilityFactor: DivisibilityFactor;
 };
 
 type GetBarTooltipFunction = (data: BarTooltipFunctionProps) => ReactElement;
@@ -66,6 +64,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     const [ganttChart, setGanttChart] = React.useState<GanttChartProps | null>(
         null
     );
+
+    const [divisibilityFactor, setDivisibilityFactor] = React.useState<DivisibilityFactor>({
+        divisibilityFactorNumber: 1000,
+        intervalUnit: IntervalUnit.Milliseconds,
+    });
 
     const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         try {
@@ -154,10 +157,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     const getBarTooltip: GetBarTooltipFunction = (
         data: BarTooltipFunctionProps
     ): ReactElement => {
+
         const {
             span,
             timelineStartTimeUnixNano,
-            divisibilityFactorAndIntervalUnit,
+            divisibilityFactor,
         } = data;
 
         return (
@@ -196,23 +200,21 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     <div className="">
                         <div className="font-semibold">Start:</div>{' '}
                         <div>
-                            {Math.round(
-                                (span.startTimeUnixNano! -
-                                    timelineStartTimeUnixNano) /
-                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
-                            )}{' '}
-                            {divisibilityFactorAndIntervalUnit.intervalUnit}
+                            {SpanUtil.getSpanStartsAtAsString({
+                                timelineStartTimeUnixNano,
+                                divisibilityFactor: divisibilityFactor,
+                                spanStartTimeUnixNano: span.startTimeUnixNano!,
+                            })}
                         </div>
                     </div>
                     <div className="">
                         <div className="font-semibold">End:</div>{' '}
                         <div>
-                            {Math.round(
-                                (span.endTimeUnixNano! -
-                                    timelineStartTimeUnixNano) /
-                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
-                            )}{' '}
-                            {divisibilityFactorAndIntervalUnit.intervalUnit}
+                            {SpanUtil.getSpanEndsAtAsString({
+                                timelineStartTimeUnixNano,
+                                divisibilityFactor: divisibilityFactor,
+                                spanEndTimeUnixNano: span.startTimeUnixNano!,
+                            })}
                         </div>
                     </div>
                     <div className="">
@@ -220,9 +222,9 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         <div>
                             {Math.round(
                                 span.durationUnixNano! /
-                                    divisibilityFactorAndIntervalUnit.divisibilityFactor
+                                divisibilityFactor.divisibilityFactorNumber
                             )}{' '}
-                            {divisibilityFactorAndIntervalUnit.intervalUnit}
+                            {divisibilityFactor.intervalUnit}
                         </div>
                     </div>
                     <div className="">
@@ -239,8 +241,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     type SpanToBarFunctionProps = {
         span: Span;
         timelineStartTimeUnixNano: number;
-        divisibilityFactor: number;
-        divisibilityFactorAndIntervalUnit: string;
+        divisibilityFactor: DivisibilityFactor;
     };
 
     type SpanToBarFunction = (data: SpanToBarFunctionProps) => GanttChartBar;
@@ -252,7 +253,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             span,
             timelineStartTimeUnixNano,
             divisibilityFactor,
-            divisibilityFactorAndIntervalUnit,
         } = data;
 
         const spanColor: {
@@ -280,18 +280,15 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             barColor: spanColor.barColor,
             barTimelineStart:
                 (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
-                divisibilityFactor,
+                divisibilityFactor.divisibilityFactorNumber,
             barTimelineEnd:
                 (span.endTimeUnixNano! - timelineStartTimeUnixNano) /
-                divisibilityFactor,
+                divisibilityFactor.divisibilityFactorNumber,
             rowId: span.spanId!,
             tooltip: getBarTooltip({
                 span,
                 timelineStartTimeUnixNano,
-                divisibilityFactorAndIntervalUnit: {
-                    divisibilityFactor: divisibilityFactor,
-                    intervalUnit: divisibilityFactorAndIntervalUnit,
-                },
+                divisibilityFactor: divisibilityFactor,
             }),
         };
     };
@@ -300,8 +297,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         rootSpan: Span;
         allSpans: Span[];
         timelineStartTimeUnixNano: number;
-        divisibilityFactor: number;
-        divisibilityFactorAndIntervalUnit: string;
+        divisibilityFactor: DivisibilityFactor
     };
 
     type GetRowDescriptionFunction = (data: {
@@ -335,7 +331,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             allSpans,
             timelineStartTimeUnixNano,
             divisibilityFactor,
-            divisibilityFactorAndIntervalUnit,
         } = data;
 
         if (!rootSpan) {
@@ -367,7 +362,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     span: rootSpan,
                     timelineStartTimeUnixNano,
                     divisibilityFactor,
-                    divisibilityFactorAndIntervalUnit,
+                    
                 }),
             ],
             childRows: [],
@@ -387,7 +382,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 allSpans,
                 timelineStartTimeUnixNano,
                 divisibilityFactor,
-                divisibilityFactorAndIntervalUnit,
+               
             });
 
             for (const row of childRows) {
@@ -403,42 +398,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
             setError(API.getFriendlyMessage(err));
         });
     }, []);
-
-    type GetDivisibilityFactorFunction = (
-        totalTimelineTimeInUnixNano: number
-    ) => {
-        divisibilityFactor: number;
-        intervalUnit: string;
-    };
-
-    const getDivisibilityFactor: GetDivisibilityFactorFunction = (
-        totalTimelineTimeInUnixNano: number
-    ): {
-        divisibilityFactor: number;
-        intervalUnit: string;
-    } => {
-        let intervalUnit: string = 'ms';
-        let divisibilityFactor: number = 1000; // default is in milliseconds
-
-        if (totalTimelineTimeInUnixNano < 1000) {
-            intervalUnit = 'ns';
-            divisibilityFactor = 1; // this is in nanoseconds
-        } else if (totalTimelineTimeInUnixNano < 1000000) {
-            intervalUnit = 'μs';
-            divisibilityFactor = 1000; // this is in microseconds
-        } else if (totalTimelineTimeInUnixNano < 1000000000) {
-            intervalUnit = 'ms';
-            divisibilityFactor = 1000000; // this is in microseconds
-        } else if (totalTimelineTimeInUnixNano < 1000000000000) {
-            intervalUnit = 's';
-            divisibilityFactor = 1000000000; // this is in seconds
-        }
-
-        return {
-            divisibilityFactor: divisibilityFactor,
-            intervalUnit: intervalUnit,
-        };
-    };
 
     React.useEffect(() => {
         // convert spans to gantt chart
@@ -464,19 +423,19 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const startTimeline: number = 0;
 
-        const divisibilityFactorAndIntervalUnit: {
-            divisibilityFactor: number;
-            intervalUnit: string;
-        } = getDivisibilityFactor(
+        const divisibilityFactor: DivisibilityFactor = SpanUtil.getDivisibilityFactor(
             timelineEndTimeUnixNano - timelineStartTimeUnixNano
         );
 
-        const divisibilityFactor: number =
-            divisibilityFactorAndIntervalUnit.divisibilityFactor;
+
+        setDivisibilityFactor(divisibilityFactor);
+
+        const divisibilityFactorNumber: number =
+            divisibilityFactor.divisibilityFactorNumber;
 
         const endTimeline: number =
             (timelineEndTimeUnixNano - timelineStartTimeUnixNano) /
-            divisibilityFactor; // divide by 1000 to convert from nanoseconds to ms
+            divisibilityFactorNumber; // divide by 1000 to convert from nanoseconds to ms
 
         const intervalTemp: number = Math.round(endTimeline / 100) * 10;
 
@@ -493,8 +452,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 allSpans: spans,
                 timelineStartTimeUnixNano,
                 divisibilityFactor,
-                divisibilityFactorAndIntervalUnit:
-                    divisibilityFactorAndIntervalUnit.intervalUnit,
+                
             }),
             onBarSelectChange(barIds: Array<string>) {
                 setSelectedSpans(barIds);
@@ -503,7 +461,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 start: startTimeline,
                 end: Math.ceil(endTimeline / interval) * interval,
                 interval: interval,
-                intervalUnit: divisibilityFactorAndIntervalUnit.intervalUnit,
+                intervalUnit: divisibilityFactor.intervalUnit,
             },
         };
 
@@ -564,6 +522,23 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     <SpanViewer
                         id={'span-viewer'}
                         openTelemetrySpanId={selectedSpans[0] as string}
+                        traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
+                        onClose={() => {
+                            setSelectedSpans([]);
+                        }}
+                        telemetryService={telemetryServices.find((service: TelemetryService) => {
+
+                            const selectedSpan: Span | undefined = spans.find((span: Span) => {
+                                return span.spanId?.toString() === selectedSpans[0]!;
+                            });
+
+                            if (!selectedSpan) {
+                                throw new BadDataException('Selected span not found'); // this should never happen
+                            }
+
+                            return service._id?.toString() === selectedSpan.serviceId?.toString();
+                        })!}
+                        divisibilityFactor={divisibilityFactor}
                     />
                 </SideOver>
             )}

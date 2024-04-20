@@ -16,12 +16,18 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import Tabs from 'CommonUI/src/Components/Tabs/Tabs';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import Detail from 'CommonUI/src/Components/Detail/Detail';
-import ModelDetail from 'CommonUI/src/Components/ModelDetail/ModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import TelemetryService from 'Model/Models/TelemetryService';
+import TelemetryServiceElement from '../TelemetryService/TelemetryServiceElement';
+import { DivisibilityFactor } from '../../Utils/SpanUtil';
 
 export interface ComponentProps {
     id: string;
-    openTelemetrySpanId?: string;
+    openTelemetrySpanId: string;
+    traceStartTimeInUnixNano: number;
+    onClose: () => void;
+    telemetryService: TelemetryService;
+    divisibilityFactor: DivisibilityFactor;
 }
 
 const SpanViewer: FunctionComponent<ComponentProps> = (
@@ -160,25 +166,31 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                     description: 'The unique identifier of the trace.',
                     fieldType: FieldType.Text,
                 },
-
                 {
                     key: 'serviceId',
                     title: 'Telemetry Service',
                     description: 'The unique identifier of the service.',
-                    fieldType: FieldType.Text,
+                    fieldType: FieldType.Element,
+                    getElement: () => {
+                        return <TelemetryServiceElement telemetryService={props.telemetryService} />;
+                    }
                 },
                 {
                     key: 'startTime',
                     title: 'Start Time',
                     description: 'The time the span started.',
-                    fieldType: FieldType.Text,
+                    fieldType: FieldType.Date,
                 },
                 {
                     key: 'endTime',
                     title: 'End Time',
                     description: 'The time the span ended.',
-                    fieldType: FieldType.Text,
+                    fieldType: FieldType.Date,
+                },
+                {
+                    key: ''
                 }
+
             ]} />
     }
 

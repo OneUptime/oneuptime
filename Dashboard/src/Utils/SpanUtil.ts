@@ -3,7 +3,53 @@ import Color from 'Common/Types/Color';
 import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import TelemetryService from 'Model/Models/TelemetryService';
 
+export enum IntervalUnit { 
+    Nanoseconds = 'ns',
+    Microseconds = 'μs',
+    Milliseconds = 'ms',
+    Seconds = 's',
+}
+
+
+export interface DivisibilityFactor {
+    divisibilityFactorNumber: number;
+    intervalUnit: IntervalUnit;
+}
+
 export default class SpanUtil {
+
+
+    public static getSpanStartsAtAsString(data: {
+        divisibilityFactor: DivisibilityFactor,
+        timelineStartTimeUnixNano: number,
+        spanStartTimeUnixNano: number,
+    }){
+
+        const {divisibilityFactor, timelineStartTimeUnixNano, spanStartTimeUnixNano} = data;
+
+        return  `${Math.round(
+            (spanStartTimeUnixNano! -
+                timelineStartTimeUnixNano) /
+                divisibilityFactor.divisibilityFactorNumber
+        )} ${divisibilityFactor.intervalUnit}`
+    }
+
+
+    public static getSpanEndsAtAsString(data: {
+        divisibilityFactor: DivisibilityFactor,
+        timelineStartTimeUnixNano: number,
+        spanEndTimeUnixNano: number,
+    }){
+
+        const {divisibilityFactor, timelineStartTimeUnixNano, spanEndTimeUnixNano} = data;
+
+        return  `${Math.round(
+            (spanEndTimeUnixNano! -
+                timelineStartTimeUnixNano) /
+                divisibilityFactor.divisibilityFactorNumber
+        )} ${divisibilityFactor.intervalUnit}`
+    }
+
     public static getSpanKindFriendlyName(spanKind: SpanKind): string {
         let spanKindText: string = 'Internal'; // by default spans are always internal
 
@@ -21,6 +67,34 @@ export default class SpanUtil {
 
         return spanKindText;
     }
+
+
+    public static getDivisibilityFactor (
+        totalTimelineTimeInUnixNano: number
+    ): DivisibilityFactor {
+        let intervalUnit: IntervalUnit = IntervalUnit.Milliseconds;
+        let divisibilityFactorNumber: number = 1000; // default is in milliseconds
+
+        if (totalTimelineTimeInUnixNano < 1000) {
+            intervalUnit = IntervalUnit.Nanoseconds;
+            divisibilityFactorNumber = 1; // this is in nanoseconds
+        } else if (totalTimelineTimeInUnixNano < 1000000) {
+            intervalUnit = IntervalUnit.Microseconds;
+            divisibilityFactorNumber = 1000; // this is in microseconds
+        } else if (totalTimelineTimeInUnixNano < 1000000000) {
+            intervalUnit = IntervalUnit.Milliseconds;
+            divisibilityFactorNumber = 1000000; // this is in microseconds
+        } else if (totalTimelineTimeInUnixNano < 1000000000000) {
+            intervalUnit = IntervalUnit.Seconds;
+            divisibilityFactorNumber = 1000000000; // this is in seconds
+        }
+
+        return {
+            divisibilityFactorNumber: divisibilityFactorNumber,
+            intervalUnit: intervalUnit,
+        };
+    };
+
 
     public static getSpanStatusCodeFriendlyName(
         statusCode: SpanStatus
