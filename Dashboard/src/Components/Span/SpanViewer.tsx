@@ -13,6 +13,11 @@ import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Span from 'Model/AnalyticsModels/Span';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import Tabs from 'CommonUI/src/Components/Tabs/Tabs';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import Detail from 'CommonUI/src/Components/Detail/Detail';
+import ModelDetail from 'CommonUI/src/Components/ModelDetail/ModelDetail';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
 export interface ComponentProps {
     id: string;
@@ -115,16 +120,98 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         return <PageLoader isVisible={true} />;
     }
 
-    return (
-        <div id={props.id}>
-            {span && <></>}
+    const getLogsContentElement: GetReactElementFunction = (): ReactElement => {
+        return (
             <LogsViewer
                 isLoading={isLoading}
-                onFilterChanged={() => {}}
+                onFilterChanged={() => { }}
                 logs={logs}
                 showFilters={false}
                 noLogsMessage={'No logs found for this span.'}
             />
+        );
+    };
+
+    const getAttributesContentElement: GetReactElementFunction = (): ReactElement => {
+        return <></>;
+    };
+
+    const getEventsContentElement: GetReactElementFunction = (): ReactElement => {
+        return <></>;
+    };
+
+    const getErrorsContentElement: GetReactElementFunction = (): ReactElement => {
+        return <></>;
+    }
+
+    const getBasicInfo: GetReactElementFunction = (): ReactElement => {
+        return <Detail
+            item={span?.toJSON() || {}}
+            fields={[
+                {
+                    key: 'spanId',
+                    title: 'Span ID',
+                    description: 'The unique identifier of the span.',
+                    fieldType: FieldType.Text,
+                },
+                {
+                    key: 'traceId',
+                    title: 'Trace ID',
+                    description: 'The unique identifier of the trace.',
+                    fieldType: FieldType.Text,
+                },
+
+                {
+                    key: 'serviceId',
+                    title: 'Telemetry Service',
+                    description: 'The unique identifier of the service.',
+                    fieldType: FieldType.Text,
+                },
+                {
+                    key: 'startTime',
+                    title: 'Start Time',
+                    description: 'The time the span started.',
+                    fieldType: FieldType.Text,
+                },
+                {
+                    key: 'endTime',
+                    title: 'End Time',
+                    description: 'The time the span ended.',
+                    fieldType: FieldType.Text,
+                }
+            ]} />
+    }
+
+    return (
+        <div id={props.id}>
+            <Tabs
+                tabs={[
+                    {
+                        name: 'Basic Info',
+                        children: getBasicInfo(),
+                    },
+                    {
+                        name: 'Logs',
+                        children: getLogsContentElement(),
+                    },
+                    {
+                        name: 'Attributes',
+                        children: getAttributesContentElement(),
+                    },
+                    {
+                        name: 'Events',
+                        children: getEventsContentElement(),
+                    },
+                    {
+                        name: 'Errors',
+                        children: getErrorsContentElement(),
+                    },
+                ]}
+                onTabChange={() => { }}
+            />
+
+            {span && <></>}
+
         </div>
     );
 };

@@ -494,6 +494,7 @@ export default class Span extends AnalyticsBaseModel {
         });
     }
 
+
     public get startTimeUnixNano(): number | undefined {
         return this.getColumnValue('startTimeUnixNano') as number | undefined;
     }
