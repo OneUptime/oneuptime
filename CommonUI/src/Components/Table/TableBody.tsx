@@ -4,20 +4,21 @@ import TableRow from './TableRow';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Columns from './Types/Columns';
 import { Droppable, DroppableProvided } from 'react-beautiful-dnd';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    data: Array<JSONObject>;
+export interface ComponentProps<T extends GenericObject> {
+    data: Array<T>;
     id: string;
-    columns: Columns;
-    actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
+    columns: Columns<T>;
+    actionButtons?: undefined | Array<ActionButtonSchema<T>> | undefined;
     enableDragAndDrop?: undefined | boolean;
     dragAndDropScope?: string | undefined;
     dragDropIdField?: string | undefined;
     dragDropIndexField?: string | undefined;
 }
 
-const TableBody: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const TableBody = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
 
@@ -32,7 +33,7 @@ const TableBody: FunctionComponent<ComponentProps> = (
                 className="divide-y divide-gray-200 bg-white"
             >
                 {props.data &&
-                    props.data.map((item: JSONObject, i: number) => {
+                    props.data.map((item: T, i: number) => {
                         return (
                             <TableRow
                                 dragAndDropScope={props.dragAndDropScope}

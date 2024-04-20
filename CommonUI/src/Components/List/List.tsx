@@ -1,5 +1,4 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import Pagination from '../Pagination/Pagination';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -11,11 +10,12 @@ import { ListDetailProps } from './ListRow';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import FilterType from '../Filters/Types/Filter';
 import Filter, { FilterData } from '../Filters/Filter';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    data: Array<JSONObject>;
+export interface ComponentProps<T extends GenericObject> {
+    data: Array<T>;
     id: string;
-    fields: Array<Field>;
+    fields: Array<Field<T>>;
     disablePagination?: undefined | boolean;
     onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
     currentPageNumber: number;
@@ -29,7 +29,7 @@ export interface ComponentProps {
     isLoading: boolean;
     singularLabel: string;
     pluralLabel: string;
-    actionButtons?: undefined | Array<ActionButtonSchema>;
+    actionButtons?: undefined | Array<ActionButtonSchema<T>>;
     onRefreshClick?: undefined | (() => void);
     noItemsMessage?: undefined | string;
     listDetailOptions?: undefined | ListDetailProps;
@@ -42,8 +42,8 @@ export interface ComponentProps {
     onFilterRefreshClick?: undefined | (() => void);
 }
 
-const List: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const List =  <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     const getListbody: GetReactElementFunction = (): ReactElement => {
         if (props.isLoading) {

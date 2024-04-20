@@ -1,17 +1,17 @@
-import { JSONObject } from 'Common/Types/JSON';
-import { ButtonStyleType } from '../Button/Button';
 
+import { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import GenericObject from 'Common/Types/GenericObject';
 
-interface ActionButtonSchema {
+interface ActionButtonSchema<T extends GenericObject> {
     title: string;
     icon?: undefined | IconProp;
     buttonStyleType: ButtonStyleType;
     isLoading?: boolean | undefined;
-    isVisible?: (item: JSONObject) => boolean | undefined;
+    isVisible?: (item: T) => boolean | undefined;
     onClick: (
-        item: JSONObject,
+        item: T,
         onCompleteAction: VoidFunction,
         onError: ErrorFunction
     ) => void;

@@ -10,9 +10,11 @@ describe('Tabs', () => {
     const tabs: Array<Tab> = [
         {
             name: 'tab1',
+            children: <div>tab1</div>,
         },
         {
             name: 'tab2',
+            children: <div>tab2</div>,
         },
     ];
 

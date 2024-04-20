@@ -4,12 +4,13 @@ import ListRow, { ListDetailProps } from './ListRow';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Field from '../Detail/Field';
 import { Droppable, DroppableProvided } from 'react-beautiful-dnd';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    data: Array<JSONObject>;
+export interface ComponentProps<T extends GenericObject> {
+    data: Array<T>;
     id: string;
-    fields: Array<Field>;
-    actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
+    fields: Array<Field<T>>;
+    actionButtons?: undefined | Array<ActionButtonSchema<T>> | undefined;
     enableDragAndDrop?: undefined | boolean;
     dragAndDropScope?: string | undefined;
     dragDropIdField?: string | undefined;
@@ -17,8 +18,8 @@ export interface ComponentProps {
     listDetailOptions?: undefined | ListDetailProps;
 }
 
-const ListBody: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const ListBody = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
 
@@ -33,7 +34,7 @@ const ListBody: FunctionComponent<ComponentProps> = (
                 className="space-y-6 p-6 border-t border-gray-200"
             >
                 {props.data &&
-                    props.data.map((item: JSONObject, i: number) => {
+                    props.data.map((item: T, i: number) => {
                         return (
                             <ListRow
                                 key={i}

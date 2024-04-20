@@ -1,5 +1,4 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Detail from '../Detail/Detail';
 import Field from '../Detail/Field';
@@ -8,15 +7,16 @@ import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import GenericObject from 'Common/Types/GenericObject';
 
 export interface ListDetailProps {
     showDetailsInNumberOfColumns?: number | undefined;
 }
 
-export interface ComponentProps {
-    item: JSONObject;
-    fields: Array<Field>;
-    actionButtons?: Array<ActionButtonSchema> | undefined;
+export interface ComponentProps<T extends GenericObject> {
+    item: T;
+    fields: Array<Field<T>>;
+    actionButtons?: Array<ActionButtonSchema<T>> | undefined;
     enableDragAndDrop?: boolean | undefined;
     dragAndDropScope?: string | undefined;
     dragDropIdField?: string | undefined;
@@ -24,8 +24,8 @@ export interface ComponentProps {
     listDetailOptions?: ListDetailProps | undefined;
 }
 
-const ListRow: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const ListRow = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
         props.actionButtons?.map(() => {

@@ -5,16 +5,21 @@ import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import FieldType from '../Types/FieldType';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    columns: Columns;
+export interface ComponentProps<T extends GenericObject> {
+    columns: Columns<T>;
     id: string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     enableDragAndDrop?: undefined | boolean;
 }
 
-const TableHeader: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+type TableHeaderFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
+
+const TableHeader: TableHeaderFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     const [currentSortColumn, setCurrentSortColumn] = useState<string>('');
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
@@ -23,16 +28,15 @@ const TableHeader: FunctionComponent<ComponentProps> = (
         <thead className="bg-gray-50" id={props.id}>
             <tr>
                 {props.enableDragAndDrop && <th></th>}
-                {props.columns.map((column: Column, i: number) => {
+                {props.columns.map((column: Column<T>, i: number) => {
                     const canSort: boolean =
                         !column.disableSort && Boolean(column.key);
 
                     return (
                         <th
                             key={i}
-                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
-                                canSort ? 'cursor-pointer' : ''
-                            }`}
+                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${canSort ? 'cursor-pointer' : ''
+                                }`}
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -60,11 +64,10 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             <div
-                                className={`flex ${
-                                    column.type === FieldType.Actions
+                                className={`flex ${column.type === FieldType.Actions
                                         ? 'justify-end'
                                         : 'justify-start'
-                                }`}
+                                    }`}
                             >
                                 {column.title}
                                 {canSort &&

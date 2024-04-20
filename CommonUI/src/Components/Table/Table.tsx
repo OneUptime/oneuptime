@@ -1,5 +1,4 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, {  ReactElement } from 'react';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
@@ -12,11 +11,12 @@ import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import Filter, { FilterData } from '../Filters/Filter';
 import FilterType from '../Filters/Types/Filter';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    data: Array<JSONObject>;
+export interface ComponentProps<T extends GenericObject> {
+    data: Array<T>;
     id: string;
-    columns: Columns;
+    columns: Columns<T>;
 
     disablePagination?: undefined | boolean;
     onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
@@ -27,7 +27,7 @@ export interface ComponentProps {
     isLoading: boolean;
     singularLabel: string;
     pluralLabel: string;
-    actionButtons?: undefined | Array<ActionButtonSchema>;
+    actionButtons?: undefined | Array<ActionButtonSchema<T>>;
     onRefreshClick?: undefined | (() => void);
 
     noItemsMessage?: undefined | string;
@@ -46,8 +46,8 @@ export interface ComponentProps {
     onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 }
 
-const Table: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const Table = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     let colspan: number = props.columns.length || 0;
     if (props.actionButtons && props.actionButtons?.length > 0) {

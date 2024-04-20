@@ -38,7 +38,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const [fields, setFields] = useState<Array<DetailField>>([]);
+    const [fields, setFields] = useState<Array<DetailField<TBaseModel>>>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [item, setItem] = useState<TBaseModel | null>(null);
@@ -107,7 +107,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns() || {};
 
-        const fieldsToSet: Array<DetailField> = [];
+        const fieldsToSet: Array<DetailField<TBaseModel>> = [];
 
         for (const field of props.fields) {
             const keys: Array<string> = Object.keys(
@@ -133,7 +133,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
                         ...field,
                         key: key,
                         getElement: field.getElement
-                            ? (item: JSONObject): ReactElement => {
+                            ? (item: TBaseModel): ReactElement => {
                                   return field.getElement!(
                                       item,
                                       onBeforeFetchData,
@@ -148,7 +148,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
                     ...field,
                     key: '',
                     getElement: field.getElement
-                        ? (item: JSONObject): ReactElement => {
+                        ? (item: TBaseModel): ReactElement => {
                               return field.getElement!(
                                   item,
                                   onBeforeFetchData,
@@ -265,7 +265,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     return (
         <Detail
             id={props.id}
-            item={BaseModel.toJSONObject(item, props.modelType)}
+            item={item}
             fields={fields}
             showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
         />

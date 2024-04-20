@@ -1,6 +1,5 @@
 import OneUptimeDate from 'Common/Types/Date';
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
@@ -13,19 +12,22 @@ import ConfirmModal from '../Modal/ConfirmModal';
 import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
 import ColorInput from '../ColorViewer/ColorViewer';
 import Color from 'Common/Types/Color';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    item: JSONObject;
-    columns: Columns;
-    actionButtons?: Array<ActionButtonSchema> | undefined;
+export interface ComponentProps<T extends GenericObject> {
+    item: T;
+    columns: Columns<T>;
+    actionButtons?: Array<ActionButtonSchema<T>> | undefined;
     enableDragAndDrop?: boolean | undefined;
     dragAndDropScope?: string | undefined;
     dragDropIdField?: string | undefined;
     dragDropIndexField?: string | undefined;
 }
 
-const TableRow: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+type TableRowFunction = <T extends Object>(props: ComponentProps<T>) => ReactElement
+
+const TableRow: TableRowFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
         props.actionButtons?.map(() => {
@@ -57,7 +59,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                         </td>
                     )}
                     {props.columns &&
-                        props.columns.map((column: Column, i: number) => {
+                        props.columns.map((column: Column<T>, i: number) => {
                             let className: string =
                                 'whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6';
                             if (i === props.columns.length - 1) {
@@ -191,7 +193,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                             )}
                                             {props.actionButtons?.map(
                                                 (
-                                                    button: ActionButtonSchema,
+                                                    button: ActionButtonSchema<T>,
                                                     i: number
                                                 ) => {
                                                     if (

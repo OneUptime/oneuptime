@@ -1,6 +1,5 @@
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
 import { ReactElement } from 'react';
 import AlignItem from '../../Types/AlignItem';
 import FieldType from '../Types/FieldType';
