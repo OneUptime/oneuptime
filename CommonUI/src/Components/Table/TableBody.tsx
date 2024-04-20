@@ -1,5 +1,4 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, {ReactElement } from 'react';
 import TableRow from './TableRow';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Columns from './Types/Columns';

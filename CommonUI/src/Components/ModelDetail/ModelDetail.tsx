@@ -115,7 +115,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
             );
 
             if (keys.length > 0) {
-                const key: string = keys[0] as string;
+                const key: keyof TBaseModel = keys[0] as keyof TBaseModel;
 
                 let fieldPermissions: Array<Permission> = [];
 
