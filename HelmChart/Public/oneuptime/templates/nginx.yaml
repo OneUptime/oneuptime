@@ -2,9 +2,9 @@
 # OneUptime nginx Deployment
 {{- $runDir := dict "SizeLimit" "1Gi" "MountPath" "/var/run" -}}
 {{- $confDir := dict "SizeLimit" "1Gi" "MountPath" "/etc/nginx/conf.d" -}}
-{{- $nginxCache := dict "SizeLimit" "1Gi" "MountPath" "/var/cache/nginx" -}}
-{{- $statusPageCertsVolume := dict "SizeLimit" "1Gi" "MountPath" "/etc/nginx/certs/StatusPageCerts" -}}
-{{- $nginxVolumes := dict "status-page-certs" $statusPageCertsVolume "cache" $nginxCache "conf" $confDir "run" $runDir -}}
+{{- $cacheDir := dict "SizeLimit" "1Gi" "MountPath" "/var/cache/nginx" -}}
+{{- $statusPageCertsDir := dict "SizeLimit" "1Gi" "MountPath" "/etc/nginx/certs/StatusPageCerts" -}}
+{{- $nginxVolumes := dict "status-page-certs" $statusPageCertsDir "cache" $cacheDir "conf" $confDir "run" $runDir -}}
 {{- $nginxPorts := dict "http" "7849" "https" "7850" -}}
 {{- $nginxDeploymentArgs :=dict "IsServer" true "Ports" $nginxPorts "ServiceName" "nginx" "Release" $.Release "Values" $.Values "Volumes" $nginxVolumes -}}
 {{- include "oneuptime.deployment" $nginxDeploymentArgs }}
