@@ -31,8 +31,8 @@ export default interface Columns<
     noValueMessage?: string | undefined;
     getElement?:
         | ((
-              item: JSONObject,
-              onBeforeFetchData?: JSONObject | undefined
+              item: TEntity,
+              onBeforeFetchData?: TEntity | undefined
           ) => ReactElement)
         | undefined;
 }

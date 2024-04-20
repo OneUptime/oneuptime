@@ -148,7 +148,7 @@ export interface BaseTableProps<
     viewPageRoute?: undefined | Route;
     onViewPage?: (item: TBaseModel) => Promise<Route>;
     query?: Query<TBaseModel>;
-    onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
+    onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
     createInitialValues?: FormValues<TBaseModel> | undefined;
     onBeforeCreate?:
         | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
@@ -215,7 +215,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
     const [viewId, setViewId] = useState<string | null>(null);
-    const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
+    const [tableColumns, setColumns] = useState<Array<TableColumn<TBaseModel>>>([]);
 
     const [classicTableFilters, setClassicTableFilters] = useState<
         Array<ClassicFilterType>
@@ -238,7 +238,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         useState<number | null>(null);
 
     const [onBeforeFetchData, setOnBeforeFetchData] = useState<
-        JSONObject | undefined
+        TBaseModel | undefined
     >(undefined);
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [query, setQuery] = useState<Query<TBaseModel>>({});
@@ -267,7 +267,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.initialItemsOnPage || 10
     );
 
-    const [fields, setFields] = useState<Array<Field>>([]);
+    const [fields, setFields] = useState<Array<Field<TBaseModel>>>([]);
 
     const [isFilterFetchLoading, setIsFilterFetchLoading] = useState(false);
 
@@ -280,7 +280,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }, [showModel]);
 
     useEffect(() => {
-        const detailFields: Array<Field> = [];
+        const detailFields: Array<Field<TBaseModel>> = [];
         for (const column of tableColumns) {
             if (!column.key) {
                 // if its an action column, ignore.
@@ -290,13 +290,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             detailFields.push({
                 title: column.title,
                 description: column.description || '',
-                key: column.key || '',
+                key: column.key as keyof TBaseModel,
                 fieldType: column.type,
                 colSpan: column.colSpan,
                 contentClassName: column.contentClassName,
                 alignItem: column.alignItem,
                 getElement: column.getElement
-                    ? (item: JSONObject): ReactElement => {
+                    ? (item: TBaseModel): ReactElement => {
                           return column.getElement!(item, onBeforeFetchData);
                       }
                     : undefined,
@@ -367,7 +367,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const serializeToTableColumns: VoidFunction = (): void => {
         // Convert ModelColumns to TableColumns.
 
-        const columns: Array<TableColumn> = [];
+        const columns: Array<TableColumn<TBaseModel>> = [];
 
         let selectFields: Select<TBaseModel> = {
             _id: true,
@@ -386,13 +386,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
-                let tooltipText: ((item: JSONObject) => string) | undefined =
+                let tooltipText: ((item: TBaseModel) => string) | undefined =
                     undefined;
 
                 if (column.tooltipText) {
-                    tooltipText = (item: JSONObject): string => {
+                    tooltipText = (item: TBaseModel): string => {
+
+                        if(item instanceof BaseModel || item instanceof AnalyticsBaseModel){
+                            return column.tooltipText!(item);
+                        }
+
                         return column.tooltipText!(
-                            props.callbacks.getModelFromJSON(item)
+                            props.callbacks.getModelFromJSON(item as JSONObject)
                         );
                     };
                 }
@@ -408,6 +413,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     disableSort: column.disableSort || shouldDisableSort(key),
                     key: columnKey,
                     tooltipText,
+                    getElement: column.getElement
                 });
 
                 if (key) {
@@ -565,8 +571,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
 
         if (props.onBeforeFetch) {
-            const jobject: JSONObject = await props.onBeforeFetch();
-            setOnBeforeFetchData(jobject);
+            const model: TBaseModel = await props.onBeforeFetch();
+            setOnBeforeFetchData(model);
         }
 
         try {

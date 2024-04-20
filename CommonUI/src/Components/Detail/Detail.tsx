@@ -4,7 +4,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
 import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
-import { JSONObject } from 'Common/Types/JSON';
 import get from 'lodash/get';
 import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
@@ -19,16 +18,19 @@ import { DropdownOption } from '../Dropdown/Dropdown';
 import FieldLabelElement from './FieldLabel';
 import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 import Dictionary from 'Common/Types/Dictionary';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    item: JSONObject;
-    fields: Array<Field>;
+export interface ComponentProps<
+    T extends GenericObject
+> {
+    item: T;
+    fields: Array<Field<T>>;
     id?: string | undefined;
     showDetailsInNumberOfColumns?: number | undefined;
 }
 
-const Detail: (props: ComponentProps) => ReactElement = (
-    props: ComponentProps
+const Detail = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     type GetMarkdownViewerFunction = (text: string) => ReactElement;
 
@@ -122,13 +124,13 @@ const Detail: (props: ComponentProps) => ReactElement = (
         );
     };
 
-    type GetFieldFunction = (field: Field, index: number) => ReactElement;
+    type GetFieldFunction = (field: Field<T>, index: number) => ReactElement;
 
     const getField: GetFieldFunction = (
-        field: Field,
+        field: Field<T>,
         index: number
     ): ReactElement => {
-        const fieldKey: string = field.key;
+        const fieldKey: keyof T = field.key;
 
         if (!props.item) {
             throw new BadDataException('Item not found');
@@ -321,10 +323,10 @@ const Detail: (props: ComponentProps) => ReactElement = (
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                              width:
-                                  100 / props.showDetailsInNumberOfColumns +
-                                  '%',
-                          }
+                            width:
+                                100 / props.showDetailsInNumberOfColumns +
+                                '%',
+                        }
                         : { width: '100%' }
                 }
             >
@@ -352,13 +354,12 @@ const Detail: (props: ComponentProps) => ReactElement = (
 
     return (
         <div
-            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
-                props.showDetailsInNumberOfColumns || 1
-            } w-full`}
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${props.showDetailsInNumberOfColumns || 1
+                } w-full`}
         >
             {props.fields &&
                 props.fields.length > 0 &&
-                props.fields.map((field: Field, i: number) => {
+                props.fields.map((field: Field<T>, i: number) => {
                     return getField(field, i);
                 })}
         </div>

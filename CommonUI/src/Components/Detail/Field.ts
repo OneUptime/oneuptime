@@ -13,7 +13,7 @@ export interface DetailSideLink {
     openLinkInNewTab?: boolean;
 }
 
-export interface FieldBase {
+export interface FieldBase<T> {
     title?: string;
     description?: string;
     fieldTitleSize?: Size | undefined;
@@ -25,8 +25,8 @@ export interface FieldBase {
     contentClassName?: string | undefined;
     getElement?:
         | ((
-              item: JSONObject,
-              onBeforeFetchData?: JSONObject,
+              item: T,
+              onBeforeFetchData?: T,
               fetchItems?: VoidFunction
           ) => ReactElement)
         | undefined;
@@ -39,6 +39,6 @@ export interface FieldBase {
         | undefined;
 }
 
-export default interface Field extends FieldBase {
-    key: string;
+export default interface Field<T> extends FieldBase<T> {
+    key: keyof T;
 }

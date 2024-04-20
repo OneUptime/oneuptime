@@ -220,11 +220,12 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     <div className="">
                         <div className="font-semibold">Duration:</div>{' '}
                         <div>
-                            {Math.round(
-                                span.durationUnixNano! /
-                                divisibilityFactor.divisibilityFactorNumber
-                            )}{' '}
-                            {divisibilityFactor.intervalUnit}
+                            {
+                                SpanUtil.getSpanDurationAsString({
+                                    spanDurationInUnixNano: span.durationUnixNano!,
+                                    divisibilityFactor: divisibilityFactor,
+                                })
+                            }
                         </div>
                     </div>
                     <div className="">

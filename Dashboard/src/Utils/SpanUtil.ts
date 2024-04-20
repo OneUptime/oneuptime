@@ -18,6 +18,16 @@ export interface DivisibilityFactor {
 
 export default class SpanUtil {
 
+    public static getSpanDurationAsString(data: {
+        divisibilityFactor: DivisibilityFactor,
+        spanDurationInUnixNano: number,
+    }){
+
+        const {divisibilityFactor, spanDurationInUnixNano} = data;
+
+        return `${Math.round(spanDurationInUnixNano / divisibilityFactor.divisibilityFactorNumber)} ${divisibilityFactor.intervalUnit}`
+    }
+
 
     public static getSpanStartsAtAsString(data: {
         divisibilityFactor: DivisibilityFactor,
