@@ -7,7 +7,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
 import DashboardNavigation from '../../Utils/Navigation';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONArray } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
@@ -208,15 +208,11 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             type: FieldType.EntityArray,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Workflow): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={
-                                            BaseModel.fromJSON(
-                                                (item['labels'] as JSONArray) ||
-                                                    [],
-                                                Label
-                                            ) as Array<Label>
+                                            item['labels'] || []
                                         }
                                     />
                                 );

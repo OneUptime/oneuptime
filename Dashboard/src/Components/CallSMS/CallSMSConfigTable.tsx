@@ -35,7 +35,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
     const [error, setError] = useState<string>('');
 
     const [currentCallSMSTestConfig, setCurrentCallSMSTestConfig] =
-        useState<JSONObject | null>(null);
+        useState<ProjectCallSMSConfig | null>(null);
 
     const [isCallSMSTestLoading, setIsCallSMSTestLoading] =
         useState<boolean>(false);
@@ -55,7 +55,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         buttonStyleType: ButtonStyleType.OUTLINE,
                         icon: IconProp.SMS,
                         onClick: async (
-                            item: JSONObject,
+                            item: ProjectCallSMSConfig,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
@@ -75,7 +75,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                         buttonStyleType: ButtonStyleType.OUTLINE,
                         icon: IconProp.Call,
                         onClick: async (
-                            item: JSONObject,
+                            item: ProjectCallSMSConfig,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {

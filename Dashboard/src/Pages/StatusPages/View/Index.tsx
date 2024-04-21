@@ -22,7 +22,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
             <StatusPagePreviewLink modelId={modelId} />
 
             {/* StatusPage View  */}
-            <CardModelDetail
+            <CardModelDetail<StatusPage>
                 name="Status Page > Status Page Details"
                 cardProps={{
                     title: 'Status Page Details',
@@ -107,15 +107,11 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: StatusPage): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={
-                                            BaseModel.fromJSON(
-                                                (item['labels'] as JSONArray) ||
-                                                    [],
-                                                Label
-                                            ) as Array<Label>
+                                           item['labels'] || []
                                         }
                                     />
                                 );

@@ -109,11 +109,7 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            BaseModel.fromJSON(
-                                                (item['labels'] as JSONArray) ||
-                                                    [],
-                                                Label
-                                            ) as Array<Label>
+                                           item['labels'] || []
                                         }
                                     />
                                 );

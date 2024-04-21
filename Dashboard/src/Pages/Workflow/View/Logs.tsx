@@ -52,7 +52,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.List,
                             onClick: async (
-                                item: JSONObject,
+                                item: WorkflowLogs,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setLogs(item['logs'] as string);
@@ -129,7 +129,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
                             title: 'Workflow Status',
                             type: FieldType.Text,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: WorkflowLogs): ReactElement => {
                                 if (!item['workflowStatus']) {
                                     throw new BadDataException(
                                         'Workflow Status not found'

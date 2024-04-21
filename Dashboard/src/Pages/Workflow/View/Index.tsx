@@ -18,8 +18,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Fragment>
-            {/* StatusPage View  */}
-            <CardModelDetail
+            <CardModelDetail<Workflow>
                 name="Workflow > Workflow Details"
                 cardProps={{
                     title: 'Workflow Details',
@@ -124,15 +123,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Labels',
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Workflow): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={
-                                            BaseModel.fromJSON(
-                                                (item['labels'] as JSONArray) ||
-                                                    [],
-                                                Label
-                                            ) as Array<Label>
+                                            item['labels'] || []
                                         }
                                     />
                                 );

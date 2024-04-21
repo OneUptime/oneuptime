@@ -5,7 +5,7 @@ import React, {
     useState,
 } from 'react';
 import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import MonitorStep from 'Common/Types/Monitor/MonitorStep';
+import MonitorStep, { MonitorStepType } from 'Common/Types/Monitor/MonitorStep';
 import MonitorCriteriaElement from './MonitorCriteria';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
@@ -29,11 +29,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [requestDetailsFields, setRequestDetailsFields] = useState<
-        Array<Field>
+        Array<Field<MonitorStepType>>
     >([]);
 
     useEffect(() => {
-        let fields: Array<Field> = [];
+        let fields: Array<Field<MonitorStepType>> = [];
 
         if (props.monitorType === MonitorType.API) {
             fields = [

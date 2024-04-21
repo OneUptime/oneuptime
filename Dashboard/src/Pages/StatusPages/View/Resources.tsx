@@ -367,17 +367,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             : 'Monitor',
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: StatusPageResource): ReactElement => {
                             if (item['monitor']) {
                                 return (
                                     <MonitorElement
                                         monitor={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'monitor'
-                                                ] as JSONObject) || [],
-                                                Monitor
-                                            ) as Monitor
+                                            item[
+                                                'monitor'
+                                            ]
                                         }
                                         showIcon={
                                             props.currentProject
@@ -392,12 +389,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <MonitorGroupElement
                                         monitorGroup={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'monitorGroup'
-                                                ] as JSONObject) || [],
-                                                MonitorGroup
-                                            ) as MonitorGroup
+                                            item[
+                                                'monitorGroup'
+                                            ]
                                         }
                                         showIcon={
                                             props.currentProject

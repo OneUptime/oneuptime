@@ -103,7 +103,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Data Ingested (in GB)',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject) => {
+                        getElement: (item: TelemetryUsageBilling) => {
                             return (
                                 <div>{`${DiskSize.convertToDecimalPlaces(
                                     (item['dataIngestedInGB'] as Decimal)
@@ -121,7 +121,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Telemetry Service',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject) => {
+                        getElement: (item: TelemetryUsageBilling) => {
                             return (
                                 <TelemetryServiceElement
                                     telemetryService={
@@ -139,7 +139,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Data Retention (in Days)',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject) => {
+                        getElement: (item: TelemetryUsageBilling) => {
                             return (
                                 <div>{`${item[
                                     'retainTelemetryDataForDays'
@@ -153,7 +153,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Data Ingested (in GB)',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject) => {
+                        getElement: (item: TelemetryUsageBilling) => {
                             return (
                                 <div>{`${DiskSize.convertToDecimalPlaces(
                                     (item['dataIngestedInGB'] as Decimal)
@@ -168,7 +168,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Total Cost',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject) => {
+                        getElement: (item: TelemetryUsageBilling) => {
                             return (
                                 <div>{`${Currency.convertToDecimalPlaces(
                                     (item['totalCostInUSD'] as Decimal)
