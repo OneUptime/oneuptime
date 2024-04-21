@@ -144,14 +144,11 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: StatusPage): ReactElement => {
                             return (
                                 <LabelsElement
                                     labels={
-                                        BaseModel.fromJSON(
-                                            (item['labels'] as JSONArray) || [],
-                                            Label
-                                        ) as Array<Label>
+                                        item['labels'] || []
                                     }
                                 />
                             );

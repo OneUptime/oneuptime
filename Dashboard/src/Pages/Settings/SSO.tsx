@@ -211,7 +211,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             title: 'View SSO URL',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
-                                item: JSONObject,
+                                item: ProjectSSO,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setShowSingleSignOnUrlId(
@@ -269,15 +269,11 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Add User to Team',
                             type: FieldType.Text,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: ProjectSSO): ReactElement => {
                                 return (
                                     <TeamsElement
                                         teams={
-                                            BaseModel.fromJSON(
-                                                (item['teams'] as JSONArray) ||
-                                                    [],
-                                                Team
-                                            ) as Array<Team>
+                                            item['teams'] || []
                                         }
                                     />
                                 );

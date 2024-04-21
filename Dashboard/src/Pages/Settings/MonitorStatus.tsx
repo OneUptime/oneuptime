@@ -119,7 +119,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: MonitorStatus): ReactElement => {
                             return (
                                 <StatusBubble
                                     color={item['color'] as Color}
@@ -136,7 +136,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: MonitorStatus): ReactElement => {
                             return (
                                 <div>
                                     <p>{`${item['description']}`}</p>

@@ -23,6 +23,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import OneUptimeDate from 'Common/Types/Date';
+import { Black } from 'Common/Types/BrandColors';
 
 const StatusTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -56,7 +57,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         icon: IconProp.TransparentCube,
                         onClick: async (
-                            item: JSONObject,
+                            item: MonitorStatusTimeline,
                             onCompleteAction: VoidFunction
                         ) => {
                             setRootCause(
@@ -74,7 +75,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         icon: IconProp.List,
                         onClick: async (
-                            item: JSONObject,
+                            item: MonitorStatusTimeline,
                             onCompleteAction: VoidFunction
                         ) => {
                             setLogs(
@@ -175,7 +176,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitor Status',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: MonitorStatusTimeline): ReactElement => {
                             if (!item['monitorStatus']) {
                                 throw new BadDataException(
                                     'Monitor Status not found'
@@ -185,15 +186,11 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                             return (
                                 <Statusbubble
                                     color={
-                                        (item['monitorStatus'] as JSONObject)[
-                                            'color'
-                                        ] as Color
+                                        item.monitorStatus.color || Black
                                     }
                                     shouldAnimate={false}
                                     text={
-                                        (item['monitorStatus'] as JSONObject)[
-                                            'name'
-                                        ] as string
+                                       item.monitorStatus.name || 'Unknown'
                                     }
                                 />
                             );
@@ -220,7 +217,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Duration',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: MonitorStatusTimeline): ReactElement => {
                             return (
                                 <p>
                                     {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(

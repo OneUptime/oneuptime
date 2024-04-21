@@ -62,7 +62,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'View Status Message',
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
-                            item: JSONObject,
+                            item: UserOnCallLog,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
@@ -147,7 +147,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'On-Call Policy',
                         type: FieldType.Element,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: UserOnCallLog): ReactElement => {
                             if (item['onCallDutyPolicy']) {
                                 return (
                                     <OnCallDutyPolicyView
@@ -171,7 +171,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Escalation Rule',
                         type: FieldType.Element,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: UserOnCallLog): ReactElement => {
                             if (item['onCallDutyPolicyEscalationRule']) {
                                 return (
                                     <EscalationRuleView
@@ -200,7 +200,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: UserOnCallLog): ReactElement => {
                             if (
                                 item['status'] ===
                                 UserNotificationExecutionStatus.Completed

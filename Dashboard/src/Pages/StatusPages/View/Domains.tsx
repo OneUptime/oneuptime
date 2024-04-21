@@ -68,7 +68,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             title: 'Add CNAME',
                             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                             icon: IconProp.Check,
-                            isVisible: (item: JSONObject): boolean => {
+                            isVisible: (item: StatusPageDomain): boolean => {
+
                                 if (item['isCnameVerified']) {
                                     return false;
                                 }
@@ -76,7 +77,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return true;
                             },
                             onClick: async (
-                                item: JSONObject,
+                                item: StatusPageDomain,
                                 onCompleteAction: VoidFunction,
                                 onError: ErrorFunction
                             ) => {
@@ -94,7 +95,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             title: 'Provision SSL',
                             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                             icon: IconProp.Check,
-                            isVisible: (item: JSONObject): boolean => {
+                            isVisible: (item: StatusPageDomain): boolean => {
                                 if (
                                     item['isCnameVerified'] &&
                                     !item['isSslProvisioned']
@@ -105,7 +106,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return false;
                             },
                             onClick: async (
-                                _item: JSONObject,
+                                _item: StatusPageDomain,
                                 onCompleteAction: VoidFunction,
                                 onError: ErrorFunction
                             ) => {

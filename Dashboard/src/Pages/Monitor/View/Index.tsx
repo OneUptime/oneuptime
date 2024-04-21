@@ -30,7 +30,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
-import { Green, Gray500 } from 'Common/Types/BrandColors';
+import { Green, Gray500, Black } from 'Common/Types/BrandColors';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
@@ -296,7 +296,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             <DisabledWarning monitorId={modelId} />
 
             {/* Monitor View  */}
-            <CardModelDetail
+            <CardModelDetail<Monitor>
                 name="Monitor Details"
                 formSteps={[
                     {
@@ -384,7 +384,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Current Status',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Monitor): ReactElement => {
                                 if (!item['currentMonitorStatus']) {
                                     throw new BadDataException(
                                         'Monitor Status not found'
@@ -404,19 +404,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Statusbubble
                                         color={
-                                            (
-                                                item[
-                                                    'currentMonitorStatus'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                            item.currentMonitorStatus.color || Black
                                         }
                                         shouldAnimate={true}
                                         text={
-                                            (
-                                                item[
-                                                    'currentMonitorStatus'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                            item.currentMonitorStatus.name || "Unknown"
                                         }
                                     />
                                 );
@@ -438,15 +430,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Monitor): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={
-                                            BaseModel.fromJSON(
-                                                (item['labels'] as JSONArray) ||
-                                                    [],
-                                                Label
-                                            ) as Array<Label>
+                                            item['labels'] || []
                                         }
                                     />
                                 );

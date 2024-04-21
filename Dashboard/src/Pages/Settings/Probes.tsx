@@ -30,7 +30,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
-    const [currentProbe, setCurrentProbe] = useState<JSONObject | null>(null);
+    const [currentProbe, setCurrentProbe] = useState<Probe | null>(null);
 
     return (
         <Fragment>
@@ -78,7 +78,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             title: 'Name',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Probe): ReactElement => {
                                 return <ProbeElement probe={item} />;
                             },
                         },
@@ -96,7 +96,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             title: 'Probe Status',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Probe): ReactElement => {
                                 return <ProbeStatusElement probe={item} />;
                             },
                         },
@@ -181,7 +181,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             title: 'Show ID and Key',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
-                                item: JSONObject,
+                                item: Probe,
                                 onCompleteAction: VoidFunction,
                                 onError: ErrorFunction
                             ) => {
@@ -228,7 +228,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             title: 'Name',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Probe): ReactElement => {
                                 return <ProbeElement probe={item} />;
                             },
                         },
@@ -253,14 +253,12 @@ const ProbePage: FunctionComponent<PageComponentProps> = (
                             title: 'Status',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Probe): ReactElement => {
                                 if (
                                     item &&
                                     item['lastAlive'] &&
                                     OneUptimeDate.getNumberOfMinutesBetweenDates(
-                                        OneUptimeDate.fromString(
-                                            item['lastAlive'] as string
-                                        ),
+                                        item['lastAlive'],
                                         OneUptimeDate.getCurrentDate()
                                     ) < 5
                                 ) {
