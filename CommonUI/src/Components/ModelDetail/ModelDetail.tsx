@@ -29,7 +29,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onItemLoaded?: (item: TBaseModel) => void | undefined;
     refresher?: undefined | boolean;
     showDetailsInNumberOfColumns?: number | undefined;
-    onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
+    onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
     selectMoreFields?: Select<TBaseModel>;
 }
 
@@ -146,7 +146,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
             } else {
                 fieldsToSet.push({
                     ...field,
-                    key: '',
+                    key: null,
                     getElement: field.getElement
                         ? (item: TBaseModel): ReactElement => {
                               return field.getElement!(
@@ -176,8 +176,8 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         setError('');
         try {
             if (props.onBeforeFetch) {
-                const jobject: JSONObject = await props.onBeforeFetch();
-                setOnBeforeFetchData(jobject);
+                const model: TBaseModel = await props.onBeforeFetch();
+                setOnBeforeFetchData(model);
             }
 
             const item: TBaseModel | null = await ModelAPI.getItem({

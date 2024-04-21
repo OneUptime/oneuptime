@@ -41,7 +41,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     enableDragAndDrop?: boolean | undefined;
     dragDropIdField?: keyof TBaseModel | undefined;
     dragDropIndexField?: keyof TBaseModel | undefined;
-    sortBy?: string | undefined;
+    sortBy?: keyof TBaseModel | undefined;
     sortOrder?: SortOrder | undefined;
     onListLoaded?: ((list: Array<TBaseModel>) => void) | undefined;
 }

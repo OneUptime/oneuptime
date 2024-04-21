@@ -130,7 +130,11 @@ const Detail = <T extends GenericObject>(
         field: Field<T>,
         index: number
     ): ReactElement => {
-        const fieldKey: keyof T = field.key;
+        const fieldKey: keyof T | null = field.key;
+
+        if(!fieldKey) {
+            return <></>;
+        }
 
         if (!props.item) {
             throw new BadDataException('Item not found');
@@ -200,7 +204,7 @@ const Detail = <T extends GenericObject>(
 
         if (data && field.fieldType === FieldType.DictionaryOfStrings) {
             data = getDictionaryOfStringsViewer(
-                props.item[field.key] as Dictionary<string>
+                props.item[fieldKey] as Dictionary<string>
             );
         }
 

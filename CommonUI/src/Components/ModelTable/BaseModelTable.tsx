@@ -170,15 +170,15 @@ export interface BaseTableProps<
     onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
-    sortBy?: string | undefined;
+    sortBy?: keyof TBaseModel | undefined;
     sortOrder?: SortOrder | undefined;
     dragDropIdField?: keyof TBaseModel | undefined;
     dragDropIndexField?: keyof TBaseModel | undefined;
     createEditModalWidth?: ModalWidth | undefined;
     orderedStatesListProps?: {
-        titleField: string;
-        descriptionField?: string | undefined;
-        orderField: string;
+        titleField: keyof TBaseModel;
+        descriptionField?: keyof TBaseModel | undefined;
+        orderField: keyof TBaseModel;
         shouldAddItemInTheEnd?: boolean;
         shouldAddItemInTheBeginning?: boolean;
     };
@@ -252,7 +252,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const [showModel, setShowModal] = useState<boolean>(false);
     const [showFilter, setShowFilter] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
-    const [sortBy, setSortBy] = useState<string>(props.sortBy || '');
+    const [sortBy, setSortBy] = useState<keyof TBaseModel | null>(props.sortBy || null);
     const [sortOrder, setSortOrder] = useState<SortOrder>(
         props.sortOrder || SortOrder.Ascending
     );
@@ -404,7 +404,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                 // get filter options if they were already loaded
 
-                const columnKey: keyof TBaseModel | null = column.selectedProperty
+                const columnKey: string | null = column.selectedProperty
                     ? key + '.' + column.selectedProperty
                     : key;
 
@@ -639,8 +639,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             }
         }
 
-        const selectMoreFields: Array<string> = props.selectMoreFields
-            ? Object.keys(props.selectMoreFields)
+        const selectMoreFields: Array<keyof TBaseModel> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields) as Array<keyof TBaseModel>
             : [];
 
         if (props.dragDropIndexField) {
@@ -649,7 +649,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         if (
             props.dragDropIdField &&
-            !Object.keys(selectFields).includes(props.dragDropIdField) &&
+            !Object.keys(selectFields).includes(props.dragDropIdField as string) &&
             !selectMoreFields.includes(props.dragDropIdField)
         ) {
             selectMoreFields.push(props.dragDropIdField);
@@ -1113,7 +1113,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 filterError={tableFilterError}
                 isFilterLoading={isFilterFetchLoading}
                 showFilter={showFilter}
-                onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
+                onSortChanged={(sortBy: keyof TBaseModel | null, sortOrder: SortOrder) => {
                     setSortBy(sortBy);
                     setSortOrder(sortOrder);
                 }}
@@ -1128,7 +1128,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 dragDropIdField={'_id'}
                 dragDropIndexField={props.dragDropIndexField}
                 totalItemsCount={totalItemsCount}
-                data={props.callbacks.toJSONArray(data)}
+                data={data}
                 id={props.id}
                 columns={tableColumns}
                 itemsOnPage={itemsOnPage}
@@ -1174,12 +1174,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         let getTitleElement:
             | ((
-                  item: JSONObject,
-                  onBeforeFetchData?: JSONObject | undefined
+                  item: TBaseModel,
+                  onBeforeFetchData?: TBaseModel | undefined
               ) => ReactElement)
             | undefined = undefined;
+
         let getDescriptionElement:
-            | ((item: JSONObject) => ReactElement)
+            | ((item: TBaseModel) => ReactElement)
             | undefined = undefined;
 
         for (const column of props.columns) {
@@ -1197,10 +1198,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
 
         return (
-            <OrderedStatesList
+            <OrderedStatesList<TBaseModel>
                 error={error}
                 isLoading={isLoading}
-                data={props.callbacks.toJSONArray(data)}
+                data={data}
                 id={props.id}
                 titleField={props.orderedStatesListProps?.titleField || ''}
                 descriptionField={
@@ -1442,7 +1443,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             orderedStatesListNewItemOrder
                         ) {
                             item.setColumnValue(
-                                props.orderedStatesListProps.orderField,
+                                props.orderedStatesListProps.orderField as string,
                                 orderedStatesListNewItemOrder
                             );
                         }
