@@ -19,7 +19,7 @@ const OnCallDutyScheduleView: FunctionComponent<PageComponentProps> = (
     return (
         <Fragment>
             {/* OnCallDutySchedule View  */}
-            <CardModelDetail
+            <CardModelDetail<OnCallDutySchedule>
                 name="On-Call Schedule > On-Call Schedule Details"
                 cardProps={{
                     title: 'On-Call Schedule Details',
@@ -105,7 +105,7 @@ const OnCallDutyScheduleView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: OnCallDutySchedule): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={

@@ -227,14 +227,11 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
 
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: ScheduledMaintenanceInternalNote): ReactElement => {
                             return (
                                 <UserElement
                                     user={
-                                        BaseModel.fromJSON(
-                                            item['createdByUser'] as JSONObject,
-                                            User
-                                        ) as User
+                                        item['createdByUser']
                                     }
                                     suffix={'wrote'}
                                     usernameClassName={

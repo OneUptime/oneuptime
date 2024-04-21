@@ -19,7 +19,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
     return (
         <Fragment>
             {/* Service View  */}
-            <CardModelDetail
+            <CardModelDetail<TelemetryService>
                 name="Service Details"
                 formSteps={[
                     {
@@ -104,7 +104,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: TelemetryService): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={

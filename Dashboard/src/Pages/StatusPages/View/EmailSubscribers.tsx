@@ -258,7 +258,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 title: 'Status',
                                 type: FieldType.Text,
                                 getElement: (
-                                    item: JSONObject
+                                    item: StatusPageSubscriber
                                 ): ReactElement => {
                                     if (item['isUnsubscribed']) {
                                         return (

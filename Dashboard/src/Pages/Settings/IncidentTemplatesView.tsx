@@ -32,6 +32,7 @@ import ProjectUser from '../../Utils/ProjectUser';
 import UserElement from '../../Components/User/User';
 import User from 'Model/Models/User';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import { Black } from 'Common/Types/BrandColors';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -41,7 +42,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
     return (
         <Fragment>
             {/* Incident View  */}
-            <CardModelDetail
+            <CardModelDetail<IncidentTemplate>
                 name="Incident Template Details"
                 cardProps={{
                     title: 'Incident Template Details',
@@ -249,7 +250,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Incident Severity',
                             fieldType: FieldType.Entity,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: IncidentTemplate): ReactElement => {
                                 if (!item['incidentSeverity']) {
                                     return <p>No incident severity.</p>;
                                 }
@@ -257,18 +258,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Pill
                                         color={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                           item.incidentSeverity.color || Black
                                         }
                                         text={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                            item.incidentSeverity.name || 'Unknown'
                                         }
                                     />
                                 );
@@ -283,16 +276,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitors Affected',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: IncidentTemplate): ReactElement => {
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'monitors'
-                                                ] as JSONArray) || [],
-                                                Monitor
-                                            ) as Array<Monitor>
+                                            item[
+                                                'monitors'
+                                            ] || []
                                         }
                                     />
                                 );
@@ -307,16 +297,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'On-Call Duty Policies',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: IncidentTemplate): ReactElement => {
                                 return (
                                     <OnCallDutyPoliciesView
                                         onCallPolicies={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'onCallDutyPolicies'
-                                                ] as JSONArray) || [],
-                                                OnCallDutyPolicy
-                                            ) as Array<OnCallDutyPolicy>
+                                            item[
+                                                'onCallDutyPolicies'
+                                            ] || []
                                         }
                                     />
                                 );
@@ -338,7 +325,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: IncidentTemplate): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={
@@ -421,7 +408,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Team',
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: IncidentTemplateOwnerTeam): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
                             }
@@ -509,7 +496,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: IncidentTemplateOwnerUser): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');
                             }

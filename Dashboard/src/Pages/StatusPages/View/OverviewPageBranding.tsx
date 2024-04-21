@@ -188,7 +188,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             description:
                                 'These monitor statuses are be considered as down when we calculate uptime %',
                             fieldType: FieldType.EntityArray,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: StatusPage): ReactElement => {
                                 if (item['downtimeMonitorStatuses']) {
                                     return (
                                         <MonitorStatuesElement
