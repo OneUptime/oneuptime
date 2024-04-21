@@ -1,11 +1,9 @@
 import React, {
-    FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
 import Filter from './Types/Filter';
-import Dictionary from 'Common/Types/Dictionary';
 import Input, { InputType } from '../Input/Input';
 import FieldType from '../Types/FieldType';
 import Search from 'Common/Types/BaseDatabase/Search';
@@ -17,37 +15,30 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import DatabaseDate from 'Common/Types/Database/Date';
+import GenericObject from 'Common/Types/GenericObject';
 
-export type FilterData = Dictionary<
-    | string
-    | DropdownValue
-    | Array<DropdownValue>
-    | boolean
-    | Search
-    | Date
-    | BaseModel
-    | Array<BaseModel>
-    | ObjectID
-    | Array<ObjectID>
-    | number
-    | InBetween
->;
+export type FilterData<T extends GenericObject> = {
+    [P in keyof T]?: string | DropdownValue | Search | Date | BaseModel | ObjectID | number | InBetween;
+};
 
-export interface ComponentProps {
-    filters: Array<Filter>;
+
+export interface ComponentProps<T extends GenericObject> {
+    filters: Array<Filter<T>>;
     id: string;
     showFilter: boolean;
-    onFilterChanged?: undefined | ((filterData: FilterData) => void);
+    onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
     isFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
     onFilterRefreshClick?: undefined | (() => void);
 }
 
-const FilterComponent: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+type FilterComponentFunction = <T extends GenericObject>(props: ComponentProps<T>) => ReactElement;
+
+const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     // should filter on textboxes and checkboxes.
-    const [filterData, setFilterData] = useState<FilterData>({});
+    const [filterData, setFilterData] = useState<FilterData<T>>({});
 
     useEffect(() => {
         setFilterData({});
@@ -78,7 +69,7 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                         !props.isFilterLoading &&
                         !props.filterError &&
                         props.filters &&
-                        props.filters.map((filter: Filter, i: number) => {
+                        props.filters.map((filter: Filter<T>, i: number) => {
                             let inputType: InputType = InputType.TEXT;
 
                             if (filter.type === FieldType.Date) {
@@ -97,7 +88,7 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                     </label>
                                     {(filter.type === FieldType.Entity ||
                                         filter.type ===
-                                            FieldType.EntityArray) &&
+                                        FieldType.EntityArray) &&
                                         filter.filterDropdownOptions && (
                                             <Dropdown
                                                 options={
@@ -236,9 +227,9 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                             filter.type === FieldType.Port ||
                                             filter.type === FieldType.URL ||
                                             filter.type ===
-                                                FieldType.DateTime ||
+                                            FieldType.DateTime ||
                                             filter.type ===
-                                                FieldType.ObjectID ||
+                                            FieldType.ObjectID ||
                                             filter.type === FieldType.Text) && (
                                             <Input
                                                 onChange={(
@@ -256,7 +247,7 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                                             (filter.type ===
                                                                 FieldType.Date ||
                                                                 filter.type ===
-                                                                    FieldType.DateTime)
+                                                                FieldType.DateTime)
                                                         ) {
                                                             filterData[
                                                                 filter.key
@@ -268,7 +259,7 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                                         if (
                                                             changedValue &&
                                                             filter.type ===
-                                                                FieldType.DateTime
+                                                            FieldType.DateTime
                                                         ) {
                                                             filterData[
                                                                 filter.key
@@ -283,17 +274,17 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                                             (filter.type ===
                                                                 FieldType.Text ||
                                                                 filter.type ===
-                                                                    FieldType.Email ||
+                                                                FieldType.Email ||
                                                                 filter.type ===
-                                                                    FieldType.Phone ||
+                                                                FieldType.Phone ||
                                                                 filter.type ===
-                                                                    FieldType.Name ||
+                                                                FieldType.Name ||
                                                                 filter.type ===
-                                                                    FieldType.Port ||
+                                                                FieldType.Port ||
                                                                 filter.type ===
-                                                                    FieldType.URL ||
+                                                                FieldType.URL ||
                                                                 filter.type ===
-                                                                    FieldType.ObjectID)
+                                                                FieldType.ObjectID)
                                                         ) {
                                                             filterData[
                                                                 filter.key
@@ -317,7 +308,7 @@ const FilterComponent: FunctionComponent<ComponentProps> = (
                                                 }}
                                                 initialValue={(
                                                     filterData[
-                                                        filter.key || ''
+                                                    filter.key
                                                     ] || ''
                                                 ).toString()}
                                                 placeholder={`Filter by ${filter.title}`}
