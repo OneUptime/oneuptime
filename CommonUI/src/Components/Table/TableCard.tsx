@@ -10,7 +10,11 @@ export interface ComponentProps<T extends GenericObject> {
     tableProps: TableComponentProps<T>;
 }
 
-const TableRow = <T extends GenericObject>(
+type TableRowFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
+
+const TableRow: TableRowFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     return (

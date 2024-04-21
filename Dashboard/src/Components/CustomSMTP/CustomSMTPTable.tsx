@@ -27,7 +27,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
     const [showSMTPTestModal, setShowSMTPTestModal] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [currentSMTPTestConfig, setCurrentSMTPTestConfig] =
-        useState<JSONObject | null>(null);
+        useState<ProjectSmtpConfig | null>(null);
     const [isSMTPTestLoading, setIsSMTPTestLoading] = useState<boolean>(false);
 
     const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
@@ -47,7 +47,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                         buttonStyleType: ButtonStyleType.OUTLINE,
                         icon: IconProp.Play,
                         onClick: async (
-                            item: JSONObject,
+                            item: ProjectSmtpConfig,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {

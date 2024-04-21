@@ -42,7 +42,9 @@ export interface ComponentProps<T extends GenericObject> {
     onFilterRefreshClick?: undefined | (() => void);
 }
 
-type ListFunction = <T extends Object>(props: ComponentProps<T>) => ReactElement;
+type ListFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
 
 const List: ListFunction = <T extends GenericObject>(
     props: ComponentProps<T>

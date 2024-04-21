@@ -13,7 +13,9 @@ export interface ComponentProps<T extends GenericObject> {
     getDescriptionElement?: ((item: T) => ReactElement) | undefined;
 }
 
-type ItemFunction = <T extends Object>(props: ComponentProps<T>) => ReactElement;
+type ItemFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
 
 const Item: ItemFunction = <T extends GenericObject>(
     props: ComponentProps<T>

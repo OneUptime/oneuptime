@@ -81,7 +81,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Password,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: StatusPagePrivateUser): ReactElement => {
                             if (item['password']) {
                                 return (
                                     <Pill color={Green} text={'Signed up'} />

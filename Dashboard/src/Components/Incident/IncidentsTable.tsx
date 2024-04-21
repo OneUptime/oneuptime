@@ -4,9 +4,8 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Incident from 'Model/Models/Incident';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
 import Monitor from 'Model/Models/Monitor';
 import MonitorsElement from '../../Components/Monitor/Monitors';
 import IncidentState from 'Model/Models/IncidentState';
@@ -35,6 +34,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import { Black } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -532,24 +532,16 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         title: 'State',
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (
                                     <Pill
                                         isMinimal={true}
                                         color={
-                                            (
-                                                item[
-                                                    'currentIncidentState'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                            item.currentIncidentState.color || Black
                                         }
                                         text={
-                                            (
-                                                item[
-                                                    'currentIncidentState'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                            item.currentIncidentState.name || 'Unknown'
                                         }
                                     />
                                 );
@@ -568,24 +560,16 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
                         title: 'Severity',
                         type: FieldType.Entity,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             if (item['incidentSeverity']) {
                                 return (
                                     <Pill
                                         isMinimal={true}
                                         color={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                           item.incidentSeverity.color || Black
                                         }
                                         text={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                            item.incidentSeverity.name || 'Unknown'
                                         }
                                     />
                                 );
@@ -605,15 +589,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         title: 'Monitors Affected',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             return (
                                 <MonitorsElement
                                     monitors={
-                                        BaseModel.fromJSON(
-                                            (item['monitors'] as JSONArray) ||
-                                                [],
-                                            Monitor
-                                        ) as Array<Monitor>
+                                        item['monitors'] || []
                                     }
                                 />
                             );
@@ -636,14 +616,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         title: 'Labels',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             return (
                                 <LabelsElement
                                     labels={
-                                        BaseModel.fromJSON(
-                                            (item['labels'] as JSONArray) || [],
-                                            Label
-                                        ) as Array<Label>
+                                        item['labels'] || []
                                     }
                                 />
                             );

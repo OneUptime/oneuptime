@@ -5,6 +5,7 @@ import AlignItem from '../../Types/AlignItem';
 import FieldType from '../Types/FieldType';
 import { DropdownOption } from '../Dropdown/Dropdown';
 import { Size } from './FieldLabel';
+import { JSONObject } from 'Common/Types/JSON';
 
 export interface DetailSideLink {
     text: string;
@@ -25,7 +26,7 @@ export interface FieldBase<T> {
     getElement?:
         | ((
               item: T,
-              onBeforeFetchData?: T,
+              onBeforeFetchData?: JSONObject | undefined,
               fetchItems?: VoidFunction
           ) => ReactElement)
         | undefined;

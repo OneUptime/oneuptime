@@ -28,6 +28,7 @@ import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
 import { VoidFunction } from 'Common/Types/FunctionTypes';
+import { Black } from 'Common/Types/BrandColors';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -37,7 +38,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
     return (
         <Fragment>
             {/* Incident View  */}
-            <CardModelDetail
+            <CardModelDetail<Incident>
                 name="Incident Details"
                 cardProps={{
                     title: 'Incident Details',
@@ -163,7 +164,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Current State',
                             fieldType: FieldType.Entity,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Incident): ReactElement => {
                                 if (!item['currentIncidentState']) {
                                     throw new BadDataException(
                                         'Incident Status not found'
@@ -174,17 +175,13 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     <Pill
                                         color={
                                             (
-                                                item[
-                                                    'currentIncidentState'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                                item.currentIncidentState.color || Black
+                                            )
                                         }
                                         text={
                                             (
-                                                item[
-                                                    'currentIncidentState'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                                item.currentIncidentState.name || 'Unknown'
+                                            )
                                         }
                                     />
                                 );
@@ -199,7 +196,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Incident Severity',
                             fieldType: FieldType.Entity,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Incident): ReactElement => {
                                 if (!item['incidentSeverity']) {
                                     throw new BadDataException(
                                         'Incident Severity not found'
@@ -210,17 +207,13 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     <Pill
                                         color={
                                             (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                                item.incidentSeverity.color || Black
+                                            )
                                         }
                                         text={
                                             (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                                item.incidentSeverity.name || 'Unknown'
+                                            )
                                         }
                                     />
                                 );
@@ -235,16 +228,13 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitors Affected',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Incident): ReactElement => {
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'monitors'
-                                                ] as JSONArray) || [],
-                                                Monitor
-                                            ) as Array<Monitor>
+                                            item[
+                                                'monitors'
+                                            ] || []
                                         }
                                     />
                                 );
@@ -259,16 +249,11 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'On-Call Duty Policies',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Incident): ReactElement => {
                                 return (
                                     <OnCallDutyPoliciesView
                                         onCallPolicies={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'onCallDutyPolicies'
-                                                ] as JSONArray) || [],
-                                                OnCallDutyPolicy
-                                            ) as Array<OnCallDutyPolicy>
+                                            item.onCallDutyPolicies || []
                                         }
                                     />
                                 );
@@ -288,7 +273,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Notify Status Page Subscribers',
                             fieldType: FieldType.Boolean,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Incident): ReactElement => {
                                 return (
                                     <div className="">
                                         <CheckboxViewer
@@ -318,7 +303,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Incident): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={item['labels'] || []}
@@ -330,7 +315,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             title: 'Acknowledge Incident',
                             fieldType: FieldType.Element,
                             getElement: (
-                                _item: JSONObject,
+                                _item: Incident,
                                 onBeforeFetchData: JSONObject | undefined,
                                 fetchItems: VoidFunction | undefined
                             ): ReactElement => {
@@ -356,7 +341,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             title: 'Resolve Incident',
                             fieldType: FieldType.Element,
                             getElement: (
-                                _item: JSONObject,
+                                _item: Incident,
                                 onBeforeFetchData: JSONObject | undefined,
                                 fetchItems: VoidFunction | undefined
                             ): ReactElement => {

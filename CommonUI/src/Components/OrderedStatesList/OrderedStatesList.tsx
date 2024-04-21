@@ -26,7 +26,7 @@ export interface ComponentProps<T extends GenericObject> {
     shouldAddItemInTheBeginning?: boolean | undefined;
 }
 
-type OrderedStatesListFunction = <T extends Object>(
+type OrderedStatesListFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ) => ReactElement;
 

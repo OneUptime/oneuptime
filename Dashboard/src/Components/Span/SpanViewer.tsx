@@ -157,9 +157,14 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         };
 
     const getBasicInfo: GetReactElementFunction = (): ReactElement => {
+
+        if (!span) {
+            return <></>;
+        }
+
         return (
-            <Detail
-                item={span?.toJSON() || {}}
+            <Detail<Span>
+                item={span}
                 fields={[
                     {
                         key: 'spanId',
@@ -209,11 +214,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         title: 'Starts At',
                         description: 'When did this span start in this trace?',
                         fieldType: FieldType.Element,
-                        getElement: (item: JSONObject) => {
-                            const span = AnalyticsBaseModel.fromJSON<Span>(
-                                item,
-                                Span
-                            ) as Span;
+                        getElement: (span: Span) => {
 
                             return (
                                 <div>
@@ -234,11 +235,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         title: 'Ends At',
                         description: 'When did this span end in this trace?',
                         fieldType: FieldType.Element,
-                        getElement: (item: JSONObject) => {
-                            const span = AnalyticsBaseModel.fromJSON<Span>(
-                                item,
-                                Span
-                            ) as Span;
+                        getElement: (span: Span) => {
 
                             return (
                                 <div>
@@ -259,11 +256,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         title: 'Duration',
                         description: 'The duration of the span.',
                         fieldType: FieldType.Element,
-                        getElement: (item: JSONObject) => {
-                            const span = AnalyticsBaseModel.fromJSON<Span>(
-                                item,
-                                Span
-                            ) as Span;
+                        getElement: (span: Span) => {
 
                             return (
                                 <div>
@@ -278,7 +271,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         },
                     },
                     {
-                        key: 'spanKind',
+                        key: 'kind',
                         title: 'Span Kind',
                         description: 'The kind of span.',
                         fieldType: FieldType.Text,
