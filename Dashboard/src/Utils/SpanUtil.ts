@@ -19,7 +19,7 @@ export default class SpanUtil {
     public static getSpanDurationAsString(data: {
         divisibilityFactor: DivisibilityFactor;
         spanDurationInUnixNano: number;
-    }) {
+    }): string {
         const { divisibilityFactor, spanDurationInUnixNano } = data;
 
         return `${Math.round(
@@ -31,7 +31,7 @@ export default class SpanUtil {
         divisibilityFactor: DivisibilityFactor;
         timelineStartTimeUnixNano: number;
         spanStartTimeUnixNano: number;
-    }) {
+    }): string {
         const {
             divisibilityFactor,
             timelineStartTimeUnixNano,
@@ -48,7 +48,7 @@ export default class SpanUtil {
         divisibilityFactor: DivisibilityFactor;
         timelineStartTimeUnixNano: number;
         spanEndTimeUnixNano: number;
-    }) {
+    }): string {
         const {
             divisibilityFactor,
             timelineStartTimeUnixNano,

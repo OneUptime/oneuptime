@@ -17,7 +17,9 @@ export interface ComponentProps<T extends GenericObject> {
     listDetailOptions?: undefined | ListDetailProps;
 }
 
-const ListBody = <T extends GenericObject>(
+type ListBodyFunction = <T extends Object>(props: ComponentProps<T>) => ReactElement;
+
+const ListBody: ListBodyFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;

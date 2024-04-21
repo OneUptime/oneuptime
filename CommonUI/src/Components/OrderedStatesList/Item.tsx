@@ -13,7 +13,9 @@ export interface ComponentProps<T extends GenericObject> {
     getDescriptionElement?: ((item: T) => ReactElement) | undefined;
 }
 
-const Item = <T extends GenericObject>(
+type ItemFunction = <T extends Object>(props: ComponentProps<T>) => ReactElement;
+
+const Item: ItemFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(

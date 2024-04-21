@@ -27,7 +27,9 @@ export interface ComponentProps<T extends GenericObject> {
     showDetailsInNumberOfColumns?: number | undefined;
 }
 
-const Detail = <T extends GenericObject>(
+type DetailFunction =  <T extends Object>(props: ComponentProps<T>) => ReactElement;
+
+const Detail: DetailFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     type GetMarkdownViewerFunction = (text: string) => ReactElement;

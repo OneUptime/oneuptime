@@ -24,7 +24,7 @@ export interface ComponentProps<T extends GenericObject> {
     dragDropIndexField?: keyof T | undefined;
 }
 
-type TableRowFunction = <T extends Object>(
+type TableRowFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ) => ReactElement;
 
