@@ -12,7 +12,6 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DashboardNavigation from '../../../Utils/Navigation';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { JSONObject } from 'Common/Types/JSON';
 import MonitorStatuesElement from '../../../Components/MonitorStatus/MonitorStatusesElement';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (

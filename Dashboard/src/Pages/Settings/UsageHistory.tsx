@@ -1,4 +1,3 @@
-import { JSONObject } from 'Common/Types/JSON';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';

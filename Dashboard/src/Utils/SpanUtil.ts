@@ -3,13 +3,12 @@ import Color from 'Common/Types/Color';
 import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import TelemetryService from 'Model/Models/TelemetryService';
 
-export enum IntervalUnit { 
+export enum IntervalUnit {
     Nanoseconds = 'ns',
     Microseconds = 'μs',
     Milliseconds = 'ms',
     Seconds = 's',
 }
-
 
 export interface DivisibilityFactor {
     divisibilityFactorNumber: number;
@@ -17,47 +16,49 @@ export interface DivisibilityFactor {
 }
 
 export default class SpanUtil {
-
     public static getSpanDurationAsString(data: {
-        divisibilityFactor: DivisibilityFactor,
-        spanDurationInUnixNano: number,
-    }){
+        divisibilityFactor: DivisibilityFactor;
+        spanDurationInUnixNano: number;
+    }) {
+        const { divisibilityFactor, spanDurationInUnixNano } = data;
 
-        const {divisibilityFactor, spanDurationInUnixNano} = data;
-
-        return `${Math.round(spanDurationInUnixNano / divisibilityFactor.divisibilityFactorNumber)} ${divisibilityFactor.intervalUnit}`
+        return `${Math.round(
+            spanDurationInUnixNano / divisibilityFactor.divisibilityFactorNumber
+        )} ${divisibilityFactor.intervalUnit}`;
     }
-
 
     public static getSpanStartsAtAsString(data: {
-        divisibilityFactor: DivisibilityFactor,
-        timelineStartTimeUnixNano: number,
-        spanStartTimeUnixNano: number,
-    }){
+        divisibilityFactor: DivisibilityFactor;
+        timelineStartTimeUnixNano: number;
+        spanStartTimeUnixNano: number;
+    }) {
+        const {
+            divisibilityFactor,
+            timelineStartTimeUnixNano,
+            spanStartTimeUnixNano,
+        } = data;
 
-        const {divisibilityFactor, timelineStartTimeUnixNano, spanStartTimeUnixNano} = data;
-
-        return  `${Math.round(
-            (spanStartTimeUnixNano! -
-                timelineStartTimeUnixNano) /
+        return `${Math.round(
+            (spanStartTimeUnixNano! - timelineStartTimeUnixNano) /
                 divisibilityFactor.divisibilityFactorNumber
-        )} ${divisibilityFactor.intervalUnit}`
+        )} ${divisibilityFactor.intervalUnit}`;
     }
 
-
     public static getSpanEndsAtAsString(data: {
-        divisibilityFactor: DivisibilityFactor,
-        timelineStartTimeUnixNano: number,
-        spanEndTimeUnixNano: number,
-    }){
+        divisibilityFactor: DivisibilityFactor;
+        timelineStartTimeUnixNano: number;
+        spanEndTimeUnixNano: number;
+    }) {
+        const {
+            divisibilityFactor,
+            timelineStartTimeUnixNano,
+            spanEndTimeUnixNano,
+        } = data;
 
-        const {divisibilityFactor, timelineStartTimeUnixNano, spanEndTimeUnixNano} = data;
-
-        return  `${Math.round(
-            (spanEndTimeUnixNano! -
-                timelineStartTimeUnixNano) /
+        return `${Math.round(
+            (spanEndTimeUnixNano! - timelineStartTimeUnixNano) /
                 divisibilityFactor.divisibilityFactorNumber
-        )} ${divisibilityFactor.intervalUnit}`
+        )} ${divisibilityFactor.intervalUnit}`;
     }
 
     public static getSpanKindFriendlyName(spanKind: SpanKind): string {
@@ -78,8 +79,7 @@ export default class SpanUtil {
         return spanKindText;
     }
 
-
-    public static getDivisibilityFactor (
+    public static getDivisibilityFactor(
         totalTimelineTimeInUnixNano: number
     ): DivisibilityFactor {
         let intervalUnit: IntervalUnit = IntervalUnit.Milliseconds;
@@ -103,8 +103,7 @@ export default class SpanUtil {
             divisibilityFactorNumber: divisibilityFactorNumber,
             intervalUnit: intervalUnit,
         };
-    };
-
+    }
 
     public static getSpanStatusCodeFriendlyName(
         statusCode: SpanStatus

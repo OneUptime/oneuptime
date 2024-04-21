@@ -7,7 +7,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
 import DashboardNavigation from '../../Utils/Navigation';
-import { JSONArray } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
@@ -16,7 +15,6 @@ import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowPlan from 'Common/Types/Workflow/WorkflowPlan';
 import OneUptimeDate from 'Common/Types/Date';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
-import BaseModel from 'Common/Models/BaseModel';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import URL from 'Common/Types/API/URL';
 
@@ -211,9 +209,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             getElement: (item: Workflow): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                            item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },

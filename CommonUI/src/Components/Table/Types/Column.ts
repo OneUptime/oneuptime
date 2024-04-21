@@ -15,9 +15,6 @@ export default interface Column<T extends GenericObject> {
     alignItem?: AlignItem | undefined;
     key?: keyof T | null; //can be null because actions column does not have a key.
     getElement?:
-        | ((
-              item: T,
-              onBeforeFetchData?: T | undefined
-          ) => ReactElement)
+        | ((item: T, onBeforeFetchData?: T | undefined) => ReactElement)
         | undefined;
 }

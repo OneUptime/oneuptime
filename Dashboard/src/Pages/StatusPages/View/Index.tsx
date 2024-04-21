@@ -5,12 +5,10 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
-import BaseModel from 'Common/Models/BaseModel';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -110,9 +108,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                             getElement: (item: StatusPage): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                           item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },

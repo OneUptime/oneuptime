@@ -42,7 +42,7 @@ export interface ComponentProps<T extends GenericObject> {
     onFilterRefreshClick?: undefined | (() => void);
 }
 
-const List =  <T extends GenericObject>(
+const List = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getListbody: GetReactElementFunction = (): ReactElement => {

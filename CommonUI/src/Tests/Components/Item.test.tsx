@@ -6,8 +6,7 @@ import { ButtonStyleType } from '../../Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 
 describe('Item component', () => {
-
-    interface ItemData { 
+    interface ItemData {
         id: number;
         name: string;
         description: string;

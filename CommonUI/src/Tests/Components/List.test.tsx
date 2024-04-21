@@ -5,7 +5,6 @@ import FieldType from '../../Components/Types/FieldType';
 import List, { ComponentProps } from '../../Components/List/List';
 
 describe('List', () => {
-
     interface ListData {
         id: string;
         name: string;

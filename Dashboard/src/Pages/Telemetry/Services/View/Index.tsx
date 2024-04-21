@@ -6,10 +6,8 @@ import TelemetryService from 'Model/Models/TelemetryService';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../../../Components/Label/Labels';
 import Label from 'Model/Models/Label';
-import BaseModel from 'Common/Models/BaseModel';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -104,12 +102,12 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: TelemetryService): ReactElement => {
+                            getElement: (
+                                item: TelemetryService
+                            ): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                           item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },

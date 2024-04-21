@@ -1,4 +1,3 @@
-import BaseModel from 'Common/Models/BaseModel';
 import React, {
     Fragment,
     FunctionComponent,
@@ -18,7 +17,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Monitor from 'Model/Models/Monitor';
-import { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -367,15 +365,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             : 'Monitor',
                         type: FieldType.Entity,
 
-                        getElement: (item: StatusPageResource): ReactElement => {
+                        getElement: (
+                            item: StatusPageResource
+                        ): ReactElement => {
                             if (item['monitor']) {
                                 return (
                                     <MonitorElement
-                                        monitor={
-                                            item[
-                                                'monitor'
-                                            ]
-                                        }
+                                        monitor={item['monitor']}
                                         showIcon={
                                             props.currentProject
                                                 ?.isFeatureFlagMonitorGroupsEnabled ||
@@ -388,11 +384,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             if (item['monitorGroup']) {
                                 return (
                                     <MonitorGroupElement
-                                        monitorGroup={
-                                            item[
-                                                'monitorGroup'
-                                            ]
-                                        }
+                                        monitorGroup={item['monitorGroup']}
                                         showIcon={
                                             props.currentProject
                                                 ?.isFeatureFlagMonitorGroupsEnabled ||

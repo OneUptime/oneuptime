@@ -321,9 +321,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                           item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },

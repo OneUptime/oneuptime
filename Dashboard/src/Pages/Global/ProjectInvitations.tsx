@@ -10,7 +10,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI, { RequestOptions } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';

@@ -155,15 +155,17 @@ const ListRow = <T extends GenericObject>(
         );
     };
 
-    if (props.enableDragAndDrop && props.dragDropIdField && props.dragDropIndexField) {
+    if (
+        props.enableDragAndDrop &&
+        props.dragDropIdField &&
+        props.dragDropIndexField
+    ) {
         return (
             <Draggable
                 draggableId={
                     (props.item[props.dragDropIdField] as string) || ''
                 }
-                index={
-                    (props.item[props.dragDropIndexField] as number) || 0
-                }
+                index={(props.item[props.dragDropIndexField] as number) || 0}
             >
                 {(provided: DraggableProvided) => {
                     return getRow(provided);

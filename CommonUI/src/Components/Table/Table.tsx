@@ -1,4 +1,4 @@
-import React, {  ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
 import Columns from './Types/Columns';

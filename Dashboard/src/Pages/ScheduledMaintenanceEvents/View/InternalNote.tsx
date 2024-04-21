@@ -227,12 +227,12 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
 
                         type: FieldType.Entity,
 
-                        getElement: (item: ScheduledMaintenanceInternalNote): ReactElement => {
+                        getElement: (
+                            item: ScheduledMaintenanceInternalNote
+                        ): ReactElement => {
                             return (
                                 <UserElement
-                                    user={
-                                        item['createdByUser']
-                                    }
+                                    user={item['createdByUser']}
                                     suffix={'wrote'}
                                     usernameClassName={
                                         'text-base text-gray-900'

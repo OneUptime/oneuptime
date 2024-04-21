@@ -1,8 +1,4 @@
-import React, {
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import Filter from './Types/Filter';
 import Input, { InputType } from '../Input/Input';
 import FieldType from '../Types/FieldType';
@@ -18,9 +14,17 @@ import DatabaseDate from 'Common/Types/Database/Date';
 import GenericObject from 'Common/Types/GenericObject';
 
 export type FilterData<T extends GenericObject> = {
-    [P in keyof T]?: string | DropdownValue | Array<DropdownValue> | Search | Date | BaseModel | ObjectID | number | InBetween;
+    [P in keyof T]?:
+        | string
+        | DropdownValue
+        | Array<DropdownValue>
+        | Search
+        | Date
+        | BaseModel
+        | ObjectID
+        | number
+        | InBetween;
 };
-
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
@@ -32,7 +36,9 @@ export interface ComponentProps<T extends GenericObject> {
     onFilterRefreshClick?: undefined | (() => void);
 }
 
-type FilterComponentFunction = <T extends GenericObject>(props: ComponentProps<T>) => ReactElement;
+type FilterComponentFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
 
 const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     props: ComponentProps<T>
@@ -88,7 +94,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                     </label>
                                     {(filter.type === FieldType.Entity ||
                                         filter.type ===
-                                        FieldType.EntityArray) &&
+                                            FieldType.EntityArray) &&
                                         filter.filterDropdownOptions && (
                                             <Dropdown
                                                 options={
@@ -227,9 +233,9 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                             filter.type === FieldType.Port ||
                                             filter.type === FieldType.URL ||
                                             filter.type ===
-                                            FieldType.DateTime ||
+                                                FieldType.DateTime ||
                                             filter.type ===
-                                            FieldType.ObjectID ||
+                                                FieldType.ObjectID ||
                                             filter.type === FieldType.Text) && (
                                             <Input
                                                 onChange={(
@@ -247,7 +253,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                                             (filter.type ===
                                                                 FieldType.Date ||
                                                                 filter.type ===
-                                                                FieldType.DateTime)
+                                                                    FieldType.DateTime)
                                                         ) {
                                                             filterData[
                                                                 filter.key
@@ -259,7 +265,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                                         if (
                                                             changedValue &&
                                                             filter.type ===
-                                                            FieldType.DateTime
+                                                                FieldType.DateTime
                                                         ) {
                                                             filterData[
                                                                 filter.key
@@ -274,17 +280,17 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                                             (filter.type ===
                                                                 FieldType.Text ||
                                                                 filter.type ===
-                                                                FieldType.Email ||
+                                                                    FieldType.Email ||
                                                                 filter.type ===
-                                                                FieldType.Phone ||
+                                                                    FieldType.Phone ||
                                                                 filter.type ===
-                                                                FieldType.Name ||
+                                                                    FieldType.Name ||
                                                                 filter.type ===
-                                                                FieldType.Port ||
+                                                                    FieldType.Port ||
                                                                 filter.type ===
-                                                                FieldType.URL ||
+                                                                    FieldType.URL ||
                                                                 filter.type ===
-                                                                FieldType.ObjectID)
+                                                                    FieldType.ObjectID)
                                                         ) {
                                                             filterData[
                                                                 filter.key
@@ -307,9 +313,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                                     }
                                                 }}
                                                 initialValue={(
-                                                    filterData[
-                                                    filter.key
-                                                    ] || ''
+                                                    filterData[filter.key] || ''
                                                 ).toString()}
                                                 placeholder={`Filter by ${filter.title}`}
                                                 type={inputType}

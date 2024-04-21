@@ -1,12 +1,10 @@
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import BaseModel from 'Common/Models/BaseModel';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
@@ -105,12 +103,12 @@ const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: OnCallDutyPolicy): ReactElement => {
+                            getElement: (
+                                item: OnCallDutyPolicy
+                            ): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                           item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },

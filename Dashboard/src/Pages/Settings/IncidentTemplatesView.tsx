@@ -3,7 +3,6 @@ import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import BaseModel from 'Common/Models/BaseModel';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
@@ -16,10 +15,8 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Monitor from 'Model/Models/Monitor';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
 import MonitorsElement from '../../Components/Monitor/Monitors';
 import OnCallDutyPoliciesView from '../../Components/OnCallPolicy/OnCallPolicies';
 import LabelsElement from '../../Components/Label/Labels';
@@ -250,7 +247,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Incident Severity',
                             fieldType: FieldType.Entity,
-                            getElement: (item: IncidentTemplate): ReactElement => {
+                            getElement: (
+                                item: IncidentTemplate
+                            ): ReactElement => {
                                 if (!item['incidentSeverity']) {
                                     return <p>No incident severity.</p>;
                                 }
@@ -258,10 +257,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Pill
                                         color={
-                                           item.incidentSeverity.color || Black
+                                            item.incidentSeverity.color || Black
                                         }
                                         text={
-                                            item.incidentSeverity.name || 'Unknown'
+                                            item.incidentSeverity.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -276,14 +276,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitors Affected',
                             fieldType: FieldType.Element,
-                            getElement: (item: IncidentTemplate): ReactElement => {
+                            getElement: (
+                                item: IncidentTemplate
+                            ): ReactElement => {
                                 return (
                                     <MonitorsElement
-                                        monitors={
-                                            item[
-                                                'monitors'
-                                            ] || []
-                                        }
+                                        monitors={item['monitors'] || []}
                                     />
                                 );
                             },
@@ -297,13 +295,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'On-Call Duty Policies',
                             fieldType: FieldType.Element,
-                            getElement: (item: IncidentTemplate): ReactElement => {
+                            getElement: (
+                                item: IncidentTemplate
+                            ): ReactElement => {
                                 return (
                                     <OnCallDutyPoliciesView
                                         onCallPolicies={
-                                            item[
-                                                'onCallDutyPolicies'
-                                            ] || []
+                                            item['onCallDutyPolicies'] || []
                                         }
                                     />
                                 );
@@ -325,12 +323,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: IncidentTemplate): ReactElement => {
+                            getElement: (
+                                item: IncidentTemplate
+                            ): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                           item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },
@@ -408,7 +406,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Team',
                         type: FieldType.Entity,
 
-                        getElement: (item: IncidentTemplateOwnerTeam): ReactElement => {
+                        getElement: (
+                            item: IncidentTemplateOwnerTeam
+                        ): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
                             }
@@ -496,7 +496,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Entity,
-                        getElement: (item: IncidentTemplateOwnerUser): ReactElement => {
+                        getElement: (
+                            item: IncidentTemplateOwnerUser
+                        ): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');
                             }

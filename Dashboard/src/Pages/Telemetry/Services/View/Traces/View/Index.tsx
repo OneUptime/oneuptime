@@ -14,7 +14,10 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import API from 'CommonUI/src/Utils/API/API';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import SpanUtil, { DivisibilityFactor, IntervalUnit } from '../../../../../../Utils/SpanUtil';
+import SpanUtil, {
+    DivisibilityFactor,
+    IntervalUnit,
+} from '../../../../../../Utils/SpanUtil';
 import OneUptimeDate from 'Common/Types/Date';
 import Color from 'Common/Types/Color';
 import DashboardLogsViewer from '../../../../../../Components/Logs/LogsViewer';
@@ -65,10 +68,11 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    const [divisibilityFactor, setDivisibilityFactor] = React.useState<DivisibilityFactor>({
-        divisibilityFactorNumber: 1000,
-        intervalUnit: IntervalUnit.Milliseconds,
-    });
+    const [divisibilityFactor, setDivisibilityFactor] =
+        React.useState<DivisibilityFactor>({
+            divisibilityFactorNumber: 1000,
+            intervalUnit: IntervalUnit.Milliseconds,
+        });
 
     const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
         try {
@@ -157,12 +161,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     const getBarTooltip: GetBarTooltipFunction = (
         data: BarTooltipFunctionProps
     ): ReactElement => {
-
-        const {
-            span,
-            timelineStartTimeUnixNano,
-            divisibilityFactor,
-        } = data;
+        const { span, timelineStartTimeUnixNano, divisibilityFactor } = data;
 
         return (
             <div className="px-1 min-w-56 cursor-default">
@@ -220,12 +219,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     <div className="">
                         <div className="font-semibold">Duration:</div>{' '}
                         <div>
-                            {
-                                SpanUtil.getSpanDurationAsString({
-                                    spanDurationInUnixNano: span.durationUnixNano!,
-                                    divisibilityFactor: divisibilityFactor,
-                                })
-                            }
+                            {SpanUtil.getSpanDurationAsString({
+                                spanDurationInUnixNano: span.durationUnixNano!,
+                                divisibilityFactor: divisibilityFactor,
+                            })}
                         </div>
                     </div>
                     <div className="">
@@ -250,11 +247,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
     const spanToBar: SpanToBarFunction = (
         data: SpanToBarFunctionProps
     ): GanttChartBar => {
-        const {
-            span,
-            timelineStartTimeUnixNano,
-            divisibilityFactor,
-        } = data;
+        const { span, timelineStartTimeUnixNano, divisibilityFactor } = data;
 
         const spanColor: {
             barColor: Color;
@@ -298,7 +291,7 @@ const TraceView: FunctionComponent<PageComponentProps> = (
         rootSpan: Span;
         allSpans: Span[];
         timelineStartTimeUnixNano: number;
-        divisibilityFactor: DivisibilityFactor
+        divisibilityFactor: DivisibilityFactor;
     };
 
     type GetRowDescriptionFunction = (data: {
@@ -363,7 +356,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                     span: rootSpan,
                     timelineStartTimeUnixNano,
                     divisibilityFactor,
-                    
                 }),
             ],
             childRows: [],
@@ -383,7 +375,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 allSpans,
                 timelineStartTimeUnixNano,
                 divisibilityFactor,
-               
             });
 
             for (const row of childRows) {
@@ -424,10 +415,10 @@ const TraceView: FunctionComponent<PageComponentProps> = (
 
         const startTimeline: number = 0;
 
-        const divisibilityFactor: DivisibilityFactor = SpanUtil.getDivisibilityFactor(
-            timelineEndTimeUnixNano - timelineStartTimeUnixNano
-        );
-
+        const divisibilityFactor: DivisibilityFactor =
+            SpanUtil.getDivisibilityFactor(
+                timelineEndTimeUnixNano - timelineStartTimeUnixNano
+            );
 
         setDivisibilityFactor(divisibilityFactor);
 
@@ -453,7 +444,6 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                 allSpans: spans,
                 timelineStartTimeUnixNano,
                 divisibilityFactor,
-                
             }),
             onBarSelectChange(barIds: Array<string>) {
                 setSelectedSpans(barIds);
@@ -527,18 +517,30 @@ const TraceView: FunctionComponent<PageComponentProps> = (
                         onClose={() => {
                             setSelectedSpans([]);
                         }}
-                        telemetryService={telemetryServices.find((service: TelemetryService) => {
+                        telemetryService={
+                            telemetryServices.find(
+                                (service: TelemetryService) => {
+                                    const selectedSpan: Span | undefined =
+                                        spans.find((span: Span) => {
+                                            return (
+                                                span.spanId?.toString() ===
+                                                selectedSpans[0]!
+                                            );
+                                        });
 
-                            const selectedSpan: Span | undefined = spans.find((span: Span) => {
-                                return span.spanId?.toString() === selectedSpans[0]!;
-                            });
+                                    if (!selectedSpan) {
+                                        throw new BadDataException(
+                                            'Selected span not found'
+                                        ); // this should never happen
+                                    }
 
-                            if (!selectedSpan) {
-                                throw new BadDataException('Selected span not found'); // this should never happen
-                            }
-
-                            return service._id?.toString() === selectedSpan.serviceId?.toString();
-                        })!}
+                                    return (
+                                        service._id?.toString() ===
+                                        selectedSpan.serviceId?.toString()
+                                    );
+                                }
+                            )!
+                        }
                         divisibilityFactor={divisibilityFactor}
                     />
                 </SideOver>

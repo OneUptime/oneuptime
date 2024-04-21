@@ -133,7 +133,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         return (
             <LogsViewer
                 isLoading={isLoading}
-                onFilterChanged={() => { }}
+                onFilterChanged={() => {}}
                 logs={logs}
                 showFilters={false}
                 noLogsMessage={'No logs found for this span.'}
@@ -141,126 +141,152 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const getAttributesContentElement: GetReactElementFunction = (): ReactElement => {
-        return <></>;
-    };
+    const getAttributesContentElement: GetReactElementFunction =
+        (): ReactElement => {
+            return <></>;
+        };
 
-    const getEventsContentElement: GetReactElementFunction = (): ReactElement => {
-        return <></>;
-    };
+    const getEventsContentElement: GetReactElementFunction =
+        (): ReactElement => {
+            return <></>;
+        };
 
-    const getErrorsContentElement: GetReactElementFunction = (): ReactElement => {
-        return <></>;
-    }
+    const getErrorsContentElement: GetReactElementFunction =
+        (): ReactElement => {
+            return <></>;
+        };
 
     const getBasicInfo: GetReactElementFunction = (): ReactElement => {
-        return <Detail
-            item={span?.toJSON() || {}}
-            fields={[
-                {
-                    key: 'spanId',
-                    title: 'Span ID',
-                    description: 'The unique identifier of the span.',
-                    fieldType: FieldType.Text,
-                    opts: {
-                        isCopyable: true,
-                    }
-                },
-                {
-                    key: 'traceId',
-                    title: 'Trace ID',
-                    description: 'The unique identifier of the trace.',
-                    fieldType: FieldType.Text,
-                    opts: {
-                        isCopyable: true,
-                    }
-                },
-                {
-                    key: 'serviceId',
-                    title: 'Telemetry Service',
-                    description: 'The unique identifier of the service.',
-                    fieldType: FieldType.Element,
-                    getElement: () => {
-                        return <TelemetryServiceElement telemetryService={props.telemetryService} />;
-                    }
-                },
-                {
-                    key: 'startTime',
-                    title: 'Start Time',
-                    description: 'The time the span started.',
-                    fieldType: FieldType.Date,
-                    
-                },
-                {
-                    key: 'endTime',
-                    title: 'End Time',
-                    description: 'The time the span ended.',
-                    fieldType: FieldType.Date,
-                },
-                {
-                    key: 'startTimeUnixNano',
-                    title: 'Starts At',
-                    description: 'When did this span start in this trace?',
-                    fieldType: FieldType.Element,
-                    getElement: (item: JSONObject) => {
+        return (
+            <Detail
+                item={span?.toJSON() || {}}
+                fields={[
+                    {
+                        key: 'spanId',
+                        title: 'Span ID',
+                        description: 'The unique identifier of the span.',
+                        fieldType: FieldType.Text,
+                        opts: {
+                            isCopyable: true,
+                        },
+                    },
+                    {
+                        key: 'traceId',
+                        title: 'Trace ID',
+                        description: 'The unique identifier of the trace.',
+                        fieldType: FieldType.Text,
+                        opts: {
+                            isCopyable: true,
+                        },
+                    },
+                    {
+                        key: 'serviceId',
+                        title: 'Telemetry Service',
+                        description: 'The unique identifier of the service.',
+                        fieldType: FieldType.Element,
+                        getElement: () => {
+                            return (
+                                <TelemetryServiceElement
+                                    telemetryService={props.telemetryService}
+                                />
+                            );
+                        },
+                    },
+                    {
+                        key: 'startTime',
+                        title: 'Start Time',
+                        description: 'The time the span started.',
+                        fieldType: FieldType.Date,
+                    },
+                    {
+                        key: 'endTime',
+                        title: 'End Time',
+                        description: 'The time the span ended.',
+                        fieldType: FieldType.Date,
+                    },
+                    {
+                        key: 'startTimeUnixNano',
+                        title: 'Starts At',
+                        description: 'When did this span start in this trace?',
+                        fieldType: FieldType.Element,
+                        getElement: (item: JSONObject) => {
+                            const span = AnalyticsBaseModel.fromJSON<Span>(
+                                item,
+                                Span
+                            ) as Span;
 
-                        const span = AnalyticsBaseModel.fromJSON<Span>(item, Span) as Span;
+                            return (
+                                <div>
+                                    {SpanUtil.getSpanStartsAtAsString({
+                                        timelineStartTimeUnixNano:
+                                            props.traceStartTimeInUnixNano,
+                                        divisibilityFactor:
+                                            props.divisibilityFactor,
+                                        spanStartTimeUnixNano:
+                                            span.startTimeUnixNano!,
+                                    })}
+                                </div>
+                            );
+                        },
+                    },
+                    {
+                        key: 'endTimeUnixNano',
+                        title: 'Ends At',
+                        description: 'When did this span end in this trace?',
+                        fieldType: FieldType.Element,
+                        getElement: (item: JSONObject) => {
+                            const span = AnalyticsBaseModel.fromJSON<Span>(
+                                item,
+                                Span
+                            ) as Span;
 
-                        return <div>
-                            {SpanUtil.getSpanStartsAtAsString({
-                                timelineStartTimeUnixNano: props.traceStartTimeInUnixNano,
-                                divisibilityFactor: props.divisibilityFactor,
-                                spanStartTimeUnixNano: span.startTimeUnixNano!,
-                            })}
-                        </div>
-                    }
+                            return (
+                                <div>
+                                    {SpanUtil.getSpanEndsAtAsString({
+                                        timelineStartTimeUnixNano:
+                                            props.traceStartTimeInUnixNano,
+                                        divisibilityFactor:
+                                            props.divisibilityFactor,
+                                        spanEndTimeUnixNano:
+                                            span.endTimeUnixNano!,
+                                    })}
+                                </div>
+                            );
+                        },
+                    },
+                    {
+                        key: 'durationUnixNano',
+                        title: 'Duration',
+                        description: 'The duration of the span.',
+                        fieldType: FieldType.Element,
+                        getElement: (item: JSONObject) => {
+                            const span = AnalyticsBaseModel.fromJSON<Span>(
+                                item,
+                                Span
+                            ) as Span;
 
-                },
-                {
-                    key: 'endTimeUnixNano',
-                    title: 'Ends At',
-                    description: 'When did this span end in this trace?',
-                    fieldType: FieldType.Element,
-                    getElement: (item: JSONObject) => {
-
-                        const span = AnalyticsBaseModel.fromJSON<Span>(item, Span) as Span;
-
-                        return <div>
-                            {SpanUtil.getSpanEndsAtAsString({
-                                timelineStartTimeUnixNano: props.traceStartTimeInUnixNano,
-                                divisibilityFactor: props.divisibilityFactor,
-                                spanEndTimeUnixNano: span.endTimeUnixNano!,
-                            })}
-                        </div>
-                    }
-                },
-                {
-                    key: 'durationUnixNano',
-                    title: 'Duration',
-                    description: 'The duration of the span.',
-                    fieldType: FieldType.Element,
-                    getElement: (item: JSONObject) => {
-
-                        const span = AnalyticsBaseModel.fromJSON<Span>(item, Span) as Span;
-
-                        return <div>
-                            {SpanUtil.getSpanDurationAsString({
-                                divisibilityFactor: props.divisibilityFactor,
-                                spanDurationInUnixNano: span.durationUnixNano!,
-                            })}
-                        </div>
-                    }
-                },
-                {
-                    key: 'spanKind',
-                    title: 'Span Kind',
-                    description: 'The kind of span.',
-                    fieldType: FieldType.Text,
-                    
-                }
-
-            ]} />
-    }
+                            return (
+                                <div>
+                                    {SpanUtil.getSpanDurationAsString({
+                                        divisibilityFactor:
+                                            props.divisibilityFactor,
+                                        spanDurationInUnixNano:
+                                            span.durationUnixNano!,
+                                    })}
+                                </div>
+                            );
+                        },
+                    },
+                    {
+                        key: 'spanKind',
+                        title: 'Span Kind',
+                        description: 'The kind of span.',
+                        fieldType: FieldType.Text,
+                    },
+                ]}
+            />
+        );
+    };
 
     return (
         <div id={props.id}>
@@ -287,11 +313,10 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         children: getErrorsContentElement(),
                     },
                 ]}
-                onTabChange={() => { }}
+                onTabChange={() => {}}
             />
 
             {span && <></>}
-
         </div>
     );
 };

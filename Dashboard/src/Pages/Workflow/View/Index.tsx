@@ -1,13 +1,11 @@
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import BaseModel from 'Common/Models/BaseModel';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow from 'Model/Models/Workflow';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../../Components/Label/Labels';
 import Label from 'Model/Models/Label';
 
@@ -126,9 +124,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             getElement: (item: Workflow): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                            item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },

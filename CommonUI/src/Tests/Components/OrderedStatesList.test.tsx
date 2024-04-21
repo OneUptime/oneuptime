@@ -6,7 +6,6 @@ import OrderedStatesList, {
 } from '../../Components/OrderedStatesList/OrderedStatesList';
 
 describe('OrderedSateList', () => {
-
     interface ItemData {
         title: string;
         description: string;
@@ -29,7 +28,7 @@ describe('OrderedSateList', () => {
         expect(screen.getByText('item 1')).toBeInTheDocument;
     });
     it('renders Item components for each item in data prop', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             data: [
                 { title: 'item 1', description: 'description 1', order: 1 },
@@ -41,7 +40,7 @@ describe('OrderedSateList', () => {
         expect(props.data).toHaveLength(3);
     });
     it('renders a ComponentLoader if isLoading prop is true', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             isLoading: true,
         };
@@ -49,7 +48,7 @@ describe('OrderedSateList', () => {
         expect(screen.getByRole('bar-loader')).toBeInTheDocument();
     });
     it('should render an error message if error prop is present', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             error: 'Error Message',
         };
@@ -57,7 +56,7 @@ describe('OrderedSateList', () => {
         expect(screen.getByText('Error Message')).toBeInTheDocument();
     });
     it('should render "No Item" message when there is no data', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             data: [],
         };
@@ -65,7 +64,7 @@ describe('OrderedSateList', () => {
         expect(getByText('No Item')).toBeInTheDocument();
     });
     it('calls the onRefreshClick function when the refresh button is clicked', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             data: [],
             onRefreshClick: jest.fn(),
@@ -76,7 +75,7 @@ describe('OrderedSateList', () => {
         expect(props.onRefreshClick).toHaveBeenCalled();
     });
     it('should call the onCreateNewItem prop when the "New Item" button is clicked', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             onCreateNewItem: jest.fn(),
         };
@@ -86,7 +85,7 @@ describe('OrderedSateList', () => {
         expect(props.onCreateNewItem).toHaveBeenCalled();
     });
     it('renders ErrorMessage with error message and callback when error is defined', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             error: 'Failed to load data',
             onRefreshClick: jest.fn(),
@@ -98,7 +97,7 @@ describe('OrderedSateList', () => {
         expect(props.onRefreshClick).toHaveBeenCalled();
     });
     it('renders ErrorMessage with default message and callback when data is empty and noItemsMessage is not defined', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             data: [],
             noItemsMessage: undefined,
@@ -113,7 +112,7 @@ describe('OrderedSateList', () => {
         expect(props.onRefreshClick).toHaveBeenCalled();
     });
     it('should render custom title element provided by getTitleElement function', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             getTitleElement: jest.fn(),
         };
@@ -121,7 +120,7 @@ describe('OrderedSateList', () => {
         expect(props.getTitleElement).toHaveBeenCalled();
     });
     it('should render custom title element provided by getDescriptionElement function', () => {
-        const props: ComponentProps<ItemData>= {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             getDescriptionElement: jest.fn(),
         };

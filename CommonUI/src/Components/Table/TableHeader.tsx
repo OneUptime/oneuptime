@@ -21,7 +21,9 @@ type TableHeaderFunction = <T extends GenericObject>(
 const TableHeader: TableHeaderFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const [currentSortColumn, setCurrentSortColumn] = useState<keyof T | null>(null);
+    const [currentSortColumn, setCurrentSortColumn] = useState<keyof T | null>(
+        null
+    );
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
     return (
@@ -35,8 +37,9 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                     return (
                         <th
                             key={i}
-                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${canSort ? 'cursor-pointer' : ''
-                                }`}
+                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
+                                canSort ? 'cursor-pointer' : ''
+                            }`}
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -64,10 +67,11 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                             }}
                         >
                             <div
-                                className={`flex ${column.type === FieldType.Actions
+                                className={`flex ${
+                                    column.type === FieldType.Actions
                                         ? 'justify-end'
                                         : 'justify-start'
-                                    }`}
+                                }`}
                             >
                                 {column.title}
                                 {canSort &&

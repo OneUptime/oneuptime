@@ -258,7 +258,7 @@ router.post(
                                 });
                             }
                         }
-                        
+
                         dbSpans.push(dbSpan);
                     }
                 }

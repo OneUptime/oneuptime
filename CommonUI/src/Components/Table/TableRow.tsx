@@ -24,7 +24,9 @@ export interface ComponentProps<T extends GenericObject> {
     dragDropIndexField?: keyof T | undefined;
 }
 
-type TableRowFunction = <T extends Object>(props: ComponentProps<T>) => ReactElement
+type TableRowFunction = <T extends Object>(
+    props: ComponentProps<T>
+) => ReactElement;
 
 const TableRow: TableRowFunction = <T extends GenericObject>(
     props: ComponentProps<T>
@@ -296,15 +298,17 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         );
     };
 
-    if (props.enableDragAndDrop && props.dragDropIdField && props.dragDropIndexField) {
+    if (
+        props.enableDragAndDrop &&
+        props.dragDropIdField &&
+        props.dragDropIndexField
+    ) {
         return (
             <Draggable
                 draggableId={
                     (props.item[props.dragDropIdField] as string) || ''
                 }
-                index={
-                    (props.item[props.dragDropIndexField] as number) || 0
-                }
+                index={(props.item[props.dragDropIndexField] as number) || 0}
                 key={(props.item[props.dragDropIndexField] as number) || 0}
             >
                 {(provided: DraggableProvided) => {

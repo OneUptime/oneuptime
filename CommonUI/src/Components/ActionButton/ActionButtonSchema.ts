@@ -1,4 +1,3 @@
-
 import { ButtonStyleType } from '../Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';

@@ -187,9 +187,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 item &&
                                 item['lastAlive'] &&
                                 OneUptimeDate.getNumberOfMinutesBetweenDates(
-                                    OneUptimeDate.fromString(
-                                        item['lastAlive']
-                                    ),
+                                    OneUptimeDate.fromString(item['lastAlive']),
                                     OneUptimeDate.getCurrentDate()
                                 ) < 5
                             ) {

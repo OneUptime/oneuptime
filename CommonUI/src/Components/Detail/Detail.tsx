@@ -20,9 +20,7 @@ import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 import Dictionary from 'Common/Types/Dictionary';
 import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps<
-    T extends GenericObject
-> {
+export interface ComponentProps<T extends GenericObject> {
     item: T;
     fields: Array<Field<T>>;
     id?: string | undefined;
@@ -132,7 +130,7 @@ const Detail = <T extends GenericObject>(
     ): ReactElement => {
         const fieldKey: keyof T | null = field.key;
 
-        if(!fieldKey) {
+        if (!fieldKey) {
             return <></>;
         }
 
@@ -327,10 +325,10 @@ const Detail = <T extends GenericObject>(
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                            width:
-                                100 / props.showDetailsInNumberOfColumns +
-                                '%',
-                        }
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
                         : { width: '100%' }
                 }
             >
@@ -358,8 +356,9 @@ const Detail = <T extends GenericObject>(
 
     return (
         <div
-            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${props.showDetailsInNumberOfColumns || 1
-                } w-full`}
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+                props.showDetailsInNumberOfColumns || 1
+            } w-full`}
         >
             {props.fields &&
                 props.fields.length > 0 &&

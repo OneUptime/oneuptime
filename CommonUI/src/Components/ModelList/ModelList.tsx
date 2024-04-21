@@ -93,14 +93,16 @@ const ModelList: <TBaseModel extends BaseModel>(
                 props.dragDropIdField &&
                 !Object.keys(select).includes(props.dragDropIdField as string)
             ) {
-                (select)[props.dragDropIdField] = true;
+                select[props.dragDropIdField] = true;
             }
 
             if (
                 props.dragDropIndexField &&
-                !Object.keys(select).includes(props.dragDropIndexField as string)
+                !Object.keys(select).includes(
+                    props.dragDropIndexField as string
+                )
             ) {
-                (select)[props.dragDropIndexField] = true;
+                select[props.dragDropIndexField] = true;
             }
 
             let listResult: ListResult<TBaseModel> = {
