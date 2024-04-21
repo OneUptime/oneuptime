@@ -44,7 +44,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     const [item, setItem] = useState<TBaseModel | null>(null);
 
     const [onBeforeFetchData, setOnBeforeFetchData] = useState<
-        JSONObject | undefined
+        TBaseModel | undefined
     >(undefined);
 
     type GetSelectFields = () => Select<TBaseModel>;

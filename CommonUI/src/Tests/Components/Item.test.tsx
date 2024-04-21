@@ -6,7 +6,14 @@ import { ButtonStyleType } from '../../Components/Button/Button';
 import IconProp from 'Common/Types/Icon/IconProp';
 
 describe('Item component', () => {
-    const defaultProps: ComponentProps = {
+
+    interface ItemData { 
+        id: number;
+        name: string;
+        description: string;
+    }
+
+    const defaultProps: ComponentProps<ItemData> = {
         item: { id: 1, name: 'Test Item', description: 'Test description' },
         actionButtons: [
             {
@@ -44,7 +51,7 @@ describe('Item component', () => {
         expect(titleElement).toBeInTheDocument();
     });
     it('should render custom title element provided by getTitleElement function', () => {
-        const props: ComponentProps = {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             getTitleElement: jest.fn(),
         };
@@ -52,7 +59,7 @@ describe('Item component', () => {
         expect(props.getTitleElement).toHaveBeenCalledWith(props.item);
     });
     it('should render custom title element provided by getDescriptionElement function', () => {
-        const props: ComponentProps = {
+        const props: ComponentProps<ItemData> = {
             ...defaultProps,
             getDescriptionElement: jest.fn(),
         };

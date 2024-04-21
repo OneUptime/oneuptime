@@ -14,7 +14,7 @@ import Input from '../Input/Input';
 import StaticModelList from '../ModelList/StaticModelList';
 import API from '../../Utils/API/API';
 import URL from 'Common/Types/API/URL';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONArray } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
@@ -39,8 +39,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer?: ReactElement | undefined;
     isDeleteable?: boolean | undefined;
     enableDragAndDrop?: boolean | undefined;
-    dragDropIdField?: keyof T | undefined;
-    dragDropIndexField?: keyof T | undefined;
+    dragDropIdField?: keyof TBaseModel | undefined;
+    dragDropIndexField?: keyof TBaseModel | undefined;
     sortBy?: string | undefined;
     sortOrder?: SortOrder | undefined;
     onListLoaded?: ((list: Array<TBaseModel>) => void) | undefined;
@@ -91,16 +91,16 @@ const ModelList: <TBaseModel extends BaseModel>(
 
             if (
                 props.dragDropIdField &&
-                !Object.keys(select).includes(props.dragDropIdField)
+                !Object.keys(select).includes(props.dragDropIdField as string)
             ) {
-                (select as JSONObject)[props.dragDropIdField] = true;
+                (select)[props.dragDropIdField] = true;
             }
 
             if (
                 props.dragDropIndexField &&
-                !Object.keys(select).includes(props.dragDropIndexField)
+                !Object.keys(select).includes(props.dragDropIndexField as string)
             ) {
-                (select as JSONObject)[props.dragDropIndexField] = true;
+                (select)[props.dragDropIndexField] = true;
             }
 
             let listResult: ListResult<TBaseModel> = {

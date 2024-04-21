@@ -1277,7 +1277,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 dragDropIndexField={props.dragDropIndexField}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
-                data={props.callbacks.toJSONArray(data)}
+                data={data}
                 id={props.id}
                 fields={fields}
                 itemsOnPage={itemsOnPage}

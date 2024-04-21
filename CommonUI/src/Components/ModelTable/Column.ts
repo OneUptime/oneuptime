@@ -1,5 +1,4 @@
 import BaseModel from 'Common/Models/BaseModel';
-import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import { ReactElement } from 'react';
 import AlignItem from '../../Types/AlignItem';

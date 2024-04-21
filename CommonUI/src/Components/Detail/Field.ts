@@ -39,5 +39,5 @@ export interface FieldBase<T> {
 }
 
 export default interface Field<T> extends FieldBase<T> {
-    key: keyof T;
+    key: keyof T | null; // null because actions column does not have a key.
 }
