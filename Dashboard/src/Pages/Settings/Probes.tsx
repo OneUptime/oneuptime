@@ -10,7 +10,6 @@ import Probe from 'Model/Models/Probe';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';

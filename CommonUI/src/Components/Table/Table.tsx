@@ -46,7 +46,9 @@ export interface ComponentProps<T extends GenericObject> {
     onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 }
 
-type TableFunction = <T extends Object>(props: ComponentProps<T>) => ReactElement; 
+type TableFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
 
 const Table: TableFunction = <T extends GenericObject>(
     props: ComponentProps<T>

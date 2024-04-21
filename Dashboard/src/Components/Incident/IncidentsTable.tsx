@@ -538,10 +538,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                     <Pill
                                         isMinimal={true}
                                         color={
-                                            item.currentIncidentState.color || Black
+                                            item.currentIncidentState.color ||
+                                            Black
                                         }
                                         text={
-                                            item.currentIncidentState.name || 'Unknown'
+                                            item.currentIncidentState.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -566,10 +568,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                     <Pill
                                         isMinimal={true}
                                         color={
-                                           item.incidentSeverity.color || Black
+                                            item.incidentSeverity.color || Black
                                         }
                                         text={
-                                            item.incidentSeverity.name || 'Unknown'
+                                            item.incidentSeverity.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -592,9 +595,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         getElement: (item: Incident): ReactElement => {
                             return (
                                 <MonitorsElement
-                                    monitors={
-                                        item['monitors'] || []
-                                    }
+                                    monitors={item['monitors'] || []}
                                 />
                             );
                         },
@@ -618,11 +619,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
                         getElement: (item: Incident): ReactElement => {
                             return (
-                                <LabelsElement
-                                    labels={
-                                        item['labels'] || []
-                                    }
-                                />
+                                <LabelsElement labels={item['labels'] || []} />
                             );
                         },
                     },

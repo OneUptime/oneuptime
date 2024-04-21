@@ -5,7 +5,6 @@ import React, {
     useState,
 } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import BaseModel from 'Common/Models/BaseModel';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -18,7 +17,6 @@ import DigestMethod from 'Common/Types/SSO/DigestMethod';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Project from 'Model/Models/Project';
 import Team from 'Model/Models/Team';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import TeamsElement from '../../Components/Team/TeamsElement';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -271,11 +269,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             type: FieldType.Text,
                             getElement: (item: ProjectSSO): ReactElement => {
                                 return (
-                                    <TeamsElement
-                                        teams={
-                                            item['teams'] || []
-                                        }
-                                    />
+                                    <TeamsElement teams={item['teams'] || []} />
                                 );
                             },
                         },

@@ -4,11 +4,10 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import MonitorsElement from '../../../Components/Monitor/Monitors';
 import Monitor from 'Model/Models/Monitor';
@@ -213,7 +212,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Current State',
                             fieldType: FieldType.Entity,
-                            getElement: (item: ScheduledMaintenance): ReactElement => {
+                            getElement: (
+                                item: ScheduledMaintenance
+                            ): ReactElement => {
                                 if (!item['currentScheduledMaintenanceState']) {
                                     throw new BadDataException(
                                         'Scheduled Maintenance Status not found'
@@ -223,10 +224,14 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Pill
                                         color={
-                                         item.currentScheduledMaintenanceState.color || Black
+                                            item
+                                                .currentScheduledMaintenanceState
+                                                .color || Black
                                         }
                                         text={
-                                            item.currentScheduledMaintenanceState.name || 'Unknown'
+                                            item
+                                                .currentScheduledMaintenanceState
+                                                .name || 'Unknown'
                                         }
                                     />
                                 );
@@ -241,12 +246,12 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitors Affected',
                             fieldType: FieldType.Element,
-                            getElement: (item: ScheduledMaintenance): ReactElement => {
+                            getElement: (
+                                item: ScheduledMaintenance
+                            ): ReactElement => {
                                 return (
                                     <MonitorsElement
-                                        monitors={
-                                            item.monitors || []
-                                        }
+                                        monitors={item.monitors || []}
                                     />
                                 );
                             },
@@ -260,12 +265,12 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Shown on Status Pages',
                             fieldType: FieldType.Element,
-                            getElement: (item: ScheduledMaintenance): ReactElement => {
+                            getElement: (
+                                item: ScheduledMaintenance
+                            ): ReactElement => {
                                 return (
                                     <StatusPagesElement
-                                        statusPages={
-                                            item.statusPages || []
-                                        }
+                                        statusPages={item.statusPages || []}
                                     />
                                 );
                             },
@@ -298,7 +303,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Notify Status Page Subscribers',
                             fieldType: FieldType.Boolean,
-                            getElement: (item: ScheduledMaintenance): ReactElement => {
+                            getElement: (
+                                item: ScheduledMaintenance
+                            ): ReactElement => {
                                 return (
                                     <div>
                                         <div className="">
@@ -362,7 +369,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: ScheduledMaintenance): ReactElement => {
+                            getElement: (
+                                item: ScheduledMaintenance
+                            ): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={item['labels'] || []}

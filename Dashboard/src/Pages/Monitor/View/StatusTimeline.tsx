@@ -14,9 +14,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Color from 'Common/Types/Color';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
@@ -176,7 +174,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitor Status',
                         type: FieldType.Text,
-                        getElement: (item: MonitorStatusTimeline): ReactElement => {
+                        getElement: (
+                            item: MonitorStatusTimeline
+                        ): ReactElement => {
                             if (!item['monitorStatus']) {
                                 throw new BadDataException(
                                     'Monitor Status not found'
@@ -185,13 +185,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
 
                             return (
                                 <Statusbubble
-                                    color={
-                                        item.monitorStatus.color || Black
-                                    }
+                                    color={item.monitorStatus.color || Black}
                                     shouldAnimate={false}
-                                    text={
-                                       item.monitorStatus.name || 'Unknown'
-                                    }
+                                    text={item.monitorStatus.name || 'Unknown'}
                                 />
                             );
                         },
@@ -217,7 +213,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Duration',
                         type: FieldType.Text,
-                        getElement: (item: MonitorStatusTimeline): ReactElement => {
+                        getElement: (
+                            item: MonitorStatusTimeline
+                        ): ReactElement => {
                             return (
                                 <p>
                                     {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(

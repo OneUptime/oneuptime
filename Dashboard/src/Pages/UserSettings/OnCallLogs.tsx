@@ -11,7 +11,6 @@ import DashboardNavigation from '../../Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import OnCallDutyPolicyView from '../../Components/OnCallPolicy/OnCallPolicy';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';

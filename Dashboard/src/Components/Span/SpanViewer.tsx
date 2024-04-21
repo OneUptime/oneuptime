@@ -20,8 +20,6 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import TelemetryService from 'Model/Models/TelemetryService';
 import TelemetryServiceElement from '../TelemetryService/TelemetryServiceElement';
 import SpanUtil, { DivisibilityFactor } from '../../Utils/SpanUtil';
-import { JSONObject } from 'Common/Types/JSON';
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 
 export interface ComponentProps {
     id: string;
@@ -157,7 +155,6 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         };
 
     const getBasicInfo: GetReactElementFunction = (): ReactElement => {
-
         if (!span) {
             return <></>;
         }
@@ -215,7 +212,6 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         description: 'When did this span start in this trace?',
                         fieldType: FieldType.Element,
                         getElement: (span: Span) => {
-
                             return (
                                 <div>
                                     {SpanUtil.getSpanStartsAtAsString({
@@ -236,7 +232,6 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         description: 'When did this span end in this trace?',
                         fieldType: FieldType.Element,
                         getElement: (span: Span) => {
-
                             return (
                                 <div>
                                     {SpanUtil.getSpanEndsAtAsString({
@@ -257,7 +252,6 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         description: 'The duration of the span.',
                         fieldType: FieldType.Element,
                         getElement: (span: Span) => {
-
                             return (
                                 <div>
                                     {SpanUtil.getSpanDurationAsString({

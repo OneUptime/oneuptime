@@ -3,9 +3,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import React, { FunctionComponent, ReactElement } from 'react';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
 import Monitor from 'Model/Models/Monitor';
 import MonitorsElement from '../Monitor/Monitors';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
@@ -19,7 +17,6 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import DashboardNavigation from '../../Utils/Navigation';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../Utils/ProjectUser';
-import BaseModel from 'Common/Models/BaseModel';
 import { Black } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
@@ -403,10 +400,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                             return (
                                 <Pill
                                     color={
-                                       item.currentScheduledMaintenanceState.color || Black
+                                        item.currentScheduledMaintenanceState
+                                            .color || Black
                                     }
                                     text={
-                                        item.currentScheduledMaintenanceState.name || 'Unknown'
+                                        item.currentScheduledMaintenanceState
+                                            .name || 'Unknown'
                                     }
                                 />
                             );
@@ -430,9 +429,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     getElement: (item: ScheduledMaintenance): ReactElement => {
                         return (
                             <MonitorsElement
-                                monitors={
-                                    item['monitors'] || []
-                                }
+                                monitors={item['monitors'] || []}
                             />
                         );
                     },
@@ -451,9 +448,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     getElement: (item: ScheduledMaintenance): ReactElement => {
                         return (
                             <StatusPagesElement
-                                statusPages={
-                                    item['statusPages'] || []
-                                }
+                                statusPages={item['statusPages'] || []}
                             />
                         );
                     },
@@ -483,13 +478,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     type: FieldType.EntityArray,
 
                     getElement: (item: ScheduledMaintenance): ReactElement => {
-                        return (
-                            <LabelsElement
-                                labels={
-                                    item['labels'] || []
-                                }
-                            />
-                        );
+                        return <LabelsElement labels={item['labels'] || []} />;
                     },
                 },
             ]}

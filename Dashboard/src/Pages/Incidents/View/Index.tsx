@@ -4,14 +4,12 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Incident from 'Model/Models/Incident';
-import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import MonitorsElement from '../../../Components/Monitor/Monitors';
-import Monitor from 'Model/Models/Monitor';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ChangeIncidentState, {
@@ -24,7 +22,6 @@ import LabelsElement from '../../../Components/Label/Labels';
 import GlobalEvent from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../../Utils/EventName';
 import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
 import { VoidFunction } from 'Common/Types/FunctionTypes';
@@ -174,14 +171,12 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Pill
                                         color={
-                                            (
-                                                item.currentIncidentState.color || Black
-                                            )
+                                            item.currentIncidentState.color ||
+                                            Black
                                         }
                                         text={
-                                            (
-                                                item.currentIncidentState.name || 'Unknown'
-                                            )
+                                            item.currentIncidentState.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -206,14 +201,11 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Pill
                                         color={
-                                            (
-                                                item.incidentSeverity.color || Black
-                                            )
+                                            item.incidentSeverity.color || Black
                                         }
                                         text={
-                                            (
-                                                item.incidentSeverity.name || 'Unknown'
-                                            )
+                                            item.incidentSeverity.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -231,11 +223,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             getElement: (item: Incident): ReactElement => {
                                 return (
                                     <MonitorsElement
-                                        monitors={
-                                            item[
-                                                'monitors'
-                                            ] || []
-                                        }
+                                        monitors={item['monitors'] || []}
                                     />
                                 );
                             },

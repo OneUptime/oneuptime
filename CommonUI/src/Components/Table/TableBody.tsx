@@ -16,7 +16,11 @@ export interface ComponentProps<T extends GenericObject> {
     dragDropIndexField?: keyof T | undefined;
 }
 
-const TableBody = <T extends GenericObject>(
+type TableBodyFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
+
+const TableBody: TableBodyFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;

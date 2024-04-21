@@ -5,11 +5,9 @@ import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import BaseModel from 'Common/Models/BaseModel';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
 import URL from 'Common/Types/API/URL';
 
@@ -145,11 +143,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
 
                         getElement: (item: OnCallDutyPolicy): ReactElement => {
                             return (
-                                <LabelsElement
-                                    labels={
-                                        item['labels'] || []
-                                    }
-                                />
+                                <LabelsElement labels={item['labels'] || []} />
                             );
                         },
                     },

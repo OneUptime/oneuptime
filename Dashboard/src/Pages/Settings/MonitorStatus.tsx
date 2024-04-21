@@ -5,7 +5,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
 import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import BadDataException from 'Common/Types/Exception/BadDataException';

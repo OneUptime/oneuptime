@@ -24,7 +24,11 @@ export interface ComponentProps<T extends GenericObject> {
     listDetailOptions?: ListDetailProps | undefined;
 }
 
-const ListRow = <T extends GenericObject>(
+type ListRowFunction = <T extends GenericObject>(
+    props: ComponentProps<T>
+) => ReactElement;
+
+const ListRow: ListRowFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(

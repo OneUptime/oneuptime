@@ -10,13 +10,11 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Monitor from 'Model/Models/Monitor';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Color from 'Common/Types/Color';
 import Card from 'CommonUI/src/Components/Card/Card';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import OneUptimeDate from 'Common/Types/Date';
@@ -35,7 +33,6 @@ import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
-import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
 import ChartGroup, {
@@ -404,11 +401,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Statusbubble
                                         color={
-                                            item.currentMonitorStatus.color || Black
+                                            item.currentMonitorStatus.color ||
+                                            Black
                                         }
                                         shouldAnimate={true}
                                         text={
-                                            item.currentMonitorStatus.name || "Unknown"
+                                            item.currentMonitorStatus.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -433,9 +432,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                             getElement: (item: Monitor): ReactElement => {
                                 return (
                                     <LabelsElement
-                                        labels={
-                                            item['labels'] || []
-                                        }
+                                        labels={item['labels'] || []}
                                     />
                                 );
                             },

@@ -6,7 +6,6 @@ import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -81,7 +80,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Password,
 
-                        getElement: (item: StatusPagePrivateUser): ReactElement => {
+                        getElement: (
+                            item: StatusPagePrivateUser
+                        ): ReactElement => {
                             if (item['password']) {
                                 return (
                                     <Pill color={Green} text={'Signed up'} />

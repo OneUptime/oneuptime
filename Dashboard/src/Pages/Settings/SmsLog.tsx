@@ -10,7 +10,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import SmsLog from 'Model/Models/SmsLog';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
-import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import SmsStatus from 'Common/Types/SmsStatus';

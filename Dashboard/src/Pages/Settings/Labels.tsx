@@ -4,7 +4,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Label from 'Model/Models/Label';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import DashboardNavigation from '../../Utils/Navigation';
@@ -93,7 +92,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Label): ReactElement => {
                             return (
                                 <Pill
                                     color={item['color'] as Color}

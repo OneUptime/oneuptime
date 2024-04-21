@@ -4,10 +4,8 @@ import Monitor from 'Model/Models/Monitor';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Color from 'Common/Types/Color';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
@@ -24,8 +22,7 @@ import {
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
-import { Gray500 } from 'Common/Types/BrandColors';
-import BaseModel from 'Common/Models/BaseModel';
+import { Black, Gray500 } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -249,7 +246,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
                     title: 'Monitor Status',
                     type: FieldType.Entity,
-                    getElement: (item: JSONObject): ReactElement => {
+                    getElement: (item: Monitor): ReactElement => {
                         if (!item['currentMonitorStatus']) {
                             throw new BadDataException(
                                 'Monitor Status not found'
@@ -268,20 +265,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
                         return (
                             <Statusbubble
-                                color={
-                                    (
-                                        item[
-                                            'currentMonitorStatus'
-                                        ] as JSONObject
-                                    )['color'] as Color
-                                }
+                                color={item.currentMonitorStatus.color || Black}
                                 shouldAnimate={true}
                                 text={
-                                    (
-                                        item[
-                                            'currentMonitorStatus'
-                                        ] as JSONObject
-                                    )['name'] as string
+                                    item.currentMonitorStatus.name || 'Unknown'
                                 }
                             />
                         );
@@ -297,17 +284,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Labels',
                     type: FieldType.EntityArray,
 
-                    getElement: (item: JSONObject): ReactElement => {
-                        return (
-                            <LabelsElement
-                                labels={
-                                    BaseModel.fromJSON(
-                                        (item['labels'] as JSONArray) || [],
-                                        Label
-                                    ) as Array<Label>
-                                }
-                            />
-                        );
+                    getElement: (item: Monitor): ReactElement => {
+                        return <LabelsElement labels={item['labels'] || []} />;
                     },
                 },
             ]}

@@ -17,7 +17,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { StatusPageCNameRecord } from 'CommonUI/src/Config';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { JSONObject } from 'Common/Types/JSON';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 
@@ -69,7 +68,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                             icon: IconProp.Check,
                             isVisible: (item: StatusPageDomain): boolean => {
-
                                 if (item['isCnameVerified']) {
                                     return false;
                                 }
