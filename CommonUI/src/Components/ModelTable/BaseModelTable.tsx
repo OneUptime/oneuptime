@@ -383,7 +383,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             for (const column of props.columns || []) {
                 const hasPermission: boolean =
                     hasPermissionToReadColumn(column) || User.isMasterAdmin();
-                const key: string | null = getColumnKey(column);
+                const key: keyof TBaseModel | null = getColumnKey(column);
 
                 if (hasPermission) {
                     let tooltipText: ((item: TBaseModel) => string) | undefined =
@@ -404,8 +404,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                     // get filter options if they were already loaded
 
-                    const columnKey: string | null = column.selectedProperty
-                        ? key + '.' + column.selectedProperty
+                    const columnKey: keyof TBaseModel | null = column.selectedProperty
+                        ? (key as string) + '.' + column.selectedProperty as keyof TBaseModel 
                         : key;
 
                     columns.push({
@@ -417,7 +417,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     });
 
                     if (key) {
-                        (selectFields as Dictionary<boolean>)[key] = true;
+                        (selectFields)[key] = true;
                     }
                 }
             }
@@ -771,16 +771,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             props.refreshToggle,
         ]);
 
-        type ShouldDisableSortFunction = (columnName: string | null) => boolean;
+        type ShouldDisableSortFunction = (columnName: keyof TBaseModel | null) => boolean;
 
         const shouldDisableSort: ShouldDisableSortFunction = (
-            columnName: string | null
+            columnName: keyof TBaseModel | null
         ): boolean => {
             if (!columnName) {
                 return true;
             }
 
-            return model.isEntityColumn(columnName);
+            return model.isEntityColumn(columnName as string);
         };
 
         type GetColumnKeyFunction = (
@@ -1069,10 +1069,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setActionButtonSchema(actionsSchema);
         };
 
-        type OnFilterChangedFunction = (filterData: FilterData) => void;
+        type OnFilterChangedFunction = (filterData: FilterData<TBaseModel>) => void;
 
         const onFilterChanged: OnFilterChangedFunction = (
-            filterData: FilterData
+            filterData: FilterData<TBaseModel>
         ): void => {
             const newQuery: Query<TBaseModel> = {};
 
@@ -1110,7 +1110,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const getTable: GetReactElementFunction = (): ReactElement => {
             return (
                 <Table
-                    onFilterChanged={(filterData: FilterData) => {
+                    onFilterChanged={(filterData: FilterData<TBaseModel>) => {
                         onFilterChanged(filterData);
                     }}
                     onFilterRefreshClick={async () => {
@@ -1247,7 +1247,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const getList: GetReactElementFunction = (): ReactElement => {
             return (
                 <List
-                    onFilterChanged={(filterData: FilterData) => {
+                    onFilterChanged={(filterData: FilterData<TBaseModel>) => {
                         onFilterChanged(filterData);
                     }}
                     onFilterRefreshClick={async () => {

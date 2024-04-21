@@ -18,7 +18,7 @@ import DatabaseDate from 'Common/Types/Database/Date';
 import GenericObject from 'Common/Types/GenericObject';
 
 export type FilterData<T extends GenericObject> = {
-    [P in keyof T]?: string | DropdownValue | Search | Date | BaseModel | ObjectID | number | InBetween;
+    [P in keyof T]?: string | DropdownValue | Array<DropdownValue> | Search | Date | BaseModel | ObjectID | number | InBetween;
 };
 
 

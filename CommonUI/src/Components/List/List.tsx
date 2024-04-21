@@ -35,10 +35,10 @@ export interface ComponentProps<T extends GenericObject> {
     listDetailOptions?: undefined | ListDetailProps;
 
     isFilterLoading?: undefined | boolean;
-    filters?: Array<FilterType>;
+    filters?: Array<FilterType<T>>;
     showFilter?: undefined | boolean;
     filterError?: string | undefined;
-    onFilterChanged?: undefined | ((filterData: FilterData) => void);
+    onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
     onFilterRefreshClick?: undefined | (() => void);
 }
 
