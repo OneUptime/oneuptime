@@ -20,6 +20,7 @@ import DashboardNavigation from '../../Utils/Navigation';
 import Team from 'Model/Models/Team';
 import ProjectUser from '../../Utils/ProjectUser';
 import BaseModel from 'Common/Models/BaseModel';
+import { Black } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;
@@ -397,23 +398,15 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     title: 'Current State',
                     type: FieldType.Entity,
 
-                    getElement: (item: JSONObject): ReactElement => {
+                    getElement: (item: ScheduledMaintenance): ReactElement => {
                         if (item['currentScheduledMaintenanceState']) {
                             return (
                                 <Pill
                                     color={
-                                        (
-                                            item[
-                                                'currentScheduledMaintenanceState'
-                                            ] as JSONObject
-                                        )['color'] as Color
+                                       item.currentScheduledMaintenanceState.color || Black
                                     }
                                     text={
-                                        (
-                                            item[
-                                                'currentScheduledMaintenanceState'
-                                            ] as JSONObject
-                                        )['name'] as string
+                                        item.currentScheduledMaintenanceState.name || 'Unknown'
                                     }
                                 />
                             );
@@ -434,14 +427,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitors Affected',
                     type: FieldType.EntityArray,
 
-                    getElement: (item: JSONObject): ReactElement => {
+                    getElement: (item: ScheduledMaintenance): ReactElement => {
                         return (
                             <MonitorsElement
                                 monitors={
-                                    BaseModel.fromJSON(
-                                        (item['monitors'] as JSONArray) || [],
-                                        Monitor
-                                    ) as Array<Monitor>
+                                    item['monitors'] || []
                                 }
                             />
                         );
@@ -458,15 +448,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     title: 'Shown on Status Page',
                     type: FieldType.EntityArray,
 
-                    getElement: (item: JSONObject): ReactElement => {
+                    getElement: (item: ScheduledMaintenance): ReactElement => {
                         return (
                             <StatusPagesElement
                                 statusPages={
-                                    BaseModel.fromJSON(
-                                        (item['statusPages'] as JSONArray) ||
-                                            [],
-                                        StatusPage
-                                    ) as Array<StatusPage>
+                                    item['statusPages'] || []
                                 }
                             />
                         );
@@ -496,14 +482,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     title: 'Labels',
                     type: FieldType.EntityArray,
 
-                    getElement: (item: JSONObject): ReactElement => {
+                    getElement: (item: ScheduledMaintenance): ReactElement => {
                         return (
                             <LabelsElement
                                 labels={
-                                    BaseModel.fromJSON(
-                                        (item['labels'] as JSONArray) || [],
-                                        Label
-                                    ) as Array<Label>
+                                    item['labels'] || []
                                 }
                             />
                         );

@@ -24,6 +24,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
+import { Black } from 'Common/Types/BrandColors';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -212,7 +213,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Current State',
                             fieldType: FieldType.Entity,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: ScheduledMaintenance): ReactElement => {
                                 if (!item['currentScheduledMaintenanceState']) {
                                     throw new BadDataException(
                                         'Scheduled Maintenance Status not found'
@@ -222,18 +223,10 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <Pill
                                         color={
-                                            (
-                                                item[
-                                                    'currentScheduledMaintenanceState'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                         item.currentScheduledMaintenanceState.color || Black
                                         }
                                         text={
-                                            (
-                                                item[
-                                                    'currentScheduledMaintenanceState'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                            item.currentScheduledMaintenanceState.name || 'Unknown'
                                         }
                                     />
                                 );
@@ -248,16 +241,11 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Monitors Affected',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: ScheduledMaintenance): ReactElement => {
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'monitors'
-                                                ] as JSONArray) || [],
-                                                Monitor
-                                            ) as Array<Monitor>
+                                            item.monitors || []
                                         }
                                     />
                                 );
@@ -272,16 +260,11 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Shown on Status Pages',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: ScheduledMaintenance): ReactElement => {
                                 return (
                                     <StatusPagesElement
                                         statusPages={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'statusPages'
-                                                ] as JSONArray) || [],
-                                                Monitor
-                                            ) as Array<Monitor>
+                                            item.statusPages || []
                                         }
                                     />
                                 );
@@ -315,7 +298,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Notify Status Page Subscribers',
                             fieldType: FieldType.Boolean,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: ScheduledMaintenance): ReactElement => {
                                 return (
                                     <div>
                                         <div className="">
@@ -379,7 +362,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: ScheduledMaintenance): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={item['labels'] || []}
@@ -391,7 +374,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             title: 'Change State to Ongoing',
                             fieldType: FieldType.Element,
                             getElement: (
-                                _item: JSONObject,
+                                _item: ScheduledMaintenance,
                                 onBeforeFetchData: JSONObject | undefined,
                                 fetchItems: VoidFunction | undefined
                             ): ReactElement => {
@@ -417,7 +400,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             title: 'Change State to Completed',
                             fieldType: FieldType.Element,
                             getElement: (
-                                _item: JSONObject,
+                                _item: ScheduledMaintenance,
                                 onBeforeFetchData: JSONObject | undefined,
                                 fetchItems: VoidFunction | undefined
                             ): ReactElement => {
