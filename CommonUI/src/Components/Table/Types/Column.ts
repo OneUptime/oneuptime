@@ -13,7 +13,7 @@ export default interface Column<T extends GenericObject> {
     noValueMessage?: string | undefined;
     contentClassName?: string | undefined;
     alignItem?: AlignItem | undefined;
-    key?: string | null; //can be null because actions column does not have a key.
+    key?: keyof T | null; //can be null because actions column does not have a key.
     getElement?:
         | ((
               item: T,

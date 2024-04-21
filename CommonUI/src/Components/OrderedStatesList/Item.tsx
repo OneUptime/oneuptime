@@ -1,20 +1,20 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Button, { ButtonSize } from '../Button/Button';
 import ConfirmModal from '../Modal/ConfirmModal';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    item: JSONObject;
-    actionButtons?: undefined | Array<ActionButtonSchema>;
-    titleField: string;
-    descriptionField?: string | undefined;
-    getTitleElement?: ((item: JSONObject) => ReactElement) | undefined;
-    getDescriptionElement?: ((item: JSONObject) => ReactElement) | undefined;
+export interface ComponentProps<T extends GenericObject> {
+    item: T;
+    actionButtons?: undefined | Array<ActionButtonSchema<T>>;
+    titleField: keyof T;
+    descriptionField?: keyof T | undefined;
+    getTitleElement?: ((item: T) => ReactElement) | undefined;
+    getDescriptionElement?: ((item: T) => ReactElement) | undefined;
 }
 
-const Item: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const Item = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
         props.actionButtons?.map(() => {
@@ -66,7 +66,7 @@ const Item: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex justify-center">
                 {props.actionButtons?.map(
-                    (button: ActionButtonSchema, i: number) => {
+                    (button: ActionButtonSchema<T>, i: number) => {
                         if (button.isVisible && !button.isVisible(props.item)) {
                             return <></>;
                         }

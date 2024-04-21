@@ -39,8 +39,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer?: ReactElement | undefined;
     isDeleteable?: boolean | undefined;
     enableDragAndDrop?: boolean | undefined;
-    dragDropIdField?: string | undefined;
-    dragDropIndexField?: string | undefined;
+    dragDropIdField?: keyof T | undefined;
+    dragDropIndexField?: keyof T | undefined;
     sortBy?: string | undefined;
     sortOrder?: SortOrder | undefined;
     onListLoaded?: ((list: Array<TBaseModel>) => void) | undefined;

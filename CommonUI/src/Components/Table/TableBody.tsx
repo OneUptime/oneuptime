@@ -12,8 +12,8 @@ export interface ComponentProps<T extends GenericObject> {
     actionButtons?: undefined | Array<ActionButtonSchema<T>> | undefined;
     enableDragAndDrop?: undefined | boolean;
     dragAndDropScope?: string | undefined;
-    dragDropIdField?: string | undefined;
-    dragDropIndexField?: string | undefined;
+    dragDropIdField?: keyof T | undefined;
+    dragDropIndexField?: keyof T | undefined;
 }
 
 const TableBody = <T extends GenericObject>(

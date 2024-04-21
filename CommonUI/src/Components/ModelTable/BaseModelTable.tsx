@@ -158,7 +158,7 @@ export interface BaseTableProps<
     showAs?: ShowAs | undefined;
     singularName?: string | undefined;
     pluralName?: string | undefined;
-    actionButtons?: Array<ActionButtonSchema> | undefined;
+    actionButtons?: Array<ActionButtonSchema<TBaseModel>> | undefined;
     deleteButtonText?: string | undefined;
     onCreateEditModalClose?: (() => void) | undefined;
     editButtonText?: string | undefined;
@@ -172,8 +172,8 @@ export interface BaseTableProps<
     onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     sortBy?: string | undefined;
     sortOrder?: SortOrder | undefined;
-    dragDropIdField?: string | undefined;
-    dragDropIndexField?: string | undefined;
+    dragDropIdField?: keyof TBaseModel | undefined;
+    dragDropIndexField?: keyof TBaseModel | undefined;
     createEditModalWidth?: ModalWidth | undefined;
     orderedStatesListProps?: {
         titleField: string;
@@ -224,7 +224,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
 
     const [actionButtonSchema, setActionButtonSchema] = useState<
-        Array<ActionButtonSchema>
+        Array<ActionButtonSchema<TBaseModel>>
     >([]);
 
     useEffect(() => {
@@ -404,7 +404,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                 // get filter options if they were already loaded
 
-                const columnKey: string | null = column.selectedProperty
+                const columnKey: keyof TBaseModel | null = column.selectedProperty
                     ? key + '.' + column.selectedProperty
                     : key;
 

@@ -83,7 +83,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                         icon: IconProp.Check,
                         onClick: async (
-                            item: JSONObject,
+                            item: TeamMember,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {

@@ -22,8 +22,8 @@ export interface ComponentProps<T extends GenericObject> {
     totalItemsCount: number;
     itemsOnPage: number;
     enableDragAndDrop?: boolean | undefined;
-    dragDropIndexField?: string | undefined;
-    dragDropIdField?: string | undefined;
+    dragDropIndexField?: keyof T | undefined;
+    dragDropIdField?: keyof T | undefined;
     onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
     error: string;
     isLoading: boolean;

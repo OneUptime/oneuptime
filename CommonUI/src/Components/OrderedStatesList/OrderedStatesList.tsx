@@ -6,9 +6,10 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Icon, { SizeProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Item from './Item';
+import GenericObject from 'Common/Types/GenericObject';
 
-export interface ComponentProps {
-    data: Array<JSONObject>;
+export interface ComponentProps<T extends GenericObject> {
+    data: Array<T>;
     onCreateNewItem?: ((order: number) => void) | undefined;
     noItemsMessage?: string | undefined;
     error?: string | undefined;
@@ -16,18 +17,18 @@ export interface ComponentProps {
     onRefreshClick?: (() => void) | undefined;
     singularLabel: string;
     id?: string;
-    actionButtons?: undefined | Array<ActionButtonSchema>;
-    titleField: string;
-    descriptionField?: string | undefined;
-    orderField: string;
-    getTitleElement?: ((item: JSONObject) => ReactElement) | undefined;
-    getDescriptionElement?: ((item: JSONObject) => ReactElement) | undefined;
+    actionButtons?: undefined | Array<ActionButtonSchema<T>>;
+    titleField: keyof T;
+    descriptionField?: keyof T | undefined;
+    orderField: keyof T;
+    getTitleElement?: ((item: T) => ReactElement) | undefined;
+    getDescriptionElement?: ((item: T) => ReactElement) | undefined;
     shouldAddItemInTheEnd?: boolean | undefined;
     shouldAddItemInTheBeginning?: boolean | undefined;
 }
 
-const OrderedStatesList: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const OrderedStatesList = <T extends GenericObject>(
+    props: ComponentProps<T>
 ): ReactElement => {
     if (props.isLoading) {
         return <ComponentLoader />;
@@ -61,7 +62,7 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
             {!props.error &&
                 props.data &&
                 props.data.length > 0 &&
-                props.data.map((item: JSONObject, i: number) => {
+                props.data.map((item: T, i: number) => {
                     const isEnd: boolean = !(i + 1 < props.data.length);
                     const isBeginning: boolean = !(i === 0);
 

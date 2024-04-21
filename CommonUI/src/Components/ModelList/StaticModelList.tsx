@@ -25,8 +25,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     customElement?: ((item: TBaseModel) => ReactElement) | undefined;
     enableDragAndDrop?: boolean | undefined;
     dragAndDropScope?: string | undefined;
-    dragDropIdField?: string | undefined;
-    dragDropIndexField?: string | undefined;
+    dragDropIdField?: keyof TBaseModel | undefined;
+    dragDropIndexField?: keyof TBaseModel | undefined;
     onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 }
 

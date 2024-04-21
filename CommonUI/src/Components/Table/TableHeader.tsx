@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { ReactElement, useState } from 'react';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import Icon, { ThickProp } from '../Icon/Icon';
@@ -10,7 +10,7 @@ import GenericObject from 'Common/Types/GenericObject';
 export interface ComponentProps<T extends GenericObject> {
     columns: Columns<T>;
     id: string;
-    onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
+    onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
     enableDragAndDrop?: undefined | boolean;
 }
 
@@ -21,7 +21,7 @@ type TableHeaderFunction = <T extends GenericObject>(
 const TableHeader: TableHeaderFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const [currentSortColumn, setCurrentSortColumn] = useState<string>('');
+    const [currentSortColumn, setCurrentSortColumn] = useState<keyof T | null>(null);
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
     return (

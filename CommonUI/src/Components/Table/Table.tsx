@@ -31,7 +31,7 @@ export interface ComponentProps<T extends GenericObject> {
     onRefreshClick?: undefined | (() => void);
 
     noItemsMessage?: undefined | string;
-    onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
+    onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
 
     isFilterLoading?: undefined | boolean;
     filters?: Array<FilterType>;
@@ -41,8 +41,8 @@ export interface ComponentProps<T extends GenericObject> {
     onFilterRefreshClick?: undefined | (() => void);
 
     enableDragAndDrop?: boolean | undefined;
-    dragDropIndexField?: string | undefined;
-    dragDropIdField?: string | undefined;
+    dragDropIndexField?: keyof T | undefined;
+    dragDropIdField?: keyof T | undefined;
     onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 }
 

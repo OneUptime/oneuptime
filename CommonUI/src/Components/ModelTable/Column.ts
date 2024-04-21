@@ -18,7 +18,7 @@ export default interface Columns<
     TEntity extends BaseModel | AnalyticsBaseModel
 > {
     field: SelectEntityField<TEntity>;
-    selectedProperty?: string;
+    selectedProperty?: string | undefined;
     title: string;
     contentClassName?: string | undefined;
     colSpan?: number | undefined;

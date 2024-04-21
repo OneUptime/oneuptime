@@ -1,5 +1,4 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import ListRow, { ListDetailProps } from './ListRow';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Field from '../Detail/Field';
@@ -13,8 +12,8 @@ export interface ComponentProps<T extends GenericObject> {
     actionButtons?: undefined | Array<ActionButtonSchema<T>> | undefined;
     enableDragAndDrop?: undefined | boolean;
     dragAndDropScope?: string | undefined;
-    dragDropIdField?: string | undefined;
-    dragDropIndexField?: string | undefined;
+    dragDropIdField?: keyof T | undefined;
+    dragDropIndexField?: keyof T | undefined;
     listDetailOptions?: undefined | ListDetailProps;
 }
 

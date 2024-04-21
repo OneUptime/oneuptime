@@ -5,7 +5,14 @@ import FieldType from '../../Components/Types/FieldType';
 import List, { ComponentProps } from '../../Components/List/List';
 
 describe('List', () => {
-    const defaultProps: ComponentProps = {
+
+    interface ListData {
+        id: string;
+        name: string;
+        description: string;
+    }
+
+    const defaultProps: ComponentProps<ListData> = {
         data: [
             {
                 id: '1',
