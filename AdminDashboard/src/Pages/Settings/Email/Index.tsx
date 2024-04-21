@@ -12,7 +12,6 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import { JSONObject } from 'Common/Types/JSON';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Red } from 'Common/Types/BrandColors';
@@ -324,7 +323,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             )}
 
             {emailServerType === EmailServerType.Sendgrid ? (
-                <CardModelDetail
+                <CardModelDetail<GlobalConfig>
                     name="Sendgrid Settings"
                     cardProps={{
                         title: 'Sendgrid Settings',
@@ -376,7 +375,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                                 },
                                 title: '',
                                 placeholder: 'None',
-                                getElement: (item: JSONObject) => {
+                                getElement: (item: GlobalConfig) => {
                                     if (
                                         item['sendgridApiKey'] &&
                                         item['sendgridFromEmail'] &&

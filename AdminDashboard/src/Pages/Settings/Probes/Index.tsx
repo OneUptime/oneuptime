@@ -7,7 +7,6 @@ import DashboardSideMenu from '../SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Probe from 'Model/Models/Probe';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import OneUptimeDate from 'Common/Types/Date';
 import { Green, Red } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
@@ -23,7 +22,7 @@ import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 const Settings: FunctionComponent = (): ReactElement => {
     const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
-    const [currentProbe, setCurrentProbe] = useState<JSONObject | null>(null);
+    const [currentProbe, setCurrentProbe] = useState<Probe | null>(null);
 
     return (
         <Page
@@ -126,7 +125,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         title: 'Show ID and Key',
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
-                            item: JSONObject,
+                            item: Probe,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
@@ -166,7 +165,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         title: 'Name',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Probe): ReactElement => {
                             return <ProbeElement probe={item} />;
                         },
                     },
@@ -183,13 +182,13 @@ const Settings: FunctionComponent = (): ReactElement => {
                         },
                         title: 'Status',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Probe): ReactElement => {
                             if (
                                 item &&
                                 item['lastAlive'] &&
                                 OneUptimeDate.getNumberOfMinutesBetweenDates(
                                     OneUptimeDate.fromString(
-                                        item['lastAlive'] as string
+                                        item['lastAlive']
                                     ),
                                     OneUptimeDate.getCurrentDate()
                                 ) < 5
