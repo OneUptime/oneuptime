@@ -12,7 +12,6 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import MonitoringInterval from '../../../Utils/MonitorIntervalDropdownOptions';
-import { JSONObject } from 'Common/Types/JSON';
 import MonitoringIntervalElement from '../../../Components/Monitor/MonitoringIntervalElement';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -150,7 +149,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                                 monitoringInterval: true,
                             },
                             title: 'Monitoring Interval',
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Monitor): ReactElement => {
                                 return (
                                     <MonitoringIntervalElement
                                         monitoringInterval={

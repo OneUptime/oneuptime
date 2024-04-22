@@ -14,7 +14,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import IncidentState from 'Model/Models/IncidentState';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -58,7 +57,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         icon: IconProp.TransparentCube,
                         onClick: async (
-                            item: JSONObject,
+                            item: IncidentStateTimeline,
                             onCompleteAction: VoidFunction
                         ) => {
                             setRootCause(
@@ -76,7 +75,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         icon: IconProp.List,
                         onClick: async (
-                            item: JSONObject,
+                            item: IncidentStateTimeline,
                             onCompleteAction: VoidFunction
                         ) => {
                             setLogs(
@@ -187,7 +186,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         title: 'Incident Status',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: IncidentStateTimeline
+                        ): ReactElement => {
                             if (!item['incidentState']) {
                                 throw new BadDataException(
                                     'Incident Status not found'
@@ -197,14 +198,10 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                             return (
                                 <Pill
                                     color={
-                                        (item['incidentState'] as JSONObject)[
-                                            'color'
-                                        ] as Color
+                                        item['incidentState']['color'] as Color
                                     }
                                     text={
-                                        (item['incidentState'] as JSONObject)[
-                                            'name'
-                                        ] as string
+                                        item['incidentState']['name'] as string
                                     }
                                 />
                             );
@@ -231,7 +228,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Duration',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: IncidentStateTimeline
+                        ): ReactElement => {
                             return (
                                 <p>
                                     {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(

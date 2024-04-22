@@ -11,7 +11,6 @@ import Monitor from 'Model/Models/Monitor';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
 import MonitorStepsViewer from '../../../Components/Monitor/MonitorSteps/MonitorSteps';
 import {
     CustomElementProps,
@@ -159,7 +158,7 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                                 monitorSteps: true,
                             },
                             title: '',
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: Monitor): ReactElement => {
                                 return (
                                     <MonitorStepsViewer
                                         monitorSteps={

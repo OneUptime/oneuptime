@@ -10,7 +10,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
@@ -259,7 +258,7 @@ const MonitorGroupView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: MonitorGroup): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={item['labels'] || []}

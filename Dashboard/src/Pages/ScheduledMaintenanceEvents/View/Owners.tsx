@@ -9,7 +9,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Team from 'Model/Models/Team';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import TeamElement from '../../../Components/Team/Team';
 import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwnerUser';
 import User from 'Model/Models/User';
@@ -105,7 +104,9 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                         title: 'Team',
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: ScheduledMaintenanceOwnerTeam
+                        ): ReactElement => {
                             if (!item['team']) {
                                 throw new BadDataException('Team not found');
                             }
@@ -208,7 +209,9 @@ const ScheduledMaintenanceOwners: FunctionComponent<PageComponentProps> = (
                         title: 'User',
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: ScheduledMaintenanceOwnerUser
+                        ): ReactElement => {
                             if (!item['user']) {
                                 throw new BadDataException('User not found');
                             }

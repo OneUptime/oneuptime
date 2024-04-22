@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
@@ -60,7 +59,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         title: 'View Status Message',
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
-                            item: JSONObject,
+                            item: OnCallDutyPolicyExecutionLogTimeline,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
@@ -131,7 +130,9 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Escalation Rule',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: OnCallDutyPolicyExecutionLogTimeline
+                        ): ReactElement => {
                             if (
                                 item &&
                                 item['onCallDutyPolicyEscalationRule']
@@ -165,15 +166,15 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         },
                         title: 'Notification Sent To',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: OnCallDutyPolicyExecutionLogTimeline
+                        ): ReactElement => {
                             if (item['alertSentToUser']) {
                                 return (
                                     <UserElement
                                         user={
                                             BaseModel.fromJSON(
-                                                item[
-                                                    'alertSentToUser'
-                                                ] as JSONObject,
+                                                item['alertSentToUser'],
                                                 User
                                             ) as User
                                         }
@@ -200,7 +201,9 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: OnCallDutyPolicyExecutionLogTimeline
+                        ): ReactElement => {
                             if (
                                 item['status'] ===
                                 OnCallDutyExecutionLogTimelineStatus.NotificationSent

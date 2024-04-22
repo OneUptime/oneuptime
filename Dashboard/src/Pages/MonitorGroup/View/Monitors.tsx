@@ -13,7 +13,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Monitor from 'Model/Models/Monitor';
-import { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -24,7 +23,6 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
-import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
@@ -175,17 +173,12 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                             title: 'Monitor',
                             type: FieldType.Entity,
 
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (
+                                item: MonitorGroupResource
+                            ): ReactElement => {
                                 return (
                                     <MonitorElement
-                                        monitor={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'monitor'
-                                                ] as JSONObject) || [],
-                                                Monitor
-                                            ) as Monitor
-                                        }
+                                        monitor={item['monitor']!}
                                     />
                                 );
                             },
@@ -199,7 +192,9 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                             title: 'Current Status',
                             type: FieldType.Element,
 
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (
+                                item: MonitorGroupResource
+                            ): ReactElement => {
                                 if (!item['monitor']) {
                                     throw new BadDataException(
                                         'Monitor not found'
@@ -207,9 +202,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                 }
 
                                 if (
-                                    !(item['monitor'] as JSONObject)[
-                                        'currentMonitorStatusId'
-                                    ]
+                                    !item['monitor']['currentMonitorStatusId']
                                 ) {
                                     throw new BadDataException(
                                         'Monitor Status not found'
@@ -221,7 +214,7 @@ const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
                                         (monitorStatus: MonitorStatus) => {
                                             return (
                                                 monitorStatus._id ===
-                                                (item['monitor'] as JSONObject)[
+                                                item['monitor']![
                                                     'currentMonitorStatusId'
                                                 ]?.toString()
                                             );

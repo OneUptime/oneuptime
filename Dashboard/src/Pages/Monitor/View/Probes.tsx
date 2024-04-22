@@ -10,7 +10,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
@@ -147,7 +146,7 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         buttonStyleType: ButtonStyleType.NORMAL,
                         icon: IconProp.List,
                         onClick: async (
-                            item: JSONObject,
+                            item: MonitorProbe,
                             onCompleteAction: VoidFunction
                         ) => {
                             setLogs(
@@ -229,12 +228,8 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
 
                         title: 'Probe',
                         type: FieldType.Entity,
-                        getElement: (item: JSONObject): ReactElement => {
-                            return (
-                                <ProbeElement
-                                    probe={item['probe'] as JSONObject}
-                                />
-                            );
+                        getElement: (item: MonitorProbe): ReactElement => {
+                            return <ProbeElement probe={item['probe']} />;
                         },
                     },
                     {
@@ -246,11 +241,9 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                         title: 'Probe Status',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: MonitorProbe): ReactElement => {
                             return (
-                                <ProbeStatusElement
-                                    probe={item['probe'] as JSONObject}
-                                />
+                                <ProbeStatusElement probe={item['probe']!} />
                             );
                         },
                     },

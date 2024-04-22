@@ -12,7 +12,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import IconProp from 'Common/Types/Icon/IconProp';
 import Domain from 'Model/Models/Domain';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { JSONObject } from 'Common/Types/JSON';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
@@ -28,7 +27,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
         useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [currentVerificationDomain, setCurrentVerificationDomain] =
-        useState<JSONObject | null>(null);
+        useState<Domain | null>(null);
     const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
     const [isVerificationLoading, setIsVerificationLoading] =
         useState<boolean>(false);
@@ -63,7 +62,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         title: 'Verify Domain',
                         buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                         icon: IconProp.Check,
-                        isVisible: (item: JSONObject): boolean => {
+                        isVisible: (item: Domain): boolean => {
                             if (item['isVerified']) {
                                 return false;
                             }
@@ -71,7 +70,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             return true;
                         },
                         onClick: async (
-                            item: JSONObject,
+                            item: Domain,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {

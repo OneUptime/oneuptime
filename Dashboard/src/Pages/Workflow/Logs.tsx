@@ -6,7 +6,6 @@ import React, {
 } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import WorkflowLogs from 'Model/Models/WorkflowLog';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -28,8 +27,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
     return (
         <Fragment>
             <>
-                <ModelTable<WorkflowLogs>
-                    modelType={WorkflowLogs}
+                <ModelTable<WorkflowLog>
+                    modelType={WorkflowLog}
                     id="workflow-logs-table"
                     isDeleteable={false}
                     actionButtons={[
@@ -38,7 +37,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.List,
                             onClick: async (
-                                item: WorkflowLogs,
+                                item: WorkflowLog,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setLogs(item['logs'] as string);
@@ -118,7 +117,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             title: 'Workflow Name',
                             type: FieldType.Text,
 
-                            getElement: (item: WorkflowLogs): ReactElement => {
+                            getElement: (item: WorkflowLog): ReactElement => {
                                 return (
                                     <WorkflowElement
                                         workflow={item.workflow!}

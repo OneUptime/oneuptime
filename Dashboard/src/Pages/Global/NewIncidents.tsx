@@ -6,16 +6,12 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Incident from 'Model/Models/Incident';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import MonitorsElement from '../../Components/Monitor/Monitors';
-import Monitor from 'Model/Models/Monitor';
-import Color from 'Common/Types/Color';
 import ProjectElement from '../../Components/Project/Project';
-import Project from 'Model/Models/Project';
-import BaseModel from 'Common/Models/BaseModel';
 import { RequestOptions } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import { Black } from 'Common/Types/BrandColors';
 
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -112,17 +108,9 @@ const Home: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
 
                         selectedProperty: 'name',
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             return (
-                                <ProjectElement
-                                    project={
-                                        BaseModel.fromJSON(
-                                            (item['project'] as JSONObject) ||
-                                                [],
-                                            Project
-                                        ) as Project
-                                    }
-                                />
+                                <ProjectElement project={item['project']!} />
                             );
                         },
                     },
@@ -149,23 +137,17 @@ const Home: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Current State',
                         type: FieldType.Entity,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (
                                     <Pill
                                         color={
-                                            (
-                                                item[
-                                                    'currentIncidentState'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                            item.currentIncidentState.color ||
+                                            Black
                                         }
                                         text={
-                                            (
-                                                item[
-                                                    'currentIncidentState'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                            item.currentIncidentState.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -183,23 +165,16 @@ const Home: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Incident Severity',
                         type: FieldType.Entity,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             if (item['incidentSeverity']) {
                                 return (
                                     <Pill
                                         color={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['color'] as Color
+                                            item.incidentSeverity.color || Black
                                         }
                                         text={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['name'] as string
+                                            item.incidentSeverity.name ||
+                                            'Unknown'
                                         }
                                     />
                                 );
@@ -218,16 +193,10 @@ const Home: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitors Affected',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: Incident): ReactElement => {
                             return (
                                 <MonitorsElement
-                                    monitors={
-                                        BaseModel.fromJSON(
-                                            (item['monitors'] as JSONArray) ||
-                                                [],
-                                            Monitor
-                                        ) as Array<Monitor>
-                                    }
+                                    monitors={item['monitors'] || []}
                                 />
                             );
                         },

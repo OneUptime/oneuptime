@@ -3,7 +3,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
 import DashboardNavigation from '../../../Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Red, Yellow } from 'Common/Types/BrandColors';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
@@ -13,7 +12,6 @@ import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 import Incident from 'Model/Models/Incident';
 import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
 import UserElement from '../../../Components/User/User';
-import User from 'Model/Models/User';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import ObjectID from 'Common/Types/ObjectID';
 import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
@@ -21,7 +19,6 @@ import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import OnCallPolicyView from '../OnCallPolicy';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import BaseModel from 'Common/Models/BaseModel';
 import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
 
 export interface ComponentProps {
@@ -122,7 +119,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
             title: 'Triggered By Incident',
             type: FieldType.Element,
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
                 if (item['triggeredByIncident']) {
                     return (
                         <IncidentView
@@ -147,7 +144,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             title: 'Status',
             type: FieldType.Element,
 
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
                 if (item['status'] === OnCallDutyPolicyStatus.Completed) {
                     return (
                         <Pill
@@ -194,18 +191,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
             title: 'Acknowledged By',
             type: FieldType.Element,
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
                 if (item['acknowledgedByUser']) {
-                    return (
-                        <UserElement
-                            user={
-                                BaseModel.fromJSON(
-                                    item['acknowledgedByUser'] as JSONObject,
-                                    User
-                                ) as User
-                            }
-                        />
-                    );
+                    return <UserElement user={item['acknowledgedByUser']} />;
                 }
 
                 return <p>-</p>;
@@ -243,7 +231,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                         title: 'View Status Message',
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
-                            item: JSONObject,
+                            item: OnCallDutyPolicyExecutionLog,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
