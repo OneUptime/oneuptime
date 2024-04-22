@@ -281,15 +281,15 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                 return <ErrorMessage error="No events found for this span." />;
             }
 
-            // remove this. this is just for testing
-            console.log(span.events);
-            span.events = [...span.events, ...span.events];
-
             return (
                 <AccordionGroup>
                     {span.events.map((event: SpanEvent, index: number) => {
                         return (
-                            <Accordion titleClassName='text-sm' title={`Event: ${event.name}`} key={index} >
+                            <Accordion
+                                titleClassName="text-sm"
+                                title={`Event: ${event.name}`}
+                                key={index}
+                            >
                                 {getEventContentElement(event)}
                             </Accordion>
                         );

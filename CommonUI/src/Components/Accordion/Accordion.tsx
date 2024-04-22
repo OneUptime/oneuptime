@@ -93,7 +93,9 @@ const Accordion: FunctionComponent<ComponentProps> = (
                                     props.onClick ? 'cursor-pointer' : ''
                                 }`}
                             >
-                                <div className={`text-gray-500 ${props.titleClassName}`}>
+                                <div
+                                    className={`text-gray-500 ${props.titleClassName}`}
+                                >
                                     {props.title}{' '}
                                 </div>
                                 <div className="mb-2 text-sm">
