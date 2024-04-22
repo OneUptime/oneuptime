@@ -25,7 +25,7 @@ const Call: () => JSX.Element = (): ReactElement => {
         useState<boolean>(false);
 
     const [error, setError] = useState<string>('');
-    const [currentItem, setCurrentItem] = useState<JSONObject | null>(null);
+    const [currentItem, setCurrentItem] = useState<UserCall | null>(null);
     const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -59,7 +59,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                         title: 'Verify',
                         buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                         icon: IconProp.Check,
-                        isVisible: (item: JSONObject): boolean => {
+                        isVisible: (item: UserCall): boolean => {
                             if (item['isVerified']) {
                                 return false;
                             }
@@ -67,7 +67,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                             return true;
                         },
                         onClick: async (
-                            item: JSONObject,
+                            item: UserCall,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
@@ -85,7 +85,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                         title: 'Resend Code',
                         buttonStyleType: ButtonStyleType.NORMAL,
                         icon: IconProp.Call,
-                        isVisible: (item: JSONObject): boolean => {
+                        isVisible: (item: UserCall): boolean => {
                             if (item['isVerified']) {
                                 return false;
                             }
@@ -93,7 +93,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                             return true;
                         },
                         onClick: async (
-                            item: JSONObject,
+                            item: UserCall,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {

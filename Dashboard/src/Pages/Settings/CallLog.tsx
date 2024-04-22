@@ -111,7 +111,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Status',
             type: FieldType.Text,
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: CallLog): ReactElement => {
                 if (item['status']) {
                     return (
                         <Pill
@@ -165,7 +165,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.List,
                             onClick: async (
-                                item: JSONObject,
+                                item: CallLog,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setCallText(
@@ -183,7 +183,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.Error,
                             onClick: async (
-                                item: JSONObject,
+                                item: CallLog,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setCallText(item['statusMessage'] as string);

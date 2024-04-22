@@ -44,7 +44,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
     return (
         <Fragment>
             {/* API Key View  */}
-            <CardModelDetail
+            <CardModelDetail<ApiKey>
                 name="API Key Details"
                 cardProps={{
                     title: 'API Key Details',
@@ -250,7 +250,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Permission',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: ApiKeyPermission): ReactElement => {
                             return (
                                 <p>
                                     {PermissionHelper.getTitle(
@@ -270,7 +270,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: ApiKeyPermission): ReactElement => {
                             if (
                                 item &&
                                 item['permission'] &&
@@ -289,10 +289,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        BaseModel.fromJSON(
-                                            (item['labels'] as JSONArray) || [],
-                                            Label
-                                        ) as Array<Label>
+                                        item['labels'] || []
                                     }
                                 />
                             );

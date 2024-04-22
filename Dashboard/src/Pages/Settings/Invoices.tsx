@@ -149,7 +149,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             title: 'Amount',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject) => {
+                            getElement: (item: BillingInvoice) => {
                                 return (
                                     <span>{`${
                                         (item['amount'] as number) / 100
@@ -166,7 +166,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             title: 'Invoice Status',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject) => {
+                            getElement: (item: BillingInvoice) => {
                                 if (item['status'] === InvoiceStatus.Paid) {
                                     return (
                                         <Pill
@@ -194,7 +194,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             title: 'Actions',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject) => {
+                            getElement: (item: BillingInvoice) => {
                                 return (
                                     <div>
                                         {item['downloadableLink'] ? (

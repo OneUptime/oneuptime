@@ -79,7 +79,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'SMTP Server',
             type: FieldType.Element,
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: EmailLog): ReactElement => {
                 return (
                     <CustomSMTPElement
                         smtp={item['projectSmtpConfig'] as ProjectSmtpConfig}
@@ -117,7 +117,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
             },
             title: 'Status',
             type: FieldType.Text,
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: EmailLog): ReactElement => {
                 if (item['status']) {
                     return (
                         <Pill
@@ -162,7 +162,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.List,
                             onClick: async (
-                                item: JSONObject,
+                                item: EmailLog,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setEmailText(
@@ -180,7 +180,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.Error,
                             onClick: async (
-                                item: JSONObject,
+                                item: EmailLog,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setEmailText(item['statusMessage'] as string);

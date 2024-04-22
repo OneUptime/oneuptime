@@ -75,7 +75,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: ScheduledMaintenanceState): ReactElement => {
                             return (
                                 <Pill
                                     color={item['color'] as Color}
@@ -91,7 +91,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: ScheduledMaintenanceState): ReactElement => {
                             return (
                                 <div>
                                     <p>{`${item['description']}`}</p>

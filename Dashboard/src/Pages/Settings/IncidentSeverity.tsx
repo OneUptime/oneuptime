@@ -41,7 +41,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: IncidentSeverity): ReactElement => {
                             return (
                                 <Pill
                                     isMinimal={true}
@@ -58,7 +58,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: IncidentSeverity): ReactElement => {
                             return (
                                 <div>
                                     <p>{`${item['description']}`}</p>

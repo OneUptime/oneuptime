@@ -136,7 +136,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Current Status',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: MonitorGroup): ReactElement => {
                             if (!item['_id']) {
                                 throw new BadDataException(
                                     'Monitor Group ID not found'
@@ -162,14 +162,11 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: MonitorGroup): ReactElement => {
                             return (
                                 <LabelsElement
                                     labels={
-                                        BaseModel.fromJSON(
-                                            (item['labels'] as JSONArray) || [],
-                                            Label
-                                        ) as Array<Label>
+                                        item['labels'] || []
                                     }
                                 />
                             );

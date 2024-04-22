@@ -140,12 +140,8 @@ const Services: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Element,
-                        getElement: (serviceObj: JSONObject): ReactElement => {
-                            const service: TelemetryService =
-                                BaseModel.fromJSON(
-                                    serviceObj,
-                                    TelemetryService
-                                ) as TelemetryService;
+                        getElement: (service: TelemetryService): ReactElement => {
+                           
 
                             return (
                                 <Fragment>
@@ -173,14 +169,11 @@ const Services: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: TelemetryService): ReactElement => {
                             return (
                                 <LabelsElement
                                     labels={
-                                        BaseModel.fromJSON(
-                                            (item['labels'] as JSONArray) || [],
-                                            Label
-                                        ) as Array<Label>
+                                        item['labels'] || []
                                     }
                                 />
                             );

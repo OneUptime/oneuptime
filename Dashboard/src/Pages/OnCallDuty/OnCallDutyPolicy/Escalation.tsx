@@ -14,7 +14,6 @@ import Team from 'Model/Models/Team';
 import ProjectUser from '../../../Utils/ProjectUser';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { JSONObject } from 'Common/Types/JSON';
 import TeamView from '../../../Components/OnCallPolicy/EscalationRule/TeamView';
 import UserView from '../../../Components/OnCallPolicy/EscalationRule/UserView';
 import OnCallDutyPolicySchedule from 'Model/Models/OnCallDutyPolicySchedule';
@@ -227,11 +226,11 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'Teams who will be notified when incident is triggered.',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: OnCallDutyEscalationRule): ReactElement => {
                             return (
                                 <TeamView
                                     escalationRuleId={
-                                        new ObjectID(item['_id'] as string)
+                                        item.id!
                                     }
                                 />
                             );
@@ -245,11 +244,11 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'On call schedules which will be executed when incident is triggered.',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: OnCallDutyEscalationRule): ReactElement => {
                             return (
                                 <OnCallDutyScheduleView
                                     escalationRuleId={
-                                        new ObjectID(item['_id'] as string)
+                                        item.id!
                                     }
                                 />
                             );
@@ -273,11 +272,11 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'Users who will be notified when incident is triggered.',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: OnCallDutyEscalationRule): ReactElement => {
                             return (
                                 <UserView
                                     escalationRuleId={
-                                        new ObjectID(item['_id'] as string)
+                                        item.id!
                                     }
                                 />
                             );

@@ -57,7 +57,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                 },
                 title: 'Policy Name',
                 type: FieldType.Element,
-                getElement: (item: JSONObject): ReactElement => {
+                getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
                     if (item['onCallDutyPolicy']) {
                         return (
                             <OnCallPolicyView

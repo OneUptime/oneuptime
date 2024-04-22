@@ -25,7 +25,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
         useState<boolean>(false);
 
     const [error, setError] = useState<string>('');
-    const [currentItem, setCurrentItem] = useState<JSONObject | null>(null);
+    const [currentItem, setCurrentItem] = useState<UserSMS | null>(null);
     const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -58,7 +58,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         title: 'Verify',
                         buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                         icon: IconProp.Check,
-                        isVisible: (item: JSONObject): boolean => {
+                        isVisible: (item: UserSMS): boolean => {
                             if (item['isVerified']) {
                                 return false;
                             }
@@ -66,7 +66,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                             return true;
                         },
                         onClick: async (
-                            item: JSONObject,
+                            item: UserSMS,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
@@ -84,7 +84,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                         title: 'Resend Code',
                         buttonStyleType: ButtonStyleType.NORMAL,
                         icon: IconProp.SMS,
-                        isVisible: (item: JSONObject): boolean => {
+                        isVisible: (item: UserSMS): boolean => {
                             if (item['isVerified']) {
                                 return false;
                             }
@@ -92,7 +92,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                             return true;
                         },
                         onClick: async (
-                            item: JSONObject,
+                            item: UserSMS,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {

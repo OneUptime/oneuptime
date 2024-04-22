@@ -68,7 +68,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: IncidentState): ReactElement => {
                             return (
                                 <Pill
                                     isMinimal={true}
@@ -85,7 +85,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: IncidentState): ReactElement => {
                             return (
                                 <div>
                                     <p>{`${item['description']}`}</p>

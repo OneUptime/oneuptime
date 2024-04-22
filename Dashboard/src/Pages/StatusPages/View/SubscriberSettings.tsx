@@ -152,14 +152,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Custom SMTP Config',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: StatusPage): ReactElement => {
                                 if (item['smtpConfig']) {
                                     return (
                                         <ProjectSMTPConfig
                                             smtpConfig={
                                                 item[
                                                     'smtpConfig'
-                                                ] as ProjectSmtpConfig
+                                                ]
                                             }
                                         />
                                     );
@@ -217,14 +217,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Twilio Config',
                             fieldType: FieldType.Element,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: StatusPage): ReactElement => {
                                 if (item['callSmsConfig']) {
                                     return (
                                         <ProjectCallSMSConfigElement
                                             callSmsConfig={
                                                 item[
                                                     'callSmsConfig'
-                                                ] as ProjectCallSMSConfig
+                                                ]
                                             }
                                         />
                                     );

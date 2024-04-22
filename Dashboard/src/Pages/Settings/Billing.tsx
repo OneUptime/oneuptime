@@ -167,7 +167,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             {!isLoading && !error ? (
                 <div>
                     {!reseller && (
-                        <CardModelDetail
+                        <CardModelDetail<Project>
                             name="Plan Details"
                             cardProps={{
                                 title: 'Current Plan',
@@ -270,7 +270,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         },
                                         title: 'Current Plan',
                                         getElement: (
-                                            item: JSONObject
+                                            item: Project
                                         ): ReactElement => {
                                             const plan:
                                                 | SubscriptionPlan
@@ -348,7 +348,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         description:
                                             'These are current users in this project. To change this you need to add or remove them.',
                                         getElement: (
-                                            item: JSONObject
+                                            item: Project
                                         ): ReactElement => {
                                             return (
                                                 <div>
@@ -356,7 +356,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                                         {
                                                             item[
                                                                 'paymentProviderSubscriptionSeats'
-                                                            ] as string
+                                                            ] 
                                                         }{' '}
                                                         users in this project.
                                                     </div>
@@ -514,7 +514,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 title: 'Payment Method Type',
                                 type: FieldType.Text,
 
-                                getElement: (item: JSONObject) => {
+                                getElement: (item: BillingPaymentMethod) => {
                                     return (
                                         <span>{`${Text.uppercaseFirstLetter(
                                             item['type'] as string
@@ -529,7 +529,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 title: 'Number',
                                 type: FieldType.Text,
 
-                                getElement: (item: JSONObject) => {
+                                getElement: (item: BillingPaymentMethod) => {
                                     return (
                                         <span>{`*****${item['last4Digits']}`}</span>
                                     );

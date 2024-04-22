@@ -214,7 +214,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                             title: 'View SSO URL',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
-                                item: JSONObject,
+                                item: StatusPageSSO,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setShowSingleSignOnUrlId(

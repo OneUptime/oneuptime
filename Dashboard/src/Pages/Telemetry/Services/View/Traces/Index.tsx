@@ -9,8 +9,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
-import { JSONObject } from 'Common/Types/JSON';
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import SpanStatusElement from '../../../../../Components/Span/SpanStatusElement';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
@@ -107,11 +105,8 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Span ID',
                         type: FieldType.Element,
-                        getElement: (spanObj: JSONObject): ReactElement => {
-                            const span: Span = AnalyticsBaseModel.fromJSON(
-                                spanObj,
-                                Span
-                            ) as Span;
+                        getElement: (span: Span): ReactElement => {
+                            
 
                             return (
                                 <Fragment>
