@@ -382,4 +382,14 @@ export default class JSONFunctions {
 
         return returnObj;
     }
+
+    public static flattenArray(val: JSONArray): JSONArray {
+        const returnArr: JSONArray = [];
+
+        for (const obj of val) {
+            returnArr.push(this.flattenObject(obj as JSONObject));
+        }
+
+        return returnArr;
+    }
 }

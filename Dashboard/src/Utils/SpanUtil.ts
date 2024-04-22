@@ -44,7 +44,6 @@ export default class SpanUtil {
         )} ${divisibilityFactor.intervalUnit}`;
     }
 
-
     public static getSpanEventTimeAsString(data: {
         divisibilityFactor: DivisibilityFactor;
         timelineStartTimeUnixNano: number;

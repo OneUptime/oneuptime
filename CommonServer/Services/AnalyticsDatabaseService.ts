@@ -247,6 +247,8 @@ export default class AnalyticsDatabaseService<
                     findStatement.columns
                 );
 
+            debugger;
+
             let items: Array<TBaseModel> =
                 AnalyticsBaseModel.fromJSONArray<TBaseModel>(
                     jsonItems,

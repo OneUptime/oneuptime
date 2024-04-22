@@ -24,8 +24,8 @@ import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import Includes from 'Common/Types/BaseDatabase/Includes';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import { JSONObject } from 'Common/Types/JSON';
+// import JSONFunctions from 'Common/Types/JSONFunctions';
+// import { JSONObject } from 'Common/Types/JSON';
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     public model!: TBaseModel;
@@ -272,7 +272,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 .join(', ')}]`;
         }
 
-        if (column.type === TableColumnType.JSON || column.type === TableColumnType.JSONArray) {
+        if (
+            column.type === TableColumnType.JSON ||
+            column.type === TableColumnType.JSONArray
+        ) {
             value = this.escapeStringLiteral(JSON.stringify(value));
         }
 
@@ -407,49 +410,50 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     whereStatement.append(SQL`AND ${key} IS NULL`);
                 }
             } else if (
-                (tableColumn.type === TableColumnType.JSON || tableColumn.type === TableColumnType.JSONArray) &&
+                (tableColumn.type === TableColumnType.JSON ||
+                    tableColumn.type === TableColumnType.JSONArray) &&
                 typeof value === 'object'
             ) {
-                const flatValue: JSONObject =
-                    JSONFunctions.flattenObject(value);
+                // const flatValue: JSONObject =
+                //     JSONFunctions.flattenObject(value);
 
-                for (const objKey in flatValue) {
-                    if (flatValue[objKey] === undefined) {
-                        continue;
-                    }
+                // for (const objKey in flatValue) {
+                //     if (flatValue[objKey] === undefined) {
+                //         continue;
+                //     }
 
-                    if (
-                        flatValue[objKey] &&
-                        typeof flatValue[objKey] === 'string'
-                    ) {
-                        whereStatement.append(
-                            SQL`AND JSONExtractString(${key}, ${{
-                                value: key,
-                                type: TableColumnType.Text,
-                            }}) = ${{
-                                value: flatValue[objKey] as string,
-                                type: TableColumnType.Text,
-                            }}`
-                        );
-                        continue;
-                    }
+                //     if (
+                //         flatValue[objKey] &&
+                //         typeof flatValue[objKey] === 'string'
+                //     ) {
+                //         whereStatement.append(
+                //             SQL`AND JSONExtractString(${key}, ${{
+                //                 value: key,
+                //                 type: TableColumnType.Text,
+                //             }}) = ${{
+                //                 value: flatValue[objKey] as string,
+                //                 type: TableColumnType.Text,
+                //             }}`
+                //         );
+                //         continue;
+                //     }
 
-                    if (
-                        flatValue[objKey] &&
-                        typeof flatValue[objKey] === 'number'
-                    ) {
-                        whereStatement.append(
-                            SQL`AND JSONExtractInt(${key}, ${{
-                                value: key,
-                                type: TableColumnType.Text,
-                            }}) = ${{
-                                value: flatValue[objKey] as number,
-                                type: TableColumnType.Number,
-                            }}`
-                        );
-                        continue;
-                    }
-                }
+                //     if (
+                //         flatValue[objKey] &&
+                //         typeof flatValue[objKey] === 'number'
+                //     ) {
+                //         whereStatement.append(
+                //             SQL`AND JSONExtractInt(${key}, ${{
+                //                 value: key,
+                //                 type: TableColumnType.Text,
+                //             }}) = ${{
+                //                 value: flatValue[objKey] as number,
+                //                 type: TableColumnType.Number,
+                //             }}`
+                //         );
+                //         continue;
+                //     }
+                // }
 
                 whereStatement.append(
                     SQL`AND ${key} = ${{

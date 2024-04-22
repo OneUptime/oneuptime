@@ -78,7 +78,7 @@ export default class CommonModel {
                 typeof value === 'string'
             ) {
                 try {
-                    value = JSON.parse(value);
+                    value = JSONFunctions.parse(value);
                 } catch (e) {
                     value = {};
                 }
@@ -89,12 +89,11 @@ export default class CommonModel {
                 typeof value === 'string'
             ) {
                 try {
-                    value = JSON.parse(value);
+                    value = JSONFunctions.parseJSONArray(value);
 
-                    if(!Array.isArray(value)) {
+                    if (!Array.isArray(value)) {
                         throw new BadDataException('Not an array');
                     }
-
                 } catch (e) {
                     value = [];
                 }
@@ -237,16 +236,16 @@ export default class CommonModel {
     ): Array<TBaseModel> {
         const models: Array<CommonModel> = [];
 
-        jsonArray.forEach((json: JSONObject | CommonModel) => {
+        for (const json of jsonArray) {
             if (json instanceof CommonModel) {
                 models.push(json);
-                return;
+                continue;
             }
 
             const model: CommonModel = new modelType();
             model.fromJSON(json);
             models.push(model);
-        });
+        }
 
         return models as Array<TBaseModel>;
     }
