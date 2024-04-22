@@ -20,6 +20,10 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import TelemetryService from 'Model/Models/TelemetryService';
 import TelemetryServiceElement from '../TelemetryService/TelemetryServiceElement';
 import SpanUtil, { DivisibilityFactor } from '../../Utils/SpanUtil';
+import SpanStatusElement from './SpanStatusElement';
+import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
+import CodeType from 'Common/Types/Code/CodeType';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     id: string;
@@ -63,6 +67,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         endTimeUnixNano: true,
         attributes: true,
         durationUnixNano: true,
+        name: true,
     };
 
     useEffect(() => {
@@ -143,22 +148,51 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
 
     const getAttributesContentElement: GetReactElementFunction =
         (): ReactElement => {
-            return <></>;
+            if (!span) {
+                return <ErrorMessage error="Span not found" />;
+            }
+
+            return (
+                <Detail<Span>
+                    item={span}
+                    fields={[
+                        {
+                            key: 'attributes',
+                            title: 'Span Attributes',
+                            description: 'The attributes of the span.',
+                            fieldType: FieldType.Element,
+                            getElement: (span: Span) => {
+                                return (
+                                    <CodeEditor
+                                        type={CodeType.JSON}
+                                        initialValue={JSONFunctions.toFormattedString(
+                                            JSONFunctions.nestJson(
+                                                span.attributes || {}
+                                            )
+                                        )}
+                                        readOnly={true}
+                                    />
+                                );
+                            },
+                        },
+                    ]}
+                />
+            );
         };
 
     const getEventsContentElement: GetReactElementFunction =
         (): ReactElement => {
-            return <></>;
+            return <div>Coming Soon</div>;
         };
 
     const getErrorsContentElement: GetReactElementFunction =
         (): ReactElement => {
-            return <></>;
+            return <div>Coming Soon</div>;
         };
 
     const getBasicInfo: GetReactElementFunction = (): ReactElement => {
         if (!span) {
-            return <></>;
+            return <ErrorMessage error="Span not found" />;
         }
 
         return (
@@ -172,6 +206,33 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         fieldType: FieldType.Text,
                         opts: {
                             isCopyable: true,
+                        },
+                    },
+                    {
+                        key: 'name',
+                        title: 'Span Name',
+                        description: 'The name of the span.',
+                        fieldType: FieldType.Text,
+                    },
+                    {
+                        key: 'statusCode',
+                        title: 'Span Status',
+                        description: 'The status of the span.',
+                        fieldType: FieldType.Element,
+                        getElement: (span: Span) => {
+                            return (
+                                <div>
+                                    <SpanStatusElement
+                                        span={span}
+                                        title={
+                                            'Status: ' +
+                                            SpanUtil.getSpanStatusCodeFriendlyName(
+                                                span.statusCode!
+                                            )
+                                        }
+                                    />{' '}
+                                </div>
+                            );
                         },
                     },
                     {
@@ -273,7 +334,16 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         key: 'kind',
                         title: 'Span Kind',
                         description: 'The kind of span.',
-                        fieldType: FieldType.Text,
+                        fieldType: FieldType.Element,
+                        getElement: (span: Span) => {
+                            return (
+                                <div>
+                                    {SpanUtil.getSpanKindFriendlyName(
+                                        span.kind!
+                                    )}
+                                </div>
+                            );
+                        },
                     },
                 ]}
             />

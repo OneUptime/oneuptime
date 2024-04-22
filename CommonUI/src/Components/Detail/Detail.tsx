@@ -348,7 +348,9 @@ const Detail: DetailFunction = <T extends GenericObject>(
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
                     {data && (
                         <div
-                            className={`${field.contentClassName} w-full flex`}
+                            className={`${field.contentClassName} w-full ${
+                                field.opts?.isCopyable ? 'flex' : ''
+                            }`}
                         >
                             <div>{data}</div>
 

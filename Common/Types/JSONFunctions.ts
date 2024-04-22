@@ -8,6 +8,64 @@ import SerializableObjectDictionary from './SerializableObjectDictionary';
 import JSON5 from 'json5';
 
 export default class JSONFunctions {
+    public static nestJson(obj: JSONObject): JSONObject {
+        // obj could be in this format:
+
+        /**
+         * {
+    "http.url.protocol": "http",
+    "http.url.hostname": "localhost",
+    "http.host": "localhost",
+         */
+
+        // we want to convert it to this format:
+
+        /**
+         * {
+         *
+         * "http": {
+         *     "url": {
+         *        "protocol": "http",
+         *       "hostname": "localhost"
+         *   },
+         *    "host": "localhost",
+         *   "method": "POST",
+         *  "scheme": "http",
+         * "client_ip": "
+         * ...
+         *
+         * },
+         */
+
+        const result: JSONObject = {};
+
+        for (const key in obj) {
+            const keys: Array<string> = key.split('.');
+
+            let currentObj: JSONObject = result;
+
+            for (let i = 0; i < keys.length; i++) {
+                const k: string | undefined = keys[i];
+
+                if (!k) {
+                    continue;
+                }
+
+                if (i === keys.length - 1) {
+                    currentObj[k] = obj[key];
+                } else {
+                    if (!currentObj[k]) {
+                        currentObj[k] = {};
+                    }
+
+                    currentObj = currentObj[k] as JSONObject;
+                }
+            }
+        }
+
+        return result;
+    }
+
     public static isEmptyObject(
         obj: JSONObject | BaseModel | null | undefined
     ): boolean {
@@ -292,6 +350,10 @@ export default class JSONFunctions {
         }
 
         return newVal;
+    }
+
+    public static toFormattedString(val: JSONValue): string {
+        return JSON.stringify(val, null, 4);
     }
 
     public static anyObjectToJSONObject(val: any): JSONObject {

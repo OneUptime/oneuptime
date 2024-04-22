@@ -35,7 +35,13 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [helpText, setHelpText] = useState<string>('');
 
     useEffect(() => {
-        setValue(props.value || '');
+        let value: string | undefined = props.value;
+
+        if (value && typeof value !== 'string') {
+            value = JSON.stringify(value, null, 4);
+        }
+
+        setValue(value || '');
     }, [props.value]);
 
     useEffect(() => {
@@ -79,7 +85,13 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     const [value, setValue] = useState<string>('');
 
     useEffect(() => {
-        setValue(props.initialValue || '');
+        let initialValue: string | undefined = props.initialValue;
+
+        if (initialValue && typeof initialValue !== 'string') {
+            initialValue = JSON.stringify(initialValue, null, 4);
+        }
+
+        setValue(initialValue || '');
     }, [props.initialValue]);
 
     return (
@@ -110,7 +122,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     props.onBlur && props.onBlur();
                     props.onChange && props.onChange(code);
                 }}
-                defaultValue={props.initialValue || placeholder || ''}
+                defaultValue={value || placeholder || ''}
                 className={className}
                 options={{
                     acceptSuggestionOnCommitCharacter: true,
