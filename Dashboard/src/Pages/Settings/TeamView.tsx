@@ -17,7 +17,6 @@ import TeamMember from 'Model/Models/TeamMember';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
@@ -30,7 +29,6 @@ import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
 import DashboardNavigation from '../../Utils/Navigation';
-import BaseModel from 'Common/Models/BaseModel';
 import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
 import ProjectUser from '../../Utils/ProjectUser';
 
@@ -185,15 +183,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: TeamMember): ReactElement => {
                             if (item['user']) {
                                 return (
                                     <UserElement
                                         user={
-                                            BaseModel.fromJSON(
-                                                item['user'] as JSONObject,
-                                                User
-                                            ) as User
+                                            item['user']
                                         }
                                     />
                                 );
@@ -208,7 +203,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Status',
                         type: FieldType.Boolean,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: TeamMember): ReactElement => {
                             if (item['hasAcceptedInvitation']) {
                                 return <Pill text="Member" color={Green} />;
                             }
@@ -342,7 +337,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Permission',
                         type: FieldType.Text,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: TeamPermission): ReactElement => {
                             return (
                                 <p>
                                     {PermissionHelper.getTitle(
@@ -362,7 +357,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: TeamPermission): ReactElement => {
                             if (
                                 item &&
                                 item['permission'] &&
@@ -381,10 +376,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        BaseModel.fromJSON(
-                                            (item['labels'] as JSONArray) || [],
-                                            Label
-                                        ) as Array<Label>
+                                        item['labels'] || []
                                     }
                                 />
                             );
