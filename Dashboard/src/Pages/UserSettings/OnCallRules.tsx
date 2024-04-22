@@ -188,7 +188,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Method',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: UserNotificationRule): ReactElement => {
                             return (
                                 <NotificationMethodView
                                     item={item}
@@ -203,7 +203,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notify After',
                         type: FieldType.Text,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: UserNotificationRule): ReactElement => {
                             return (
                                 <div>
                                     {item['notifyAfterMinutes'] === 0 && (

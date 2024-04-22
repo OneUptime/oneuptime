@@ -4,15 +4,12 @@ import React, {
     ReactElement,
     useState,
 } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import WorkflowLogs from 'Model/Models/WorkflowLog';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { JSONObject } from 'Common/Types/JSON';
-import Workflow from 'Model/Models/Workflow';
 import WorkflowElement from '../../Components/Workflow/WorkflowElement';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
@@ -20,6 +17,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 import WorkflowStatusElement from 'CommonUI/src/Components/Workflow/WorkflowStatus';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import WorkflowLog from 'Model/Models/WorkflowLog';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -40,7 +38,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             buttonStyleType: ButtonStyleType.NORMAL,
                             icon: IconProp.List,
                             onClick: async (
-                                item: JSONObject,
+                                item: WorkflowLogs,
                                 onCompleteAction: VoidFunction
                             ) => {
                                 setLogs(item['logs'] as string);
@@ -120,16 +118,11 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             title: 'Workflow Name',
                             type: FieldType.Text,
 
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: WorkflowLogs): ReactElement => {
                                 return (
                                     <WorkflowElement
                                         workflow={
-                                            BaseModel.fromJSON(
-                                                (item[
-                                                    'workflow'
-                                                ] as JSONObject) || [],
-                                                Workflow
-                                            ) as Workflow
+                                            item.workflow!
                                         }
                                     />
                                 );
@@ -142,7 +135,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
 
                             title: 'Workflow Status',
                             type: FieldType.Text,
-                            getElement: (item: JSONObject): ReactElement => {
+                            getElement: (item: WorkflowLog): ReactElement => {
                                 if (!item['workflowStatus']) {
                                     throw new BadDataException(
                                         'Workflow Status not found'

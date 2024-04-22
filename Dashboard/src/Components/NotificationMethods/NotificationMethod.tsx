@@ -1,9 +1,9 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
-import { JSONObject } from 'Common/Types/JSON';
+import UserNotificationRule from 'Model/Models/UserNotificationRule';
 
 export interface ComponentProps {
-    item: JSONObject;
+    item: UserNotificationRule;
     modelType: BaseModelType;
 }
 
@@ -18,7 +18,7 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
     return (
         <div>
             {item.getColumnValue('userEmail') &&
-                (item.getColumnValue('userEmail') as JSONObject)['email'] && (
+                (item.getColumnValue('userEmail'))['email'] && (
                     <p>
                         Email:{' '}
                         {(item.getColumnValue('userEmail') as JSONObject)[

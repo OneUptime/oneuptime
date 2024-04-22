@@ -68,7 +68,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'View Status Message',
                         buttonStyleType: ButtonStyleType.NORMAL,
                         onClick: async (
-                            item: JSONObject,
+                            item: UserOnCallLogTimeline,
                             onCompleteAction: VoidFunction,
                             onError: ErrorFunction
                         ) => {
@@ -117,7 +117,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Method',
                         type: FieldType.Element,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: UserOnCallLogTimeline): ReactElement => {
                             return (
                                 <NotificationMethodView
                                     item={item}
@@ -140,7 +140,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: UserOnCallLogTimeline): ReactElement => {
                             if (
                                 item['status'] === UserNotificationStatus.Sent
                             ) {
