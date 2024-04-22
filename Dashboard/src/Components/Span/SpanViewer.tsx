@@ -38,6 +38,10 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [span, setSpan] = React.useState<Span | null>(null);
 
+    const {
+        telemetryService, onClose
+    } = props;
+
     const selectLog: Select<Log> = {
         body: true,
         time: true,
@@ -189,7 +193,10 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         getElement: () => {
                             return (
                                 <TelemetryServiceElement
-                                    telemetryService={props.telemetryService}
+                                    telemetryService={telemetryService}
+                                    onNavigateComplete={() => {
+                                        onClose();
+                                    }}
                                 />
                             );
                         },

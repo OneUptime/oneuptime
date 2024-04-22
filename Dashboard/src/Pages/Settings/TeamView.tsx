@@ -185,13 +185,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                         getElement: (item: TeamMember): ReactElement => {
                             if (item['user']) {
-                                return (
-                                    <UserElement
-                                        user={
-                                            item['user']
-                                        }
-                                    />
-                                );
+                                return <UserElement user={item['user']} />;
                             }
 
                             return <></>;
@@ -374,11 +368,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             }
 
                             return (
-                                <LabelsElement
-                                    labels={
-                                        item['labels'] || []
-                                    }
-                                />
+                                <LabelsElement labels={item['labels'] || []} />
                             );
                         },
                     },
