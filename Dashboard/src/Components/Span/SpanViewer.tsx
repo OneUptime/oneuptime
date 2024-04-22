@@ -11,7 +11,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import Span from 'Model/AnalyticsModels/Span';
+import Span, { SpanEvent } from 'Model/AnalyticsModels/Span';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import Tabs from 'CommonUI/src/Components/Tabs/Tabs';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
@@ -180,9 +180,110 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             );
         };
 
+
+        const getEventContentElement = (event: SpanEvent): ReactElement => {
+            if (!event) {
+                return <ErrorMessage error="No event found" />;
+            }
+
+            return (
+                <Detail<SpanEvent>
+                    item={event}
+                    fields={[
+                        {
+                            key: 'name',
+                            title: 'Event Name',
+                            description: 'The name of the event.',
+                        },
+                        {
+                            key: 'timeUnixNano',
+                            title: 'Time in Trace',
+                            description: 'The time the event occurred in the trace.',
+                            fieldType: FieldType.Element,
+                            getElement: (event: SpanEvent) => {
+                                return (
+                                    <div>
+                                        {SpanUtil.getSpanEventTimeAsString({
+                                            timelineStartTimeUnixNano:
+                                                props.traceStartTimeInUnixNano,
+                                            divisibilityFactor:
+                                                props.divisibilityFactor,
+                                            spanEventTimeUnixNano:
+                                                event.timeUnixNano!,
+                                        })}
+                                    </div>
+                                );
+                            },
+                        },
+                        {
+                            key: 'timeUnixNano',
+                            title: 'Time in Span',
+                            description: 'The time the event occurred in this span',
+                            fieldType: FieldType.Element,
+                            getElement: (event: SpanEvent) => {
+                                return (
+                                    <div>
+                                        {SpanUtil.getSpanEventTimeAsString({
+                                            timelineStartTimeUnixNano: span?.startTimeUnixNano!,
+                                            divisibilityFactor:
+                                                props.divisibilityFactor,
+                                            spanEventTimeUnixNano:
+                                                event.timeUnixNano!,
+                                        })}
+                                    </div>
+                                );
+                            },
+                        },
+                        {
+                            key: 'time',
+                            title: 'Seen At',
+                            description: 'The time the event occurred.',
+                            fieldType: FieldType.DateTime,  
+                        },
+                        {
+                            key: 'attributes',
+                            title: 'Event Attributes',
+                            description: 'The attributes of the event.',
+                            fieldType: FieldType.Element,
+                            getElement: (event: SpanEvent) => {
+                                return (
+                                    <CodeEditor
+                                        type={CodeType.JSON}
+                                        initialValue={JSONFunctions.toFormattedString(
+                                            JSONFunctions.nestJson(
+                                                event.attributes || {}
+                                            )
+                                        )}
+                                        readOnly={true}
+                                    />
+                                );
+                            },
+                        },
+                        
+                    ]}
+                />
+            );
+        }
+
     const getEventsContentElement: GetReactElementFunction =
         (): ReactElement => {
-            return <div>Coming Soon</div>;
+
+            if(!span?.events || span.events.length === 0){
+                return <ErrorMessage error="No events found for this span." />;
+            }
+
+            return (
+                <div>
+                    {span.events.map((event: SpanEvent, index: number) => {
+                        return (
+                            <div key={index} className='space-y-5'>
+                                {getEventContentElement(event)}
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+
         };
 
     const getErrorsContentElement: GetReactElementFunction =

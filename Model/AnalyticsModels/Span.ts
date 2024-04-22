@@ -351,7 +351,7 @@ export default class Span extends AnalyticsBaseModel {
                     title: 'Events',
                     description: 'Span Events',
                     required: false,
-                    type: TableColumnType.JSON,
+                    type: TableColumnType.JSONArray,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,

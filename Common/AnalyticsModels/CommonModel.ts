@@ -85,6 +85,22 @@ export default class CommonModel {
             }
 
             if (
+                column.type === TableColumnType.JSONArray &&
+                typeof value === 'string'
+            ) {
+                try {
+                    value = JSON.parse(value);
+
+                    if(!Array.isArray(value)) {
+                        throw new BadDataException('Not an array');
+                    }
+
+                } catch (e) {
+                    value = [];
+                }
+            }
+
+            if (
                 column.type === TableColumnType.Number &&
                 typeof value === 'string'
             ) {

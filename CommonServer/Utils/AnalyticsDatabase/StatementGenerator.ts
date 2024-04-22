@@ -272,7 +272,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 .join(', ')}]`;
         }
 
-        if (column.type === TableColumnType.JSON) {
+        if (column.type === TableColumnType.JSON || column.type === TableColumnType.JSONArray) {
             value = this.escapeStringLiteral(JSON.stringify(value));
         }
 
@@ -407,7 +407,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     whereStatement.append(SQL`AND ${key} IS NULL`);
                 }
             } else if (
-                tableColumn.type === TableColumnType.JSON &&
+                (tableColumn.type === TableColumnType.JSON || tableColumn.type === TableColumnType.JSONArray) &&
                 typeof value === 'object'
             ) {
                 const flatValue: JSONObject =
@@ -595,7 +595,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             DateTime: TableColumnType.Date,
             'Array(String)': TableColumnType.ArrayText,
             'Array(Int32)': TableColumnType.ArrayNumber,
-            JSON: TableColumnType.JSON,
+            JSON: TableColumnType.JSON, //JSONArray is also JSON
             Nested: TableColumnType.NestedModel,
             Bool: TableColumnType.Boolean,
         }[clickhouseType];
@@ -610,6 +610,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             [TableColumnType.Decimal]: SQL`Double`,
             [TableColumnType.Date]: SQL`DateTime`,
             [TableColumnType.JSON]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
+            [TableColumnType.JSONArray]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
             [TableColumnType.NestedModel]: SQL`Nested`,
             [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
             [TableColumnType.ArrayText]: SQL`Array(String)`,

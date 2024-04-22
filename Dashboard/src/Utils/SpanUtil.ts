@@ -44,6 +44,24 @@ export default class SpanUtil {
         )} ${divisibilityFactor.intervalUnit}`;
     }
 
+
+    public static getSpanEventTimeAsString(data: {
+        divisibilityFactor: DivisibilityFactor;
+        timelineStartTimeUnixNano: number;
+        spanEventTimeUnixNano: number;
+    }): string {
+        const {
+            divisibilityFactor,
+            timelineStartTimeUnixNano,
+            spanEventTimeUnixNano,
+        } = data;
+
+        return `${Math.round(
+            (spanEventTimeUnixNano! - timelineStartTimeUnixNano) /
+                divisibilityFactor.divisibilityFactorNumber
+        )} ${divisibilityFactor.intervalUnit}`;
+    }
+
     public static getSpanEndsAtAsString(data: {
         divisibilityFactor: DivisibilityFactor;
         timelineStartTimeUnixNano: number;
