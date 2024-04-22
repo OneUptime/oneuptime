@@ -24,6 +24,8 @@ import SpanStatusElement from './SpanStatusElement';
 import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
+import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
 
 export interface ComponentProps {
     id: string;
@@ -279,16 +281,20 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                 return <ErrorMessage error="No events found for this span." />;
             }
 
+            // remove this. this is just for testing
+            console.log(span.events);
+            span.events = [...span.events, ...span.events];
+
             return (
-                <div>
+                <AccordionGroup>
                     {span.events.map((event: SpanEvent, index: number) => {
                         return (
-                            <div key={index} className="space-y-5">
+                            <Accordion titleClassName='text-sm' title={`Event: ${event.name}`} key={index} >
                                 {getEventContentElement(event)}
-                            </div>
+                            </Accordion>
                         );
                     })}
-                </div>
+                </AccordionGroup>
             );
         };
 

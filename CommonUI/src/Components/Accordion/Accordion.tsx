@@ -18,6 +18,7 @@ export interface ComponentProps {
     rightElement?: ReactElement | undefined;
     isLastElement?: boolean | undefined;
     isInitiallyExpanded?: boolean | undefined;
+    titleClassName?: string | undefined;
 }
 
 const Accordion: FunctionComponent<ComponentProps> = (
@@ -92,7 +93,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
                                     props.onClick ? 'cursor-pointer' : ''
                                 }`}
                             >
-                                <div className="text-gray-500">
+                                <div className={`text-gray-500 ${props.titleClassName}`}>
                                     {props.title}{' '}
                                 </div>
                                 <div className="mb-2 text-sm">

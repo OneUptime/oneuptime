@@ -219,6 +219,8 @@ export default class CommonModel {
                         recordValue as Array<CommonModel>,
                         column.nestedModelType
                     );
+                } else {
+                    json[column.key] = recordValue;
                 }
 
                 return;
