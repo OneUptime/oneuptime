@@ -121,9 +121,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             getElement: (item: WorkflowLogs): ReactElement => {
                                 return (
                                     <WorkflowElement
-                                        workflow={
-                                            item.workflow!
-                                        }
+                                        workflow={item.workflow!}
                                     />
                                 );
                             },

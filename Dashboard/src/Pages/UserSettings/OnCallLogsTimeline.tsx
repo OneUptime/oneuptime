@@ -10,7 +10,6 @@ import DashboardNavigation from '../../Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import { Green, Red, Yellow } from 'Common/Types/BrandColors';
@@ -117,7 +116,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Notification Method',
                         type: FieldType.Element,
-                        getElement: (item: UserOnCallLogTimeline): ReactElement => {
+                        getElement: (
+                            item: UserOnCallLogTimeline
+                        ): ReactElement => {
                             return (
                                 <NotificationMethodView
                                     item={item}
@@ -140,7 +141,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         title: 'Status',
                         type: FieldType.Element,
 
-                        getElement: (item: UserOnCallLogTimeline): ReactElement => {
+                        getElement: (
+                            item: UserOnCallLogTimeline
+                        ): ReactElement => {
                             if (
                                 item['status'] === UserNotificationStatus.Sent
                             ) {

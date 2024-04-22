@@ -106,8 +106,6 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         title: 'Span ID',
                         type: FieldType.Element,
                         getElement: (span: Span): ReactElement => {
-                            
-
                             return (
                                 <Fragment>
                                     <SpanStatusElement

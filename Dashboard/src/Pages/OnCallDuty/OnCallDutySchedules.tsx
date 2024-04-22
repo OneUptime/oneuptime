@@ -5,11 +5,9 @@ import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import BaseModel from 'Common/Models/BaseModel';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -131,13 +129,11 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        getElement: (item: OnCallDutySchedule): ReactElement => {
+                        getElement: (
+                            item: OnCallDutySchedule
+                        ): ReactElement => {
                             return (
-                                <LabelsElement
-                                    labels={
-                                        item['labels'] || []
-                                    }
-                                />
+                                <LabelsElement labels={item['labels'] || []} />
                             );
                         },
                     },

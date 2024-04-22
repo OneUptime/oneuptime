@@ -10,7 +10,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EmailLog from 'Model/Models/EmailLog';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../Utils/Navigation';
-import { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import EmailStatus from 'Common/Types/Mail/MailStatus';

@@ -15,7 +15,6 @@ import StatusPageSSO from 'Model/Models/StatusPageSso';
 import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
 import DigestMethod from 'Common/Types/SSO/DigestMethod';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import { JSONObject } from 'Common/Types/JSON';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
 import URL from 'Common/Types/API/URL';

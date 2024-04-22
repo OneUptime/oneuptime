@@ -10,14 +10,12 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import MonitorGroup from 'Model/Models/MonitorGroup';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import BaseModel from 'Common/Models/BaseModel';
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -164,11 +162,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
 
                         getElement: (item: MonitorGroup): ReactElement => {
                             return (
-                                <LabelsElement
-                                    labels={
-                                        item['labels'] || []
-                                    }
-                                />
+                                <LabelsElement labels={item['labels'] || []} />
                             );
                         },
                     },

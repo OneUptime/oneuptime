@@ -9,12 +9,10 @@ import TelemetryService from 'Model/Models/TelemetryService';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import SideMenu from './SideMenu';
-import BaseModel from 'Common/Models/BaseModel';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import TelemetryServiceElement from '../../Components/TelemetryService/TelemetryServiceElement';
 
@@ -140,9 +138,9 @@ const Services: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Element,
-                        getElement: (service: TelemetryService): ReactElement => {
-                           
-
+                        getElement: (
+                            service: TelemetryService
+                        ): ReactElement => {
                             return (
                                 <Fragment>
                                     <TelemetryServiceElement
@@ -171,11 +169,7 @@ const Services: FunctionComponent<PageComponentProps> = (
 
                         getElement: (item: TelemetryService): ReactElement => {
                             return (
-                                <LabelsElement
-                                    labels={
-                                        item['labels'] || []
-                                    }
-                                />
+                                <LabelsElement labels={item['labels'] || []} />
                             );
                         },
                     },

@@ -8,8 +8,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
-import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import OneUptimeDate from 'Common/Types/Date';
@@ -124,7 +122,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Scheduled Maintenance Status',
                         type: FieldType.Text,
 
-                        getElement: (item: ScheduledMaintenanceStateTimeline): ReactElement => {
+                        getElement: (
+                            item: ScheduledMaintenanceStateTimeline
+                        ): ReactElement => {
                             if (!item['scheduledMaintenanceState']) {
                                 throw new BadDataException(
                                     'Scheduled Maintenance Status not found'
@@ -134,10 +134,12 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <Pill
                                     color={
-                                        item.scheduledMaintenanceState.color || Black
+                                        item.scheduledMaintenanceState.color ||
+                                        Black
                                     }
                                     text={
-                                        item.scheduledMaintenanceState.name || 'Unknown'
+                                        item.scheduledMaintenanceState.name ||
+                                        'Unknown'
                                     }
                                 />
                             );
@@ -164,7 +166,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Duration',
                         type: FieldType.Text,
-                        getElement: (item: ScheduledMaintenanceStateTimeline): ReactElement => {
+                        getElement: (
+                            item: ScheduledMaintenanceStateTimeline
+                        ): ReactElement => {
                             return (
                                 <p>
                                     {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(

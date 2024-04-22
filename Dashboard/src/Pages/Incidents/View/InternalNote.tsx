@@ -219,15 +219,12 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
 
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: IncidentInternalNote
+                        ): ReactElement => {
                             return (
                                 <UserElement
-                                    user={
-                                        BaseModel.fromJSON(
-                                            item['createdByUser'] as JSONObject,
-                                            User
-                                        ) as User
-                                    }
+                                    user={item['createdByUser']}
                                     suffix={'wrote'}
                                     usernameClassName={
                                         'text-base text-gray-900'

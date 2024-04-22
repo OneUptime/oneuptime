@@ -9,7 +9,6 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ProjectSMTPConfig from '../../../Components/ProjectSMTPConfig/ProjectSMTPConfig';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import PlaceholderText from 'CommonUI/src/Components/Detail/PlaceholderText';
-import { JSONObject } from 'Common/Types/JSON';
 import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
 import ProjectCallSMSConfigElement from '../../../Components/ProjectCallSMSConfig/ProjectCallSMSConfig';
 
@@ -156,11 +155,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 if (item['smtpConfig']) {
                                     return (
                                         <ProjectSMTPConfig
-                                            smtpConfig={
-                                                item[
-                                                    'smtpConfig'
-                                                ]
-                                            }
+                                            smtpConfig={item['smtpConfig']}
                                         />
                                     );
                                 }
@@ -222,9 +217,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                     return (
                                         <ProjectCallSMSConfigElement
                                             callSmsConfig={
-                                                item[
-                                                    'callSmsConfig'
-                                                ]
+                                                item['callSmsConfig']
                                             }
                                         />
                                     );

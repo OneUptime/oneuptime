@@ -356,7 +356,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                                         {
                                                             item[
                                                                 'paymentProviderSubscriptionSeats'
-                                                            ] 
+                                                            ]
                                                         }{' '}
                                                         users in this project.
                                                     </div>

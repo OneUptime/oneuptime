@@ -5,7 +5,6 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
@@ -75,7 +74,9 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        getElement: (item: ScheduledMaintenanceState): ReactElement => {
+                        getElement: (
+                            item: ScheduledMaintenanceState
+                        ): ReactElement => {
                             return (
                                 <Pill
                                     color={item['color'] as Color}
@@ -91,7 +92,9 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
 
-                        getElement: (item: ScheduledMaintenanceState): ReactElement => {
+                        getElement: (
+                            item: ScheduledMaintenanceState
+                        ): ReactElement => {
                             return (
                                 <div>
                                     <p>{`${item['description']}`}</p>

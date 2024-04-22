@@ -226,14 +226,10 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'Teams who will be notified when incident is triggered.',
                         type: FieldType.Element,
-                        getElement: (item: OnCallDutyEscalationRule): ReactElement => {
-                            return (
-                                <TeamView
-                                    escalationRuleId={
-                                        item.id!
-                                    }
-                                />
-                            );
+                        getElement: (
+                            item: OnCallDutyEscalationRule
+                        ): ReactElement => {
+                            return <TeamView escalationRuleId={item.id!} />;
                         },
                     },
                     {
@@ -244,12 +240,12 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'On call schedules which will be executed when incident is triggered.',
                         type: FieldType.Element,
-                        getElement: (item: OnCallDutyEscalationRule): ReactElement => {
+                        getElement: (
+                            item: OnCallDutyEscalationRule
+                        ): ReactElement => {
                             return (
                                 <OnCallDutyScheduleView
-                                    escalationRuleId={
-                                        item.id!
-                                    }
+                                    escalationRuleId={item.id!}
                                 />
                             );
                         },
@@ -272,14 +268,10 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
                         description:
                             'Users who will be notified when incident is triggered.',
                         type: FieldType.Element,
-                        getElement: (item: OnCallDutyEscalationRule): ReactElement => {
-                            return (
-                                <UserView
-                                    escalationRuleId={
-                                        item.id!
-                                    }
-                                />
-                            );
+                        getElement: (
+                            item: OnCallDutyEscalationRule
+                        ): ReactElement => {
+                            return <UserView escalationRuleId={item.id!} />;
                         },
                     },
                 ]}

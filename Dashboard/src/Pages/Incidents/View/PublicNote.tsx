@@ -249,15 +249,12 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
                         type: FieldType.Entity,
 
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: IncidentPublicNote
+                        ): ReactElement => {
                             return (
                                 <UserElement
-                                    user={
-                                        BaseModel.fromJSON(
-                                            item['createdByUser'] as JSONObject,
-                                            User
-                                        ) as User
-                                    }
+                                    user={item['createdByUser']}
                                     suffix={'wrote'}
                                     usernameClassName={
                                         'text-base text-gray-900'
@@ -300,7 +297,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         title: '',
                         type: FieldType.Boolean,
                         colSpan: 2,
-                        getElement: (item: JSONObject): ReactElement => {
+                        getElement: (
+                            item: IncidentPublicNote
+                        ): ReactElement => {
                             return (
                                 <div className="-mt-5">
                                     <CheckboxViewer

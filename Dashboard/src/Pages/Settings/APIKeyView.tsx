@@ -16,7 +16,6 @@ import ApiKey from 'Model/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
@@ -24,7 +23,6 @@ import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DashboardNavigation from '../../Utils/Navigation';
-import BaseModel from 'Common/Models/BaseModel';
 import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import TeamPermission from 'Model/Models/TeamPermission';
@@ -287,11 +285,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             }
 
                             return (
-                                <LabelsElement
-                                    labels={
-                                        item['labels'] || []
-                                    }
-                                />
+                                <LabelsElement labels={item['labels'] || []} />
                             );
                         },
                     },
