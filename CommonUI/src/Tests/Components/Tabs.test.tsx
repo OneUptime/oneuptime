@@ -7,16 +7,17 @@ import { Tab } from '../../Components/Tabs/Tab';
 describe('Tabs', () => {
     const activeClass: string = 'bg-gray-100 text-gray-700';
 
-    const tabs: Array<Tab> = [
-        {
-            name: 'tab1',
-            children: <div>tab1</div>,
-        },
-        {
-            name: 'tab2',
-            children: <div>tab2</div>,
-        },
-    ];
+    const tab1: Tab = {
+        name: 'tab1',
+        children: <div>tab1 content</div>,
+    };
+
+    const tab2: Tab = {
+        name: 'tab2',
+        children: <div>tab2 content</div>,
+    };
+
+    const tabs: Array<Tab> = [tab1, tab2];
 
     test('it should render all props passed', () => {
         const onTabChange: jest.Mock = jest.fn();
@@ -47,14 +48,10 @@ describe('Tabs', () => {
         );
 
         fireEvent.click(getByText('tab1'));
-        expect(onTabChange).toHaveBeenCalledWith({
-            name: 'tab1',
-        });
+        expect(onTabChange).toHaveBeenCalledWith(tab1);
 
         fireEvent.click(getByText('tab2'));
-        expect(onTabChange).toHaveBeenCalledWith({
-            name: 'tab2',
-        });
+        expect(onTabChange).toHaveBeenCalledWith(tab2);
     });
 
     test('it should show the correct tab as active when a tab is clicked', () => {

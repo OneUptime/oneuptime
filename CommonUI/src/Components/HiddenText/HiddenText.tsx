@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import CopyableButton from '../CopyableButton/CopyableButton';
 
 export interface ComponentProps {
     text: string;
@@ -11,7 +12,6 @@ const HiddenText: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [showText, setShowText] = useState<boolean>(false);
-    const [copiedToClipboard, setCopyToClipboard] = useState<boolean>(false);
 
     if (!showText) {
         return (
@@ -28,7 +28,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div>
+        <div className="flex">
             <div className="flex">
                 <div
                     style={{
@@ -41,28 +41,14 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                 <Icon
                     icon={IconProp.Hide}
                     className="cursor-pointer text-gray-400 h-4 w-4"
+                    data-testid="hide-text-icon"
                     onClick={() => {
                         setShowText(false);
-                        setCopyToClipboard(false);
                     }}
                 />
             </div>
-            {props.isCopyable && (
-                <div>
-                    <span
-                        className="cursor-pointer underline"
-                        onClick={async () => {
-                            setCopyToClipboard(true);
-                            await navigator.clipboard?.writeText(props.text);
-                        }}
-                        role="copy-to-clipboard"
-                    >
-                        {' '}
-                        {copiedToClipboard
-                            ? 'Copied to Clipboard'
-                            : 'Copy to Clipboard'}{' '}
-                    </span>
-                </div>
+            {props.isCopyable && showText && (
+                <CopyableButton textToBeCopied={props.text} />
             )}
         </div>
     );

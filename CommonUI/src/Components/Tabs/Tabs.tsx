@@ -44,7 +44,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
                     })}
                 </nav>
             </div>
-            <div>{currentTab && currentTab.children}</div>
+            <div className="mt-3 ml-1">{currentTab && currentTab.children}</div>
         </div>
     );
 };

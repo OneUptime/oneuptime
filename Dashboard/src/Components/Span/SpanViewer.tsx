@@ -203,13 +203,13 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         key: 'startTime',
                         title: 'Start Time',
                         description: 'The time the span started.',
-                        fieldType: FieldType.Date,
+                        fieldType: FieldType.DateTime,
                     },
                     {
                         key: 'endTime',
                         title: 'End Time',
                         description: 'The time the span ended.',
-                        fieldType: FieldType.Date,
+                        fieldType: FieldType.DateTime,
                     },
                     {
                         key: 'startTimeUnixNano',

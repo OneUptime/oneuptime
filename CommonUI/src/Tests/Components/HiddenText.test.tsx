@@ -39,7 +39,7 @@ describe('tests for HiddenText component', () => {
         await waitFor(() => {
             expect(screen.getByRole('revealed-text')).toBeInTheDocument();
         });
-        expect(screen.queryByRole('icon')).toBeTruthy();
+        expect(screen.getByTestId('hide-text-icon')).toBeTruthy();
     });
 
     test('it should click hidden-text and copy to clipboard', async () => {
@@ -50,11 +50,9 @@ describe('tests for HiddenText component', () => {
             expect(screen.getByRole('revealed-text')).toBeInTheDocument();
         });
 
-        expect(screen.getByRole('copy-to-clipboard')).toHaveTextContent(
-            'Copy to Clipboard'
-        );
+        expect(screen.getByTestId('copy-to-clipboard-icon')).toBeTruthy();
 
-        const copy: HTMLElement = screen.getByRole('copy-to-clipboard');
+        const copy: HTMLElement = screen.getByTestId('copy-to-clipboard-icon');
         fireEvent.click(copy);
 
         await waitFor(() => {

@@ -19,6 +19,7 @@ import FieldLabelElement from './FieldLabel';
 import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 import Dictionary from 'Common/Types/Dictionary';
 import GenericObject from 'Common/Types/GenericObject';
+import CopyableButton from '../CopyableButton/CopyableButton';
 
 export interface ComponentProps<T extends GenericObject> {
     item: T;
@@ -346,9 +347,18 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
                     {data && (
-                        <span className={`${field.contentClassName} w-full`}>
-                            {data}
-                        </span>
+                        <div
+                            className={`${field.contentClassName} w-full flex`}
+                        >
+                            <div>{data}</div>
+
+                            {field.opts?.isCopyable &&
+                                field.fieldType !== FieldType.HiddenText && (
+                                    <CopyableButton
+                                        textToBeCopied={data.toString()}
+                                    />
+                                )}
+                        </div>
                     )}
                     {!data && field.placeholder && (
                         <PlaceholderText text={field.placeholder} />
