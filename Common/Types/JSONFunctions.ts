@@ -44,7 +44,7 @@ export default class JSONFunctions {
 
             let currentObj: JSONObject = result;
 
-            for (let i = 0; i < keys.length; i++) {
+            for (let i: number = 0; i < keys.length; i++) {
                 const k: string | undefined = keys[i];
 
                 if (!k) {
