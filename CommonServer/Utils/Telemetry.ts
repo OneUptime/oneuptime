@@ -8,9 +8,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import {
     BatchLogRecordProcessor,
-    ConsoleLogRecordExporter,
     LoggerProvider,
-    SimpleLogRecordProcessor,
 } from '@opentelemetry/sdk-logs';
 import URL from 'Common/Types/API/URL';
 import { SpanExporter } from '@opentelemetry/sdk-trace-node';
@@ -134,10 +132,6 @@ export default class Telemetry {
                     new BatchLogRecordProcessor(logExporter)
                 );
             }
-
-            loggerProvider.addLogRecordProcessor(
-                new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())
-            );
 
             logs.setGlobalLoggerProvider(loggerProvider);
 

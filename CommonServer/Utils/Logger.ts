@@ -21,6 +21,9 @@ export default class logger {
             LogLevel === ConfigLogLevel.DEBUG ||
             LogLevel === ConfigLogLevel.INFO
         ) {
+            // eslint-disable-next-line no-console
+            console.info(message);
+
             this.emit({
                 body: message,
                 severityNumber: SeverityNumber.INFO,
@@ -35,6 +38,9 @@ export default class logger {
             LogLevel === ConfigLogLevel.WARN ||
             LogLevel === ConfigLogLevel.ERROR
         ) {
+            // eslint-disable-next-line no-console
+            console.error(message);
+
             this.emit({
                 body: message,
                 severityNumber: SeverityNumber.ERROR,
@@ -48,6 +54,9 @@ export default class logger {
             LogLevel === ConfigLogLevel.INFO ||
             LogLevel === ConfigLogLevel.WARN
         ) {
+            // eslint-disable-next-line no-console
+            console.warn(message);
+
             this.emit({
                 body: message,
                 severityNumber: SeverityNumber.WARN,
@@ -57,6 +66,9 @@ export default class logger {
 
     public static debug(message: LogBody): void {
         if (LogLevel === ConfigLogLevel.DEBUG) {
+            // eslint-disable-next-line no-console
+            console.debug(message);
+
             this.emit({
                 body: message,
                 severityNumber: SeverityNumber.DEBUG,
