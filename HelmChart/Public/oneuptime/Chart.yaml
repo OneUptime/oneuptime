@@ -35,7 +35,7 @@ annotations:
 
 dependencies:
 - name: postgresql
-  version: "15.2.5"
+  version: "15.0.0"
   repository: "https://charts.bitnami.com/bitnami"
 - name: redis
   version: "19.1.2"
