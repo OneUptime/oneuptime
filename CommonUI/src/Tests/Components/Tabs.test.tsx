@@ -9,12 +9,12 @@ describe('Tabs', () => {
 
     const tab1: Tab = {
         name: 'tab1',
-        children: <div>tab1 content</div>,
+        children: <div>tab 1 content</div>,
     };
 
     const tab2: Tab = {
         name: 'tab2',
-        children: <div>tab2 content</div>,
+        children: <div>tab 2 content</div>,
     };
 
     const tabs: Array<Tab> = [tab1, tab2];
@@ -22,65 +22,65 @@ describe('Tabs', () => {
     test('it should render all props passed', () => {
         const onTabChange: jest.Mock = jest.fn();
 
-        const { getByText } = render(
+        const { getByTestId } = render(
             <Tabs tabs={tabs} onTabChange={onTabChange} />
         );
 
-        expect(getByText('tab1')).toBeInTheDocument();
-        expect(getByText('tab2')).toBeInTheDocument();
+        expect(getByTestId('tab-tab1')).toBeInTheDocument();
+        expect(getByTestId('tab-tab2')).toBeInTheDocument();
     });
 
     test('it should render the first tab as active by default', () => {
         const onTabChange: jest.Mock = jest.fn();
 
-        const { getByText } = render(
+        const { getByTestId } = render(
             <Tabs tabs={tabs} onTabChange={onTabChange} />
         );
 
-        expect(getByText('tab1')).toHaveClass(activeClass);
+        expect(getByTestId('tab-tab1')).toHaveClass(activeClass);
     });
 
     test('it should call onTabChange with the correct tab when a tab is clicked', () => {
         const onTabChange: jest.Mock = jest.fn();
 
-        const { getByText } = render(
+        const { getByTestId } = render(
             <Tabs tabs={tabs} onTabChange={onTabChange} />
         );
 
-        fireEvent.click(getByText('tab1'));
+        fireEvent.click(getByTestId('tab-tab1'));
         expect(onTabChange).toHaveBeenCalledWith(tab1);
 
-        fireEvent.click(getByText('tab2'));
+        fireEvent.click(getByTestId('tab-tab2'));
         expect(onTabChange).toHaveBeenCalledWith(tab2);
     });
 
     test('it should show the correct tab as active when a tab is clicked', () => {
         const onTabChange: jest.Mock = jest.fn();
 
-        const { getByText } = render(
+        const { getByTestId } = render(
             <Tabs tabs={tabs} onTabChange={onTabChange} />
         );
 
-        fireEvent.click(getByText('tab2'));
+        fireEvent.click(getByTestId('tab-tab2'));
 
-        expect(getByText('tab1')).not.toHaveClass(activeClass);
-        expect(getByText('tab2')).toHaveClass(activeClass);
+        expect(getByTestId('tab-tab1')).not.toHaveClass(activeClass);
+        expect(getByTestId('tab-tab2')).toHaveClass(activeClass);
     });
 
     test('it should handle empty tabs array gracefully', () => {
         const tabs: Array<Tab> = [];
         const onTabChange: jest.Mock = jest.fn();
 
-        const { getByText } = render(
+        const { getByTestId } = render(
             <Tabs tabs={tabs} onTabChange={onTabChange} />
         );
 
         expect(() => {
-            return getByText('tab1');
+            return getByTestId('tab-tab1');
         }).toThrow();
 
         expect(() => {
-            return getByText('tab2');
+            return getByTestId('tab-tab2');
         }).toThrow();
     });
 });

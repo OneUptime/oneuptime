@@ -28,6 +28,7 @@ const TabElement: FunctionComponent<ComponentProps> = (
     return (
         <div className="mt-3 mb-3">
             <div
+                data-testid={`tab-${props.tab.name}`}
                 key={props.tab.name}
                 onClick={props.onClick}
                 className={`${
