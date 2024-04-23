@@ -26,6 +26,7 @@ import CodeType from 'Common/Types/Code/CodeType';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
 import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
+import { TabType } from 'CommonUI/src/Components/Tabs/Tab';
 
 export interface ComponentProps {
     id: string;
@@ -288,9 +289,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             (event: SpanEvent) => {
                 if (eventType === SpanEventType.Exception) {
                     // name of the event is exception
-                    return event.name === SpanEventType.Exception;
+                    return event.name === SpanEventType.Exception.toLowerCase();
                 }
-                return event.name !== SpanEventType.Exception;
+                return event.name !== SpanEventType.Exception.toLowerCase();
             }
         );
 
@@ -303,6 +304,12 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             return <ErrorMessage error="No events found for this span." />;
         }
 
+        let bgColorClassName: string = 'bg-indigo-500';
+
+        if (eventType === SpanEventType.Exception) {
+            bgColorClassName = 'bg-red-500';
+        }
+
         return (
             <AccordionGroup>
                 {eventsToShow.map((event: SpanEvent, index: number) => {
@@ -312,7 +319,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                             title={
                                 <div className="flex space-x-2">
                                     <div className="flex space-x-2">
-                                        <div className="rounded-md bg-indigo-500 text-white p-1 text-xs font-semibold">
+                                        <div
+                                            className={`rounded-md text-white p-1 text-xs font-semibold ${bgColorClassName}`}
+                                        >
                                             {eventType}: {index + 1}
                                         </div>
                                         <div className="flex space-x-1">
@@ -523,6 +532,8 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                     {
                         name: 'Logs',
                         children: getLogsContentElement(),
+                        countBadge: logs.length,
+                        tabType: TabType.Info,
                     },
                     {
                         name: 'Attributes',
@@ -531,10 +542,24 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                     {
                         name: 'Events',
                         children: getEventsContentElement(),
+                        countBadge: span?.events?.filter((event: SpanEvent) => {
+                            return (
+                                event.name !==
+                                SpanEventType.Exception.toLowerCase()
+                            );
+                        }).length,
+                        tabType: TabType.Info,
                     },
                     {
                         name: 'Exceptions',
                         children: getExceptionsContentElement(),
+                        tabType: TabType.Error,
+                        countBadge: span?.events?.filter((event: SpanEvent) => {
+                            return (
+                                event.name ===
+                                SpanEventType.Exception.toLowerCase()
+                            );
+                        }).length,
                     },
                 ]}
                 onTabChange={() => {}}
