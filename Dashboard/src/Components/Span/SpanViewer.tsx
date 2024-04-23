@@ -11,7 +11,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import Span, { SpanEvent } from 'Model/AnalyticsModels/Span';
+import Span, { SpanEvent, SpanEventType } from 'Model/AnalyticsModels/Span';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import Tabs from 'CommonUI/src/Components/Tabs/Tabs';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
@@ -275,15 +275,36 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const getEventsContentElement: GetReactElementFunction =
-        (): ReactElement => {
-            if (!span?.events || span.events.length === 0) {
-                return <ErrorMessage error="No events found for this span." />;
+    const getEventsContentElement: GetReactElementFunction = (): ReactElement => {
+        return getEvents(SpanEventType.Event);
+    }
+
+    type GetEventsFunction = (eventType: SpanEventType) => ReactElement;
+    const getEvents: GetEventsFunction=
+        (eventType: SpanEventType): ReactElement => {
+
+
+            const eventsToShow  = span?.events?.filter((event: SpanEvent) => {
+                if(eventType === SpanEventType.Exception) {
+                    // name of the event is exception
+                    return event.name === SpanEventType.Exception;
+                }else{
+                    return event.name !== SpanEventType.Exception;
+                }
+            });
+
+            if (!eventsToShow || eventsToShow.length === 0) {
+
+                if(eventType === SpanEventType.Exception) {
+                    return <ErrorMessage error="No exceptions found for this span." />;
+                }else{
+                    return <ErrorMessage error="No events found for this span." />;
+                }
             }
 
             return (
                 <AccordionGroup>
-                    {span.events.map((event: SpanEvent, index: number) => {
+                    {eventsToShow.map((event: SpanEvent, index: number) => {
                         return (
                             <Accordion
                                 titleClassName="text-sm"
@@ -325,9 +346,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             );
         };
 
-    const getErrorsContentElement: GetReactElementFunction =
+    const getExceptionsContentElement: GetReactElementFunction =
         (): ReactElement => {
-            return <div>Coming Soon</div>;
+            return getEvents(SpanEventType.Exception);
         };
 
     const getBasicInfo: GetReactElementFunction = (): ReactElement => {
@@ -511,8 +532,8 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                         children: getEventsContentElement(),
                     },
                     {
-                        name: 'Errors',
-                        children: getErrorsContentElement(),
+                        name: 'Exceptions',
+                        children: getExceptionsContentElement(),
                     },
                 ]}
                 onTabChange={() => {}}

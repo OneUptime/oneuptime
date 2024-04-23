@@ -15,6 +15,12 @@ export enum SpanKind {
     Internal = 'SPAN_KIND_INTERNAL',
 }
 
+
+export enum SpanEventType {
+    Exception = 'Exception',
+    Event = 'Event',
+}
+
 export enum SpanStatus {
     Unset = 0,
     Ok = 1,
