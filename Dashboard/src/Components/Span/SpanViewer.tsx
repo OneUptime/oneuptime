@@ -275,76 +275,77 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const getEventsContentElement: GetReactElementFunction = (): ReactElement => {
-        return getEvents(SpanEventType.Event);
-    }
+    const getEventsContentElement: GetReactElementFunction =
+        (): ReactElement => {
+            return getEvents(SpanEventType.Event);
+        };
 
     type GetEventsFunction = (eventType: SpanEventType) => ReactElement;
-    const getEvents: GetEventsFunction=
-        (eventType: SpanEventType): ReactElement => {
-
-
-            const eventsToShow  = span?.events?.filter((event: SpanEvent) => {
-                if(eventType === SpanEventType.Exception) {
+    const getEvents: GetEventsFunction = (
+        eventType: SpanEventType
+    ): ReactElement => {
+        const eventsToShow: SpanEvent[] | undefined = span?.events?.filter(
+            (event: SpanEvent) => {
+                if (eventType === SpanEventType.Exception) {
                     // name of the event is exception
                     return event.name === SpanEventType.Exception;
-                }else{
-                    return event.name !== SpanEventType.Exception;
                 }
-            });
-
-            if (!eventsToShow || eventsToShow.length === 0) {
-
-                if(eventType === SpanEventType.Exception) {
-                    return <ErrorMessage error="No exceptions found for this span." />;
-                }else{
-                    return <ErrorMessage error="No events found for this span." />;
-                }
+                return event.name !== SpanEventType.Exception;
             }
+        );
 
-            return (
-                <AccordionGroup>
-                    {eventsToShow.map((event: SpanEvent, index: number) => {
-                        return (
-                            <Accordion
-                                titleClassName="text-sm"
-                                title={
+        if (!eventsToShow || eventsToShow.length === 0) {
+            if (eventType === SpanEventType.Exception) {
+                return (
+                    <ErrorMessage error="No exceptions found for this span." />
+                );
+            }
+            return <ErrorMessage error="No events found for this span." />;
+        }
+
+        return (
+            <AccordionGroup>
+                {eventsToShow.map((event: SpanEvent, index: number) => {
+                    return (
+                        <Accordion
+                            titleClassName="text-sm"
+                            title={
+                                <div className="flex space-x-2">
                                     <div className="flex space-x-2">
-                                        <div className="flex space-x-2">
-                                            <div className="rounded-md bg-indigo-500 text-white p-1 text-xs font-semibold">
-                                                Event: {index + 1}
+                                        <div className="rounded-md bg-indigo-500 text-white p-1 text-xs font-semibold">
+                                            {eventType}: {index + 1}
+                                        </div>
+                                        <div className="flex space-x-1">
+                                            <div className="mt-0.5 font-medium">
+                                                {event.name}
                                             </div>
-                                            <div className="flex space-x-1">
-                                                <div className="mt-0.5 font-medium">
-                                                    {event.name}
-                                                </div>
-                                                <div className="text-gray-500 mt-0.5">
-                                                    {' '}
-                                                    at{' '}
-                                                    {SpanUtil.getSpanEventTimeAsString(
-                                                        {
-                                                            timelineStartTimeUnixNano:
-                                                                props.traceStartTimeInUnixNano,
-                                                            divisibilityFactor:
-                                                                props.divisibilityFactor,
-                                                            spanEventTimeUnixNano:
-                                                                event.timeUnixNano!,
-                                                        }
-                                                    )}
-                                                </div>
+                                            <div className="text-gray-500 mt-0.5">
+                                                {' '}
+                                                at{' '}
+                                                {SpanUtil.getSpanEventTimeAsString(
+                                                    {
+                                                        timelineStartTimeUnixNano:
+                                                            props.traceStartTimeInUnixNano,
+                                                        divisibilityFactor:
+                                                            props.divisibilityFactor,
+                                                        spanEventTimeUnixNano:
+                                                            event.timeUnixNano!,
+                                                    }
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                }
-                                key={index}
-                            >
-                                {getEventContentElement(event)}
-                            </Accordion>
-                        );
-                    })}
-                </AccordionGroup>
-            );
-        };
+                                </div>
+                            }
+                            key={index}
+                        >
+                            {getEventContentElement(event)}
+                        </Accordion>
+                    );
+                })}
+            </AccordionGroup>
+        );
+    };
 
     const getExceptionsContentElement: GetReactElementFunction =
         (): ReactElement => {
