@@ -9,7 +9,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
 
 export interface ComponentProps {
-    title?: string | undefined;
+    title?: string | ReactElement | undefined;
     description?: string | undefined;
     onClose?: undefined | (() => void);
     onClick?: (() => void) | undefined;
