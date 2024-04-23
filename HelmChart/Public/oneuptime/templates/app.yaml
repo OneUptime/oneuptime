@@ -43,7 +43,7 @@ spec:
           name: {{ printf "%s-%s" $.Release.Name "app"  }}
           volumeMounts:
             - name: greenlockrc
-              mountPath: "/usr/src/app/greenlock/.greenlockrc"
+              mountPath: "/usr/src/app/greenlock"
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}
