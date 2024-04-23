@@ -23,7 +23,7 @@ const router: ExpressRouter = Express.getRouter();
 
 const greenlock: any = Greenlock.create({
     configFile: '/usr/src/app/FeatureSet/Workers/greenlockrc',
-    packageRoot: `/usr/src/app`,
+    packageRoot: `/usr/src/app/greenlock`,
     manager: '/usr/src/app/FeatureSet/Workers/Utils/Greenlock/Manager.ts',
     approveDomains: async (opts: any) => {
         const domain: StatusPageDomain | null =

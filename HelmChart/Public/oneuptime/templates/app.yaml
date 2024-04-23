@@ -22,6 +22,10 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
+      volumes:
+        - name: greenlockrc
+          emptyDir:
+            sizeLimit: "1Gi"
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
@@ -37,6 +41,9 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "app" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "app"  }}
+          volumeMounts:
+            - name: greenlockrc
+              mountPath: "/usr/src/app/greenlock/.greenlockrc"
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}

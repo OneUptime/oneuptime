@@ -108,3 +108,6 @@ InfrastructureAgent/build/*
 InfrastructureAgent/err.log
 InfrastructureAgent/out.log
 InfrastructureAgent/daemon.pid
+App/greenlock/.greenlockrc
+App/greenlock/greenlock.d/config.json
+App/greenlock/greenlock.d/config.json.bak
