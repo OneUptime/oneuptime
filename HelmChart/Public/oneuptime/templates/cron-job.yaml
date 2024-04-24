@@ -6,7 +6,7 @@ metadata:
   labels: 
     appname: oneuptime
 spec:
-  schedule: "*/2 * * * *" # At every 2nd minute.
+  schedule: "*/5 * * * *" # At every 5 minute.
   jobTemplate:
     spec:
       template:
