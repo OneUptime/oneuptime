@@ -6,6 +6,7 @@ import Express, {
 import LocalCache from '../Infrastructure/LocalCache';
 import Response from '../Utils/Response';
 import ServerException from 'Common/Types/Exception/ServerException';
+import logger from '../Utils/Logger';
 
 export interface StatusAPIOptions {
     readyCheck: () => Promise<void>;
@@ -33,6 +34,7 @@ export default class StatusAPI {
             '/status/ready',
             async (req: ExpressRequest, res: ExpressResponse) => {
                 try {
+                    logger.info('Ready check');
                     await options.readyCheck();
                     Response.sendEmptyResponse(req, res);
                 } catch (e) {
@@ -50,6 +52,7 @@ export default class StatusAPI {
             '/status/live',
             async (req: ExpressRequest, res: ExpressResponse) => {
                 try {
+                    logger.info('Live check');
                     await options.readyCheck();
                     Response.sendEmptyResponse(req, res);
                 } catch (e) {

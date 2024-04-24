@@ -41,6 +41,22 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "app" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "app"  }}
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.port.app }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 30
+          # Readyness Probe
+          readinessProbe:
+            httpGet:
+              path: /status/ready
+              port: {{ $.Values.port.app }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 30
           volumeMounts:
             - name: greenlockrc
               mountPath: "/usr/src/app/greenlock"
