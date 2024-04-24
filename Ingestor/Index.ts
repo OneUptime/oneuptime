@@ -15,6 +15,7 @@ import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import Realtime from 'CommonServer/Utils/Realtime';
 import ServerMonitorAPI from './API/ServerMonitor';
+import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -31,8 +32,22 @@ app.use([`/${APP_NAME}`, '/'], ServerMonitorAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
+        const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
+            return await InfrastructureStatus.checkStatus({
+                checkClickhouseStatus: true,
+                checkPostgresStatus: true,
+                checkRedisStatus: true,
+            });
+        };
+
         // init the app
-        await App(APP_NAME);
+        await App({
+            appName: APP_NAME,
+            statusOptions: {
+                liveCheck: statusCheck,
+                readyCheck: statusCheck,
+            },
+        });
 
         // connect to the database.
         await PostgresAppInstance.connect(
@@ -46,7 +61,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             ClickhouseAppInstance.getDatasourceOptions()
         );
 
-        Realtime.init();
+        await Realtime.init();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

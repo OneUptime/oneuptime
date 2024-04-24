@@ -2,28 +2,66 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
+    NextFunction,
 } from '../Utils/Express';
 import LocalCache from '../Infrastructure/LocalCache';
 
-const router: ExpressRouter = Express.getRouter();
+export interface StatusAPIOptions {
+    readyCheck: () => Promise<void>;
+    liveCheck: () => Promise<void>;
+}
 
-router.get('/app-name', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.send({ app: LocalCache.getString('app', 'name') });
-});
+export default class StatusAPI {
+    public static init(options: StatusAPIOptions): ExpressRouter {
+        const router: ExpressRouter = Express.getRouter();
 
-// General status
-router.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.send({ status: 'ok' });
-});
+        router.get(
+            '/app-name',
+            (_req: ExpressRequest, res: ExpressResponse) => {
+                res.send({ app: LocalCache.getString('app', 'name') });
+            }
+        );
 
-//Healthy probe
-router.get('/status/healthy', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.send({ status: 'healthy' });
-});
+        // General status
+        router.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
+            res.send({ status: 'ok' });
+        });
 
-//Liveness probe
-router.get('/status/live', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.send({ status: 'live' });
-});
+        //Healthy probe
+        router.get(
+            '/status/ready',
+            async (
+                _req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await options.readyCheck();
 
-export default router;
+                    res.send({ status: 'ready' });
+                } catch (e) {
+                    next(e);
+                }
+            }
+        );
+
+        //Liveness probe
+        router.get(
+            '/status/live',
+            async (
+                _req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await options.liveCheck();
+                    res.send({ status: 'live' });
+                } catch (e) {
+                    next(e);
+                }
+            }
+        );
+
+        return router;
+    }
+}

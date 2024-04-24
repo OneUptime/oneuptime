@@ -14,7 +14,15 @@ app.use([`/${APP_NAME}`, '/'], VmAPI);
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME);
+        await App({
+            appName: APP_NAME,
+            port: undefined,
+            isFrontendApp: false,
+            statusOptions: {
+                liveCheck: async () => {},
+                readyCheck: async () => {},
+            },
+        });
         logger.info('App Init Success');
     } catch (err) {
         logger.error('App Init Failed:');

@@ -16,7 +16,15 @@ app.use([`/${APP_NAME}`, '/'], SettingsAPI);
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME);
+        await App({
+            appName: APP_NAME,
+            port: undefined,
+            isFrontendApp: false,
+            statusOptions: {
+                liveCheck: async () => {},
+                readyCheck: async () => {},
+            },
+        });
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

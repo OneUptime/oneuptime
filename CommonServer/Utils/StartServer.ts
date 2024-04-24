@@ -28,6 +28,7 @@ import ServerException from 'Common/Types/Exception/ServerException';
 import zlib from 'zlib';
 import CookieParser from 'cookie-parser';
 import { api } from '@opentelemetry/sdk-node';
+import { StatusAPIOptions } from '../API/StatusAPI';
 
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
@@ -128,22 +129,31 @@ app.use((_req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
     next();
 });
 
+export interface InitFuctionOptions {
+    appName: string;
+    port?: Port | undefined;
+    isFrontendApp?: boolean;
+    statusOptions: StatusAPIOptions;
+}
+
 type InitFunction = (
-    appName: string,
-    port?: Port,
-    isFrontendApp?: boolean
+    options: InitFuctionOptions
 ) => Promise<ExpressApplication>;
 
 const init: InitFunction = async (
-    appName: string,
-    port?: Port,
-    isFrontendApp?: boolean
+    data: InitFuctionOptions
 ): Promise<ExpressApplication> => {
+    const { appName, port, isFrontendApp = false } = data;
+
     logger.info(`App Version: ${AppVersion.toString()}`);
 
     await Express.launchApplication(appName, port);
     LocalCache.setString('app', 'name', appName);
-    CommonAPI(appName);
+
+    CommonAPI({
+        appName,
+        statusOptions: data.statusOptions,
+    });
 
     if (isFrontendApp) {
         app.use(ExpressStatic('/usr/src/app/public'));

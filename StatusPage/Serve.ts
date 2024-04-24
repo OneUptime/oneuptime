@@ -8,7 +8,15 @@ const app: ExpressApplication = Express.getExpressApp();
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME, undefined, true);
+        await App({
+            appName: APP_NAME,
+            port: undefined,
+            isFrontendApp: true,
+            statusOptions: {
+                liveCheck: async () => {},
+                readyCheck: async () => {},
+            },
+        });
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

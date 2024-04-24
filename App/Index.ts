@@ -18,13 +18,28 @@ import APIReferenceRoutes from './FeatureSet/ApiReference/Index';
 import Workers from './FeatureSet/Workers/Index';
 import Workflow from './FeatureSet/Workflow/Index';
 import HomeRoutes from './FeatureSet/Home/Index';
+import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
 
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
+        const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
+            return await InfrastructureStatus.checkStatus({
+                checkClickhouseStatus: true,
+                checkPostgresStatus: true,
+                checkRedisStatus: true,
+            });
+        };
+
         // init the app
-        await App(process.env['SERVICE_NAME'] || 'app');
+        await App({
+            appName: process.env['SERVICE_NAME'] || 'app',
+            statusOptions: {
+                liveCheck: statusCheck,
+                readyCheck: statusCheck,
+            },
+        });
 
         // connect to the database.
         await PostgresAppInstance.connect(
@@ -38,17 +53,17 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             ClickhouseAppInstance.getDatasourceOptions()
         );
 
-        Realtime.init();
+        await Realtime.init();
 
         // init featuresets
-        IdentityRoutes.init();
-        NotificationRoutes.init();
-        DocsRoutes.init();
-        BaseAPIRoutes.init();
-        APIReferenceRoutes.init();
+        await IdentityRoutes.init();
+        await NotificationRoutes.init();
+        await DocsRoutes.init();
+        await BaseAPIRoutes.init();
+        await APIReferenceRoutes.init();
 
         // home should be in the end because it has the catch all route.
-        HomeRoutes.init();
+        await HomeRoutes.init();
 
         // init workers
         await Workers.init();

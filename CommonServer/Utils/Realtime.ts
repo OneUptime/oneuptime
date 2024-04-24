@@ -22,7 +22,7 @@ export default abstract class Realtime {
         return this.socketServer !== null;
     }
 
-    public static init(): SocketServer | null {
+    public static async init(): Promise<SocketServer | null> {
         if (!this.socketServer) {
             this.socketServer = IO.getSocketServer();
             logger.info('Realtime socket server initialized');
@@ -87,7 +87,7 @@ export default abstract class Realtime {
         data: ListenToModelEventJSON
     ): Promise<void> {
         if (!this.socketServer) {
-            this.init();
+            await this.init();
         }
 
         const roomId: string = RealtimeUtil.getRoomId(
@@ -105,7 +105,7 @@ export default abstract class Realtime {
         data: ListenToModelEventJSON
     ): Promise<void> {
         if (!this.socketServer) {
-            this.init();
+            await this.init();
         }
 
         // leave this room.
@@ -125,7 +125,7 @@ export default abstract class Realtime {
         modelType: { new (): BaseModel | AnalyticsBaseModel };
     }): Promise<void> {
         if (!this.socketServer) {
-            this.init();
+            await this.init();
         }
 
         let jsonObject: JSONObject = {};

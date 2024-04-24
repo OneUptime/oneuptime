@@ -13,7 +13,15 @@ const APP_NAME: string = 'probe';
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME);
+        await App({
+            appName: APP_NAME,
+            port: undefined,
+            isFrontendApp: false,
+            statusOptions: {
+                liveCheck: async () => {},
+                readyCheck: async () => {},
+            },
+        });
 
         try {
             // Register this probe.

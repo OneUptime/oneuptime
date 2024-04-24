@@ -9,7 +9,15 @@ const APP_NAME: string = 'ingress';
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME);
+        await App({
+            appName: APP_NAME,
+            port: undefined,
+            isFrontendApp: false,
+            statusOptions: {
+                liveCheck: async () => {},
+                readyCheck: async () => {},
+            },
+        });
 
         // connect to the database.
         await PostgresAppInstance.connect(

@@ -1,14 +1,19 @@
 import version from './VersionAPI';
-import status from './StatusAPI';
+import StatusAPI, { StatusAPIOptions } from './StatusAPI';
 import Express, { ExpressApplication } from '../Utils/Express';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-type InitFunction = (appName: string) => void;
+export interface InitOptions {
+    appName: string;
+    statusOptions: StatusAPIOptions;
+}
 
-const init: InitFunction = (appName: string): void => {
-    app.use([`/${appName}`, '/'], version);
-    app.use([`/${appName}`, '/'], status);
+type InitFunction = (data: InitOptions) => void;
+
+const init: InitFunction = (data: InitOptions): void => {
+    app.use([`/${data.appName}`, '/'], version);
+    app.use([`/${data.appName}`, '/'], StatusAPI.init(data.statusOptions));
 };
 
 export default init;
