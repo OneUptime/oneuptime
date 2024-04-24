@@ -126,7 +126,7 @@ export default abstract class Redis {
     public static async checkConnnectionStatus(): Promise<boolean> {
         // Ping redis to check if the connection is still alive
         try {
-            const result: "PONG" | undefined = await this.client?.ping();
+            const result: 'PONG' | undefined = await this.client?.ping();
 
             if (result !== 'PONG') {
                 return false;

@@ -2,9 +2,10 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
-    NextFunction,
 } from '../Utils/Express';
 import LocalCache from '../Infrastructure/LocalCache';
+import Response from '../Utils/Response';
+import ServerException from 'Common/Types/Exception/ServerException';
 
 export interface StatusAPIOptions {
     readyCheck: () => Promise<void>;
@@ -23,25 +24,23 @@ export default class StatusAPI {
         );
 
         // General status
-        router.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
-            res.send({ status: 'ok' });
+        router.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
+            Response.sendEmptyResponse(req, res);
         });
 
         //Healthy probe
         router.get(
             '/status/ready',
-            async (
-                _req: ExpressRequest,
-                res: ExpressResponse,
-                next: NextFunction
-            ) => {
+            async (req: ExpressRequest, res: ExpressResponse) => {
                 try {
-                    debugger;
                     await options.readyCheck();
-
-                    res.send({ status: 'ready' });
+                    Response.sendEmptyResponse(req, res);
                 } catch (e) {
-                    next(e);
+                    Response.sendErrorResponse(
+                        req,
+                        res,
+                        new ServerException('Server is not ready')
+                    );
                 }
             }
         );
@@ -49,16 +48,16 @@ export default class StatusAPI {
         //Liveness probe
         router.get(
             '/status/live',
-            async (
-                _req: ExpressRequest,
-                res: ExpressResponse,
-                next: NextFunction
-            ) => {
+            async (req: ExpressRequest, res: ExpressResponse) => {
                 try {
-                    await options.liveCheck();
-                    res.send({ status: 'live' });
+                    await options.readyCheck();
+                    Response.sendEmptyResponse(req, res);
                 } catch (e) {
-                    next(e);
+                    Response.sendErrorResponse(
+                        req,
+                        res,
+                        new ServerException('Server is not live')
+                    );
                 }
             }
         );

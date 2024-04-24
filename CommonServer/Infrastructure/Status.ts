@@ -12,7 +12,7 @@ export default class InfrastructureStatus {
         checkClickhouseStatus: boolean;
     }): Promise<void> {
         if (data.checkRedisStatus) {
-            if (!Redis.checkConnnectionStatus()) {
+            if (!(await Redis.checkConnnectionStatus())) {
                 throw new DatabaseNotConnectedException(
                     'Redis is not connected'
                 );
@@ -20,7 +20,7 @@ export default class InfrastructureStatus {
         }
 
         if (data.checkPostgresStatus) {
-            if (!PostgresAppInstance.checkConnnectionStatus()) {
+            if (!(await PostgresAppInstance.checkConnnectionStatus())) {
                 throw new DatabaseNotConnectedException(
                     'Postgres is not connected'
                 );
@@ -28,7 +28,7 @@ export default class InfrastructureStatus {
         }
 
         if (data.checkClickhouseStatus) {
-            if (!ClickhouseAppInstance.checkConnnectionStatus()) {
+            if (!(await ClickhouseAppInstance.checkConnnectionStatus())) {
                 throw new DatabaseNotConnectedException(
                     'Clickhouse is not connected'
                 );
