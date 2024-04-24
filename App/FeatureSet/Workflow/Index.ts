@@ -19,9 +19,6 @@ const APP_NAME: string = 'api/workflow';
 const WorkflowFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
         try {
-            const componentCodeAPI: ComponentCodeAPI = new ComponentCodeAPI();
-            componentCodeAPI.init();
-
             const app: ExpressApplication = Express.getExpressApp();
 
             app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
@@ -37,6 +34,9 @@ const WorkflowFeatureSet: FeatureSet = {
                     );
                 }
             );
+
+            const componentCodeAPI: ComponentCodeAPI = new ComponentCodeAPI();
+            componentCodeAPI.init();
 
             app.use(`/${APP_NAME}`, componentCodeAPI.router);
 

@@ -61,15 +61,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         await DocsRoutes.init();
         await BaseAPIRoutes.init();
         await APIReferenceRoutes.init();
+        await Workers.init();
+        await Workflow.init();
 
         // home should be in the end because it has the catch all route.
         await HomeRoutes.init();
-
-        // init workers
-        await Workers.init();
-
-        // init workflow
-        await Workflow.init();
 
         // add default routes
         await App.addDefaultRoutes();
