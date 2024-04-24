@@ -252,6 +252,10 @@ const init: InitFunction = async (
         }
     );
 
+    return app;
+};
+
+const addDefaultRoutes = async (): Promise<void> => {
     app.post('*', (req: ExpressRequest, res: ExpressResponse) => {
         return Response.sendErrorResponse(
             req,
@@ -283,8 +287,6 @@ const init: InitFunction = async (
             new NotFoundException('Not found')
         );
     });
-
-    return app;
 };
 
-export default init;
+export default { init, addDefaultRoutes };

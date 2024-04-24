@@ -33,7 +33,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         };
 
         // init the app
-        await App({
+        await App.init({
             appName: process.env['SERVICE_NAME'] || 'app',
             statusOptions: {
                 liveCheck: statusCheck,
@@ -70,6 +70,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
         // init workflow
         await Workflow.init();
+
+        // add default routes
+        await App.addDefaultRoutes();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

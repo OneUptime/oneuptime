@@ -13,7 +13,7 @@ const APP_NAME: string = 'probe';
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App({
+        await App.init({
             appName: APP_NAME,
             port: undefined,
             isFrontendApp: false,
@@ -22,6 +22,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
                 readyCheck: async () => {},
             },
         });
+
+        // add default routes
+        await App.addDefaultRoutes();
 
         try {
             // Register this probe.

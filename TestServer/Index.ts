@@ -16,7 +16,7 @@ app.use([`/${APP_NAME}`, '/'], SettingsAPI);
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         // init the app
-        await App({
+        await App.init({
             appName: APP_NAME,
             port: undefined,
             isFrontendApp: false,
@@ -25,6 +25,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
                 readyCheck: async () => {},
             },
         });
+
+        // add default routes
+        await App.addDefaultRoutes();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

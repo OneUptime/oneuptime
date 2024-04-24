@@ -41,7 +41,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         };
 
         // init the app
-        await App({
+        await App.init({
             appName: APP_NAME,
             statusOptions: {
                 liveCheck: statusCheck,
@@ -62,6 +62,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         );
 
         await Realtime.init();
+
+        // add default routes
+        await App.addDefaultRoutes();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
