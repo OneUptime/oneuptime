@@ -29,6 +29,7 @@ import zlib from 'zlib';
 import CookieParser from 'cookie-parser';
 import { api } from '@opentelemetry/sdk-node';
 import { StatusAPIOptions } from '../API/StatusAPI';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
@@ -255,7 +256,7 @@ const init: InitFunction = async (
     return app;
 };
 
-const addDefaultRoutes = async (): Promise<void> => {
+const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
     app.post('*', (req: ExpressRequest, res: ExpressResponse) => {
         return Response.sendErrorResponse(
             req,
