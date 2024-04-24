@@ -53,8 +53,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             WHERE TRUE `).append(whereStatement);
         /* eslint-enable prettier/prettier */
 
-        logger.info(`${this.model.tableName} Update Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Update Statement`);
+        logger.debug(statement);
 
         return statement;
     }
@@ -147,8 +147,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         ${this.getValuesStatement(records)}
         `;
 
-        logger.info(`${this.model.tableName} Create Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Create Statement`);
+        logger.debug(statement);
 
         return statement;
     }
@@ -628,8 +628,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }' AND database = '${this.database.getDatasourceOptions()
             .database!}' AND name = '${columnName}'`;
 
-        logger.info(`${this.model.tableName} Does Column Exist Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Does Column Exist Statement`);
+        logger.debug(statement);
 
         return statement;
     }
@@ -642,8 +642,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             ADD COLUMN IF NOT EXISTS
         `.append(this.toColumnsCreateStatement([column], false));
 
-        logger.info(`${this.model.tableName} Add Column Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Add Column Statement`);
+        logger.debug(statement);
 
         return statement;
     }
@@ -654,8 +654,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             this.model.tableName
         } DROP COLUMN IF EXISTS ${columnName}`;
 
-        logger.info(`${this.model.tableName} Drop Column Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Drop Column Statement`);
+        logger.debug(statement);
 
         return statement;
     }
@@ -691,8 +691,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         statement.append(SQL`)`);
         /* eslint-enable prettier/prettier */
 
-        logger.info(`${this.model.tableName} Table Create Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Table Create Statement`);
+        logger.debug(statement);
 
         return statement;
     }
