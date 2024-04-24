@@ -36,6 +36,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         } catch (err) {
             logger.error('Register probe failed');
             logger.error(err);
+            throw err;
         }
 
         try {

@@ -190,4 +190,8 @@ nodeSelector:
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR
 logLevel: ERROR
+
+# Enable cleanup cron jobs
+cleanupCronJobs: 
+  enabled: false
   

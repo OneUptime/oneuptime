@@ -1,67 +1,96 @@
-# apiVersion: batch/v1
-# kind: CronJob
-# metadata:
-#   name: cleanup-crashloopbackoff-pods
-#   namespace: {{ $.Release.Namespace }}
-#   labels: 
-#     appname: oneuptime
-# spec:
-#   schedule: "*/5 * * * *" # At every 5 minute.
-#   jobTemplate:
-#     spec:
-#       template:
-#         spec:
-#           containers:
-#           - name: cleanup
-#             image: bitnami/kubectl:latest
-#             env:
-#             - name: namespace
-#               value: {{ $.Release.Namespace }}
-#             command:
-#             - /bin/bash
-#             - -c
-#             - |
-#                 for pod in $(kubectl get pods -n $namespace --field-selector=status.phase==Failed -o jsonpath="{.items[*].metadata.name}")
-#                 do
-#                     if kubectl describe pod $pod -n $namespace | grep -q 'CrashLoopBackOff'
-#                     then
-#                     kubectl delete pod $pod -n $namespace
-#                     fi
-#                 done
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-crashloopbackoff-pods
+  namespace: {{ $.Release.Namespace }}
+  labels: 
+    appname: oneuptime
+spec:
+  schedule: "*/5 * * * *" # At every 5 minute.
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cleanup-service-account
+          containers:
+          - name: cleanup
+            image: bitnami/kubectl:latest
+            env:
+            - name: namespace
+              value: {{ $.Release.Namespace }}
+            command:
+            - /bin/bash
+            - -c
+            - |
+                for pod in $(kubectl get pods -n $namespace --field-selector=status.phase==Failed -o jsonpath="{.items[*].metadata.name}")
+                do
+                    if kubectl describe pod $pod -n $namespace | grep -q 'CrashLoopBackOff'
+                    then
+                    kubectl delete pod $pod -n $namespace
+                    fi
+                done
               
-#           restartPolicy: OnFailure
+          restartPolicy: OnFailure
 
-# ---
+---
 
-# # Cron to delete all the pods with Completed status
+# Cron to delete all the pods with Completed status
 
-# # Path: HelmChart/Public/oneuptime/templates/cron-job.yaml
+# Path: HelmChart/Public/oneuptime/templates/cron-job.yaml
 
-# apiVersion: batch/v1
-# kind: CronJob
-# metadata:
-#   name: cleanup-completed-pods
-#   namespace: {{ $.Release.Namespace }}
-#   labels: 
-#     appname: oneuptime
-# spec:
-#   schedule: "*/2 * * * *" # At every 2 minute.
-#   jobTemplate:
-#     spec:
-#       template:
-#         spec:
-#           containers:
-#           - name: cleanup
-#             image: bitnami/kubectl:latest
-#             env:
-#             - name: namespace
-#               value: {{ $.Release.Namespace }}
-#             command:
-#             - /bin/bash
-#             - -c
-#             - |
-#                 for pod in $(kubectl get pods -n $namespace --field-selector=status.phase==Succeeded -o jsonpath="{.items[*].metadata.name}")
-#                 do
-#                     kubectl delete pod $pod -n $namespace
-#                 done
-#           restartPolicy: OnFailure
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-completed-pods
+  namespace: {{ $.Release.Namespace }}
+  labels: 
+    appname: oneuptime
+spec:
+  schedule: "*/2 * * * *" # At every 2 minute.
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cleanup-service-account
+          containers:
+          - name: cleanup
+            image: bitnami/kubectl:latest
+            env:
+            - name: namespace
+              value: {{ $.Release.Namespace }}
+            command:
+            - /bin/bash
+            - -c
+            - |
+                for pod in $(kubectl get pods -n $namespace --field-selector=status.phase==Succeeded -o jsonpath="{.items[*].metadata.name}")
+                do
+                    kubectl delete pod $pod -n $namespace
+                done
+          restartPolicy: OnFailure
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cleanup-role
+  namespace: {{ $.Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cleanup-role-binding
+  namespace: {{ $.Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cleanup-role
+subjects:
+  - kind: ServiceAccount
+    name: cleanup-service-account
+    namespace: {{ $.Release.Namespace }}
