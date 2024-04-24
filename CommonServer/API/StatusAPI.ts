@@ -26,7 +26,9 @@ export default class StatusAPI {
 
         // General status
         router.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
-            Response.sendEmptyResponse(req, res);
+            Response.sendJsonObjectResponse(req, res, {
+                status: 'ok',
+            });
         });
 
         //Healthy probe
@@ -36,7 +38,9 @@ export default class StatusAPI {
                 try {
                     logger.info('Ready check');
                     await options.readyCheck();
-                    Response.sendEmptyResponse(req, res);
+                    Response.sendJsonObjectResponse(req, res, {
+                        status: 'ok',
+                    });
                 } catch (e) {
                     Response.sendErrorResponse(
                         req,
@@ -54,7 +58,9 @@ export default class StatusAPI {
                 try {
                     logger.info('Live check');
                     await options.readyCheck();
-                    Response.sendEmptyResponse(req, res);
+                    Response.sendJsonObjectResponse(req, res, {
+                        status: 'ok',
+                    });
                 } catch (e) {
                     Response.sendErrorResponse(
                         req,
