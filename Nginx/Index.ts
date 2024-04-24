@@ -11,7 +11,6 @@ const APP_NAME: string = process.env['SERVICE_NAME'];
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
-
         const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
             return await InfrastructureStatus.checkStatus({
                 checkClickhouseStatus: false,
