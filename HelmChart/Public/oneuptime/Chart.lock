@@ -4,9 +4,9 @@ dependencies:
   version: 14.0.0
 - name: redis
   repository: https://charts.bitnami.com/bitnami
-  version: 19.1.2
+  version: 18.19.1
 - name: clickhouse
   repository: https://charts.bitnami.com/bitnami
   version: 5.1.0
-digest: sha256:07e9a41ef2d32f2b536600f46f0b879fdbbbbc8782e51a205c9d656c1a15263e
-generated: "2024-04-23T20:36:09.476277+01:00"
+digest: sha256:3e59f256a36503a20718888c0010596148f08335b40ed259548cce815a22be22
+generated: "2024-04-24T09:58:52.588777+01:00"

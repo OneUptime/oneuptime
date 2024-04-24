@@ -38,7 +38,7 @@ dependencies:
   version: "14.0.0"
   repository: "https://charts.bitnami.com/bitnami"
 - name: redis
-  version: "19.1.2"
+  version: "18.19.1"
   repository: "https://charts.bitnami.com/bitnami"
 - name: clickhouse
   version: "5.1.0"
