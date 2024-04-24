@@ -9,17 +9,16 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 import Realtime from 'CommonServer/Utils/Realtime';
 
-// import featuresets.
-import './FeatureSet/Identity/Index';
-import './FeatureSet/Notification/Index';
-import './FeatureSet/Docs/Index';
-import './FeatureSet/BaseAPI/Index';
-import './FeatureSet/ApiReference/Index';
+// import FeatureSets.
+import IdentityRoutes from './FeatureSet/Identity/Index';
+import NotificationRoutes from './FeatureSet/Notification/Index';
+import DocsRoutes from './FeatureSet/Docs/Index';
+import BaseAPIRoutes from './FeatureSet/BaseAPI/Index';
+import APIReferenceRoutes from './FeatureSet/ApiReference/Index';
 import Workers from './FeatureSet/Workers/Index';
 import Workflow from './FeatureSet/Workflow/Index';
+import HomeRoutes from './FeatureSet/Home/Index';
 
-// home should be in the end.
-import './FeatureSet/Home/Index';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
@@ -40,6 +39,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         );
 
         Realtime.init();
+
+        // init featuresets
+        IdentityRoutes.init();
+        NotificationRoutes.init();
+        DocsRoutes.init();
+        BaseAPIRoutes.init();
+        APIReferenceRoutes.init();
+
+        // home should be in the end because it has the catch all route.
+        HomeRoutes.init();
 
         // init workers
         await Workers.init();

@@ -8,10 +8,14 @@ import CallAPI from './API/Call';
 import SMTPConfigAPI from './API/SMTPConfig';
 import './Utils/Handlebars';
 
-const APP_NAME: string = 'api/notification';
-const app: ExpressApplication = Express.getExpressApp();
+const init: VoidFunction = () => {
+    const APP_NAME: string = 'api/notification';
+    const app: ExpressApplication = Express.getExpressApp();
 
-app.use([`/${APP_NAME}/email`, '/email'], MailAPI);
-app.use([`/${APP_NAME}/sms`, '/sms'], SmsAPI);
-app.use([`/${APP_NAME}/call`, '/call'], CallAPI);
-app.use([`/${APP_NAME}/smtp-config`, '/smtp-config'], SMTPConfigAPI);
+    app.use([`/${APP_NAME}/email`, '/email'], MailAPI);
+    app.use([`/${APP_NAME}/sms`, '/sms'], SmsAPI);
+    app.use([`/${APP_NAME}/call`, '/call'], CallAPI);
+    app.use([`/${APP_NAME}/smtp-config`, '/smtp-config'], SMTPConfigAPI);
+};
+
+export default { init };
