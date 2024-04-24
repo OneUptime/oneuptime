@@ -447,789 +447,819 @@ import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
 import ProjectCallSMSConfigService, {
     Service as ProjectCallSMSConfigServiceType,
 } from 'CommonServer/Services/ProjectCallSMSConfigService';
-
-const init: VoidFunction = () => {
-    const app: ExpressApplication = Express.getExpressApp();
-
-    const APP_NAME: string = 'api';
-
-    //attach api's
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<User, UserServiceType>(User, UserService).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAnalyticsAPI<
-            MonitorMetricsByMinute,
-            MonitorMetricsByMinuteServiceType
-        >(MonitorMetricsByMinute, MonitorMetricsByMinuteService).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAnalyticsAPI<Span, SpanServiceType>(
-            Span,
-            SpanService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<TelemetryUsageBilling, TelemetryUsageBillingServiceType>(
-            TelemetryUsageBilling,
-            TelemetryUsageBillingService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ShortLink, ShortLinkServiceType>(
-            ShortLink,
-            ShortLinkService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            StatusPageHistoryChartBarColorRule,
-            StatusPageHistoryChartBarColorRuleServiceType
-        >(
-            StatusPageHistoryChartBarColorRule,
-            StatusPageHistoryChartBarColorRuleService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
-            MonitorProbe,
-            MonitorProbeService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageAnnouncement, StatusPageAnnouncementServiceType>(
-            StatusPageAnnouncement,
-            StatusPageAnnouncementService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorGroupOwnerUser, MonitorGroupOwnerUserServiceType>(
-            MonitorGroupOwnerUser,
-            MonitorGroupOwnerUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicySchedule,
-            OnCallDutyPolicyScheduleServiceType
-        >(OnCallDutyPolicySchedule, OnCallDutyPolicyScheduleService).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyScheduleLayer,
-            OnCallDutyPolicyScheduleLayerServiceType
-        >(
-            OnCallDutyPolicyScheduleLayer,
-            OnCallDutyPolicyScheduleLayerService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyScheduleLayerUser,
-            OnCallDutyPolicyScheduleLayerUserServiceType
-        >(
-            OnCallDutyPolicyScheduleLayerUser,
-            OnCallDutyPolicyScheduleLayerUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorGroupOwnerTeam, MonitorGroupOwnerTeamServiceType>(
-            MonitorGroupOwnerTeam,
-            MonitorGroupOwnerTeamService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ProjectCallSMSConfig, ProjectCallSMSConfigServiceType>(
-            ProjectCallSMSConfig,
-            ProjectCallSMSConfigService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorGroupResource, MonitorGroupResourceServiceType>(
-            MonitorGroupResource,
-            MonitorGroupResourceService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<TeamMember, TeamMemberServiceType>(
-            TeamMember,
-            TeamMemberService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<TeamPermission, TeamPermissionServiceType>(
-            TeamPermission,
-            TeamPermissionService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
-            MonitorStatus,
-            MonitorStatusService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentState, IncidentStateServiceType>(
-            IncidentState,
-            IncidentStateService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenanceState,
-            ScheduledMaintenanceStateServiceType
-        >(
-            ScheduledMaintenanceState,
-            ScheduledMaintenanceStateService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
-            StatusPageResource,
-            StatusPageResourceService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<Workflow, WorkflowServiceType>(
-            Workflow,
-            WorkflowService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<TelemetryService, TelemetryServiceServiceType>(
-            TelemetryService,
-            TelemetryServiceService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<WorkflowVariable, WorkflowVariableServiceType>(
-            WorkflowVariable,
-            WorkflowVariableService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
-            WorkflowLog,
-            WorkflowLogService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<Domain, DomainServiceType>(
-            Domain,
-            DomainService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageGroup, StatusPageGroupServiceType>(
-            StatusPageGroup,
-            StatusPageGroupService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageDomain, StatusPageDomainServiceType>(
-            StatusPageDomain,
-            StatusPageDomainService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentStateTimeline, IncidentStateTimelineServiceType>(
-            IncidentStateTimeline,
-            IncidentStateTimelineService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenanceStateTimeline,
-            ScheduledMaintenanceStateTimelineServiceType
-        >(
-            ScheduledMaintenanceStateTimeline,
-            ScheduledMaintenanceStateTimelineService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPagePrivateUser, StatusPagePrivateUserServiceType>(
-            StatusPagePrivateUser,
-            StatusPagePrivateUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<Incident, IncidentServiceType>(
-            Incident,
-            IncidentService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ScheduledMaintenance, ScheduledMaintenanceServiceType>(
-            ScheduledMaintenance,
-            ScheduledMaintenanceService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ApiKey, ApiKeyServiceType>(
-            ApiKey,
-            ApiKeyService
-        ).getRouter()
-    );
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
-            ApiKeyPermission,
-            ApiKeyPermissionService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
-            StatusPageHeaderLink,
-            StatusPageHeaderLinkService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<UserNotificationRule, UserNotificationRuleServiceType>(
-            UserNotificationRule,
-            UserNotificationRuleService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(
-            StatusPageFooterLink,
-            StatusPageFooterLinkService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ApiKey, ApiKeyServiceType>(
-            ApiKey,
-            ApiKeyService
-        ).getRouter()
-    );
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
-            ApiKeyPermission,
-            ApiKeyPermissionService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
-            IncidentSeverity,
-            IncidentSeverityService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentOwnerUser, IncidentOwnerUserServiceType>(
-            IncidentOwnerUser,
-            IncidentOwnerUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentOwnerTeam, IncidentOwnerTeamServiceType>(
-            IncidentOwnerTeam,
-            IncidentOwnerTeamService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentTemplate, IncidentTemplateServiceType>(
-            IncidentTemplate,
-            IncidentTemplateService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
-            IncidentNoteTemplate,
-            IncidentNoteTemplateService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenanceNoteTemplate,
-            ScheduledMaintenanceNoteTemplateServiceType
-        >(
-            ScheduledMaintenanceNoteTemplate,
-            ScheduledMaintenanceNoteTemplateService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            IncidentTemplateOwnerTeam,
-            IncidentTemplateOwnerTeamServiceType
-        >(
-            IncidentTemplateOwnerTeam,
-            IncidentTemplateOwnerTeamService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            IncidentTemplateOwnerUser,
-            IncidentTemplateOwnerUserServiceType
-        >(
-            IncidentTemplateOwnerUser,
-            IncidentTemplateOwnerUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorOwnerUser, MonitorOwnerUserServiceType>(
-            MonitorOwnerUser,
-            MonitorOwnerUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorOwnerTeam, MonitorOwnerTeamServiceType>(
-            MonitorOwnerTeam,
-            MonitorOwnerTeamService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenanceOwnerUser,
-            ScheduledMaintenanceOwnerUserServiceType
-        >(
-            ScheduledMaintenanceOwnerUser,
-            ScheduledMaintenanceOwnerUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenanceOwnerTeam,
-            ScheduledMaintenanceOwnerTeamServiceType
-        >(
-            ScheduledMaintenanceOwnerTeam,
-            ScheduledMaintenanceOwnerTeamService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageOwnerUser, StatusPageOwnerUserServiceType>(
-            StatusPageOwnerUser,
-            StatusPageOwnerUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageOwnerTeam, StatusPageOwnerTeamServiceType>(
-            StatusPageOwnerTeam,
-            StatusPageOwnerTeamService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(
-            EmailVerificationToken,
-            EmailVerificationTokenService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<UserOnCallLog, UserNotificationLogServiceType>(
-            UserOnCallLog,
-            UserOnCallLogService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            UserNotificationSetting,
-            UserNotificationSettingServiceType
-        >(UserNotificationSetting, UserNotificationSettingService).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyCustomField,
-            OnCallDutyPolicyCustomFieldServiceType
-        >(
-            OnCallDutyPolicyCustomField,
-            OnCallDutyPolicyCustomFieldService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<ProjectSmtpConfig, ProjectSMTPConfigServiceType>(
-            ProjectSmtpConfig,
-            ProjectSmtpConfigService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<Monitor, MonitorServiceType>(
-            Monitor,
-            MonitorService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<SmsLog, SmsLogServiceType>(
-            SmsLog,
-            SmsLogService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<EmailLog, EmailLogServiceType>(
-            EmailLog,
-            EmailLogService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<Reseller, ResellerServiceType>(
-            Reseller,
-            ResellerService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<CallLog, CallLogServiceType>(
-            CallLog,
-            CallLogService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageSSO, StatusPageSSOServiceType>(
-            StatusPageSSO,
-            StatusPageSSOService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorTimelineStatus, MonitorTimelineStatusServiceType>(
-            MonitorTimelineStatus,
-            MonitorTimelineStatusService
-        ).getRouter()
-    );
-
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new StatusPageAPI().getRouter()
-    );
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new MonitorGroupAPI().getRouter()
-    );
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new ProjectSsoAPI().getRouter()
-    );
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new ResellerPlanAPI().getRouter()
-    );
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new GlobalConfigAPI().getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new UserNotificationLogTimelineAPI().getRouter()
-    );
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new Ingestor().getRouter());
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new StatusPageSubscriberAPI().getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BillingPaymentMethodAPI().getRouter()
-    );
-
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProjectAPI().getRouter());
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BillingInvoiceAPI().getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenancePublicNote,
-            ScheduledMaintenancePublicNoteServiceType
-        >(
-            ScheduledMaintenancePublicNote,
-            ScheduledMaintenancePublicNoteService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenanceInternalNote,
-            ScheduledMaintenanceInternalNoteServiceType
-        >(
-            ScheduledMaintenanceInternalNote,
-            ScheduledMaintenanceInternalNoteService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentPublicNote, IncidentPublicNoteServiceType>(
-            IncidentPublicNote,
-            IncidentPublicNoteService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
-            IncidentInternalNote,
-            IncidentInternalNoteService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
-            OnCallDutyPolicy,
-            OnCallDutyPolicyService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            ScheduledMaintenanceCustomField,
-            ScheduledMaintenanceCustomFieldServiceType
-        >(
-            ScheduledMaintenanceCustomField,
-            ScheduledMaintenanceCustomFieldService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyEscalationRuleUser,
-            OnCallDutyPolicyEscalationRuleUserServiceType
-        >(
-            OnCallDutyPolicyEscalationRuleUser,
-            OnCallDutyPolicyEscalationRuleUserService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyEscalationRuleTeam,
-            OnCallDutyPolicyEscalationRuleTeamServiceType
-        >(
-            OnCallDutyPolicyEscalationRuleTeam,
-            OnCallDutyPolicyEscalationRuleTeamService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyEscalationRuleSchedule,
-            OnCallDutyPolicyEscalationRuleScheduleServiceType
-        >(
-            OnCallDutyPolicyEscalationRuleSchedule,
-            OnCallDutyPolicyEscalationRuleScheduleService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyExecutionLog,
-            OnCallDutyPolicyExecutionLogServiceType
-        >(
-            OnCallDutyPolicyExecutionLog,
-            OnCallDutyPolicyExecutionLogService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<PromoCode, PromoCodeServiceType>(
-            PromoCode,
-            PromoCodeService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyExecutionLogTimeline,
-            OnCallDutyPolicyExecutionLogTimelineServiceType
-        >(
-            OnCallDutyPolicyExecutionLogTimeline,
-            OnCallDutyPolicyExecutionLogTimelineService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
-            IncidentCustomField,
-            IncidentCustomFieldService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<
-            OnCallDutyPolicyEscalationRule,
-            OnCallDutyPolicyEscalationRuleServiceType
-        >(
-            OnCallDutyPolicyEscalationRule,
-            OnCallDutyPolicyEscalationRuleService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
-            MonitorCustomField,
-            MonitorCustomFieldService
-        ).getRouter()
-    );
-
-    app.use(
-        `/${APP_NAME.toLocaleLowerCase()}`,
-        new BaseAPI<StatusPageCustomField, StatusPageCustomFieldServiceType>(
-            StatusPageCustomField,
-            StatusPageCustomFieldService
-        ).getRouter()
-    );
-
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
+import FeatureSet from 'CommonServer/Types/FeatureSet';
+
+const BaseAPIFeatureSet: FeatureSet = {
+    init: async (): Promise<void> => {
+        const app: ExpressApplication = Express.getExpressApp();
+
+        const APP_NAME: string = 'api';
+
+        //attach api's
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<User, UserServiceType>(User, UserService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAnalyticsAPI<Log, LogServiceType>(
+                Log,
+                LogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAnalyticsAPI<
+                MonitorMetricsByMinute,
+                MonitorMetricsByMinuteServiceType
+            >(MonitorMetricsByMinute, MonitorMetricsByMinuteService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAnalyticsAPI<Span, SpanServiceType>(
+                Span,
+                SpanService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                TelemetryUsageBilling,
+                TelemetryUsageBillingServiceType
+            >(TelemetryUsageBilling, TelemetryUsageBillingService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ShortLink, ShortLinkServiceType>(
+                ShortLink,
+                ShortLinkService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                StatusPageHistoryChartBarColorRule,
+                StatusPageHistoryChartBarColorRuleServiceType
+            >(
+                StatusPageHistoryChartBarColorRule,
+                StatusPageHistoryChartBarColorRuleService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
+                MonitorProbe,
+                MonitorProbeService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                StatusPageAnnouncement,
+                StatusPageAnnouncementServiceType
+            >(StatusPageAnnouncement, StatusPageAnnouncementService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                MonitorGroupOwnerUser,
+                MonitorGroupOwnerUserServiceType
+            >(MonitorGroupOwnerUser, MonitorGroupOwnerUserService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicySchedule,
+                OnCallDutyPolicyScheduleServiceType
+            >(
+                OnCallDutyPolicySchedule,
+                OnCallDutyPolicyScheduleService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyScheduleLayer,
+                OnCallDutyPolicyScheduleLayerServiceType
+            >(
+                OnCallDutyPolicyScheduleLayer,
+                OnCallDutyPolicyScheduleLayerService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyScheduleLayerUser,
+                OnCallDutyPolicyScheduleLayerUserServiceType
+            >(
+                OnCallDutyPolicyScheduleLayerUser,
+                OnCallDutyPolicyScheduleLayerUserService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                MonitorGroupOwnerTeam,
+                MonitorGroupOwnerTeamServiceType
+            >(MonitorGroupOwnerTeam, MonitorGroupOwnerTeamService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ProjectCallSMSConfig, ProjectCallSMSConfigServiceType>(
+                ProjectCallSMSConfig,
+                ProjectCallSMSConfigService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<MonitorGroupResource, MonitorGroupResourceServiceType>(
+                MonitorGroupResource,
+                MonitorGroupResourceService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<TeamMember, TeamMemberServiceType>(
+                TeamMember,
+                TeamMemberService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<TeamPermission, TeamPermissionServiceType>(
+                TeamPermission,
+                TeamPermissionService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
+                MonitorStatus,
+                MonitorStatusService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentState, IncidentStateServiceType>(
+                IncidentState,
+                IncidentStateService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenanceState,
+                ScheduledMaintenanceStateServiceType
+            >(
+                ScheduledMaintenanceState,
+                ScheduledMaintenanceStateService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
+                StatusPageResource,
+                StatusPageResourceService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<Workflow, WorkflowServiceType>(
+                Workflow,
+                WorkflowService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<TelemetryService, TelemetryServiceServiceType>(
+                TelemetryService,
+                TelemetryServiceService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<WorkflowVariable, WorkflowVariableServiceType>(
+                WorkflowVariable,
+                WorkflowVariableService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
+                WorkflowLog,
+                WorkflowLogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<Domain, DomainServiceType>(
+                Domain,
+                DomainService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageGroup, StatusPageGroupServiceType>(
+                StatusPageGroup,
+                StatusPageGroupService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageDomain, StatusPageDomainServiceType>(
+                StatusPageDomain,
+                StatusPageDomainService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                IncidentStateTimeline,
+                IncidentStateTimelineServiceType
+            >(IncidentStateTimeline, IncidentStateTimelineService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenanceStateTimeline,
+                ScheduledMaintenanceStateTimelineServiceType
+            >(
+                ScheduledMaintenanceStateTimeline,
+                ScheduledMaintenanceStateTimelineService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                StatusPagePrivateUser,
+                StatusPagePrivateUserServiceType
+            >(StatusPagePrivateUser, StatusPagePrivateUserService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<Incident, IncidentServiceType>(
+                Incident,
+                IncidentService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ScheduledMaintenance, ScheduledMaintenanceServiceType>(
+                ScheduledMaintenance,
+                ScheduledMaintenanceService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ApiKey, ApiKeyServiceType>(
+                ApiKey,
+                ApiKeyService
+            ).getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
+                ApiKeyPermission,
+                ApiKeyPermissionService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
+                StatusPageHeaderLink,
+                StatusPageHeaderLinkService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<UserNotificationRule, UserNotificationRuleServiceType>(
+                UserNotificationRule,
+                UserNotificationRuleService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(
+                StatusPageFooterLink,
+                StatusPageFooterLinkService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ApiKey, ApiKeyServiceType>(
+                ApiKey,
+                ApiKeyService
+            ).getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
+                ApiKeyPermission,
+                ApiKeyPermissionService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
+                IncidentSeverity,
+                IncidentSeverityService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentOwnerUser, IncidentOwnerUserServiceType>(
+                IncidentOwnerUser,
+                IncidentOwnerUserService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentOwnerTeam, IncidentOwnerTeamServiceType>(
+                IncidentOwnerTeam,
+                IncidentOwnerTeamService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentTemplate, IncidentTemplateServiceType>(
+                IncidentTemplate,
+                IncidentTemplateService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
+                IncidentNoteTemplate,
+                IncidentNoteTemplateService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenanceNoteTemplate,
+                ScheduledMaintenanceNoteTemplateServiceType
+            >(
+                ScheduledMaintenanceNoteTemplate,
+                ScheduledMaintenanceNoteTemplateService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                IncidentTemplateOwnerTeam,
+                IncidentTemplateOwnerTeamServiceType
+            >(
+                IncidentTemplateOwnerTeam,
+                IncidentTemplateOwnerTeamService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                IncidentTemplateOwnerUser,
+                IncidentTemplateOwnerUserServiceType
+            >(
+                IncidentTemplateOwnerUser,
+                IncidentTemplateOwnerUserService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<MonitorOwnerUser, MonitorOwnerUserServiceType>(
+                MonitorOwnerUser,
+                MonitorOwnerUserService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<MonitorOwnerTeam, MonitorOwnerTeamServiceType>(
+                MonitorOwnerTeam,
+                MonitorOwnerTeamService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenanceOwnerUser,
+                ScheduledMaintenanceOwnerUserServiceType
+            >(
+                ScheduledMaintenanceOwnerUser,
+                ScheduledMaintenanceOwnerUserService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenanceOwnerTeam,
+                ScheduledMaintenanceOwnerTeamServiceType
+            >(
+                ScheduledMaintenanceOwnerTeam,
+                ScheduledMaintenanceOwnerTeamService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageOwnerUser, StatusPageOwnerUserServiceType>(
+                StatusPageOwnerUser,
+                StatusPageOwnerUserService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageOwnerTeam, StatusPageOwnerTeamServiceType>(
+                StatusPageOwnerTeam,
+                StatusPageOwnerTeamService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<Label, LabelServiceType>(
+                Label,
+                LabelService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                EmailVerificationToken,
+                EmailVerificationTokenServiceType
+            >(EmailVerificationToken, EmailVerificationTokenService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<UserOnCallLog, UserNotificationLogServiceType>(
+                UserOnCallLog,
+                UserOnCallLogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                UserNotificationSetting,
+                UserNotificationSettingServiceType
+            >(
+                UserNotificationSetting,
+                UserNotificationSettingService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyCustomField,
+                OnCallDutyPolicyCustomFieldServiceType
+            >(
+                OnCallDutyPolicyCustomField,
+                OnCallDutyPolicyCustomFieldService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ProjectSmtpConfig, ProjectSMTPConfigServiceType>(
+                ProjectSmtpConfig,
+                ProjectSmtpConfigService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<Monitor, MonitorServiceType>(
+                Monitor,
+                MonitorService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<SmsLog, SmsLogServiceType>(
+                SmsLog,
+                SmsLogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<EmailLog, EmailLogServiceType>(
+                EmailLog,
+                EmailLogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<Reseller, ResellerServiceType>(
+                Reseller,
+                ResellerService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<CallLog, CallLogServiceType>(
+                CallLog,
+                CallLogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<StatusPageSSO, StatusPageSSOServiceType>(
+                StatusPageSSO,
+                StatusPageSSOService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                MonitorTimelineStatus,
+                MonitorTimelineStatusServiceType
+            >(MonitorTimelineStatus, MonitorTimelineStatusService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new ShortLinkAPI().getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new StatusPageAPI().getRouter()
+        );
+        app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new MonitorGroupAPI().getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new ProjectSsoAPI().getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new ResellerPlanAPI().getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new GlobalConfigAPI().getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new UserNotificationLogTimelineAPI().getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new UserCallAPI().getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new UserEmailAPI().getRouter()
+        );
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new UserSMSAPI().getRouter()
+        );
+        app.use(`/${APP_NAME.toLocaleLowerCase()}`, new Ingestor().getRouter());
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new StatusPageSubscriberAPI().getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BillingPaymentMethodAPI().getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new ProjectAPI().getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BillingInvoiceAPI().getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenancePublicNote,
+                ScheduledMaintenancePublicNoteServiceType
+            >(
+                ScheduledMaintenancePublicNote,
+                ScheduledMaintenancePublicNoteService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenanceInternalNote,
+                ScheduledMaintenanceInternalNoteServiceType
+            >(
+                ScheduledMaintenanceInternalNote,
+                ScheduledMaintenanceInternalNoteService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentPublicNote, IncidentPublicNoteServiceType>(
+                IncidentPublicNote,
+                IncidentPublicNoteService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
+                IncidentInternalNote,
+                IncidentInternalNoteService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
+                OnCallDutyPolicy,
+                OnCallDutyPolicyService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                ScheduledMaintenanceCustomField,
+                ScheduledMaintenanceCustomFieldServiceType
+            >(
+                ScheduledMaintenanceCustomField,
+                ScheduledMaintenanceCustomFieldService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyEscalationRuleUser,
+                OnCallDutyPolicyEscalationRuleUserServiceType
+            >(
+                OnCallDutyPolicyEscalationRuleUser,
+                OnCallDutyPolicyEscalationRuleUserService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyEscalationRuleTeam,
+                OnCallDutyPolicyEscalationRuleTeamServiceType
+            >(
+                OnCallDutyPolicyEscalationRuleTeam,
+                OnCallDutyPolicyEscalationRuleTeamService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyEscalationRuleSchedule,
+                OnCallDutyPolicyEscalationRuleScheduleServiceType
+            >(
+                OnCallDutyPolicyEscalationRuleSchedule,
+                OnCallDutyPolicyEscalationRuleScheduleService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyExecutionLog,
+                OnCallDutyPolicyExecutionLogServiceType
+            >(
+                OnCallDutyPolicyExecutionLog,
+                OnCallDutyPolicyExecutionLogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<PromoCode, PromoCodeServiceType>(
+                PromoCode,
+                PromoCodeService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyExecutionLogTimeline,
+                OnCallDutyPolicyExecutionLogTimelineServiceType
+            >(
+                OnCallDutyPolicyExecutionLogTimeline,
+                OnCallDutyPolicyExecutionLogTimelineService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
+                IncidentCustomField,
+                IncidentCustomFieldService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                OnCallDutyPolicyEscalationRule,
+                OnCallDutyPolicyEscalationRuleServiceType
+            >(
+                OnCallDutyPolicyEscalationRule,
+                OnCallDutyPolicyEscalationRuleService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
+                MonitorCustomField,
+                MonitorCustomFieldService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<
+                StatusPageCustomField,
+                StatusPageCustomFieldServiceType
+            >(StatusPageCustomField, StatusPageCustomFieldService).getRouter()
+        );
+
+        app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
+    },
 };
 
-export default { init };
+export default BaseAPIFeatureSet;

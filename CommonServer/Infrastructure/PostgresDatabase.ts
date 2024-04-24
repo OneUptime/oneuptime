@@ -71,6 +71,23 @@ export default class Database {
             this.dataSource = null;
         }
     }
+
+    public async checkConnnectionStatus(): Promise<boolean> {
+        // check popstgres connection to see if it is still alive
+
+        try {
+            await this.dataSource?.query(
+                `SELECT COUNT(key) FROM ${
+                    this.getDatasourceOptions().database
+                }.GreenlockChallenge`
+            ); // this is a dummy query to check if the connection is still alive
+            return true;
+        } catch (err) {
+            logger.error('Postgres Connection Lost');
+            logger.error(err);
+            return false;
+        }
+    }
 }
 
 export const PostgresAppInstance: Database = new Database();

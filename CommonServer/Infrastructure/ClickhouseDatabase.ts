@@ -98,6 +98,32 @@ export default class ClickhouseDatabase {
             this.dataSource = null;
         }
     }
+
+    public async checkConnnectionStatus(): Promise<boolean> {
+        // Ping clickhouse to check if the connection is still alive
+        try {
+            const result: PingResult | undefined =
+                await this.getDataSource()?.ping();
+
+            if (!result) {
+                throw new DatabaseNotConnectedException(
+                    'Clickhouse Database is not connected'
+                );
+            }
+
+            if (result?.success === false) {
+                throw new DatabaseNotConnectedException(
+                    'Clickhouse Database is not connected'
+                );
+            }
+
+            return true;
+        } catch (err) {
+            logger.error('Clickhouse Connection Lost');
+            logger.error(err);
+            return false;
+        }
+    }
 }
 
 export const ClickhouseAppInstance: ClickhouseDatabase =

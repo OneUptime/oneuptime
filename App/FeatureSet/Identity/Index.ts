@@ -5,25 +5,27 @@ import SsoAPI from './API/SSO';
 import ResellerAPI from './API/Reseller';
 import StatusPageSsoAPI from './API/StatusPageSSO';
 import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
+import FeatureSet from 'CommonServer/Types/FeatureSet';
 
-const init: VoidFunction = () => {
-    const app: ExpressApplication = Express.getExpressApp();
+const IdentityFeatureSet: FeatureSet = {
+    init: async (): Promise<void> => {
+        const app: ExpressApplication = Express.getExpressApp();
 
-    const APP_NAME: string = 'api/identity';
+        const APP_NAME: string = 'api/identity';
 
-    app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
+        app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
 
-    app.use([`/${APP_NAME}`, '/'], ResellerAPI);
+        app.use([`/${APP_NAME}`, '/'], ResellerAPI);
 
-    app.use([`/${APP_NAME}`, '/'], SsoAPI);
+        app.use([`/${APP_NAME}`, '/'], SsoAPI);
 
-    app.use([`/${APP_NAME}`, '/'], StatusPageSsoAPI);
+        app.use([`/${APP_NAME}`, '/'], StatusPageSsoAPI);
 
-    app.use(
-        [`/${APP_NAME}/status-page`, '/status-page'],
-        StatusPageAuthenticationAPI
-    );
+        app.use(
+            [`/${APP_NAME}/status-page`, '/status-page'],
+            StatusPageAuthenticationAPI
+        );
+    },
 };
 
-export default { init };
+export default IdentityFeatureSet;

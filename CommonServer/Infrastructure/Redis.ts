@@ -122,4 +122,16 @@ export default abstract class Redis {
             this.client = null;
         }
     }
+
+    public static async checkConnnectionStatus(): Promise<boolean> {
+        // Ping redis to check if the connection is still alive
+        try {
+            await this.client?.ping();
+            return true;
+        } catch (err) {
+            logger.error('Redis Connection Lost');
+            logger.error(err);
+            return false;
+        }
+    }
 }

@@ -5,7 +5,7 @@ import Express, {
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import ManualAPI from './API/Manual';
-import ComponentCode from './API/ComponentCode';
+import ComponentCodeAPI from './API/ComponentCode';
 import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
 import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
 import RunWorkflow from './Services/RunWorkflow';
@@ -16,27 +16,30 @@ import FeatureSet from 'CommonServer/Types/FeatureSet';
 
 const APP_NAME: string = 'api/workflow';
 
-const app: ExpressApplication = Express.getExpressApp();
-
-app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
-
-app.use(`/${APP_NAME}`, new WorkflowAPI().router);
-
-app.get(
-    `/${APP_NAME}/docs/:componentName`,
-    (req: ExpressRequest, res: ExpressResponse) => {
-        res.sendFile(
-            '/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation/' +
-                req.params['componentName']
-        );
-    }
-);
-
-app.use(`/${APP_NAME}`, new ComponentCode().router);
-
 const WorkflowFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
         try {
+            const componentCodeAPI: ComponentCodeAPI = new ComponentCodeAPI();
+            componentCodeAPI.init();
+
+            const app: ExpressApplication = Express.getExpressApp();
+
+            app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
+
+            app.use(`/${APP_NAME}`, new WorkflowAPI().router);
+
+            app.get(
+                `/${APP_NAME}/docs/:componentName`,
+                (req: ExpressRequest, res: ExpressResponse) => {
+                    res.sendFile(
+                        '/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation/' +
+                            req.params['componentName']
+                    );
+                }
+            );
+
+            app.use(`/${APP_NAME}`, componentCodeAPI.router);
+
             // Job process.
             QueueWorker.getWorker(
                 QueueName.Workflow,

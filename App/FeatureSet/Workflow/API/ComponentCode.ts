@@ -13,11 +13,14 @@ export default class ComponentCodeAPI {
 
     public constructor() {
         this.router = Express.getRouter();
+    }
 
+    public init(): void {
         // init all component code.
         /// Get all the components.
         for (const key in Components) {
             const ComponentCode: ComponentCode | undefined = Components[key];
+
             if (ComponentCode instanceof TriggerCode) {
                 const instance: TriggerCode = ComponentCode;
                 instance
