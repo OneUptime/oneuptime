@@ -192,6 +192,7 @@ nodeSelector:
 logLevel: ERROR
 
 # Enable cleanup cron jobs
-cleanupCronJobs: 
-  enabled: false
+cronJobs:
+  cleanup:
+    enabled: false
   
