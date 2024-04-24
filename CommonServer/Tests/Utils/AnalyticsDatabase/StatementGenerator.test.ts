@@ -77,7 +77,7 @@ describe('StatementGenerator', () => {
             generator.toWhereStatement = jest.fn(() => {
                 return SQL`<where-statement>`;
             });
-            jest.spyOn(logger, 'info').mockImplementation(() => {
+            jest.spyOn(logger, 'debug').mockImplementation(() => {
                 return undefined!;
             });
         });
@@ -92,12 +92,12 @@ describe('StatementGenerator', () => {
             expect(generator.toSetStatement).toBeCalledWith(updateBy.data);
             expect(generator.toWhereStatement).toBeCalledWith('<query>');
 
-            expect(jest.mocked(logger.info)).toHaveBeenCalledTimes(2);
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 1,
                 '<table-name> Update Statement'
             );
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 2,
                 statement
             );
@@ -320,7 +320,7 @@ describe('StatementGenerator', () => {
             generator.toColumnsCreateStatement = jest.fn(() => {
                 return SQL`                <columns-create-statement>`;
             });
-            jest.spyOn(logger, 'info').mockImplementation(() => {
+            jest.spyOn(logger, 'debug').mockImplementation(() => {
                 return undefined!;
             });
         });
@@ -336,12 +336,12 @@ describe('StatementGenerator', () => {
                 generator.model.tableColumns
             );
 
-            expect(jest.mocked(logger.info)).toHaveBeenCalledTimes(2);
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 1,
                 '<table-name> Table Create Statement'
             );
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 2,
                 statement
             );
