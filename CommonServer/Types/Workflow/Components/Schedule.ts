@@ -1,7 +1,7 @@
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import ComponentMetadata from 'Common/Types/Workflow/Component';
+import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import ScheduleComponents from 'Common/Types/Workflow/Components/Schedule';
 import Workflow from 'Model/Models/Workflow';
@@ -12,6 +12,8 @@ import TriggerCode, {
     InitProps,
     UpdateProps,
 } from '../TriggerCode';
+import { JSONObject } from 'Common/Types/JSON';
+import { RunOptions, RunReturnType } from '../ComponentCode';
 
 export default class WebhookTrigger extends TriggerCode {
     public constructor() {
@@ -67,6 +69,30 @@ export default class WebhookTrigger extends TriggerCode {
                 await props.removeWorkflow(workflow.id!);
             }
         }
+    }
+
+    public override async run(
+        args: JSONObject,
+        options: RunOptions
+    ): Promise<RunReturnType> {
+        const successPort: Port | undefined = this.getMetadata().outPorts.find(
+            (p: Port) => {
+                return p.id === 'execute';
+            }
+        );
+
+        if (!successPort) {
+            throw options.onError(
+                new BadDataException('Execute port not found')
+            );
+        }
+
+        return {
+            returnValues: {
+                ...args,
+            },
+            executePort: successPort,
+        };
     }
 
     public override async update(props: UpdateProps): Promise<void> {
