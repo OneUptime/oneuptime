@@ -178,6 +178,8 @@ openTelemetryExporter:
     statusPage:
     probe: 
     adminDashboard:
+    ingestor:
+    ingress:
 
 containerSecurityContext:
 podSecurityContext:
