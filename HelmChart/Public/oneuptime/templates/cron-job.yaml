@@ -30,3 +30,38 @@ spec:
                 done
               
           restartPolicy: OnFailure
+
+---
+
+# Cron to delete all the pods with Completed status
+
+# Path: HelmChart/Public/oneuptime/templates/cron-job.yaml
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-completed-pods
+  namespace: {{ $.Release.Namespace }}
+  labels: 
+    appname: oneuptime
+spec:
+  schedule: "*/2 * * * *" # At every 2 minute.
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cleanup
+            image: bitnami/kubectl:latest
+            env:
+            - name: namespace
+              value: {{ $.Release.Namespace }}
+            command:
+            - /bin/bash
+            - -c
+            - |
+                for pod in $(kubectl get pods -n $namespace --field-selector=status.phase==Succeeded -o jsonpath="{.items[*].metadata.name}")
+                do
+                    kubectl delete pod $pod -n $namespace
+                done
+          restartPolicy: OnFailure
