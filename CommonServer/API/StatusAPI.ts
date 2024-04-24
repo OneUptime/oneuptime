@@ -36,6 +36,7 @@ export default class StatusAPI {
                 next: NextFunction
             ) => {
                 try {
+                    debugger;
                     await options.readyCheck();
 
                     res.send({ status: 'ready' });

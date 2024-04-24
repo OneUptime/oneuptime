@@ -76,11 +76,14 @@ export default class Database {
         // check popstgres connection to see if it is still alive
 
         try {
-            await this.dataSource?.query(
-                `SELECT COUNT(key) FROM ${
-                    this.getDatasourceOptions().database
-                }.GreenlockChallenge`
+            const result: any = await this.dataSource?.query(
+                `SELECT COUNT(key) FROM "GreenlockChallenge"`
             ); // this is a dummy query to check if the connection is still alive
+
+            if (!result) {
+                return false;
+            }
+
             return true;
         } catch (err) {
             logger.error('Postgres Connection Lost');
