@@ -323,6 +323,16 @@ services:
             file: ./docker-compose.base.yml
             service: ingress
 
+    # e2e tests
+    e2e:
+        extends:
+            file: ./docker-compose.base.yml
+            service: e2e
+        build:
+            network: host
+            context: .
+            dockerfile: ./E2E/Dockerfile
+
 volumes:
     postgres:
     clickhouse:

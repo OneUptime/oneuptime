@@ -337,7 +337,16 @@ services:
                 max-size: "1000m"
             
     
-
+    e2e:
+        networks:
+          - oneuptime
+        restart: no
+        environment:
+            <<: *common-server-variables
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     ingress:
         restart: always

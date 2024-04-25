@@ -45,5 +45,7 @@ RUN npm install
 # Copy app source
 COPY ./E2E /usr/src/app
 
+RUN npm run compile
+
 #Run the app
 CMD [ "npm", "test" ]
