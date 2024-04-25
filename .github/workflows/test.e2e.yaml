@@ -39,5 +39,6 @@ jobs:
             fi
             sleep 30
           done
+      - run: cd Common && npm install
       - run: cd E2E && npm install && npm run test
   
