@@ -15,9 +15,11 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^20.10.4"
+    
   },
   "dependencies": {
     "@playwright/test": "^1.43.1",
-    "playwright": "^1.43.1"
+    "playwright": "^1.43.1",
+    "Common": "file:../Common"
   }
 }

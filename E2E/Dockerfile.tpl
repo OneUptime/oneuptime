@@ -27,6 +27,13 @@ SHELL ["/bin/bash", "-c"]
 
 RUN mkdir /usr/src
 
+WORKDIR /usr/src/Common
+COPY ./Common/package*.json /usr/src/Common/
+# Set version in ./Common/package.json to the APP_VERSION
+RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
+RUN npm install
+COPY ./Common /usr/src/Common
+
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
@@ -40,5 +47,3 @@ COPY ./E2E /usr/src/app
 
 #Run the app
 CMD [ "npm", "test" ]
-
-

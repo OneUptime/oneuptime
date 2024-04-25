@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { BASE_URL } from '../../Config';
 
 test.beforeEach(async ({ page }: { page: Page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(BASE_URL.toString());
 });
 test.describe('check if pages loades with its title', () => {
     test('has title', async ({ page }: { page: Page }) => {
@@ -19,6 +19,6 @@ test.describe('check if pages loades with its title', () => {
             .getByRole('link', { name: 'OneUptime', exact: true })
             .click();
 
-        await expect(page).toHaveURL(BASE_URL);
+        await expect(page).toHaveURL(BASE_URL.toString());
     });
 });
