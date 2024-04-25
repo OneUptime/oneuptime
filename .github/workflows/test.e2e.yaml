@@ -13,15 +13,13 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
+      # Docker compose needs a lot of space to build images, so we need to free up some space first in the GitHub Actions runner
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
           tool-cache: false
-          
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
           android: true
           dotnet: true
           haskell: true
