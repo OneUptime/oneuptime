@@ -1,6 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-
-import BASE_URL from '../../Utils/BaseURL';
+import { BASE_URL } from '../../Config';
 
 test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(BASE_URL);
