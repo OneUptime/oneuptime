@@ -12,6 +12,7 @@ export interface RadioButton {
     value: string;
     sideTitle?: string | undefined;
     sideDescription?: string | undefined;
+
 }
 
 export interface ComponentProps {
@@ -19,6 +20,7 @@ export interface ComponentProps {
     initialValue?: string | undefined;
     options: Array<RadioButton>;
     error?: string | undefined;
+    dataTestId?: string | undefined;
 }
 
 const RadioButtons: FunctionComponent<ComponentProps> = (
@@ -45,7 +47,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <fieldset role="radiogroup">
+            <fieldset role="radiogroup" data-testid={props.dataTestId}>
                 <div className="space-y-2 mt-2">
                     {props.options &&
                         props.options.map(

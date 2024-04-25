@@ -35,6 +35,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
                         onClick={() => {
                             props.onClickShowProjectModal();
                         }}
+                        dataTestId='create-new-project-button'
                     />
                 }
             />

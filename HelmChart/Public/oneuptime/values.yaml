@@ -197,4 +197,7 @@ cronJobs:
     enabled: false
   e2e:
     enabled: false
+    isUserRegistered: false
+    registeredUserEmail: 
+    registeredUserPassword:
   

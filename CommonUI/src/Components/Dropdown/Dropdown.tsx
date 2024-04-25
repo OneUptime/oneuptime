@@ -31,6 +31,7 @@ export interface ComponentProps {
     tabIndex?: number | undefined;
     error?: string | undefined;
     id?: string | undefined;
+    dataTestId?: string | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -144,6 +145,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 onBlur={() => {
                     props.onBlur && props.onBlur();
                 }}
+                data-testid={props.dataTestId}
                 tabIndex={props.tabIndex}
                 isMulti={props.isMultiSelect}
                 value={value || null}

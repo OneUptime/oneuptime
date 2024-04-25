@@ -28,7 +28,7 @@ export interface ComponentProps {
     mimeTypes?: Array<MimeType> | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
-    dataTestId?: string;
+    dataTestId?: string | undefined;
     isMultiFilePicker?: boolean | undefined;
     tabIndex?: number | undefined;
     error?: string | undefined;

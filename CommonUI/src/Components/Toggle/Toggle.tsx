@@ -15,6 +15,7 @@ export interface ComponentProps {
     title?: string | undefined;
     description?: string | undefined;
     error?: string | undefined;
+    dataTestId?: string | undefined;
 }
 
 const Toggle: FunctionComponent<ComponentProps> = (
@@ -76,6 +77,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
                             props.onFocus();
                         }
                     }}
+                    data-testid={props.dataTestId}
                     onBlur={() => {
                         if (props.onBlur) {
                             props.onBlur();

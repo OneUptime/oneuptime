@@ -1,7 +1,8 @@
 import { test, expect, Page } from '@playwright/test';
 import { BASE_URL } from '../../Config';
+import URL from 'Common/Types/API/URL';
 test.beforeEach(async ({ page }: { page: Page }) => {
-    await page.goto(BASE_URL.toString());
+    await page.goto(URL.fromString(BASE_URL.toString()).toString());
 });
 test('sign in button ', async ({ page }: { page: Page }) => {
     await page.getByRole('link', { name: 'Sign in' }).click();

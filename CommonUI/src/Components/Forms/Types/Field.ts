@@ -90,4 +90,5 @@ export default interface Field<TEntity> {
         props: CustomElementProps
     ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
     categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
+    dataTestId?: string | undefined;
 }

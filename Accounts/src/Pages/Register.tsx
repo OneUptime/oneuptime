@@ -104,6 +104,7 @@ const RegisterPage: () => JSX.Element = () => {
             required: true,
             disabled: Boolean(initialValues && initialValues['email']),
             title: 'Email',
+            dataTestId: 'email',
         },
         {
             field: {
@@ -113,6 +114,7 @@ const RegisterPage: () => JSX.Element = () => {
             placeholder: 'Jeff Smith',
             required: true,
             title: 'Full Name',
+            dataTestId: 'name',
         },
     ];
 
@@ -126,6 +128,7 @@ const RegisterPage: () => JSX.Element = () => {
                 placeholder: 'Acme, Inc.',
                 required: true,
                 title: 'Company Name',
+                dataTestId: 'companyName',
             },
         ]);
 
@@ -139,6 +142,7 @@ const RegisterPage: () => JSX.Element = () => {
                 required: true,
                 placeholder: '+11234567890',
                 title: 'Phone Number',
+                dataTestId: 'companyPhoneNumber',
             });
         }
     }
@@ -155,6 +159,7 @@ const RegisterPage: () => JSX.Element = () => {
             placeholder: 'Password',
             title: 'Password',
             required: true,
+            dataTestId: 'password',
         },
         {
             field: {
@@ -170,6 +175,7 @@ const RegisterPage: () => JSX.Element = () => {
             overrideFieldKey: 'confirmPassword',
             required: true,
             showEvenIfPermissionDoesNotExist: true,
+            dataTestId: 'confirmPassword',
         },
     ]);
 

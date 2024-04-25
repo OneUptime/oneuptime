@@ -258,6 +258,7 @@ const FormField: <T extends GenericObject>(
                                     ? props.error
                                     : undefined
                             }
+                            dataTestId={props.field.dataTestId}
                             onChange={async (value: Color | null) => {
                                 props.field.onChange &&
                                     props.field.onChange(value);
@@ -288,6 +289,7 @@ const FormField: <T extends GenericObject>(
                             }
                             id={props.field.id}
                             tabIndex={index}
+                            dataTestId={props.field.dataTestId}
                             onChange={async (
                                 value:
                                     | DropdownValue
@@ -321,13 +323,13 @@ const FormField: <T extends GenericObject>(
                     {props.field.fieldType === FormFieldSchemaType.ObjectID && (
                         <IDGenerator
                             tabIndex={index}
+                            dataTestId={props.field.dataTestId}
                             disabled={props.isDisabled || props.field.disabled}
                             error={
                                 props.touched && props.error
                                     ? props.error
                                     : undefined
                             }
-                            dataTestId={fieldType}
                             onChange={(value: ObjectID) => {
                                 props.field.onChange &&
                                     props.field.onChange(value);
@@ -355,6 +357,7 @@ const FormField: <T extends GenericObject>(
                                     ? props.error
                                     : undefined
                             }
+                            dataTestId={props.field.dataTestId}
                             onChange={async (value: string) => {
                                 props.field.onChange &&
                                     props.field.onChange(value);
@@ -381,6 +384,7 @@ const FormField: <T extends GenericObject>(
                                     : undefined
                             }
                             tabIndex={index}
+                            dataTestId={props.field.dataTestId}
                             onChange={async (value: string) => {
                                 props.field.onChange &&
                                     props.field.onChange(value);
@@ -410,6 +414,7 @@ const FormField: <T extends GenericObject>(
                             }
                             type={CodeType.JSON}
                             tabIndex={index}
+                            dataTestId={props.field.dataTestId}
                             onChange={async (value: string) => {
                                 props.field.onChange &&
                                     props.field.onChange(value);
@@ -445,6 +450,7 @@ const FormField: <T extends GenericObject>(
                                     ? props.error
                                     : undefined
                             }
+                            dataTestId={props.field.dataTestId}
                             tabIndex={index}
                             type={CodeType.Markdown}
                             onChange={async (value: string) => {
@@ -515,6 +521,7 @@ const FormField: <T extends GenericObject>(
                             onBlur={async () => {
                                 props.setFieldTouched(props.fieldName, true);
                             }}
+                            dataTestId={props.field.dataTestId}
                             type={codeType}
                             initialValue={
                                 props.currentValues &&
@@ -583,6 +590,7 @@ const FormField: <T extends GenericObject>(
                                       ]
                                     : []
                             }
+                            dataTestId={props.field.dataTestId}
                             initialValue={
                                 props.currentValues &&
                                 (props.currentValues as any)[props.fieldName]
@@ -610,6 +618,7 @@ const FormField: <T extends GenericObject>(
                             onBlur={async () => {
                                 props.setFieldTouched(props.fieldName, true);
                             }}
+                            dataTestId={props.field.dataTestId}
                             initialValue={
                                 props.currentValues &&
                                 (props.currentValues as any)[props.fieldName] &&
@@ -641,6 +650,7 @@ const FormField: <T extends GenericObject>(
                                     props.field.onChange(value);
                                 props.setFieldValue(props.fieldName, value);
                             }}
+                            dataTestId={props.field.dataTestId}
                             onBlur={async () => {
                                 props.setFieldTouched(props.fieldName, true);
                             }}
@@ -679,6 +689,7 @@ const FormField: <T extends GenericObject>(
                                     ? props.error
                                     : undefined
                             }
+                            dataTestId={props.field.dataTestId}
                             onChange={async (
                                 value: Array<CategoryCheckboxValue>
                             ) => {
@@ -727,7 +738,7 @@ const FormField: <T extends GenericObject>(
                                     ? props.error
                                     : undefined
                             }
-                            dataTestId={fieldType}
+                            dataTestId={props.field.dataTestId}
                             type={fieldType as InputType}
                             onChange={(value: string) => {
                                 props.field.onChange &&

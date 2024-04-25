@@ -19,7 +19,7 @@ export interface ComponentProps {
     type: CodeType;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
-    dataTestId?: string;
+    dataTestId?: string | undefined;
     tabIndex?: number | undefined;
     error?: string | undefined;
     value?: string | undefined;

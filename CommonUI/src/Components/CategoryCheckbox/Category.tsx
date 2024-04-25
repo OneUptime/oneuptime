@@ -14,6 +14,7 @@ export interface CategoryProps {
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue>;
     isLastCategory: boolean;
+    dataTestId?: string | undefined;    
 }
 
 enum CategoryCheckboxValueState {
@@ -67,6 +68,7 @@ const Category: FunctionComponent<CategoryProps> = (
                 <div>
                     <CheckboxElement
                         title={props.category.title}
+                        dataTestId={props.dataTestId}
                         value={
                             categoryCheckboxState ===
                             CategoryCheckboxValueState.Checked

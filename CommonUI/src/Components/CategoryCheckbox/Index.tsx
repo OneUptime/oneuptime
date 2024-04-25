@@ -18,6 +18,7 @@ export interface CategoryCheckboxProps
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue | BaseModel>;
     error?: string | undefined;
+    dataTestId?: string | undefined;
 }
 
 const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
@@ -112,6 +113,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
                         return Boolean(option);
                     }
                 )}
+                dataTestId={props.dataTestId}
                 category={category}
                 options={options.filter((option: CategoryCheckboxOption) => {
                     return (option.categoryId || '') === (category?.id || '');

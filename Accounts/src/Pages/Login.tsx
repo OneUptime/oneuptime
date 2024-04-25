@@ -69,6 +69,7 @@ const LoginPage: () => JSX.Element = () => {
                                 title: 'Email',
                                 fieldType: FormFieldSchemaType.Email,
                                 required: true,
+                                dataTestId: 'email',
                             },
                             {
                                 field: {
@@ -85,6 +86,7 @@ const LoginPage: () => JSX.Element = () => {
                                     url: new Route('/accounts/forgot-password'),
                                     openLinkInNewTab: false,
                                 },
+                                dataTestId: 'password',
                             },
                         ]}
                         createOrUpdateApiUrl={apiUrl}
