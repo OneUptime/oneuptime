@@ -341,7 +341,7 @@ services:
         restart: no
         network_mode: host # This is needed to access the host network, 
         environment:
-            <<: *common-server-variables
+            <<: *common-variables
         logging:
             driver: "local"
             options:
