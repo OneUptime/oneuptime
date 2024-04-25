@@ -380,6 +380,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
+                            field: {
+                                _id: true,
+                            },
                             title: 'Change State to Ongoing',
                             fieldType: FieldType.Element,
                             getElement: (
@@ -406,6 +409,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
+                            field: {
+                                _id: true,
+                            },
                             title: 'Change State to Completed',
                             fieldType: FieldType.Element,
                             getElement: (

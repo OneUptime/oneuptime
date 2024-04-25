@@ -300,6 +300,9 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
+                            field: {
+                                _id: true,
+                            },
                             title: 'Acknowledge Incident',
                             fieldType: FieldType.Element,
                             getElement: (
@@ -326,6 +329,9 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
+                            field: {
+                                _id: true,
+                            },
                             title: 'Resolve Incident',
                             fieldType: FieldType.Element,
                             getElement: (
