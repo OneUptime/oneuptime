@@ -579,6 +579,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         ) as Array<ClassicFilterType<TBaseModel>>;
 
                 setClassicTableFilters(classicFilters);
+
+                setHeaderButtons();
             } catch (err) {
                 setTableFilterError(API.getFriendlyMessage(err));
             }
