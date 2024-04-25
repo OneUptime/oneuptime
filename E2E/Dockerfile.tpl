@@ -4,7 +4,9 @@
 #
 
 # Pull base image nodejs image.
-FROM node:21.6-alpine3.18
+
+# Note: Alpine Images doesnt work with Playwright.
+FROM node:21.6
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 ARG GIT_SHA
@@ -17,15 +19,17 @@ ENV APP_VERSION=${APP_VERSION}
 RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 # Install bash. 
-RUN apk add bash && apk add curl
+RUN apt-get install bash -y && apt-get install curl -y
 
 # Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+RUN apt-get update && apt-get install -y .gyp python3 make g++
+
+# Install playwright dependencies
+RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0
+
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
-
-RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
