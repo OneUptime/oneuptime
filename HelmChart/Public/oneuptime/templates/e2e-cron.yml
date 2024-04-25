@@ -1,4 +1,6 @@
 
+{{- if $.Values.cronJobs.e2e.enabled }}
+
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -7,7 +9,7 @@ metadata:
   labels: 
     appname: oneuptime
 spec:
-  schedule: "*/30 * * * *" # At every 30 minute.
+  schedule: "*/5 * * * *" # At every 30 minute.
   jobTemplate:
     spec:
       template:
@@ -18,3 +20,5 @@ spec:
             env:
               {{- include "oneuptime.env.common" . | nindent 14 }}
           restartPolicy: Never
+
+{{- end }}

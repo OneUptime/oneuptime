@@ -195,4 +195,6 @@ logLevel: ERROR
 cronJobs:
   cleanup:
     enabled: false
+  e2e:
+    enabled: false
   

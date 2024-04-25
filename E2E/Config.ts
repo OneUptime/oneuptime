@@ -12,4 +12,4 @@ export const HOST: string = env('HOST') || 'localhost';
 export const HTTP_PROTOCOL: Protocol =
     env('HTTP_PROTOCOL') === 'https' ? Protocol.HTTPS : Protocol.HTTP;
 
-export const BASE_URL: URL = URL.fromString(`${HTTP_PROTOCOL}://${HOST}`);
+export const BASE_URL: URL = URL.fromString(`${HTTP_PROTOCOL}${HOST}`);
