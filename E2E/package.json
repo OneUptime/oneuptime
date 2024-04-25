@@ -1,5 +1,5 @@
 {
-  "name": "@oneuptime/tests",
+  "name": "@oneuptime/e2e",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -15,11 +15,11 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^20.10.4"
-    
   },
   "dependencies": {
     "@playwright/test": "^1.43.1",
+    "Common": "file:../Common",
     "playwright": "^1.43.1",
-    "Common": "file:../Common"
+    "typescript": "^5.4.5"
   }
 }
