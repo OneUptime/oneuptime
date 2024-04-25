@@ -20,6 +20,8 @@ test.describe('check if pages loades with its title', () => {
             .getByRole('link', { name: 'OneUptime', exact: true })
             .click();
 
-        await expect(page).toHaveURL(URL.fromString(BASE_URL.toString()).toString());
+        await expect(page).toHaveURL(
+            URL.fromString(BASE_URL.toString()).toString()
+        );
     });
 });

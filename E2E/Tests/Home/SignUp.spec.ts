@@ -8,6 +8,8 @@ test.beforeEach(async ({ page }: { page: Page }) => {
 test('sign up button', async ({ page }: { page: Page }) => {
     await page.getByTestId('Sign-up').click();
     await expect(page).toHaveURL(
-        URL.fromString(BASE_URL.toString()).addRoute('/accounts/register').toString()
+        URL.fromString(BASE_URL.toString())
+            .addRoute('/accounts/register')
+            .toString()
     );
 });

@@ -14,7 +14,7 @@ export interface CategoryProps {
     onChange: (value: Array<CategoryCheckboxValue>) => void;
     initialValue?: undefined | Array<CategoryCheckboxValue>;
     isLastCategory: boolean;
-    dataTestId?: string | undefined;    
+    dataTestId?: string | undefined;
 }
 
 enum CategoryCheckboxValueState {

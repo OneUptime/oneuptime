@@ -59,7 +59,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
                 <textarea
                     autoFocus={props.autoFocus}
                     placeholder={props.placeholder}
-                    data-testid={props.dataTestId}  
+                    data-testid={props.dataTestId}
                     className={`${className || ''}`}
                     value={text}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {

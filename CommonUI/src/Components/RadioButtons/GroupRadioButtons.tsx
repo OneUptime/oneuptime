@@ -12,7 +12,6 @@ export interface RadioButton {
     value: string;
     sideTitle?: string | undefined;
     sideDescription?: string | undefined;
-
 }
 
 export interface ComponentProps {
