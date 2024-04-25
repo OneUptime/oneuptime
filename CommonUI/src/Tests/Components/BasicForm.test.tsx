@@ -19,6 +19,7 @@ describe('BasicForm test', () => {
             title: 'Email',
             fieldType: FormFieldSchemaType.Email,
             required: true,
+            dataTestId: 'email',
         },
         {
             field: {
@@ -35,6 +36,7 @@ describe('BasicForm test', () => {
                 url: new Route('/accounts/forgot-password'),
                 openLinkInNewTab: false,
             },
+            dataTestId: 'password',
         },
     ];
 
