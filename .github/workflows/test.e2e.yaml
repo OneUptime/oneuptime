@@ -37,6 +37,8 @@ jobs:
         run: export $(grep -v '^#' config.env | xargs) && docker-compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker-compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
+        # Run this on failure
+        if: failure()
         with:
           # Name of the artifact to upload.
           # Optional. Default is 'artifact'
