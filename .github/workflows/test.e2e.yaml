@@ -31,14 +31,8 @@ jobs:
         with:
           node-version: 18.3.0
       - run: npm run dev
-      - run: |
-          # Check /status/live to see if the server is up. If the server is not up then wait for 30 seconds and try again. Keep trying for 30 minutes.
-          for i in {1..60}; do
-            if curl -s http://localhost/status/live; then
-              break
-            fi
-            sleep 30
-          done
+      - name: Wait for server to start
+        run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: docker-compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker-compose -f docker-compose.dev.yml logs e2e && exit 1)
       
