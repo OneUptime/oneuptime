@@ -35,5 +35,25 @@ jobs:
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: export $(grep -v '^#' config.env | xargs) && docker-compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker-compose -f docker-compose.dev.yml logs e2e && exit 1)
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          # Name of the artifact to upload.
+          # Optional. Default is 'artifact'
+          name: test-results
+      
+          # A file, directory or wildcard pattern that describes what to upload
+          # Required.
+          path: |
+            ./E2E/playwright-report
+            ./E2E/test-results
+      
+        
+          # Duration after which artifact will expire in days. 0 means using default retention.
+          # Minimum 1 day.
+          # Maximum 90 days unless changed from the repository settings page.
+          # Optional. Defaults to repository settings.
+          retention-days: 7
+    
       
   
