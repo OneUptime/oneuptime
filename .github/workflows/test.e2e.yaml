@@ -39,6 +39,6 @@ jobs:
             fi
             sleep 30
           done
-      - run: cd Common && sudo npm install
-      - run: cd E2E && sudo npm install && npm run test
+      - name: Run E2E Tests. Run docker container e2e in docker compose file
+        run: docker-compose -f docker-compose.dev.yml up --exit-code-from e2e
   
