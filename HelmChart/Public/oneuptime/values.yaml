@@ -177,7 +177,7 @@ openTelemetryExporter:
     server:
     client:
   headers: 
-    app:
+    app: 
     dashboard:
     accounts:
     statusPage:
