@@ -7,6 +7,9 @@ metadata:
   namespace: {{ $.Release.Namespace }}
   labels: 
     appname: oneuptime
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/5 * * * *" # At every 5 minute.
   jobTemplate:
@@ -47,6 +50,9 @@ metadata:
   namespace: {{ $.Release.Namespace }}
   labels: 
     appname: oneuptime
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/2 * * * *" # At every 2 minute.
   jobTemplate:
