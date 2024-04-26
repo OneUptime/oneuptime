@@ -25,9 +25,9 @@ spec:
               {{- include "oneuptime.env.common" . | nindent 14 }}
               - name: E2E_TEST_IS_USER_REGISTERED
                 value: {{ $.Values.cronJobs.e2e.isUserRegistered | quote }}
-              - name: E2E_TEST_REGISERED_USER_EMAIL
+              - name: E2E_TEST_REGISTERED_USER_EMAIL
                 value: {{ $.Values.cronJobs.e2e.registeredUserEmail | quote }}
-              - name: E2E_TEST_REGISERED_USER_PASSWORD
+              - name: E2E_TEST_REGISTERED_USER_PASSWORD
                 value: {{ $.Values.cronJobs.e2e.registeredUserPassword | quote }}
               - name: E2E_TEST_STATUS_PAGE_URL
                 value: {{ $.Values.cronJobs.e2e.statusPageUrl | quote }}
