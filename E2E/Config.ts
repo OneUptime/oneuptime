@@ -20,3 +20,9 @@ export const REGISTERED_USER_EMAIL: string =
     env('E2E_TEST_REGISTERED_USER_EMAIL') || '';
 export const REGISTERED_USER_PASSWORD: string =
     env('E2E_TEST_REGISTERED_USER_PASSWORD') || '';
+
+export const STATUS_PAGE_URL: URL | null = env(
+    'E2E_TEST_REGISTERED_USER_PASSWORD'
+)
+    ? URL.fromString(env('E2E_TEST_REGISTERED_USER_PASSWORD'))
+    : null;

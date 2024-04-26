@@ -12,7 +12,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     date: "{{ now | unixEpoch }}"
 spec:
-  schedule: "*/5 * * * *" # At every 30 minute.
+  schedule: "*/30 * * * *" # At every 30 minute.
   activeDeadlineSeconds: 3600 # 1 hour
   jobTemplate:
     spec:
@@ -30,6 +30,8 @@ spec:
                 value: {{ $.Values.cronJobs.e2e.registeredUserEmail | quote }}
               - name: E2E_TEST_REGISERED_USER_PASSWORD
                 value: {{ $.Values.cronJobs.e2e.registeredUserPassword | quote }}
+              - name: E2E_TEST_STATUS_PAGE_URL
+                value: {{ $.Values.cronJobs.e2e.statusPageUrl | quote }}
           restartPolicy: Never
 
 {{- end }}

@@ -36,7 +36,7 @@ spec:
                     kubectl delete pod $pod -n $namespace
                     fi
                 done
-              
+          
           restartPolicy: OnFailure
 
 ---

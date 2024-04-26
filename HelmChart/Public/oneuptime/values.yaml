@@ -204,4 +204,6 @@ cronJobs:
     isUserRegistered: false
     registeredUserEmail: 
     registeredUserPassword:
+    # This is the URL of the status page you want to test. This is used to check if the status page is up and running.
+    statusPageUrl: 
   

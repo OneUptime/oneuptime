@@ -729,7 +729,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             {error ? <ErrorMessage error={error} /> : <></>}
 
             {!isLoading && !error ? (
-                <div>
+                <div data-testid="status-page-overview">
                     {/* Overview Page Description */}
                     {statusPage && statusPage.overviewPageDescription && (
                         <div
