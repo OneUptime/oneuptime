@@ -20,11 +20,11 @@ spec:
             env:
               {{- include "oneuptime.env.common" . | nindent 14 }}
               - name: E2E_TEST_IS_USER_REGISTERED
-                value: {{ $.Values.cronJobs.e2e.isUserRegistered }}
+                value: {{ $.Values.cronJobs.e2e.isUserRegistered | quote }}
               - name: E2E_TEST_REGISERED_USER_EMAIL
-                value: {{ $.Values.cronJobs.e2e.registeredUserEmail }}
+                value: {{ $.Values.cronJobs.e2e.registeredUserEmail | quote }}
               - name: E2E_TEST_REGISERED_USER_PASSWORD
-                value: {{ $.Values.cronJobs.e2e.registeredUserPassword }}
+                value: {{ $.Values.cronJobs.e2e.registeredUserPassword | quote }}
           restartPolicy: Never
 
 {{- end }}
