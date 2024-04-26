@@ -32,13 +32,13 @@ jobs:
           node-version: 18.3.0
       - run: npm run dev
       - run: |
-          # Check /status/live to see if the server is up. If the server is not up then wait for 30 seconds and try again. Keep trying for 15 minutes.
-          for i in {1..30}; do
-            if curl -s http://localhost:3000/status/live; then
+          # Check /status/live to see if the server is up. If the server is not up then wait for 30 seconds and try again. Keep trying for 30 minutes.
+          for i in {1..60}; do
+            if curl -s http://localhost/status/live; then
               break
             fi
             sleep 30
           done
-      - run: cd Common && npm install
-      - run: cd E2E && npm install && npm run test
+      - run: cd Common && sudo npm install
+      - run: cd E2E && sudo npm install && npm run test
   
