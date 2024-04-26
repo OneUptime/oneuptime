@@ -32,6 +32,8 @@ spec:
                 value: {{ $.Values.cronJobs.e2e.registeredUserPassword | quote }}
               - name: E2E_TEST_STATUS_PAGE_URL
                 value: {{ $.Values.cronJobs.e2e.statusPageUrl | quote }}
+              - name: E2E_TESTS_FAILED_WEBHOOK_URL
+                value: {{ $.Values.cronJobs.e2e.failedWebhookUrl | quote }}
           restartPolicy: Never
 
 {{- end }}
