@@ -13,7 +13,6 @@ metadata:
     date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/30 * * * *" # At every 30 minute.
-  activeDeadlineSeconds: 3600 # 1 hour
   jobTemplate:
     spec:
       template:

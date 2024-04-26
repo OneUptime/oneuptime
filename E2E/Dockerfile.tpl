@@ -40,6 +40,9 @@ COPY ./Common /usr/src/Common
 
 ENV PRODUCTION=true
 
+# Do not show the html report in the browser when job fails. 
+ENV PW_TEST_HTML_REPORT_OPEN='never'
+
 WORKDIR /usr/src/app
 
 # Install app dependencies

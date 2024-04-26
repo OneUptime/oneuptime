@@ -12,7 +12,6 @@ metadata:
     date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/5 * * * *" # At every 5 minute.
-  activeDeadlineSeconds: 60
   jobTemplate:
     spec:
       template:
@@ -57,7 +56,6 @@ metadata:
     date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/2 * * * *" # At every 2 minute.
-  activeDeadlineSeconds: 60
   jobTemplate:
     spec:
       template:
