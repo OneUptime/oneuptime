@@ -338,7 +338,7 @@ services:
             
     
     e2e:
-        restart: no
+        restart: "no"
         network_mode: host # This is needed to access the host network, 
         environment:
             <<: *common-variables
