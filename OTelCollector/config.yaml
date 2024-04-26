@@ -14,6 +14,9 @@ receivers:
         include_metadata: true
       http:
         include_metadata: true
+        cors:
+          allowed_origins: ["*"]
+          allowed_headers: ["*"]
 
 
 
