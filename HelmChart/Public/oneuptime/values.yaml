@@ -138,6 +138,8 @@ probes:
     monitorFetchLimit: 10
     key:
     replicaCount: 1 
+    openTelemetryExporter: 
+      headers:
   # two: 
   #   name: "Probe 2"
   #   description: "Probe 2"
@@ -145,6 +147,8 @@ probes:
   #   monitorFetchLimit: 10
   #   key:
   #   replicaCount: 1
+  #   openTelemetryExporter:
+  #     headers:
 
 port: 
   app: 3002
@@ -176,7 +180,6 @@ openTelemetryExporter:
     dashboard:
     accounts:
     statusPage:
-    probe: 
     adminDashboard:
     ingestor:
     ingress:

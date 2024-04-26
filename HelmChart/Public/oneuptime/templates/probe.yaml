@@ -46,7 +46,9 @@ spec:
             - name: PORT
               value: {{ $.Values.port.probe | squote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers.probe }}
+              value: {{ $val.openTelemetryExporter.headers }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+              value: {{ $.Values.openTelemetryExporter.endpoint.server }}
             - name: ONEUPTIME_URL
               value: http://{{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.port.ingestor }}
             - name: PROBE_NAME
