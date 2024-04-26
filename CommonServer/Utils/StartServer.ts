@@ -198,6 +198,42 @@ const init: InitFunction = async (
         });
     }
 
+    return app;
+};
+
+const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
+    app.post('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
+    });
+
+    app.put('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
+    });
+
+    app.delete('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
+    });
+
+    app.get('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
+    });
+
     // Attach Error Handler.
     app.use(
         (
@@ -252,42 +288,6 @@ const init: InitFunction = async (
             }
         }
     );
-
-    return app;
-};
-
-const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
-    app.post('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException('Not found')
-        );
-    });
-
-    app.put('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException('Not found')
-        );
-    });
-
-    app.delete('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException('Not found')
-        );
-    });
-
-    app.get('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException('Not found')
-        );
-    });
 };
 
 export default { init, addDefaultRoutes };

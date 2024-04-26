@@ -17,7 +17,6 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { StaticPath, ViewsPath } from './Utils/Config';
 import NotFoundUtil from './Utils/NotFound';
-import ServerErrorUtil from './Utils/ServerError';
 
 // improt API
 import './API/BlogAPI';
@@ -1064,13 +1063,6 @@ const HomeFeatureSet: FeatureSet = {
         app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
             return NotFoundUtil.renderNotFound(res);
         });
-
-        app.get(
-            '/server-error',
-            (_req: ExpressRequest, res: ExpressResponse) => {
-                return ServerErrorUtil.renderServerError(res);
-            }
-        );
     },
 };
 
