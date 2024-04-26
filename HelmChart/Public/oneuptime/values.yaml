@@ -138,6 +138,7 @@ probes:
     monitorFetchLimit: 10
     key:
     replicaCount: 1 
+    # Feel free to leave this blank if you're not integrating this with OpenTelemetry Backend.
     openTelemetryExporter: 
       headers:
   # two: 
