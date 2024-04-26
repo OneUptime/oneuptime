@@ -34,6 +34,6 @@ jobs:
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        run: docker-compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker-compose -f docker-compose.dev.yml logs e2e && exit 1)
+        run: npm run prerun && docker-compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker-compose -f docker-compose.dev.yml logs e2e && exit 1)
       
   
