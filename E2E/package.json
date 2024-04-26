@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "preinstall": "npx playwright install && npx playwright install-deps",
+    "preinstall": "npx playwright install-deps && npx playwright install",
     "test": "playwright test",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
