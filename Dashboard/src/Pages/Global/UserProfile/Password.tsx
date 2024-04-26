@@ -82,10 +82,11 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 placeholder: 'Password',
                                 title: 'Password',
                                 required: true,
+                                showEvenIfPermissionDoesNotExist: true,
                             },
                             {
                                 field: {
-                                    password: true,
+                                    confirmPassword: true,
                                 },
                                 validation: {
                                     minLength: 6,
@@ -94,8 +95,8 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 fieldType: FormFieldSchemaType.Password,
                                 placeholder: 'Confirm Password',
                                 title: 'Confirm Password',
-                                overrideFieldKey: 'confirmPassword',
                                 required: true,
+                                showEvenIfPermissionDoesNotExist: true,
                             },
                         ]}
                         formType={FormType.Update}
