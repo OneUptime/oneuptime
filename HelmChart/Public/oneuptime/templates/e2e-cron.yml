@@ -13,6 +13,7 @@ metadata:
     date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/5 * * * *" # At every 30 minute.
+  activeDeadlineSeconds: 3600 # 1 hour
   jobTemplate:
     spec:
       template:
@@ -20,6 +21,7 @@ spec:
           containers:
           - name: e2e-cron
             image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "e2e" $.Values.image.tag }}
+            imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
               {{- include "oneuptime.env.common" . | nindent 14 }}
               - name: E2E_TEST_IS_USER_REGISTERED

@@ -12,6 +12,7 @@ metadata:
     date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/5 * * * *" # At every 5 minute.
+  activeDeadlineSeconds: 60
   jobTemplate:
     spec:
       template:
@@ -20,6 +21,7 @@ spec:
           containers:
           - name: cleanup
             image: bitnami/kubectl:latest
+            imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
             - name: namespace
               value: {{ $.Release.Namespace }}
@@ -55,6 +57,7 @@ metadata:
     date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/2 * * * *" # At every 2 minute.
+  activeDeadlineSeconds: 60
   jobTemplate:
     spec:
       template:
@@ -63,6 +66,7 @@ spec:
           containers:
           - name: cleanup
             image: bitnami/kubectl:latest
+            imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
             - name: namespace
               value: {{ $.Release.Namespace }}
