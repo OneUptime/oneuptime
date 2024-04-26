@@ -3,7 +3,11 @@ import { STATUS_PAGE_URL } from '../../Config';
 import URL from 'Common/Types/API/URL';
 
 test.describe('Basic Status Page', () => {
-    test('should be able to load status page properly', async ({ page }: {page: Page}) => {
+    test('should be able to load status page properly', async ({
+        page,
+    }: {
+        page: Page;
+    }) => {
         if (!STATUS_PAGE_URL) {
             // pass this test if the user is not registered
             return;
