@@ -1,13 +1,20 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE_URL } from '../../Config';
+import { BASE_URL, IS_BILLING_ENABLED } from '../../Config';
 import URL from 'Common/Types/API/URL';
 
 test.beforeEach(async ({ page }: { page: Page }) => {
+    if (!IS_BILLING_ENABLED) {
+        return;
+    }
+
     await page.goto(URL.fromString(BASE_URL.toString()).toString());
 });
 
 test.describe('navigation bar', () => {
     test('product page', async ({ page }: { page: Page }) => {
+        if (!IS_BILLING_ENABLED) {
+            return;
+        }
         await page.getByRole('button', { name: 'Products' }).click();
         await page.getByRole('button', { name: 'Products' }).hover();
         await expect(page.getByRole('button', { name: 'Products' })).toHaveText(
@@ -22,6 +29,9 @@ test.describe('navigation bar', () => {
     });
 
     test('pricing page', async ({ page }: { page: Page }) => {
+        if (!IS_BILLING_ENABLED) {
+            return;
+        }
         await page.getByRole('link', { name: 'Pricing' }).click();
         await page.getByRole('link', { name: 'Pricing' }).hover();
         await expect(page.getByRole('link', { name: 'Pricing' })).toHaveText(
@@ -35,6 +45,9 @@ test.describe('navigation bar', () => {
     });
 
     test('Enterprise', async ({ page }: { page: Page }) => {
+        if (!IS_BILLING_ENABLED) {
+            return;
+        }
         await page.getByRole('link', { name: 'Enterprise' }).click();
         await page.getByRole('link', { name: 'Enterprise' }).hover();
         await expect(
@@ -50,6 +63,9 @@ test.describe('navigation bar', () => {
     });
 
     test('Request Demo', async ({ page }: { page: Page }) => {
+        if (!IS_BILLING_ENABLED) {
+            return;
+        }
         await page.getByTestId('request-demo-desktop-link').click();
         await expect(page).toHaveURL(/.*enterprise\/demo/);
     });

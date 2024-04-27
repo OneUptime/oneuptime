@@ -1,12 +1,20 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE_URL } from '../../Config';
+import { BASE_URL, IS_BILLING_ENABLED } from '../../Config';
 import URL from 'Common/Types/API/URL';
 
 test.beforeEach(async ({ page }: { page: Page }) => {
+    if (!IS_BILLING_ENABLED) {
+        return;
+    }
+
     await page.goto(URL.fromString(BASE_URL.toString()).toString());
 });
 test.describe('check if pages loades with its title', () => {
     test('has title', async ({ page }: { page: Page }) => {
+        if (!IS_BILLING_ENABLED) {
+            return;
+        }
+
         await expect(page).toHaveTitle(
             /OneUptime | One Complete SRE and DevOps platform./
         );
@@ -16,6 +24,10 @@ test.describe('check if pages loades with its title', () => {
     }: {
         page: Page;
     }) => {
+        if (!IS_BILLING_ENABLED) {
+            return;
+        }
+
         await page
             .getByRole('link', { name: 'OneUptime', exact: true })
             .click();
