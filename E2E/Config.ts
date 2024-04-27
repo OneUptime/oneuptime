@@ -23,8 +23,6 @@ export const REGISTERED_USER_PASSWORD: string =
 
 export const IS_BILLING_ENABLED: boolean = env('BILLING_ENABLED') === 'true';
 
-export const STATUS_PAGE_URL: URL | null = env(
-    'E2E_TEST_STATUS_PAGE_URL'
-)
+export const STATUS_PAGE_URL: URL | null = env('E2E_TEST_STATUS_PAGE_URL')
     ? URL.fromString(env('E2E_TEST_STATUS_PAGE_URL'))
     : null;

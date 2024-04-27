@@ -30,6 +30,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0
+      - run: npm run prerun && bash ./Tests/Scripts/enable-billing-env-var.sh
       - run: npm run dev
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
