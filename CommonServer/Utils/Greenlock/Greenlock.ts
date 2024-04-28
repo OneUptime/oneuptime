@@ -10,16 +10,16 @@ import Greenlock from 'greenlock';
 export default class GreenlockUtil {
     private static greenLockInstance: any = null;
 
-    public static getGreenlockInstance(): any {
+    private static getGreenlockInstance(): any {
         if (this.greenLockInstance) {
             return this.greenLockInstance;
         }
 
         this.greenLockInstance = Greenlock.create({
-            configFile: '/usr/src/Common/FeatureSet/Workers/greenlockrc',
-            packageRoot: `/usr/src/app/greenlock`,
+            configFile: '//usr/src/CommonServer/Utils/Greenlock/greenlockrc',
+            packageRoot: `/usr/src/CommonServer/greenlock`,
             manager:
-                '/usr/src/app/FeatureSet/Workers/Utils/Greenlock/Manager.ts',
+                '/usr/src/CommonServer/Utils/Greenlock/Manager.ts',
             approveDomains: async (opts: any) => {
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({
@@ -44,7 +44,7 @@ export default class GreenlockUtil {
                 return opts; // or Promise.resolve(opts);
             },
             store: {
-                module: '/usr/src/app/FeatureSet/Workers/Utils/Greenlock/Store.ts',
+                module: '/usr/src/CommonServer/Utils/Greenlock/Store.ts',
             },
             // Staging for testing environments
             // staging: IsDevelopment,
@@ -68,7 +68,7 @@ export default class GreenlockUtil {
             agreeToTerms: true,
             challenges: {
                 'http-01': {
-                    module: '/usr/src/app/FeatureSet/Workers/Utils/Greenlock/HttpChallenge.ts',
+                    module: '/usr/src/CommonServer/Utils/Greenlock/HttpChallenge.ts',
                 },
             },
         });
