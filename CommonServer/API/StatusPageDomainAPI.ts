@@ -73,7 +73,9 @@ export default class StatusPageDomainAPI extends BaseAPI<
                                 fullDomain: true,
                                 cnameVerificationToken: true,
                             },
-                            props: databaseProps,
+                            props: {
+                                isRoot: true
+                            },
                         });
 
                     if (!domain) {
