@@ -297,12 +297,10 @@ import IncidentSeverityService, {
     Service as IncidentSeverityServiceType,
 } from 'CommonServer/Services/IncidentSeverityService';
 
-
 // User Notification methods.
 import UserEmailAPI from 'CommonServer/API/UserEmailAPI';
 import UserSMSAPI from 'CommonServer/API/UserSmsAPI';
 import UserCallAPI from 'CommonServer/API/UserCallAPI';
-
 
 // Import API
 import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
@@ -695,7 +693,6 @@ const BaseAPIFeatureSet: FeatureSet = {
                 StatusPageGroupService
             ).getRouter()
         );
-
 
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
