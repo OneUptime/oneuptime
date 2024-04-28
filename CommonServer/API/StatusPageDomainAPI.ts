@@ -16,6 +16,7 @@ import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCo
 import CommonAPI from './CommonAPI';
 import logger from '../Utils/Logger';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import { StatusPageCNameRecord } from '../EnvironmentConfig';
 
 export default class StatusPageDomainAPI extends BaseAPI<
     StatusPageDomain,
@@ -36,6 +37,20 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
+
+                    if(!StatusPageCNameRecord){
+                        return Response.sendErrorResponse(
+                            req,
+                            res,
+                            new BadDataException(
+                                `Custom Domains not enabled for this
+                                OneUptime installation. Please contact
+                                your server admin to enable this
+                                feature.`
+                            )
+                        );
+                    }
+
                     const databaseProps: DatabaseCommonInteractionProps =
                         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
@@ -159,6 +174,20 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
+
+                    if(!StatusPageCNameRecord){
+                        return Response.sendErrorResponse(
+                            req,
+                            res,
+                            new BadDataException(
+                                `Custom Domains not enabled for this
+                                OneUptime installation. Please contact
+                                your server admin to enable this
+                                feature.`
+                            )
+                        );
+                    }
+                    
                     const databaseProps: DatabaseCommonInteractionProps =
                         await CommonAPI.getDatabaseCommonInteractionProps(req);
 

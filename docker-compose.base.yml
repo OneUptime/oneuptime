@@ -9,6 +9,8 @@ x-common-variables: &common-variables
 
     FLUENTD_HOST: ${FLUENTD_HOST}
 
+    STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
+
     LOG_LEVEL: ${LOG_LEVEL}
 
     NODE_ENV: ${ENVIRONMENT}
@@ -48,7 +50,6 @@ x-common-variables: &common-variables
 x-common-ui-variables: &common-ui-variables
     <<: *common-variables   
     IS_SERVER: "false"
-    STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
     
 x-common-server-variables: &common-server-variables
     <<: *common-variables

@@ -1,6 +1,8 @@
 {{- define "oneuptime.env.common" }}
 - name: HOST
   value: {{ $.Values.host }}
+- name: STATUS_PAGE_CNAME_RECORD
+  value: {{ $.Values.statusPage.cnameRecord }}
 - name: OTEL_COLLECTOR_HOST
   value: {{ $.Values.openTelemetryCollectorHost }}
 - name: LOG_LEVEL
@@ -70,8 +72,7 @@
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
   value: {{ printf "false" | squote }}
-- name: STATUS_PAGE_CNAME_RECORD
-  value: {{ $.Values.statusPage.cnameRecord }}
+
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
   value: {{ $.Values.openTelemetryExporter.endpoint.client }}
 {{- end }}
