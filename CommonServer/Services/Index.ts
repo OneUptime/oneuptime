@@ -98,7 +98,6 @@ import ScheduledMaintenanceOwnerTeamService from './ScheduledMaintenanceOwnerTea
 import ScheduledMaintenanceOwnerUserService from './ScheduledMaintenanceOwnerUserService';
 import ShortLinkService from './ShortLinkService';
 import SmsService from './SmsService';
-import StatusPageCertificateService from './StatusPageCertificateService';
 import StatusPageCustomFieldService from './StatusPageCustomFieldService';
 import StatusPageOwnerTeamService from './StatusPageOwnerTeamService';
 import StatusPageOwnerUserService from './StatusPageOwnerUserService';
@@ -218,7 +217,6 @@ const services: Array<BaseService> = [
     SmsService,
 
     StatusPageAnnouncementService,
-    StatusPageCertificateService,
     StatusPageCustomFieldService,
     StatusPageDomainService,
     StatusPageFooterLinkService,

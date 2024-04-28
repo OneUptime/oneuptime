@@ -1,6 +1,6 @@
 import {
     EVERY_FIVE_MINUTE,
-    EVERY_HOUR,
+    EVERY_FIFTEEN_MINUTE,
     EVERY_MINUTE,
 } from 'Common/Utils/CronTime';
 import BasicCron from 'CommonServer/Utils/BasicCron';
@@ -21,7 +21,7 @@ export default class Jobs {
         BasicCron({
             jobName: 'StatusPageCerts:WriteGreelockCertsToDisk',
             options: {
-                schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+                schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
                 runOnStartup: true,
             },
             runFunction: async () => {

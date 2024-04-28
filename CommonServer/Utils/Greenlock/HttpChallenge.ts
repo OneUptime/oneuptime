@@ -1,6 +1,6 @@
 import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
-import GreenlockChallengeService from 'CommonServer/Services/GreenlockChallengeService';
-import logger from 'CommonServer/Utils/Logger';
+import GreenlockChallengeService from '../../Services/GreenlockChallengeService';
+import logger from '../../Utils/Logger';
 
 // because greenlock package expects module.exports.
 module.exports = {

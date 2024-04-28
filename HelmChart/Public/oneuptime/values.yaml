@@ -208,3 +208,6 @@ cronJobs:
     statusPageUrl:
     failedWebhookUrl: 
   
+
+notifications: 
+  letsEncryptEmail:

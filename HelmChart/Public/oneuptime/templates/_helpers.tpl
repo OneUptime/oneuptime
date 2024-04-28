@@ -95,6 +95,9 @@
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
   value: {{ $.Values.openTelemetryExporter.endpoint.server }}
 
+- name: LETS_ENCRYPT_NOTIFICATION_EMAIL
+  value: {{ $.Values.notifications.letsEncryptEmail }}
+
 - name: ENCRYPTION_SECRET
   {{- if $.Values.encryptionSecret }}
   value: {{ $.Values.encryptionSecret }}

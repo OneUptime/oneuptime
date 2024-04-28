@@ -1,8 +1,8 @@
 /// https://git.rootprojects.org/root/greenlock-store-memory.js/src/branch/master/index.js
 
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
-import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
-import logger from 'CommonServer/Utils/Logger';
+import GreenlockCertificateService from '../../Services/GreenlockCertificateService';
+import logger from '../../Utils/Logger';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
 type SaveCertificateFunction = (

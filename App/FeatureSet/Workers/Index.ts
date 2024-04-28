@@ -34,10 +34,8 @@ import './Jobs/TelemetryService/DeleteOldData';
 import './Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers';
 
 // Certs Routers
-import StatusPageCerts from './Jobs/StatusPageCerts/StatusPageCerts';
+import './Jobs/StatusPageCerts/StatusPageCerts';
 
-// Express
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import JobDictionary from './Utils/JobDictionary';
 
 // Monitor Owners
@@ -83,13 +81,6 @@ import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
 import './Jobs/MonitorMetrics/MonitorMetricsByMinute';
 
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-
-const APP_NAME: string = 'api/workers';
-
-const app: ExpressApplication = Express.getExpressApp();
-
-//cert routes.
-app.use(`/${APP_NAME.toLocaleLowerCase()}`, StatusPageCerts);
 
 const WorkersFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {

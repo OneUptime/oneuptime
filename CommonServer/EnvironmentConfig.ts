@@ -4,6 +4,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 import BillingConfig from './BillingConfig';
+import Email from 'Common/Types/Email';
 
 export enum ConfigLogLevel {
     INFO = 'INFO',
@@ -22,6 +23,11 @@ export const BillingPrivateKey: string = BillingConfig.BillingPrivateKey;
 
 export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || 'postgres'
+);
+
+export const LetsEncryptNotificationEmail: Email = Email.fromString(
+    process.env['LETS_ENCRYPT_NOTIFICATION_EMAIL'] ||
+        'notifications@example.com'
 );
 
 export const DatabasePort: Port = new Port(

@@ -68,6 +68,10 @@ export default class Email extends DatabaseProperty {
         };
     }
 
+    public static fromString(value: string): Email {
+        return new Email(value);
+    }
+
     public static override fromJSON(json: JSONObject): Email {
         if (json['_type'] === ObjectType.Email) {
             return new Email((json['value'] as string) || '');

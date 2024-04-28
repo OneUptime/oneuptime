@@ -1,10 +1,10 @@
 // Docs: https://git.rootprojects.org/root/greenlock-manager.js
 
-import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
+import StatusPageDomainService from '../../Services/StatusPageDomainService';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import logger from 'CommonServer/Utils/Logger';
+import logger from '../Logger';
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
-import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
+import GreenlockCertificateService from '../../Services/GreenlockCertificateService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';

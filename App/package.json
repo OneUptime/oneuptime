@@ -20,7 +20,6 @@
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.9",
-    "greenlock": "^4.0.4",
     "handlebars": "^4.7.8",
     "marked": "^12.0.0",
     "Model": "file:../Model",
