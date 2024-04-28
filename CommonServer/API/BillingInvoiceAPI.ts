@@ -166,7 +166,7 @@ export default class UserAPI extends BaseAPI<
                         },
                     });
 
-                    return Response.sendEmptyResponse(req, res);
+                    return Response.sendEmptySuccessResponse(req, res);
                 } catch (err) {
                     next(err);
                 }

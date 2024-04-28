@@ -31,7 +31,7 @@ jest.mock('../../Utils/Response', () => {
         sendJsonObjectResponse: jest.fn().mockImplementation((...args: []) => {
             return args;
         }),
-        sendEmptyResponse: jest.fn(),
+        sendEmptySuccessResponse: jest.fn(),
         sendEntityResponse: jest.fn().mockImplementation((...args: []) => {
             return args;
         }),

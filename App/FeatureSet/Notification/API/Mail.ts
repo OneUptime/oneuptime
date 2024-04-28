@@ -44,7 +44,7 @@ router.post(
                 (body['userOnCallLogTimelineId'] as ObjectID) || undefined,
         });
 
-        return Response.sendEmptyResponse(req, res);
+        return Response.sendEmptySuccessResponse(req, res);
     }
 );
 

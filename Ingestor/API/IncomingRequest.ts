@@ -68,7 +68,7 @@ const processIncomingRequest: RequestHandler = async (
         // process probe response here.
         await ProbeMonitorResponseService.processProbeResponse(incomingRequest);
 
-        return Response.sendEmptyResponse(req, res);
+        return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
         return next(err);
     }

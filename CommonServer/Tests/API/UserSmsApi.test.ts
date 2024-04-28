@@ -28,7 +28,7 @@ jest.mock('../../Utils/Response', () => {
         sendJsonObjectResponse: jest.fn().mockImplementation((...args: []) => {
             return args;
         }),
-        sendEmptyResponse: jest.fn(),
+        sendEmptySuccessResponse: jest.fn(),
         sendEntityResponse: jest.fn().mockImplementation((...args: []) => {
             return args;
         }),
@@ -220,7 +220,7 @@ describe('UserSmsAPI', () => {
 
             const response: jest.SpyInstance = jest.spyOn(
                 Response,
-                'sendEmptyResponse'
+                'sendEmptySuccessResponse'
             );
             expect(response).toHaveBeenCalledWith(mockRequest, mockResponse);
         });
@@ -269,7 +269,7 @@ describe('UserSmsAPI', () => {
 
             const response: jest.SpyInstance = jest.spyOn(
                 Response,
-                'sendEmptyResponse'
+                'sendEmptySuccessResponse'
             );
             expect(response).toHaveBeenCalledWith(mockRequest, mockResponse);
         });

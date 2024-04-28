@@ -95,7 +95,7 @@ export default class UserCallAPI extends BaseAPI<
                     },
                 });
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
         );
 
@@ -115,7 +115,7 @@ export default class UserCallAPI extends BaseAPI<
 
                 await this.service.resendVerificationCode(req.body.itemId);
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
         );
     }

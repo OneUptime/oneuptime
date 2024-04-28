@@ -125,7 +125,7 @@ export default class StatusPageAPI extends BaseAPI<
                     );
                 }
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
         );
 
@@ -1219,7 +1219,7 @@ export default class StatusPageAPI extends BaseAPI<
             ) => {
                 try {
                     await this.subscribeToStatusPage(req);
-                    return Response.sendEmptyResponse(req, res);
+                    return Response.sendEmptySuccessResponse(req, res);
                 } catch (err) {
                     next(err);
                 }
@@ -1265,7 +1265,7 @@ export default class StatusPageAPI extends BaseAPI<
                 try {
                     await this.subscribeToStatusPage(req);
 
-                    return Response.sendEmptyResponse(req, res);
+                    return Response.sendEmptySuccessResponse(req, res);
                 } catch (err) {
                     next(err);
                 }

@@ -111,7 +111,7 @@ router.post(
             return Response.sendErrorResponse(req, res, err as Exception);
         }
 
-        return Response.sendEmptyResponse(req, res);
+        return Response.sendEmptySuccessResponse(req, res);
     }
 );
 

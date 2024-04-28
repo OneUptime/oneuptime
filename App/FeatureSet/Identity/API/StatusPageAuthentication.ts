@@ -51,7 +51,7 @@ router.post(
                 CookieUtil.getUserTokenKey(statusPageId)
             ); // remove the cookie.
 
-            return Response.sendEmptyResponse(req, res);
+            return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
         }
@@ -178,7 +178,7 @@ router.post(
                     logger.error(err);
                 });
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
 
             throw new BadDataException(
@@ -320,7 +320,7 @@ router.post(
                 logger.error(err);
             });
 
-            return Response.sendEmptyResponse(req, res);
+            return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
         }

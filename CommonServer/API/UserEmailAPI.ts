@@ -94,7 +94,7 @@ export default class UserEmailAPI extends BaseAPI<
                     },
                 });
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
         );
 
@@ -116,7 +116,7 @@ export default class UserEmailAPI extends BaseAPI<
 
                 await this.service.resendVerificationCode(req.body.itemId);
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
         );
     }

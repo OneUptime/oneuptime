@@ -22,7 +22,7 @@ import AnalyticsDataModel, {
 } from 'Common/AnalyticsModels/BaseModel';
 
 export default class Response {
-    public static sendEmptyResponse(
+    public static sendEmptySuccessResponse(
         _req: ExpressRequest,
         res: ExpressResponse
     ): void {

@@ -340,7 +340,7 @@ export default class BaseAnalyticsAPI<
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });
 
-        return Response.sendEmptyResponse(req, res);
+        return Response.sendEmptySuccessResponse(req, res);
     }
 
     public async updateItem(
@@ -370,7 +370,7 @@ export default class BaseAnalyticsAPI<
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });
 
-        return Response.sendEmptyResponse(req, res);
+        return Response.sendEmptySuccessResponse(req, res);
     }
 
     public async createItem(

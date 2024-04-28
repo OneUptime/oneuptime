@@ -39,7 +39,7 @@ jest.mock('../../Utils/Response', () => {
         sendJsonObjectResponse: jest.fn().mockImplementation((...args: []) => {
             return args;
         }),
-        sendEmptyResponse: jest.fn(),
+        sendEmptySuccessResponse: jest.fn(),
         sendEntityResponse: jest.fn().mockImplementation((...args: []) => {
             return args;
         }),
@@ -642,7 +642,7 @@ describe('BaseAPI', () => {
             await baseApiInstance.deleteItem(deleteRequest, res);
             const sendEmptyResponseSpy: jest.SpyInstance = jest.spyOn(
                 Response as any,
-                'sendEmptyResponse'
+                'sendEmptySuccessResponse'
             );
             expect(sendEmptyResponseSpy).toHaveBeenCalledWith(
                 deleteRequest,
@@ -737,7 +737,7 @@ describe('BaseAPI', () => {
             await baseApiInstance.updateItem(updateRequest, updateResponse);
             const sendEmptyResponseSpy: jest.SpyInstance = jest.spyOn(
                 Response as any,
-                'sendEmptyResponse'
+                'sendEmptySuccessResponse'
             );
             expect(sendEmptyResponseSpy).toHaveBeenCalledWith(
                 updateRequest,

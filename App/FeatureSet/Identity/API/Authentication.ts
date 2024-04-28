@@ -275,7 +275,7 @@ router.post(
                     logger.error(err);
                 });
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
 
             return Response.sendErrorResponse(
@@ -390,7 +390,7 @@ router.post(
                 logger.error(err);
             });
 
-            return Response.sendEmptyResponse(req, res);
+            return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
         }
@@ -482,7 +482,7 @@ router.post(
                 logger.error(err);
             });
 
-            return Response.sendEmptyResponse(req, res);
+            return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
         }
@@ -499,7 +499,7 @@ router.post(
         try {
             CookieUtil.removeAllCookies(req, res);
 
-            return Response.sendEmptyResponse(req, res);
+            return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
         }

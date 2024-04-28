@@ -98,7 +98,7 @@ router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
         );
     }
 
-    return Response.sendEmptyResponse(req, res);
+    return Response.sendEmptySuccessResponse(req, res);
 });
 
 export default router;

@@ -91,7 +91,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
                     },
                 });
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
         );
 
@@ -111,7 +111,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
 
                 await this.service.resendVerificationCode(req.body.itemId);
 
-                return Response.sendEmptyResponse(req, res);
+                return Response.sendEmptySuccessResponse(req, res);
             }
         );
     }

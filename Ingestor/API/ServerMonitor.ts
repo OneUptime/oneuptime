@@ -53,7 +53,7 @@ router.get(
                 throw new BadDataException('Monitor not found');
             }
 
-            return Response.sendEmptyResponse(req, res);
+            return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
         }
