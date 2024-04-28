@@ -14,13 +14,16 @@ import Domain from 'Model/Models/Domain';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { StatusPageCNameRecord } from 'CommonUI/src/Config';
+import { APP_API_URL, StatusPageCNameRecord } from 'CommonUI/src/Config';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import API from 'CommonUI/src/Utils/API/API';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { JSONObject } from 'Common/Types/JSON';
+import URL from 'Common/Types/API/URL';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -286,14 +289,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             try {
                                 setVerifyCnameLoading(true);
                                 setError('');
-                                // verify domain.
-                                await ModelAPI.updateById<StatusPageDomain>({
-                                    modelType: StatusPageDomain,
-                                    id: selectedStatusPageDomain.id!,
-                                    data: {
-                                        isCnameVerified: true,
-                                    },
-                                });
+
+                                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                                    await API.get<JSONObject>(
+                                        URL.fromString(APP_API_URL.toString()).addRoute(
+                                            `/${new StatusPageDomain().crudApiPath}/verify-cname/${selectedStatusPageDomain?.id?.toString()}`
+                                        ),
+                                        {},
+                                        API.getDefaultHeaders()
+                                    );
+
+                                if (response.isFailure()) {
+                                    throw response;
+                                }
 
                                 setShowCnameModal(false);
                                 setRefreshToggle(!refreshToggle);

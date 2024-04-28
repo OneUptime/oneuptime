@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import DatabaseService from './DatabaseService';
-import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import DomainService from './DomainService';
 import Domain from 'Model/Models/Domain';
@@ -16,7 +16,6 @@ import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<StatusPageDomain> {
     public constructor(postgresDatabase?: PostgresDatabase) {

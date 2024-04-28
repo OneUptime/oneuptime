@@ -1,15 +1,15 @@
-import StatusPageDomain from "Model/Models/StatusPageDomain";
-import BaseAPI from "./BaseAPI";
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import BaseAPI from './BaseAPI';
 import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from '../Services/StatusPageDomainService';
-import { ExpressRequest, ExpressResponse } from "../Utils/Express";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import Response from "../Utils/Response";
-import ObjectID from "Common/Types/ObjectID";
-import UserMiddleware from "../Middleware/UserAuthorization";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import CommonAPI from "./CommonAPI";
+import { ExpressRequest, ExpressResponse } from '../Utils/Express';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import Response from '../Utils/Response';
+import ObjectID from 'Common/Types/ObjectID';
+import UserMiddleware from '../Middleware/UserAuthorization';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import CommonAPI from './CommonAPI';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPageDomain,
@@ -18,7 +18,6 @@ export default class StatusPageAPI extends BaseAPI<
     public constructor() {
         super(StatusPageDomain, StatusPageDomainService);
 
-
         // CNAME verification api. THis API will be used from the dashboard to validate the CNAME MANUALLY.
         this.router.get(
             `${new this.entityType()
@@ -26,7 +25,6 @@ export default class StatusPageAPI extends BaseAPI<
                 ?.toString()}/verify-cname/:id`,
             UserMiddleware.getUserMiddleware,
             async (req: ExpressRequest, res: ExpressResponse) => {
-
                 const databaseProps: DatabaseCommonInteractionProps =
                     await CommonAPI.getDatabaseCommonInteractionProps(req);
 
@@ -59,7 +57,6 @@ export default class StatusPageAPI extends BaseAPI<
                         res,
                         new BadDataException('Invalid token.')
                     );
-
                 }
 
                 if (!domain.fullDomain) {
@@ -70,7 +67,10 @@ export default class StatusPageAPI extends BaseAPI<
                     );
                 }
 
-                const isValid = await StatusPageDomainService.isCnameValid(domain.fullDomain!, domain.cnameVerificationToken!);
+                const isValid: boolean = await StatusPageDomainService.isCnameValid(
+                    domain.fullDomain!,
+                    domain.cnameVerificationToken!
+                );
 
                 if (isValid) {
                     // mark as verified.
@@ -89,14 +89,13 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
 
-         // Provision SSL API. THis API will be used from the dashboard to validate the CNAME MANUALLY.
-         this.router.get(
+        // Provision SSL API. THis API will be used from the dashboard to validate the CNAME MANUALLY.
+        this.router.get(
             `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/provision-ssl/:id`,
             UserMiddleware.getUserMiddleware,
             async (req: ExpressRequest, res: ExpressResponse) => {
-
                 const databaseProps: DatabaseCommonInteractionProps =
                     await CommonAPI.getDatabaseCommonInteractionProps(req);
 
@@ -113,6 +112,7 @@ export default class StatusPageAPI extends BaseAPI<
                             cnameVerificationToken: true,
                             isCnameVerified: true,
                             isSslProvisioned: true,
+                            isAddedToGreenlock: true,
                         },
                         props: databaseProps,
                     });
@@ -133,16 +133,17 @@ export default class StatusPageAPI extends BaseAPI<
                     );
                 }
 
-
-                if(!domain.isCnameVerified){
+                if (!domain.isCnameVerified) {
                     return Response.sendErrorResponse(
                         req,
                         res,
-                        new BadDataException('CNAME is not verified. Please verify CNAME first before you provision SSL.')
+                        new BadDataException(
+                            'CNAME is not verified. Please verify CNAME first before you provision SSL.'
+                        )
                     );
                 }
 
-                if(domain.isSslProvisioned){
+                if (domain.isSslProvisioned) {
                     return Response.sendErrorResponse(
                         req,
                         res,
@@ -158,11 +159,13 @@ export default class StatusPageAPI extends BaseAPI<
                     );
                 }
 
-
                 // check cname again, just to be sure.
-                const isCnameValid = await StatusPageDomainService.isCnameValid(domain.fullDomain!, domain.cnameVerificationToken!);
+                const isCnameValid: boolean = await StatusPageDomainService.isCnameValid(
+                    domain.fullDomain!,
+                    domain.cnameVerificationToken!
+                );
 
-                if(!isCnameValid){
+                if (!isCnameValid) {
                     await StatusPageDomainService.updateOneById({
                         id: domain.id!,
                         data: {
@@ -176,30 +179,23 @@ export default class StatusPageAPI extends BaseAPI<
                     return Response.sendErrorResponse(
                         req,
                         res,
-                        new BadDataException('CNAME is not verified. Please verify CNAME first before you provision SSL.')
+                        new BadDataException(
+                            'CNAME is not verified. Please verify CNAME first before you provision SSL.'
+                        )
                     );
                 }
 
-                if (isCnameValid) {
-                    // mark as verified.
-                    await StatusPageDomainService.updateOneById({
-                        id: domain.id!,
-                        data: {
-                            isCnameVerified: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                // add to greenlock.
+
+                if (!domain.isAddedToGreenlock) {
+                    await StatusPageDomainService.addDomainToGreenlock(domain);
                 }
 
-
+                // provision SSL
+                await StatusPageDomainService.orderCert(domain);
 
                 return Response.sendEmptySuccessResponse(req, res);
             }
         );
     }
-
-
-
 }
