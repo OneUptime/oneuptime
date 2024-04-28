@@ -157,24 +157,24 @@ export class Service extends DatabaseService<StatusPageDomain> {
         }
 
         logger.info(
-            `StatusPageCerts:RemoveCerts - Checking CNAME ${domain.fullDomain}`
+            `StatusPageCerts:RemoveCerts - Checking CNAME ${statusPageDomain.fullDomain}`
         );
 
         // Check CNAME validation and if that fails. Remove certs from Greenlock.
         const isValid: boolean = await this.checkCnameValidation(
-            domain.fullDomain!,
-            domain.cnameVerificationToken!
+            statusPageDomain.fullDomain!,
+            statusPageDomain.cnameVerificationToken!
         );
 
         if (!isValid) {
             logger.info(
-                `StatusPageCerts:RemoveCerts - CNAME for ${domain.fullDomain} is invalid. Removing domain from greenlock.`
+                `StatusPageCerts:RemoveCerts - CNAME for ${statusPageDomain.fullDomain} is invalid. Removing domain from greenlock.`
             );
 
-            await GreenlockUtil.removeDomain(domain.fullDomain!);
+            await GreenlockUtil.removeDomain(statusPageDomain.fullDomain!);
 
             await this.updateOneById({
-                id: domain.id!,
+                id: statusPageDomain.id!,
                 data: {
                     isAddedToGreenlock: false,
                     isCnameVerified: false,
@@ -185,11 +185,11 @@ export class Service extends DatabaseService<StatusPageDomain> {
             });
 
             logger.info(
-                `StatusPageCerts:RemoveCerts - ${domain.fullDomain} removed from greenlock.`
+                `StatusPageCerts:RemoveCerts - ${statusPageDomain.fullDomain} removed from greenlock.`
             );
         } else {
             logger.info(
-                `StatusPageCerts:RemoveCerts - CNAME for ${domain.fullDomain} is valid`
+                `StatusPageCerts:RemoveCerts - CNAME for ${statusPageDomain.fullDomain} is valid`
             );
         }
     }
