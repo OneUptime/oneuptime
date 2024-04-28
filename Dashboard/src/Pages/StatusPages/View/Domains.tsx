@@ -19,15 +19,26 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import API from 'CommonUI/src/Utils/API/API';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-    const [cnameModalText, setCnameModalText] = useState<string>('');
+    const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+    const [showCnameModal, setShowCnameModal] = useState<boolean>(false);
+
+    const [selectedStatusPageDomain, setSelectedStatusPageDomain] = useState<StatusPageDomain | null>(null);
+
     const [showSslProvisioningModal, setShowSslProvisioningModal] =
         useState<boolean>(false);
+
+    const [verifyCnameLoading, setVerifyCnameLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+
 
     return (
         <Fragment>
@@ -47,6 +58,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Custom Domains',
                         description: `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
                     }}
+                    refreshToggle={refreshToggle}
                     onBeforeCreate={(
                         item: StatusPageDomain
                     ): Promise<StatusPageDomain> => {
@@ -80,8 +92,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 onError: ErrorFunction
                             ) => {
                                 try {
-                                    setCnameModalText(`${item['fullDomain']}`);
-
+                                    setShowCnameModal(true);
+                                    setSelectedStatusPageDomain(item);
                                     onCompleteAction();
                                 } catch (err) {
                                     onCompleteAction();
@@ -207,7 +219,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
 
-                {cnameModalText && (
+                {selectedStatusPageDomain?.cnameVerificationToken && showCnameModal && (
                     <ConfirmModal
                         title={`Add CNAME`}
                         description={
@@ -224,7 +236,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 <br />
                                 <span>
                                     <b>Name: </b>
-                                    {cnameModalText}
+                                    {selectedStatusPageDomain?.cnameVerificationToken}
                                 </span>
                                 <br />
                                 <span>
@@ -239,9 +251,35 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 </span>
                             </div>
                         }
-                        submitButtonText={'Close'}
-                        onSubmit={() => {
-                            return setCnameModalText('');
+                        submitButtonText={'Verify CNAME'}
+                        onClose={() => {
+                            setShowCnameModal(false);
+                            return setSelectedStatusPageDomain(null);
+                        }}
+                        isLoading={verifyCnameLoading}
+                        error={error}
+                        onSubmit={async () => {
+                            try {
+                                setVerifyCnameLoading(true);
+                                setError('');
+                                // verify domain.
+                                await ModelAPI.updateById<StatusPageDomain>({
+                                    modelType: StatusPageDomain,
+                                    id: selectedStatusPageDomain.id!,
+                                    data: {
+                                        isCnameVerified: true
+                                    },
+                                });
+
+                                setShowCnameModal(false);
+                                setRefreshToggle(!refreshToggle);
+                            } catch (err) {
+                                setError(API.getFriendlyMessage(err));
+
+                            }
+
+                            setVerifyCnameLoading(false);
+                            setSelectedStatusPageDomain(null);
                         }}
                     />
                 )}

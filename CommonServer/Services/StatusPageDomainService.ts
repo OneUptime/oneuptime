@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import DatabaseService from './DatabaseService';
-import { OnCreate, OnDelete } from '../Types/Database/Hooks';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
 import DomainService from './DomainService';
 import Domain from 'Model/Models/Domain';
@@ -16,6 +16,7 @@ import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<StatusPageDomain> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -52,6 +53,31 @@ export class Service extends DatabaseService<StatusPageDomain> {
         createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 
         return { createBy, carryForward: null };
+    }
+    
+
+    protected override async onBeforeUpdate(updateBy: UpdateBy<StatusPageDomain>): Promise<OnUpdate<StatusPageDomain>> {
+        if(updateBy.data.isCnameVerified){
+            // check if cname is valid. 
+
+            const domain: Array<StatusPageDomain> = await this.findBy({
+                query: updateBy.query,
+                select: { fullDomain: true, cnameVerificationToken: true },
+                props: updateBy.props,
+                skip: 0,
+                limit: LIMIT_MAX,
+            });
+
+            for(const d of domain){
+                const isValid = this.isCnameValid(d.fullDomain!, d.cnameVerificationToken!);
+
+                if(!isValid){
+                    throw new BadDataException(`CNAME for this domain is not valid. Please add a CNAME record to ${d.fullDomain!}`);
+                }
+            }
+        }
+
+        return { updateBy, carryForward: null };
     }
 
     protected override async onBeforeDelete(
@@ -161,7 +187,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         );
 
         // Check CNAME validation and if that fails. Remove certs from Greenlock.
-        const isValid: boolean = await this.checkCnameValidation(
+        const isValid: boolean = await this.isCnameValid(
             statusPageDomain.fullDomain!,
             statusPageDomain.cnameVerificationToken!
         );
@@ -262,7 +288,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         }
 
         // Check CNAME validation and if that fails. Remove certs from Greenlock.
-        const isValid: boolean = await this.checkCnameValidation(
+        const isValid: boolean = await this.isCnameValid(
             statusPageDomain.fullDomain!,
             statusPageDomain.cnameVerificationToken!
         );
@@ -329,7 +355,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         }
     }
 
-    private async checkCnameValidation(
+    private async isCnameValid(
         fullDomain: string,
         token: string
     ): Promise<boolean> {
