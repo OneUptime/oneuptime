@@ -143,7 +143,7 @@ export const ClickhouseHost: Hostname = Hostname.fromString(
 );
 
 export const StatusPageCNameRecord: string =
-process.env['STATUS_PAGE_CNAME_RECORD'] || '';
+    process.env['STATUS_PAGE_CNAME_RECORD'] || '';
 
 export const ClickhousePort: Port = new Port(
     process.env['CLICKHOUSE_PORT'] || '8123'
