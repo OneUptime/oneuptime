@@ -28,7 +28,6 @@
         "@opentelemetry/sdk-metrics": "^1.21.0",
         "@opentelemetry/sdk-node": "^0.48.0",
         "@opentelemetry/sdk-trace-node": "^1.21.0",
-        "@socket.io/redis-adapter": "^8.2.1",
         "airtable": "^0.12.2",
         "bullmq": "^5.3.3",
         "Common": "file:../Common",
