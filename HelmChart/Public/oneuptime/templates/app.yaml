@@ -59,7 +59,7 @@ spec:
             timeoutSeconds: 30
           volumeMounts:
             - name: greenlockrc
-              mountPath: "/usr/src/app/greenlock"
+              mountPath: "/usr/src/CommonServer/greenlock"
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}

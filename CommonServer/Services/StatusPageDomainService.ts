@@ -57,6 +57,11 @@ export class Service extends DatabaseService<StatusPageDomain> {
     
 
     protected override async onBeforeUpdate(updateBy: UpdateBy<StatusPageDomain>): Promise<OnUpdate<StatusPageDomain>> {
+
+        if(updateBy.props.isRoot){
+            return { updateBy, carryForward: null };
+        }
+
         if(updateBy.data.isCnameVerified){
             // check if cname is valid. 
 
