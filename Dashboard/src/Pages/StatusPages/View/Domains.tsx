@@ -217,14 +217,25 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return 'This will happen automatically after CNAME is verified. Please allow 24 hours for SSL to be provisioned after CNAME is verified. If that does not happen in 24 hours, please contact support.';
                             },
                         },
+                        {
+                            field: {
+                                isSslProvisioned: true,
+                            },
+                            title: 'Auto Renew SSL',
+                            type: FieldType.Boolean,
+
+                            tooltipText: (_item: StatusPageDomain): string => {
+                                return 'This SSL will be automatically renewed every 90 days. You do not need to do anything for this.';
+                            },
+                        },
                     ]}
                 />
 
-                {selectedStatusPageDomain?.cnameVerificationToken &&
-                    showCnameModal && (
-                        <ConfirmModal
-                            title={`Add CNAME`}
-                            description={
+                {selectedStatusPageDomain?.fullDomain && showCnameModal && (
+                    <ConfirmModal
+                        title={`Add CNAME`}
+                        description={
+                            StatusPageCNameRecord ? (
                                 <div>
                                     <span>
                                         Please add CNAME record to your domain.
@@ -238,9 +249,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                     <br />
                                     <span>
                                         <b>Name: </b>
-                                        {
-                                            selectedStatusPageDomain?.cnameVerificationToken
-                                        }
+                                        {selectedStatusPageDomain?.fullDomain}
                                     </span>
                                     <br />
                                     <span>
@@ -254,40 +263,49 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                         24 hours to automatically verify.
                                     </span>
                                 </div>
-                            }
-                            submitButtonText={'Verify CNAME'}
-                            onClose={() => {
+                            ) : (
+                                <div>
+                                    <span>
+                                        Custom Domains not enabled for this
+                                        OneUptime installation. Please contact
+                                        your server admin to enable this
+                                        feature.
+                                    </span>
+                                </div>
+                            )
+                        }
+                        submitButtonText={'Verify CNAME'}
+                        onClose={() => {
+                            setShowCnameModal(false);
+                            setError('');
+                            return setSelectedStatusPageDomain(null);
+                        }}
+                        isLoading={verifyCnameLoading}
+                        error={error}
+                        onSubmit={async () => {
+                            try {
+                                setVerifyCnameLoading(true);
+                                setError('');
+                                // verify domain.
+                                await ModelAPI.updateById<StatusPageDomain>({
+                                    modelType: StatusPageDomain,
+                                    id: selectedStatusPageDomain.id!,
+                                    data: {
+                                        isCnameVerified: true,
+                                    },
+                                });
+
                                 setShowCnameModal(false);
-                                return setSelectedStatusPageDomain(null);
-                            }}
-                            isLoading={verifyCnameLoading}
-                            error={error}
-                            onSubmit={async () => {
-                                try {
-                                    setVerifyCnameLoading(true);
-                                    setError('');
-                                    // verify domain.
-                                    await ModelAPI.updateById<StatusPageDomain>(
-                                        {
-                                            modelType: StatusPageDomain,
-                                            id: selectedStatusPageDomain.id!,
-                                            data: {
-                                                isCnameVerified: true,
-                                            },
-                                        }
-                                    );
-
-                                    setShowCnameModal(false);
-                                    setRefreshToggle(!refreshToggle);
-                                } catch (err) {
-                                    setError(API.getFriendlyMessage(err));
-                                }
-
-                                setVerifyCnameLoading(false);
+                                setRefreshToggle(!refreshToggle);
                                 setSelectedStatusPageDomain(null);
-                            }}
-                        />
-                    )}
+                            } catch (err) {
+                                setError(API.getFriendlyMessage(err));
+                            }
+
+                            setVerifyCnameLoading(false);
+                        }}
+                    />
+                )}
 
                 {showSslProvisioningModal && (
                     <ConfirmModal
