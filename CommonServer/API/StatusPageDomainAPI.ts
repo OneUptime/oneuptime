@@ -3,13 +3,19 @@ import BaseAPI from './BaseAPI';
 import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from '../Services/StatusPageDomainService';
-import { ExpressRequest, ExpressResponse, NextFunction } from '../Utils/Express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from '../Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
 import UserMiddleware from '../Middleware/UserAuthorization';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import CommonAPI from './CommonAPI';
+import logger from '../Utils/Logger';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class StatusPageDomainAPI extends BaseAPI<
     StatusPageDomain,
@@ -24,17 +30,43 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 .getCrudApiPath()
                 ?.toString()}/verify-cname/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
                 try {
                     const databaseProps: DatabaseCommonInteractionProps =
                         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-                    const id: ObjectID = new ObjectID(req.params['id'] as string);
+                    const id: ObjectID = new ObjectID(
+                        req.params['id'] as string
+                    );
+
+                    // check if the user can read the domain.
+
+                    const domainCount: PositiveNumber =
+                        await StatusPageDomainService.countBy({
+                            query: {
+                                _id: id.toString(),
+                            },
+                            props: databaseProps,
+                        });
+
+                    if (domainCount.toNumber() === 0) {
+                        return Response.sendErrorResponse(
+                            req,
+                            res,
+                            new BadDataException(
+                                'The domain does not exist or user does not have access to it.'
+                            )
+                        );
+                    }
 
                     const domain: StatusPageDomain | null =
                         await StatusPageDomainService.findOneBy({
                             query: {
-                                id: id,
+                                _id: id.toString(),
                             },
                             select: {
                                 _id: true,
@@ -98,19 +130,45 @@ export default class StatusPageDomainAPI extends BaseAPI<
         this.router.get(
             `${new this.entityType()
                 .getCrudApiPath()
-                ?.toString()}/provision-ssl/:id`,
+                ?.toString()}/order-ssl/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
                 try {
                     const databaseProps: DatabaseCommonInteractionProps =
                         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-                    const id: ObjectID = new ObjectID(req.params['id'] as string);
+                    const id: ObjectID = new ObjectID(
+                        req.params['id'] as string
+                    );
+
+                    // check if the user can read the domain.
+
+                    const domainCount: PositiveNumber =
+                        await StatusPageDomainService.countBy({
+                            query: {
+                                _id: id.toString(),
+                            },
+                            props: databaseProps,
+                        });
+
+                    if (domainCount.toNumber() === 0) {
+                        return Response.sendErrorResponse(
+                            req,
+                            res,
+                            new BadDataException(
+                                'The domain does not exist or user does not have access to it.'
+                            )
+                        );
+                    }
 
                     const domain: StatusPageDomain | null =
                         await StatusPageDomainService.findOneBy({
                             query: {
-                                id: id,
+                                _id: id.toString(),
                             },
                             select: {
                                 _id: true,
@@ -120,7 +178,9 @@ export default class StatusPageDomainAPI extends BaseAPI<
                                 isSslProvisioned: true,
                                 isAddedToGreenlock: true,
                             },
-                            props: databaseProps,
+                            props: {
+                                isRoot: true,
+                            },
                         });
 
                     if (!domain) {
@@ -194,19 +254,31 @@ export default class StatusPageDomainAPI extends BaseAPI<
 
                     // add to greenlock.
 
+                    logger.info(
+                        'Adding domain to greenlock for domain ' +
+                            domain.fullDomain
+                    );
+
                     if (!domain.isAddedToGreenlock) {
-                        await StatusPageDomainService.addDomainToGreenlock(domain);
+                        await StatusPageDomainService.addDomainToGreenlock(
+                            domain
+                        );
                     }
+
+                    logger.info('Ordering SSL');
 
                     // provision SSL
                     await StatusPageDomainService.orderCert(domain);
+
+                    logger.info(
+                        'SSL Provisioned for domain - ' + domain.fullDomain
+                    );
 
                     return Response.sendEmptySuccessResponse(req, res);
                 } catch (e) {
                     next(e);
                 }
             }
-
         );
     }
 }

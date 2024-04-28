@@ -90,9 +90,21 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     public async orderCert(statusPageDomain: StatusPageDomain): Promise<void> {
-        return await GreenlockUtil.orderCert(
+        await GreenlockUtil.orderCert(
             statusPageDomain.greenlockConfig as JSONObject
         );
+
+        // update the order.
+
+        await this.updateOneById({
+            id: statusPageDomain.id!,
+            data: {
+                isSslOrdered: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
     }
 
     public async orderCertsForAllDomainsWithNoSSLProvisioned(): Promise<void> {
@@ -299,7 +311,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
             );
         } else {
             logger.info(
-                `StatusPageCerts:AddCerts - CNAME for ${statusPageDomain.fullDomain} is invalid. Removing cert`
+                `StatusPageCerts:AddCerts - CNAME for ${statusPageDomain.fullDomain} is invalid.`
             );
         }
     }
@@ -417,6 +429,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 id: statusPageDomain.id!,
                 data: {
                     isSslProvisioned: false,
+                    isSslOrdered: false,
                 },
                 props: {
                     isRoot: true,
@@ -427,6 +440,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 id: statusPageDomain.id!,
                 data: {
                     isSslProvisioned: true,
+                    isSslOrdered: true,
                 },
                 props: {
                     isRoot: true,

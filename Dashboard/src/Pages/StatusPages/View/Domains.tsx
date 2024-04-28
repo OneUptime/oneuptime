@@ -24,6 +24,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { JSONObject } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -37,12 +38,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     const [selectedStatusPageDomain, setSelectedStatusPageDomain] =
         useState<StatusPageDomain | null>(null);
 
-    const [showSslProvisioningModal, setShowSslProvisioningModal] =
-        useState<boolean>(false);
-
     const [verifyCnameLoading, setVerifyCnameLoading] =
         useState<boolean>(false);
+
+    const [orderSslLoading, setOrderSslLoading] = useState<boolean>(false);
+
     const [error, setError] = useState<string>('');
+
+    const [showOrderSSLModal, setShowOrderSSLModal] = useState<boolean>(false);
 
     return (
         <Fragment>
@@ -106,13 +109,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
-                            title: 'Provision SSL',
+                            title: 'Order Free SSL',
                             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                             icon: IconProp.Check,
                             isVisible: (item: StatusPageDomain): boolean => {
                                 if (
                                     item['isCnameVerified'] &&
-                                    !item['isSslProvisioned']
+                                    !item.isSslOrdered
                                 ) {
                                     return true;
                                 }
@@ -120,16 +123,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 return false;
                             },
                             onClick: async (
-                                _item: StatusPageDomain,
+                                item: StatusPageDomain,
                                 onCompleteAction: VoidFunction,
                                 onError: ErrorFunction
                             ) => {
                                 try {
-                                    setShowSslProvisioningModal(true);
-
+                                    setShowOrderSSLModal(true);
+                                    setSelectedStatusPageDomain(item);
                                     onCompleteAction();
                                 } catch (err) {
                                     onCompleteAction();
+                                    setSelectedStatusPageDomain(null);
                                     onError(err as Error);
                                 }
                             },
@@ -137,6 +141,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ]}
                     noItemsMessage={'No custom domains found.'}
                     viewPageRoute={Navigation.getCurrentRoute()}
+                    selectMoreFields={{
+                        isSslOrdered: true,
+                        isSslProvisioned: true,
+                        isCnameVerified: true,
+                    }}
                     formFields={[
                         {
                             field: {
@@ -199,36 +208,52 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             field: {
                                 isCnameVerified: true,
                             },
-                            title: 'CNAME Valid',
-                            type: FieldType.Boolean,
+                            title: 'Status',
+                            type: FieldType.Element,
 
-                            tooltipText: (item: StatusPageDomain): string => {
-                                if (item['isCnameVerified']) {
-                                    return 'We have verified your CNAME record.';
+                            getElement: (
+                                item: StatusPageDomain
+                            ): ReactElement => {
+                                if (!item.isCnameVerified) {
+                                    return (
+                                        <span>
+                                            <span className="font-semibold">
+                                                Action Required:
+                                            </span>{' '}
+                                            Please add your CNAME record.
+                                        </span>
+                                    );
                                 }
-                                return `Please add a new CNAME record to your domain ${item['fullDomain']}. It should look like CNAME ${item['fullDomain']} ${StatusPageCNameRecord}`;
-                            },
-                        },
-                        {
-                            field: {
-                                isSslProvisioned: true,
-                            },
-                            title: 'SSL Provisioned',
-                            type: FieldType.Boolean,
 
-                            tooltipText: (_item: StatusPageDomain): string => {
-                                return 'This will happen automatically after CNAME is verified. Please allow 24 hours for SSL to be provisioned after CNAME is verified. If that does not happen in 24 hours, please contact support.';
-                            },
-                        },
-                        {
-                            field: {
-                                isSslProvisioned: true,
-                            },
-                            title: 'Auto Renew SSL',
-                            type: FieldType.Boolean,
+                                if (!item.isSslOrdered) {
+                                    return (
+                                        <span>
+                                            <span className="font-semibold">
+                                                Action Required:
+                                            </span>{' '}
+                                            Please order SSL certificate.
+                                        </span>
+                                    );
+                                }
 
-                            tooltipText: (_item: StatusPageDomain): string => {
-                                return 'This SSL will be automatically renewed every 90 days. You do not need to do anything for this.';
+                                if (!item.isSslProvisioned) {
+                                    return (
+                                        <span>
+                                            No action is required. This SSL
+                                            certificate will be provisioned in 1
+                                            hour. If this still does not happen.
+                                            Please contact support.
+                                        </span>
+                                    );
+                                }
+
+                                return (
+                                    <span>
+                                        Certificate Provisioned. We will
+                                        automatiucally renew this certificate.
+                                        No action required.{' '}
+                                    </span>
+                                );
                             },
                         },
                     ]}
@@ -301,7 +326,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                         }/verify-cname/${selectedStatusPageDomain?.id?.toString()}`
                                     ),
                                     {},
-                                    API.getDefaultHeaders()
+                                    ModelAPI.getCommonHeaders()
                                 );
 
                                 if (response.isFailure()) {
@@ -320,13 +345,69 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     />
                 )}
 
-                {showSslProvisioningModal && (
+                {showOrderSSLModal && selectedStatusPageDomain && (
                     <ConfirmModal
-                        title={`Provision SSL`}
-                        description={`This is an automatic process and takes around 24 hours to complete. If you do not see your SSL provisioned in 24 hours. Please contact support@oneuptime.com`}
-                        submitButtonText={'Close'}
-                        onSubmit={() => {
-                            return setShowSslProvisioningModal(false);
+                        title={`Order Free SSL Certificate for this Status Page`}
+                        description={
+                            StatusPageCNameRecord ? (
+                                <div>
+                                    Please click on the button below to order
+                                    SSL for this domain. We will use LetsEncrypt
+                                    to order a certificate. This process is
+                                    secure and completely free. The certificate
+                                    takes 3 hours to provision after its been
+                                    ordered.
+                                </div>
+                            ) : (
+                                <div>
+                                    <span>
+                                        Custom Domains not enabled for this
+                                        OneUptime installation. Please contact
+                                        your server admin to enable this
+                                        feature.
+                                    </span>
+                                </div>
+                            )
+                        }
+                        submitButtonText={'Order Free SSL'}
+                        onClose={() => {
+                            setShowOrderSSLModal(false);
+                            setError('');
+                            return setSelectedStatusPageDomain(null);
+                        }}
+                        isLoading={orderSslLoading}
+                        error={error}
+                        onSubmit={async () => {
+                            try {
+                                setOrderSslLoading(true);
+                                setError('');
+
+                                const response:
+                                    | HTTPResponse<JSONObject>
+                                    | HTTPErrorResponse = await API.get<JSONObject>(
+                                    URL.fromString(
+                                        APP_API_URL.toString()
+                                    ).addRoute(
+                                        `/${
+                                            new StatusPageDomain().crudApiPath
+                                        }/order-ssl/${selectedStatusPageDomain?.id?.toString()}`
+                                    ),
+                                    {},
+                                    ModelAPI.getCommonHeaders()
+                                );
+
+                                if (response.isFailure()) {
+                                    throw response;
+                                }
+
+                                setShowOrderSSLModal(false);
+                                setRefreshToggle(!refreshToggle);
+                                setSelectedStatusPageDomain(null);
+                            } catch (err) {
+                                setError(API.getFriendlyMessage(err));
+                            }
+
+                            setOrderSslLoading(false);
                         }}
                     />
                 )}

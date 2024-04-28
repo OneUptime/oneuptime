@@ -531,7 +531,32 @@ export default class StatusPageDomain extends BaseModel {
         isDefaultValueColumn: true,
         required: true,
         type: TableColumnType.Boolean,
-        title: 'SSLm Provisioned',
+        title: 'SSL Ordered',
+        description: 'Is SSL ordered?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isSslOrdered?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageDomain,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+        title: 'SSL Provisioned',
         description: 'Is SSL provisioned?',
     })
     @Column({
