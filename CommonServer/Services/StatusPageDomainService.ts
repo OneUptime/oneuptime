@@ -54,16 +54,16 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
         return { createBy, carryForward: null };
     }
-    
 
-    protected override async onBeforeUpdate(updateBy: UpdateBy<StatusPageDomain>): Promise<OnUpdate<StatusPageDomain>> {
-
-        if(updateBy.props.isRoot){
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<StatusPageDomain>
+    ): Promise<OnUpdate<StatusPageDomain>> {
+        if (updateBy.props.isRoot) {
             return { updateBy, carryForward: null };
         }
 
-        if(updateBy.data.isCnameVerified){
-            // check if cname is valid. 
+        if (updateBy.data.isCnameVerified) {
+            // check if cname is valid.
 
             const domain: Array<StatusPageDomain> = await this.findBy({
                 query: updateBy.query,
@@ -73,11 +73,16 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 limit: LIMIT_MAX,
             });
 
-            for(const d of domain){
-                const isValid = this.isCnameValid(d.fullDomain!, d.cnameVerificationToken!);
+            for (const d of domain) {
+                const isValid: boolean = await this.isCnameValid(
+                    d.fullDomain!,
+                    d.cnameVerificationToken!
+                );
 
-                if(!isValid){
-                    throw new BadDataException(`CNAME for this domain is not valid. Please add a CNAME record to ${d.fullDomain!}`);
+                if (!isValid) {
+                    throw new BadDataException(
+                        `CNAME for this domain is not valid. Please add a CNAME record to ${d.fullDomain!}`
+                    );
                 }
             }
         }

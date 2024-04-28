@@ -18,8 +18,7 @@ export default class GreenlockUtil {
         this.greenLockInstance = Greenlock.create({
             configFile: '//usr/src/CommonServer/Utils/Greenlock/greenlockrc',
             packageRoot: `/usr/src/CommonServer/greenlock`,
-            manager:
-                '/usr/src/CommonServer/Utils/Greenlock/Manager.ts',
+            manager: '/usr/src/CommonServer/Utils/Greenlock/Manager.ts',
             approveDomains: async (opts: any) => {
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({

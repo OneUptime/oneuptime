@@ -31,14 +31,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
     const [showCnameModal, setShowCnameModal] = useState<boolean>(false);
 
-    const [selectedStatusPageDomain, setSelectedStatusPageDomain] = useState<StatusPageDomain | null>(null);
+    const [selectedStatusPageDomain, setSelectedStatusPageDomain] =
+        useState<StatusPageDomain | null>(null);
 
     const [showSslProvisioningModal, setShowSslProvisioningModal] =
         useState<boolean>(false);
 
-    const [verifyCnameLoading, setVerifyCnameLoading] = useState<boolean>(false);
+    const [verifyCnameLoading, setVerifyCnameLoading] =
+        useState<boolean>(false);
     const [error, setError] = useState<string>('');
-
 
     return (
         <Fragment>
@@ -219,70 +220,74 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
 
-                {selectedStatusPageDomain?.cnameVerificationToken && showCnameModal && (
-                    <ConfirmModal
-                        title={`Add CNAME`}
-                        description={
-                            <div>
-                                <span>
-                                    Please add CNAME record to your domain.
-                                    Details of the CNAME records are:
-                                </span>
-                                <br />
-                                <br />
-                                <span>
-                                    <b>Record Type: </b> CNAME
-                                </span>
-                                <br />
-                                <span>
-                                    <b>Name: </b>
-                                    {selectedStatusPageDomain?.cnameVerificationToken}
-                                </span>
-                                <br />
-                                <span>
-                                    <b>Content: </b>
-                                    {StatusPageCNameRecord}
-                                </span>
-                                <br />
-                                <br />
-                                <span>
-                                    Once you have done this, it should take 24
-                                    hours to automatically verify.
-                                </span>
-                            </div>
-                        }
-                        submitButtonText={'Verify CNAME'}
-                        onClose={() => {
-                            setShowCnameModal(false);
-                            return setSelectedStatusPageDomain(null);
-                        }}
-                        isLoading={verifyCnameLoading}
-                        error={error}
-                        onSubmit={async () => {
-                            try {
-                                setVerifyCnameLoading(true);
-                                setError('');
-                                // verify domain.
-                                await ModelAPI.updateById<StatusPageDomain>({
-                                    modelType: StatusPageDomain,
-                                    id: selectedStatusPageDomain.id!,
-                                    data: {
-                                        isCnameVerified: true
-                                    },
-                                });
-
-                                setShowCnameModal(false);
-                                setRefreshToggle(!refreshToggle);
-                            } catch (err) {
-                                setError(API.getFriendlyMessage(err));
-
+                {selectedStatusPageDomain?.cnameVerificationToken &&
+                    showCnameModal && (
+                        <ConfirmModal
+                            title={`Add CNAME`}
+                            description={
+                                <div>
+                                    <span>
+                                        Please add CNAME record to your domain.
+                                        Details of the CNAME records are:
+                                    </span>
+                                    <br />
+                                    <br />
+                                    <span>
+                                        <b>Record Type: </b> CNAME
+                                    </span>
+                                    <br />
+                                    <span>
+                                        <b>Name: </b>
+                                        {
+                                            selectedStatusPageDomain?.cnameVerificationToken
+                                        }
+                                    </span>
+                                    <br />
+                                    <span>
+                                        <b>Content: </b>
+                                        {StatusPageCNameRecord}
+                                    </span>
+                                    <br />
+                                    <br />
+                                    <span>
+                                        Once you have done this, it should take
+                                        24 hours to automatically verify.
+                                    </span>
+                                </div>
                             }
+                            submitButtonText={'Verify CNAME'}
+                            onClose={() => {
+                                setShowCnameModal(false);
+                                return setSelectedStatusPageDomain(null);
+                            }}
+                            isLoading={verifyCnameLoading}
+                            error={error}
+                            onSubmit={async () => {
+                                try {
+                                    setVerifyCnameLoading(true);
+                                    setError('');
+                                    // verify domain.
+                                    await ModelAPI.updateById<StatusPageDomain>(
+                                        {
+                                            modelType: StatusPageDomain,
+                                            id: selectedStatusPageDomain.id!,
+                                            data: {
+                                                isCnameVerified: true,
+                                            },
+                                        }
+                                    );
 
-                            setVerifyCnameLoading(false);
-                            setSelectedStatusPageDomain(null);
-                        }}
-                    />
-                )}
+                                    setShowCnameModal(false);
+                                    setRefreshToggle(!refreshToggle);
+                                } catch (err) {
+                                    setError(API.getFriendlyMessage(err));
+                                }
+
+                                setVerifyCnameLoading(false);
+                                setSelectedStatusPageDomain(null);
+                            }}
+                        />
+                    )}
 
                 {showSslProvisioningModal && (
                     <ConfirmModal
