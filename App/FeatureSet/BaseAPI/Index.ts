@@ -297,15 +297,12 @@ import IncidentSeverityService, {
     Service as IncidentSeverityServiceType,
 } from 'CommonServer/Services/IncidentSeverityService';
 
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import StatusPageDomainService, {
-    Service as StatusPageDomainServiceType,
-} from 'CommonServer/Services/StatusPageDomainService';
 
 // User Notification methods.
 import UserEmailAPI from 'CommonServer/API/UserEmailAPI';
 import UserSMSAPI from 'CommonServer/API/UserSmsAPI';
 import UserCallAPI from 'CommonServer/API/UserCallAPI';
+
 
 // Import API
 import ResellerPlanAPI from 'CommonServer/API/ResellerPlanAPI';
@@ -313,6 +310,8 @@ import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 import ShortLinkAPI from 'CommonServer/API/ShortLinkAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
 import MonitorGroupAPI from 'CommonServer/API/MonitorGroupAPI';
+
+import StatusPageDomainAPI from 'CommonServer/API/StatusPageDomainAPI';
 
 import Ingestor from 'CommonServer/API/ProbeAPI';
 
@@ -697,13 +696,6 @@ const BaseAPIFeatureSet: FeatureSet = {
             ).getRouter()
         );
 
-        app.use(
-            `/${APP_NAME.toLocaleLowerCase()}`,
-            new BaseAPI<StatusPageDomain, StatusPageDomainServiceType>(
-                StatusPageDomain,
-                StatusPageDomainService
-            ).getRouter()
-        );
 
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
@@ -1052,6 +1044,12 @@ const BaseAPIFeatureSet: FeatureSet = {
             `/${APP_NAME.toLocaleLowerCase()}`,
             new MonitorGroupAPI().getRouter()
         );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new StatusPageDomainAPI().getRouter()
+        );
+
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
             new ProjectSsoAPI().getRouter()

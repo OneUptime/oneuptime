@@ -290,14 +290,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                 setVerifyCnameLoading(true);
                                 setError('');
 
-                                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                                    await API.get<JSONObject>(
-                                        URL.fromString(APP_API_URL.toString()).addRoute(
-                                            `/${new StatusPageDomain().crudApiPath}/verify-cname/${selectedStatusPageDomain?.id?.toString()}`
-                                        ),
-                                        {},
-                                        API.getDefaultHeaders()
-                                    );
+                                const response:
+                                    | HTTPResponse<JSONObject>
+                                    | HTTPErrorResponse = await API.get<JSONObject>(
+                                    URL.fromString(
+                                        APP_API_URL.toString()
+                                    ).addRoute(
+                                        `/${
+                                            new StatusPageDomain().crudApiPath
+                                        }/verify-cname/${selectedStatusPageDomain?.id?.toString()}`
+                                    ),
+                                    {},
+                                    API.getDefaultHeaders()
+                                );
 
                                 if (response.isFailure()) {
                                     throw response;

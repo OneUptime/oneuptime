@@ -11,7 +11,7 @@ import UserMiddleware from '../Middleware/UserAuthorization';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import CommonAPI from './CommonAPI';
 
-export default class StatusPageAPI extends BaseAPI<
+export default class StatusPageDomainAPI extends BaseAPI<
     StatusPageDomain,
     StatusPageDomainServiceType
 > {
@@ -67,10 +67,11 @@ export default class StatusPageAPI extends BaseAPI<
                     );
                 }
 
-                const isValid: boolean = await StatusPageDomainService.isCnameValid(
-                    domain.fullDomain!,
-                    domain.cnameVerificationToken!
-                );
+                const isValid: boolean =
+                    await StatusPageDomainService.isCnameValid(
+                        domain.fullDomain!,
+                        domain.cnameVerificationToken!
+                    );
 
                 if (isValid) {
                     // mark as verified.
@@ -160,10 +161,11 @@ export default class StatusPageAPI extends BaseAPI<
                 }
 
                 // check cname again, just to be sure.
-                const isCnameValid: boolean = await StatusPageDomainService.isCnameValid(
-                    domain.fullDomain!,
-                    domain.cnameVerificationToken!
-                );
+                const isCnameValid: boolean =
+                    await StatusPageDomainService.isCnameValid(
+                        domain.fullDomain!,
+                        domain.cnameVerificationToken!
+                    );
 
                 if (!isCnameValid) {
                     await StatusPageDomainService.updateOneById({
