@@ -74,7 +74,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                                 cnameVerificationToken: true,
                             },
                             props: {
-                                isRoot: true
+                                isRoot: true,
                             },
                         });
 
@@ -119,6 +119,25 @@ export default class StatusPageDomainAPI extends BaseAPI<
                                 isRoot: true,
                             },
                         });
+                    } else {
+                        // mark as not verified.
+                        await StatusPageDomainService.updateOneById({
+                            id: domain.id!,
+                            data: {
+                                isCnameVerified: false,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                        return Response.sendErrorResponse(
+                            req,
+                            res,
+                            new BadDataException(
+                                'CNAME is not verified. Please make sure you have the correct record and please verify CNAME again. If you are sure that the record is correct, please wait for some time for the DNS to propagate.'
+                            )
+                        );
                     }
 
                     return Response.sendEmptySuccessResponse(req, res);

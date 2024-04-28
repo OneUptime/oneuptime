@@ -23,6 +23,8 @@ export default class Route extends DatabaseProperty {
             route = route.toString();
         }
 
+        route = route?.replace(/\/+/g, '/'); // remove multiple slashes from route and replace with single slash
+
         if (route) {
             this.route = route;
         }
