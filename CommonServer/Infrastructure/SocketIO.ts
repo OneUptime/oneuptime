@@ -1,8 +1,7 @@
 import SocketIO from 'socket.io';
 import http from 'http';
 import Express from '../Utils/Express';
-import { createAdapter } from '@socket.io/redis-adapter';
-import Redis, { ClientType } from './Redis';
+import Redis from './Redis';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 import { RealtimeRoute } from 'Common/ServiceRoute';
 
@@ -25,10 +24,10 @@ export default abstract class IO {
             );
         }
 
-        const pubClient: ClientType = Redis.getClient()!.duplicate();
-        const subClient: ClientType = Redis.getClient()!.duplicate();
+        // const pubClient: ClientType = Redis.getClient()!.duplicate();
+        // const subClient: ClientType = Redis.getClient()!.duplicate();
 
-        this.socketServer.adapter(createAdapter(pubClient, subClient));
+        // this.socketServer.adapter(createAdapter(pubClient, subClient));
     }
 
     public static getSocketServer(): SocketIO.Server | null {
