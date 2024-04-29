@@ -30,7 +30,7 @@ import EventName from '../../../Utils/EventName';
 import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
-import { PromiseVoidFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import { Black } from 'Common/Types/BrandColors';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
