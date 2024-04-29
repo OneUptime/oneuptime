@@ -649,9 +649,6 @@ export default class ModelPermission {
         const relationSelect: RelationSelect<TBaseModel> = {};
 
         for (const key in select) {
-            if (!model.isTableColumn(key)) {
-                delete (select as JSONObject)[key];
-            }
 
             if (model.isEntityColumn(key)) {
                 if (typeof (select as JSONObject)[key] === Typeof.Object) {

@@ -58,7 +58,10 @@ module.exports = {
                 cert.isKeyPair = isKeyPair;
                 await GreenlockCertificateService.updateOneById({
                     id: cert.id!,
-                    data: cert,
+                    data: {
+                        blob: blob,
+                        isKeyPair: isKeyPair,
+                    },
                     props: {
                         isRoot: true,
                     },
