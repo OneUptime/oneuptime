@@ -850,7 +850,7 @@ export default class OneUptimeDate {
     }
 
     public static convertMinutesToDaysHoursAndMinutes(minutes: number): string {
-       // should output 2 days, 3 hours and 4 minutes. If the days are 0, it should not show the days. If the hours are 0, it should not show the hours. If the minutes are 0, it should not show the minutes.
+        // should output 2 days, 3 hours and 4 minutes. If the days are 0, it should not show the days. If the hours are 0, it should not show the hours. If the minutes are 0, it should not show the minutes.
 
         const days: number = Math.floor(minutes / (24 * 60));
         const hours: number = Math.floor((minutes % (24 * 60)) / 60);

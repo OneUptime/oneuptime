@@ -155,7 +155,10 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         )?.startsAt;
 
         if (!acknowledgeTime) {
-            return 'Not yet '+(getAcknowledgeState()?.name?.toLowerCase() || 'acknowledged');
+            return (
+                'Not yet ' +
+                (getAcknowledgeState()?.name?.toLowerCase() || 'acknowledged')
+            );
         }
 
         return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
@@ -180,7 +183,10 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         )?.startsAt;
 
         if (!resolveTime) {
-            return 'Not yet '+(getResolvedState()?.name?.toLowerCase() || 'resolved');
+            return (
+                'Not yet ' +
+                (getResolvedState()?.name?.toLowerCase() || 'resolved')
+            );
         }
 
         return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
@@ -471,7 +477,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Element,
                             getElement: (
                                 _item: Incident,
-                                onBeforeFetchData: JSONObject | undefined,
+                                onBeforeFetchData: JSONObject | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeIncidentState
@@ -499,7 +505,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Element,
                             getElement: (
                                 _item: Incident,
-                                onBeforeFetchData: JSONObject | undefined,
+                                onBeforeFetchData: JSONObject | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeIncidentState
@@ -533,12 +539,12 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         getAcknowledgeState()?.name || 'Acknowledged'
                     } in`}
                     value={getInfoCardValue(getTimeToAcknowledge())}
-                    className='w-1/2'
+                    className="w-1/2"
                 />
                 <InfoCard
                     title={`${getResolvedState()?.name || 'Resolved'} in`}
                     value={getInfoCardValue(getTimeToResolve())}
-                    className='w-1/2'
+                    className="w-1/2"
                 />
             </div>
 
