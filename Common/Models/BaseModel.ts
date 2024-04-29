@@ -371,6 +371,10 @@ export default class BaseModel extends BaseEntity {
         }
     }
 
+    public isTableColumn(columnName: string): boolean {
+        return Boolean(getTableColumn(this, columnName));
+    }
+
     public isEntityColumn(columnName: string): boolean {
         const tableColumnType: TableColumnMetadata = getTableColumn(
             this,
