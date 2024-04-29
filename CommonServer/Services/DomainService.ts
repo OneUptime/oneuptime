@@ -83,7 +83,7 @@ export class Service extends DatabaseService<Model> {
                         verificationText +
                         ' not found in domain ' +
                         domain +
-                        '. Please add a TXT record to verify the domain.'
+                        '. Please add a TXT record to verify the domain. If you have already added the TXT record, please wait for few hours to let DNS to propagate.'
                 );
             }
         }

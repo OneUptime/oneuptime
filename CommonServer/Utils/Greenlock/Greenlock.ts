@@ -19,6 +19,7 @@ export default class GreenlockUtil {
             configFile: '//usr/src/CommonServer/Utils/Greenlock/greenlockrc',
             packageRoot: `/usr/src/CommonServer/greenlock`,
             manager: '/usr/src/CommonServer/Utils/Greenlock/Manager.ts',
+            directoryUrl: 'https://acme-v02.api.letsencrypt.org/directory',
             approveDomains: async (opts: any) => {
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({

@@ -90,6 +90,32 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     public async orderCert(statusPageDomain: StatusPageDomain): Promise<void> {
+        if (!statusPageDomain.greenlockConfig) {
+            const fetchedStatusPageDomain = await this.findOneBy({
+                query: {
+                    _id: statusPageDomain.id!.toString(),
+                },
+                select: {
+                    _id: true,
+                    greenlockConfig: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (!fetchedStatusPageDomain) {
+                throw new BadDataException('Domain not found');
+            }
+
+            if (!fetchedStatusPageDomain.greenlockConfig) {
+                throw new BadDataException('Greenlock config not found');
+            }
+
+            statusPageDomain.greenlockConfig =
+                fetchedStatusPageDomain.greenlockConfig;
+        }
+
         await GreenlockUtil.orderCert(
             statusPageDomain.greenlockConfig as JSONObject
         );
