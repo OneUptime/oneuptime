@@ -1,4 +1,4 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import PageComponentProps from '../../PageComponentProps';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -26,11 +26,108 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
 import { VoidFunction } from 'Common/Types/FunctionTypes';
 import { Black } from 'Common/Types/BrandColors';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import BaseAPI from 'CommonUI/src/Utils/API/API';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import OneUptimeDate from 'Common/Types/Date';
+import InfoCard from 'CommonUI/src/Components/InfoCard/InfoCard';
+
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+    const [incidentStateTimeline, setIncidentStateTimeline] = useState<IncidentStateTimeline[]>([]);
+    const [error, setError] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+
+    const fetchData = async () => {
+
+        try {
+            setIsLoading(true);
+
+            const incidentTimelines: ListResult<IncidentStateTimeline> = await ModelAPI.getList({
+                modelType: IncidentStateTimeline,
+                query: {
+                    incidentId: modelId,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
+                    _id: true,
+                    startsAt: true,
+                    createdByUser: {
+                        name: true,
+                        email: true,
+                        profilePictureId: true,
+                    },
+                    incidentState: {
+                        name: true,
+                        isResolvedState: true,
+                        isAcknowledgedState: true,
+                    },
+                },
+                sort: {
+                    startsAt: SortOrder.Ascending
+                },
+            });
+
+            setIncidentStateTimeline(incidentTimelines.data as IncidentStateTimeline[]);
+            setError('');
+        } catch (err) {
+            setError(BaseAPI.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+
+    };
+
+    useEffect(() => {
+        fetchData().catch((err)=>{
+            setError(BaseAPI.getFriendlyMessage(err));
+        });
+    }, []);
+
+
+    if(isLoading){
+        return <PageLoader isVisible={true} />;
+    }
+
+    if(error){
+        return <ErrorMessage error={error} />;
+    }
+
+
+    const getTimeToAcknowledge = (): string => {
+        const incidentStartTime: Date = incidentStateTimeline[0]?.startsAt || new Date();
+
+        const acknowledgeTime: Date | undefined = incidentStateTimeline.find((timeline: IncidentStateTimeline) => {
+            return timeline.incidentState?.isAcknowledgedState;
+        })?.startsAt;
+
+        if(!acknowledgeTime){
+            return 'Not Acknowledged';
+        }
+
+        return OneUptimeDate.convertMinutesToHoursAndMinutes(OneUptimeDate.getDifferenceInMinutes(acknowledgeTime, incidentStartTime));
+    }
+
+    const getTimeToResolve = (): string => {
+        const incidentStartTime: Date = incidentStateTimeline[0]?.startsAt || new Date();
+
+        const resolveTime: Date | undefined = incidentStateTimeline.find((timeline: IncidentStateTimeline) => {
+            return timeline.incidentState?.isResolvedState;
+        })?.startsAt;
+
+        if(!resolveTime){
+            return 'Not Resolved';
+        }
+
+        return OneUptimeDate.convertMinutesToHoursAndMinutes(OneUptimeDate.getDifferenceInMinutes(resolveTime, incidentStartTime));
+    }
 
     return (
         <Fragment>
@@ -267,7 +364,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         <CheckboxViewer
                                             isChecked={
                                                 item[
-                                                    'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
+                                                'shouldStatusPageSubscribersBeNotifiedOnIncidentCreated'
                                                 ] as boolean
                                             }
                                             text={
@@ -316,8 +413,8 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         incidentTimeline={
                                             onBeforeFetchData
                                                 ? (onBeforeFetchData[
-                                                      'data'
-                                                  ] as Array<BaseModel>)
+                                                    'data'
+                                                ] as Array<BaseModel>)
                                                 : []
                                         }
                                         incidentType={IncidentType.Ack}
@@ -345,8 +442,8 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         incidentTimeline={
                                             onBeforeFetchData
                                                 ? (onBeforeFetchData[
-                                                      'data'
-                                                  ] as Array<BaseModel>)
+                                                    'data'
+                                                ] as Array<BaseModel>)
                                                 : []
                                         }
                                         incidentType={IncidentType.Resolve}
@@ -364,6 +461,11 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+            <div className='flex space-x-5 mt-5 mb-5'>
+                <InfoCard title="Time to Acknowledge" value={getTimeToAcknowledge()} />
+                <InfoCard title="Time to Resolve" value={getTimeToResolve()} />
+            </div>
 
             <CardModelDetail
                 name="Incident Description"

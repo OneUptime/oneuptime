@@ -849,6 +849,19 @@ export default class OneUptimeDate {
         return minutes;
     }
 
+    public static convertMinutesToHoursAndMinutes(minutes: number): string {
+        const hours: number = Math.floor(minutes / 60);
+        const remainingMinutes: number = minutes % 60;
+
+        let result =  hours + ' hours';
+
+        if(remainingMinutes > 0){
+            result += ', ' + remainingMinutes + ' minutes.';
+        }
+
+        return result
+    }
+
     public static getDateAsFormattedArrayInMultipleTimezones(
         date: string | Date,
         onlyShowDate?: boolean
