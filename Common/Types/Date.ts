@@ -849,24 +849,36 @@ export default class OneUptimeDate {
         return minutes;
     }
 
-    public static convertMinutesToHoursAndMinutes(minutes: number): string {
-        const hours: number = Math.floor(minutes / 60);
-        const remainingMinutes: number = minutes % 60;
+    public static convertMinutesToDaysHoursAndMinutes(minutes: number): string {
+       // should output 2 days, 3 hours and 4 minutes. If the days are 0, it should not show the days. If the hours are 0, it should not show the hours. If the minutes are 0, it should not show the minutes.
 
-        let result = '';
+        const days: number = Math.floor(minutes / (24 * 60));
+        const hours: number = Math.floor((minutes % (24 * 60)) / 60);
+        const mins: number = minutes % 60;
+
+        let formattedString: string = '';
+
+        if (days > 0) {
+            formattedString += days + ' days';
+        }
 
         if (hours > 0) {
-            result += hours + ' hours';
-        }
-
-        if (remainingMinutes > 0) {
-            if (hours > 0) {
-                result += ', ';
+            if (formattedString.length > 0) {
+                formattedString += ', ';
             }
-            result += remainingMinutes + ' minutes.';
+
+            formattedString += hours + ' hours';
         }
 
-        return result;
+        if (mins > 0) {
+            if (formattedString.length > 0) {
+                formattedString += ', ';
+            }
+
+            formattedString += mins + ' minutes';
+        }
+
+        return formattedString;
     }
 
     public static getDateAsFormattedArrayInMultipleTimezones(

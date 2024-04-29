@@ -155,10 +155,10 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         )?.startsAt;
 
         if (!acknowledgeTime) {
-            return '-';
+            return 'Not yet '+(getAcknowledgeState()?.name?.toLowerCase() || 'acknowledged');
         }
 
-        return OneUptimeDate.convertMinutesToHoursAndMinutes(
+        return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
             OneUptimeDate.getDifferenceInMinutes(
                 acknowledgeTime,
                 incidentStartTime
@@ -180,17 +180,19 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         )?.startsAt;
 
         if (!resolveTime) {
-            return '-';
+            return 'Not yet '+(getResolvedState()?.name?.toLowerCase() || 'resolved');
         }
 
-        return OneUptimeDate.convertMinutesToHoursAndMinutes(
+        return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
             OneUptimeDate.getDifferenceInMinutes(resolveTime, incidentStartTime)
         );
     };
 
     type GetInfoCardFunction = (value: string) => ReactElement;
 
-    const getInfoCardValue: GetInfoCardFunction = (value: string): ReactElement => {
+    const getInfoCardValue: GetInfoCardFunction = (
+        value: string
+    ): ReactElement => {
         return <div className="font-medium text-gray-900 text-lg">{value}</div>;
     };
 
@@ -470,7 +472,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             getElement: (
                                 _item: Incident,
                                 onBeforeFetchData: JSONObject | undefined,
-                                fetchItems: VoidFunction | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeIncidentState
@@ -483,8 +484,8 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                                 : []
                                         }
                                         incidentType={IncidentType.Ack}
-                                        onActionComplete={() => {
-                                            fetchItems && fetchItems();
+                                        onActionComplete={async () => {
+                                            await fetchData();
                                         }}
                                     />
                                 );
@@ -499,7 +500,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             getElement: (
                                 _item: Incident,
                                 onBeforeFetchData: JSONObject | undefined,
-                                fetchItems: VoidFunction | undefined
                             ): ReactElement => {
                                 return (
                                     <ChangeIncidentState
@@ -512,11 +512,11 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                                 : []
                                         }
                                         incidentType={IncidentType.Resolve}
-                                        onActionComplete={() => {
+                                        onActionComplete={async () => {
                                             GlobalEvent.dispatchEvent(
                                                 EventName.ACTIVE_INCIDENTS_COUNT_REFRESH
                                             );
-                                            fetchItems && fetchItems();
+                                            await fetchData();
                                         }}
                                     />
                                 );
@@ -527,16 +527,18 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-            <div className="flex space-x-5 mt-5 mb-5">
+            <div className="flex space-x-5 mt-5 mb-5 w-full justify-between">
                 <InfoCard
-                    title={`Time to ${
-                        getAcknowledgeState()?.name || 'Acknowledge'
-                    }`}
+                    title={`${
+                        getAcknowledgeState()?.name || 'Acknowledged'
+                    } in`}
                     value={getInfoCardValue(getTimeToAcknowledge())}
+                    className='w-1/2'
                 />
                 <InfoCard
-                    title={`Time to ${getResolvedState()?.name || 'Resolve'}`}
+                    title={`${getResolvedState()?.name || 'Resolved'} in`}
                     value={getInfoCardValue(getTimeToResolve())}
+                    className='w-1/2'
                 />
             </div>
 

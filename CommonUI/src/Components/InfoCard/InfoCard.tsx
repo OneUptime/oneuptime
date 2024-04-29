@@ -4,13 +4,14 @@ import FieldLabelElement from '../Detail/FieldLabel';
 export interface ComponentProps {
     title: string;
     value: string | ReactElement;
+    className?: string;
 }
 
 const InfoCard: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="rounded-md bg-white shadow-md p-5">
+        <div className={`rounded-md bg-white shadow-md p-5 ${props.className || ''}`}>
             <div>
                 <FieldLabelElement title={props.title} />
             </div>
