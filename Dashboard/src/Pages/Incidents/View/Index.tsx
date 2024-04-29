@@ -32,6 +32,7 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import OneUptimeDate from 'Common/Types/Date';
 import InfoCard from 'CommonUI/src/Components/InfoCard/InfoCard';
+import IncidentState from 'Model/Models/IncidentState';
 
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
@@ -40,6 +41,8 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     const [incidentStateTimeline, setIncidentStateTimeline] = useState<IncidentStateTimeline[]>([]);
+    const [incidentStates, setIncidentStates] = useState<IncidentState[]>([])
+
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -64,17 +67,29 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         email: true,
                         profilePictureId: true,
                     },
-                    incidentState: {
-                        name: true,
-                        isResolvedState: true,
-                        isAcknowledgedState: true,
-                    },
+                    incidentStateId: true,
                 },
                 sort: {
                     startsAt: SortOrder.Ascending
                 },
             });
 
+
+            const incidentStates: ListResult<IncidentState> = await ModelAPI.getList({
+                modelType: IncidentState,
+                query: {},
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
+                    _id: true,
+                    name: true,
+                    isAcknowledgedState: true,
+                    isResolvedState: true,
+                },
+                sort: {},
+            });
+
+            setIncidentStates(incidentStates.data as IncidentState[]);
             setIncidentStateTimeline(incidentTimelines.data as IncidentStateTimeline[]);
             setError('');
         } catch (err) {
@@ -100,16 +115,28 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
+    const getAcknowledgeState = (): IncidentState | undefined => {
+        return incidentStates.find((state: IncidentState) => {
+            return state.isAcknowledgedState;
+        });
+    }
+
+    const getResolvedState = (): IncidentState | undefined => {
+        return incidentStates.find((state: IncidentState) => {
+            return state.isResolvedState;
+        });
+    }
+
 
     const getTimeToAcknowledge = (): string => {
         const incidentStartTime: Date = incidentStateTimeline[0]?.startsAt || new Date();
 
         const acknowledgeTime: Date | undefined = incidentStateTimeline.find((timeline: IncidentStateTimeline) => {
-            return timeline.incidentState?.isAcknowledgedState;
+            return timeline.incidentStateId?.toString() === getAcknowledgeState()?._id?.toString();
         })?.startsAt;
 
         if(!acknowledgeTime){
-            return 'Not Acknowledged';
+            return '-';
         }
 
         return OneUptimeDate.convertMinutesToHoursAndMinutes(OneUptimeDate.getDifferenceInMinutes(acknowledgeTime, incidentStartTime));
@@ -117,16 +144,23 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
 
     const getTimeToResolve = (): string => {
         const incidentStartTime: Date = incidentStateTimeline[0]?.startsAt || new Date();
-
+        
         const resolveTime: Date | undefined = incidentStateTimeline.find((timeline: IncidentStateTimeline) => {
-            return timeline.incidentState?.isResolvedState;
+            return timeline.incidentStateId?.toString() === getResolvedState()?._id?.toString();
         })?.startsAt;
 
         if(!resolveTime){
-            return 'Not Resolved';
+            return '-';
         }
 
         return OneUptimeDate.convertMinutesToHoursAndMinutes(OneUptimeDate.getDifferenceInMinutes(resolveTime, incidentStartTime));
+    }
+
+
+    const getInfoCardValue = (value: string): ReactElement => {
+        return <div className='font-medium text-gray-900 text-lg'>
+            {value}
+        </div>
     }
 
     return (
@@ -463,8 +497,8 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
             />
 
             <div className='flex space-x-5 mt-5 mb-5'>
-                <InfoCard title="Time to Acknowledge" value={getTimeToAcknowledge()} />
-                <InfoCard title="Time to Resolve" value={getTimeToResolve()} />
+                <InfoCard title={`Time to ${getAcknowledgeState()?.name || 'Acknowledge'}`} value={getInfoCardValue(getTimeToAcknowledge())} />
+                <InfoCard title={`Time to ${getResolvedState()?.name || 'Resolve'}`} value={getInfoCardValue(getTimeToResolve())} />
             </div>
 
             <CardModelDetail
