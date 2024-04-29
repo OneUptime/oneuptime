@@ -20,6 +20,8 @@ export default class GreenlockUtil {
             packageRoot: `/usr/src/CommonServer/greenlock`,
             manager: '/usr/src/CommonServer/Utils/Greenlock/Manager.ts',
             directoryUrl: 'https://acme-v02.api.letsencrypt.org/directory',
+            renewOffset: '-45d',
+            renewStagger: '3d',
             approveDomains: async (opts: any) => {
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({
