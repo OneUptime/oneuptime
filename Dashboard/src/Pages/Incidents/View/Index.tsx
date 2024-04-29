@@ -30,7 +30,7 @@ import EventName from '../../../Utils/EventName';
 import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
+import { PromiseVoidFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 import { Black } from 'Common/Types/BrandColors';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
@@ -53,7 +53,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const fetchData = async () => {
+    const fetchData: PromiseVoidFunction = async (): Promise<void> => {
         try {
             setIsLoading(true);
 
@@ -108,7 +108,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        fetchData().catch((err) => {
+        fetchData().catch((err: Error) => {
             setError(BaseAPI.getFriendlyMessage(err));
         });
     }, []);
@@ -121,19 +121,27 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    const getAcknowledgeState = (): IncidentState | undefined => {
+    type GetIncidentStateFunction = () => IncidentState | undefined;
+
+    const getAcknowledgeState: GetIncidentStateFunction = ():
+        | IncidentState
+        | undefined => {
         return incidentStates.find((state: IncidentState) => {
             return state.isAcknowledgedState;
         });
     };
 
-    const getResolvedState = (): IncidentState | undefined => {
+    const getResolvedState: GetIncidentStateFunction = ():
+        | IncidentState
+        | undefined => {
         return incidentStates.find((state: IncidentState) => {
             return state.isResolvedState;
         });
     };
 
-    const getTimeToAcknowledge = (): string => {
+    type getTimeFunction = () => string;
+
+    const getTimeToAcknowledge: getTimeFunction = (): string => {
         const incidentStartTime: Date =
             incidentStateTimeline[0]?.startsAt || new Date();
 
@@ -158,7 +166,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         );
     };
 
-    const getTimeToResolve = (): string => {
+    const getTimeToResolve: getTimeFunction = (): string => {
         const incidentStartTime: Date =
             incidentStateTimeline[0]?.startsAt || new Date();
 
@@ -180,7 +188,9 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         );
     };
 
-    const getInfoCardValue = (value: string): ReactElement => {
+    type GetInfoCardFunction = (value: string) => ReactElement;
+
+    const getInfoCardValue: GetInfoCardFunction = (value: string): ReactElement => {
         return <div className="font-medium text-gray-900 text-lg">{value}</div>;
     };
 

@@ -853,10 +853,17 @@ export default class OneUptimeDate {
         const hours: number = Math.floor(minutes / 60);
         const remainingMinutes: number = minutes % 60;
 
-        let result = hours + ' hours';
+        let result = '';
+
+        if (hours > 0) {
+            result += hours + ' hours';
+        }
 
         if (remainingMinutes > 0) {
-            result += ', ' + remainingMinutes + ' minutes.';
+            if (hours > 0) {
+                result += ', ';
+            }
+            result += remainingMinutes + ' minutes.';
         }
 
         return result;
