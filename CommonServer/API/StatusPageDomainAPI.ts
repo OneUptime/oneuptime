@@ -37,8 +37,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-
-                    if(!StatusPageCNameRecord){
+                    if (!StatusPageCNameRecord) {
                         return Response.sendErrorResponse(
                             req,
                             res,
@@ -174,8 +173,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-
-                    if(!StatusPageCNameRecord){
+                    if (!StatusPageCNameRecord) {
                         return Response.sendErrorResponse(
                             req,
                             res,
@@ -187,7 +185,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                             )
                         );
                     }
-                    
+
                     const databaseProps: DatabaseCommonInteractionProps =
                         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
