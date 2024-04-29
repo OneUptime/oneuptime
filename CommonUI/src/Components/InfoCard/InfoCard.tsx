@@ -10,13 +10,11 @@ const InfoCard: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className='rounded-md bg-white shadow-md p-5'>
+        <div className="rounded-md bg-white shadow-md p-5">
             <div>
-                <FieldLabelElement title={props.title}/>
+                <FieldLabelElement title={props.title} />
             </div>
-            <div>
-                {props.value}
-            </div>
+            <div>{props.value}</div>
         </div>
     );
 };

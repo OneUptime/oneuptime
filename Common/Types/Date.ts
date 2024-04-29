@@ -853,13 +853,13 @@ export default class OneUptimeDate {
         const hours: number = Math.floor(minutes / 60);
         const remainingMinutes: number = minutes % 60;
 
-        let result =  hours + ' hours';
+        let result = hours + ' hours';
 
-        if(remainingMinutes > 0){
+        if (remainingMinutes > 0) {
             result += ', ' + remainingMinutes + ' minutes.';
         }
 
-        return result
+        return result;
     }
 
     public static getDateAsFormattedArrayInMultipleTimezones(
