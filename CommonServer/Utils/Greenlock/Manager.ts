@@ -65,7 +65,7 @@ module.exports = {
                 // i.e. find certs more than 30 days old
                 args.issuedBefore = Date.now() - 30 * 24 * 60 * 60 * 1000;
                 // i.e. find certs more that will expire in less than 45 days
-                //args.expiresBefore = Date.now() + 45 * 24 * 60 * 60 * 1000;
+                args.expiresBefore = Date.now() + 45 * 24 * 60 * 60 * 1000;
                 const issuedBefore: any = args.issuedBefore || Infinity;
                 const expiresBefore: any = args.expiresBefore || Infinity; //Date.now() + 21 * 24 * 60 * 60 * 1000;
                 const renewBefore: any = args.renewBefore || Infinity; //Date.now() + 21 * 24 * 60 * 60 * 1000;
