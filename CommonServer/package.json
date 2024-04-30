@@ -37,7 +37,6 @@
         "dotenv": "^16.4.4",
         "ejs": "^3.1.8",
         "express": "^4.19.2",
-        "greenlock": "^4.0.4",
         "ioredis": "^5.3.2",
         "json2csv": "^5.0.7",
         "jsonwebtoken": "^9.0.0",
