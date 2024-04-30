@@ -172,55 +172,53 @@ export class Service extends DatabaseService<StatusPageDomain> {
     public async updateCnameStatusForStatusPageDomain(data: {
         domain: string;
         cnameStatus: boolean;
-    }){
-        if(!data.cnameStatus){
+    }) {
+        if (!data.cnameStatus) {
             await this.updateOneBy({
                 query: {
-                    fullDomain: data.domain
+                    fullDomain: data.domain,
                 },
                 data: {
                     isCnameVerified: false,
                     isSslOrdered: false,
-                    isSslProvisioned: false
-                },
-                props: {
-                    isRoot: true
-                }
-            });
-        }else{
-            await this.updateOneBy({
-                query: {
-                    fullDomain: data.domain
-                },
-                data: {
-                    isCnameVerified: true
-                },
-                props: {
-                    isRoot: true
-                }
-            });
-        }
-    }
-
-    public async isCnameValid(
-        fullDomain: string
-    ): Promise<boolean> {
-        try {
-
-            // get the token from the domain.
-
-            const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
-                query: {
-                    fullDomain: fullDomain,
-                },
-                select: {
-                    _id: true,
-                    cnameVerificationToken: true,
+                    isSslProvisioned: false,
                 },
                 props: {
                     isRoot: true,
                 },
             });
+        } else {
+            await this.updateOneBy({
+                query: {
+                    fullDomain: data.domain,
+                },
+                data: {
+                    isCnameVerified: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+    }
+
+    public async isCnameValid(fullDomain: string): Promise<boolean> {
+        try {
+            // get the token from the domain.
+
+            const statusPageDomain: StatusPageDomain | null =
+                await this.findOneBy({
+                    query: {
+                        fullDomain: fullDomain,
+                    },
+                    select: {
+                        _id: true,
+                        cnameVerificationToken: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (!statusPageDomain) {
                 return false;
@@ -241,7 +239,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
             if (result.isSuccess()) {
                 await this.updateCnameStatusForStatusPageDomain({
                     domain: fullDomain,
-                    cnameStatus: true
+                    cnameStatus: true,
                 });
 
                 return true;
@@ -249,7 +247,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
             await this.updateCnameStatusForStatusPageDomain({
                 domain: fullDomain,
-                cnameStatus: false
+                cnameStatus: false,
             });
 
             return false;
@@ -259,7 +257,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
             await this.updateCnameStatusForStatusPageDomain({
                 domain: fullDomain,
-                cnameStatus: false
+                cnameStatus: false,
             });
 
             return false;
@@ -328,8 +326,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
         await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
             validateCname: this.isCnameValid,
             notifyDomainRemoved: async (domain: string) => {
-               logger.info(`Domain removed from greenlock: ${domain}`);
-            }
+                logger.info(`Domain removed from greenlock: ${domain}`);
+            },
         });
     }
 }

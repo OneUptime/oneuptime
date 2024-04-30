@@ -1,7 +1,4 @@
-import {
-    EVERY_FIFTEEN_MINUTE,
-    EVERY_MINUTE,
-} from 'Common/Utils/CronTime';
+import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from 'Common/Utils/CronTime';
 import BasicCron from 'CommonServer/Utils/BasicCron';
 import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 // @ts-ignore
@@ -96,6 +93,5 @@ export default class Jobs {
                 }
             },
         });
-
     }
 }

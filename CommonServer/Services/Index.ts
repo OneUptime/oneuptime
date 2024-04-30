@@ -142,7 +142,7 @@ import MonitorMetricsByMinuteService from './MonitorMetricsByMinuteService';
 import AcmeCertificateService from './AcmeCertificateService';
 
 const services: Array<BaseService> = [
-    AcmeCertificateService, 
+    AcmeCertificateService,
     PromoCodeService,
 
     ResellerService,

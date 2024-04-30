@@ -14,7 +14,6 @@ RunCron(
     }
 );
 
-
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',
     { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },

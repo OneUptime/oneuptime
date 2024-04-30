@@ -21,7 +21,6 @@ import StatusPage from './StatusPage';
 import Domain from './Domain';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
-import { JSONObject } from 'Common/Types/JSON';
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn('statusPage')
@@ -423,7 +422,6 @@ export default class StatusPageDomain extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
 
-
     // This token is used by the Worker.
     // worker pings the status page of customers - eg: status.company.com/verify-token/:id
     // and the end  point on Status Page project returns 200.
@@ -475,7 +473,6 @@ export default class StatusPageDomain extends BaseModel {
         default: false,
     })
     public isCnameVerified?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [],

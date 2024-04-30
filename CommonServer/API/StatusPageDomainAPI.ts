@@ -117,7 +117,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
 
                     const isValid: boolean =
                         await StatusPageDomainService.isCnameValid(
-                            domain.fullDomain!,
+                            domain.fullDomain!
                         );
 
                     if (isValid) {
@@ -269,7 +269,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                             new BadDataException('Invalid domain.')
                         );
                     }
-
 
                     logger.info('Ordering SSL');
 

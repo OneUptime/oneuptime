@@ -11,7 +11,6 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import User from './User';
 import ObjectID from 'Common/Types/ObjectID';
 
-
 @TableAccessControl({
     create: [],
     read: [],

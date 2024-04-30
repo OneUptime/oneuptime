@@ -1,15 +1,12 @@
-import {
-    EVERY_FIFTEEN_MINUTE,
-    EVERY_MINUTE,
-} from 'Common/Utils/CronTime';
+import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from 'Common/Utils/CronTime';
 import BasicCron from 'CommonServer/Utils/BasicCron';
 import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 // @ts-ignore
 import logger from 'CommonServer/Utils/Logger';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
-import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import LocalFile from 'CommonServer/Utils/LocalFile';
+import AcmeCertificate from 'Model/Models/AcmeCertificate';
+import AcmeCertificateService from 'CommonServer/Services/AcmeCertificateService';
 
 export default class Jobs {
     public static init(): void {
@@ -22,12 +19,13 @@ export default class Jobs {
             runFunction: async () => {
                 // Fetch all domains where certs are added to greenlock.
 
-                const certs: Array<GreenlockCertificate> =
-                    await GreenlockCertificateService.findBy({
+                const certs: Array<AcmeCertificate> =
+                    await AcmeCertificateService.findBy({
                         query: {},
                         select: {
-                            key: true,
-                            blob: true,
+                            domain: true,
+                            certificate: true,
+                            certificateKey: true,
                         },
                         limit: LIMIT_MAX,
                         skip: 0,
@@ -37,8 +35,6 @@ export default class Jobs {
                     });
 
                 for (const cert of certs) {
-                    
-
                     try {
                         await LocalFile.makeDirectory(
                             '/etc/nginx/certs/StatusPageCerts'
@@ -49,21 +45,19 @@ export default class Jobs {
                         logger.error(err);
                     }
 
-                    const certBlob = JSON.parse(cert.blob!);
 
                     // Write to disk.
                     await LocalFile.write(
-                        `/etc/nginx/certs/StatusPageCerts/${cert.key}.crt`,
-                        certBlob['certificate']
+                        `/etc/nginx/certs/StatusPageCerts/${cert.domain}.crt`,
+                        cert.certificate?.toString() || ''
                     );
 
                     await LocalFile.write(
-                        `/etc/nginx/certs/StatusPageCerts/${cert.key}.key`,
-                        certBlob['certificateKey']
+                        `/etc/nginx/certs/StatusPageCerts/${cert.domain}.key`,
+                        cert.certificateKey?.toString() || ''
                     );
                 }
             },
         });
-
     }
 }

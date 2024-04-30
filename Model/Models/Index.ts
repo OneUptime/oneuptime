@@ -277,5 +277,5 @@ export default [
 
     AcmeCertificate,
 
-    AcmeChallenge
+    AcmeChallenge,
 ];
