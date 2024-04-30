@@ -14,30 +14,6 @@ RunCron(
     }
 );
 
-RunCron(
-    'StatusPageCerts:OrderCerts',
-    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
-    async () => {
-        // Fetch all domains where certs are added to greenlock.
-        await StatusPageDomainService.orderCertsForAllDomainsWithNoSSLProvisioned();
-    }
-);
-
-RunCron(
-    'StatusPageCerts:AddCerts',
-    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
-    async () => {
-        await StatusPageDomainService.addDomainsWhichAreNotAddedToGreenlock();
-    }
-);
-
-RunCron(
-    'StatusPageCerts:RemoveCerts',
-    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
-    async () => {
-        await StatusPageDomainService.cleanupAllDomainFromGreenlock();
-    }
-);
 
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',

@@ -85,7 +85,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                             select: {
                                 _id: true,
                                 fullDomain: true,
-                                cnameVerificationToken: true,
                             },
                             props: {
                                 isRoot: true,
@@ -119,7 +118,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                     const isValid: boolean =
                         await StatusPageDomainService.isCnameValid(
                             domain.fullDomain!,
-                            domain.cnameVerificationToken!
                         );
 
                     if (isValid) {
@@ -224,7 +222,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                                 cnameVerificationToken: true,
                                 isCnameVerified: true,
                                 isSslProvisioned: true,
-                                isAddedToGreenlock: true,
                             },
                             props: {
                                 isRoot: true,
@@ -273,45 +270,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                         );
                     }
 
-                    // check cname again, just to be sure.
-                    const isCnameValid: boolean =
-                        await StatusPageDomainService.isCnameValid(
-                            domain.fullDomain!,
-                            domain.cnameVerificationToken!
-                        );
-
-                    if (!isCnameValid) {
-                        await StatusPageDomainService.updateOneById({
-                            id: domain.id!,
-                            data: {
-                                isCnameVerified: false,
-                            },
-                            props: {
-                                isRoot: true,
-                            },
-                        });
-
-                        return Response.sendErrorResponse(
-                            req,
-                            res,
-                            new BadDataException(
-                                'CNAME is not verified. Please verify CNAME first before you provision SSL.'
-                            )
-                        );
-                    }
-
-                    // add to greenlock.
-
-                    logger.info(
-                        'Adding domain to greenlock for domain ' +
-                            domain.fullDomain
-                    );
-
-                    if (!domain.isAddedToGreenlock) {
-                        await StatusPageDomainService.addDomainToGreenlock(
-                            domain
-                        );
-                    }
 
                     logger.info('Ordering SSL');
 

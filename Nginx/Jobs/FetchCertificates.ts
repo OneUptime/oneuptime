@@ -1,5 +1,4 @@
 import {
-    EVERY_FIVE_MINUTE,
     EVERY_FIFTEEN_MINUTE,
     EVERY_MINUTE,
 } from 'Common/Utils/CronTime';
@@ -12,9 +11,6 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import LocalFile from 'CommonServer/Utils/LocalFile';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
-import SelfSignedSSL from '../Utils/SelfSignedSSL';
 
 export default class Jobs {
     public static init(): void {
@@ -101,77 +97,5 @@ export default class Jobs {
             },
         });
 
-        BasicCron({
-            jobName: 'StatusPageCerts:WriteSelfSignedCertsToDisk',
-            options: {
-                schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIVE_MINUTE,
-                runOnStartup: true,
-            },
-            runFunction: async () => {
-                // Fetch all domains where certs are added to greenlock.
-
-                const certs: Array<GreenlockCertificate> =
-                    await GreenlockCertificateService.findBy({
-                        query: {},
-                        select: {
-                            key: true,
-                        },
-                        limit: LIMIT_MAX,
-                        skip: 0,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-
-                const statusPageDomains: Array<StatusPageDomain> =
-                    await StatusPageDomainService.findBy({
-                        query: {
-                            isSelfSignedSslGenerated: false,
-                        },
-                        select: {
-                            fullDomain: true,
-                            _id: true,
-                        },
-                        limit: LIMIT_MAX,
-                        skip: 0,
-                        props: {
-                            isRoot: true,
-                            ignoreHooks: true,
-                        },
-                    });
-
-                const greenlockCertDomains: Array<string | undefined> =
-                    certs.map((cert: GreenlockCertificate) => {
-                        return cert.key;
-                    });
-
-                // Generate self signed certs
-                for (const domain of statusPageDomains) {
-                    if (greenlockCertDomains.includes(domain.fullDomain)) {
-                        continue;
-                    }
-
-                    if (!domain.fullDomain) {
-                        continue;
-                    }
-
-                    await SelfSignedSSL.generate(
-                        '/etc/nginx/certs/StatusPageCerts',
-                        domain.fullDomain
-                    );
-
-                    await StatusPageDomainService.updateOneById({
-                        id: domain.id!,
-                        data: {
-                            isSelfSignedSslGenerated: true,
-                        },
-                        props: {
-                            ignoreHooks: true,
-                            isRoot: true,
-                        },
-                    });
-                }
-            },
-        });
     }
 }

@@ -1,24 +1,80 @@
 import acme from 'acme-client';
 import { LetsEncryptNotificationEmail } from '../../EnvironmentConfig';
-import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
-import GreenlockChallengeService from '../../Services/GreenlockChallengeService';
+import AcmeChallenge from 'Model/Models/AcmeChallenge';
+import AcmeChallengeService from '../../Services/AcmeChallengeService';
 import AcmeCertificate from 'Model/Models/AcmeCertificate';
-import AcmeCertificateService  from '../../Services/AcmeCertificateService';
+import AcmeCertificateService from '../../Services/AcmeCertificateService';
 import logger from '../Logger';
+import OneUptimeDate from 'Common/Types/Date';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import QueryHelper from '../../Types/Database/QueryHelper';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class GreenlockUtil {
 
-    public static async renewAllCertsWhichAreExpiringSoon(): Promise<void> {
+    public static async renewAllCertsWhichAreExpiringSoon(data: {
+        validateCname: (domain: string) => Promise<boolean>
+        notifyDomainRemoved: (domain: string) => Promise<void>
+    }): Promise<void> {
 
         logger.info('Renewing all certificates');
-        // TODO: Implement renewAllCerts
+
+
+        // get all certificates which are expiring soon
+
+        const certificates: AcmeCertificate[] = await AcmeCertificateService.findBy({
+            query: {
+                expiresAt: QueryHelper.lessThanEqualTo(OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), 30))
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+                domain: true
+            },
+            sort: {
+                expiresAt: SortOrder.Ascending
+            },
+            props: {
+                isRoot: true
+            }
+        });
+
+        // order certificate for each domain
+
+        for (const certificate of certificates) {
+
+            if (!certificate.domain) {
+                continue;
+            }
+
+            try {
+
+                //validate cname
+                const isValidCname = await data.validateCname(certificate.domain);
+
+                if (!isValidCname) {
+                    await GreenlockUtil.orderCert({
+                        domain: certificate.domain,
+                        validateCname: data.validateCname
+                    });
+                } else {
+                    await GreenlockUtil.removeDomain(certificate.domain);
+                    await data.notifyDomainRemoved(certificate.domain);
+                }
+
+            } catch (e) {
+                logger.error(`Error renewing certificate for domain: ${certificate.domain}`);
+                logger.error(e);
+            }
+        }
     }
 
     public static async removeDomain(domain: string): Promise<void> {
         // remove certificate for this domain. 
         await AcmeCertificateService.deleteBy({
             query: {
-                key: domain
+                domain: domain
             },
             limit: 1,
             skip: 0,
@@ -28,9 +84,24 @@ export default class GreenlockUtil {
         });
     }
 
-    public static async orderCert(domain: string): Promise<void> {
+    public static async orderCert(data: {
+        domain: string,
+        validateCname: (domain: string) => Promise<boolean>;
+    }): Promise<void> {
+
+        let { domain } = data;
 
         domain = domain.trim().toLowerCase();
+
+        //validate cname
+
+        const isValidCname = await data.validateCname(domain);
+
+        if (!isValidCname) {
+            await GreenlockUtil.removeDomain(domain);
+            logger.error(`Cname is not valid for domain: ${domain}`);
+            throw new BadDataException('Cname is not valid for domain ' + domain);
+        }
 
         const client = new acme.Client({
             directoryUrl: acme.directory.letsencrypt.production,
@@ -51,19 +122,19 @@ export default class GreenlockUtil {
                 /* http-01 */
                 if (challenge.type === 'http-01') {
 
-                    const greenlockChallenge = new GreenlockChallenge();
-                    greenlockChallenge.challenge = keyAuthorization;
-                    greenlockChallenge.token = challenge.token;
-                    greenlockChallenge.key = authz.identifier.value; 
+                    const acmeChallenge = new AcmeChallenge();
+                    acmeChallenge.challenge = keyAuthorization;
+                    acmeChallenge.token = challenge.token;
+                    acmeChallenge.domain = authz.identifier.value;
 
 
-                    await GreenlockChallengeService.create({
-                        data: greenlockChallenge,
+                    await AcmeChallengeService.create({
+                        data: acmeChallenge,
                         props: {
                             isRoot: true
                         }
                     });
-                    
+
                 }
             },
             challengeRemoveFn: async (authz, challenge) => {
@@ -71,9 +142,9 @@ export default class GreenlockUtil {
 
                 if (challenge.type === 'http-01') {
 
-                    await GreenlockChallengeService.deleteBy({
+                    await AcmeChallengeService.deleteBy({
                         query: {
-                            key: authz.identifier.value
+                            domain: authz.identifier.value
                         },
                         limit: 1,
                         skip: 0,
@@ -86,20 +157,16 @@ export default class GreenlockUtil {
         });
 
         // get expires at date from certificate
-
         const cert = await acme.forge.readCertificateInfo(certificate);
         const issuedAt = cert.notBefore;
         const expiresAt = cert.notAfter;
 
-
-
         // check if the certificate is already in the database.
-
         const existingCertificate: AcmeCertificate | null = await AcmeCertificateService.findOneBy({
             query: {
-                key: domain
+                domain: domain
             },
-            select:{
+            select: {
                 _id: true
             },
             props: {
@@ -107,21 +174,20 @@ export default class GreenlockUtil {
             }
         });
 
-        const blob: string = JSON.stringify({
-            certificate: certificate.toString(),
-            certificateKey: certificateKey.toString()
-        });
 
-        if(existingCertificate){
+        if (existingCertificate) {
             // update the certificate
             await AcmeCertificateService.updateBy({
                 query: {
-                    key: domain
+                    domain: domain
                 },
                 limit: 1,
                 skip: 0,
                 data: {
-                    blob: blob
+                    certificate: certificate.toString(),
+                    certificateKey: certificateKey.toString(),
+                    issuedAt: issuedAt,
+                    expiresAt: expiresAt
                 },
                 props: {
                     isRoot: true
@@ -129,16 +195,21 @@ export default class GreenlockUtil {
             });
         } else {
             // create the certificate
-            const AcmeCertificate = new AcmeCertificate();
-            AcmeCertificate.key = domain;
-            AcmeCertificate.blob = blob;
+            const acmeCertificate = new AcmeCertificate();
+
+            acmeCertificate.domain = domain;
+            acmeCertificate.certificate = certificate.toString();
+            acmeCertificate.certificateKey = certificateKey.toString();
+            acmeCertificate.issuedAt = issuedAt;
+            acmeCertificate.expiresAt = expiresAt;
+
 
             await AcmeCertificateService.create({
-                data: AcmeCertificate,
+                data: acmeCertificate,
                 props: {
                     isRoot: true
                 }
             });
-        }         
+        }
     }
 }

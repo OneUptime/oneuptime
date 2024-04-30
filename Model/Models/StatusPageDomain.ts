@@ -423,22 +423,6 @@ export default class StatusPageDomain extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
 
-    @ColumnAccessControl({
-        create: [],
-        read: [],
-        update: [],
-    })
-    @TableColumn({
-        type: TableColumnType.JSON,
-        title: 'SSL Provider Config',
-        description: 'SSL Provider Config',
-    })
-    @Column({
-        type: ColumnType.JSON,
-        nullable: true,
-        unique: false,
-    })
-    public greenlockConfig?: JSONObject = undefined;
 
     // This token is used by the Worker.
     // worker pings the status page of customers - eg: status.company.com/verify-token/:id
@@ -492,30 +476,6 @@ export default class StatusPageDomain extends BaseModel {
     })
     public isCnameVerified?: boolean = undefined;
 
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadStatusPageDomain,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        isDefaultValueColumn: true,
-        required: true,
-        type: TableColumnType.Boolean,
-        title: 'Connected to Certificate Provider',
-        description: 'Is this domain connected to certificate provider?',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        nullable: false,
-        unique: false,
-        default: false,
-    })
-    public isAddedToGreenlock?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -566,31 +526,6 @@ export default class StatusPageDomain extends BaseModel {
         default: false,
     })
     public isSslProvisioned?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanReadStatusPageDomain,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        isDefaultValueColumn: true,
-        required: true,
-        type: TableColumnType.Boolean,
-        title: 'Self Signed Cert Generated',
-        description: 'Is self signed certificate generated?',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        nullable: false,
-        unique: false,
-        default: false,
-    })
-    public isSelfSignedSslGenerated?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],

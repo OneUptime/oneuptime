@@ -60,9 +60,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         const domains: Array<StatusPageDomain> = await this.findBy({
             query: {
                 ...deleteBy.query,
-                isAddedToGreenlock: true,
             },
-
             skip: 0,
             limit: LIMIT_MAX,
             select: { fullDomain: true },
@@ -107,16 +105,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
             if (!fetchedStatusPageDomain) {
                 throw new BadDataException('Domain not found');
             }
-
-           
         }
 
-        await GreenlockUtil.orderCert(
-            statusPageDomain.fullDomain as string
-        );
+        await GreenlockUtil.orderCert({
+            domain: statusPageDomain.fullDomain as string,
+            validateCname: this.isCnameValid,
+        });
 
         // update the order.
-
         await this.updateOneById({
             id: statusPageDomain.id!,
             data: {
@@ -128,109 +124,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
         });
     }
 
-    public async orderCertsForAllDomainsWithNoSSLProvisioned(): Promise<void> {
+    public async updateSslProvisioningStatusForAllDomains(): Promise<void> {
         const domains: Array<StatusPageDomain> = await this.findBy({
             query: {
-                isAddedToGreenlock: true,
-                isSslProvisioned: false,
-            },
-            select: {
-                _id: true,
-                greenlockConfig: true,
-                fullDomain: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: {
-                isRoot: true,
-            },
-        });
-
-        logger.info(`Certificates to Order: ${domains.length}`);
-
-        for (const domain of domains) {
-            logger.info(
-                `StatusPageCerts:OrderCerts - Ordering Certificate ${domain.fullDomain}`
-            );
-
-            this.orderCert(domain).catch((err: any) => {
-                logger.error(
-                    `StatusPageCerts:OrderCerts - Failed for domain ${domain.fullDomain}`
-                );
-                logger.error(err);
-            });
-        }
-    }
-
-    public async cleanupDomainFromGreenlock(
-        domain: StatusPageDomain
-    ): Promise<void> {
-        // this function will remove the domain from greenlock if the CNAME does not match. It cleans up the domains that are not valid anymore.
-
-        if (!domain.id) {
-            throw new BadDataException('Domain ID is required');
-        }
-
-        const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
-            query: {
-                _id: domain.id?.toString(),
-            },
-            select: {
-                _id: true,
-                fullDomain: true,
-                cnameVerificationToken: true,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
-
-        if (!statusPageDomain) {
-            throw new BadDataException('Domain not found');
-        }
-
-        logger.info(
-            `StatusPageCerts:RemoveCerts - Checking CNAME ${statusPageDomain.fullDomain}`
-        );
-
-        // Check CNAME validation and if that fails. Remove certs from Greenlock.
-        const isValid: boolean = await this.isCnameValid(
-            statusPageDomain.fullDomain!,
-            statusPageDomain.cnameVerificationToken!
-        );
-
-        if (!isValid) {
-            logger.info(
-                `StatusPageCerts:RemoveCerts - CNAME for ${statusPageDomain.fullDomain} is invalid. Removing domain from greenlock.`
-            );
-
-            await GreenlockUtil.removeDomain(statusPageDomain.fullDomain!);
-
-            await this.updateOneById({
-                id: statusPageDomain.id!,
-                data: {
-                    isAddedToGreenlock: false,
-                    isCnameVerified: false,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            logger.info(
-                `StatusPageCerts:RemoveCerts - ${statusPageDomain.fullDomain} removed from greenlock.`
-            );
-        } else {
-            logger.info(
-                `StatusPageCerts:RemoveCerts - CNAME for ${statusPageDomain.fullDomain} is valid`
-            );
-        }
-    }
-
-    public async addDomainsWhichAreNotAddedToGreenlock(): Promise<void> {
-        const domains: Array<StatusPageDomain> = await this.findBy({
-            query: {
-                isAddedToGreenlock: false,
+                isSslOrdered: true,
             },
             select: {
                 _id: true,
@@ -243,97 +140,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         });
 
         for (const domain of domains) {
-            await this.addDomainToGreenlock(domain);
-        }
-    }
-
-    public async cleanupAllDomainFromGreenlock(): Promise<void> {
-        const domains: Array<StatusPageDomain> = await this.findBy({
-            query: {
-                isAddedToGreenlock: true,
-            },
-            select: {
-                _id: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: {
-                isRoot: true,
-            },
-        });
-
-        for (const domain of domains) {
-            await this.cleanupDomainFromGreenlock(domain);
-        }
-    }
-
-    public async addDomainToGreenlock(domain: StatusPageDomain): Promise<void> {
-        logger.info(
-            `StatusPageCerts:AddCerts - Checking CNAME ${domain.fullDomain}`
-        );
-
-        if (!domain.id) {
-            throw new BadDataException('Domain ID is required');
-        }
-
-        const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
-            query: {
-                _id: domain.id?.toString(),
-            },
-            select: {
-                _id: true,
-                fullDomain: true,
-                cnameVerificationToken: true,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
-
-        if (!statusPageDomain) {
-            throw new BadDataException('Domain not found');
-        }
-
-        // Check CNAME validation and if that fails. Remove certs from Greenlock.
-        const isValid: boolean = await this.isCnameValid(
-            statusPageDomain.fullDomain!,
-            statusPageDomain.cnameVerificationToken!
-        );
-
-        if (isValid) {
-            logger.info(
-                `StatusPageCerts:AddCerts - CNAME for ${statusPageDomain.fullDomain} is valid. Adding domain to greenlock.`
-            );
-
-            await this.updateOneById({
-                id: statusPageDomain.id!,
-                data: {
-                    isCnameVerified: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            await GreenlockUtil.orderCert(statusPageDomain.fullDomain!);
-
-            await this.updateOneById({
-                id: statusPageDomain.id!,
-                data: {
-                    isAddedToGreenlock: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            logger.info(
-                `StatusPageCerts:AddCerts - ${statusPageDomain.fullDomain} added to greenlock.`
-            );
-        } else {
-            logger.info(
-                `StatusPageCerts:AddCerts - CNAME for ${statusPageDomain.fullDomain} is invalid.`
-            );
+            await this.updateSslProvisioningStatus(domain);
         }
     }
 
@@ -362,11 +169,65 @@ export class Service extends DatabaseService<StatusPageDomain> {
         }
     }
 
+    public async updateCnameStatusForStatusPageDomain(data: {
+        domain: string;
+        cnameStatus: boolean;
+    }){
+        if(!data.cnameStatus){
+            await this.updateOneBy({
+                query: {
+                    fullDomain: data.domain
+                },
+                data: {
+                    isCnameVerified: false,
+                    isSslOrdered: false,
+                    isSslProvisioned: false
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+        }else{
+            await this.updateOneBy({
+                query: {
+                    fullDomain: data.domain
+                },
+                data: {
+                    isCnameVerified: true
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+        }
+    }
+
     public async isCnameValid(
-        fullDomain: string,
-        token: string
+        fullDomain: string
     ): Promise<boolean> {
         try {
+
+            // get the token from the domain.
+
+            const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
+                query: {
+                    fullDomain: fullDomain,
+                },
+                select: {
+                    _id: true,
+                    cnameVerificationToken: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (!statusPageDomain) {
+                return false;
+            }
+
+            const token: string = statusPageDomain.cnameVerificationToken!;
+
             const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                 await API.get(
                     URL.fromString(
@@ -378,35 +239,30 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 );
 
             if (result.isSuccess()) {
+                await this.updateCnameStatusForStatusPageDomain({
+                    domain: fullDomain,
+                    cnameStatus: true
+                });
+
                 return true;
             }
+
+            await this.updateCnameStatusForStatusPageDomain({
+                domain: fullDomain,
+                cnameStatus: false
+            });
 
             return false;
         } catch (err) {
             logger.info('Failed checking for CNAME ' + fullDomain);
-            logger.info('Token: ' + token);
             logger.info(err);
+
+            await this.updateCnameStatusForStatusPageDomain({
+                domain: fullDomain,
+                cnameStatus: false
+            });
+
             return false;
-        }
-    }
-
-    public async updateSslProvisioningStatusForAllDomains(): Promise<void> {
-        const domains: Array<StatusPageDomain> = await this.findBy({
-            query: {
-                isAddedToGreenlock: true,
-            },
-            select: {
-                _id: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: {
-                isRoot: true,
-            },
-        });
-
-        for (const domain of domains) {
-            await this.updateSslProvisioningStatus(domain);
         }
     }
 
@@ -450,7 +306,6 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 id: statusPageDomain.id!,
                 data: {
                     isSslProvisioned: false,
-                    isSslOrdered: false,
                 },
                 props: {
                     isRoot: true,
@@ -461,7 +316,6 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 id: statusPageDomain.id!,
                 data: {
                     isSslProvisioned: true,
-                    isSslOrdered: true,
                 },
                 props: {
                     isRoot: true,
@@ -471,7 +325,12 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     public async renewCertsWhichAreExpiringSoon(): Promise<void> {
-        await GreenlockUtil.renewAllCertsWhichAreExpiringSoon();
+        await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
+            validateCname: this.isCnameValid,
+            notifyDomainRemoved: async (domain: string) => {
+               logger.info(`Domain removed from greenlock: ${domain}`);
+            }
+        });
     }
 }
 export default new Service();

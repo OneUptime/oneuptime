@@ -143,6 +143,7 @@ import UsageBilling from './TelemetryUsageBilling';
 
 import ProjectCallSMSConfig from './ProjectCallSMSConfig';
 import AcmeCertificate from './AcmeCertificate';
+import AcmeChallenge from './AcmeChallenge';
 
 export default [
     User,
@@ -274,5 +275,7 @@ export default [
 
     ProjectCallSMSConfig,
 
-    AcmeCertificate
+    AcmeCertificate,
+
+    AcmeChallenge
 ];
