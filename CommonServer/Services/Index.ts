@@ -139,7 +139,10 @@ import UsageBillingService from './TelemetryUsageBillingService';
 import ProjectCallSMSConfigService from './ProjectCallSMSConfigService';
 import MonitorMetricsByMinuteService from './MonitorMetricsByMinuteService';
 
+import AcmeCertificateService from './AcmeCertificateService';
+
 const services: Array<BaseService> = [
+    AcmeCertificateService, 
     PromoCodeService,
 
     ResellerService,

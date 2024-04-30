@@ -1,109 +1,144 @@
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
+import acme from 'acme-client';
 import { LetsEncryptNotificationEmail } from '../../EnvironmentConfig';
-import StatusPageDomainService from '../../Services/StatusPageDomainService';
+import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
+import GreenlockChallengeService from '../../Services/GreenlockChallengeService';
+import AcmeCertificate from 'Model/Models/AcmeCertificate';
+import AcmeCertificateService  from '../../Services/AcmeCertificateService';
 import logger from '../Logger';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
-// @ts-ignore
-import Greenlock from 'greenlock';
 
 export default class GreenlockUtil {
-    private static greenLockInstance: any = null;
 
-    private static getGreenlockInstance(): any {
-        if (this.greenLockInstance) {
-            return this.greenLockInstance;
-        }
+    public static async renewAllCertsWhichAreExpiringSoon(): Promise<void> {
 
-        this.greenLockInstance = Greenlock.create({
-            configFile: '//usr/src/CommonServer/Utils/Greenlock/greenlockrc',
-            packageRoot: `/usr/src/CommonServer/greenlock`,
-            manager: '/usr/src/CommonServer/Utils/Greenlock/Manager.ts',
-            directoryUrl: 'https://acme-v02.api.letsencrypt.org/directory',
-            renewOffset: '45d',
-            renewStagger: '3d',
-            approveDomains: async (opts: any) => {
-                const domain: StatusPageDomain | null =
-                    await StatusPageDomainService.findOneBy({
-                        query: {
-                            fullDomain: opts.domain,
-                        },
-                        select: {
-                            _id: true,
-                            fullDomain: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-
-                if (!domain) {
-                    throw new BadDataException(
-                        `Domain ${opts.domain} does not exist in StatusPageDomain`
-                    );
-                }
-
-                return opts; // or Promise.resolve(opts);
-            },
-            store: {
-                module: '/usr/src/CommonServer/Utils/Greenlock/Store.ts',
-            },
-            // Staging for testing environments
-            // staging: IsDevelopment,
-
-            // This should be the contact who receives critical bug and security notifications
-            // Optionally, you may receive other (very few) updates, such as important new features
-            maintainerEmail: LetsEncryptNotificationEmail.toString(),
-
-            // for an RFC 8555 / RFC 7231 ACME client user agent
-            packageAgent: 'oneuptime/1.0.0',
-
-            notify: function (event: string, details: any) {
-                if ('error' === event) {
-                    logger.error('Greenlock Notify: ' + event);
-                    logger.error(details);
-                }
-                logger.info('Greenlock Notify: ' + event);
-                logger.info(details);
-            },
-
-            agreeToTerms: true,
-            challenges: {
-                'http-01': {
-                    module: '/usr/src/CommonServer/Utils/Greenlock/HttpChallenge.ts',
-                },
-            },
-        });
-
-        return this.greenLockInstance;
+        logger.info('Renewing all certificates');
+        // TODO: Implement renewAllCerts
     }
 
     public static async removeDomain(domain: string): Promise<void> {
-        await this.getGreenlockInstance().remove({
-            subject: domain,
+        // remove certificate for this domain. 
+        await AcmeCertificateService.deleteBy({
+            query: {
+                key: domain
+            },
+            limit: 1,
+            skip: 0,
+            props: {
+                isRoot: true
+            }
         });
     }
 
-    public static async addDomain(domain: string): Promise<void> {
-        await this.getGreenlockInstance().add({
-            subject: domain,
-            altnames: [domain],
-        });
-    }
+    public static async orderCert(domain: string): Promise<void> {
 
-    public static async getCert(domain: string): Promise<JSONObject> {
-        const site: JSONObject = await this.getGreenlockInstance().get({
-            servername: domain,
+        domain = domain.trim().toLowerCase();
+
+        const client = new acme.Client({
+            directoryUrl: acme.directory.letsencrypt.production,
+            accountKey: await acme.crypto.createPrivateKey()
         });
 
-        return site;
-    }
+        const [certificateKey, certificateRequest] = await acme.crypto.createCsr({
+            commonName: domain
+        });
 
-    public static async renewAllCerts(): Promise<void> {
-        await this.getGreenlockInstance().renew();
-    }
+        const certificate: string = await client.auto({
+            csr: certificateRequest,
+            email: LetsEncryptNotificationEmail.toString(),
+            termsOfServiceAgreed: true,
+            challengePriority: ['http-01'], // only http-01 challenge is supported by oneuptime
+            challengeCreateFn: async (authz, challenge, keyAuthorization) => {
+                // Satisfy challenge here
+                /* http-01 */
+                if (challenge.type === 'http-01') {
 
-    public static async orderCert(greenlockConfig: JSONObject): Promise<void> {
-        await this.getGreenlockInstance().order(greenlockConfig);
+                    const greenlockChallenge = new GreenlockChallenge();
+                    greenlockChallenge.challenge = keyAuthorization;
+                    greenlockChallenge.token = challenge.token;
+                    greenlockChallenge.key = authz.identifier.value; 
+
+
+                    await GreenlockChallengeService.create({
+                        data: greenlockChallenge,
+                        props: {
+                            isRoot: true
+                        }
+                    });
+                    
+                }
+            },
+            challengeRemoveFn: async (authz, challenge) => {
+                // Clean up challenge here
+
+                if (challenge.type === 'http-01') {
+
+                    await GreenlockChallengeService.deleteBy({
+                        query: {
+                            key: authz.identifier.value
+                        },
+                        limit: 1,
+                        skip: 0,
+                        props: {
+                            isRoot: true
+                        }
+                    });
+                }
+            }
+        });
+
+        // get expires at date from certificate
+
+        const cert = await acme.forge.readCertificateInfo(certificate);
+        const issuedAt = cert.notBefore;
+        const expiresAt = cert.notAfter;
+
+
+
+        // check if the certificate is already in the database.
+
+        const existingCertificate: AcmeCertificate | null = await AcmeCertificateService.findOneBy({
+            query: {
+                key: domain
+            },
+            select:{
+                _id: true
+            },
+            props: {
+                isRoot: true
+            }
+        });
+
+        const blob: string = JSON.stringify({
+            certificate: certificate.toString(),
+            certificateKey: certificateKey.toString()
+        });
+
+        if(existingCertificate){
+            // update the certificate
+            await AcmeCertificateService.updateBy({
+                query: {
+                    key: domain
+                },
+                limit: 1,
+                skip: 0,
+                data: {
+                    blob: blob
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+        } else {
+            // create the certificate
+            const AcmeCertificate = new AcmeCertificate();
+            AcmeCertificate.key = domain;
+            AcmeCertificate.blob = blob;
+
+            await AcmeCertificateService.create({
+                data: AcmeCertificate,
+                props: {
+                    isRoot: true
+                }
+            });
+        }         
     }
 }

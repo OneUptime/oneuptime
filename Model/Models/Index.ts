@@ -142,6 +142,7 @@ import OnCallDutyPolicyEscalationRuleSchedule from './OnCallDutyPolicyEscalation
 import UsageBilling from './TelemetryUsageBilling';
 
 import ProjectCallSMSConfig from './ProjectCallSMSConfig';
+import AcmeCertificate from './AcmeCertificate';
 
 export default [
     User,
@@ -272,4 +273,6 @@ export default [
     UsageBilling,
 
     ProjectCallSMSConfig,
+
+    AcmeCertificate
 ];

@@ -90,14 +90,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     public async orderCert(statusPageDomain: StatusPageDomain): Promise<void> {
-        if (!statusPageDomain.greenlockConfig) {
+        if (!statusPageDomain.fullDomain) {
             const fetchedStatusPageDomain = await this.findOneBy({
                 query: {
                     _id: statusPageDomain.id!.toString(),
                 },
                 select: {
                     _id: true,
-                    greenlockConfig: true,
+                    fullDomain: true,
                 },
                 props: {
                     isRoot: true,
@@ -108,16 +108,11 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 throw new BadDataException('Domain not found');
             }
 
-            if (!fetchedStatusPageDomain.greenlockConfig) {
-                throw new BadDataException('Greenlock config not found');
-            }
-
-            statusPageDomain.greenlockConfig =
-                fetchedStatusPageDomain.greenlockConfig;
+           
         }
 
         await GreenlockUtil.orderCert(
-            statusPageDomain.greenlockConfig as JSONObject
+            statusPageDomain.fullDomain as string
         );
 
         // update the order.
@@ -320,7 +315,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 },
             });
 
-            await GreenlockUtil.addDomain(statusPageDomain.fullDomain!);
+            await GreenlockUtil.orderCert(statusPageDomain.fullDomain!);
 
             await this.updateOneById({
                 id: statusPageDomain.id!,
@@ -476,7 +471,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     public async renewCertsWhichAreExpiringSoon(): Promise<void> {
-        await GreenlockUtil.renewAllCerts();
+        await GreenlockUtil.renewAllCertsWhichAreExpiringSoon();
     }
 }
 export default new Service();
