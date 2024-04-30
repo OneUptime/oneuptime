@@ -77,7 +77,7 @@ export default class Database {
 
         try {
             const result: any = await this.dataSource?.query(
-                `SELECT COUNT(key) FROM "AcmeChallenge"`
+                `SELECT COUNT(domain) FROM "AcmeChallenge"`
             ); // this is a dummy query to check if the connection is still alive
 
             if (!result) {
