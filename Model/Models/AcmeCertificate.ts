@@ -78,7 +78,6 @@ export default class AcmeCertificate extends BaseModel {
     @Column({
         type: ColumnType.Date,
         nullable: false,
-        default: false,
         unique: false,
     })
     public issuedAt?: Date = undefined;
@@ -92,7 +91,6 @@ export default class AcmeCertificate extends BaseModel {
     @Column({
         type: ColumnType.Date,
         nullable: false,
-        default: false,
         unique: false,
     })
     public expiresAt?: Date = undefined;

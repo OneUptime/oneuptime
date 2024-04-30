@@ -300,6 +300,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
         );
 
         if (!isValid) {
+            // check if cname is valid.
+
+            await this.isCnameValid(statusPageDomain.fullDomain!);
+
             await this.updateOneById({
                 id: statusPageDomain.id!,
                 data: {
