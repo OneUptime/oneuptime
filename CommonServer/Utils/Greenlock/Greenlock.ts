@@ -124,7 +124,11 @@ export default class GreenlockUtil {
             email: LetsEncryptNotificationEmail.toString(),
             termsOfServiceAgreed: true,
             challengePriority: ['http-01'], // only http-01 challenge is supported by oneuptime
-            challengeCreateFn: async (authz: acme.Authorization, challenge: Challenge , keyAuthorization: string) => {
+            challengeCreateFn: async (
+                authz: acme.Authorization,
+                challenge: Challenge,
+                keyAuthorization: string
+            ) => {
                 // Satisfy challenge here
                 /* http-01 */
                 if (challenge.type === 'http-01') {
@@ -141,7 +145,10 @@ export default class GreenlockUtil {
                     });
                 }
             },
-            challengeRemoveFn: async (authz: acme.Authorization, challenge: Challenge) => {
+            challengeRemoveFn: async (
+                authz: acme.Authorization,
+                challenge: Challenge
+            ) => {
                 // Clean up challenge here
 
                 if (challenge.type === 'http-01') {
@@ -160,7 +167,9 @@ export default class GreenlockUtil {
         });
 
         // get expires at date from certificate
-        const cert: acme.CertificateInfo = await acme.forge.readCertificateInfo(certificate);
+        const cert: acme.CertificateInfo = await acme.forge.readCertificateInfo(
+            certificate
+        );
         const issuedAt: Date = cert.notBefore;
         const expiresAt: Date = cert.notAfter;
 

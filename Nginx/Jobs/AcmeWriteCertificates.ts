@@ -45,7 +45,6 @@ export default class Jobs {
                         logger.error(err);
                     }
 
-
                     // Write to disk.
                     await LocalFile.write(
                         `/etc/nginx/certs/StatusPageCerts/${cert.domain}.crt`,
