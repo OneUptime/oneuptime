@@ -7,6 +7,7 @@ import LocalCache from '../Infrastructure/LocalCache';
 import Response from '../Utils/Response';
 import ServerException from 'Common/Types/Exception/ServerException';
 import logger from '../Utils/Logger';
+import Exception from 'Common/Types/Exception/Exception';
 
 export interface StatusAPIOptions {
     readyCheck: () => Promise<void>;
@@ -45,7 +46,7 @@ export default class StatusAPI {
                     Response.sendErrorResponse(
                         req,
                         res,
-                        new ServerException('Server is not ready')
+                        e instanceof Exception ? e : new ServerException('Server is not ready')
                     );
                 }
             }
@@ -65,7 +66,7 @@ export default class StatusAPI {
                     Response.sendErrorResponse(
                         req,
                         res,
-                        new ServerException('Server is not live')
+                        e instanceof Exception ? e : new ServerException('Server is not ready')
                     );
                 }
             }

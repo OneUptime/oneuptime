@@ -8,6 +8,6 @@ describe('DatabaseNotConnectedException', () => {
     });
 
     test('should return 3 as the code for DatabaseNotConnectedException', () => {
-        expect(new DatabaseNotConnectedException().code).toBe(3);
+        expect(new DatabaseNotConnectedException().code).toBe(500);
     });
 });
