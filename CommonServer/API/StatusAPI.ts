@@ -46,7 +46,9 @@ export default class StatusAPI {
                     Response.sendErrorResponse(
                         req,
                         res,
-                        e instanceof Exception ? e : new ServerException('Server is not ready')
+                        e instanceof Exception
+                            ? e
+                            : new ServerException('Server is not ready')
                     );
                 }
             }
@@ -66,7 +68,9 @@ export default class StatusAPI {
                     Response.sendErrorResponse(
                         req,
                         res,
-                        e instanceof Exception ? e : new ServerException('Server is not ready')
+                        e instanceof Exception
+                            ? e
+                            : new ServerException('Server is not ready')
                     );
                 }
             }
