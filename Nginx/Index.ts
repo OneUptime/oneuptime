@@ -4,6 +4,7 @@ import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import FetchCertificateJobs from './Jobs/FetchCertificates';
+import AcmeWriteCertificatesJob from './Jobs/AcmeWriteCertificates';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
 
@@ -37,6 +38,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
         // init the jobs
         FetchCertificateJobs.init();
+
+        AcmeWriteCertificatesJob.init(); 
 
         // add default routes
         await App.addDefaultRoutes();
