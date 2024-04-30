@@ -6,6 +6,7 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import AcmeWriteCertificatesJob from './Jobs/AcmeWriteCertificates';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
+import FetchCertificateJobs from './Jobs/FetchCertificates';
 
 const APP_NAME: string = process.env['SERVICE_NAME'];
 
@@ -36,7 +37,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         );
 
         // init the jobs
-        // FetchCertificateJobs.init();
+        FetchCertificateJobs.init();
 
         AcmeWriteCertificatesJob.init();
 
