@@ -53,8 +53,6 @@ import ScheduledMaintenanceStateTimelineService from '../Services/ScheduledMaint
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
-import GreenlockChallengeService from '../Services/GreenlockChallengeService';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import logger from '../Utils/Logger';
 import Email from 'Common/Types/Email';
@@ -77,6 +75,8 @@ import CommonAPI from './CommonAPI';
 import Phone from 'Common/Types/Phone';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
 import StatusPageHistoryChartBarColorRuleService from '../Services/StatusPageHistoryChartBarColorRuleService';
+import AcmeChallenge from 'Model/Models/AcmeChallenge';
+import AcmeChallengeService from '../Services/AcmeChallengeService';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -135,8 +135,8 @@ export default class StatusPageAPI extends BaseAPI<
                 .getCrudApiPath()
                 ?.toString()}/.well-known/acme-challenge/:token`,
             async (req: ExpressRequest, res: ExpressResponse) => {
-                const challenge: GreenlockChallenge | null =
-                    await GreenlockChallengeService.findOneBy({
+                const challenge: AcmeChallenge | null =
+                    await AcmeChallengeService.findOneBy({
                         query: {
                             token: req.params['token'] as string,
                         },

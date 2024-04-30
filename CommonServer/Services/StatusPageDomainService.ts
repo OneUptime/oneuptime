@@ -109,7 +109,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
         await GreenlockUtil.orderCert({
             domain: statusPageDomain.fullDomain as string,
-            validateCname: this.isCnameValid,
+            validateCname: async (fullDomain: string) => {
+                return await this.isCnameValid(fullDomain);
+            },
         });
 
         // update the order.
@@ -243,6 +245,27 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 });
 
                 return true;
+            }else{
+                // try with https
+
+                const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+                await API.get(
+                    URL.fromString(
+                        'https://' +
+                            fullDomain +
+                            '/status-page-api/cname-verification/' +
+                            token
+                    )
+                );
+
+                if (result.isSuccess()) {
+                    await this.updateCnameStatusForStatusPageDomain({
+                        domain: fullDomain,
+                        cnameStatus: true,
+                    });
+    
+                    return true;
+                }
             }
 
             await this.updateCnameStatusForStatusPageDomain({
@@ -328,7 +351,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
     public async renewCertsWhichAreExpiringSoon(): Promise<void> {
         await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
-            validateCname: this.isCnameValid,
+            validateCname: async (fullDomain: string) => {
+                return await this.isCnameValid(fullDomain);
+            },
             notifyDomainRemoved: async (domain: string) => {
                 logger.info(`Domain removed from greenlock: ${domain}`);
             },

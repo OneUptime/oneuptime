@@ -99,13 +99,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                         );
                     }
 
-                    if (!domain.cnameVerificationToken) {
-                        return Response.sendErrorResponse(
-                            req,
-                            res,
-                            new BadDataException('Invalid token.')
-                        );
-                    }
 
                     if (!domain.fullDomain) {
                         return Response.sendErrorResponse(
@@ -120,28 +113,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                             domain.fullDomain!
                         );
 
-                    if (isValid) {
-                        // mark as verified.
-                        await StatusPageDomainService.updateOneById({
-                            id: domain.id!,
-                            data: {
-                                isCnameVerified: true,
-                            },
-                            props: {
-                                isRoot: true,
-                            },
-                        });
-                    } else {
-                        // mark as not verified.
-                        await StatusPageDomainService.updateOneById({
-                            id: domain.id!,
-                            data: {
-                                isCnameVerified: false,
-                            },
-                            props: {
-                                isRoot: true,
-                            },
-                        });
+                    if (!isValid) {
 
                         return Response.sendErrorResponse(
                             req,
@@ -171,6 +143,8 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
+
+                    debugger;
                     if (!StatusPageCNameRecord) {
                         return Response.sendErrorResponse(
                             req,
