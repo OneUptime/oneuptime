@@ -22,10 +22,6 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
-      volumes:
-        - name: greenlockrc
-          emptyDir:
-            sizeLimit: "1Gi"
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
@@ -57,9 +53,6 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 30
-          volumeMounts:
-            - name: greenlockrc
-              mountPath: "/usr/src/CommonServer/greenlock"
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}
