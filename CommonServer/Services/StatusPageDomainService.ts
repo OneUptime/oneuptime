@@ -89,18 +89,19 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
     public async orderCert(statusPageDomain: StatusPageDomain): Promise<void> {
         if (!statusPageDomain.fullDomain) {
-            const fetchedStatusPageDomain = await this.findOneBy({
-                query: {
-                    _id: statusPageDomain.id!.toString(),
-                },
-                select: {
-                    _id: true,
-                    fullDomain: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+            const fetchedStatusPageDomain: StatusPageDomain | null =
+                await this.findOneBy({
+                    query: {
+                        _id: statusPageDomain.id!.toString(),
+                    },
+                    select: {
+                        _id: true,
+                        fullDomain: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (!fetchedStatusPageDomain) {
                 throw new BadDataException('Domain not found');
@@ -174,7 +175,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     public async updateCnameStatusForStatusPageDomain(data: {
         domain: string;
         cnameStatus: boolean;
-    }) {
+    }): Promise<void> {
         if (!data.cnameStatus) {
             await this.updateOneBy({
                 query: {
@@ -245,10 +246,11 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 });
 
                 return true;
-            }else{
-                // try with https
+            }
 
-                const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            // try with https
+
+            const resultHttps: HTTPErrorResponse | HTTPResponse<JSONObject> =
                 await API.get(
                     URL.fromString(
                         'https://' +
@@ -258,14 +260,13 @@ export class Service extends DatabaseService<StatusPageDomain> {
                     )
                 );
 
-                if (result.isSuccess()) {
-                    await this.updateCnameStatusForStatusPageDomain({
-                        domain: fullDomain,
-                        cnameStatus: true,
-                    });
-    
-                    return true;
-                }
+            if (resultHttps.isSuccess()) {
+                await this.updateCnameStatusForStatusPageDomain({
+                    domain: fullDomain,
+                    cnameStatus: true,
+                });
+
+                return true;
             }
 
             await this.updateCnameStatusForStatusPageDomain({
@@ -346,6 +347,31 @@ export class Service extends DatabaseService<StatusPageDomain> {
                     isRoot: true,
                 },
             });
+        }
+    }
+
+    public async orderSSLForDomainsWhichAreNotOrderedYet(): Promise<void> {
+        const domains: Array<StatusPageDomain> = await this.findBy({
+            query: {
+                isSslOrdered: false,
+            },
+            select: {
+                _id: true,
+                fullDomain: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        for (const domain of domains) {
+            try {
+                await this.orderCert(domain);
+            } catch (e) {
+                logger.error(e);
+            }
         }
     }
 

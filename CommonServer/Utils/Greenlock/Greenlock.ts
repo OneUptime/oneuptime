@@ -27,7 +27,7 @@ export default class GreenlockUtil {
                     expiresAt: QueryHelper.lessThanEqualTo(
                         OneUptimeDate.addRemoveDays(
                             OneUptimeDate.getCurrentDate(),
-                            30
+                            40 // 40 days before expiry
                         )
                     ),
                 },
@@ -132,7 +132,7 @@ export default class GreenlockUtil {
                 // Satisfy challenge here
                 /* http-01 */
                 if (challenge.type === 'http-01') {
-                    const acmeChallenge = new AcmeChallenge();
+                    const acmeChallenge: AcmeChallenge = new AcmeChallenge();
                     acmeChallenge.challenge = keyAuthorization;
                     acmeChallenge.token = challenge.token;
                     acmeChallenge.domain = authz.identifier.value;

@@ -1,4 +1,4 @@
-import { EVERY_HOUR, EVERY_MINUTE } from 'Common/Utils/CronTime';
+import { EVERY_MINUTE, EVERY_FIFTEEN_MINUTE } from 'Common/Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
@@ -6,7 +6,10 @@ import logger from 'CommonServer/Utils/Logger';
 
 RunCron(
     'StatusPageCerts:RenewCerts',
-    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
+    {
+        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        runOnStartup: true,
+    },
     async () => {
         logger.info('Renewing Certs...');
         await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
@@ -16,8 +19,22 @@ RunCron(
 
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',
-    { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, runOnStartup: true },
+    {
+        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        runOnStartup: true,
+    },
     async () => {
         await StatusPageDomainService.updateSslProvisioningStatusForAllDomains();
+    }
+);
+
+RunCron(
+    'StatusPageCerts:OrderSSL',
+    {
+        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        runOnStartup: true,
+    },
+    async () => {
+        await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
     }
 );

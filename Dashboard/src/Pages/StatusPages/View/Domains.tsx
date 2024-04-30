@@ -241,7 +241,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                         <span>
                                             No action is required. This SSL
                                             certificate will be provisioned in 1
-                                            hour. If this still does not happen.
+                                            hour. If this does not happen.
                                             Please contact support.
                                         </span>
                                     );

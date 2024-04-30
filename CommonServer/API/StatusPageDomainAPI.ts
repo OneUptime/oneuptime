@@ -99,7 +99,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                         );
                     }
 
-
                     if (!domain.fullDomain) {
                         return Response.sendErrorResponse(
                             req,
@@ -114,7 +113,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                         );
 
                     if (!isValid) {
-
                         return Response.sendErrorResponse(
                             req,
                             res,
@@ -143,8 +141,6 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-
-                    debugger;
                     if (!StatusPageCNameRecord) {
                         return Response.sendErrorResponse(
                             req,
