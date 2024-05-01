@@ -22,6 +22,7 @@ import MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage from './MoveEna
 import UpdateActiveMonitorCountToBillingProvider from './UpdateActiveMonitorCountToBillingProvider';
 import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
 import AddTelemetryServiceColor from './AddTelemetryServiceColor';
+import MoveGreenlockCertsToAcmeCerts from './MoveGreenlockCertsToAcmeCerts';
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -49,6 +50,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddAttributeColumnToSpanAndLog(),
     new AddSecretKeyToIncomingRequestMonitor(),
     new AddTelemetryServiceColor(),
+    new MoveGreenlockCertsToAcmeCerts()
 ];
 
 export default DataMigrations;
