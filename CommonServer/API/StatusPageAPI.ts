@@ -2050,7 +2050,8 @@ export default class StatusPageAPI extends BaseAPI<
             await StatusPageSubscriberService.updateOneById({
                 id: statusPageSubscriber.id!,
                 data: {
-                    statusPageResources: statusPageSubscriber.statusPageResources!,
+                    statusPageResources:
+                        statusPageSubscriber.statusPageResources!,
                     isSubscribedToAllResources:
                         statusPageSubscriber.isSubscribedToAllResources!,
                     isUnsubscribed: statusPageSubscriber.isUnsubscribed,
