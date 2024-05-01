@@ -72,8 +72,8 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `autoScaling.targetCPUUtilizationPercentage` | Target CPU utilization percentage | `80` | |
 | `autoScaling.targetMemoryUtilizationPercentage` | Target memory utilization percentage | `80` | |
 | `nodeEnvironment` | Node environment (please dont change this unless you're doing local development) | `production` | |
-| `ingress.service.type` | Ingress service type | `LoadBalancer` | |
-| `ingress.service.loadBalancerIP` | Ingress service load balancer IP | `nil` | |
+| `nginx.service.type` | nginx service type | `LoadBalancer` | |
+| `nginx.service.loadBalancerIP` | nginx service load balancer IP | `nil` | |
 | `deployment.replicaCount` | Number of replicas | `1` | |
 | `probe.<key>.name` | Probe name | `<key>` | |
 | `probe.<key>.description` | Probe description | `nil` | |
@@ -92,6 +92,12 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `nodeSelector` | Node Selector. Please refer to Kubernetes documentation on how to use them. | `{}` |  |
 | `tolerations` | Tolerations. Please refer to Kubernetes documentation on how to use them. | `[]` |  |
 | `affinity` | Affinity. Please refer to Kubernetes documentation on how to use them. | `{}` |  |
+| `extraTemplates` | Extra templates to be added to the deployment | `[]` |  |
+| `ingress.enabled` | Enable ingress | `true` |  |
+| `ingress.annotations` | Ingress annotations | `{}` |  |
+| `ingress.hosts` | Ingress hosts | `[]` |  |
+| `ingress.tls` | Ingress TLS. Please refer to values.yaml to set these | `[]` |  |
+| `ingress.className` | Ingress class name. Change this to your cloud providers ingress class | `nginx` |  |
 
 
 ## Adding a Custom Domain to your Status Page

@@ -12,7 +12,15 @@ metadata:
     appname: oneuptime
   annotations: {{- $.Values.ingress.annotations | toYaml | nindent 4 }}
 spec:
-  ingressClassName: {{ $.Values.ingress.ingressClassName }}
+  ingressClassName: {{ $.Values.ingress.className }}
+  {{- if $.Values.ingress.tls.enabled }}
+  tls:
+    {{- range $key, $val := $.Values.ingress.tls.hosts }}
+    - hosts:
+        - {{ $val.host }}
+      secretName: {{ $val.secretName }}
+    {{- end }}
+  {{- end }}
   rules:
     {{- range $key, $val := $.Values.ingress.hosts }}
     - host: {{ $val }}

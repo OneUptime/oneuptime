@@ -217,10 +217,15 @@ ingress:
   annotations: 
   # Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
   # If you dont have nginx ingress controller installed, please install it by going to https://kubernetes.github.io/ingress-nginx/deploy/
-  ingressClassName: nginx # Required. Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
+  className: nginx # Required. Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
   hosts:  # List of hosts for the ingress. Please change this to your hosts
     # - "oneuptime.com" # Host 1
     # - "www.oneuptime.com" # Host 2
+  tls:
+    enabled: false
+    hosts: 
+      # - host: "oneuptime.com" # Host 1
+      #   secretName: "oneuptime-tls
 
 
 # extraTemplates -- Array of extra objects to deploy with the release. Strings
