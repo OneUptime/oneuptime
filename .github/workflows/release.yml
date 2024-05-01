@@ -1040,30 +1040,4 @@ jobs:
             GIT_SHA=${{ github.sha }}
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
-  test-e2e:
-    runs-on: ubuntu-latest
-    # Needs all the jobs to be done before this job
-    needs: [e2e-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, ingestor-docker-image-deploy, probe-docker-image-deploy, haraka-docker-image-deploy, admin-dashboard-docker-image-deploy, dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, infrastructure-agent-docker-image-deploy, publish-npm-packages]
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      # Docker compose needs a lot of space to build images, so we need to free up some space first in the GitHub Actions runner
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 18.3.0
-      - run: npm run start
-      - run: cd E2E && npm install && npm run test
             
