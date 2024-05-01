@@ -12,6 +12,8 @@ import QueryHelper from '../../Types/Database/QueryHelper';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { Challenge } from 'acme-client/types/rfc8555';
 import ServerException from 'Common/Types/Exception/ServerException';
+import Text from  'Common/Types/Text';
+import Exception from 'Common/Types/Exception/Exception';
 
 export default class GreenlockUtil {
     public static async renewAllCertsWhichAreExpiringSoon(data: {
@@ -101,10 +103,18 @@ export default class GreenlockUtil {
 
             const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
 
-            const acmeAccountKey: string = Buffer.from(
+            if(!acmeAccountKeyInBase64) {
+                throw new ServerException(
+                    'No lets encrypt account key found in environment variables. Please add one.'
+                );
+            }
+
+            let acmeAccountKey: string = Buffer.from(
                 acmeAccountKeyInBase64,
                 'base64'
             ).toString();
+
+            acmeAccountKey = Text.replaceAll(acmeAccountKey, '\\n', '\n');
 
             //validate cname
 
@@ -235,6 +245,11 @@ export default class GreenlockUtil {
                 `Error ordering certificate for domain: ${data.domain}`
             );
             logger.error(e);
+
+            if(e instanceof Exception){
+                throw e;
+            }
+
             throw new ServerException(
                 `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`
             );
