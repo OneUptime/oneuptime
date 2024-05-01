@@ -1,13 +1,3 @@
-{{- define "oneupitme.env.leysencrypt "-}}
-- name: LETS_ENCRYPT_ACCOUNT_KEY
-  # Genertae a new key if not provided
-  value: {{- if $.Values.letsEncryptAccountKey }}
-    {{ $.Values.letsEncryptAccountKey }}
-    {{- else }}
-    {{- include "oneuptime.genKey" . | nindent 6 }}
-    {{- end }}
-{{- end }}
-
 {{/*
 Renders a value that contains a template.
 Usage:
