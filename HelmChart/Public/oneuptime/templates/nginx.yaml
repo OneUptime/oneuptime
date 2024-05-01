@@ -85,7 +85,7 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers.ingress }}
+              value: {{ $.Values.openTelemetryExporter.headers.nginx }}
             - name: PORT
               value: "7851" # Port for the nodejs server for live and ready status
           ports:
@@ -114,12 +114,12 @@ metadata:
     metallb.universe.tf/address-pool: {{ printf "%s-%s" $.Release.Name "metallb-address-pool"  }}
   {{- end }}
 spec:
-  {{- if $.Values.ingress.service.loadBalancerIP }}
-  loadBalancerIP: {{ $.Values.ingress.service.loadBalancerIP }}
+  {{- if $.Values.nginx.service.loadBalancerIP }}
+  loadBalancerIP: {{ $.Values.nginx.service.loadBalancerIP }}
   {{- end }}
-  {{- if $.Values.ingress.service.externalIPs }}
+  {{- if $.Values.nginx.service.externalIPs }}
   externalIPs:
-    {{- range $key, $val := $.Values.ingress.service.externalIPs }}
+    {{- range $key, $val := $.Values.nginx.service.externalIPs }}
     - {{ $val }}
     {{- end }}
   {{- end }}
@@ -132,8 +132,8 @@ spec:
       name: https
   selector:
       app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
-  {{- if $.Values.ingress.service.type }}
-  type: {{ $.Values.ingress.service.type }}
+  {{- if $.Values.nginx.service.type }}
+  type: {{ $.Values.nginx.service.type }}
   {{- else }}
   type: ClusterIP
   {{- end}}

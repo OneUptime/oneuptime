@@ -25,7 +25,7 @@ metalLb:
     addresses: 
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
-ingress:
+nginx:
   service: 
     loadBalancerIP: 
     type: LoadBalancer
@@ -183,7 +183,7 @@ openTelemetryExporter:
     statusPage:
     adminDashboard:
     ingestor:
-    ingress:
+    nginx:
 
 containerSecurityContext:
 podSecurityContext:
@@ -211,3 +211,14 @@ cronJobs:
 
 notifications: 
   letsEncryptEmail:
+
+ingress: 
+  enabled: false
+  annotations: 
+  ingressClassName: # required
+  hosts:  # List of hosts for the ingress. Please change this to your hosts
+  # - "oneuptime.com" # Host 1
+  # - "www.oneuptime.com" # Host 2
+
+
+extraTemplates:

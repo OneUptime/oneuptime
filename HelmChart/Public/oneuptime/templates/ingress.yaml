@@ -1,0 +1,29 @@
+{{- if $.Values.ingress.enabled }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "ingress"  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "ingress"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+  annotations: {{- $.Values.ingress.annotations | toYaml | nindent 4 }}
+spec:
+  ingressClassName: {{ $.Values.ingress.ingressClassName }}
+  rules:
+    {{- range $key, $val := $.Values.ingress.hosts }}
+    - host: {{ $val }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
+                port:
+                  name: "http"
+    {{- end }}
+{{- end }}
