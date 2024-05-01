@@ -55,7 +55,7 @@ export default class MoveGreenlockCertsToAcmeCerts extends DataMigrationBase {
                         isRoot: true,
                     },
                     select: {
-                        id: true,
+                        _id: true,
                     },
                 });
 
