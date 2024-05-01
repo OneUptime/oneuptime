@@ -1,4 +1,4 @@
-{{- if $.Values.ingress.enabled }}
+{{- if $.Values.oneuptimeIngress.enabled }}
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -10,19 +10,19 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
-  annotations: {{- $.Values.ingress.annotations | toYaml | nindent 4 }}
+  annotations: {{- $.Values.oneuptimeIngress.annotations | toYaml | nindent 4 }}
 spec:
-  ingressClassName: {{ $.Values.ingress.className }}
-  {{- if $.Values.ingress.tls.enabled }}
+  ingressClassName: {{ $.Values.oneuptimeIngress.className }}
+  {{- if $.Values.oneuptimeIngress.tls.enabled }}
   tls:
-    {{- range $key, $val := $.Values.ingress.tls.hosts }}
+    {{- range $key, $val := $.Values.oneuptimeIngress.tls.hosts }}
     - hosts:
         - {{ $val.host }}
       secretName: {{ $val.secretName }}
     {{- end }}
   {{- end }}
   rules:
-    {{- range $key, $val := $.Values.ingress.hosts }}
+    {{- range $key, $val := $.Values.oneuptimeIngress.hosts }}
     - host: {{ $val }}
       http:
         paths:

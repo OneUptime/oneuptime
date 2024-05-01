@@ -215,7 +215,7 @@ letsEncrypt:
   # Email address to register with letsencrypt for notifications
   email: 
 
-ingress: 
+oneuptimeIngress: 
   enabled: false
   annotations: 
   # Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.

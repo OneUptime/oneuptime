@@ -132,7 +132,7 @@ spec:
       name: https
   selector:
       app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
-  {{- if and ($.Values.nginx.service.type) (eq $.Values.ingress.enabled false) }}
+  {{- if and ($.Values.nginx.service.type) (eq $.Values.oneuptimeIngress.enabled false) }}
   type: {{ $.Values.nginx.service.type }}
   {{- else }}
   type: ClusterIP

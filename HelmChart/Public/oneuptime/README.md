@@ -93,11 +93,11 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `tolerations` | Tolerations. Please refer to Kubernetes documentation on how to use them. | `[]` |  |
 | `affinity` | Affinity. Please refer to Kubernetes documentation on how to use them. | `{}` |  |
 | `extraTemplates` | Extra templates to be added to the deployment | `[]` |  |
-| `ingress.enabled` | Enable ingress | `true` |  |
-| `ingress.annotations` | Ingress annotations | `{}` |  |
-| `ingress.hosts` | Ingress hosts | `[]` |  |
-| `ingress.tls` | Ingress TLS. Please refer to values.yaml to set these | `[]` |  |
-| `ingress.className` | Ingress class name. Change this to your cloud providers ingress class | `nginx` |  |
+| `oneuptimeIngress.enabled` | Enable ingress | `true` |  |
+| `oneuptimeIngress.annotations` | Ingress annotations | `{}` |  |
+| `oneuptimeIngress.hosts` | Ingress hosts | `[]` |  |
+| `oneuptimeIngress.tls` | Ingress TLS. Please refer to values.yaml to set these | `[]` |  |
+| `oneuptimeIngress.className` | Ingress class name. Change this to your cloud providers ingress class | `nginx` |  |
 
 ## If you would like to use a custom domain for your status page, please add these env vars 
 
