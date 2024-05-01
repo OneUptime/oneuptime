@@ -50,7 +50,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddAttributeColumnToSpanAndLog(),
     new AddSecretKeyToIncomingRequestMonitor(),
     new AddTelemetryServiceColor(),
-    new MoveGreenlockCertsToAcmeCerts()
+    new MoveGreenlockCertsToAcmeCerts(),
 ];
 
 export default DataMigrations;
