@@ -38,3 +38,14 @@ RunCron(
         await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
     }
 );
+
+RunCron(
+    'StatusPageCerts:VerifyCnameWhoseCnameisNotVerified',
+    {
+        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        runOnStartup: true,
+    },
+    async () => {
+        await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
+    }
+);

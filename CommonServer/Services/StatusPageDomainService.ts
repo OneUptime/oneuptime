@@ -375,6 +375,31 @@ export class Service extends DatabaseService<StatusPageDomain> {
         }
     }
 
+    public async verifyCnameWhoseCnameisNotVerified(): Promise<void> {
+        const domains: Array<StatusPageDomain> = await this.findBy({
+            query: {
+                isCnameVerified: false,
+            },
+            select: {
+                _id: true,
+                fullDomain: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        for (const domain of domains) {
+            try {
+                await this.isCnameValid(domain.fullDomain as string); // this will also upate the status.
+            } catch (e) {
+                logger.error(e);
+            }
+        }
+    }
+
     public async renewCertsWhichAreExpiringSoon(): Promise<void> {
         await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
             validateCname: async (fullDomain: string) => {
