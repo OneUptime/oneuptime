@@ -209,8 +209,9 @@ cronJobs:
     failedWebhookUrl: 
   
 
-notifications: 
-  letsEncryptEmail:
+letsEncrypt: 
+  accountKey: 
+  email: 
 
 ingress: 
   enabled: false

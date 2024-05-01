@@ -30,6 +30,11 @@ export const LetsEncryptNotificationEmail: Email = Email.fromString(
         'notifications@example.com'
 );
 
+export const LetsEncryptAccountKey: string = 
+    process.env['LETS_ENCRYPT_ACCOUNT_KEY'] ||
+        ''
+
+
 export const DatabasePort: Port = new Port(
     process.env['DATABASE_PORT'] || '5432'
 );

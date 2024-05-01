@@ -99,6 +99,14 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `ingress.tls` | Ingress TLS. Please refer to values.yaml to set these | `[]` |  |
 | `ingress.className` | Ingress class name. Change this to your cloud providers ingress class | `nginx` |  |
 
+## If you would like to use a custom domain for your status page, please add these env vars 
+
+
+| Parameter | Description | Default | Change Required |
+| --------- | ----------- | ------- | --------------- |
+| `letsEncrypt.accountKey` | Generate a private key via openssl, encode it to base64 | `` | 🚨 |
+| `letsEncrypt.email` | Email address to register with letsencrypt for notifications | `` | 🚨 |
+
 
 ## Adding a Custom Domain to your Status Page
 

@@ -1,3 +1,13 @@
+{{- define "oneupitme.env.leysencrypt "-}}
+- name: LETS_ENCRYPT_ACCOUNT_KEY
+  # Genertae a new key if not provided
+  value: {{- if $.Values.letsEncryptAccountKey }}
+    {{ $.Values.letsEncryptAccountKey }}
+    {{- else }}
+    {{- include "oneuptime.genKey" . | nindent 6 }}
+    {{- end }}
+{{- end }}
+
 {{/*
 Renders a value that contains a template.
 Usage:
@@ -110,7 +120,10 @@ Usage:
   value: {{ $.Values.openTelemetryExporter.endpoint.server }}
 
 - name: LETS_ENCRYPT_NOTIFICATION_EMAIL
-  value: {{ $.Values.notifications.letsEncryptEmail }}
+  value: {{ $.Values.letsEncrypt.email }}
+
+- name: LETS_ENCRYPT_ACCOUNT_KEY
+  value: {{ $.Values.letsEncrypt.accountKey }}
 
 - name: ENCRYPTION_SECRET
   {{- if $.Values.encryptionSecret }}

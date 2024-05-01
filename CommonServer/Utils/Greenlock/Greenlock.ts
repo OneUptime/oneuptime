@@ -1,5 +1,5 @@
 import acme from 'acme-client';
-import { LetsEncryptNotificationEmail } from '../../EnvironmentConfig';
+import { LetsEncryptAccountKey, LetsEncryptNotificationEmail } from '../../EnvironmentConfig';
 import AcmeChallenge from 'Model/Models/AcmeChallenge';
 import AcmeChallengeService from '../../Services/AcmeChallengeService';
 import AcmeCertificate from 'Model/Models/AcmeCertificate';
@@ -99,6 +99,13 @@ export default class GreenlockUtil {
 
             domain = domain.trim().toLowerCase();
 
+            const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
+
+            const acmeAccountKey: string = Buffer.from(
+                acmeAccountKeyInBase64,
+                'base64'
+            ).toString();
+
             //validate cname
 
             const isValidCname: boolean = await data.validateCname(domain);
@@ -113,7 +120,7 @@ export default class GreenlockUtil {
 
             const client: acme.Client = new acme.Client({
                 directoryUrl: acme.directory.letsencrypt.production,
-                accountKey: await acme.crypto.createPrivateKey(),
+                accountKey: acmeAccountKey,
             });
 
             const [certificateKey, certificateRequest] =
@@ -170,8 +177,7 @@ export default class GreenlockUtil {
             });
 
             // get expires at date from certificate
-            const cert: acme.CertificateInfo =
-                await acme.forge.readCertificateInfo(certificate);
+            const cert: acme.CertificateInfo = acme.crypto.readCertificateInfo(certificate);
             const issuedAt: Date = cert.notBefore;
             const expiresAt: Date = cert.notAfter;
 
