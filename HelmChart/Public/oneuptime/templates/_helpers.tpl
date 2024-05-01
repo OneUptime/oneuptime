@@ -1,3 +1,16 @@
+{{/*
+Renders a value that contains a template.
+Usage:
+{{ include "oneuptime.renderTemplate" ( dict "value" .Values.path.to.the.Value "context" $) }}
+*/}}
+{{- define "oneuptime.renderTemplate" -}}
+    {{- if typeIs "string" .value }}
+        {{- tpl .value .context }}
+    {{- else }}
+        {{- tpl (.value | toYaml) .context }}
+    {{- end }}
+{{- end -}}
+
 {{- define "oneuptime.env.common" }}
 - name: HOST
   value: {{ $.Values.host }}

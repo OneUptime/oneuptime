@@ -221,4 +221,14 @@ ingress:
     # - "www.oneuptime.com" # Host 2
 
 
+# extraTemplates -- Array of extra objects to deploy with the release. Strings
+# are evaluated as a template and can use template expansions and functions. All
+# other objects are used as yaml.
 extraTemplates:
+  #- |
+  #    apiVersion: v1
+  #    kind: ConfigMap
+  #    metadata:
+  #      name: my-configmap
+  #    data:
+  #      key: {{ .Values.myCustomValue | quote }}

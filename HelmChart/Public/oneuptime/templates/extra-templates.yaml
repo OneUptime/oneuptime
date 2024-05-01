@@ -1,4 +1,5 @@
-{{- range $key, $val := $.Values.extraTemplates }}
-{{- $val | toYaml }}
+{{- range $.Values.extraTemplates }}
+---
+{{ include "oneuptime.renderTemplate" (dict "value" . "context" $) }}
 ---
 {{- end }}
