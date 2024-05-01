@@ -5,6 +5,6 @@ import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCo
 
 export default interface UpdateBy<TBaseModel extends BaseModel> {
     id: ObjectID;
-    data: QueryDeepPartialEntity<TBaseModel> | TBaseModel;
+    data: QueryDeepPartialEntity<TBaseModel>;
     props: DatabaseCommonInteractionProps;
 }
