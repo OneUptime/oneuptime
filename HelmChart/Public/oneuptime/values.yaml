@@ -215,10 +215,10 @@ notifications:
 ingress: 
   enabled: false
   annotations: 
-  ingressClassName: # required
+  ingressClassName: nginx # Required. Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
   hosts:  # List of hosts for the ingress. Please change this to your hosts
-  # - "oneuptime.com" # Host 1
-  # - "www.oneuptime.com" # Host 2
+    # - "oneuptime.com" # Host 1
+    # - "www.oneuptime.com" # Host 2
 
 
 extraTemplates:

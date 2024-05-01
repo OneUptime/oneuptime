@@ -1,0 +1,4 @@
+{{- range $key, $val := $.Values.extraTemplates }}
+{{- $val | toYaml }}
+---
+{{- end }}
