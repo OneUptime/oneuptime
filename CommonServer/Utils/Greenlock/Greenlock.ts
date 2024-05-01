@@ -1,5 +1,8 @@
 import acme from 'acme-client';
-import { LetsEncryptAccountKey, LetsEncryptNotificationEmail } from '../../EnvironmentConfig';
+import {
+    LetsEncryptAccountKey,
+    LetsEncryptNotificationEmail,
+} from '../../EnvironmentConfig';
 import AcmeChallenge from 'Model/Models/AcmeChallenge';
 import AcmeChallengeService from '../../Services/AcmeChallengeService';
 import AcmeCertificate from 'Model/Models/AcmeCertificate';
@@ -12,7 +15,7 @@ import QueryHelper from '../../Types/Database/QueryHelper';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { Challenge } from 'acme-client/types/rfc8555';
 import ServerException from 'Common/Types/Exception/ServerException';
-import Text from  'Common/Types/Text';
+import Text from 'Common/Types/Text';
 import Exception from 'Common/Types/Exception/Exception';
 
 export default class GreenlockUtil {
@@ -103,7 +106,7 @@ export default class GreenlockUtil {
 
             const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
 
-            if(!acmeAccountKeyInBase64) {
+            if (!acmeAccountKeyInBase64) {
                 throw new ServerException(
                     'No lets encrypt account key found in environment variables. Please add one.'
                 );
@@ -187,7 +190,8 @@ export default class GreenlockUtil {
             });
 
             // get expires at date from certificate
-            const cert: acme.CertificateInfo = acme.crypto.readCertificateInfo(certificate);
+            const cert: acme.CertificateInfo =
+                acme.crypto.readCertificateInfo(certificate);
             const issuedAt: Date = cert.notBefore;
             const expiresAt: Date = cert.notAfter;
 
@@ -246,7 +250,7 @@ export default class GreenlockUtil {
             );
             logger.error(e);
 
-            if(e instanceof Exception){
+            if (e instanceof Exception) {
                 throw e;
             }
 

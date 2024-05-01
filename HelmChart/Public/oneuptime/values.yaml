@@ -210,7 +210,9 @@ cronJobs:
   
 
 letsEncrypt: 
+  # Generate a private key via openssl, encode it to base64
   accountKey: 
+  # Email address to register with letsencrypt for notifications
   email: 
 
 ingress: 
