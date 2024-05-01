@@ -106,6 +106,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
             if (!fetchedStatusPageDomain) {
                 throw new BadDataException('Domain not found');
             }
+
+            statusPageDomain = fetchedStatusPageDomain;
+        }
+
+        if (!statusPageDomain.fullDomain) {
+            throw new BadDataException(
+                'Unable to order certificate because domain is null'
+            );
         }
 
         await GreenlockUtil.orderCert({
