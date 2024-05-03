@@ -53,14 +53,14 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
     public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -334,18 +334,18 @@ export default class AnalyticsDatabaseService<
         if (countBy.limit) {
             statement.append(SQL`
             LIMIT ${{
-                value: Number(countBy.limit),
-                type: TableColumnType.Number,
-            }}
+                    value: Number(countBy.limit),
+                    type: TableColumnType.Number,
+                }}
             `);
         }
 
         if (countBy.skip) {
             statement.append(SQL`
             OFFSET ${{
-                value: Number(countBy.skip),
-                type: TableColumnType.Number,
-            }}
+                    value: Number(countBy.skip),
+                    type: TableColumnType.Number,
+                }}
             `);
         }
         logger.info(`${this.model.tableName} Count Statement`);
@@ -551,8 +551,8 @@ export default class AnalyticsDatabaseService<
             statement instanceof Statement
                 ? statement
                 : {
-                      query: statement, // TODO remove and only accept Statements
-                  }
+                    query: statement, // TODO remove and only accept Statements
+                }
         );
     }
 
@@ -654,16 +654,16 @@ export default class AnalyticsDatabaseService<
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                      createBy: {
-                          data: data,
-                          props: createBy.props,
-                      },
-                      carryForward: [],
-                  }
+                    createBy: {
+                        data: data,
+                        props: createBy.props,
+                    },
+                    carryForward: [],
+                }
                 : await this._onBeforeCreate({
-                      data: data,
-                      props: createBy.props,
-                  });
+                    data: data,
+                    props: createBy.props,
+                });
 
             data = onCreate.createBy.data;
 
@@ -765,8 +765,7 @@ export default class AnalyticsDatabaseService<
                     await Promise.allSettled(promises);
                 } else {
                     logger.warn(
-                        `Realtime is not initialized. Skipping emitModelEvent for ${
-                            this.getModel().tableName
+                        `Realtime is not initialized. Skipping emitModelEvent for ${this.getModel().tableName
                         }`
                     );
                 }
@@ -863,8 +862,14 @@ export default class AnalyticsDatabaseService<
                 if (
                     !(data as any)[requiredField] &&
                     (data as any)[requiredField] !== false &&
-                    !data.isDefaultValueColumn(requiredField)
+                    data.isDefaultValueColumn(requiredField)
                 ) {
+                    data.setColumnValue(
+                        requiredField,
+                        data.getDefaultValueForColumn(requiredField)
+                    );
+
+                } else {
                     throw new BadDataException(`${requiredField} is required`);
                 }
             } else if (
