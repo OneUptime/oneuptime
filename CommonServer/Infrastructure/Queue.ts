@@ -1,6 +1,7 @@
 import { Queue as BullQueue, JobsOptions, Job } from 'bullmq';
 import { JSONObject } from 'Common/Types/JSON';
 import { RedisHostname, RedisPassword, RedisPort } from '../EnvironmentConfig';
+import Dictionary from 'Common/Types/Dictionary';
 
 export enum QueueName {
     Workflow = 'Workflow',
@@ -10,14 +11,26 @@ export enum QueueName {
 export type QueueJob = Job;
 
 export default class Queue {
+    private static queueDict: Dictionary<BullQueue> = {};
+
     public static getQueue(queueName: QueueName): BullQueue {
-        return new BullQueue(queueName, {
+        // check if the queue is already created
+        if (this.queueDict[queueName]) {
+            return this.queueDict[queueName] as BullQueue;
+        }
+
+        const queue = new BullQueue(queueName, {
             connection: {
                 host: RedisHostname.toString(),
                 port: RedisPort.toNumber(),
                 password: RedisPassword,
             },
         });
+
+        // save it to the dictionary
+        this.queueDict[queueName] = queue;
+
+        return queue;
     }
 
     public static async removeJob(
