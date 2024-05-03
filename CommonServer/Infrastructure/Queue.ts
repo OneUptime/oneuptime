@@ -19,7 +19,7 @@ export default class Queue {
             return this.queueDict[queueName] as BullQueue;
         }
 
-        const queue = new BullQueue(queueName, {
+        const queue: BullQueue = new BullQueue(queueName, {
             connection: {
                 host: RedisHostname.toString(),
                 port: RedisPort.toNumber(),
