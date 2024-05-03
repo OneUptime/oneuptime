@@ -198,7 +198,8 @@ export default class Log extends AnalyticsBaseModel {
                     key: 'attributes',
                     title: 'Attributes',
                     description: 'Attributes',
-                    required: false,
+                    required: true,
+                    defaultValue: {},
                     type: TableColumnType.JSON,
                     accessControl: {
                         read: [

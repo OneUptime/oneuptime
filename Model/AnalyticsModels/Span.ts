@@ -171,7 +171,7 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'startTimeUnixNano',
                     title: 'Start Time in Unix Nano',
                     description: 'When did the span start?',
-                    required: false,
+                    required: true,
                     type: TableColumnType.LongNumber,
                     accessControl: {
                         read: [
@@ -194,7 +194,7 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'durationUnixNano',
                     title: 'Duration in Unix Nano',
                     description: 'How long did the span last?',
-                    required: false,
+                    required: true,
                     type: TableColumnType.LongNumber,
                     accessControl: {
                         read: [
@@ -217,7 +217,7 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'endTimeUnixNano',
                     title: 'End Time',
                     description: 'When did the span end?',
-                    required: false,
+                    required: true,
                     type: TableColumnType.LongNumber,
                     accessControl: {
                         read: [
@@ -332,7 +332,8 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'attributes',
                     title: 'Attributes',
                     description: 'Attributes',
-                    required: false,
+                    required: true,
+                    defaultValue: {},
                     type: TableColumnType.JSON,
                     accessControl: {
                         read: [
@@ -355,7 +356,8 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'events',
                     title: 'Events',
                     description: 'Span Events',
-                    required: false,
+                    required: true,
+                    defaultValue: [],
                     type: TableColumnType.JSONArray,
                     accessControl: {
                         read: [
@@ -378,7 +380,8 @@ export default class Span extends AnalyticsBaseModel {
                     key: 'links',
                     title: 'Links',
                     description: 'Span Links',
-                    required: false,
+                    required: true,
+                    defaultValue: {},
                     type: TableColumnType.JSON,
                     accessControl: {
                         read: [

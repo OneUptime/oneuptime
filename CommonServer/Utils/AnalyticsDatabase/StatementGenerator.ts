@@ -577,7 +577,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 .append(indent)
                 .append(keyStatement)
                 .append(SQL` `)
-                .append(this.toColumnType(column.type));
+                .append(this.toColumnType(column.type))
+                .append(column.required ? SQL` NOT NULL` : SQL` NULL`);
             if (nestedModelColumns) {
                 columns.append(SQL` `).append(nestedModelColumns);
             }

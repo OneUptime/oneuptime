@@ -69,7 +69,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'name',
                     title: 'Name',
                     description: 'Name of the Metric',
-                    required: false,
+                    required: true,
                     type: TableColumnType.Text,
                     accessControl: {
                         read: [
@@ -163,7 +163,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'timeUnixNano',
                     title: 'Time (in Unix Nano)',
                     description: 'When did the Metric happen?',
-                    required: false,
+                    required: true,
                     type: TableColumnType.LongNumber,
                     accessControl: {
                         read: [
@@ -209,8 +209,9 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'attributes',
                     title: 'Attributes',
                     description: 'Attributes',
-                    required: false,
+                    required: true,
                     type: TableColumnType.JSON,
+                    defaultValue: {},
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -347,7 +348,8 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'bucketCounts',
                     title: 'Bucket Counts',
                     description: 'Bucket Counts',
-                    required: false,
+                    required: true,
+                    defaultValue: [],
                     type: TableColumnType.ArrayNumber,
                     accessControl: {
                         read: [
@@ -370,7 +372,8 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'explicitBounds',
                     title: 'Explicit Bonds',
                     description: 'Explicit Bonds',
-                    required: false,
+                    required: true,
+                    defaultValue: [],
                     type: TableColumnType.ArrayNumber,
                     accessControl: {
                         read: [

@@ -10,13 +10,10 @@ export default class GenerateNewCertsForStatusPage extends DataMigrationBase {
     }
 
     public override async migrate(): Promise<void> {
-
         // get all domains in greenlock certs.
         const statusPageDomains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
-                query: {
-
-                },
+                query: {},
                 props: {
                     isRoot: true,
                 },
@@ -26,7 +23,6 @@ export default class GenerateNewCertsForStatusPage extends DataMigrationBase {
                     _id: true,
                 },
             });
-
 
         // now order these domains
 

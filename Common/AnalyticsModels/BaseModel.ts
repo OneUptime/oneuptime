@@ -18,6 +18,7 @@ import Dictionary from '../Types/Dictionary';
 import ModelPermission from '../Types/BaseDatabase/ModelPermission';
 import Permission, { UserTenantAccessPermission } from '../Types/Permission';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
+import { JSONValue } from '../Types/JSON';
 
 export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
 
@@ -257,6 +258,17 @@ export default class AnalyticsBaseModel extends CommonModel {
         }
 
         return column.isDefaultValueColumn;
+    }
+
+    public getDefaultValueForColumn(columnName: string): JSONValue {
+        const column: AnalyticsTableColumn | null =
+            this.getTableColumn(columnName);
+
+        if (!column) {
+            throw new BadDataException('Column ' + columnName + ' not found');
+        }
+
+        return column.defaultValue;
     }
 
     public getColumnBillingAccessControl(
