@@ -270,7 +270,6 @@ export default class AnalyticsBaseModel extends CommonModel {
 
         return column.defaultValue;
     }
-    
 
     public getColumnBillingAccessControl(
         columnName: string
