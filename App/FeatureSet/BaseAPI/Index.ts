@@ -433,6 +433,11 @@ import SpanService, {
     SpanService as SpanServiceType,
 } from 'CommonServer/Services/SpanService';
 
+import Metric from 'Model/AnalyticsModels/Metric';
+import MetricService, {
+    MetricService as MetricServiceType,
+} from 'CommonServer/Services/MetricService';
+
 import TelemetryUsageBilling from 'Model/Models/TelemetryUsageBilling';
 import TelemetryUsageBillingService, {
     Service as TelemetryUsageBillingServiceType,
@@ -463,6 +468,14 @@ const BaseAPIFeatureSet: FeatureSet = {
             new BaseAnalyticsAPI<Log, LogServiceType>(
                 Log,
                 LogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAnalyticsAPI<Metric, MetricServiceType>(
+                Metric,
+                MetricService
             ).getRouter()
         );
 

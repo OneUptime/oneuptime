@@ -12,12 +12,8 @@ import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
 import OneUptimeDate from 'Common/Types/Date';
 import SpanService from 'CommonServer/Services/SpanService';
-import MetricSumService from 'CommonServer/Services/MetricSumService';
-import MetricHistogramService from 'CommonServer/Services/MetricHistogramService';
-import MetricGaugeService from 'CommonServer/Services/MetricGaugeService';
-import MetricSum from 'Model/AnalyticsModels/MetricSum';
-import MetricGauge from 'Model/AnalyticsModels/MetricGauge';
-import MetricHistogram from 'Model/AnalyticsModels/MetricHistogram';
+import MetricService from 'CommonServer/Services/MetricService';
+import Metric from 'Model/AnalyticsModels/Metric';
 import LogService from 'CommonServer/Services/LogService';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import OTelIngestService from '../Service/OTelIngest';
@@ -303,9 +299,7 @@ router.post(
                 'resourceMetrics'
             ] as JSONArray;
 
-            const dbMetricsSum: Array<MetricSum> = [];
-            const dbMetricsHistogram: Array<MetricHistogram> = [];
-            const dbMetricsGauge: Array<MetricGauge> = [];
+            const dbMetrics: Array<Metric> = new Array<Metric>();
 
             for (const resourceMetric of resourceMetrics) {
                 const scopeMetrics: JSONArray = resourceMetric[
@@ -335,7 +329,7 @@ router.post(
                             for (const datapoint of (
                                 metric['sum'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricSum: MetricSum = new MetricSum();
+                                const dbMetricSum: Metric = new Metric();
 
                                 dbMetricSum.projectId = (
                                     req as TelemetryRequest
@@ -366,12 +360,12 @@ router.post(
                                     'asInt'
                                 ] as number;
 
-                                // dbMetricSum.attributes =
-                                //     OTelIngestService.getAttributes(
-                                //         metric['attributes'] as JSONArray
-                                //     );
+                                dbMetricSum.attributes =
+                                    OTelIngestService.getAttributes(
+                                        metric['attributes'] as JSONArray
+                                    );
 
-                                dbMetricsSum.push(dbMetricSum);
+                                dbMetrics.push(dbMetricSum);
                             }
                         } else if (
                             metric['gauge'] &&
@@ -385,8 +379,7 @@ router.post(
                             for (const datapoint of (
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricGauge: MetricGauge =
-                                    new MetricGauge();
+                                const dbMetricGauge: Metric = new Metric();
 
                                 dbMetricGauge.projectId = (
                                     req as TelemetryRequest
@@ -417,12 +410,12 @@ router.post(
                                     'asInt'
                                 ] as number;
 
-                                // dbMetricGauge.attributes =
-                                //     OTelIngestService.getKeyValues(
-                                //         metric['attributes'] as JSONArray
-                                //     );
+                                dbMetricGauge.attributes =
+                                    OTelIngestService.getAttributes(
+                                        metric['attributes'] as JSONArray
+                                    );
 
-                                dbMetricsGauge.push(dbMetricGauge);
+                                dbMetrics.push(dbMetricGauge);
                             }
                         } else if (
                             metric['histogram'] &&
@@ -436,8 +429,7 @@ router.post(
                             for (const datapoint of (
                                 metric['histogram'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricHistogram: MetricHistogram =
-                                    new MetricHistogram();
+                                const dbMetricHistogram: Metric = new Metric();
 
                                 dbMetricHistogram.projectId = (
                                     req as TelemetryRequest
@@ -492,7 +484,7 @@ router.post(
                                 //         metric['attributes'] as JSONArray
                                 //     );
 
-                                dbMetricsHistogram.push(dbMetricHistogram);
+                                dbMetrics.push(dbMetricHistogram);
                             }
                         } else {
                             logger.warn('Unknown metric type');
@@ -502,22 +494,8 @@ router.post(
                 }
             }
 
-            await MetricSumService.createMany({
-                items: dbMetricsSum,
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            await MetricHistogramService.createMany({
-                items: dbMetricsHistogram,
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            await MetricGaugeService.createMany({
-                items: dbMetricsGauge,
+            await MetricService.createMany({
+                items: dbMetrics,
                 props: {
                     isRoot: true,
                 },

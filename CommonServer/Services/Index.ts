@@ -120,9 +120,7 @@ import ResellerPlanService from './ResellerPlanService';
 import PromoCodeService from './PromoCodeService';
 import LogService from './LogService';
 import SpanService from './SpanService';
-import MetricSumService from './MetricSumService';
-import MetricHistogramService from './MetricHistogramService';
-import MetricGaugeService from './MetricGaugeService';
+import MetricService from './MetricService';
 
 import MonitorGroupService from './MonitorGroupService';
 import MonitorGroupResourceService from './MonitorGroupResourceService';
@@ -271,13 +269,6 @@ const services: Array<BaseService> = [
 
 export const AnalyticsServices: Array<
     AnalyticsDatabaseService<AnalyticsBaseModel>
-> = [
-    LogService,
-    SpanService,
-    MetricSumService,
-    MetricHistogramService,
-    MetricGaugeService,
-    MonitorMetricsByMinuteService,
-];
+> = [LogService, SpanService, MetricService, MonitorMetricsByMinuteService];
 
 export default services;
