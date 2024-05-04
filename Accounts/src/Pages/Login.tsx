@@ -138,13 +138,11 @@ const LoginPage: () => JSX.Element = () => {
 
                                     {showSsoTip && (
                                         <div className="text-gray-500 text-sm">
-                                            Please log in from your SSO provider
-                                            (like Okta / Entra ID, etc). We
-                                            support login from the identity
-                                            provider you have configured for
-                                            your project. If you have not
-                                            configured any SSO provider, please
-                                            use the form above to log in.
+                                            Please sign in with your username
+                                            and password. Once you have signed
+                                            in, you&apos;ll be able to sign in
+                                            via SSO that&apos;s configured for
+                                            your project.
                                         </div>
                                     )}
                                 </div>
