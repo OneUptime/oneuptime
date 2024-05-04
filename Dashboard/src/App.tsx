@@ -18,8 +18,8 @@ import useAsyncEffect from 'use-async-effect';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
+
 import {
-    ACCOUNTS_URL,
     BILLING_ENABLED,
     APP_API_URL,
 } from 'CommonUI/src/Config';
@@ -34,7 +34,6 @@ import UserProfileOverview from './Pages/Global/UserProfile/Index';
 import UserProfilePicture from './Pages/Global/UserProfile/Picture';
 import UserProfilePassword from './Pages/Global/UserProfile/Password';
 
-import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
@@ -68,19 +67,6 @@ const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());
-
-    if (!User.isLoggedIn()) {
-        if (Navigation.getQueryStringByName('sso_token')) {
-            Navigation.navigate(
-                URL.fromString(ACCOUNTS_URL.toString()).addQueryParam(
-                    'sso',
-                    'true'
-                )
-            );
-        } else {
-            Navigation.navigate(URL.fromString(ACCOUNTS_URL.toString()));
-        }
-    }
 
     const [isLoading, setLoading] = useState<boolean>(true);
     const [showProjectModal, setShowProjectModal] = useState<boolean>(false);
@@ -276,7 +262,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
                                 ] as Route
                             }
                         />
@@ -296,8 +282,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                    PageMap
-                                        .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap
+                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
                         />

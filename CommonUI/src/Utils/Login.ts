@@ -1,12 +1,12 @@
-import UserUtil from 'CommonUI/src/Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
+import UserUtil from '../Utils/User';
+import Navigation from '../Utils/Navigation';
 import Email from 'Common/Types/Email';
 import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
-import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import { DASHBOARD_URL } from '../Config';
 import { JSONObject } from 'Common/Types/JSON';
 import User from 'Model/Models/User';
-import Analytics from 'CommonUI/src/Utils/Analytics';
+import Analytics from '../Utils/Analytics';
 import BaseModel from 'Common/Models/BaseModel';
 
 export default abstract class LoginUtil {

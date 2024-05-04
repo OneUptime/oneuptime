@@ -8,7 +8,7 @@ import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import { LOGIN_API_URL } from '../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
-import LoginUtil from '../Utils/Login';
+import LoginUtil from 'CommonUI/src/Utils/Login';
 import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';

@@ -367,10 +367,11 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
             req.params['projectId'] as string
         );
 
-        const token: string = JSONWebToken.sign({
+        const ssoToken: string = JSONWebToken.sign({
             data: {
                 userId: alreadySavedUser.id!,
                 projectId: projectId,
+                name: alreadySavedUser.name!,
                 email: email,
                 isMasterAdmin: false,
                 isGeneralLogin: false,
@@ -378,6 +379,33 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
             expiresInSeconds: OneUptimeDate.getSecondsInDays(
                 new PositiveNumber(30)
             ),
+        });
+        
+
+        const oneUptimeToken: string = JSONWebToken.signUserLoginToken({
+            tokenData: {
+                userId: alreadySavedUser.id!,
+                email: alreadySavedUser.email!,
+                name: alreadySavedUser.name!,
+                isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+                isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
+            },
+            expiresInSeconds: OneUptimeDate.getSecondsInDays(
+                new PositiveNumber(30)
+            ),
+        });
+
+        // Set a cookie with token.
+        CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), oneUptimeToken, {
+            maxAge: OneUptimeDate.getMillisecondsInDays(
+                new PositiveNumber(30)
+            ),
+            httpOnly: true,
+        });
+
+        CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), ssoToken, {
+            maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+            httpOnly: true,
         });
 
         // Refresh Permissions for this user here.
@@ -388,11 +416,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), token, {
-            maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-            httpOnly: true,
-        });
-
+    
         return Response.redirect(
             req,
             res,
@@ -402,9 +426,9 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
                 new Route(DashboardRoute.toString()).addRoute(
                     '/' + req.params['projectId']
                 ),
-                'sso_token=' + token
             )
         );
+        
     } catch (err) {
         logger.error(err);
         Response.sendErrorResponse(req, res, new ServerException());
