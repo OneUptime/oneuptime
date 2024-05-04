@@ -123,7 +123,6 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     res: ExpressResponse
 ): Promise<void> => {
     try {
-
         debugger;
 
         const samlResponseBase64: string = req.body.SAMLResponse;
@@ -383,7 +382,6 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
                 new PositiveNumber(30)
             ),
         });
-        
 
         const oneUptimeToken: string = JSONWebToken.signUserLoginToken({
             tokenData: {
@@ -399,17 +397,29 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         });
 
         // Set a cookie with token.
-        CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), oneUptimeToken, {
-            maxAge: OneUptimeDate.getMillisecondsInDays(
-                new PositiveNumber(30)
-            ),
-            httpOnly: true,
-        });
+        CookieUtil.setCookie(
+            res,
+            CookieUtil.getUserTokenKey(),
+            oneUptimeToken,
+            {
+                maxAge: OneUptimeDate.getMillisecondsInDays(
+                    new PositiveNumber(30)
+                ),
+                httpOnly: true,
+            }
+        );
 
-        CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), ssoToken, {
-            maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-            httpOnly: true,
-        });
+        CookieUtil.setCookie(
+            res,
+            CookieUtil.getUserSSOKey(projectId),
+            ssoToken,
+            {
+                maxAge: OneUptimeDate.getMillisecondsInDays(
+                    new PositiveNumber(30)
+                ),
+                httpOnly: true,
+            }
+        );
 
         // Refresh Permissions for this user here.
         await AccessTokenService.refreshUserAllPermissions(
@@ -419,7 +429,6 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    
         return Response.redirect(
             req,
             res,
@@ -428,10 +437,9 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
                 host,
                 new Route(DashboardRoute.toString()).addRoute(
                     '/' + req.params['projectId']
-                ),
+                )
             )
         );
-        
     } catch (err) {
         logger.error(err);
         Response.sendErrorResponse(req, res, new ServerException());

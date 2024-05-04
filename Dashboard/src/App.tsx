@@ -19,10 +19,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
-import {
-    BILLING_ENABLED,
-    APP_API_URL,
-} from 'CommonUI/src/Config';
+import { BILLING_ENABLED, APP_API_URL } from 'CommonUI/src/Config';
 
 import ActiveIncidents from './Pages/Global/NewIncidents';
 import ProjectInvitations from './Pages/Global/ProjectInvitations';
@@ -262,7 +259,7 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                                    PageMap.HOME_NOT_OPERATIONAL_MONITORS
                                 ] as Route
                             }
                         />
@@ -282,8 +279,8 @@ const App: () => JSX.Element = () => {
                             {...commonPageProps}
                             pageRoute={
                                 RouteMap[
-                                PageMap
-                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                    PageMap
+                                        .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                                 ] as Route
                             }
                         />

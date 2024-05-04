@@ -138,7 +138,9 @@ const LoginPage: () => JSX.Element = () => {
 
                                     {showSsoTip && (
                                         <div className="text-gray-500 text-sm">
-                                            Please sign in with your SSO provider like Okta, Auth0, Entra ID or any other SAML 2.0 provider.
+                                            Please sign in with your SSO
+                                            provider like Okta, Auth0, Entra ID
+                                            or any other SAML 2.0 provider.
                                         </div>
                                     )}
                                 </div>

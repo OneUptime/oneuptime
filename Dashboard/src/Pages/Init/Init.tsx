@@ -16,7 +16,6 @@ export interface ComponentProps extends PageComponentProps {
 const Init: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     useEffect(() => {
         // set slug to latest project and redirect to home.
 
