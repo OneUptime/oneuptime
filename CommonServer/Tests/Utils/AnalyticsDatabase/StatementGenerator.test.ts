@@ -229,8 +229,8 @@ describe('StatementGenerator', () => {
 
             /* eslint-disable prettier/prettier */
             expectStatement(statement, SQL`
-                column_1 String,
-                column_2 Int32
+                column_1 String NOT NULL,
+                column_2 Int32 NULL
             `);
             /* eslint-enable prettier/prettier */
         });
@@ -279,7 +279,7 @@ describe('StatementGenerator', () => {
 
             /* eslint-disable prettier/prettier */
             expectStatement(statement, SQL`
-                column_1 String,
+                column_1 String NOT NULL,
                 column_2 Nested (
                     nested_column_1 String,
                     nested_column_2 Int32
@@ -308,8 +308,8 @@ describe('StatementGenerator', () => {
 
             /* eslint-disable prettier/prettier */
             expectStatement(statement, SQL`
-                column_1 Array(String),
-                column_2 Array(Int32)
+                column_1 Array(String) NOT NULL,
+                column_2 Array(Int32) NULL
             `);
             /* eslint-enable prettier/prettier */
         });
