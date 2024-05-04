@@ -23,7 +23,7 @@ export default class SSOUtil {
 
         const issuers: JSONArray =
             (payload['saml2:Issuer'] as JSONArray) ||
-            (payload['saml:Issuer'] as JSONArray) || 
+            (payload['saml:Issuer'] as JSONArray) ||
             (payload['Issuer'] as JSONArray);
 
         if (issuers.length === 0) {
@@ -58,7 +58,7 @@ export default class SSOUtil {
 
         const samlSubject: JSONArray =
             ((samlAssertion[0] as JSONObject)['saml2:Subject'] as JSONArray) ||
-            ((samlAssertion[0] as JSONObject)['saml:Subject'] as JSONArray) || 
+            ((samlAssertion[0] as JSONObject)['saml:Subject'] as JSONArray) ||
             ((samlAssertion[0] as JSONObject)['Subject'] as JSONArray);
 
         if (!samlSubject || samlSubject.length === 0) {
@@ -67,8 +67,8 @@ export default class SSOUtil {
 
         const samlNameId: JSONArray =
             ((samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray) ||
-            ((samlSubject[0] as JSONObject)['saml:NameID'] as JSONArray) || 
-            ((samlSubject[0] as JSONObject)['NameID'] as JSONArray)
+            ((samlSubject[0] as JSONObject)['saml:NameID'] as JSONArray) ||
+            ((samlSubject[0] as JSONObject)['NameID'] as JSONArray);
 
         if (!samlNameId || samlNameId.length === 0) {
             throw new BadRequestException('SAML NAME ID not found');
@@ -125,13 +125,13 @@ export default class SSOUtil {
 
         payload =
             (payload['saml2p:Response'] as JSONObject) ||
-            (payload['samlp:Response'] as JSONObject) || 
-            (payload['Response'] as JSONObject)
+            (payload['samlp:Response'] as JSONObject) ||
+            (payload['Response'] as JSONObject);
 
         const samlAssertion: JSONArray =
             (payload['saml2:Assertion'] as JSONArray) ||
-            (payload['saml:Assertion'] as JSONArray) || 
-            (payload['Assertion'] as JSONArray)
+            (payload['saml:Assertion'] as JSONArray) ||
+            (payload['Assertion'] as JSONArray);
 
         if (!samlAssertion || samlAssertion.length === 0) {
             throw new BadRequestException('SAML Assertion not found');
@@ -139,8 +139,8 @@ export default class SSOUtil {
 
         const samlSubject: JSONArray =
             ((samlAssertion[0] as JSONObject)['saml2:Subject'] as JSONArray) ||
-            ((samlAssertion[0] as JSONObject)['saml:Subject'] as JSONArray) || 
-            ((samlAssertion[0] as JSONObject)['Subject'] as JSONArray)
+            ((samlAssertion[0] as JSONObject)['saml:Subject'] as JSONArray) ||
+            ((samlAssertion[0] as JSONObject)['Subject'] as JSONArray);
 
         if (!samlSubject || samlSubject.length === 0) {
             throw new BadRequestException('SAML Subject not found');
@@ -148,7 +148,7 @@ export default class SSOUtil {
 
         const samlNameId: JSONArray =
             ((samlSubject[0] as JSONObject)['saml2:NameID'] as JSONArray) ||
-            ((samlSubject[0] as JSONObject)['saml:NameID'] as JSONArray) || 
+            ((samlSubject[0] as JSONObject)['saml:NameID'] as JSONArray) ||
             ((samlSubject[0] as JSONObject)['NameID'] as JSONArray);
 
         if (!samlNameId || samlNameId.length === 0) {
@@ -169,13 +169,13 @@ export default class SSOUtil {
 
         payload =
             (payload['saml2p:Response'] as JSONObject) ||
-            (payload['samlp:Response'] as JSONObject) || 
-            (payload['Response'] as JSONObject)
+            (payload['samlp:Response'] as JSONObject) ||
+            (payload['Response'] as JSONObject);
 
         const issuers: JSONArray =
             (payload['saml2:Issuer'] as JSONArray) ||
-            (payload['saml:Issuer'] as JSONArray) || 
-            (payload['Issuer'] as JSONArray)
+            (payload['saml:Issuer'] as JSONArray) ||
+            (payload['Issuer'] as JSONArray);
 
         if (issuers.length === 0) {
             throw new BadRequestException('Issuers not found');

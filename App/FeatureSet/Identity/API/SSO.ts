@@ -100,23 +100,38 @@ router.get(
 );
 
 router.get(
-    '/idp-login/:projectId/:projectSsoId', 
+    '/idp-login/:projectId/:projectSsoId',
     async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return await loginUserWithSso(req, res);
-    });
+    }
+);
 
 router.post(
     '/idp-login/:projectId/:projectSsoId',
     async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return await loginUserWithSso(req, res);
-    }        
+    }
 );
 
-const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-    try {
+type LoginUserWithSsoFunction = (
+    req: ExpressRequest,
+    res: ExpressResponse
+) => Promise<void>;
 
-        debugger;
+const loginUserWithSso: LoginUserWithSsoFunction = async (
+    req: ExpressRequest,
+    res: ExpressResponse
+): Promise<void> => {
+    try {
         const samlResponseBase64: string = req.body.SAMLResponse;
+
+        if (!samlResponseBase64) {
+            return Response.sendErrorResponse(
+                req,
+                res,
+                new BadRequestException('SAMLResponse not found')
+            );
+        }
 
         const samlResponse: string = Buffer.from(
             samlResponseBase64,
@@ -146,8 +161,8 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
             );
         }
 
-        const projectSSO: ProjectSSO | null =
-            await ProjectSSOService.findOneBy({
+        const projectSSO: ProjectSSO | null = await ProjectSSOService.findOneBy(
+            {
                 query: {
                     projectId: new ObjectID(req.params['projectId']),
                     _id: req.params['projectSsoId'],
@@ -164,7 +179,8 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
                 props: {
                     isRoot: true,
                 },
-            });
+            }
+        );
 
         if (!projectSSO) {
             return Response.sendErrorResponse(
@@ -226,15 +242,16 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
             if (err instanceof Exception) {
                 return Response.sendErrorResponse(req, res, err);
             }
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new ServerException()
-            );
+            return Response.sendErrorResponse(req, res, new ServerException());
         }
 
         if (projectSSO.issuerURL.toString() !== issuerUrl) {
-            logger.error("Issuer URL does not match. It should be "+projectSSO.issuerURL.toString()+" but it is "+issuerUrl.toString());
+            logger.error(
+                'Issuer URL does not match. It should be ' +
+                    projectSSO.issuerURL.toString() +
+                    ' but it is ' +
+                    issuerUrl.toString()
+            );
             return Response.sendErrorResponse(
                 req,
                 res,
@@ -266,18 +283,22 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
 
             /// Create a user.
 
-            alreadySavedUser = await UserService.createByEmail(email, {
-                isRoot: true,
+            alreadySavedUser = await UserService.createByEmail({
+                email,
+                isEmailVerified: true,
+                generateRandomPassword: true,
+                props: {
+                    isRoot: true,
+                },
             });
 
             isNewUser = true;
         }
 
         // If he does not then add him to teams that he should belong and log in.
+        // This should never happen because email is verified before he logs in with SSO.
         if (!alreadySavedUser.isEmailVerified && !isNewUser) {
-            await AuthenticationEmail.sendVerificationEmail(
-                alreadySavedUser!
-            );
+            await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
 
             return Response.render(
                 req,
@@ -292,18 +313,17 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
         }
 
         // check if the user already belongs to the project
-        const teamMemberCount: PositiveNumber =
-            await TeamMemberService.countBy({
+        const teamMemberCount: PositiveNumber = await TeamMemberService.countBy(
+            {
                 query: {
-                    projectId: new ObjectID(
-                        req.params['projectId'] as string
-                    ),
+                    projectId: new ObjectID(req.params['projectId'] as string),
                     userId: alreadySavedUser!.id!,
                 },
                 props: {
                     isRoot: true,
                 },
-            });
+            }
+        );
 
         if (teamMemberCount.toNumber() === 0) {
             // user not in project, add him to default teams.
@@ -343,21 +363,6 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
             }
         }
 
-        if (isNewUser) {
-            return Response.render(
-                req,
-                res,
-                '/usr/src/app/FeatureSet/Identity/Views/Message.ejs',
-                {
-                    title: 'You have not signed up so far.',
-                    message:
-                        'You need to sign up for an account on OneUptime with this email:' +
-                        email.toString() +
-                        '. Once you have signed up, you can use SSO to log in to your project.',
-                }
-            );
-        }
-
         const projectId: ObjectID = new ObjectID(
             req.params['projectId'] as string
         );
@@ -378,20 +383,12 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
         );
 
         const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol =
-            await DatabaseConfig.getHttpProtocol();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        CookieUtil.setCookie(
-            res,
-            CookieUtil.getUserSSOKey(projectId),
-            token,
-            {
-                maxAge: OneUptimeDate.getMillisecondsInDays(
-                    new PositiveNumber(30)
-                ),
-                httpOnly: true,
-            }
-        );
+        CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), token, {
+            maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+            httpOnly: true,
+        });
 
         return Response.redirect(
             req,
@@ -409,7 +406,6 @@ const loginUserWithSso = async (req: ExpressRequest, res: ExpressResponse): Prom
         logger.error(err);
         Response.sendErrorResponse(req, res, new ServerException());
     }
-}
-
+};
 
 export default router;

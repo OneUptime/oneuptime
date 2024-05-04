@@ -113,6 +113,7 @@
         "no-console": "error",
         "no-undef": "error",
         "no-empty": "error",
+        "no-control-regex": "off",
         "prefer-arrow-callback": "error",
         "constructor-super": "error",
         "no-case-declarations": "error",

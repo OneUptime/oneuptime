@@ -14,6 +14,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
+import useAsyncEffect from 'use-async-effect';
 
 const LoginPage: () => JSX.Element = () => {
     const apiUrl: URL = LOGIN_API_URL;
@@ -27,6 +28,16 @@ const LoginPage: () => JSX.Element = () => {
     );
 
     const [showSsoTip, setShowSSOTip] = useState<boolean>(false);
+
+    const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+
+    useAsyncEffect(async () => {
+        if (Navigation.getQueryStringByName('email')) {
+            setInitialValues({
+                email: Navigation.getQueryStringByName('email'),
+            });
+        }
+    }, []);
 
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -66,9 +77,13 @@ const LoginPage: () => JSX.Element = () => {
                                 field: {
                                     email: true,
                                 },
-                                title: 'Email',
                                 fieldType: FormFieldSchemaType.Email,
+                                placeholder: 'jeff@example.com',
                                 required: true,
+                                disabled: Boolean(
+                                    initialValues && initialValues['email']
+                                ),
+                                title: 'Email',
                                 dataTestId: 'email',
                             },
                             {
@@ -123,11 +138,13 @@ const LoginPage: () => JSX.Element = () => {
 
                                     {showSsoTip && (
                                         <div className="text-gray-500 text-sm">
-                                            Please sign in with your username
-                                            and password. Once you have signed
-                                            in, you&apos;ll be able to sign in
-                                            via SSO that&apos;s configured for
-                                            your project.
+                                            Please log in from your SSO provider
+                                            (like Okta / Entra ID, etc). We
+                                            support login from the identity
+                                            provider you have configured for
+                                            your project. If you have not
+                                            configured any SSO provider, please
+                                            use the form above to log in.
                                         </div>
                                     )}
                                 </div>

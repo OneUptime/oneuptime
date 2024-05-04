@@ -24,6 +24,8 @@ import UserNotificationSettingService from './UserNotificationSettingService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import { IsBillingEnabled } from '../EnvironmentConfig';
+import Text from 'Common/Types/Text';
+import HashedString from 'Common/Types/HashedString';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -226,12 +228,21 @@ export class Service extends DatabaseService<Model> {
         return onUpdate;
     }
 
-    public async createByEmail(
-        email: Email,
-        props: DatabaseCommonInteractionProps
-    ): Promise<Model> {
+    public async createByEmail(data: {
+        email: Email;
+        isEmailVerified?: boolean;
+        generateRandomPassword?: boolean;
+        props: DatabaseCommonInteractionProps;
+    }): Promise<Model> {
+        const { email, props } = data;
+
         const user: Model = new Model();
         user.email = email;
+        user.isEmailVerified = data.isEmailVerified || false;
+
+        if (data.generateRandomPassword) {
+            user.password = new HashedString(Text.generateRandomText(20));
+        }
 
         if (!IsBillingEnabled) {
             // if billing is not enabled, then email is verified by default.
