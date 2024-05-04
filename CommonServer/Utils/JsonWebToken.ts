@@ -11,15 +11,17 @@ import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
 class JSONWebToken {
-    public static sign(
+    public static sign(props: {
         data:
             | JSONWebTokenData
             | User
             | StatusPagePrivateUser
             | string
-            | JSONObject,
-        expiresInSeconds: number
-    ): string {
+            | JSONObject;
+        expiresInSeconds: number;
+    }): string {
+        const { data, expiresInSeconds } = props;
+
         let jsonObj: JSONObject;
 
         if (typeof data === 'string') {

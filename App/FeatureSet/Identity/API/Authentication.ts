@@ -182,10 +182,12 @@ router.post(
                     savedUser.id!
                 );
 
-                const token: string = JSONWebToken.sign(
-                    savedUser,
-                    OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
-                );
+                const token: string = JSONWebToken.sign({
+                    data: savedUser,
+                    expiresInSeconds: OneUptimeDate.getSecondsInDays(
+                        new PositiveNumber(30)
+                    ),
+                });
 
                 // Set a cookie with token.
                 CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), token, {
@@ -573,10 +575,12 @@ router.post(
                     alreadySavedUser.password.toString() ===
                     user.password!.toString()
                 ) {
-                    const token: string = JSONWebToken.sign(
-                        alreadySavedUser,
-                        OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
-                    );
+                    const token: string = JSONWebToken.sign({
+                        data: alreadySavedUser,
+                        expiresInSeconds: OneUptimeDate.getSecondsInDays(
+                            new PositiveNumber(30)
+                        ),
+                    });
 
                     // Set a cookie with token.
                     CookieUtil.setCookie(

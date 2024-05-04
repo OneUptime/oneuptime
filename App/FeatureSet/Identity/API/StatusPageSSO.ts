@@ -270,10 +270,12 @@ router.post(
                 });
             }
 
-            const token: string = JSONWebToken.sign(
-                alreadySavedUser,
-                OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
-            );
+            const token: string = JSONWebToken.sign({
+                data: alreadySavedUser,
+                expiresInSeconds: OneUptimeDate.getSecondsInDays(
+                    new PositiveNumber(30)
+                ),
+            });
 
             CookieUtil.setCookie(
                 res,

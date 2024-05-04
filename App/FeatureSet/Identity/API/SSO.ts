@@ -367,15 +367,17 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
             req.params['projectId'] as string
         );
 
-        const token: string = JSONWebToken.sign(
-            {
+        const token: string = JSONWebToken.sign({
+            data: {
                 userId: alreadySavedUser.id!,
                 projectId: projectId,
                 email: email,
                 isMasterAdmin: false,
             },
-            OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
-        );
+            expiresInSeconds: OneUptimeDate.getSecondsInDays(
+                new PositiveNumber(30)
+            ),
+        });
 
         // Refresh Permissions for this user here.
         await AccessTokenService.refreshUserAllPermissions(

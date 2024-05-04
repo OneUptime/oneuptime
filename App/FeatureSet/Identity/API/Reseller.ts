@@ -62,10 +62,10 @@ router.post(
 
             // if found then generate a token and return it.
 
-            const token: string = JSONWebToken.sign(
-                { resellerId: resellerId },
-                OneUptimeDate.getDayInSeconds(365)
-            );
+            const token: string = JSONWebToken.sign({
+                data: { resellerId: resellerId },
+                expiresInSeconds: OneUptimeDate.getDayInSeconds(365),
+            });
 
             return Response.sendJsonObjectResponse(req, res, {
                 access: token,
