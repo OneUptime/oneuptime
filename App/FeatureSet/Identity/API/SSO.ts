@@ -108,7 +108,7 @@ router.get(
 
             //  DEFLATE-encode SAML message.
 
-            const samleDeflateEncode = zlib.inflateRawSync(samlRequest);
+            const samleDeflateEncode = zlib.deflateRawSync(samlRequest);
 
             console.log(samleDeflateEncode);
 
