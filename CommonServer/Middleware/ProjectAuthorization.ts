@@ -167,6 +167,7 @@ export default class ProjectMiddleware {
                         isMasterAdmin: true,
                         email: user.email!,
                         name: user.name!,
+                        isGlobalLogin: true,
                     };
 
                     return next();

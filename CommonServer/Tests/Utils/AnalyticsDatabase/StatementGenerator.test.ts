@@ -281,8 +281,8 @@ describe('StatementGenerator', () => {
             expectStatement(statement, SQL`
                 column_1 String NOT NULL,
                 column_2 Nested (
-                    nested_column_1 String,
-                    nested_column_2 Int32
+                    nested_column_1 String NOT NULL,
+                    nested_column_2 Int32 NULL
                 )
             `);
             /* eslint-enable prettier/prettier */
