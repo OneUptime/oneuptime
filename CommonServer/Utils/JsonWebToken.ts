@@ -11,6 +11,23 @@ import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
 class JSONWebToken {
+    public static signUserLoginToken(data: {
+        tokenData: {
+            userId: ObjectID;
+            email: Email;
+            name: Name;
+            isMasterAdmin: boolean;
+            // If this is OneUptime username and password login. This is true, if this is SSO login. Then, this is false.
+            isGlobalLogin: boolean;
+        };
+        expiresInSeconds: number;
+    }) {
+        return JSONWebToken.sign({
+            data: data.tokenData,
+            expiresInSeconds: data.expiresInSeconds,
+        });
+    }
+
     public static sign(props: {
         data:
             | JSONWebTokenData
@@ -86,6 +103,7 @@ class JSONWebToken {
                     ),
                     isMasterAdmin: false,
                     name: new Name('User'),
+                    isGlobalLogin: Boolean(decoded['isGlobalLogin']),
                 };
             }
 
@@ -97,6 +115,7 @@ class JSONWebToken {
                     ? new ObjectID(decoded['projectId'] as string)
                     : undefined,
                 isMasterAdmin: Boolean(decoded['isMasterAdmin']),
+                isGlobalLogin: Boolean(decoded['isGlobalLogin']),
             };
         } catch (e) {
             throw new BadDataException('AccessToken is invalid or expired');

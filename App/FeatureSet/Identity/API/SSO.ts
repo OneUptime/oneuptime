@@ -373,6 +373,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
                 projectId: projectId,
                 email: email,
                 isMasterAdmin: false,
+                isGeneralLogin: false,
             },
             expiresInSeconds: OneUptimeDate.getSecondsInDays(
                 new PositiveNumber(30)

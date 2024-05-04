@@ -30,6 +30,7 @@ import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import logger from '../Utils/Logger';
 import Exception from 'Common/Types/Exception/Exception';
 import CookieUtil from '../Utils/Cookie';
+import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 
 export default class UserMiddleware {
     /*
@@ -180,9 +181,14 @@ export default class UserMiddleware {
             try {
                 const userTenantAccessPermission: UserTenantAccessPermission | null =
                     await UserMiddleware.getUserTenantAccessPermissionWithTenantId(
-                        req,
-                        tenantId,
-                        new ObjectID(userId)
+                        {
+                            req,
+                            tenantId,
+                            userId: new ObjectID(userId),
+                            isGlobalLogin:
+                                oneuptimeRequest.userAuthorization
+                                    .isGlobalLogin,
+                        }
                     );
 
                 if (userTenantAccessPermission) {
@@ -265,11 +271,14 @@ export default class UserMiddleware {
         return next();
     }
 
-    public static async getUserTenantAccessPermissionWithTenantId(
-        req: ExpressRequest,
-        tenantId: ObjectID,
-        userId: ObjectID
-    ): Promise<UserTenantAccessPermission | null> {
+    public static async getUserTenantAccessPermissionWithTenantId(data: {
+        req: ExpressRequest;
+        tenantId: ObjectID;
+        userId: ObjectID;
+        isGlobalLogin: boolean;
+    }): Promise<UserTenantAccessPermission | null> {
+        const { req, tenantId, userId, isGlobalLogin } = data;
+
         const project: Project | null = await ProjectService.findOneById({
             id: tenantId,
             select: {
@@ -282,6 +291,12 @@ export default class UserMiddleware {
 
         if (!project) {
             throw new TenantNotFoundException('Invalid tenantId');
+        }
+
+        if (!project.requireSsoForLogin && !isGlobalLogin) {
+            throw new NotAuthenticatedException(
+                'This project requires OneUptime authentication. Please login to access this project.'
+            );
         }
 
         if (

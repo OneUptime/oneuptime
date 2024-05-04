@@ -182,8 +182,14 @@ router.post(
                     savedUser.id!
                 );
 
-                const token: string = JSONWebToken.sign({
-                    data: savedUser,
+                const token: string = JSONWebToken.signUserLoginToken({
+                    tokenData: {
+                        userId: savedUser.id!,
+                        email: savedUser.email!,
+                        name: savedUser.name!,
+                        isMasterAdmin: savedUser.isMasterAdmin!,
+                        isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
+                    },
                     expiresInSeconds: OneUptimeDate.getSecondsInDays(
                         new PositiveNumber(30)
                     ),
@@ -575,8 +581,14 @@ router.post(
                     alreadySavedUser.password.toString() ===
                     user.password!.toString()
                 ) {
-                    const token: string = JSONWebToken.sign({
-                        data: alreadySavedUser,
+                    const token: string = JSONWebToken.signUserLoginToken({
+                        tokenData: {
+                            userId: alreadySavedUser.id!,
+                            email: alreadySavedUser.email!,
+                            name: alreadySavedUser.name!,
+                            isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+                            isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
+                        },
                         expiresInSeconds: OneUptimeDate.getSecondsInDays(
                             new PositiveNumber(30)
                         ),
