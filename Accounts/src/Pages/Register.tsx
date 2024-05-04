@@ -5,7 +5,7 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
-import LoginUtil from '../Utils/Login';
+import LoginUtil from 'CommonUI/src/Utils/Login';
 import { JSONObject } from 'Common/Types/JSON';
 import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';

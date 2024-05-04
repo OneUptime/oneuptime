@@ -257,6 +257,7 @@ describe('UserMiddleware', () => {
             userId,
             isMasterAdmin: true,
             email: new Email('test@gmail.com'),
+            isGlobalLogin: true,
         };
 
         beforeAll(() => {
@@ -571,11 +572,12 @@ describe('UserMiddleware', () => {
             spyFindOneById.mockResolvedValueOnce(null);
 
             await expect(
-                UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                UserMiddleware.getUserTenantAccessPermissionWithTenantId({
                     req,
-                    projectId,
-                    userId
-                )
+                    tenantId: projectId,
+                    userId,
+                    isGlobalLogin: true,
+                })
             ).rejects.toThrowError(new BadDataException('Invalid tenantId'));
             expect(spyFindOneById).toHaveBeenCalledWith({
                 id: projectId,
@@ -597,11 +599,12 @@ describe('UserMiddleware', () => {
             spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
 
             await expect(
-                UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                UserMiddleware.getUserTenantAccessPermissionWithTenantId({
                     req,
-                    projectId,
-                    userId
-                )
+                    tenantId: projectId,
+                    userId,
+                    isGlobalLogin: true,
+                })
             ).rejects.toThrowError(new SsoAuthorizationException());
             expect(spyDoesSsoTokenForProjectExist).toHaveBeenCalledWith(
                 req,
@@ -618,11 +621,12 @@ describe('UserMiddleware', () => {
                 .mockResolvedValueOnce(null);
 
             const result: UserTenantAccessPermission | null =
-                await UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
                     req,
-                    projectId,
-                    userId
-                );
+                    tenantId: projectId,
+                    userId,
+                    isGlobalLogin: true,
+                });
 
             expect(result).toBeNull();
             expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
@@ -642,11 +646,12 @@ describe('UserMiddleware', () => {
                 .mockResolvedValueOnce(mockedUserTenantAccessPermission);
 
             const result: UserTenantAccessPermission | null =
-                await UserMiddleware.getUserTenantAccessPermissionWithTenantId(
+                await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
                     req,
-                    projectId,
-                    userId
-                );
+                    tenantId: projectId,
+                    userId,
+                    isGlobalLogin: true,
+                });
 
             expect(result).toEqual(mockedUserTenantAccessPermission);
             expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
