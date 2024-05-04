@@ -123,6 +123,9 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     res: ExpressResponse
 ): Promise<void> => {
     try {
+
+        debugger;
+
         const samlResponseBase64: string = req.body.SAMLResponse;
 
         if (!samlResponseBase64) {

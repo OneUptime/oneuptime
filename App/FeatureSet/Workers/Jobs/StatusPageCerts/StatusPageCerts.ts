@@ -1,4 +1,4 @@
-import { EVERY_MINUTE, EVERY_FIFTEEN_MINUTE } from 'Common/Utils/CronTime';
+import { EVERY_FIFTEEN_MINUTE } from 'Common/Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
@@ -7,7 +7,7 @@ import logger from 'CommonServer/Utils/Logger';
 RunCron(
     'StatusPageCerts:RenewCerts',
     {
-        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
         runOnStartup: true,
     },
     async () => {
@@ -20,7 +20,7 @@ RunCron(
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',
     {
-        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
         runOnStartup: true,
     },
     async () => {
@@ -31,7 +31,7 @@ RunCron(
 RunCron(
     'StatusPageCerts:OrderSSL',
     {
-        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
         runOnStartup: true,
     },
     async () => {
@@ -42,7 +42,7 @@ RunCron(
 RunCron(
     'StatusPageCerts:VerifyCnameWhoseCnameisNotVerified',
     {
-        schedule: IsDevelopment ? EVERY_MINUTE : EVERY_FIFTEEN_MINUTE,
+        schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
         runOnStartup: true,
     },
     async () => {

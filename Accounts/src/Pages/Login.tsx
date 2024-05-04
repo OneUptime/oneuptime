@@ -123,7 +123,7 @@ const LoginPage: () => JSX.Element = () => {
                         }}
                         maxPrimaryButtonWidth={true}
                         footer={
-                            <div className="actions pointer text-center mt-4 hover:underline fw-semibold">
+                            <div className="actions text-center mt-4 hover:underline fw-semibold">
                                 <div>
                                     {!showSsoTip && (
                                         <div
@@ -138,11 +138,7 @@ const LoginPage: () => JSX.Element = () => {
 
                                     {showSsoTip && (
                                         <div className="text-gray-500 text-sm">
-                                            Please sign in with your username
-                                            and password. Once you have signed
-                                            in, you&apos;ll be able to sign in
-                                            via SSO that&apos;s configured for
-                                            your project.
+                                            Please sign in with your SSO provider like Okta, Auth0, Entra ID or any other SAML 2.0 provider.
                                         </div>
                                     )}
                                 </div>
