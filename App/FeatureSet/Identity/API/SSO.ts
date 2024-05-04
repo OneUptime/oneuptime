@@ -112,7 +112,7 @@ router.get(
 
             console.log(samleDeflateEncode);
 
-            const base64Encoded = Buffer.from(samleDeflateEncode).toString('base64');
+            const base64Encoded = samleDeflateEncode.toString('base64');
 
             console.log(base64Encoded);
 
