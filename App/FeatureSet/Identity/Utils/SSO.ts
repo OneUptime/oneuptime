@@ -4,8 +4,15 @@ import Email from 'Common/Types/Email';
 import xmldom from 'xmldom';
 import xmlCrypto, { FileKeyInfo } from 'xml-crypto';
 import logger from 'CommonServer/Utils/Logger';
+import ObjectID from 'Common/Types/ObjectID';
+import OneUptimeDate from 'Common/Types/Date';
 
 export default class SSOUtil {
+    public static createSAMLRequest(): string {
+        const samlRequest: string = `<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ID="${ObjectID.generate().toString()}" Version="2.0" IssueInstant="${OneUptimeDate.getCurrentDate().toISOString()}" IsPassive="false" AssertionConsumerServiceURL="https://adfshelp.microsoft.com/ClaimsXray/TokenResponse" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ForceAuthn="false"><Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">oneuptime</Issuer></samlp:AuthnRequest>`;
+        return samlRequest;
+    }
+
     public static isPayloadValid(payload: JSONObject): void {
         if (
             !payload['saml2p:Response'] &&

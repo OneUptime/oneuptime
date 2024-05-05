@@ -102,48 +102,22 @@ router.get(
                 );
             }
 
-            // encode SAMLRequest and redirect to Identity Provider.
+            const samlRequest: string = SSOUtil.createSAMLRequest();
 
-            const samlRequest = createSAMLRequest(projectSSO.issuerURL.toString());
+            const deflated: Buffer = zlib.deflateRawSync(samlRequest);
 
-            //  DEFLATE-encode SAML message.
+            const base64Encoded: string = deflated.toString('base64');
 
-            const samleDeflateEncode = zlib.deflateRawSync(samlRequest);
+            const url = URL.fromString(
+                projectSSO.signOnURL.toString()
+            ).addQueryParam('SAMLRequest', base64Encoded, true);
 
-            console.log(samleDeflateEncode);
-
-            const base64Encoded = samleDeflateEncode.toString('base64');
-
-            console.log(base64Encoded);
-
-            const url = URL.fromString(projectSSO.signOnURL.toString()).addQueryParam(
-                "SAMLRequest", base64Encoded
-            );
-
-            console.log(url.toString());
-
-            return Response.redirect(
-                req,
-                res,
-                url
-            );
-
+            return Response.redirect(req, res, url);
         } catch (err) {
             return next(err);
         }
     }
 );
-
-const createSAMLRequest = (_issuer: string): string => {
-    const samlRequest: string = `<samlp:AuthnRequest
-    xmlns="urn:oasis:names:tc:SAML:2.0:metadata"
-    ID="${ObjectID.generate()}"
-    Version="2.0" IssueInstant="${OneUptimeDate.getCurrentDate().toISOString()}"
-    xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol">
-    <Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">oneuptime</Issuer>
-  </samlp:AuthnRequest>`;
-    return samlRequest;
-}
 
 router.get(
     '/idp-login/:projectId/:projectSsoId',
@@ -294,9 +268,9 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         if (projectSSO.issuerURL.toString() !== issuerUrl) {
             logger.error(
                 'Issuer URL does not match. It should be ' +
-                projectSSO.issuerURL.toString() +
-                ' but it is ' +
-                issuerUrl.toString()
+                    projectSSO.issuerURL.toString() +
+                    ' but it is ' +
+                    issuerUrl.toString()
             );
             return Response.sendErrorResponse(
                 req,
