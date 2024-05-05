@@ -19,7 +19,7 @@
         "@nivo/core": "^0.85.1",
         "@nivo/line": "^0.85.1",
         "@opentelemetry/api": "^1.8.0",
-        "@opentelemetry/context-zone": "^1.22.0",
+        "@opentelemetry/context-zone": "^1.23.0",
         "@opentelemetry/exporter-trace-otlp-http": "^0.49.1",
         "@opentelemetry/instrumentation": "^0.49.1",
         "@opentelemetry/instrumentation-fetch": "^0.49.1",
