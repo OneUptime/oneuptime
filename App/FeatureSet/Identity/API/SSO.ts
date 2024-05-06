@@ -109,7 +109,9 @@ router.get(
                     `${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`
                 ),
                 signOnUrl: projectSSO.signOnURL!,
-                issuerUrl: URL.fromString(`${HttpProtocol}${Host}/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`)
+                issuerUrl: URL.fromString(
+                    `${HttpProtocol}${Host}/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`
+                ),
             });
 
             return Response.redirect(req, res, samlRequestUrl);
