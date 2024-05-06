@@ -5,6 +5,7 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 import BillingConfig from './BillingConfig';
 import Email from 'Common/Types/Email';
+import Protocol from 'Common/Types/API/Protocol';
 
 export enum ConfigLogLevel {
     INFO = 'INFO',
@@ -27,7 +28,7 @@ export const DatabaseHost: Hostname = Hostname.fromString(
 
 export const LetsEncryptNotificationEmail: Email = Email.fromString(
     process.env['LETS_ENCRYPT_NOTIFICATION_EMAIL'] ||
-        'notifications@example.com'
+    'notifications@example.com'
 );
 
 export const LetsEncryptAccountKey: string =
@@ -77,32 +78,27 @@ export const ClusterKey: ObjectID = new ObjectID(
 export const HasClusterKey: boolean = Boolean(process.env['ONEUPTIME_SECRET']);
 
 export const AppApiHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_APP_HOSTNAME'] || 'localhost'}:${
-        process.env['APP_PORT'] || 80
+    `${process.env['SERVER_APP_HOSTNAME'] || 'localhost'}:${process.env['APP_PORT'] || 80
     }`
 );
 
 export const IngestorHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_INGESTOR_HOSTNAME'] || 'localhost'}:${
-        process.env['INGESTOR_PORT'] || 80
+    `${process.env['SERVER_INGESTOR_HOSTNAME'] || 'localhost'}:${process.env['INGESTOR_PORT'] || 80
     }`
 );
 
 export const IsolatedVMHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_ISOLATED_VM_HOSTNAME'] || 'localhost'}:${
-        process.env['ISOLATED_VM_PORT'] || 80
+    `${process.env['SERVER_ISOLATED_VM_HOSTNAME'] || 'localhost'}:${process.env['ISOLATED_VM_PORT'] || 80
     }`
 );
 
 export const AccountsHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_ACCOUNTS_HOSTNAME'] || 'localhost'}:${
-        process.env['ACCOUNTS_PORT'] || 80
+    `${process.env['SERVER_ACCOUNTS_HOSTNAME'] || 'localhost'}:${process.env['ACCOUNTS_PORT'] || 80
     }`
 );
 
 export const DashboardHostname: Hostname = Hostname.fromString(
-    `${process.env['SERVER_DASHBOARD_HOSTNAME'] || 'localhost'}:${
-        process.env['DASHBOARD_PORT'] || 80
+    `${process.env['SERVER_DASHBOARD_HOSTNAME'] || 'localhost'}:${process.env['DASHBOARD_PORT'] || 80
     }`
 );
 
@@ -167,3 +163,8 @@ export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
 
 export const LogLevel: ConfigLogLevel =
     (process.env['LOG_LEVEL'] as ConfigLogLevel) || ConfigLogLevel.ERROR;
+
+export const HttpProtocol: Protocol =
+    process.env['HTTP_PROTOCOL'] === 'https' ? Protocol.HTTPS : Protocol.HTTP;
+
+export const Host: string = process.env['HOST'] || '';

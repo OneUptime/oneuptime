@@ -33,6 +33,7 @@ import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import CookieUtil from 'CommonServer/Utils/Cookie';
 import zlib from 'zlib';
+import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -68,8 +69,10 @@ router.get(
                         isEnabled: true,
                     },
                     select: {
+                        _id: true,
                         signOnURL: true,
                         issuerURL: true,
+                        projectId: true,
                     },
                     props: {
                         isRoot: true,
@@ -102,7 +105,7 @@ router.get(
                 );
             }
 
-            const samlRequest: string = SSOUtil.createSAMLRequest();
+            const samlRequest: string = SSOUtil.createSAMLRequest(URL.fromString(`${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`));
 
             const deflated: Buffer = zlib.deflateRawSync(samlRequest);
 
