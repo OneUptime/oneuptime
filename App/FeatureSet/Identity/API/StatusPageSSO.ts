@@ -97,6 +97,9 @@ router.get(
                     `${HttpProtocol}${Host}/identity/status-page-idp-login/${statusPageSSO.statusPageId?.toString()}/${statusPageSSO.id?.toString()}`
                 ),
                 signOnUrl: statusPageSSO.signOnURL!,
+                issuerUrl: URL.fromString(
+                    `${HttpProtocol}${Host}/${statusPageSSO.statusPageId?.toString()}/${statusPageSSO.id?.toString()}`
+                ),
             });
 
             return Response.redirect(req, res, samlRequestUrl);

@@ -353,7 +353,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                                 <div>
                                     <div>Identifier (Entity ID)</div>
 
-                                    <div>{`${HTTP_PROTOCOL}${HOST}`}</div>
+                                    <div>{`${HTTP_PROTOCOL}${HOST}/${props.currentProject?._id}/${showSingleSignOnUrlId}`}</div>
                                     <br />
                                 </div>
                                 <div>
