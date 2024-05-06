@@ -80,7 +80,8 @@ redis:
     persistence:
       enabled: false # We dont need redis persistence, because we dont do anything with it.
   commonConfiguration: |-
-   appendonly no 
+   appendonly no
+   save "" 
   
 
 image:
