@@ -211,14 +211,14 @@ describe('TeamMemberService', () => {
                         templateType: 'InviteMember.hbs',
                         toEmail: new Email(nonExistingUserEmail),
                         vars: {
-                            homeUrl: `${HttpProtocol}${Host}`,
+                            homeUrl: `${HttpProtocol}${Host}/`,
                             isNewUser: 'true',
                             projectName: project.name,
                             registerLink: `${HttpProtocol}${Host}/accounts/register?email=${nonExistingUserEmail.replace(
                                 '@',
                                 '%40'
                             )}`,
-                            signInLink: '${HttpProtocol}${Host}/accounts',
+                            signInLink: `${HttpProtocol}${Host}/accounts`,
                         },
                     },
                     {
