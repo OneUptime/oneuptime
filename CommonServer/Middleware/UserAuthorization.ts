@@ -277,7 +277,6 @@ export default class UserMiddleware {
         userId: ObjectID;
         isGlobalLogin: boolean;
     }): Promise<UserTenantAccessPermission | null> {
-
         const { req, tenantId, userId, isGlobalLogin } = data;
 
         const project: Project | null = await ProjectService.findOneById({
