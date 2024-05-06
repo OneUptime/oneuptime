@@ -245,7 +245,7 @@ export default class UserMiddleware {
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
                     oneuptimeRequest.userTenantAccessPermission[
-                    tenantId.toString()
+                        tenantId.toString()
                     ]!
                 )
             );
@@ -260,7 +260,7 @@ export default class UserMiddleware {
                     req.headers &&
                     req.headers['project-permissions-hash'] &&
                     req.headers['project-permissions-hash'] ===
-                    projectPermissionsHash
+                        projectPermissionsHash
                 )
             ) {
                 res.set('project-permissions', projectValue);
@@ -294,7 +294,13 @@ export default class UserMiddleware {
         }
 
         if (!isGlobalLogin) {
-            if (!UserMiddleware.doesSsoTokenForProjectExist(req, tenantId, userId)) {
+            if (
+                !UserMiddleware.doesSsoTokenForProjectExist(
+                    req,
+                    tenantId,
+                    userId
+                )
+            ) {
                 throw new NotAuthenticatedException(
                     'This project requires OneUptime authentication. Please login to access this project.'
                 );
