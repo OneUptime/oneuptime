@@ -25,6 +25,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Query from 'CommonServer/Types/Database/Query';
 import logger from 'CommonServer/Utils/Logger';
 import BaseModel from 'Common/Models/BaseModel';
+import Semaphore from 'CommonServer/Infrastructure/Semaphore';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -176,16 +177,16 @@ router.get(
             return Response.sendJsonObjectResponse(req, res, {
                 firstMonitorToBeFetched: firstMonitorToBeFetched
                     ? BaseModel.toJSONObject(
-                          firstMonitorToBeFetched,
-                          MonitorProbe
-                      )
+                        firstMonitorToBeFetched,
+                        MonitorProbe
+                    )
                     : null,
                 count: monitorProbesCount.toNumber(),
                 nextPingAt: firstMonitorToBeFetched?.nextPingAt,
                 friendlyNextPingAt: firstMonitorToBeFetched?.nextPingAt
                     ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-                          firstMonitorToBeFetched?.nextPingAt
-                      )
+                        firstMonitorToBeFetched?.nextPingAt
+                    )
                     : '',
             });
         } catch (err) {
@@ -202,6 +203,9 @@ router.post(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
+
+        let mutexId: ObjectID | null = null;
+
         try {
             const data: JSONObject = req.body;
             const limit: number = (data['limit'] as number) || 100;
@@ -216,6 +220,20 @@ router.post(
                     new BadDataException('Probe not found')
                 );
             }
+
+            const probeId: ObjectID = (req as ProbeExpressRequest).probe!.id!;
+
+            if (!probeId) {
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException('Probe not found')
+                );
+            }
+
+            mutexId = await Semaphore.lock({
+                key: probeId.toString(),
+            })
 
             //get list of monitors to be monitored
             const monitorProbes: Array<MonitorProbe> =
@@ -275,6 +293,8 @@ router.post(
                 });
             }
 
+            await Semaphore.release(mutexId);
+
             const monitors: Array<Monitor> = monitorProbes
                 .map((monitorProbe: MonitorProbe) => {
                     return monitorProbe.monitor!;
@@ -293,6 +313,11 @@ router.post(
                 Monitor
             );
         } catch (err) {
+            
+            if (mutexId) {
+                await Semaphore.release(mutexId);
+            }
+
             return next(err);
         }
     }
