@@ -74,6 +74,9 @@ redis:
   auth:
     enabled: true
   master:
+    service: 
+      ports: 
+        redis: "6379"
     persistence:
       enabled: false # We dont need redis persistence, because we dont do anything with it. 
   replica:
