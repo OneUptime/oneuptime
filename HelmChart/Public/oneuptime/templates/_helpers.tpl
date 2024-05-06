@@ -142,7 +142,7 @@ Usage:
 - name: REDIS_HOST
   value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: REDIS_PORT
-  value: {{ printf "6379" | squote}}
+  value: {{ printf "%s" $.Values.redis.master.service.ports.redis | squote }}
 - name: REDIS_PASSWORD
   valueFrom: 
     secretKeyRef:
