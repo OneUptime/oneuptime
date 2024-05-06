@@ -277,7 +277,6 @@ export default class UserMiddleware {
         userId: ObjectID;
         isGlobalLogin: boolean;
     }): Promise<UserTenantAccessPermission | null> {
-        debugger;
 
         const { req, tenantId, userId, isGlobalLogin } = data;
 

@@ -351,15 +351,17 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                         description={
                             <div>
                                 <div>
-                                    <div>Identifier (Entity ID)</div>
+                                    <div className="font-semibold">
+                                        Identifier (Entity ID):{' '}
+                                    </div>
 
                                     <div>{`${HTTP_PROTOCOL}${HOST}/${props.currentProject?._id}/${showSingleSignOnUrlId}`}</div>
                                     <br />
                                 </div>
                                 <div>
-                                    <div>
+                                    <div className="font-semibold">
                                         Reply URL (Assertion Consumer Service
-                                        URL)
+                                        URL):
                                     </div>
                                     <div>
                                         {`${URL.fromString(
