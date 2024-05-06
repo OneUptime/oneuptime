@@ -1,4 +1,4 @@
-import Dictionary from 'Common/Types/Dictionary'
+import Dictionary from 'Common/Types/Dictionary';
 import { Mutex } from 'redis-semaphore';
 import Redis, { ClientType } from './Redis';
 import ObjectID from 'Common/Types/ObjectID';
@@ -8,19 +8,18 @@ export default class Semaphore {
 
     // returns the mutex id
     public static async lock(data: {
-        key: string, 
-        lockTimeout?: number,
+        key: string;
+        lockTimeout?: number;
     }): Promise<ObjectID> {
-
-        if(!data.lockTimeout) {
+        if (!data.lockTimeout) {
             data.lockTimeout = 1000;
         }
 
         const { key } = data;
 
-        const client: ClientType | null  = Redis.getClient();
+        const client: ClientType | null = Redis.getClient();
 
-        if(!client) {
+        if (!client) {
             throw new Error('Redis client is not connected');
         }
 
@@ -33,16 +32,15 @@ export default class Semaphore {
         const mutexId = ObjectID.generate();
 
         // add to the dictionary
-        this.mutexDictionary[mutexId.toString()] = mutex; 
-        
+        this.mutexDictionary[mutexId.toString()] = mutex;
+
         return mutexId;
     }
 
     public static async release(mutexId: ObjectID): Promise<void> {
-       
         const mutex = this.mutexDictionary[mutexId.toString()];
 
-        if(!mutex) {
+        if (!mutex) {
             return; // already released
         }
 

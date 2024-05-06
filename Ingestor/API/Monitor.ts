@@ -177,16 +177,16 @@ router.get(
             return Response.sendJsonObjectResponse(req, res, {
                 firstMonitorToBeFetched: firstMonitorToBeFetched
                     ? BaseModel.toJSONObject(
-                        firstMonitorToBeFetched,
-                        MonitorProbe
-                    )
+                          firstMonitorToBeFetched,
+                          MonitorProbe
+                      )
                     : null,
                 count: monitorProbesCount.toNumber(),
                 nextPingAt: firstMonitorToBeFetched?.nextPingAt,
                 friendlyNextPingAt: firstMonitorToBeFetched?.nextPingAt
                     ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-                        firstMonitorToBeFetched?.nextPingAt
-                    )
+                          firstMonitorToBeFetched?.nextPingAt
+                      )
                     : '',
             });
         } catch (err) {
@@ -203,7 +203,6 @@ router.post(
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> => {
-
         let mutexId: ObjectID | null = null;
 
         try {
@@ -233,7 +232,7 @@ router.post(
 
             mutexId = await Semaphore.lock({
                 key: probeId.toString(),
-            })
+            });
 
             //get list of monitors to be monitored
             const monitorProbes: Array<MonitorProbe> =
@@ -313,9 +312,12 @@ router.post(
                 Monitor
             );
         } catch (err) {
-            
-            if (mutexId) {
-                await Semaphore.release(mutexId);
+            try {
+                if (mutexId) {
+                    await Semaphore.release(mutexId);
+                }
+            } catch (err) {
+                logger.error(err);
             }
 
             return next(err);
