@@ -78,7 +78,9 @@ redis:
       enabled: false # We dont need redis persistence, because we dont do anything with it. 
   replica:
     persistence:
-      enabled: false # We dont need redis persistence, because we dont do anything with it. 
+      enabled: false # We dont need redis persistence, because we dont do anything with it.
+  commonConfiguration: |-
+   appendonly no 
   
 
 image:
