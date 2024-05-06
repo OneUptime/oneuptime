@@ -406,7 +406,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
                 email: alreadySavedUser.email!,
                 name: alreadySavedUser.name!,
                 isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
+                isGlobalLogin: false, // This is a general login without SSO. So, we will set this to false. This will give access to all the projects that dont require SSO.
             },
             expiresInSeconds: OneUptimeDate.getSecondsInDays(
                 new PositiveNumber(30)

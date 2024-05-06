@@ -20,6 +20,8 @@ import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import { JSONValue } from 'Common/Types/JSON';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { VoidFunction } from 'Common/Types/FunctionTypes';
+import DashboardNavigation from '../../Utils/Navigation';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -81,8 +83,41 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         }
     }, [props.showProjectModal]);
 
-    useEffect(() => {
+    type GetCurrentProjectFunction = () => Project | null;
+
+    const getCurrentProject: GetCurrentProjectFunction = (): Project | null => {
+        // see nav params first, then local storage, then default to first project.
+        const projectId: ObjectID | null = DashboardNavigation.getProjectId();
+
+        if (projectId) {
+            // check if this project is in the list.
+
+            const project: Project | undefined = props.projects.find(
+                (project: Project) => {
+                    return project._id?.toString() === projectId.toString();
+                }
+            );
+
+            if (project) {
+                return project;
+            }
+        }
+
         const currentProject: Project | null = ProjectUtil.getCurrentProject();
+
+        if (currentProject) {
+            return currentProject;
+        }
+
+        if (props.projects.length > 0) {
+            return props.projects[0] || null;
+        }
+
+        return null;
+    };
+
+    useEffect(() => {
+        const currentProject: Project | null = getCurrentProject();
         setSelectedProject(currentProject);
         if (currentProject && props.onProjectSelected) {
             props.onProjectSelected(currentProject);
@@ -105,8 +140,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
             !selectedProject &&
             props.projects[0]
         ) {
-            const currentProject: Project | null =
-                ProjectUtil.getCurrentProject();
+            const currentProject: Project | null = getCurrentProject();
 
             if (!currentProject) {
                 setSelectedProject(props.projects[0]);
