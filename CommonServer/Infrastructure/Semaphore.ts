@@ -23,13 +23,13 @@ export default class Semaphore {
             throw new Error('Redis client is not connected');
         }
 
-        const mutex = new Mutex(client, key, {
+        const mutex: Mutex = new Mutex(client, key, {
             lockTimeout: data.lockTimeout,
         });
 
         await mutex.acquire();
 
-        const mutexId = ObjectID.generate();
+        const mutexId: ObjectID = ObjectID.generate();
 
         // add to the dictionary
         this.mutexDictionary[mutexId.toString()] = mutex;
@@ -38,7 +38,8 @@ export default class Semaphore {
     }
 
     public static async release(mutexId: ObjectID): Promise<void> {
-        const mutex = this.mutexDictionary[mutexId.toString()];
+        const mutex: Mutex | undefined =
+            this.mutexDictionary[mutexId.toString()];
 
         if (!mutex) {
             return; // already released
