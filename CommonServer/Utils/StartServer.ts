@@ -206,7 +206,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
         return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException('Not found')
+            new NotFoundException(`Page not found - ${req.url}`)
         );
     });
 
@@ -214,7 +214,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
         return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException('Not found')
+            new NotFoundException(`Page not found - ${req.url}`)
         );
     });
 
@@ -222,7 +222,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
         return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException('Not found')
+            new NotFoundException(`Page not found - ${req.url}`)
         );
     });
 
@@ -230,7 +230,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
         return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException('Not found')
+            new NotFoundException(`Page not found - ${req.url}`)
         );
     });
 

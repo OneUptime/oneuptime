@@ -23,6 +23,7 @@ import UpdateActiveMonitorCountToBillingProvider from './UpdateActiveMonitorCoun
 import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
 import AddTelemetryServiceColor from './AddTelemetryServiceColor';
 import MoveGreenlockCertsToAcmeCerts from './MoveGreenlockCertsToAcmeCerts';
+import GenerateNewCertsForStatusPage from './GenerateNewCertsForStatusPage';
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -51,6 +52,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddSecretKeyToIncomingRequestMonitor(),
     new AddTelemetryServiceColor(),
     new MoveGreenlockCertsToAcmeCerts(),
+    new GenerateNewCertsForStatusPage(),
 ];
 
 export default DataMigrations;

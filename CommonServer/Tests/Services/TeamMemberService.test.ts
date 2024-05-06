@@ -25,6 +25,7 @@ import UserNotificationRuleService from '../../Services/UserNotificationRuleServ
 
 import Errors from '../../Utils/Errors';
 import CreateBy from '../../Types/Database/CreateBy';
+import { Host, HttpProtocol } from '../../EnvironmentConfig';
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
@@ -210,14 +211,14 @@ describe('TeamMemberService', () => {
                         templateType: 'InviteMember.hbs',
                         toEmail: new Email(nonExistingUserEmail),
                         vars: {
-                            homeUrl: 'http://localhost/',
+                            homeUrl: `${HttpProtocol}${Host}`,
                             isNewUser: 'true',
                             projectName: project.name,
-                            registerLink: `http://localhost/accounts/register?email=${nonExistingUserEmail.replace(
+                            registerLink: `${HttpProtocol}${Host}/accounts/register?email=${nonExistingUserEmail.replace(
                                 '@',
                                 '%40'
                             )}`,
-                            signInLink: 'http://localhost/accounts',
+                            signInLink: '${HttpProtocol}${Host}/accounts',
                         },
                     },
                     {

@@ -396,7 +396,12 @@ describe('UserMiddleware', () => {
             );
             expect(
                 spyGetUserTenantAccessPermissionWithTenantId
-            ).toHaveBeenCalledWith(req, projectId, userId);
+            ).toHaveBeenCalledWith({
+                req,
+                tenantId: projectId,
+                userId,
+                isGlobalLogin: true,
+            });
             expect(next).not.toBeCalled();
         });
 
@@ -424,7 +429,12 @@ describe('UserMiddleware', () => {
 
             expect(
                 spyGetUserTenantAccessPermissionWithTenantId
-            ).toHaveBeenCalledWith(req, projectId, userId);
+            ).toHaveBeenCalledWith({
+                req,
+                tenantId: projectId,
+                userId,
+                isGlobalLogin: true,
+            });
         });
 
         test("should not call getUserTenantAccessPermissionForMultiTenant, when is-multi-tenant-query is set in the request header and but userGlobalAccessPermission's projectIds length is zero", async () => {
@@ -548,7 +558,12 @@ describe('UserMiddleware', () => {
 
             expect(
                 spyGetUserTenantAccessPermissionWithTenantId
-            ).toHaveBeenCalledWith(mockedRequest, projectId, userId);
+            ).toHaveBeenCalledWith({
+                req: mockedRequest,
+                tenantId: projectId,
+                userId,
+                isGlobalLogin: true,
+            });
         });
     });
 

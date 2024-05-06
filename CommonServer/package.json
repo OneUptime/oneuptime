@@ -6,7 +6,7 @@
     "scripts": {
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
-        "test": "jest --detectOpenHandles",
+        "test": "jest --detectOpenHandles --summaryThreshold=1",
         "coverage": "jest --detectOpenHandles --coverage",
         "debug:test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd CommonServer && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
