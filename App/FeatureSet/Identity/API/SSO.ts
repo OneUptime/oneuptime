@@ -32,7 +32,6 @@ import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import CookieUtil from 'CommonServer/Utils/Cookie';
-import zlib from 'zlib';
 import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
 
 const router: ExpressRouter = Express.getRouter();
@@ -105,17 +104,14 @@ router.get(
                 );
             }
 
-            const samlRequest: string = SSOUtil.createSAMLRequest(URL.fromString(`${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`));
+            const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
+                acsUrl: URL.fromString(
+                    `${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`
+                ),
+                signOnUrl: projectSSO.signOnURL!,
+            });
 
-            const deflated: Buffer = zlib.deflateRawSync(samlRequest);
-
-            const base64Encoded: string = deflated.toString('base64');
-
-            const url = URL.fromString(
-                projectSSO.signOnURL.toString()
-            ).addQueryParam('SAMLRequest', base64Encoded, true);
-
-            return Response.redirect(req, res, url);
+            return Response.redirect(req, res, samlRequestUrl);
         } catch (err) {
             return next(err);
         }

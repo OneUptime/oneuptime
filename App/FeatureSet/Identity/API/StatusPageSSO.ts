@@ -25,6 +25,7 @@ import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivat
 import HashedString from 'Common/Types/HashedString';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import CookieUtil from 'CommonServer/Utils/Cookie';
+import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -65,6 +66,8 @@ router.get(
                     },
                     select: {
                         signOnURL: true,
+                        statusPageId: true,
+                        _id: true,
                     },
                     props: {
                         isRoot: true,
@@ -89,7 +92,14 @@ router.get(
                 );
             }
 
-            return Response.redirect(req, res, statusPageSSO.signOnURL);
+            const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
+                acsUrl: URL.fromString(
+                    `${HttpProtocol}${Host}/identity/status-page-idp-login/${statusPageSSO.statusPageId?.toString()}/${statusPageSSO.id?.toString()}`
+                ),
+                signOnUrl: statusPageSSO.signOnURL!,
+            });
+
+            return Response.redirect(req, res, samlRequestUrl);
         } catch (err) {
             return next(err);
         }

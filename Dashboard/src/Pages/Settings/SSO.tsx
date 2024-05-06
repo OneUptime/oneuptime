@@ -21,7 +21,12 @@ import TeamsElement from '../../Components/Team/TeamsElement';
 import Card from 'CommonUI/src/Components/Card/Card';
 import Link from 'CommonUI/src/Components/Link/Link';
 import URL from 'Common/Types/API/URL';
-import { DASHBOARD_URL, IDENTITY_URL } from 'CommonUI/src/Config';
+import {
+    DASHBOARD_URL,
+    HOST,
+    HTTP_PROTOCOL,
+    IDENTITY_URL,
+} from 'CommonUI/src/Config';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Banner from 'CommonUI/src/Components/Banner/Banner';
@@ -206,7 +211,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                     showRefreshButton={true}
                     actionButtons={[
                         {
-                            title: 'View SSO URL',
+                            title: 'View SSO Config',
                             buttonStyleType: ButtonStyleType.NORMAL,
                             onClick: async (
                                 item: ProjectSSO,
@@ -342,23 +347,29 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
 
                 {showSingleSignOnUrlId && (
                     <ConfirmModal
-                        title={`Single Sign on URL`}
+                        title={`SSO Configuration`}
                         description={
                             <div>
-                                <span>
-                                    You can configure this URL with your
-                                    Identity Provider:
-                                </span>
-                                <br />
-                                <br />
-                                <span>
-                                    {`${URL.fromString(
-                                        IDENTITY_URL.toString()
-                                    ).addRoute(
-                                        `/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`
-                                    )}`}
-                                </span>
-                                <br />
+                                <div>
+                                    <div>Identifier (Entity ID)</div>
+
+                                    <div>{`${HTTP_PROTOCOL}${HOST}`}</div>
+                                    <br />
+                                </div>
+                                <div>
+                                    <div>
+                                        Reply URL (Assertion Consumer Service
+                                        URL)
+                                    </div>
+                                    <div>
+                                        {`${URL.fromString(
+                                            IDENTITY_URL.toString()
+                                        ).addRoute(
+                                            `/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`
+                                        )}`}
+                                    </div>
+                                    <br />
+                                </div>
                             </div>
                         }
                         submitButtonText={'Close'}

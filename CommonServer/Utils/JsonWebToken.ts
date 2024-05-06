@@ -21,7 +21,7 @@ class JSONWebToken {
             isGlobalLogin: boolean;
         };
         expiresInSeconds: number;
-    }) {
+    }): string {
         return JSONWebToken.sign({
             data: data.tokenData,
             expiresInSeconds: data.expiresInSeconds,

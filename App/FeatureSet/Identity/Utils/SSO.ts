@@ -7,12 +7,29 @@ import logger from 'CommonServer/Utils/Logger';
 import OneUptimeDate from 'Common/Types/Date';
 import Text from 'Common/Types/Text';
 import URL from 'Common/Types/API/URL';
+import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
+import zlib from 'zlib';
 
 export default class SSOUtil {
+    public static createSAMLRequestUrl(data: {
+        acsUrl: URL;
+        signOnUrl: URL;
+    }): URL {
+        const { acsUrl, signOnUrl } = data;
 
-    public static createSAMLRequest(acsUrl: URL): string {
-        const samlRequest: string = `<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ID="${Text.generateRandomText(10).toUpperCase()}" Version="2.0" IssueInstant="${OneUptimeDate.getCurrentDate().toISOString()}" IsPassive="false" AssertionConsumerServiceURL="${acsUrl.toString()}" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ForceAuthn="false"><Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">oneuptime</Issuer></samlp:AuthnRequest>`;
-        return samlRequest;
+        const samlRequest: string = `<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ID="${Text.generateRandomText(
+            10
+        ).toUpperCase()}" Version="2.0" IssueInstant="${OneUptimeDate.getCurrentDate().toISOString()}" IsPassive="false" AssertionConsumerServiceURL="${acsUrl.toString()}" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ForceAuthn="false"><Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">${HttpProtocol}${Host}</Issuer></samlp:AuthnRequest>`;
+
+        const deflated: Buffer = zlib.deflateRawSync(samlRequest);
+
+        const base64Encoded: string = deflated.toString('base64');
+
+        return URL.fromString(signOnUrl.toString()).addQueryParam(
+            'SAMLRequest',
+            base64Encoded,
+            true
+        );
     }
 
     public static isPayloadValid(payload: JSONObject): void {
