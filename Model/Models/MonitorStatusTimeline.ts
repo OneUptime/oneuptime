@@ -461,14 +461,14 @@ export default class MonitorStatusTimeline extends BaseModel {
     })
     @Index()
     @TableColumn({
-        type: TableColumnType.LongText,
+        type: TableColumnType.Markdown,
         required: false,
         isDefaultValueColumn: false,
         title: 'Root Cause',
         description: 'What is the root cause of this status change?',
     })
     @Column({
-        type: ColumnType.LongText,
+        type: ColumnType.Markdown,
         nullable: true,
     })
     public rootCause?: string = undefined;

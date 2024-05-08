@@ -22,6 +22,7 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import OneUptimeDate from 'Common/Types/Date';
 import { Black } from 'Common/Types/BrandColors';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
 
 const StatusTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -254,7 +255,11 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
             {showRootCause ? (
                 <ConfirmModal
                     title={'Root Cause'}
-                    description={rootCause}
+                    description={
+                        <div>
+                            <MarkdownViewer text={rootCause} />
+                        </div>
+                    }
                     isLoading={false}
                     onSubmit={() => {
                         setShowRootCause(false);

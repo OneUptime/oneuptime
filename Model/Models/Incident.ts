@@ -852,14 +852,14 @@ export default class Incident extends BaseModel {
     })
     @Index()
     @TableColumn({
-        type: TableColumnType.LongText,
+        type: TableColumnType.Markdown,
         required: false,
         isDefaultValueColumn: false,
         title: 'Root Cause',
         description: 'What is the root cause of this incident?',
     })
     @Column({
-        type: ColumnType.LongText,
+        type: ColumnType.Markdown,
         nullable: true,
     })
     public rootCause?: string = undefined;

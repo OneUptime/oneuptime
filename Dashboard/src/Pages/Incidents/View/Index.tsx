@@ -621,10 +621,10 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             field: {
                                 rootCause: true,
                             },
-                            title: 'Root Cause',
+                            title: '',
                             placeholder:
                                 'No root cause identified for this incident.',
-                            fieldType: FieldType.LongText,
+                            fieldType: FieldType.Markdown,
                         },
                     ],
                     modelId: modelId,

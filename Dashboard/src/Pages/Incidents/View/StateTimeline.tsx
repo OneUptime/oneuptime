@@ -21,6 +21,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import OneUptimeDate from 'Common/Types/Date';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
 
 const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -276,7 +277,11 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
             {showRootCause ? (
                 <ConfirmModal
                     title={'Root Cause'}
-                    description={rootCause}
+                    description={
+                        <div>
+                            <MarkdownViewer text={rootCause} />
+                        </div>
+                    }
                     isLoading={false}
                     onSubmit={() => {
                         setShowRootCause(false);
