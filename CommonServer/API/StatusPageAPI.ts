@@ -1018,9 +1018,8 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                             select: scheduledEventsSelect,
                             sort: {
-                                createdAt: SortOrder.Ascending,
+                                startsAt: SortOrder.Ascending,
                             },
-
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -1039,9 +1038,8 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                             select: scheduledEventsSelect,
                             sort: {
-                                createdAt: SortOrder.Ascending,
+                                startsAt: SortOrder.Ascending,
                             },
-
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
