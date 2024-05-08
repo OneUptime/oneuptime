@@ -1,7 +1,7 @@
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import Dictionary from 'Common/Types/Dictionary';
 
-export type SelectPropertyOptions = boolean | Dictionary<boolean>;
+export type SelectPropertyOptions = true | Dictionary<true>;
 
 /**
  * Select find options.
