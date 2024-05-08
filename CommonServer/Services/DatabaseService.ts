@@ -1130,6 +1130,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
+            if (
+                onBeforeFind.groupBy &&
+                Object.keys(onBeforeFind.groupBy).length > 0
+            ) {
+                throw new BadDataException(
+                    'GroupBy is currently not supported'
+                );
+            }
+
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),

@@ -208,8 +208,16 @@ export default class ModelAPI {
         sort: Sort<TAnalyticsBaseModel>;
         requestOptions?: RequestOptions | undefined;
     }): Promise<ListResult<TAnalyticsBaseModel>> {
-        const { modelType, query, limit, skip, select, sort, requestOptions, groupBy } =
-            data;
+        const {
+            modelType,
+            query,
+            limit,
+            skip,
+            select,
+            sort,
+            requestOptions,
+            groupBy,
+        } = data;
 
         const model: TAnalyticsBaseModel = new modelType();
         const apiPath: Route | null = model.crudApiPath;

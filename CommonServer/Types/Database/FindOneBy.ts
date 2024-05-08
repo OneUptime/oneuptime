@@ -1,3 +1,4 @@
+import GroupBy from './GroupBy';
 import Query from './Query';
 import Select from './Select';
 import Sort from './Sort';
@@ -8,5 +9,6 @@ export default interface FindOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
     select?: Select<TBaseModel> | undefined;
     sort?: Sort<TBaseModel> | undefined;
+    groupBy?: GroupBy<TBaseModel> | undefined;
     props: DatabaseCommonInteractionProps;
 }

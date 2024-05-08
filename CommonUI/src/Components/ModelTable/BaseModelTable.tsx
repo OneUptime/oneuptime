@@ -95,6 +95,7 @@ export interface BaseTableCallbacks<
     getList: (data: {
         modelType: BaseModelType | AnalyticsBaseModelType;
         query: Query<TBaseModel>;
+        groupBy?: GroupBy<TBaseModel> | undefined;
         limit: number;
         skip: number;
         sort: Sort<TBaseModel>;
@@ -612,6 +613,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     query: {
                         ...query,
                         ...props.query,
+                    },
+                    groupBy: {
+                        ...props.groupBy,
                     },
                     limit: itemsOnPage,
                     skip: (currentPageNumber - 1) * itemsOnPage,
