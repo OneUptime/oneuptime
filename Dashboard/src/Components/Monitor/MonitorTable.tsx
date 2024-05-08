@@ -147,6 +147,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                     value.monitorType || MonitorType.Manual
                                 }
                                 error={''}
+                                monitorName={value.name || ''}
                             />
                         );
                     },

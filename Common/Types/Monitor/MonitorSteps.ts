@@ -36,6 +36,7 @@ export default class MonitorSteps extends DatabaseProperty {
     public static getDefaultMonitorSteps(arg: {
         defaultMonitorStatusId: ObjectID;
         monitorType: MonitorType;
+        monitorName: string;
         onlineMonitorStatusId: ObjectID;
         offlineMonitorStatusId: ObjectID;
         defaultIncidentSeverityId: ObjectID;

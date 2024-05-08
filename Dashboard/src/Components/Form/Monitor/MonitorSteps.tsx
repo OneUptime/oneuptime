@@ -27,6 +27,7 @@ export interface ComponentProps extends CustomElementProps {
     onBlur?: () => void;
     initialValue?: MonitorSteps;
     monitorType: MonitorType;
+    monitorName?: string | undefined; // this is used to prefill incident title and description. If not provided then it will be empty.
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
@@ -136,6 +137,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     setMonitorSteps(
                         MonitorSteps.getDefaultMonitorSteps({
                             monitorType: props.monitorType,
+                            monitorName: props.monitorName || '',
                             defaultMonitorStatusId: monitorStatusList.data.find(
                                 (i: MonitorStatus) => {
                                     return i.isOperationalState;

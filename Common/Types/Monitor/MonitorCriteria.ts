@@ -23,6 +23,7 @@ export default class MonitorCriteria extends DatabaseProperty {
 
     public static getDefaultMonitorCriteria(arg: {
         monitorType: MonitorType;
+        monitorName: string;
         onlineMonitorStatusId: ObjectID;
         offlineMonitorStatusId: ObjectID;
         defaultIncidentSeverityId: ObjectID;
@@ -33,12 +34,14 @@ export default class MonitorCriteria extends DatabaseProperty {
                 monitorType: arg.monitorType,
                 monitorStatusId: arg.offlineMonitorStatusId,
                 incidentSeverityId: arg.defaultIncidentSeverityId,
+                monitorName: arg.monitorName,
             });
 
         const onlineCriteria: MonitorCriteriaInstance | null =
             MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
                 monitorType: arg.monitorType,
                 monitorStatusId: arg.onlineMonitorStatusId,
+                monitorName: arg.monitorName,
             });
 
         monitorCriteria.data = {
