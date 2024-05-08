@@ -809,9 +809,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         skip,
         limit,
         props,
+        groupBy,
         distinctOn,
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
+
+            if(groupBy && Object.keys(groupBy).length > 0) {
+                throw new BadDataException('Group By is not supported for countBy');
+            }
+
             if (!skip) {
                 skip = new PositiveNumber(0);
             }
