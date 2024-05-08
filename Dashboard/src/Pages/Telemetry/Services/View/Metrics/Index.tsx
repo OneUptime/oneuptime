@@ -6,6 +6,7 @@ import DashboardNavigation from '../../../../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Route from 'Common/Types/API/Route';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -30,11 +31,14 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                     description:
                         'Metrics are the individual data points that make up a service. They are the building blocks of a service and represent the work done by a single service.',
                 }}
+                onViewPage={async (_item: Metric)=>{
+                    return Promise.resolve(new Route(""));
+                }}
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
                     serviceId: modelId,
                 }}
-                showViewIdButton={true}
+                showViewIdButton={false}
                 noItemsMessage={'No metrics found for this service.'}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
