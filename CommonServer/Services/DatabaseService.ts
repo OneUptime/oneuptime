@@ -813,9 +813,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         distinctOn,
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
-
-            if(groupBy && Object.keys(groupBy).length > 0) {
-                throw new BadDataException('Group By is not supported for countBy');
+            if (groupBy && Object.keys(groupBy).length > 0) {
+                throw new BadDataException(
+                    'Group By is not supported for countBy'
+                );
             }
 
             if (!skip) {
