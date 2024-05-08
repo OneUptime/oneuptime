@@ -35,15 +35,11 @@ export default class UptimeUtil {
 
             // Set the start date of the event to the creation date of the current item. If it doesn't exist, use the current date.
             const startDate: Date =
-                monitorEvents[i]!.createdAt || OneUptimeDate.getCurrentDate();
+                monitorEvents[i]!.startsAt || OneUptimeDate.getCurrentDate();
 
             // Initialize the end date as the current date.
-            let endDate: Date = OneUptimeDate.getCurrentDate();
-
-            // If there is a next item and it has a creation date, use that as the end date.
-            if (monitorEvents[i + 1] && monitorEvents[i + 1]!.createdAt) {
-                endDate = monitorEvents[i + 1]!.createdAt!;
-            }
+            const endDate: Date =
+                monitorEvents[i]!.endsAt || OneUptimeDate.getCurrentDate();
 
             // Push a new MonitorEvent object to the eventList array with properties from the current item and calculated dates.
             eventList.push({
