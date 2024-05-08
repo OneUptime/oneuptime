@@ -20,6 +20,7 @@ import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
 import BaseListResult from '../BaseDatabase/ListResult';
 import RequestOptions from '../BaseDatabase/RequestOptions';
+import GroupBy from '../BaseDatabase/GroupBy';
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
     extends BaseListResult<TAnalyticsBaseModel> {}
@@ -200,13 +201,14 @@ export default class ModelAPI {
     >(data: {
         modelType: { new (): TAnalyticsBaseModel };
         query: Query<TAnalyticsBaseModel>;
+        groupBy?: GroupBy<TAnalyticsBaseModel> | undefined;
         limit: number;
         skip: number;
         select: Select<TAnalyticsBaseModel>;
         sort: Sort<TAnalyticsBaseModel>;
         requestOptions?: RequestOptions | undefined;
     }): Promise<ListResult<TAnalyticsBaseModel>> {
-        const { modelType, query, limit, skip, select, sort, requestOptions } =
+        const { modelType, query, limit, skip, select, sort, requestOptions, groupBy } =
             data;
 
         const model: TAnalyticsBaseModel = new modelType();
@@ -242,6 +244,7 @@ export default class ModelAPI {
                     query: JSONFunctions.serialize(query as JSONObject),
                     select: JSONFunctions.serialize(select as JSONObject),
                     sort: JSONFunctions.serialize(sort as JSONObject),
+                    groupBy: JSONFunctions.serialize(groupBy as JSONObject),
                 },
                 headers,
                 {

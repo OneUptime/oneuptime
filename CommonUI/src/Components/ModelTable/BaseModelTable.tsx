@@ -77,6 +77,7 @@ import SelectEntityField from '../../Types/SelectEntityField';
 import { FilterData } from '../Filters/Filter';
 import ClassicFilterType from '../Filters/Types/Filter';
 import { getRefreshButton } from '../Card/CardButtons/Refresh';
+import GroupBy from '../../Utils/BaseDatabase/GroupBy';
 
 export enum ShowAs {
     Table,
@@ -148,6 +149,7 @@ export interface BaseTableProps<
     viewPageRoute?: undefined | Route;
     onViewPage?: (item: TBaseModel) => Promise<Route>;
     query?: Query<TBaseModel>;
+    groupBy?: GroupBy<TBaseModel> | undefined;
     onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
     createInitialValues?: FormValues<TBaseModel> | undefined;
     onBeforeCreate?:

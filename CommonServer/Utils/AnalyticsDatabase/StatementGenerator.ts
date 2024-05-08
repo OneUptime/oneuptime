@@ -24,6 +24,7 @@ import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
 import Includes from 'Common/Types/BaseDatabase/Includes';
+import GroupBy from '../../Types/AnalyticsDatabase/GroupBy';
 // import JSONFunctions from 'Common/Types/JSONFunctions';
 // import { JSONObject } from 'Common/Types/JSON';
 
@@ -469,6 +470,24 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
 
         return whereStatement;
+    }
+
+    public toGroupByStatement(groupBy: GroupBy<TBaseModel>): Statement {
+        
+        const groupByStatement: Statement = new Statement();
+
+        let first: boolean = true;
+        for (const key in groupBy) {
+            if (first) {
+                first = false;
+            } else {
+                groupByStatement.append(SQL`, `);
+            }
+            groupByStatement.append(SQL`${key}`);
+        }
+
+        return groupByStatement;
+
     }
 
     public toSortStatement(sort: Sort<TBaseModel>): Statement {

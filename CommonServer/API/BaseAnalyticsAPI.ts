@@ -25,6 +25,7 @@ import { UserPermission } from 'Common/Types/Permission';
 import AnalyticsDataModel from 'Common/AnalyticsModels/BaseModel';
 import AnalyticsDatabaseService from '../Services/AnalyticsDatabaseService';
 import CommonAPI from './CommonAPI';
+import GroupBy from '../Types/AnalyticsDatabase/GroupBy';
 
 export default class BaseAnalyticsAPI<
     TAnalyticsDataModel extends AnalyticsDataModel,
@@ -235,6 +236,7 @@ export default class BaseAnalyticsAPI<
         let query: Query<AnalyticsDataModel> = {};
         let select: Select<AnalyticsDataModel> = {};
         let sort: Sort<AnalyticsDataModel> = {};
+        let groupBy: GroupBy<AnalyticsDataModel> = {};
 
         if (req.body) {
             query = JSONFunctions.deserialize(
@@ -248,6 +250,10 @@ export default class BaseAnalyticsAPI<
             sort = JSONFunctions.deserialize(
                 req.body['sort']
             ) as Sort<AnalyticsDataModel>;
+
+            groupBy = JSONFunctions.deserialize(
+                req.body['groupBy']
+            ) as GroupBy<AnalyticsDataModel>;
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
@@ -259,11 +265,13 @@ export default class BaseAnalyticsAPI<
             skip: skip,
             limit: limit,
             sort: sort,
+            groupBy: groupBy,
             props: databaseProps,
         });
 
         const count: PositiveNumber = await this.service.countBy({
             query,
+            groupBy: groupBy,
             props: databaseProps,
         });
 
