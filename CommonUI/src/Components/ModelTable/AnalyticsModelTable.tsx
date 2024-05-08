@@ -12,6 +12,7 @@ import Sort from '../../Utils/BaseDatabase/Sort';
 import RequestOptions from '../../Utils/BaseDatabase/RequestOptions';
 import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 import { BaseModelType } from 'Common/Models/BaseModel';
+import GroupBy from '../../Utils/BaseDatabase/GroupBy';
 
 export interface ComponentProps<TBaseModel extends AnalyticsBaseModel>
     extends BaseTableProps<TBaseModel> {
@@ -71,6 +72,7 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
                 getList: async (data: {
                     modelType: BaseModelType | AnalyticsBaseModelType;
                     query: Query<TBaseModel>;
+                    groupBy?: GroupBy<TBaseModel> | undefined;
                     limit: number;
                     skip: number;
                     sort: Sort<TBaseModel>;
@@ -80,6 +82,7 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
                     return await modelAPI.getList<TBaseModel>({
                         modelType: data.modelType as { new (): TBaseModel },
                         query: data.query,
+                        groupBy: data.groupBy,
                         limit: data.limit,
                         skip: data.skip,
                         sort: data.sort,

@@ -9,6 +9,6 @@ export default interface FindOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
     select?: Select<TBaseModel> | undefined;
     sort?: Sort<TBaseModel> | undefined;
-    groupBy?: GroupBy<TBaseModel> | undefined;  
+    groupBy?: GroupBy<TBaseModel> | undefined;
     props: DatabaseCommonInteractionProps;
 }

@@ -20,6 +20,7 @@ import Project from 'Model/Models/Project';
 import Navigation from '../Navigation';
 import BaseListResult from '../BaseDatabase/ListResult';
 import BaseRequestOptions from '../BaseDatabase/RequestOptions';
+import GroupBy from '../BaseDatabase/GroupBy';
 
 export class ModelAPIHttpResponse<
     TBaseModel extends BaseModel
@@ -184,6 +185,7 @@ export default class ModelAPI {
     public static async getList<TBaseModel extends BaseModel>(data: {
         modelType: { new (): TBaseModel };
         query: Query<TBaseModel>;
+        groupBy?: GroupBy<TBaseModel> | undefined;
         limit: number;
         skip: number;
         select: Select<TBaseModel>;
@@ -227,6 +229,9 @@ export default class ModelAPI {
                     query: JSONFunctions.serialize(data.query as JSONObject),
                     select: JSONFunctions.serialize(data.select as JSONObject),
                     sort: JSONFunctions.serialize(data.sort as JSONObject),
+                    groupBy: JSONFunctions.serialize(
+                        data.groupBy as JSONObject
+                    ),
                 },
                 headers,
                 {

@@ -11,6 +11,7 @@ import Sort from '../../Utils/BaseDatabase/Sort';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
 import { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import GroupBy from '../../Utils/BaseDatabase/GroupBy';
 
 export interface ComponentProps<TBaseModel extends BaseModel>
     extends BaseTableProps<TBaseModel> {
@@ -53,6 +54,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 getList: async (data: {
                     modelType: BaseModelType | AnalyticsBaseModelType;
                     query: Query<TBaseModel>;
+                    groupBy?: GroupBy<TBaseModel> | undefined;
                     limit: number;
                     skip: number;
                     sort: Sort<TBaseModel>;
@@ -63,6 +65,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                         modelType: data.modelType as { new (): TBaseModel },
                         query: data.query,
                         limit: data.limit,
+                        groupBy: data.groupBy,
                         skip: data.skip,
                         sort: data.sort,
                         select: data.select,

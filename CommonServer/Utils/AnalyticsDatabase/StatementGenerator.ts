@@ -473,7 +473,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toGroupByStatement(groupBy: GroupBy<TBaseModel>): Statement {
-        
         const groupByStatement: Statement = new Statement();
 
         let first: boolean = true;
@@ -487,7 +486,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
 
         return groupByStatement;
-
     }
 
     public toSortStatement(sort: Sort<TBaseModel>): Statement {

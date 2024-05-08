@@ -26,6 +26,7 @@ import {
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
 import CommonAPI from './CommonAPI';
+import GroupBy from '../Types/Database/GroupBy';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -237,6 +238,7 @@ export default class BaseAPI<
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
+        let groupBy: GroupBy<BaseModel> | undefined;
 
         if (req.body) {
             query = JSONFunctions.deserialize(
@@ -250,6 +252,10 @@ export default class BaseAPI<
             sort = JSONFunctions.deserialize(
                 req.body['sort']
             ) as Sort<BaseModel>;
+
+            groupBy = JSONFunctions.deserialize(
+                req.body['groupBy']
+            ) as GroupBy<BaseModel>;
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
@@ -260,6 +266,7 @@ export default class BaseAPI<
             select,
             skip: skip,
             limit: limit,
+            groupBy: groupBy,
             sort: sort,
             props: databaseProps,
         });
