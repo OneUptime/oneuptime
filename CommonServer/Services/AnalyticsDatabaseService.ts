@@ -53,14 +53,14 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new (): TBaseModel };
+    public modelType!: { new(): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
     public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -331,11 +331,11 @@ export default class AnalyticsDatabaseService<
             WHERE TRUE `.append(whereStatement);
         /* eslint-enable prettier/prettier */
 
-        if (countBy.groupBy) {
+        if (countBy.groupBy && Object.keys(countBy.groupBy).length > 0){
             statement.append(
                 SQL`
             GROUP BY `.append(
-                    this.statementGenerator.toGroupByStatement(countBy.groupBy!)
+                    this.statementGenerator.toGroupByStatement(countBy.groupBy)
                 )
             );
         }
@@ -343,18 +343,18 @@ export default class AnalyticsDatabaseService<
         if (countBy.limit) {
             statement.append(SQL`
             LIMIT ${{
-                value: Number(countBy.limit),
-                type: TableColumnType.Number,
-            }}
+                    value: Number(countBy.limit),
+                    type: TableColumnType.Number,
+                }}
             `);
         }
 
         if (countBy.skip) {
             statement.append(SQL`
             OFFSET ${{
-                value: Number(countBy.skip),
-                type: TableColumnType.Number,
-            }}
+                    value: Number(countBy.skip),
+                    type: TableColumnType.Number,
+                }}
             `);
         }
         logger.info(`${this.model.tableName} Count Statement`);
@@ -389,22 +389,38 @@ export default class AnalyticsDatabaseService<
             );
         }
 
-        /* eslint-disable prettier/prettier */
-        const statement: Statement = SQL`
-            SELECT `.append(select.statement).append(SQL`
-            FROM ${databaseName}.${this.model.tableName}
-            WHERE TRUE `).append(whereStatement).append(groupByStatement ? (SQL`
-            GROUP BY `.append(groupByStatement)) : SQL``).append(SQL`
-            ORDER BY `).append(sortStatement).append(SQL`
+        const statement: Statement = SQL``;
+
+        statement.append(SQL`
+            SELECT `.append(select.statement));
+        statement.append(SQL`
+            FROM ${databaseName}.${this.model.tableName}`);
+        statement.append(SQL`
+            WHERE TRUE `).append(whereStatement)
+
+        if (groupByStatement) {
+            statement.append(SQL`
+                GROUP BY `).append(groupByStatement)
+        }
+
+        statement.append(SQL`
+            ORDER BY `).append(sortStatement)
+
+        statement.append(SQL`
             LIMIT ${{
                 value: Number(findBy.limit),
                 type: TableColumnType.Number,
-            }}
+            }}`);
+
+        statement.append(SQL`   
             OFFSET ${{
                 value: Number(findBy.skip),
                 type: TableColumnType.Number,
             }}
         `);
+
+
+
         /* eslint-enable prettier/prettier */
 
         logger.info(`${this.model.tableName} Find Statement`);
@@ -569,8 +585,8 @@ export default class AnalyticsDatabaseService<
             statement instanceof Statement
                 ? statement
                 : {
-                      query: statement, // TODO remove and only accept Statements
-                  }
+                    query: statement, // TODO remove and only accept Statements
+                }
         );
     }
 
@@ -672,16 +688,16 @@ export default class AnalyticsDatabaseService<
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                      createBy: {
-                          data: data,
-                          props: createBy.props,
-                      },
-                      carryForward: [],
-                  }
+                    createBy: {
+                        data: data,
+                        props: createBy.props,
+                    },
+                    carryForward: [],
+                }
                 : await this._onBeforeCreate({
-                      data: data,
-                      props: createBy.props,
-                  });
+                    data: data,
+                    props: createBy.props,
+                });
 
             data = onCreate.createBy.data;
 
@@ -783,8 +799,7 @@ export default class AnalyticsDatabaseService<
                     await Promise.allSettled(promises);
                 } else {
                     logger.warn(
-                        `Realtime is not initialized. Skipping emitModelEvent for ${
-                            this.getModel().tableName
+                        `Realtime is not initialized. Skipping emitModelEvent for ${this.getModel().tableName
                         }`
                     );
                 }
