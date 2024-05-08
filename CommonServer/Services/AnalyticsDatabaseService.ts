@@ -320,6 +320,7 @@ export default class AnalyticsDatabaseService<
 
         const databaseName: string =
             this.database.getDatasourceOptions().database!;
+
         const whereStatement: Statement =
             this.statementGenerator.toWhereStatement(countBy.query);
 
@@ -373,21 +374,31 @@ export default class AnalyticsDatabaseService<
 
         const databaseName: string =
             this.database.getDatasourceOptions().database!;
+            let groupByStatement: Statement | null = null;
+            
+            if (findBy.groupBy && Object.keys(findBy.groupBy).length > 0) {
+
+                // overwrite select object
+                findBy.select = {
+                    ...findBy.groupBy,
+                };
+
+                groupByStatement = this.statementGenerator.toGroupByStatement(
+                    findBy.groupBy
+                );
+            }
+
+
+
+
         const select: { statement: Statement; columns: Array<string> } =
             this.statementGenerator.toSelectStatement(findBy.select!);
 
         const whereStatement: Statement =
             this.statementGenerator.toWhereStatement(findBy.query);
+
         const sortStatement: Statement =
             this.statementGenerator.toSortStatement(findBy.sort!);
-
-        let groupByStatement: Statement | null = null;
-
-        if (findBy.groupBy && Object.keys(findBy.groupBy).length > 0) {
-            groupByStatement = this.statementGenerator.toGroupByStatement(
-                findBy.groupBy
-            );
-        }
 
         const statement: Statement = SQL``;
 
