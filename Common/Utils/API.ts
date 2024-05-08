@@ -343,6 +343,9 @@ export default class API {
             );
         }
 
-        throw new APIException('Endpoint is not available');
+        // get url from error
+        const url: string = error?.config?.url || '';
+
+        throw new APIException(`URL ${url ? url + ' ' : ''}is not available.`);
     }
 }
