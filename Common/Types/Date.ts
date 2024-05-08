@@ -870,7 +870,7 @@ export default class OneUptimeDate {
             formattedString += hours + ' hours';
         }
 
-        if (mins > 0) {
+        if (mins >= 0) {
             if (formattedString.length > 0) {
                 formattedString += ', ';
             }

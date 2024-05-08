@@ -154,16 +154,34 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
             }
         )?.startsAt;
 
-        if (!acknowledgeTime) {
+        const resolveTime: Date | undefined = incidentStateTimeline.find(
+            (timeline: IncidentStateTimeline) => {
+                return (
+                    timeline.incidentStateId?.toString() ===
+                    getResolvedState()?._id?.toString()
+                );
+            }
+        )?.startsAt;
+
+        if (!acknowledgeTime && !resolveTime) {
             return (
                 'Not yet ' +
                 (getAcknowledgeState()?.name?.toLowerCase() || 'acknowledged')
             );
         }
 
+        if (!acknowledgeTime && resolveTime) {
+            return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+                OneUptimeDate.getDifferenceInMinutes(
+                    resolveTime,
+                    incidentStartTime
+                )
+            );
+        }
+
         return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
             OneUptimeDate.getDifferenceInMinutes(
-                acknowledgeTime,
+                acknowledgeTime!,
                 incidentStartTime
             )
         );
