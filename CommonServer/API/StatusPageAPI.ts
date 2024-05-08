@@ -745,6 +745,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     monitorId: true,
                                     createdAt: true,
                                     endsAt: true,
+                                    startsAt: true,
                                     monitorStatus: {
                                         name: true,
                                         color: true,
@@ -773,6 +774,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     monitorId: true,
                                     createdAt: true,
                                     endsAt: true,
+                                    startsAt: true,
                                     monitorStatus: {
                                         name: true,
                                         color: true,
