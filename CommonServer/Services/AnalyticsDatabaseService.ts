@@ -53,14 +53,14 @@ import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel
 > extends BaseService {
-    public modelType!: { new(): TBaseModel };
+    public modelType!: { new (): TBaseModel };
     public database!: ClickhouseDatabase;
     public model!: TBaseModel;
     public databaseClient!: ClickhouseClient;
     public statementGenerator!: StatementGenerator<TBaseModel>;
 
     public constructor(data: {
-        modelType: { new(): TBaseModel };
+        modelType: { new (): TBaseModel };
         database?: ClickhouseDatabase | undefined;
     }) {
         super();
@@ -332,7 +332,7 @@ export default class AnalyticsDatabaseService<
             WHERE TRUE `.append(whereStatement);
         /* eslint-enable prettier/prettier */
 
-        if (countBy.groupBy && Object.keys(countBy.groupBy).length > 0){
+        if (countBy.groupBy && Object.keys(countBy.groupBy).length > 0) {
             statement.append(
                 SQL`
             GROUP BY `.append(
@@ -344,18 +344,18 @@ export default class AnalyticsDatabaseService<
         if (countBy.limit) {
             statement.append(SQL`
             LIMIT ${{
-                    value: Number(countBy.limit),
-                    type: TableColumnType.Number,
-                }}
+                value: Number(countBy.limit),
+                type: TableColumnType.Number,
+            }}
             `);
         }
 
         if (countBy.skip) {
             statement.append(SQL`
             OFFSET ${{
-                    value: Number(countBy.skip),
-                    type: TableColumnType.Number,
-                }}
+                value: Number(countBy.skip),
+                type: TableColumnType.Number,
+            }}
             `);
         }
         logger.info(`${this.model.tableName} Count Statement`);
@@ -374,22 +374,18 @@ export default class AnalyticsDatabaseService<
 
         const databaseName: string =
             this.database.getDatasourceOptions().database!;
-            let groupByStatement: Statement | null = null;
-            
-            if (findBy.groupBy && Object.keys(findBy.groupBy).length > 0) {
+        let groupByStatement: Statement | null = null;
 
-                // overwrite select object
-                findBy.select = {
-                    ...findBy.groupBy,
-                };
+        if (findBy.groupBy && Object.keys(findBy.groupBy).length > 0) {
+            // overwrite select object
+            findBy.select = {
+                ...findBy.groupBy,
+            };
 
-                groupByStatement = this.statementGenerator.toGroupByStatement(
-                    findBy.groupBy
-                );
-            }
-
-
-
+            groupByStatement = this.statementGenerator.toGroupByStatement(
+                findBy.groupBy
+            );
+        }
 
         const select: { statement: Statement; columns: Array<string> } =
             this.statementGenerator.toSelectStatement(findBy.select!);
@@ -402,20 +398,34 @@ export default class AnalyticsDatabaseService<
 
         const statement: Statement = SQL``;
 
-        statement.append(SQL`
-            SELECT `.append(select.statement));
+        statement.append(
+            SQL`
+            SELECT `.append(select.statement)
+        );
         statement.append(SQL`
             FROM ${databaseName}.${this.model.tableName}`);
-        statement.append(SQL`
-            WHERE TRUE `).append(whereStatement)
+        statement
+            .append(
+                SQL`
+            WHERE TRUE `
+            )
+            .append(whereStatement);
 
         if (groupByStatement) {
-            statement.append(SQL`
-                GROUP BY `).append(groupByStatement)
+            statement
+                .append(
+                    SQL`
+                GROUP BY `
+                )
+                .append(groupByStatement);
         }
 
-        statement.append(SQL`
-            ORDER BY `).append(sortStatement)
+        statement
+            .append(
+                SQL`
+            ORDER BY `
+            )
+            .append(sortStatement);
 
         statement.append(SQL`
             LIMIT ${{
@@ -429,8 +439,6 @@ export default class AnalyticsDatabaseService<
                 type: TableColumnType.Number,
             }}
         `);
-
-
 
         /* eslint-enable prettier/prettier */
 
@@ -596,8 +604,8 @@ export default class AnalyticsDatabaseService<
             statement instanceof Statement
                 ? statement
                 : {
-                    query: statement, // TODO remove and only accept Statements
-                }
+                      query: statement, // TODO remove and only accept Statements
+                  }
         );
     }
 
@@ -699,16 +707,16 @@ export default class AnalyticsDatabaseService<
 
             const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
                 ? {
-                    createBy: {
-                        data: data,
-                        props: createBy.props,
-                    },
-                    carryForward: [],
-                }
+                      createBy: {
+                          data: data,
+                          props: createBy.props,
+                      },
+                      carryForward: [],
+                  }
                 : await this._onBeforeCreate({
-                    data: data,
-                    props: createBy.props,
-                });
+                      data: data,
+                      props: createBy.props,
+                  });
 
             data = onCreate.createBy.data;
 
@@ -810,7 +818,8 @@ export default class AnalyticsDatabaseService<
                     await Promise.allSettled(promises);
                 } else {
                     logger.warn(
-                        `Realtime is not initialized. Skipping emitModelEvent for ${this.getModel().tableName
+                        `Realtime is not initialized. Skipping emitModelEvent for ${
+                            this.getModel().tableName
                         }`
                     );
                 }

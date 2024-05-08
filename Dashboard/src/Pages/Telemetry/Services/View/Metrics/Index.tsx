@@ -12,9 +12,8 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-    
+
     return (
         <Fragment>
             <AnalyticsModelTable<Metric>
@@ -27,7 +26,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                 pluralName="Metrics"
                 name="Metrics"
                 isViewable={true}
-                sortBy='name'
+                sortBy="name"
                 sortOrder={SortOrder.Ascending}
                 cardProps={{
                     title: 'Metrics',
@@ -37,8 +36,8 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                 groupBy={{
                     name: true,
                 }}
-                onViewPage={async (_item: Metric)=>{
-                    return Promise.resolve(new Route(""));
+                onViewPage={async (_item: Metric) => {
+                    return Promise.resolve(new Route(''));
                 }}
                 query={{
                     projectId: DashboardNavigation.getProjectId(),
@@ -55,7 +54,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -64,7 +63,7 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                    }
+                    },
                 ]}
             />
         </Fragment>
