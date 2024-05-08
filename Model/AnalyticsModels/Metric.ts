@@ -15,6 +15,32 @@ export default class Metric extends AnalyticsBaseModel {
             singularName: 'Metric',
             pluralName: 'Metrics',
             crudApiPath: new Route('/metrics'),
+            accessControl: {
+                read: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanReadTelemetryServiceTraces,
+                ],
+                create: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanCreateTelemetryServiceTraces,
+                ],
+                update: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanEditTelemetryServiceTraces,
+                ],
+                delete: [
+                    Permission.ProjectOwner,
+                    Permission.ProjectAdmin,
+                    Permission.ProjectMember,
+                    Permission.CanDeleteTelemetryServiceTraces,
+                ],
+            },
             tableColumns: [
                 new AnalyticsTableColumn({
                     key: 'projectId',
