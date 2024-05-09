@@ -199,7 +199,7 @@ describe('StatementGenerator', () => {
                 createdAt: true,
                 updatedAt: true,
             });
-            expect(statement.query).toBe('{p0:Identifier}, {p1:Identifier}');
+            expect(statement.query).toBe('{p0:Identifier}, {p1:Identifier}, {p2:Identifier}');
             expect(statement.query_params).toStrictEqual({
                 p0: '_id',
                 p1: 'createdAt',
