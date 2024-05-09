@@ -196,13 +196,14 @@ describe('StatementGenerator', () => {
         test('should SELECT multiple columns', () => {
             const { statement, columns } = generator.toSelectStatement({
                 _id: true,
-                createdAt: false,
+                createdAt: true,
                 updatedAt: true,
             });
             expect(statement.query).toBe('{p0:Identifier}, {p1:Identifier}');
             expect(statement.query_params).toStrictEqual({
                 p0: '_id',
-                p1: 'updatedAt',
+                p1: 'createdAt',
+                p2: 'updatedAt',
             });
             expect(columns).toStrictEqual(['_id', 'updatedAt']);
         });
