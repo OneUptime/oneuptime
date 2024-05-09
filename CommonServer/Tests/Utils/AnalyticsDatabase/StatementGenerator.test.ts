@@ -207,7 +207,7 @@ describe('StatementGenerator', () => {
                 p1: 'createdAt',
                 p2: 'updatedAt',
             });
-            expect(columns).toStrictEqual(['_id', 'updatedAt']);
+            expect(columns).toStrictEqual(['_id', 'createdAt', 'updatedAt']);
         });
     });
 
