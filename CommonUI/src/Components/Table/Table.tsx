@@ -8,11 +8,11 @@ import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
-import Filter from '../Filters/Filter';
 import FilterData from '../Filters/Types/FilterData';
-import FilterType from '../Filters/Types/Filter';
+import Filter from '../Filters/Types/Filter';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import GenericObject from 'Common/Types/GenericObject';
+import FilterViewer from '../Filters/FilterViewer';
 
 export interface ComponentProps<T extends GenericObject> {
     data: Array<T>;
@@ -35,11 +35,13 @@ export interface ComponentProps<T extends GenericObject> {
     onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
 
     isFilterLoading?: undefined | boolean;
-    filters?: Array<FilterType<T>>;
-    showFilter?: undefined | boolean;
+    filters?: Array<Filter<T>>;
+    showFilterModal?: undefined | boolean;
     filterError?: string | undefined;
     onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
     onFilterRefreshClick?: undefined | (() => void);
+    onFilterModalClose: () => void;
+    onFilterModalOpen: () => void;
 
     enableDragAndDrop?: boolean | undefined;
     dragDropIndexField?: keyof T | undefined;
@@ -128,14 +130,16 @@ const Table: TableFunction = <T extends GenericObject>(
 
     return (
         <div>
-            <Filter
+            <FilterViewer
                 id={`${props.id}-filter`}
-                showFilter={props.showFilter || false}
+                showFilterModal={props.showFilterModal || false}
                 onFilterChanged={props.onFilterChanged || undefined}
-                isFilterLoading={props.isFilterLoading}
+                isModalLoading={props.isFilterLoading || false}
                 filterError={props.filterError}
                 onFilterRefreshClick={props.onFilterRefreshClick}
                 filters={props.filters || []}
+                onFilterModalClose={props.onFilterModalClose}
+                onFilterModalOpen={props.onFilterModalOpen}
             />
             <DragDropContext
                 onDragEnd={(result: DropResult) => {

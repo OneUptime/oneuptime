@@ -4,14 +4,13 @@ export interface ComponentProps {
     text: string;
 }
 
-type FilterViewerItemComponentFunction =(
+type FilterViewerItemComponentFunction = (
     props: ComponentProps
 ) => ReactElement;
 
 const FilterViewerItem: FilterViewerItemComponentFunction = (
     props: ComponentProps
 ): ReactElement => {
-
     const { text } = props;
 
     return (

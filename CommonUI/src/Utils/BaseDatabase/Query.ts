@@ -7,7 +7,13 @@ import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import GenericObject from 'Common/Types/GenericObject';
 
-type Query<TBaseModel extends BaseModel | AnalyticsBaseModel | JSONObject | GenericObject> = {
+type Query<
+    TBaseModel extends
+        | BaseModel
+        | AnalyticsBaseModel
+        | JSONObject
+        | GenericObject
+> = {
     [P in keyof TBaseModel]?:
         | JSONValue
         | Search

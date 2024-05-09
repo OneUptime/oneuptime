@@ -9,9 +9,9 @@ import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { ListDetailProps } from './ListRow';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import FilterType from '../Filters/Types/Filter';
-import Filter from '../Filters/Filter';
 import FilterData from '../Filters/Types/FilterData';
 import GenericObject from 'Common/Types/GenericObject';
+import FilterViewer from '../Filters/FilterViewer';
 
 export interface ComponentProps<T extends GenericObject> {
     data: Array<T>;
@@ -37,10 +37,12 @@ export interface ComponentProps<T extends GenericObject> {
 
     isFilterLoading?: undefined | boolean;
     filters?: Array<FilterType<T>>;
-    showFilter?: undefined | boolean;
+    showFilterModal?: undefined | boolean;
     filterError?: string | undefined;
     onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
     onFilterRefreshClick?: undefined | (() => void);
+    onFilterModalClose: () => void;
+    onFilterModalOpen: () => void;
 }
 
 type ListFunction = <T extends GenericObject>(
@@ -100,14 +102,16 @@ const List: ListFunction = <T extends GenericObject>(
         <div data-testid="list-container">
             <div className="mt-6">
                 <div className="bg-white pr-6 pl-6">
-                    <Filter
+                    <FilterViewer
                         id={`${props.id}-filter`}
-                        showFilter={props.showFilter || false}
+                        showFilterModal={props.showFilterModal || false}
                         onFilterChanged={props.onFilterChanged || undefined}
-                        isFilterLoading={props.isFilterLoading}
+                        isModalLoading={props.isFilterLoading || false}
                         filterError={props.filterError}
                         onFilterRefreshClick={props.onFilterRefreshClick}
                         filters={props.filters || []}
+                        onFilterModalClose={props.onFilterModalClose}
+                        onFilterModalOpen={props.onFilterModalOpen}
                     />
                 </div>
                 <div className="">

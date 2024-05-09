@@ -255,7 +255,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const [tableFilterError, setTableFilterError] = useState<string>('');
 
     const [showModel, setShowModal] = useState<boolean>(false);
-    const [showFilter, setShowFilter] = useState<boolean>(false);
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
     const [sortBy, setSortBy] = useState<keyof TBaseModel | null>(
         props.sortBy || null
@@ -641,12 +641,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
 
     useEffect(() => {
-        if (showFilter) {
+        if (showFilterModal) {
             getFilterDropdownItems().catch((err: Error) => {
                 setTableFilterError(API.getFriendlyMessage(err));
             });
         }
-    }, [showFilter]);
+    }, [showFilterModal]);
 
     type GetSelectFunction = () => Select<TBaseModel>;
 
@@ -775,11 +775,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
                     : 'py-0 pr-0 pl-1 mt-1',
                 onClick: () => {
-                    const newValue: boolean = !showFilter;
-
                     setQuery({});
-
-                    setShowFilter(newValue);
+                    setShowFilterModal(true);
                 },
                 disabled: isFilterFetchLoading,
                 icon: IconProp.Filter,
@@ -1155,7 +1152,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 filters={classicTableFilters}
                 filterError={tableFilterError}
                 isFilterLoading={isFilterFetchLoading}
-                showFilter={showFilter}
+                showFilterModal={showFilterModal}
+                onFilterModalClose={() => {
+                    setShowFilterModal(false);
+                }}
+                onFilterModalOpen={() => {
+                    setShowFilterModal(true);
+                }}
                 onSortChanged={(
                     sortBy: keyof TBaseModel | null,
                     sortOrder: SortOrder
@@ -1295,7 +1298,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 filters={classicTableFilters}
                 filterError={tableFilterError}
                 isFilterLoading={isFilterFetchLoading}
-                showFilter={showFilter}
+                showFilterModal={showFilterModal}
+                onFilterModalClose={() => {
+                    setShowFilterModal(false);
+                }}
+                onFilterModalOpen={() => {
+                    setShowFilterModal(true);
+                }}
                 singularLabel={
                     props.singularName || model.singularName || 'Item'
                 }

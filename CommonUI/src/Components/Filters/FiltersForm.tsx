@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, { ReactElement } from 'react';
 import Filter from './Types/Filter';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -13,25 +13,21 @@ export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
     id: string;
     showFilter: boolean;
+    filterData: FilterData<T>;
     onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
     isFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
     onFilterRefreshClick?: undefined | (() => void);
 }
 
-type FilterComponentFunction = <T extends GenericObject>(
+type FiltersFormFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ) => ReactElement;
 
-const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
+const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-    // should filter on textboxes and checkboxes.
-    const [filterData, setFilterData] = useState<FilterData<T>>({});
 
-    useEffect(() => {
-        setFilterData({});
-    }, [props.showFilter]);
 
     if (!props.showFilter) {
         return <></>;
@@ -42,7 +38,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     const changeFilterData: ChangeFilterDataFunction = (
         filterData: FilterData<T>
     ): void => {
-        setFilterData(filterData);
+        
         if (props.onFilterChanged) {
             props.onFilterChanged(filterData);
         }
@@ -50,19 +46,6 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
     return (
         <div id={props.id}>
-            <div className="relative">
-                <div
-                    className="absolute inset-0 flex items-center"
-                    aria-hidden="true"
-                >
-                    <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center">
-                    <span className="bg-white px-2 text-sm text-gray-500">
-                        Filter By
-                    </span>
-                </div>
-            </div>
             <div className="pt-3 pb-5">
                 <div className="space-y-5">
                     {props.showFilter &&
@@ -81,25 +64,25 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
                                     <DropdownFilter
                                         filter={filter}
-                                        filterData={filterData}
+                                        filterData={props.filterData}
                                         onFilterChanged={changeFilterData}
                                     />
 
                                     <EntityFilter
                                         filter={filter}
-                                        filterData={filterData}
+                                        filterData={props.filterData}
                                         onFilterChanged={changeFilterData}
                                     />
 
                                     <BooleanFilter
                                         filter={filter}
-                                        filterData={filterData}
+                                        filterData={props.filterData}
                                         onFilterChanged={changeFilterData}
                                     />
 
                                     <TextFilter
                                         filter={filter}
-                                        filterData={filterData}
+                                        filterData={props.filterData}
                                         onFilterChanged={changeFilterData}
                                     />
                                 </div>
@@ -121,4 +104,4 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     );
 };
 
-export default FilterComponent;
+export default FiltersForm;
