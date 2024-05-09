@@ -22,16 +22,17 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
     const filterData: FilterData<T> = { ...props.filterData };
     
 
-    const dropdownValues: Array<DropdownOption> = props.filter.filterDropdownOptions?.find(
+    const dropdownValues: Array<DropdownOption> = props.filter.filterDropdownOptions?.filter(
         (option: DropdownOption) => {
 
             if(filterData[filter.key] instanceof Array){
-                return (filterData[filter.key] as Array<Drop).map((value: DropdownOption) => value.toString()).includes(option.value.toString());
+
+                return (filterData[filter.key] as Array<string>).map((value: string) => value.toString()).includes(option.value.toString());
             }
 
             return option.value.toString() === filterData[filter.key]?.toString();
         }
-    );
+    ) || [];
 
     if (
         (filter.type === FieldType.Entity ||
@@ -61,6 +62,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
                         props.onFilterChanged(filterData);
                     }
                 }}
+                value={dropdownValues}
                 isMultiSelect={filter.type === FieldType.EntityArray}
                 placeholder={`Filter by ${filter.title}`}
             />

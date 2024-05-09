@@ -24,7 +24,7 @@ export interface ComponentProps {
     onChange?:
         | undefined
         | ((value: DropdownValue | Array<DropdownValue> | null) => void);
-    value?: DropdownOption | undefined;
+    value?: DropdownOption | Array<DropdownOption> | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
     isMultiSelect?: boolean;
