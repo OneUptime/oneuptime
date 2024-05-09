@@ -7,6 +7,7 @@ import FilterData from './Types/FilterData';
 import EntityFilter from './EntityFilter';
 import BooleanFilter from './BooleanFilter';
 import TextFilter from './TextFilter';
+import DropdownFilter from './DropdownFilter';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
@@ -36,7 +37,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         return <></>;
     }
 
-    const changeFilterData = (filterData: FilterData<T>) => {
+    type ChangeFilterDataFunction = (filterData: FilterData<T>) => void;
+
+    const changeFilterData: ChangeFilterDataFunction = (
+        filterData: FilterData<T>
+    ): void => {
         setFilterData(filterData);
         if (props.onFilterChanged) {
             props.onFilterChanged(filterData);
@@ -74,16 +79,24 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                         {filter.title}
                                     </label>
 
+                                    <DropdownFilter
+                                        filter={filter}
+                                        filterData={filterData}
+                                        onFilterChanged={changeFilterData}
+                                    />
+
                                     <EntityFilter
                                         filter={filter}
                                         filterData={filterData}
                                         onFilterChanged={changeFilterData}
                                     />
+
                                     <BooleanFilter
                                         filter={filter}
                                         filterData={filterData}
                                         onFilterChanged={changeFilterData}
                                     />
+
                                     <TextFilter
                                         filter={filter}
                                         filterData={filterData}

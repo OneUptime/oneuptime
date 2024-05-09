@@ -11,19 +11,19 @@ export interface ComponentProps<T extends GenericObject> {
     filterData: FilterData<T>;
 }
 
-type EntityFilterFunction = <T extends GenericObject>(
+type DropdownFilterFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ) => ReactElement;
 
-const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
+const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const filter: Filter<T> = props.filter;
     const filterData: FilterData<T> = { ...props.filterData };
 
     if (
-        (filter.type === FieldType.Entity ||
-            filter.type === FieldType.EntityArray) &&
+        filter.type !== FieldType.Entity &&
+        filter.type !== FieldType.EntityArray &&
         filter.filterDropdownOptions
     ) {
         return (
@@ -49,7 +49,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
                         props.onFilterChanged(filterData);
                     }
                 }}
-                isMultiSelect={filter.type === FieldType.EntityArray}
+                isMultiSelect={false}
                 placeholder={`Filter by ${filter.title}`}
             />
         );
@@ -58,4 +58,4 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
     return <></>;
 };
 
-export default EntityFilter;
+export default DropdownFilter;

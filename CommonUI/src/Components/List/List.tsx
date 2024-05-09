@@ -9,7 +9,8 @@ import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { ListDetailProps } from './ListRow';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import FilterType from '../Filters/Types/Filter';
-import Filter, { FilterData } from '../Filters/Filter';
+import Filter from '../Filters/Filter';
+import FilterData from '../Filters/Types/FilterData';
 import GenericObject from 'Common/Types/GenericObject';
 
 export interface ComponentProps<T extends GenericObject> {

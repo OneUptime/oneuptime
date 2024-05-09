@@ -74,10 +74,10 @@ import {
 } from 'Common/Types/FunctionTypes';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import SelectEntityField from '../../Types/SelectEntityField';
-import { FilterData } from '../Filters/Filter';
 import ClassicFilterType from '../Filters/Types/Filter';
 import { getRefreshButton } from '../Card/CardButtons/Refresh';
 import GroupBy from '../../Utils/BaseDatabase/GroupBy';
+import FilterData from '../Filters/Types/FilterData';
 
 export enum ShowAs {
     Table,
