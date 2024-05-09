@@ -5,8 +5,9 @@ import NotNull from 'Common/Types/BaseDatabase/NotNull';
 import Search from 'Common/Types/BaseDatabase/Search';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import GenericObject from 'Common/Types/GenericObject';
 
-type Query<TBaseModel extends BaseModel | AnalyticsBaseModel | JSONObject> = {
+type Query<TBaseModel extends BaseModel | AnalyticsBaseModel | JSONObject | GenericObject> = {
     [P in keyof TBaseModel]?:
         | JSONValue
         | Search
