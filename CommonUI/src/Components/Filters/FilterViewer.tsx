@@ -9,7 +9,6 @@ import Button, { ButtonStyleType } from '../Button/Button';
 import Modal, { ModalWidth } from '../Modal/Modal';
 import FiltersForm from './FiltersForm';
 
-
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
     id: string;
@@ -30,7 +29,9 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
     const [filterData, setFilterData] = useState<FilterData<T>>({});
-    const [tempFilterDataForModal, setTempFilterDataForModal] = useState<FilterData<T>>({});
+    const [tempFilterDataForModal, setTempFilterDataForModal] = useState<
+        FilterData<T>
+    >({});
 
     const filterTexts: Array<string> = FilterUtil.translateFilterToText({
         filters: props.filters,
@@ -49,10 +50,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     const showViewer: boolean = filterTexts.length > 0;
 
     useEffect(() => {
-        if(props.showFilterModal){
-            setTempFilterDataForModal({...filterData});
+        if (props.showFilterModal) {
+            setTempFilterDataForModal({ ...filterData });
         }
-    },[props.showFilterModal]);
+    }, [props.showFilterModal]);
 
     return (
         <div>
@@ -133,10 +134,12 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                         props.onFilterModalClose();
                     }}
                     onSubmit={() => {
-                        setFilterData({...tempFilterDataForModal});
+                        setFilterData({ ...tempFilterDataForModal });
                         setTempFilterDataForModal({});
                         if (props.onFilterChanged) {
-                            props.onFilterChanged({...tempFilterDataForModal});
+                            props.onFilterChanged({
+                                ...tempFilterDataForModal,
+                            });
                         }
                         props.onFilterModalClose();
                     }}
@@ -147,7 +150,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                         filters={props.filters}
                         id={props.id + '-form'}
                         showFilter={true}
-                        onFilterChanged={(filterData: FilterData<T>)=>{
+                        onFilterChanged={(filterData: FilterData<T>) => {
                             setTempFilterDataForModal(filterData);
                         }}
                     />

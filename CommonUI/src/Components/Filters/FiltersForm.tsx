@@ -27,8 +27,6 @@ type FiltersFormFunction = <T extends GenericObject>(
 const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-
-
     if (!props.showFilter) {
         return <></>;
     }
@@ -38,7 +36,6 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
     const changeFilterData: ChangeFilterDataFunction = (
         filterData: FilterData<T>
     ): void => {
-        
         if (props.onFilterChanged) {
             props.onFilterChanged(filterData);
         }
