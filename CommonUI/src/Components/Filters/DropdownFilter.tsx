@@ -1,5 +1,5 @@
 import React, { ReactElement } from 'react';
-import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
+import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
 import Filter from './Types/Filter';
 import GenericObject from 'Common/Types/GenericObject';
 import FieldType from '../Types/FieldType';
@@ -18,9 +18,18 @@ type DropdownFilterFunction = <T extends GenericObject>(
 const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
+
+
+
     const filter: Filter<T> = props.filter;
     const filterData: FilterData<T> = { ...props.filterData };
 
+    const dropdownValue: DropdownOption | undefined = props.filter.filterDropdownOptions?.find(
+        (option: DropdownOption) => {
+            return option.value.toString() === filterData[filter.key]?.toString();
+        }
+    );
+    
     if (
         filter.type !== FieldType.Entity &&
         filter.type !== FieldType.EntityArray &&
@@ -49,6 +58,7 @@ const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
                         props.onFilterChanged(filterData);
                     }
                 }}
+                value={dropdownValue}
                 isMultiSelect={false}
                 placeholder={`Filter by ${filter.title}`}
             />

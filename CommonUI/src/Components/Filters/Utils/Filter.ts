@@ -3,6 +3,7 @@ import Filter from '../Types/Filter';
 import FilterData from '../Types/FilterData';
 import FieldType from '../../Types/FieldType';
 import Search from 'Common/Types/BaseDatabase/Search';
+import OneUptimeDate from 'Common/Types/Date';
 
 export default class FilterUtil {
     public static translateFilterToText<T extends GenericObject>(data: {
@@ -71,6 +72,49 @@ export default class FilterUtil {
                     data.filter.key
                 ]?.toString()}`;
             }
+            return filterText;
+        }
+
+
+        if(data.filter.type === FieldType.Date || data.filter.type === FieldType.DateTime) {
+            const key = data.filter.key;
+
+
+            let date: Date | string = data.filterData[key] as Date;
+
+            if(typeof date === 'string') {
+                date = OneUptimeDate.fromString(date);
+            }
+
+            if(data.filterData[key] && date instanceof Date) {
+                filterText = `${data.filter.title} is ${OneUptimeDate.getDateAsLocalFormattedString(date)}`;
+            }
+
+            return filterText;
+        }
+
+        if(data.filter.type === FieldType.Dropdown || data.filter.type === FieldType.Entity || data.filter.type === FieldType.EntityArray) {
+            const key = data.filter.key;
+            
+            if(data.filterData[key] && data.filterData[key] instanceof Array) {
+                filterText = `${data.filter.title} is any of these values: ${(data.filterData[key] as Array<string>).map((item: string)=>{
+                    // item is the id of the entity. We need to find the name of the entity from the list of entities.
+
+                    const entity = data.filter.filterDropdownOptions?.find((entity)=>{
+                        return entity.value.toString() === item.toString();
+                    });
+
+                    if(entity) {
+                        return entity.label.toString();
+                    }
+
+                    return null;
+
+                }).filter((item)=>{
+                    return item !== null;
+                }).join(', ')}`;
+            }
+
             return filterText;
         }
 

@@ -8,6 +8,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Button, { ButtonStyleType } from '../Button/Button';
 import Modal, { ModalWidth } from '../Modal/Modal';
 import FiltersForm from './FiltersForm';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
@@ -59,20 +60,15 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         <div>
             {showViewer && (
                 <div>
-                    <div className="relative">
-                        <div
-                            className="absolute inset-0 flex items-center"
-                            aria-hidden="true"
-                        >
-                            <div className="w-full border-t border-gray-300"></div>
+
+                    <div className="mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
+                        <div className="flex w-full mb-3 -mt-1">
+                            <div className="flex">
+                                <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                                    <span className="font-medium text-gray-400">FILTER BY</span>{' '}
+                                </div>
+                            </div>
                         </div>
-                        <div className="relative flex justify-center">
-                            <span className="bg-white px-2 text-sm text-gray-500">
-                                Filter By
-                            </span>
-                        </div>
-                    </div>
-                    <div className="ml-5 mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
                         <ul role="list" className="space-y-6">
                             {filterTexts.map(
                                 (filterText: string, index: number) => {
@@ -100,26 +96,34 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                 }
                             )}
                         </ul>
+
+                        <div className='flex -ml-3 mt-3 -mb-2'>
+                            {/** Edit Filter Button */}
+                            <Button
+                                className='font-medium text-gray-900'
+                                icon={IconProp.Filter}
+                                onClick={props.onFilterModalOpen}
+                                title="Edit Filters"
+                                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                            />
+
+                            {/** Clear Filter Button */}
+                            <Button
+                                onClick={() => {
+                                    changeFilterData({});
+                                    props.onFilterModalClose();
+                                }}
+                                className='font-medium text-gray-900'
+                                icon={IconProp.Close}
+                                title="Clear Filters"
+                                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                            />
+
+                            
+                        </div>
                     </div>
 
-                    <div>
-                        {/** Clear Filter Button */}
-                        <Button
-                            onClick={() => {
-                                changeFilterData({});
-                                props.onFilterModalClose();
-                            }}
-                            title="Clear Filters"
-                            buttonStyle={ButtonStyleType.LINK}
-                        />
 
-                        {/** Edit Filter Button */}
-                        <Button
-                            onClick={props.onFilterModalOpen}
-                            title="Edit Filters"
-                            buttonStyle={ButtonStyleType.LINK}
-                        />
-                    </div>
                 </div>
             )}
 

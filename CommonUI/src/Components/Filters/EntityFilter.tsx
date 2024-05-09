@@ -1,5 +1,5 @@
 import React, { ReactElement } from 'react';
-import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
+import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
 import Filter from './Types/Filter';
 import GenericObject from 'Common/Types/GenericObject';
 import FieldType from '../Types/FieldType';
@@ -20,6 +20,18 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
 ): ReactElement => {
     const filter: Filter<T> = props.filter;
     const filterData: FilterData<T> = { ...props.filterData };
+    
+
+    const dropdownValues: Array<DropdownOption> = props.filter.filterDropdownOptions?.find(
+        (option: DropdownOption) => {
+
+            if(filterData[filter.key] instanceof Array){
+                return (filterData[filter.key] as Array<Drop).map((value: DropdownOption) => value.toString()).includes(option.value.toString());
+            }
+
+            return option.value.toString() === filterData[filter.key]?.toString();
+        }
+    );
 
     if (
         (filter.type === FieldType.Entity ||
