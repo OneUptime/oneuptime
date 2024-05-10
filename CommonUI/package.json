@@ -26,7 +26,7 @@
         "@opentelemetry/instrumentation-xml-http-request": "^0.50.0",
         "@opentelemetry/resources": "^1.23.0",
         "@opentelemetry/sdk-trace-web": "^1.23.0",
-        "@opentelemetry/semantic-conventions": "^1.21.0",
+        "@opentelemetry/semantic-conventions": "^1.23.0",
         "@tippyjs/react": "^4.2.6",
         "@types/react-highlight": "^0.12.8",
         "Common": "file:../Common",
