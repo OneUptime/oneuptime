@@ -2,13 +2,18 @@ import React, { ReactElement, useEffect, useState } from 'react';
 import Filter from './Types/Filter';
 import GenericObject from 'Common/Types/GenericObject';
 import FilterData from './Types/FilterData';
-import FilterUtil from './Utils/Filter';
 import FilterViewerItem from './FilterViewerItem';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Button, { ButtonStyleType } from '../Button/Button';
 import Modal, { ModalWidth } from '../Modal/Modal';
 import FiltersForm from './FiltersForm';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { SizeProp } from '../Icon/Icon';
+import Search from 'Common/Types/BaseDatabase/Search';
+import OneUptimeDate from 'Common/Types/Date';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
+import FieldType from '../Types/FieldType';
+import { DropdownOption } from '../Dropdown/Dropdown';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
@@ -34,7 +39,246 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         FilterData<T>
     >({});
 
-    const filterTexts: Array<string> = FilterUtil.translateFilterToText({
+    type ChangeFilterDataFunction = (filterData: FilterData<T>) => void;
+
+    const changeFilterData: ChangeFilterDataFunction = (
+        filterData: FilterData<T>
+    ) => {
+        setFilterData(filterData);
+        setTempFilterDataForModal(filterData);
+        props.onFilterChanged?.(filterData);
+    };
+
+    useEffect(() => {
+        if (props.showFilterModal) {
+            setTempFilterDataForModal({ ...filterData });
+        }
+    }, [props.showFilterModal]);
+
+    type TranslateFilterToTextFunction = <T extends GenericObject>(data: {
+        filters: Array<Filter<T>>;
+        filterData: FilterData<T>;
+    }) => Array<ReactElement>;
+
+    const translateFilterToText: TranslateFilterToTextFunction = <
+        T extends GenericObject
+    >(data: {
+        filters: Array<Filter<T>>;
+        filterData: FilterData<T>;
+    }): Array<ReactElement> => {
+        const filterTexts: Array<ReactElement | null> = [];
+
+        for (const filter of data.filters) {
+            filterTexts.push(
+                translateFilterItemToText({
+                    filter: filter,
+                    filterData: data.filterData,
+                })
+            );
+        }
+
+        return filterTexts.filter((filterText: ReactElement | null) => {
+            return filterText !== null;
+        }) as Array<ReactElement>;
+    };
+
+    type TranslateFilterItemToTextFunction = <T extends GenericObject>(data: {
+        filter: Filter<T>;
+        filterData: FilterData<T>;
+    }) => ReactElement | null;
+
+    const translateFilterItemToText: TranslateFilterItemToTextFunction = <
+        T extends GenericObject
+    >(data: {
+        filter: Filter<T>;
+        filterData: FilterData<T>;
+    }): ReactElement | null => {
+        let filterText: ReactElement = <></>;
+
+        if (!data.filter.key) {
+            return null;
+        }
+
+        if (
+            data.filterData[data.filter.key] === undefined ||
+            data.filterData[data.filter.key] === null
+        ) {
+            return null;
+        }
+
+        if (data.filter.type === FieldType.Boolean) {
+            filterText = (
+                <div>
+                    {' '}
+                    <span className="font-medium">
+                        {data.filter.title}
+                    </span> is{' '}
+                    <span className="font-medium">
+                        {data.filterData[data.filter.key] ? 'Yes' : 'No'}
+                    </span>{' '}
+                </div>
+            );
+            return filterText;
+        }
+
+        if (
+            data.filter.type === FieldType.Text ||
+            data.filter.type === FieldType.Number ||
+            data.filter.type === FieldType.Email ||
+            data.filter.type === FieldType.Phone ||
+            data.filter.type === FieldType.URL ||
+            data.filter.type === FieldType.Hostname
+        ) {
+            const key: keyof T = data.filter.key;
+
+            if (
+                data.filterData[key] &&
+                data.filterData[key] instanceof Search
+            ) {
+                filterText = (
+                    <div>
+                        {' '}
+                        <span className="font-medium">
+                            {data.filter.title}
+                        </span>{' '}
+                        contains{' '}
+                        <span className="font-medium">
+                            {data.filterData[data.filter.key]?.toString()}
+                        </span>{' '}
+                    </div>
+                );
+            } else if (data.filterData[key]) {
+                filterText = (
+                    <div>
+                        {' '}
+                        <span className="font-medium">
+                            {data.filter.title}
+                        </span>{' '}
+                        is{' '}
+                        <span className="font-medium">
+                            {data.filterData[data.filter.key]?.toString()}
+                        </span>{' '}
+                    </div>
+                );
+            }
+            return filterText;
+        }
+
+        if (
+            data.filter.type === FieldType.Date ||
+            data.filter.type === FieldType.DateTime
+        ) {
+            const key: keyof T = data.filter.key;
+
+            const startAndEndDates: InBetween = data.filterData[
+                key
+            ] as InBetween;
+
+            if (
+                OneUptimeDate.getDateAsLocalFormattedString(
+                    startAndEndDates.startValue as Date,
+                    data.filter.type === FieldType.Date
+                ) ===
+                OneUptimeDate.getDateAsLocalFormattedString(
+                    startAndEndDates.endValue as Date,
+                    data.filter.type === FieldType.Date
+                )
+            ) {
+                return (
+                    <div>
+                        {' '}
+                        <span className="font-medium">
+                            {data.filter.title}
+                        </span>{' '}
+                        at{' '}
+                        <span className="font-medium">
+                            {OneUptimeDate.getDateAsLocalFormattedString(
+                                startAndEndDates.startValue as Date,
+                                data.filter.type === FieldType.Date
+                            )}
+                        </span>{' '}
+                    </div>
+                );
+            }
+            return (
+                <div>
+                    {' '}
+                    <span className="font-medium">{data.filter.title}</span> is
+                    in between{' '}
+                    <span className="font-medium">
+                        {OneUptimeDate.getDateAsLocalFormattedString(
+                            startAndEndDates.startValue as Date,
+                            data.filter.type === FieldType.Date
+                        )}
+                    </span>{' '}
+                    and{' '}
+                    <span className="font-medium">
+                        {OneUptimeDate.getDateAsLocalFormattedString(
+                            startAndEndDates.endValue as Date,
+                            data.filter.type === FieldType.Date
+                        )}
+                    </span>{' '}
+                </div>
+            );
+        }
+
+        if (
+            data.filter.type === FieldType.Dropdown ||
+            data.filter.type === FieldType.Entity ||
+            data.filter.type === FieldType.EntityArray
+        ) {
+            const key: keyof T = data.filter.key;
+
+            let items: Array<string> = data.filterData[key] as Array<string>;
+
+            if (typeof items === 'string') {
+                items = [items];
+            }
+
+            const isMoreItems: boolean = items.length > 1;
+
+            if (items && items instanceof Array) {
+                const entityNames: string = (items as Array<string>)
+                    .map((item: string) => {
+                        // item is the id of the entity. We need to find the name of the entity from the list of entities.
+
+                        const entity: DropdownOption | undefined =
+                            data.filter.filterDropdownOptions?.find(
+                                (entity: DropdownOption | undefined) => {
+                                    return (
+                                        entity?.value.toString() ===
+                                        item.toString()
+                                    );
+                                }
+                            );
+
+                        if (entity) {
+                            return entity.label.toString();
+                        }
+
+                        return null;
+                    })
+                    .filter((item: string | null) => {
+                        return item !== null;
+                    })
+                    .join(', ');
+
+                return (
+                    <div>
+                        <span className="font-medium">{data.filter.title}</span>
+                        {isMoreItems ? ' is any of these values: ' : ' is '}
+                        <span className="font-medium">{entityNames}</span>
+                    </div>
+                );
+            }
+
+            return filterText;
+        }
+
+        return filterText;
+    };
+
+    const filterTexts: Array<ReactElement> = translateFilterToText({
         filters: props.filters,
         filterData: filterData,
     });
@@ -43,40 +287,30 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         return <ErrorMessage error={props.filterError} />;
     }
 
-    const changeFilterData = (filterData: FilterData<T>) => {
-        setFilterData(filterData);
-        setTempFilterDataForModal(filterData);
-    };
-
     const showViewer: boolean = filterTexts.length > 0;
-
-    useEffect(() => {
-        if (props.showFilterModal) {
-            setTempFilterDataForModal({ ...filterData });
-        }
-    }, [props.showFilterModal]);
 
     return (
         <div>
             {showViewer && (
                 <div>
-
                     <div className="mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
                         <div className="flex w-full mb-3 -mt-1">
                             <div className="flex">
                                 <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                                    <span className="font-medium text-gray-400">FILTER BY</span>{' '}
+                                    <span className="font-medium text-gray-400">
+                                        FILTER BY
+                                    </span>{' '}
                                 </div>
                             </div>
                         </div>
-                        <ul role="list" className="space-y-6">
+                        <ul role="list" className="space-y-3">
                             {filterTexts.map(
-                                (filterText: string, index: number) => {
+                                (filterText: ReactElement, index: number) => {
                                     const isLastItem: boolean =
                                         index === filterTexts.length - 1;
                                     return (
                                         <li
-                                            className="relative flex gap-x-4"
+                                            className="relative flex gap-x-2"
                                             key={index}
                                         >
                                             {!isLastItem && (
@@ -97,13 +331,14 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                             )}
                         </ul>
 
-                        <div className='flex -ml-3 mt-3 -mb-2'>
+                        <div className="flex -ml-3 mt-3 -mb-2">
                             {/** Edit Filter Button */}
                             <Button
-                                className='font-medium text-gray-900'
+                                className="font-medium text-gray-900"
                                 icon={IconProp.Filter}
                                 onClick={props.onFilterModalOpen}
                                 title="Edit Filters"
+                                iconSize={SizeProp.Smaller}
                                 buttonStyle={ButtonStyleType.SECONDARY_LINK}
                             />
 
@@ -113,17 +348,13 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                     changeFilterData({});
                                     props.onFilterModalClose();
                                 }}
-                                className='font-medium text-gray-900'
+                                className="font-medium text-gray-900"
                                 icon={IconProp.Close}
                                 title="Clear Filters"
                                 buttonStyle={ButtonStyleType.SECONDARY_LINK}
                             />
-
-                            
                         </div>
                     </div>
-
-
                 </div>
             )}
 

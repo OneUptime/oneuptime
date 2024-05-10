@@ -20,19 +20,21 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
 ): ReactElement => {
     const filter: Filter<T> = props.filter;
     const filterData: FilterData<T> = { ...props.filterData };
-    
 
-    const dropdownValues: Array<DropdownOption> = props.filter.filterDropdownOptions?.filter(
-        (option: DropdownOption) => {
-
-            if(filterData[filter.key] instanceof Array){
-
-                return (filterData[filter.key] as Array<string>).map((value: string) => value.toString()).includes(option.value.toString());
+    const dropdownValues: Array<DropdownOption> =
+        props.filter.filterDropdownOptions?.filter((option: DropdownOption) => {
+            if (filterData[filter.key] instanceof Array) {
+                return (filterData[filter.key] as Array<string>)
+                    .map((value: string) => {
+                        return value.toString();
+                    })
+                    .includes(option.value.toString());
             }
 
-            return option.value.toString() === filterData[filter.key]?.toString();
-        }
-    ) || [];
+            return (
+                option.value.toString() === filterData[filter.key]?.toString()
+            );
+        }) || [];
 
     if (
         (filter.type === FieldType.Entity ||

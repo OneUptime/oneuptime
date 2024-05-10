@@ -41,8 +41,8 @@ export interface ComponentProps<T extends GenericObject> {
     filterError?: string | undefined;
     onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
     onFilterRefreshClick?: undefined | (() => void);
-    onFilterModalClose: () => void;
-    onFilterModalOpen: () => void;
+    onFilterModalClose?: (() => void) | undefined;
+    onFilterModalOpen?: (() => void) | undefined;
 }
 
 type ListFunction = <T extends GenericObject>(
@@ -110,8 +110,14 @@ const List: ListFunction = <T extends GenericObject>(
                         filterError={props.filterError}
                         onFilterRefreshClick={props.onFilterRefreshClick}
                         filters={props.filters || []}
-                        onFilterModalClose={props.onFilterModalClose}
-                        onFilterModalOpen={props.onFilterModalOpen}
+                        onFilterModalClose={() => {
+                            props.onFilterModalClose &&
+                                props.onFilterModalClose();
+                        }}
+                        onFilterModalOpen={() => {
+                            props.onFilterModalOpen &&
+                                props.onFilterModalOpen();
+                        }}
                     />
                 </div>
                 <div className="">

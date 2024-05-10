@@ -18,18 +18,16 @@ type DropdownFilterFunction = <T extends GenericObject>(
 const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-
-
-
     const filter: Filter<T> = props.filter;
     const filterData: FilterData<T> = { ...props.filterData };
 
-    const dropdownValue: DropdownOption | undefined = props.filter.filterDropdownOptions?.find(
-        (option: DropdownOption) => {
-            return option.value.toString() === filterData[filter.key]?.toString();
-        }
-    );
-    
+    const dropdownValue: DropdownOption | undefined =
+        props.filter.filterDropdownOptions?.find((option: DropdownOption) => {
+            return (
+                option.value.toString() === filterData[filter.key]?.toString()
+            );
+        });
+
     if (
         filter.type !== FieldType.Entity &&
         filter.type !== FieldType.EntityArray &&
