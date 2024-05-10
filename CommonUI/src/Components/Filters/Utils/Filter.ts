@@ -4,6 +4,7 @@ import FilterData from '../Types/FilterData';
 import FieldType from '../../Types/FieldType';
 import Search from 'Common/Types/BaseDatabase/Search';
 import OneUptimeDate from 'Common/Types/Date';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 
 export default class FilterUtil {
     public static translateFilterToText<T extends GenericObject>(data: {
@@ -44,9 +45,8 @@ export default class FilterUtil {
         }
 
         if (data.filter.type === FieldType.Boolean) {
-            filterText = `${data.filter.title} is ${
-                data.filterData[data.filter.key] ? 'Yes' : 'No'
-            }`;
+            filterText = `${data.filter.title} is ${data.filterData[data.filter.key] ? 'Yes' : 'No'
+                }`;
             return filterText;
         }
 
@@ -76,41 +76,36 @@ export default class FilterUtil {
         }
 
 
-        if(data.filter.type === FieldType.Date || data.filter.type === FieldType.DateTime) {
+        if (data.filter.type === FieldType.Date || data.filter.type === FieldType.DateTime) {
             const key = data.filter.key;
 
+            let startAndEndDates: InBetween = data.filterData[key] as InBetween;
 
-            let date: Date | string = data.filterData[key] as Date;
-
-            if(typeof date === 'string') {
-                date = OneUptimeDate.fromString(date);
+            if (OneUptimeDate.getDateAsLocalFormattedString(startAndEndDates.startValue as Date, data.filter.type === FieldType.Date) === OneUptimeDate.getDateAsLocalFormattedString(startAndEndDates.endValue as Date, data.filter.type === FieldType.Date)) {
+                return `${data.filter.title} is ${OneUptimeDate.getDateAsLocalFormattedString(startAndEndDates.startValue as Date, data.filter.type === FieldType.Date)}`;
+            } else {
+                return `${data.filter.title} is in between ${OneUptimeDate.getDateAsLocalFormattedString(startAndEndDates.startValue as Date, data.filter.type === FieldType.Date)} and ${OneUptimeDate.getDateAsLocalFormattedString(startAndEndDates.endValue as Date, data.filter.type === FieldType.Date)}`;
             }
-
-            if(data.filterData[key] && date instanceof Date) {
-                filterText = `${data.filter.title} is ${OneUptimeDate.getDateAsLocalFormattedString(date)}`;
-            }
-
-            return filterText;
         }
 
-        if(data.filter.type === FieldType.Dropdown || data.filter.type === FieldType.Entity || data.filter.type === FieldType.EntityArray) {
+        if (data.filter.type === FieldType.Dropdown || data.filter.type === FieldType.Entity || data.filter.type === FieldType.EntityArray) {
             const key = data.filter.key;
-            
-            if(data.filterData[key] && data.filterData[key] instanceof Array) {
-                filterText = `${data.filter.title} is any of these values: ${(data.filterData[key] as Array<string>).map((item: string)=>{
+
+            if (data.filterData[key] && data.filterData[key] instanceof Array) {
+                filterText = `${data.filter.title} is any of these values: ${(data.filterData[key] as Array<string>).map((item: string) => {
                     // item is the id of the entity. We need to find the name of the entity from the list of entities.
 
-                    const entity = data.filter.filterDropdownOptions?.find((entity)=>{
+                    const entity = data.filter.filterDropdownOptions?.find((entity) => {
                         return entity.value.toString() === item.toString();
                     });
 
-                    if(entity) {
+                    if (entity) {
                         return entity.label.toString();
                     }
 
                     return null;
 
-                }).filter((item)=>{
+                }).filter((item) => {
                     return item !== null;
                 }).join(', ')}`;
             }
