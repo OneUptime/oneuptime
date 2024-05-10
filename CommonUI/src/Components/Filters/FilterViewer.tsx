@@ -17,6 +17,8 @@ import { DropdownOption } from '../Dropdown/Dropdown';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
+    singularLabel?: string;
+    pluralLabel?: string;
     id: string;
     showFilterModal: boolean;
     onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
@@ -298,7 +300,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                             <div className="flex">
                                 <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
                                     <span className="font-semibold text-sm text-gray-400">
-                                        FILTER BY
+                                        FILTER{' '}
+                                        {props.pluralLabel?.toUpperCase() +
+                                            ' ' || ''}
+                                        BY
                                     </span>{' '}
                                 </div>
                             </div>
@@ -362,9 +367,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 <Modal
                     modalWidth={ModalWidth.Large}
                     isLoading={props.isModalLoading}
-                    title="Filters"
-                    description="Select Filters"
-                    submitButtonText="Filter"
+                    title={`${props.singularLabel + ' ' || ''}Filters`}
+                    description={`Filter ${
+                        props.pluralLabel || ''
+                    } by the following criteria:`}
+                    submitButtonText={`Apply Filters`}
                     onClose={() => {
                         props.onFilterModalClose();
                     }}

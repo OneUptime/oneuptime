@@ -118,6 +118,8 @@ const List: ListFunction = <T extends GenericObject>(
                             props.onFilterModalOpen &&
                                 props.onFilterModalOpen();
                         }}
+                        singularLabel={props.singularLabel}
+                        pluralLabel={props.pluralLabel}
                     />
                 </div>
                 <div className="">

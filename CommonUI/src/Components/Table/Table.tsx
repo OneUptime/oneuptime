@@ -140,6 +140,8 @@ const Table: TableFunction = <T extends GenericObject>(
                 filters={props.filters || []}
                 onFilterModalClose={props.onFilterModalClose}
                 onFilterModalOpen={props.onFilterModalOpen}
+                singularLabel={props.singularLabel}
+                pluralLabel={props.pluralLabel}
             />
             <DragDropContext
                 onDragEnd={(result: DropResult) => {
