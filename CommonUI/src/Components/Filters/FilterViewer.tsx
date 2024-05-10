@@ -299,7 +299,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                         <div className="flex w-full mb-3 -mt-1">
                             <div className="flex">
                                 <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                                    <span className="font-semibold text-sm text-gray-400">
+                                    <span className="font-semibold text-xs text-gray-400">
                                         FILTER{' '}
                                         {props.pluralLabel?.toUpperCase() +
                                             ' ' || ''}
