@@ -196,12 +196,7 @@ describe('AnalyticsDatabaseService', () => {
             );
 
             expect(statement.query).toBe(
-                'SELECT <select-statement>\n' +
-                    'FROM {p0:Identifier}.{p1:Identifier}\n' +
-                    'WHERE TRUE <where-statement>\n' +
-                    'ORDER BY <sort-statement>\n' +
-                    'LIMIT {p2:Int32}\n' +
-                    'OFFSET {p3:Int32}'
+                'SELECT <select-statement> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where-statement> ORDER BY <sort-statement> LIMIT {p2:Int32} OFFSET {p3:Int32}'
             );
             expect(statement.query_params).toStrictEqual({
                 p0: 'oneuptime',

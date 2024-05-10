@@ -398,46 +398,27 @@ export default class AnalyticsDatabaseService<
 
         const statement: Statement = SQL``;
 
-        statement.append(
-            SQL`
-            SELECT `.append(select.statement)
-        );
-        statement.append(SQL`
-            FROM ${databaseName}.${this.model.tableName}`);
-        statement
-            .append(
-                SQL`
-            WHERE TRUE `
-            )
-            .append(whereStatement);
+        statement.append(SQL`SELECT `.append(select.statement));
+        statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
+        statement.append(SQL` WHERE TRUE `).append(whereStatement);
 
         if (groupByStatement) {
-            statement
-                .append(
-                    SQL`
-                GROUP BY `
-                )
-                .append(groupByStatement);
+            statement.append(SQL` GROUP BY `).append(groupByStatement);
         }
 
-        statement
-            .append(
-                SQL`
-            ORDER BY `
-            )
-            .append(sortStatement);
+        statement.append(SQL` ORDER BY `).append(sortStatement);
 
-        statement.append(SQL`
-            LIMIT ${{
+        statement.append(
+            SQL` LIMIT ${{
                 value: Number(findBy.limit),
                 type: TableColumnType.Number,
-            }}`);
+            }}`
+        );
 
-        statement.append(SQL`   
-            OFFSET ${{
-                value: Number(findBy.skip),
-                type: TableColumnType.Number,
-            }}
+        statement.append(SQL` OFFSET ${{
+            value: Number(findBy.skip),
+            type: TableColumnType.Number,
+        }}
         `);
 
         /* eslint-enable prettier/prettier */
