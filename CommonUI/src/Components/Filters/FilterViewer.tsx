@@ -364,7 +364,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                     isLoading={props.isModalLoading}
                     title="Filters"
                     description="Select Filters"
-                    submitButtonText="Save"
+                    submitButtonText="Filter"
                     onClose={() => {
                         props.onFilterModalClose();
                     }}
