@@ -8,6 +8,7 @@ import EntityFilter from './EntityFilter';
 import BooleanFilter from './BooleanFilter';
 import TextFilter from './TextFilter';
 import DropdownFilter from './DropdownFilter';
+import JSONFilter from './JSONFilter';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
@@ -78,6 +79,12 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                                     />
 
                                     <TextFilter
+                                        filter={filter}
+                                        filterData={props.filterData}
+                                        onFilterChanged={changeFilterData}
+                                    />
+
+                                    <JSONFilter 
                                         filter={filter}
                                         filterData={props.filterData}
                                         onFilterChanged={changeFilterData}

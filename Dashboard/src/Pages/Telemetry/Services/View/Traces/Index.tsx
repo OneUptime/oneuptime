@@ -94,6 +94,13 @@ const TracesList: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Date,
                         title: 'Seen At',
                     },
+                    {
+                        field: {
+                            attributes: true,
+                        },
+                        type: FieldType.JSON,
+                        title: 'Attributes',
+                    },
                 ]}
                 selectMoreFields={{
                     statusCode: true,
