@@ -84,7 +84,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                                         onFilterChanged={changeFilterData}
                                     />
 
-                                    <JSONFilter 
+                                    <JSONFilter
                                         filter={filter}
                                         filterData={props.filterData}
                                         onFilterChanged={changeFilterData}

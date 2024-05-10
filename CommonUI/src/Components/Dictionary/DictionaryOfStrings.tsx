@@ -19,12 +19,13 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
             {...props}
             valueTypes={[ValueType.Text]}
             onChange={(value: Dictionary<string | number | boolean>) => {
-                const stringDict = value as Dictionary<string>;
+                const stringDict: Dictionary<string> =
+                    value as Dictionary<string>;
 
                 // convert all values to strings
 
                 for (const key in stringDict) {
-                    if (stringDict.hasOwnProperty(key) && stringDict[key]) {
+                    if (stringDict[key]) {
                         stringDict[key] = stringDict[key]?.toString() || '';
                     }
                 }

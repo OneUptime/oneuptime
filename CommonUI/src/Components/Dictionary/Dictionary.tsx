@@ -79,12 +79,12 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         }
     }, [data]);
 
-    const trueDropdwonOption = {
+    const trueDropdownOption: DropdownOption = {
         label: 'True',
         value: 'True',
     };
 
-    const falseDropdwonOption = {
+    const falseDropdownOption: DropdownOption = {
         label: 'False',
         value: 'False',
     };
@@ -110,7 +110,9 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                 <div className="ml-1">
                                     <Dropdown
                                         value={dropdownOptionsForValueTypes.find(
-                                            (dropdownOption) => {
+                                            (
+                                                dropdownOption: DropdownOption
+                                            ) => {
                                                 return (
                                                     dropdownOption.value ===
                                                     item.type
@@ -180,12 +182,12 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                     <Dropdown
                                         value={
                                             item.value === true
-                                                ? trueDropdwonOption
-                                                : falseDropdwonOption
+                                                ? trueDropdownOption
+                                                : falseDropdownOption
                                         }
                                         options={[
-                                            trueDropdwonOption,
-                                            falseDropdwonOption,
+                                            trueDropdownOption,
+                                            falseDropdownOption,
                                         ]}
                                         isMultiSelect={false}
                                         onChange={(

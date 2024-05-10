@@ -14,6 +14,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import FieldType from '../Types/FieldType';
 import { DropdownOption } from '../Dropdown/Dropdown';
+import Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;
@@ -220,6 +221,34 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                             data.filter.type === FieldType.Date
                         )}
                     </span>{' '}
+                </div>
+            );
+        }
+
+        if (data.filter.type === FieldType.JSON) {
+            const key: keyof T = data.filter.key;
+
+            const json: Dictionary<string | number | boolean> = data.filterData[
+                key
+            ] as Dictionary<string | number | boolean>;
+
+            // if json is empty, return null
+
+            if (Object.keys(json).length === 0) {
+                return null;
+            }
+
+            const jsonText: string = Object.keys(json)
+                .map((key: string) => {
+                    return `${key}=${json[key]}`;
+                })
+                .join(', ');
+
+            return (
+                <div>
+                    {' '}
+                    <span className="font-medium">{data.filter.title}</span> is
+                    <span className="font-medium">{jsonText}</span>{' '}
                 </div>
             );
         }
