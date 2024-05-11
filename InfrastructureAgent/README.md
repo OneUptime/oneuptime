@@ -1,20 +1,32 @@
-# OneUptime Infrastructure Agent
+# OneUptime Infrastructure Agent (go)
 
 The OneUptime Infrastructure Agent is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to install and use, and to be extensible.
 
 ## Installation
 
-```
-npm i @oneuptime/infrastructure-agent -g
-
-# You can change the host to your own host if you're self hosting the OneUptime platform. 
-# You can find the secret key on OneUptime Dashboard. Click on "View Monitor" and go to "Settings" tab.
-
-oneuptime-infrastructure-agent start --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+Download the Installation Script
+```bash
+curl -O https://raw.githubusercontent.com/anxuanzi/oneuptime-infrastructure-agent-go/main/install.sh
 ```
 
+Run the Installation Script
+```bash
+chmod +x install.sh && ./install.sh
+```
+
+Install the agent as a system service
+- You can change the host to your own host if you're self hosting the OneUptime platform. 
+- You can find the secret key on OneUptime Dashboard. Click on "View Monitor" and go to "Settings" tab.
+```bash
+oneuptime-infrastructure-agent install --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
+
+## Starting the agent
+
+```
+oneuptime-infrastructure-agent start
+```
 Once its up and running you should see the metrics on the OneUptime Dashboard.
-
 
 ## Stopping the agent
 
@@ -22,22 +34,16 @@ Once its up and running you should see the metrics on the OneUptime Dashboard.
 oneuptime-infrastructure-agent stop
 ```
 
-## Check the status of the agent
+## Restarting the agent
 
 ```
-oneuptime-infrastructure-agent status
-```
-
-## Logs
-
-```
-oneuptime-infrastructure-agent logs
+oneuptime-infrastructure-agent restart
 ```
 
 ## Uninstalling the agent
 
 ```
-npm uninstall -g @oneuptime/infrastructure-agent
+oneuptime-infrastructure-agent uninstall && rm -rf /usr/bin/oneuptime-infrastructure-agent
 ```
 
 ## Supported Platforms
@@ -45,11 +51,3 @@ npm uninstall -g @oneuptime/infrastructure-agent
 - Linux
 - MacOS
 - Windows
-
-## Local Development
-
-When you're developing locally, you can run the agent in development mode to send metrics to local oneuptime server. 
-
-```
-npm run start -- --secret-key=YOUR_SECRET_KEY --oneuptime-url=http://localhost
-```
