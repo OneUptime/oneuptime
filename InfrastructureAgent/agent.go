@@ -2,11 +2,12 @@ package oneuptime_infrastructure_agent
 
 import (
 	"encoding/json"
-	"github.com/go-co-op/gocron/v2"
-	"github.com/gookit/greq"
 	"log/slog"
 	"os"
 	"time"
+
+	"github.com/go-co-op/gocron/v2"
+	"github.com/gookit/greq"
 )
 
 type Agent struct {

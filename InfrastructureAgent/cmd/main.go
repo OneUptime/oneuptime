@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gookit/config/v2"
-	
-	"github.com/kardianos/service"
+	"log/slog"
 	agentgo "oneuptime-infrastructure-agent"
 	"os"
+
+	"github.com/gookit/config/v2"
+	"github.com/kardianos/service"
 )
 
 type program struct {
