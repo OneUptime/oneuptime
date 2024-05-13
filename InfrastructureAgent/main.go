@@ -66,7 +66,7 @@ func main() {
 	svcConfig := &service.Config{
 		Name:        "oneuptime-infrastructure-agent",
 		DisplayName: "OneUptime Infrastructure Agent",
-		Description: "The OneUptime Infrastructure Agent (Golang Version) is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to install and use, and to be extensible.",
+		Description: "The OneUptime Infrastructure Agent is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to install and use, and to be extensible.",
 		Arguments:   []string{"run"},
 	}
 
@@ -174,6 +174,9 @@ func main() {
 			if cmd == "stop" {
 				slog.Info("Service Stopped")
 			}
+		// add help command
+		case "help":
+			fmt.Println("Usage: oneuptime-infrastructure-agent install | uninstall | start | stop | restart")
 		default:
 			slog.Error("Invalid command")
 			os.Exit(2)
