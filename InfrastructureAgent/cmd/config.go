@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gookit/config/v2"
-	
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/gookit/config/v2"
 )
 
 type configFile struct {
@@ -120,7 +121,7 @@ func (c *configFile) configPath() string {
 	// Ensure the directory exists.
 	err := c.ensureDir(configDirectory)
 	if err != nil {
-		slog.Fatalf("Failed to create config directory: %v", err)
+		slog.Error("Failed to create config directory: %v", err)
 	}
 
 	// Return the full path to the configuration file.
