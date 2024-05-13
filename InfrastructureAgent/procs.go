@@ -1,8 +1,8 @@
-package oneuptime_InfrastructureAgent_go
+package oneuptime_infrastructure_agent
 
 import (
-	"github.com/gookit/slog"
 	"github.com/shirou/gopsutil/v3/process"
+	"log/slog"
 )
 
 // getServerProcesses retrieves the list of server processes

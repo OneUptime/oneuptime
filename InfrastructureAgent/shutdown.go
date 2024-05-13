@@ -1,4 +1,4 @@
-package oneuptime_InfrastructureAgent_go
+package oneuptime_infrastructure_agent
 
 import (
 	"os"

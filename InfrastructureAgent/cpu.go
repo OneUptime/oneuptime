@@ -1,8 +1,8 @@
-package oneuptime_InfrastructureAgent_go
+package oneuptime_infrastructure_agent
 
 import (
 	"fmt"
-	"github.com/gookit/slog"
+	"log/slog"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"time"
 )
@@ -27,7 +27,7 @@ func getCpuMetrics() *CPUMetrics {
 	// Get CPU times at the start
 	startTimes, err := cpu.Times(false) // false to get the aggregate of all CPUs
 	if err != nil {
-		slog.Error(fmt.Errorf("error fetching initial CPU times: %v", err))
+		slog.Error(fmt.Sprintf("error fetching initial CPU times: %v", err))
 		return nil
 	}
 
@@ -37,7 +37,7 @@ func getCpuMetrics() *CPUMetrics {
 	// Get CPU times after the interval
 	endTimes, err := cpu.Times(false)
 	if err != nil {
-		slog.Error(fmt.Errorf("error fetching final CPU times: %v", err))
+		slog.Error(fmt.Sprintf("error fetching final CPU times: %v", err))
 		return nil
 	}
 

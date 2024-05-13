@@ -1,7 +1,8 @@
-package oneuptime_InfrastructureAgent_go
+package oneuptime_infrastructure_agent
 
 import (
-	"github.com/gookit/slog"
+	"log/slog"
+
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
@@ -9,7 +10,7 @@ import (
 func getDiskMetrics(path string) *BasicDiskMetrics {
 	usageStat, err := disk.Usage(path)
 	if err != nil {
-		slog.Error(err)
+		slog.Error(err.Error())
 		return nil
 	}
 	var percentUsed, percentFree float64
@@ -34,7 +35,7 @@ func getDiskMetrics(path string) *BasicDiskMetrics {
 func listDiskMetrics() []*BasicDiskMetrics {
 	partitions, err := disk.Partitions(false) // set to true if you want all filesystems
 	if err != nil {
-		slog.Error(err)
+		slog.Error(err.Error())
 		return nil
 	}
 

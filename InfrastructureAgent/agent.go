@@ -1,10 +1,10 @@
-package oneuptime_InfrastructureAgent_go
+package oneuptime_infrastructure_agent
 
 import (
 	"encoding/json"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/gookit/greq"
-	"github.com/gookit/slog"
+	"log/slog"
 	"os"
 	"time"
 )
@@ -41,7 +41,7 @@ func NewAgent(secretKey string, url string) *Agent {
 
 	scheduler, err := gocron.NewScheduler()
 	if err != nil {
-		slog.Error(err)
+		slog.Error(err.Error())
 		os.Exit(1)
 		return ag
 	}

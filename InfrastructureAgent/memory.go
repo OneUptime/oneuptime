@@ -1,7 +1,7 @@
-package oneuptime_InfrastructureAgent_go
+package oneuptime_infrastructure_agent
 
 import (
-	"github.com/gookit/slog"
+	"log/slog"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 

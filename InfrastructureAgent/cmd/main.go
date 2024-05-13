@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gookit/config/v2"
-	"github.com/gookit/slog"
+	
 	"github.com/kardianos/service"
-	agentgo "oneuptime-InfrastructureAgent-go"
+	agentgo "oneuptime-infrastructure-agent"
 	"os"
 )
 
