@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	agentgo "oneuptime-infrastructure-agent"
+	agentgo "oneuptime_infrastructure_agent"
 	"os"
 
 	"github.com/gookit/config/v2"

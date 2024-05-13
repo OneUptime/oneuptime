@@ -1,4 +1,4 @@
-package oneuptime_infrastructure_agent
+package model
 
 type ServerMonitorReport struct {
 	SecretKey                  string                      `json:"secretKey"`

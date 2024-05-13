@@ -1,7 +1,8 @@
-package oneuptime_infrastructure_agent
+package utils
 
 import (
 	"log/slog"
+
 	"github.com/shirou/gopsutil/v3/mem"
 )
 

@@ -1,4 +1,4 @@
-package oneuptime_infrastructure_agent
+package model
 
 type BasicInfrastructureMetrics struct {
 	CpuMetrics    *CPUMetrics         `json:"cpuMetrics"`

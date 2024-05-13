@@ -1,4 +1,4 @@
-package oneuptime_infrastructure_agent
+package model
 
 type ServerProcess struct {
 	Pid     int32  `json:"pid"`

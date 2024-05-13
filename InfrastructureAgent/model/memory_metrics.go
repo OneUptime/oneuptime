@@ -1,4 +1,4 @@
-package oneuptime_infrastructure_agent
+package model
 
 type MemoryMetrics struct {
 	Total       uint64  `json:"total"`
