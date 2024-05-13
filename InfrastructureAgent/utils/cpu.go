@@ -3,8 +3,9 @@ package oneuptime_infrastructure_agent
 import (
 	"fmt"
 	"log/slog"
-	"github.com/shirou/gopsutil/v3/cpu"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
 )
 
 func getCpuMetrics() *CPUMetrics {

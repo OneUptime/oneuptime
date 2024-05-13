@@ -79,21 +79,14 @@ func main() {
 	// Create the service
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
-		slog.Fatal(err)
+		slog.Error(err.Error())
 		os.Exit(2)
 	}
 
-	// Set up the logger
-	errs := make(chan error, 5)
-	l, err := s.Logger(errs)
 	if err != nil {
-		slog.Fatal(err)
+		slog.Error(err.Error())
 		os.Exit(2)
 	}
-
-	// Push the logger to the slog
-	logHandler := agentgo.NewServiceSysLogHandler(l)
-	slog.PushHandler(logHandler)
 
 	if len(os.Args) > 1 {
 		cmd := os.Args[1]
@@ -104,77 +97,77 @@ func main() {
 			oneuptimeURL := installFlags.String("oneuptime-url", "", "Oneuptime endpoint root URL (required)")
 			err := installFlags.Parse(os.Args[2:])
 			if err != nil {
-				slog.Fatal(err)
+				slog.Error(err.Error())
 				os.Exit(2)
 			}
 			prg.config.SecretKey = *secretKey
 			prg.config.OneUptimeURL = *oneuptimeURL
 			if prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Fatal("The --secret-key and --oneuptime-url flags are required for the 'install' command")
+				slog.Error("The --secret-key and --oneuptime-url flags are required for the 'install' command")
 				os.Exit(2)
 			}
 			// save configuration
 			err = prg.config.save(prg.config.SecretKey, prg.config.OneUptimeURL)
 			if err != nil {
-				slog.Fatal(err)
+				slog.Error(err.Error())
 				os.Exit(2)
 			}
 			// Install the service
 			if err := s.Install(); err != nil {
-				slog.Fatal("Failed to install service: ", err)
+				slog.Error("Failed to install service: ", err)
 				os.Exit(2)
 			}
 			fmt.Println("Service installed")
 		case "start":
 			err := prg.config.loadConfig()
 			if os.IsNotExist(err) {
-				slog.Fatal("Service configuration not found. Please install the service properly.")
+				slog.Error("Service configuration not found. Please install the service properly.")
 				os.Exit(2)
 			}
 			if err != nil {
-				slog.Fatal(err)
+				slog.Error(err.Error())
 				os.Exit(2)
 			}
 			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Fatal("Service configuration not found or is incomplete. Please install the service properly.")
+				slog.Error("Service configuration not found or is incomplete. Please install the service properly.")
 				os.Exit(2)
 			}
 			err = s.Start()
 			if err != nil {
-				slog.Fatal(err)
+				slog.Error(err.Error())
 				os.Exit(2)
 			}
 			slog.Info("Service Started")
 		case "run":
 			err := prg.config.loadConfig()
 			if os.IsNotExist(err) {
-				slog.Fatal("Service configuration not found. Please install the service properly.")
+				slog.Error("Service configuration not found. Please install the service properly.")
 				os.Exit(2)
 			}
 			if err != nil {
-				slog.Fatal(err)
+				slog.Error(err.Error())
 				os.Exit(2)
 			}
 			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Fatal("Service configuration not found or is incomplete. Please install the service properly.")
+				slog.Error("Service configuration not found or is incomplete. Please install the service properly.")
 				os.Exit(2)
 			}
 			err = s.Run()
 			if err != nil {
-				slog.Fatal(err)
+				slog.Error(err.Error())
 				os.Exit(2)
 			}
 		case "uninstall", "stop", "restart":
 			err := service.Control(s, cmd)
 			if err != nil {
-				slog.Fatal(err)
+				slog.Error(err.Error())
 				os.Exit(2)
 			}
 			if cmd == "uninstall" {
 				// remove configuration file
 				err := prg.config.removeConfigFile()
 				if err != nil {
-					slog.Fatal(err)
+					slog.Error(err.Error())
 					os.Exit(2)
 				}
 				slog.Info("Service Uninstalled")
