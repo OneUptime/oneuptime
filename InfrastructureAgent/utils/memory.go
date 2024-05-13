@@ -2,17 +2,18 @@ package utils
 
 import (
 	"log/slog"
+	"oneuptime-infrastructure-agent/model"
 
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-func getMemoryMetrics() *MemoryMetrics {
+func GetMemoryMetrics() *model.MemoryMetrics {
 	memoryInfo, err := mem.VirtualMemory()
 	if err != nil {
 		slog.Error("Error while fetching memory metrics: ", err)
 		return nil
 	}
-	return &MemoryMetrics{
+	return &model.MemoryMetrics{
 		Total:       memoryInfo.Total,
 		Free:        memoryInfo.Free,
 		Used:        memoryInfo.Used,

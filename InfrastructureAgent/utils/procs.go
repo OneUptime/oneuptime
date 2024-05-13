@@ -2,13 +2,14 @@ package utils
 
 import (
 	"log/slog"
+	"oneuptime-infrastructure-agent/model"
 
 	"github.com/shirou/gopsutil/v3/process"
 )
 
 // getServerProcesses retrieves the list of server processes
-func getServerProcesses() []*ServerProcess {
-	var serverProcesses []*ServerProcess
+func GetServerProcesses() []*model.ServerProcess {
+	var serverProcesses []*model.ServerProcess
 
 	// Fetch all processes
 	processList, err := process.Processes()
@@ -28,7 +29,7 @@ func getServerProcesses() []*ServerProcess {
 			continue
 		}
 
-		serverProcesses = append(serverProcesses, &ServerProcess{
+		serverProcesses = append(serverProcesses, &model.ServerProcess{
 			Pid:     p.Pid,
 			Name:    name,
 			Command: cmdline,

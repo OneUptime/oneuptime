@@ -2,12 +2,13 @@ package utils
 
 import (
 	"log/slog"
+	"oneuptime-infrastructure-agent/model"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
 // getDiskMetrics retrieves disk metrics for a given path
-func getDiskMetrics(path string) *BasicDiskMetrics {
+func GetDiskMetrics(path string) *model.BasicDiskMetrics {
 	usageStat, err := disk.Usage(path)
 	if err != nil {
 		slog.Error(err.Error())
@@ -19,7 +20,7 @@ func getDiskMetrics(path string) *BasicDiskMetrics {
 		percentFree = float64(usageStat.Free) / float64(usageStat.Total) * 100
 	}
 
-	metrics := &BasicDiskMetrics{
+	metrics := &model.BasicDiskMetrics{
 		Total:       usageStat.Total,
 		Free:        usageStat.Free,
 		Used:        usageStat.Used,
@@ -32,16 +33,16 @@ func getDiskMetrics(path string) *BasicDiskMetrics {
 }
 
 // listDiskMetrics lists disk metrics for all partitions
-func listDiskMetrics() []*BasicDiskMetrics {
+func ListDiskMetrics() []*model.BasicDiskMetrics {
 	partitions, err := disk.Partitions(false) // set to true if you want all filesystems
 	if err != nil {
 		slog.Error(err.Error())
 		return nil
 	}
 
-	var metricsList []*BasicDiskMetrics
+	var metricsList []*model.BasicDiskMetrics
 	for _, partition := range partitions {
-		metrics := getDiskMetrics(partition.Mountpoint)
+		metrics := GetDiskMetrics(partition.Mountpoint)
 		if metrics == nil {
 			continue // Skip this partition on error
 		}

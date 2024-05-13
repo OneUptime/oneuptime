@@ -3,12 +3,13 @@ package utils
 import (
 	"fmt"
 	"log/slog"
+	"oneuptime-infrastructure-agent/model"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 )
 
-func getCpuMetrics() *CPUMetrics {
+func GetCpuMetrics() *model.CPUMetrics {
 	//avg, err := load.Avg()
 	//if err != nil {
 	//	slog.Error(err)
@@ -43,7 +44,7 @@ func getCpuMetrics() *CPUMetrics {
 	}
 
 	// Calculate the difference in total and idle times
-	totalDelta := totalCPUTime(endTimes[0]) - totalCPUTime(startTimes[0])
+	totalDelta := TotalCPUTime(endTimes[0]) - TotalCPUTime(startTimes[0])
 	idleDelta := endTimes[0].Idle - startTimes[0].Idle
 
 	// Calculate the CPU usage percentage
@@ -53,12 +54,12 @@ func getCpuMetrics() *CPUMetrics {
 	}
 	cpuUsagePercent := (1 - idleDelta/totalDelta) * 100
 
-	return &CPUMetrics{
+	return &model.CPUMetrics{
 		PercentUsed: cpuUsagePercent,
 	}
 }
 
-func totalCPUTime(times cpu.TimesStat) float64 {
+func TotalCPUTime(times cpu.TimesStat) float64 {
 	return times.User + times.System + times.Idle + times.Nice +
 		times.Iowait + times.Irq + times.Softirq + times.Steal +
 		times.Guest + times.GuestNice

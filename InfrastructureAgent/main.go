@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	agentgo "oneuptime_infrastructure_agent"
 	"os"
 
 	"github.com/gookit/config/v2"
@@ -13,8 +12,8 @@ import (
 
 type program struct {
 	exit   chan struct{}
-	agent  *agentgo.Agent
-	config *configFile
+	agent  *Agent
+	config *ConfigFile
 }
 
 func (p *program) Start(s service.Service) error {
@@ -30,11 +29,11 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run() {
-	p.agent = agentgo.NewAgent(p.config.SecretKey, p.config.OneUptimeURL)
+	p.agent = NewAgent(p.config.SecretKey, p.config.OneUptimeURL)
 	p.agent.Start()
 	if service.Interactive() {
 		slog.Info("Running in terminal.")
-		agentgo.NewShutdownHook().Close(func() {
+		NewShutdownHook().Close(func() {
 			slog.Info("Service Exiting...")
 			p.agent.Close()
 		})

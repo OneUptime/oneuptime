@@ -1,8 +1,10 @@
-package utils
+package main
 
 import (
 	"encoding/json"
 	"log/slog"
+	"oneuptime-infrastructure-agent/model"
+	"oneuptime-infrastructure-agent/utils"
 	"os"
 	"time"
 
@@ -78,29 +80,29 @@ func (ag *Agent) Close() {
 }
 
 func collectMetricsJob(secretKey string, oneuptimeURL string) {
-	memMetrics := getMemoryMetrics()
+	memMetrics := utils.GetMemoryMetrics()
 	if memMetrics == nil {
 		slog.Warn("Failed to get memory metrics")
 	}
 
-	cpuMetrics := getCpuMetrics()
+	cpuMetrics := utils.GetCpuMetrics()
 	if cpuMetrics == nil {
 		slog.Warn("Failed to get CPU metrics")
 	}
 
-	diskMetrics := listDiskMetrics()
+	diskMetrics := utils.ListDiskMetrics()
 	if diskMetrics == nil {
 		slog.Warn("Failed to get disk metrics")
 	}
 
-	servProcesses := getServerProcesses()
+	servProcesses := utils.GetServerProcesses()
 	if servProcesses == nil {
 		slog.Warn("Failed to get server processes")
 	}
 
-	metricsReport := &ServerMonitorReport{
+	metricsReport := &model.ServerMonitorReport{
 		SecretKey: secretKey,
-		BasicInfrastructureMetrics: &BasicInfrastructureMetrics{
+		BasicInfrastructureMetrics: &model.BasicInfrastructureMetrics{
 			MemoryMetrics: memMetrics,
 			CpuMetrics:    cpuMetrics,
 			DiskMetrics:   diskMetrics,
@@ -111,7 +113,7 @@ func collectMetricsJob(secretKey string, oneuptimeURL string) {
 	}
 
 	reqData := struct {
-		ServerMonitorResponse *ServerMonitorReport `json:"serverMonitorResponse"`
+		ServerMonitorResponse *model.ServerMonitorReport `json:"serverMonitorResponse"`
 	}{
 		ServerMonitorResponse: metricsReport,
 	}

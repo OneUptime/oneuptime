@@ -11,20 +11,20 @@ import (
 	"github.com/gookit/config/v2"
 )
 
-type configFile struct {
+type ConfigFile struct {
 	SecretKey    string `json:"secret_key"`
 	OneUptimeURL string `json:"oneuptime_url"`
 }
 
-func newConfigFile() *configFile {
-	return &configFile{
+func newConfigFile() *ConfigFile {
+	return &ConfigFile{
 		SecretKey:    "",
 		OneUptimeURL: "",
 	}
 }
 
-func (c *configFile) loadConfig() error {
-	cfg := &configFile{}
+func (c *ConfigFile) loadConfig() error {
+	cfg := &ConfigFile{}
 	err := config.LoadFiles(c.configPath())
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (c *configFile) loadConfig() error {
 	return nil
 }
 
-func (c *configFile) save(secretKey string, url string) error {
+func (c *ConfigFile) save(secretKey string, url string) error {
 	err := c.loadConfig()
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -66,7 +66,7 @@ func (c *configFile) save(secretKey string, url string) error {
 }
 
 // removeConfigFile deletes the configuration file.
-func (c *configFile) removeConfigFile() error {
+func (c *ConfigFile) removeConfigFile() error {
 
 	// Check if the file exists before attempting to remove it.
 	if _, err := os.Stat(c.configPath()); os.IsNotExist(err) {
@@ -85,7 +85,7 @@ func (c *configFile) removeConfigFile() error {
 }
 
 // ensureDir checks if a directory exists and makes it if it does not.
-func (c *configFile) ensureDir(dirName string) error {
+func (c *ConfigFile) ensureDir(dirName string) error {
 	// Check if the directory exists
 	info, err := os.Stat(dirName)
 	if os.IsNotExist(err) {
@@ -104,7 +104,7 @@ func (c *configFile) ensureDir(dirName string) error {
 
 // configPath returns the full path to the configuration file,
 // ensuring the directory exists or creating it if it does not.
-func (c *configFile) configPath() string {
+func (c *ConfigFile) configPath() string {
 	var basePath string
 	if runtime.GOOS == "windows" {
 		basePath = os.Getenv("PROGRAMDATA")
