@@ -48,6 +48,9 @@ If you don't like to use npm or do not have it installed, run this instead:
 ```
 # Read env vars from config.env file and run docker-compose up.
 (export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+
+# Use sudo if you're having permission issues with binding ports. 
+sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
 
 To update: 
