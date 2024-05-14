@@ -162,10 +162,12 @@ func main() {
 
 		case "uninstall", "stop", "restart":
 			err := service.Control(s, cmd)
+
 			if err != nil {
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
+
 			if cmd == "uninstall" {
 				// remove configuration file
 				err := prg.config.removeConfigFile()
@@ -175,8 +177,13 @@ func main() {
 				}
 				slog.Info("Service Uninstalled")
 			}
+
 			if cmd == "stop" {
 				slog.Info("Service Stopped")
+			}
+
+			if cmd == "restart" {
+				slog.Info("Service Restarted")
 			}
 
 		// add help command
