@@ -962,14 +962,20 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
 
-      - name: Run GoReleaser
+      - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
-          version: '~> v1'
-          args: release --clean
-          workdir: ./InfrastructureAgent
+          install-only: true
+
+      - name: Show GoReleaser version
+        run: goreleaser -v
+
+      - name: Run GoReleaser
+        run: cd InfrastructureAgent && goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
      
 
             
