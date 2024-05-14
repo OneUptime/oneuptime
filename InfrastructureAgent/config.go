@@ -116,7 +116,7 @@ func (c *ConfigFile) configPath() string {
 	}
 
 	// Define the directory path where the configuration file will be stored.
-	configDirectory := filepath.Join(basePath, "oneuptime_infrastructure_agent")
+	configDirectory := filepath.Join(basePath, "oneuptime-infrastructure-agent")
 
 	// Ensure the directory exists.
 	err := c.ensureDir(configDirectory)

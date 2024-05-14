@@ -116,11 +116,12 @@ func main() {
 				slog.Error("Failed to install service: ", err)
 				os.Exit(2)
 			}
-			fmt.Println("Service installed")
+			fmt.Println("Service installed. Run the service using 'oneuptime-infrastructure-agent start'")
+
 		case "start":
 			err := prg.config.loadConfig()
 			if os.IsNotExist(err) {
-				slog.Error("Service configuration not found. Please install the service properly.")
+				slog.Error("Service configuration not found. Please run 'oneuptime-infrastructure-agent install' to install the service.")
 				os.Exit(2)
 			}
 			if err != nil {
@@ -128,15 +129,17 @@ func main() {
 				os.Exit(2)
 			}
 			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Error("Service configuration not found or is incomplete. Please install the service properly.")
+				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent install' to install the service.")
 				os.Exit(2)
 			}
 			err = s.Start()
 			if err != nil {
+
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
-			slog.Info("Service Started")
+			slog.Info("OneUptime Infrastructure Agent Started")
+
 		case "run":
 			err := prg.config.loadConfig()
 			if os.IsNotExist(err) {
@@ -156,6 +159,7 @@ func main() {
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
+
 		case "uninstall", "stop", "restart":
 			err := service.Control(s, cmd)
 			if err != nil {
@@ -174,9 +178,11 @@ func main() {
 			if cmd == "stop" {
 				slog.Info("Service Stopped")
 			}
+
 		// add help command
 		case "help":
 			fmt.Println("Usage: oneuptime-infrastructure-agent install | uninstall | start | stop | restart")
+
 		default:
 			slog.Error("Invalid command")
 			os.Exit(2)
