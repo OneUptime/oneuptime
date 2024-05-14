@@ -952,7 +952,7 @@ jobs:
         run: bash ./Scripts/NPM/PublishAllPackages.sh
         
   infrastructure-agent-deploy:
-    needs: generate-build-number
+    needs: github-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
