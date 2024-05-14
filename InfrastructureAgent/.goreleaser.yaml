@@ -16,7 +16,7 @@ env:
     - CGO_ENABLED=0
 builds:
   - binary: oneuptime-infrastructure-agent
-    main: ./cmd
+    main: ./
     goos:
       - linux
       - windows
