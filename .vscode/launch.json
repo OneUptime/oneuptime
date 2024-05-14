@@ -25,7 +25,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "./InfrastructureAgent",
-            "args": ["start"]
+            "args": ["start"],
         },
         {
             "name": "Node.js - Debug Current File",

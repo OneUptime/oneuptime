@@ -136,7 +136,7 @@ func main() {
 			if err != nil {
 
 				slog.Error(err.Error())
-				os.Exit(2)
+				os.Exit(1)
 			}
 			slog.Info("OneUptime Infrastructure Agent Started")
 
@@ -157,7 +157,7 @@ func main() {
 			err = s.Run()
 			if err != nil {
 				slog.Error(err.Error())
-				os.Exit(2)
+				os.Exit(1)
 			}
 
 		case "uninstall", "stop", "restart":
