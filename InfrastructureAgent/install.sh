@@ -74,4 +74,4 @@ if [ ! -x "${BINDIR}/oneuptime-infrastructure-agent" ]; then
   exit 1
 fi
 
-echo "oneuptime-infrastructure-agent installed successfully to ${BINDIR}"
+echo "oneuptime-infrastructure-agent installed successfully to ${BINDIR}. Please configure the agent using 'oneuptime-infrastructure-agent configure'."

@@ -14,11 +14,13 @@ Run the Installation Script
 chmod +x install.sh && ./install.sh
 ```
 
-Install the agent as a system service
+## Configure the agent
+
+Configure the agent as a system service
 - You can change the host to your own host if you're self hosting the OneUptime platform. 
 - You can find the secret key on OneUptime Dashboard. Click on "View Monitor" and go to "Settings" tab.
 ```bash
-oneuptime-infrastructure-agent install --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
 ```
 
 ## Starting the agent

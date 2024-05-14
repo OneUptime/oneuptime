@@ -66,7 +66,7 @@ func main() {
 	svcConfig := &service.Config{
 		Name:        "oneuptime-infrastructure-agent",
 		DisplayName: "OneUptime Infrastructure Agent",
-		Description: "The OneUptime Infrastructure Agent is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to install and use, and to be extensible.",
+		Description: "The OneUptime Infrastructure Agent is a lightweight, open-source agent that collects system metrics and sends them to the OneUptime platform. It is designed to be easy to configure and use, and to be extensible.",
 		Arguments:   []string{"run"},
 	}
 
@@ -90,8 +90,8 @@ func main() {
 	if len(os.Args) > 1 {
 		cmd := os.Args[1]
 		switch cmd {
-		case "install":
-			installFlags := flag.NewFlagSet("install", flag.ExitOnError)
+		case "configure":
+			installFlags := flag.NewFlagSet("configure", flag.ExitOnError)
 			secretKey := installFlags.String("secret-key", "", "Secret key (required)")
 			oneuptimeURL := installFlags.String("oneuptime-url", "", "Oneuptime endpoint root URL (required)")
 			err := installFlags.Parse(os.Args[2:])
@@ -102,7 +102,7 @@ func main() {
 			prg.config.SecretKey = *secretKey
 			prg.config.OneUptimeURL = *oneuptimeURL
 			if prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Error("The --secret-key and --oneuptime-url flags are required for the 'install' command")
+				slog.Error("The --secret-key and --oneuptime-url flags are required for the 'configure' command")
 				os.Exit(2)
 			}
 			// save configuration
@@ -113,7 +113,7 @@ func main() {
 			}
 			// Install the service
 			if err := s.Install(); err != nil {
-				slog.Error("Failed to install service: ", err)
+				slog.Error("Failed to configure service: ", err)
 				os.Exit(2)
 			}
 			fmt.Println("Service installed. Run the service using 'oneuptime-infrastructure-agent start'")
@@ -121,7 +121,7 @@ func main() {
 		case "start":
 			err := prg.config.loadConfig()
 			if os.IsNotExist(err) {
-				slog.Error("Service configuration not found. Please run 'oneuptime-infrastructure-agent install' to install the service.")
+				slog.Error("Service configuration not found. Please run 'oneuptime-infrastructure-agent configure' to configure the service.")
 				os.Exit(2)
 			}
 			if err != nil {
@@ -129,7 +129,7 @@ func main() {
 				os.Exit(2)
 			}
 			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent install' to install the service.")
+				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent configure' to configure the service.")
 				os.Exit(2)
 			}
 			err = s.Start()
@@ -143,7 +143,7 @@ func main() {
 		case "run":
 			err := prg.config.loadConfig()
 			if os.IsNotExist(err) {
-				slog.Error("Service configuration not found. Please run 'oneuptime-infrastructure-agent install' to install the service.")
+				slog.Error("Service configuration not found. Please run 'oneuptime-infrastructure-agent configure' to configure the service.")
 				os.Exit(2)
 			}
 			if err != nil {
@@ -151,7 +151,7 @@ func main() {
 				os.Exit(2)
 			}
 			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent install' to install the service.")
+				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent configure' to configure the service.")
 				os.Exit(2)
 			}
 			err = s.Run()
@@ -188,13 +188,13 @@ func main() {
 
 		// add help command
 		case "help":
-			fmt.Println("Usage: oneuptime-infrastructure-agent install | uninstall | start | stop | restart")
+			fmt.Println("Usage: oneuptime-infrastructure-agent configure | uninstall | start | stop | restart")
 
 		default:
 			slog.Error("Invalid command")
 			os.Exit(2)
 		}
 	} else {
-		fmt.Println("Usage: oneuptime-infrastructure-agent install | uninstall | start | stop | restart")
+		fmt.Println("Usage: oneuptime-infrastructure-agent configure | uninstall | start | stop | restart")
 	}
 }
