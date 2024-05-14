@@ -38,13 +38,21 @@ export default class UptimeUtil {
                 monitorEvents[i]!.startsAt || OneUptimeDate.getCurrentDate();
 
             // Initialize the end date as the current date.
-            const endDate: Date =
-                monitorEvents[i]!.endsAt || OneUptimeDate.getCurrentDate();
+            let endDate: Date | undefined = monitorEvents[i]!.endsAt;
+
+            if (!endDate) {
+                // check if there's next event, if there is, set the end date to the start date of the next event.
+                if (i < monitorEvents.length - 1) {
+                    endDate = monitorEvents[i + 1]!.startsAt;
+                } else {
+                    endDate = OneUptimeDate.getCurrentDate();
+                }
+            }
 
             // Push a new MonitorEvent object to the eventList array with properties from the current item and calculated dates.
             eventList.push({
                 startDate: startDate,
-                endDate: endDate,
+                endDate: endDate!,
                 label: monitorEvents[i]?.monitorStatus?.name || 'Operational',
                 priority: monitorEvents[i]?.monitorStatus?.priority || 0,
                 color: monitorEvents[i]?.monitorStatus?.color || Green,
