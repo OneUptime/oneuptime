@@ -143,7 +143,7 @@ func main() {
 		case "run":
 			err := prg.config.loadConfig()
 			if os.IsNotExist(err) {
-				slog.Error("Service configuration not found. Please install the service properly.")
+				slog.Error("Service configuration not found. Please run 'oneuptime-infrastructure-agent install' to install the service.")
 				os.Exit(2)
 			}
 			if err != nil {
@@ -151,7 +151,7 @@ func main() {
 				os.Exit(2)
 			}
 			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
-				slog.Error("Service configuration not found or is incomplete. Please install the service properly.")
+				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent install' to install the service.")
 				os.Exit(2)
 			}
 			err = s.Run()
