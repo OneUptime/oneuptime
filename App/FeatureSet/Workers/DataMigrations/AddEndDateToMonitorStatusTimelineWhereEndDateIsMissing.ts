@@ -47,7 +47,7 @@ export default class AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing exte
             });
 
             for (const monitor of monitors) {
-                const statusTimelines: Array<MonitorStatusTimeline> =
+                let statusTimelines: Array<MonitorStatusTimeline> =
                     await MonitorStatusTimelineService.findBy({
                         query: {
                             monitorId: monitor.id!,
@@ -67,7 +67,7 @@ export default class AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing exte
                     });
 
                 // reverse the status timelines
-                statusTimelines.reverse();
+                statusTimelines = statusTimelines.reverse();
 
                 for (let i: number = 0; i < statusTimelines.length; i++) {
                     const statusTimeline: MonitorStatusTimeline | undefined =
