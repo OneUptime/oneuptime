@@ -971,7 +971,7 @@ jobs:
         run: goreleaser -v
 
       - name: Run GoReleaser
-        run: cd InfrastructureAgent && goreleaser release --clean
+        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=7.0.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
