@@ -20,6 +20,9 @@ Depending on your usage and budget, you can choose from different system require
 
 
 #### Prerequisites for Single-Server Deployment
+
+Installation tutorial: [https://youtu.be/j1SWmMW2oL4](https://youtu.be/j1SWmMW2oL4)
+
 Before you start the deployment process, please make sure you have:
 
 - A server running Debian, Ubuntu, or RHEL derivative
