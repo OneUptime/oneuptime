@@ -14,6 +14,7 @@ import UserService from './UserService';
 import User from 'Model/Models/User';
 import OneUptimeDate from 'Common/Types/Date';
 import QueryHelper from '../Types/Database/QueryHelper';
+import Semaphore from '../Infrastructure/Semaphore';
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -27,6 +28,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         if (!createBy.data.monitorId) {
             throw new BadDataException('monitorId is null');
         }
+
+        const mutexId: ObjectID = await Semaphore.lock({
+            key: createBy.data.monitorId.toString(),
+        });
 
         if (!createBy.data.startsAt) {
             createBy.data.startsAt = OneUptimeDate.getCurrentDate();
@@ -88,6 +93,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             carryForward: {
                 lastMonitorStatusTimelineId:
                     lastMonitorStatusTimeline?.id || null,
+                mutexId: mutexId,
             },
         };
     }
@@ -128,6 +134,11 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             },
             props: onCreate.createBy.props,
         });
+
+        if (onCreate.carryForward.mutexId) {
+            const mutexId: ObjectID = onCreate.carryForward.mutexId;
+            await Semaphore.release(mutexId);
+        }
 
         return createdItem;
     }
