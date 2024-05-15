@@ -285,7 +285,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 <div className="mt-4">
                     <FieldLabelElement
                         title="Change monitor status to"
-                        description="What would like the monitor status to be when the criteria is met?"
+                        description="What would you like the monitor status to be when the criteria have been met?"
                     />
                     <Dropdown
                         value={props.monitorStatusDropdownOptions.find(
