@@ -73,8 +73,25 @@ export default class UptimeUtil {
 
         const eventList: Array<Event> = [];
 
-        for (const monitorEvent of monitorEventList) {
+        for (let i = 0; i < monitorEventList.length; i++) {
             // if this event starts after the last event, then add it to the list directly.
+
+            const monitorEvent: MonitorEvent = monitorEventList[i]!;
+
+            if (!monitorEvent.endDate) {
+                // if this is the last event then set endDate to current date.
+
+                // otherwise set it to start date of next event.
+
+                if (i === monitorEventList.length - 1) {
+                    monitorEvent.endDate = OneUptimeDate.getCurrentDate();
+                } else {
+                    monitorEvent.endDate =
+                        monitorEventList[i + 1]!.startDate ||
+                        OneUptimeDate.getCurrentDate();
+                }
+            }
+
             if (
                 eventList.length === 0 ||
                 OneUptimeDate.isAfter(
