@@ -73,7 +73,7 @@ export default class UptimeUtil {
 
         const eventList: Array<Event> = [];
 
-        for (let i = 0; i < monitorEventList.length; i++) {
+        for (let i: number = 0; i < monitorEventList.length; i++) {
             // if this event starts after the last event, then add it to the list directly.
 
             const monitorEvent: MonitorEvent = monitorEventList[i]!;
