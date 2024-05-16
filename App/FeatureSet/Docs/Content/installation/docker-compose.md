@@ -20,6 +20,9 @@ Depending on your usage and budget, you can choose from different system require
 
 
 #### Prerequisites for Single-Server Deployment
+
+Installation tutorial: [https://youtu.be/j1SWmMW2oL4](https://youtu.be/j1SWmMW2oL4)
+
 Before you start the deployment process, please make sure you have:
 
 - A server running Debian, Ubuntu, or RHEL derivative
@@ -47,7 +50,10 @@ If you don't like to use npm or do not have it installed, run this instead:
 
 ```
 # Read env vars from config.env file and run docker-compose up.
-export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d
+(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+
+# Use sudo if you're having permission issues with binding ports. 
+sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
 
 To update: 

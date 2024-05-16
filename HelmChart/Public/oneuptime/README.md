@@ -8,6 +8,11 @@ OneUptime is a comprehensive solution for monitoring and managing your online se
 
 [Overview of OneUptime](http://www.oneuptime.com)
 
+
+## Yotube Tutorial
+
+https://youtu.be/Ho5WyPHExTU
+
 ## Install Helm Chart
 
 

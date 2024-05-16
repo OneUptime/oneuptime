@@ -20,6 +20,14 @@
     ],
     "configurations": [
         {
+            "name": "Debug Infrastructure Agent",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "./InfrastructureAgent",
+            "args": ["start"],
+        },
+        {
             "name": "Node.js - Debug Current File",
             "type": "node",
             "restart": true,

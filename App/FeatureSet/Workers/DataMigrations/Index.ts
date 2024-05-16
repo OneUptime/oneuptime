@@ -24,6 +24,7 @@ import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
 import AddTelemetryServiceColor from './AddTelemetryServiceColor';
 import MoveGreenlockCertsToAcmeCerts from './MoveGreenlockCertsToAcmeCerts';
 import GenerateNewCertsForStatusPage from './GenerateNewCertsForStatusPage';
+import AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing from './AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing';
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -53,6 +54,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddTelemetryServiceColor(),
     new MoveGreenlockCertsToAcmeCerts(),
     new GenerateNewCertsForStatusPage(),
+    new AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing(),
 ];
 
 export default DataMigrations;
