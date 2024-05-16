@@ -12,11 +12,6 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const host: string = `${HTTP_PROTOCOL}${HOST}`;
-    let showHost: boolean = true;
-
-    if (host === 'https://oneuptime.com') {
-        showHost = false;
-    }
 
     return (
         <>
@@ -32,7 +27,7 @@ curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-ag
 
 # Configure the agent
 sudo oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} ${
-                                showHost ? '--oneuptime-url=' + host : ''
+                                '--oneuptime-url=' + host
                             }
 
 # To Start
