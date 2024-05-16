@@ -9,6 +9,7 @@ import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
 import Input, { InputType } from '../Input/Input';
 import IconProp from 'Common/Types/Icon/IconProp';
 import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
+import Icon, { SizeProp } from '../Icon/Icon';
 
 export enum ValueType {
     Text = 'Text',
@@ -104,6 +105,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                         newData[index]!.key = value;
                                         setData(newData);
                                     }}
+                                />
+                            </div>
+                            <div className="mr-1 ml-1 mt-auto mb-auto">
+                                <Icon
+                                    className="h-3 w-3"
+                                    icon={IconProp.Equals}
+                                    size={SizeProp.Small}
                                 />
                             </div>
                             {valueTypes.length > 1 && (

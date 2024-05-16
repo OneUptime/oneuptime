@@ -58,6 +58,20 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         }
     }, [props.showFilterModal]);
 
+
+    const formatJson = (json: Dictionary<string | number | boolean>): ReactElement => {
+        return (<div className='flex space-x-2'>
+
+            {Object.keys(json).map((key: string) => {
+                return <div className='rounded bg-gray-200 border-2 border-gray-800 p-2'>
+                    <span className='font-medium'>{key}</span> = <span className='font-medium'>{json[key]}</span>
+                </div>
+            }
+            )}
+
+        </div>)
+    }
+
     type TranslateFilterToTextFunction = <T extends GenericObject>(data: {
         filters: Array<Filter<T>>;
         filterData: FilterData<T>;
@@ -238,17 +252,13 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 return null;
             }
 
-            const jsonText: string = Object.keys(json)
-                .map((key: string) => {
-                    return `${key}=${json[key]}`;
-                })
-                .join(', ');
+            
 
             return (
                 <div>
                     {' '}
-                    <span className="font-medium">{data.filter.title}</span> is
-                    <span className="font-medium">{jsonText}</span>{' '}
+                    <span className="font-medium">{data.filter.title}</span> is {''}
+                    <span className="font-medium">{formatJson(json)}</span>{' '}
                 </div>
             );
         }
@@ -397,9 +407,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                     modalWidth={ModalWidth.Large}
                     isLoading={props.isModalLoading}
                     title={`${props.singularLabel + ' ' || ''}Filters`}
-                    description={`Filter ${
-                        props.pluralLabel || ''
-                    } by the following criteria:`}
+                    description={`Filter ${props.pluralLabel || ''
+                        } by the following criteria:`}
                     submitButtonText={`Apply Filters`}
                     onClose={() => {
                         props.onFilterModalClose();
