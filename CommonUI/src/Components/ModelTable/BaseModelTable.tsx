@@ -1132,6 +1132,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 newQuery[key as keyof TBaseModel] = filterData[key];
             }
 
+            if (
+                props.filters.find((f: Filter<TBaseModel>) => {
+                    return f.field && f.field[key];
+                })?.type === FieldType.JSON &&
+                typeof filterData[key] === Typeof.Object
+            ) {
+                newQuery[key as keyof TBaseModel] = filterData[key];
+            }
+
             if (Array.isArray(filterData[key])) {
                 newQuery[key as keyof TBaseModel] = filterData[key];
             }
