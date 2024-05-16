@@ -429,7 +429,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     ) {
                         whereStatement.append(
                             SQL`AND JSONExtractString(${key}, ${{
-                                value: key,
+                                value: objKey,
                                 type: TableColumnType.Text,
                             }}) = ${{
                                 value: flatValue[objKey] as string,
@@ -445,7 +445,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                     ) {
                         whereStatement.append(
                             SQL`AND JSONExtractInt(${key}, ${{
-                                value: key,
+                                value: objKey,
                                 type: TableColumnType.Text,
                             }}) = ${{
                                 value: flatValue[objKey] as number,
@@ -454,9 +454,23 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                         );
                         continue;
                     }
-                }
 
-               
+                    if (
+                        flatValue[objKey] &&
+                        typeof flatValue[objKey] === 'boolean'
+                    ) {
+                        whereStatement.append(
+                            SQL`AND JSONExtractBool(${key}, ${{
+                                value: objKey,
+                                type: TableColumnType.Text,
+                            }}) = ${{
+                                value: flatValue[objKey] as number,
+                                type: TableColumnType.Boolean,
+                            }}`
+                        );
+                        continue;
+                    }
+                }
             } else {
                 whereStatement.append(
                     SQL`AND ${key} = ${{ value, type: tableColumn.type }}`

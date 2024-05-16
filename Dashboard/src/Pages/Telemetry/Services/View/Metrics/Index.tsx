@@ -55,6 +55,13 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                     },
+                    {
+                        field: {
+                            attributes: true,
+                        },
+                        type: FieldType.JSON,
+                        title: 'Attributes',
+                    },
                 ]}
                 columns={[
                     {
