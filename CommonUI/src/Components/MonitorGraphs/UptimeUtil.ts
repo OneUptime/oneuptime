@@ -15,9 +15,32 @@ export default class UptimeUtil {
      */
     public static getMonitorEventsForId(
         monitorId: ObjectID,
-        items: Array<MonitorStatusTimeline>
+        statusTimelineItems: Array<MonitorStatusTimeline>
     ): Array<MonitorEvent> {
         // Initialize an empty array to store the monitor events.
+
+        // make sure items are sorted by start date.
+
+        let items = [...statusTimelineItems];
+
+        items = items.sort(
+            (a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
+                if (!a.startsAt || !b.startsAt) {
+                    return 0;
+                }
+
+                if (OneUptimeDate.isAfter(a.startsAt!, b.startsAt!)) {
+                    return 1;
+                }
+
+                if (OneUptimeDate.isAfter(b.startsAt!, a.startsAt!)) {
+                    return -1;
+                }
+
+                return 0;
+            }
+        );
+
         const eventList: Array<MonitorEvent> = [];
 
         const monitorEvents: Array<MonitorStatusTimeline> = items.filter(
