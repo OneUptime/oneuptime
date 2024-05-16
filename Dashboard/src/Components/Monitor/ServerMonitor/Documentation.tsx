@@ -28,18 +28,18 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
                             language="bash"
                             code={`
 # Install the agent
-curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install.sh | bash 
+curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install.sh | sudo bash 
 
 # Configure the agent
-oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} ${
+sudo oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} ${
                                 showHost ? '--oneuptime-url=' + host : ''
                             }
 
 # To Start
-oneuptime-infrastructure-agent start
+sudo oneuptime-infrastructure-agent start
 
 # To Stop
-oneuptime-infrastructure-agent stop
+sudo oneuptime-infrastructure-agent stop
 `}
                         />
                     </div>
