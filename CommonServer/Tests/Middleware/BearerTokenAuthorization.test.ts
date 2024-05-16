@@ -2,6 +2,7 @@ import BearerTokenAuthorization from '../../Middleware/BearerTokenAuthorization'
 import { OneUptimeRequest, ExpressResponse } from '../../Utils/Express';
 import JSONWebToken from '../../Utils/JsonWebToken';
 import { JSONObject } from 'Common/Types/JSON';
+import { describe, expect, it } from '@jest/globals';
 
 describe('BearerTokenAuthorization', () => {
     describe('isAuthorizedBearerToken', () => {

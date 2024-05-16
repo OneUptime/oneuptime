@@ -2,6 +2,7 @@ import Analytics from '../../Utils/Analytics';
 import Email from '../../Types/Email';
 import { JSONObject } from '../../Types/JSON';
 import posthog from 'posthog-js';
+import { describe, expect, it } from '@jest/globals';
 
 jest.mock('posthog-js', () => {
     return {

@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/extend-expect';
 import Pagination, {
     ComponentProps,
 } from '../../Components/Pagination/Pagination';
+import { describe, expect, it } from '@jest/globals';
 
 describe('Pagination', () => {
     it('renders Component', () => {

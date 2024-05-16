@@ -1,4 +1,5 @@
 import Color from '../../Types/Color';
+import { describe, expect, it } from '@jest/globals';
 import {
     Black,
     White,

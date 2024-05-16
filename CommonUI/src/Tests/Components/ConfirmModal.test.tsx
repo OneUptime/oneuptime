@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import ConfirmModal, {
     ComponentProps,
 } from '../../Components/Modal/ConfirmModal';
+import { describe, expect, it } from '@jest/globals';
 import { ButtonStyleType } from '../../Components/Button/Button';
 
 describe('ConfirmModal', () => {

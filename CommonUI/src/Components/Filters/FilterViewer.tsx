@@ -58,7 +58,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         }
     }, [props.showFilterModal]);
 
-    const formatJson = (
+    type FormatJsonFunction = (
+        json: Dictionary<string | number | boolean>
+    ) => ReactElement;
+
+    const formatJson: FormatJsonFunction = (
         json: Dictionary<string | number | boolean>
     ): ReactElement => {
         return (

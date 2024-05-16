@@ -5,6 +5,7 @@ import Modal, { ModalWidth } from '../../Components/Modal/Modal';
 import { ButtonStyleType } from '../../Components/Button/Button';
 import ButtonType from '../../Components/Button/ButtonTypes';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { describe, expect, it } from '@jest/globals';
 
 describe('Modal', () => {
     test('renders the modal with the title and description', () => {

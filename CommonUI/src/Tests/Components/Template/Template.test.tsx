@@ -4,6 +4,7 @@ import { screen, render } from '@testing-library/react';
 import Component, {
     ComponentProps,
 } from '../../../Components/Template/Template';
+import { describe, expect, it } from '@jest/globals';
 
 describe('Template Component', () => {
     const props: ComponentProps = {

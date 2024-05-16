@@ -4,6 +4,7 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import Database from '../TestingUtils/Database';
 import Project from 'Model/Models/Project';
 import User from 'Model/Models/User';
+import { describe, expect, it } from '@jest/globals';
 import UserServiceHelper from '../TestingUtils/Services/UserServiceHelper';
 import ProjectServiceHelper from '../TestingUtils/Services/ProjectServiceHelper';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';

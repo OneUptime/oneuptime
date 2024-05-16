@@ -1,5 +1,6 @@
 import CompareBase from '../../../Types/Database/CompareBase';
 import BadDataException from '../../../Types/Exception/BadDataException';
+import { describe, expect, it } from '@jest/globals';
 
 describe('CompareBase', () => {
     describe('toString', () => {

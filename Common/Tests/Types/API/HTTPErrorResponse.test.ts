@@ -1,4 +1,5 @@
 import HTTPErrorResponse from '../../../Types/API/HTTPErrorResponse';
+import { describe, expect, it } from '@jest/globals';
 
 describe('HTTPErrorResponse', () => {
     it('should return an empty string when data is null', () => {

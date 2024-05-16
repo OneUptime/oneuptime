@@ -2,7 +2,7 @@ import React from 'react';
 import { faker } from '@faker-js/faker';
 import { render, fireEvent, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-
+import { describe, expect, it } from '@jest/globals';
 import ComponentMetadata, {
     ComponentCategory,
     ComponentType,

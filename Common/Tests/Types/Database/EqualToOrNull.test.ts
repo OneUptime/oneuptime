@@ -1,6 +1,7 @@
 import EqualToOrNull from '../../../Types/BaseDatabase/EqualToOrNull';
 import BadDataException from '../../../Types/Exception/BadDataException';
 import { JSONObject } from '../../../Types/JSON';
+import { describe, expect, it } from '@jest/globals';
 
 describe('EqualToOrNull', () => {
     it('should create an EqualToOrNull object with a valid value', () => {

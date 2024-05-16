@@ -1,4 +1,5 @@
 import NotEqual from '../../../Types/BaseDatabase/NotEqual';
+import { describe, expect, it } from '@jest/globals';
 
 describe('NotEqual', () => {
     describe('constructor', () => {

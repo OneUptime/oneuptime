@@ -53,7 +53,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
     const [data, setData] = useState<Array<Item>>([]);
     const [isInitialValueSet, setIsInitialValueSet] = useState<boolean>(false);
 
-    const updateData = (json: Dictionary<string | number | boolean>) => {
+    type UpdateDataFunction = (
+        json: Dictionary<string | number | boolean>
+    ) => void;
+
+    const updateData: UpdateDataFunction = (
+        json: Dictionary<string | number | boolean>
+    ): void => {
         const newData: Array<Item> = Object.keys(json).map((key: string) => {
             // check if the value type is in data
 
@@ -96,7 +102,9 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-    const onDataChange = (data: Array<Item>) => {
+    type OnDataChangeFunction = (data: Array<Item>) => void;
+
+    const onDataChange: OnDataChangeFunction = (data: Array<Item>): void => {
         const result: Dictionary<string | number | boolean> = {};
         data.forEach((item: Item) => {
             result[item.key] = item.value;

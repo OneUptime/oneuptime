@@ -2,6 +2,7 @@ import Faker from '../../Utils/Faker';
 import Email from '../../Types/Email';
 import Name from '../../Types/Name';
 import Phone from '../../Types/Phone';
+import { describe, expect, it } from '@jest/globals';
 
 describe('Faker Class', () => {
     it('should generate a random name with alphanumeric characters', () => {

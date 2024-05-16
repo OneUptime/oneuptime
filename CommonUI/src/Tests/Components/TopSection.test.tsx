@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import TopSection, {
     ComponentProps,
 } from '../../Components/TopSection/TopSection';
+import { describe, expect, it } from '@jest/globals';
 
 describe('TopSection', () => {
     const defaultProps: ComponentProps = {
