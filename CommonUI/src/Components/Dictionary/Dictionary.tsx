@@ -21,7 +21,7 @@ export interface ComponentProps {
     onChange?:
         | undefined
         | ((value: Dictionary<string | boolean | number>) => void);
-    initialValue?: Dictionary<string>;
+    initialValue?: Dictionary<string | boolean | number>;
     keyPlaceholder?: string;
     valuePlaceholder?: string;
     addButtonSuffix?: string;
@@ -50,27 +50,53 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         }
     );
 
-    const [data, setData] = useState<Array<Item>>(
-        Object.keys(
-            props.initialValue || {
-                '': '',
+    const [data, setData] = useState<Array<Item>>([]);
+    const [isInitialValueSet, setIsInitialValueSet] = useState<boolean>(false);
+
+    const updateData = (json: Dictionary<string | number | boolean>) => {
+        const newData: Array<Item> = Object.keys(json).map((key: string) => {
+            // check if the value type is in data
+
+            const valueTypeInData: ValueType | undefined = data.find(
+                (item: Item) => {
+                    return item.key === key;
+                }
+            )?.type;
+
+            let valueType: ValueType = valueTypeInData || ValueType.Text;
+
+            if (!valueTypeInData) {
+                if (typeof json[key] === 'number') {
+                    valueType = ValueType.Number;
+                }
+
+                if (typeof json[key] === 'boolean') {
+                    valueType = ValueType.Boolean;
+                }
             }
-        ).map((key: string) => {
+
             return {
-                key: key!,
-                value: props.initialValue![key] || '',
-                type: valueTypes[0] as ValueType,
+                key: key,
+                value: json[key] || '',
+                type: valueType,
             };
-        }) || [
-            {
-                key: '',
-                value: '',
-                type: valueTypes[0] as ValueType,
-            },
-        ]
-    );
+        });
+
+        setData(newData);
+    };
 
     useEffect(() => {
+        if (
+            props.initialValue &&
+            !isInitialValueSet &&
+            Object.keys(props.initialValue).length > 0
+        ) {
+            setIsInitialValueSet(true);
+            updateData(props.initialValue);
+        }
+    }, [props.initialValue]);
+
+    const onDataChange = (data: Array<Item>) => {
         const result: Dictionary<string | number | boolean> = {};
         data.forEach((item: Item) => {
             result[item.key] = item.value;
@@ -78,7 +104,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         if (props.onChange) {
             props.onChange(result);
         }
-    }, [data]);
+    };
 
     const trueDropdownOption: DropdownOption = {
         label: 'True',
@@ -104,6 +130,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                         const newData: Array<Item> = [...data];
                                         newData[index]!.key = value;
                                         setData(newData);
+                                        onDataChange(newData);
                                     }}
                                 />
                             </div>
@@ -142,6 +169,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                                 (selectedOption as ValueType) ||
                                                 valueTypes[0];
                                             setData(newData);
+                                            onDataChange(newData);
                                         }}
                                     />
                                 </div>
@@ -157,6 +185,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                             ];
                                             newData[index]!.value = value;
                                             setData(newData);
+                                            onDataChange(newData);
                                         }}
                                     />
                                 )}
@@ -181,6 +210,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                             }
 
                                             setData(newData);
+                                            onDataChange(newData);
                                         }}
                                         type={InputType.NUMBER}
                                     />
@@ -216,6 +246,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                             }
 
                                             setData(newData);
+                                            onDataChange(newData);
                                         }}
                                     />
                                 )}
@@ -230,6 +261,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                                         const newData: Array<Item> = [...data];
                                         newData.splice(index, 1);
                                         setData(newData);
+                                        onDataChange(newData);
                                     }}
                                 />
                             </div>

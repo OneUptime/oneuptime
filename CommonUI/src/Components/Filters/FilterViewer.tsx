@@ -63,11 +63,27 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     ): ReactElement => {
         return (
             <div className="flex space-x-2 -mt-1">
-                {Object.keys(json).map((key: string) => {
+                {Object.keys(json).map((key: string, i: number) => {
+                    let jsonText: string | number | boolean = json[key] as
+                        | string
+                        | number
+                        | boolean;
+
+                    if (typeof jsonText === 'boolean' && jsonText === true) {
+                        jsonText = 'True';
+                    }
+
+                    if (typeof jsonText === 'boolean' && jsonText === false) {
+                        jsonText = 'False';
+                    }
+
                     return (
-                        <div className="rounded-full h-7 bg-gray-100 text-gray-500 border-2 border-gray-200 p-1 pr-2 pl-2 text-xs">
+                        <div
+                            key={i}
+                            className="rounded-full h-7 bg-gray-100 text-gray-500 border-2 border-gray-200 p-1 pr-2 pl-2 text-xs"
+                        >
                             <span className="font-medium">{key}</span> ={' '}
-                            <span className="font-medium">{json[key]}</span>
+                            <span className="font-medium">{jsonText}</span>
                         </div>
                     );
                 })}
