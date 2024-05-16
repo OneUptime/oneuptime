@@ -21,7 +21,7 @@ export default class UptimeUtil {
 
         // make sure items are sorted by start date.
 
-        let items = [...statusTimelineItems];
+        let items: Array<MonitorStatusTimeline> = [...statusTimelineItems];
 
         items = items.sort(
             (a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
