@@ -58,19 +58,22 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         }
     }, [props.showFilterModal]);
 
-
-    const formatJson = (json: Dictionary<string | number | boolean>): ReactElement => {
-        return (<div className='flex space-x-2'>
-
-            {Object.keys(json).map((key: string) => {
-                return <div className='rounded bg-gray-200 border-2 border-gray-800 p-2'>
-                    <span className='font-medium'>{key}</span> = <span className='font-medium'>{json[key]}</span>
-                </div>
-            }
-            )}
-
-        </div>)
-    }
+    const formatJson = (
+        json: Dictionary<string | number | boolean>
+    ): ReactElement => {
+        return (
+            <div className="flex space-x-2 -mt-1">
+                {Object.keys(json).map((key: string) => {
+                    return (
+                        <div className="rounded-full h-7 bg-gray-100 text-gray-500 border-2 border-gray-200 p-1 pr-2 pl-2 text-xs">
+                            <span className="font-medium">{key}</span> ={' '}
+                            <span className="font-medium">{json[key]}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     type TranslateFilterToTextFunction = <T extends GenericObject>(data: {
         filters: Array<Filter<T>>;
@@ -252,13 +255,16 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 return null;
             }
 
-            
+            const isPlural: boolean = Object.keys(json).length > 1;
 
             return (
-                <div>
+                <div className="flex space-x-1">
                     {' '}
-                    <span className="font-medium">{data.filter.title}</span> is {''}
-                    <span className="font-medium">{formatJson(json)}</span>{' '}
+                    <div className="font-medium">{data.filter.title}</div>{' '}
+                    <div>
+                        {isPlural ? 'are' : 'is'} {''}
+                    </div>
+                    <div className="font-medium">{formatJson(json)}</div>{' '}
                 </div>
             );
         }
@@ -407,8 +413,9 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                     modalWidth={ModalWidth.Large}
                     isLoading={props.isModalLoading}
                     title={`${props.singularLabel + ' ' || ''}Filters`}
-                    description={`Filter ${props.pluralLabel || ''
-                        } by the following criteria:`}
+                    description={`Filter ${
+                        props.pluralLabel || ''
+                    } by the following criteria:`}
                     submitButtonText={`Apply Filters`}
                     onClose={() => {
                         props.onFilterModalClose();
