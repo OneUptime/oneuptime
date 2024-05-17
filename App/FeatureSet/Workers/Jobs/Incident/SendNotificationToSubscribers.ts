@@ -209,9 +209,11 @@ RunCron(
                                         incident.incidentSeverity?.name ||
                                         ' - ',
                                     incidentTitle: incident.title || '',
-                                    incidentDescription: await Markdown.convertToHTML(
-                                        incident.description || '',MarkdownContentType.Email
-                                    ),
+                                    incidentDescription:
+                                        await Markdown.convertToHTML(
+                                            incident.description || '',
+                                            MarkdownContentType.Email
+                                        ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject: statusPageName + ' - New Incident',

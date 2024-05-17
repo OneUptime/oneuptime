@@ -503,7 +503,8 @@ export class Service extends DatabaseService<Model> {
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
             incidentDescription: await Markdown.convertToHTML(
-                incident.description! || '',MarkdownContentType.Email
+                incident.description! || '',
+                MarkdownContentType.Email
             ),
             incidentSeverity: incident.incidentSeverity!.name!,
             rootCause:

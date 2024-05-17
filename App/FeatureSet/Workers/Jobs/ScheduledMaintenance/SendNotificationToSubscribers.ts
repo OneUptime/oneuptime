@@ -242,9 +242,11 @@ RunCron(
                                             event.startsAt!
                                         ),
                                     eventTitle: event.title || '',
-                                    eventDescription: await Markdown.convertToHTML(
-                                        event.description || '',MarkdownContentType.Email
-                                    ),
+                                    eventDescription:
+                                        await Markdown.convertToHTML(
+                                            event.description || '',
+                                            MarkdownContentType.Email
+                                        ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:

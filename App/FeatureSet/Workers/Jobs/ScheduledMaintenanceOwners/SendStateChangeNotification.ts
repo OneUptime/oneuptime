@@ -95,7 +95,8 @@ RunCron(
                 projectName: scheduledMaintenanceStateTimeline.project!.name!,
                 currentState: scheduledMaintenanceState!.name!,
                 scheduledMaintenanceDescription: await Markdown.convertToHTML(
-                    scheduledMaintenance.description! || '',MarkdownContentType.Email
+                    scheduledMaintenance.description! || '',
+                    MarkdownContentType.Email
                 ),
                 stateChangedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(

@@ -94,7 +94,8 @@ RunCron(
                 projectName: monitorStatusTimeline.project!.name!,
                 currentStatus: monitorStatus!.name!,
                 monitorDescription: await Markdown.convertToHTML(
-                    monitor.description! || '',MarkdownContentType.Email
+                    monitor.description! || '',
+                    MarkdownContentType.Email
                 ),
                 statusChangedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(

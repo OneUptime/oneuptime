@@ -73,7 +73,8 @@ RunCron(
                 statusPageName: statusPage.name!,
                 projectName: statusPage.project!.name!,
                 statusPageDescription: await Markdown.convertToHTML(
-                    statusPage.description! || '',MarkdownContentType.Email
+                    statusPage.description! || '',
+                    MarkdownContentType.Email
                 ),
                 statusPageViewLink: (
                     await StatusPageService.getStatusPageLinkInDashboard(

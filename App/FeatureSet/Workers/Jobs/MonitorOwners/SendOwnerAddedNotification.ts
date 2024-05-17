@@ -160,7 +160,8 @@ RunCron(
                 projectName: monitor.project!.name!,
                 currentStatus: monitor.currentMonitorStatus!.name!,
                 monitorDescription: await Markdown.convertToHTML(
-                    monitor.description! || '',MarkdownContentType.Email
+                    monitor.description! || '',
+                    MarkdownContentType.Email
                 ),
                 monitorViewLink: (
                     await MonitorService.getMonitorLinkInDashboard(

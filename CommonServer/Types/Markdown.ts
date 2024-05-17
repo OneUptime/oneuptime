@@ -3,30 +3,31 @@ import { marked, Renderer } from 'marked';
 export type MarkdownRenderer = Renderer;
 
 export enum MarkdownContentType {
-    Docs, 
-    Blog, 
-    Email
+    Docs,
+    Blog,
+    Email,
 }
 
 export default class Markdown {
-
     private static blogRenderer: Renderer | null = null;
     private static docsRenderer: Renderer | null = null;
     private static emailRenderer: Renderer | null = null;
 
-    public static async convertToHTML(markdown: string, contentType: MarkdownContentType): Promise<string> {
+    public static async convertToHTML(
+        markdown: string,
+        contentType: MarkdownContentType
+    ): Promise<string> {
+        let renderer: Renderer | null = null;
 
-        let renderer: Renderer | null = null; 
-
-        if(contentType === MarkdownContentType.Blog) {
+        if (contentType === MarkdownContentType.Blog) {
             renderer = this.getBlogRenderer();
         }
 
-        if(contentType === MarkdownContentType.Docs) {
+        if (contentType === MarkdownContentType.Docs) {
             renderer = this.getDocsRenderer();
         }
 
-        if(contentType === MarkdownContentType.Email) {
+        if (contentType === MarkdownContentType.Email) {
             renderer = this.getEmailRenderer();
         }
 
@@ -38,8 +39,7 @@ export default class Markdown {
     }
 
     private static getEmailRenderer(): Renderer {
-
-        if(this.emailRenderer !== null) {
+        if (this.emailRenderer !== null) {
             return this.emailRenderer;
         }
 
@@ -51,7 +51,7 @@ export default class Markdown {
     }
 
     private static getDocsRenderer(): Renderer {
-        if(this.docsRenderer !== null) {
+        if (this.docsRenderer !== null) {
             return this.docsRenderer;
         }
 
@@ -95,10 +95,8 @@ export default class Markdown {
         return renderer;
     }
 
-
     private static getBlogRenderer(): Renderer {
-
-        if(this.blogRenderer !== null) {
+        if (this.blogRenderer !== null) {
             return this.blogRenderer;
         }
 

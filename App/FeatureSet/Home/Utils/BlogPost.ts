@@ -271,7 +271,10 @@ export default class BlogPostUtil {
 
         markdownContent = this.getPostFromMarkdown(markdownContent);
 
-        const htmlBody: string = await Markdown.convertToHTML(markdownContent, MarkdownContentType.Blog);
+        const htmlBody: string = await Markdown.convertToHTML(
+            markdownContent,
+            MarkdownContentType.Blog
+        );
 
         const blogPost: BlogPost = {
             title,
@@ -315,8 +318,6 @@ export default class BlogPostUtil {
         const date: Date = OneUptimeDate.getDateFromYYYYMMDD(year, month, day);
         return OneUptimeDate.getDateAsLocalFormattedString(date, true);
     }
-
-    
 
     private static getPostFromMarkdown(markdownContent: string): string {
         const authorLine: string | undefined = markdownContent

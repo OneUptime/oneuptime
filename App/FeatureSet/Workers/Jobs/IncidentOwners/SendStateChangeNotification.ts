@@ -138,7 +138,8 @@ RunCron(
                 projectName: incidentStateTimeline.project!.name!,
                 currentState: incidentState!.name!,
                 incidentDescription: await Markdown.convertToHTML(
-                    incident.description! || '',MarkdownContentType.Email
+                    incident.description! || '',
+                    MarkdownContentType.Email
                 ),
                 resourcesAffected:
                     incident

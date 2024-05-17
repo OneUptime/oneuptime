@@ -82,7 +82,8 @@ RunCron(
                     statusPageName: statusPage.name!,
                     announcementTitle: announcement.title!,
                     announcementDescription: await Markdown.convertToHTML(
-                        announcement.description!,MarkdownContentType.Email
+                        announcement.description!,
+                        MarkdownContentType.Email
                     ),
                 };
 
