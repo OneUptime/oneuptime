@@ -242,7 +242,7 @@ RunCron(
                                             event.startsAt!
                                         ),
                                     eventTitle: event.title || '',
-                                    eventDescription: Markdown.convertToHTML(
+                                    eventDescription: await Markdown.convertToHTML(
                                         event.description || ''
                                     ),
                                     unsubscribeUrl: unsubscribeUrl,

@@ -159,7 +159,7 @@ RunCron(
                 monitorName: monitor.name!,
                 projectName: monitor.project!.name!,
                 currentStatus: monitor.currentMonitorStatus!.name!,
-                monitorDescription: Markdown.convertToHTML(
+                monitorDescription: await Markdown.convertToHTML(
                     monitor.description! || ''
                 ),
                 monitorViewLink: (

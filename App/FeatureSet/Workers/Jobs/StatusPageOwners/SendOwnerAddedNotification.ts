@@ -160,7 +160,7 @@ RunCron(
             const vars: Dictionary<string> = {
                 statusPageName: statusPage.name!,
                 projectName: statusPage.project!.name!,
-                statusPageDescription: Markdown.convertToHTML(
+                statusPageDescription: await Markdown.convertToHTML(
                     statusPage.description! || ''
                 ),
                 statusPageViewLink: (

@@ -237,7 +237,7 @@ RunCron(
                                 templateType:
                                     EmailTemplateType.SubscriberIncidentNoteCreated,
                                 vars: {
-                                    note: Markdown.convertToHTML(
+                                    note: await Markdown.convertToHTML(
                                         incidentPublicNote.note!
                                     ),
                                     statusPageName: statusPageName,

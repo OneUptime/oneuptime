@@ -502,7 +502,7 @@ export class Service extends DatabaseService<Model> {
             incidentTitle: incident.title!,
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
-            incidentDescription: Markdown.convertToHTML(
+            incidentDescription: await Markdown.convertToHTML(
                 incident.description! || ''
             ),
             incidentSeverity: incident.incidentSeverity!.name!,

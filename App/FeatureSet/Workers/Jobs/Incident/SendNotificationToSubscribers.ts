@@ -209,7 +209,7 @@ RunCron(
                                         incident.incidentSeverity?.name ||
                                         ' - ',
                                     incidentTitle: incident.title || '',
-                                    incidentDescription: Markdown.convertToHTML(
+                                    incidentDescription: await Markdown.convertToHTML(
                                         incident.description || ''
                                     ),
                                     unsubscribeUrl: unsubscribeUrl,

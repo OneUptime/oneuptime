@@ -231,7 +231,7 @@ RunCron(
                                 templateType:
                                     EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
                                 vars: {
-                                    note: Markdown.convertToHTML(
+                                    note: await Markdown.convertToHTML(
                                         publicNote.note!
                                     ),
                                     statusPageName: statusPageName,

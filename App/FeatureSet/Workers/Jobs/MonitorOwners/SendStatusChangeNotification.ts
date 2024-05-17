@@ -93,7 +93,7 @@ RunCron(
                 monitorName: monitor.name!,
                 projectName: monitorStatusTimeline.project!.name!,
                 currentStatus: monitorStatus!.name!,
-                monitorDescription: Markdown.convertToHTML(
+                monitorDescription: await Markdown.convertToHTML(
                     monitor.description! || ''
                 ),
                 statusChangedAt:

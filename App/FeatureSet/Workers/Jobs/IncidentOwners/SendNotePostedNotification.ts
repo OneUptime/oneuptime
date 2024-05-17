@@ -153,7 +153,7 @@ RunCron(
                 incidentTitle: incident.title!,
                 projectName: incident.project!.name!,
                 currentState: incident.currentIncidentState!.name!,
-                note: Markdown.convertToHTML(
+                note: await Markdown.convertToHTML(
                     (note.getColumnValue('note')! as string) || ''
                 ),
                 resourcesAffected:

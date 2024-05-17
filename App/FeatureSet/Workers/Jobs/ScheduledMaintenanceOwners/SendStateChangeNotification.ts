@@ -94,7 +94,7 @@ RunCron(
                 scheduledMaintenanceTitle: scheduledMaintenance.title!,
                 projectName: scheduledMaintenanceStateTimeline.project!.name!,
                 currentState: scheduledMaintenanceState!.name!,
-                scheduledMaintenanceDescription: Markdown.convertToHTML(
+                scheduledMaintenanceDescription: await Markdown.convertToHTML(
                     scheduledMaintenance.description! || ''
                 ),
                 stateChangedAt:

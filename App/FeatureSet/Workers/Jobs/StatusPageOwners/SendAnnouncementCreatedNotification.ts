@@ -81,7 +81,7 @@ RunCron(
                 const vars: Dictionary<string> = {
                     statusPageName: statusPage.name!,
                     announcementTitle: announcement.title!,
-                    announcementDescription: Markdown.convertToHTML(
+                    announcementDescription: await Markdown.convertToHTML(
                         announcement.description!
                     ),
                 };

@@ -192,7 +192,7 @@ RunCron(
                                             : 'false',
                                     announcementTitle: announcement.title || '',
                                     announcementDescription:
-                                        Markdown.convertToHTML(
+                                        await Markdown.convertToHTML(
                                             announcement.description || ''
                                         ),
                                     unsubscribeUrl: unsubscribeUrl,

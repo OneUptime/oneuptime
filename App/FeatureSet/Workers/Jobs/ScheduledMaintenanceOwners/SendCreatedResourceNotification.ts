@@ -82,7 +82,7 @@ RunCron(
                 currentState:
                     scheduledMaintenance.currentScheduledMaintenanceState!
                         .name!,
-                scheduledMaintenanceDescription: Markdown.convertToHTML(
+                scheduledMaintenanceDescription: await Markdown.convertToHTML(
                     scheduledMaintenance.description! || ''
                 ),
                 scheduledMaintenanceViewLink: (

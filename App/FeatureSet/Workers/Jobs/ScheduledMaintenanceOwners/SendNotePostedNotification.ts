@@ -150,7 +150,7 @@ RunCron(
                 currentState:
                     scheduledMaintenance.currentScheduledMaintenanceState!
                         .name!,
-                note: Markdown.convertToHTML(
+                note: await Markdown.convertToHTML(
                     (note.getColumnValue('note')! as string) || ''
                 ),
                 scheduledMaintenanceViewLink: (
