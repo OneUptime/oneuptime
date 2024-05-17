@@ -7,7 +7,7 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import ScheduledMaintenanceStateTimelineService from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
@@ -94,8 +94,9 @@ RunCron(
                 scheduledMaintenanceTitle: scheduledMaintenance.title!,
                 projectName: scheduledMaintenanceStateTimeline.project!.name!,
                 currentState: scheduledMaintenanceState!.name!,
-                scheduledMaintenanceDescription: Markdown.convertToHTML(
-                    scheduledMaintenance.description! || ''
+                scheduledMaintenanceDescription: await Markdown.convertToHTML(
+                    scheduledMaintenance.description! || '',
+                    MarkdownContentType.Email
                 ),
                 stateChangedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(

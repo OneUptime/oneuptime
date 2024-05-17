@@ -15,7 +15,7 @@ import logger from 'CommonServer/Utils/Logger';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
@@ -192,8 +192,9 @@ RunCron(
                                             : 'false',
                                     announcementTitle: announcement.title || '',
                                     announcementDescription:
-                                        Markdown.convertToHTML(
-                                            announcement.description || ''
+                                        await Markdown.convertToHTML(
+                                            announcement.description || '',
+                                            MarkdownContentType.Email
                                         ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },

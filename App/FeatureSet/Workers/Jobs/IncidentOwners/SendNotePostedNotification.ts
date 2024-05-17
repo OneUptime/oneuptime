@@ -7,7 +7,7 @@ import Incident from 'Model/Models/Incident';
 import IncidentService from 'CommonServer/Services/IncidentService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import IncidentPublicNoteService from 'CommonServer/Services/IncidentPublicNoteService';
 import BaseModel from 'Common/Models/BaseModel';
@@ -153,8 +153,9 @@ RunCron(
                 incidentTitle: incident.title!,
                 projectName: incident.project!.name!,
                 currentState: incident.currentIncidentState!.name!,
-                note: Markdown.convertToHTML(
-                    (note.getColumnValue('note')! as string) || ''
+                note: await Markdown.convertToHTML(
+                    (note.getColumnValue('note')! as string) || '',
+                    MarkdownContentType.Email
                 ),
                 resourcesAffected:
                     incident

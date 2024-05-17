@@ -7,7 +7,7 @@ import Monitor from 'Model/Models/Monitor';
 import MonitorService from 'CommonServer/Services/MonitorService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
 import { SMSMessage } from 'Common/Types/SMS/SMS';
 import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
@@ -76,8 +76,9 @@ RunCron(
                 monitorName: monitor.name!,
                 projectName: monitor.project!.name!,
                 currentStatus: monitor.currentMonitorStatus!.name!,
-                monitorDescription: Markdown.convertToHTML(
-                    monitor.description! || ''
+                monitorDescription: await Markdown.convertToHTML(
+                    monitor.description! || '',
+                    MarkdownContentType.Email
                 ),
                 monitorViewLink: (
                     await MonitorService.getMonitorLinkInDashboard(

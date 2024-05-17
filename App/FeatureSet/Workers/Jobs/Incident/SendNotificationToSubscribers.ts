@@ -20,7 +20,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
@@ -209,9 +209,11 @@ RunCron(
                                         incident.incidentSeverity?.name ||
                                         ' - ',
                                     incidentTitle: incident.title || '',
-                                    incidentDescription: Markdown.convertToHTML(
-                                        incident.description || ''
-                                    ),
+                                    incidentDescription:
+                                        await Markdown.convertToHTML(
+                                            incident.description || '',
+                                            MarkdownContentType.Email
+                                        ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject: statusPageName + ' - New Incident',

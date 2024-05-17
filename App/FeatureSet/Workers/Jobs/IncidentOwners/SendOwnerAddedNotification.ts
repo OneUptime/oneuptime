@@ -6,7 +6,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import Incident from 'Model/Models/Incident';
 import IncidentService from 'CommonServer/Services/IncidentService';
 import User from 'Model/Models/User';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import IncidentOwnerTeamService from 'CommonServer/Services/IncidentOwnerTeamService';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import ObjectID from 'Common/Types/ObjectID';
@@ -170,8 +170,9 @@ RunCron(
                 incidentTitle: incident.title!,
                 projectName: incident.project!.name!,
                 currentState: incident.currentIncidentState!.name!,
-                incidentDescription: Markdown.convertToHTML(
-                    incident.description! || ''
+                incidentDescription: await Markdown.convertToHTML(
+                    incident.description! || '',
+                    MarkdownContentType.Email
                 ),
                 resourcesAffected:
                     incident

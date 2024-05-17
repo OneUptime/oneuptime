@@ -21,7 +21,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import IncidentPublicNoteService from 'CommonServer/Services/IncidentPublicNoteService';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
@@ -237,8 +237,9 @@ RunCron(
                                 templateType:
                                     EmailTemplateType.SubscriberIncidentNoteCreated,
                                 vars: {
-                                    note: Markdown.convertToHTML(
-                                        incidentPublicNote.note!
+                                    note: await Markdown.convertToHTML(
+                                        incidentPublicNote.note!,
+                                        MarkdownContentType.Email
                                     ),
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,

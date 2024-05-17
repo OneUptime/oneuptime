@@ -7,7 +7,7 @@ import Incident from 'Model/Models/Incident';
 import IncidentService from 'CommonServer/Services/IncidentService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
 import { SMSMessage } from 'Common/Types/SMS/SMS';
 import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
@@ -84,8 +84,9 @@ RunCron(
                 incidentTitle: incident.title!,
                 projectName: incident.project!.name!,
                 currentState: incident.currentIncidentState!.name!,
-                incidentDescription: Markdown.convertToHTML(
-                    incident.description! || ''
+                incidentDescription: await Markdown.convertToHTML(
+                    incident.description! || '',
+                    MarkdownContentType.Email
                 ),
                 resourcesAffected:
                     incident
