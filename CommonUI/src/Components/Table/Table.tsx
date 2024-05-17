@@ -13,6 +13,11 @@ import Filter from '../Filters/Types/Filter';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
 import GenericObject from 'Common/Types/GenericObject';
 import FilterViewer from '../Filters/FilterViewer';
+import BulkUpdateForm, { BulkActionButtonSchema } from '../BulkUpdate/BulkUpdateForm';
+
+export interface BulkActionProps<T extends GenericObject> {
+    buttons: Array<BulkActionButtonSchema<T>>;
+}
 
 export interface ComponentProps<T extends GenericObject> {
     data: Array<T>;
@@ -31,6 +36,8 @@ export interface ComponentProps<T extends GenericObject> {
     actionButtons?: undefined | Array<ActionButtonSchema<T>>;
     onRefreshClick?: undefined | (() => void);
 
+    
+
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
 
@@ -47,6 +54,9 @@ export interface ComponentProps<T extends GenericObject> {
     dragDropIndexField?: keyof T | undefined;
     dragDropIdField?: keyof T | undefined;
     onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
+
+    // bulk actions
+    bulkActions?: BulkActionProps<T>;
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -143,6 +153,7 @@ const Table: TableFunction = <T extends GenericObject>(
                 singularLabel={props.singularLabel}
                 pluralLabel={props.pluralLabel}
             />
+            {props.bulkActions?.buttons && <BulkUpdateForm buttons={props.bulkActions.buttons} />}
             <DragDropContext
                 onDragEnd={(result: DropResult) => {
                     result.destination?.index &&

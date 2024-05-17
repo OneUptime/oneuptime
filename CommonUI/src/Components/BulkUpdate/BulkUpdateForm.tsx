@@ -22,12 +22,12 @@ export interface ProgressInfo<T extends GenericObject> {
     totalItems: Array<T>;
 }
 
-type OnProgressInfoFunction<T  extends GenericObject> = (progressInfo: ProgressInfo<T>) => void;
+export type OnProgressInfoFunction<T  extends GenericObject> = (progressInfo: ProgressInfo<T>) => void;
 
-type OnBulkActionStart = () => void;
-type OnBulkActionEnd = () => void;
+export type OnBulkActionStart = () => void;
+export type OnBulkActionEnd = () => void;
 
-interface BulkActionButtonSchema<T extends GenericObject> {
+export interface BulkActionButtonSchema<T extends GenericObject> {
     title: string;
     icon?: undefined | IconProp;
     buttonStyleType: ButtonStyleType;
