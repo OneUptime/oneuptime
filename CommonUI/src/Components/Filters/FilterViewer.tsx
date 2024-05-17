@@ -373,6 +373,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                                 </div>
                             </div>
                         </div>
+
                         <ul role="list" className="space-y-3">
                             {filterTexts.map(
                                 (filterText: ReactElement, index: number) => {
