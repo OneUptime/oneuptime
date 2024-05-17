@@ -12,6 +12,7 @@ export interface ComponentProps {
     closeButtonType?: undefined | ButtonStyleType;
     isLoading?: boolean;
     error?: string | undefined;
+    disableSubmitButton?: boolean | undefined;
 }
 
 const ConfirmModal: FunctionComponent<ComponentProps> = (
@@ -30,6 +31,9 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
                 props.closeButtonType
                     ? props.closeButtonType
                     : ButtonStyleType.NORMAL
+            }
+            disableSubmitButton={
+                props.disableSubmitButton ? props.disableSubmitButton : false
             }
             submitButtonStyleType={
                 props.submitButtonType

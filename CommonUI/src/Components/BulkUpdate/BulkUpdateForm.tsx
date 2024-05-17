@@ -7,6 +7,25 @@ import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ConfirmModal, {
     ComponentProps as ConfirmModalProps,
 } from '../Modal/ConfirmModal';
+import ProgressBar from '../ProgressBar/ProgressBar';
+
+
+export interface BulkActionFailed<T extends GenericObject> {
+    failedMessage: string | ReactElement; 
+    item: T;
+}
+
+export interface ProgressInfo<T extends GenericObject> {
+    inProgressItems: Array<T>;
+    successItems: Array<T>;
+    failed: Array<BulkActionFailed<T>>;
+    totalItems: Array<T>;
+}
+
+type OnProgressInfoFunction<T  extends GenericObject> = (progressInfo: ProgressInfo<T>) => void;
+
+type OnBulkActionStart = () => void;
+type OnBulkActionEnd = () => void;
 
 interface BulkActionButtonSchema<T extends GenericObject> {
     title: string;
@@ -15,7 +34,7 @@ interface BulkActionButtonSchema<T extends GenericObject> {
     isLoading?: boolean | undefined;
     isVisible?: (items: Array<T>) => boolean | undefined;
     className?: string | undefined;
-    onClick: (items: Array<T>) => Promise<void>;
+    onClick: (props: {items: Array<T>, onProgressInfo: OnProgressInfoFunction<T>, onBulkActionStart: OnBulkActionStart, onBulkActionEnd: OnBulkActionEnd }) => Promise<void>;
     disabled?: boolean | undefined;
     shortcutKey?: undefined | ShortcutKey;
     confirmMessage?: ((items: Array<T>) => string) | undefined;
@@ -37,130 +56,170 @@ const BulkUpdateForm: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const [confirmModalProps, setConfirmModalProps] =
-        React.useState<ConfirmModalProps | null>(null);
+        const [confirmModalProps, setConfirmModalProps] =
+            React.useState<ConfirmModalProps | null>(null);
 
-    if (props.selectedItems.length === 0) {
-        return <></>;
-    }
+        const [progressInfo, setProgressInfo] = React.useState<ProgressInfo<T> | null>(null);
+        const [showProgressInfoModal, setShowProgressInfoModal] = React.useState<boolean>(false);
 
-    return (
-        <div>
+        if (props.selectedItems.length === 0) {
+            return <></>;
+        }
+
+        return (
             <div>
-                <div className="mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
-                    <div className="flex w-full mb-3 -mt-1">
-                        <div className="flex">
-                            <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                                <span className="font-semibold text-xs text-gray-400">
-                                    {props.selectedItems.length}{' '}
-                                    {props.pluralLabel?.toUpperCase() + ' ' ||
-                                        ''}
-                                    SELECTED
-                                </span>{' '}
+                <div>
+                    <div className="mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
+                        <div className="flex w-full mb-3 -mt-1">
+                            <div className="flex">
+                                <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                                    <span className="font-semibold text-xs text-gray-400">
+                                        {props.selectedItems.length}{' '}
+                                        {props.pluralLabel?.toUpperCase() + ' ' ||
+                                            ''}
+                                        SELECTED
+                                    </span>{' '}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="flex w-full mb-3 -mt-1">
-                        {props.buttons?.map(
-                            (button: BulkActionButtonSchema<T>, i: number) => {
-                                return (
-                                    <div
-                                        style={
-                                            i > 0
-                                                ? {
-                                                      marginLeft: '10px',
-                                                  }
-                                                : {}
-                                        }
-                                        key={i}
-                                    >
-                                        <Button
+                        <div className="flex w-full mb-3 -mt-1">
+                            {props.buttons?.map(
+                                (button: BulkActionButtonSchema<T>, i: number) => {
+                                    return (
+                                        <div
+                                            style={
+                                                i > 0
+                                                    ? {
+                                                        marginLeft: '10px',
+                                                    }
+                                                    : {}
+                                            }
                                             key={i}
-                                            title={button.title}
-                                            buttonStyle={button.buttonStyleType}
-                                            className={button.className}
-                                            onClick={async () => {
-                                                if (button.confirmMessage) {
-                                                    setConfirmModalProps({
-                                                        title: button.confirmTitle
-                                                            ? button.confirmTitle(
-                                                                  props.selectedItems
-                                                              )
-                                                            : 'Confirm',
-                                                        description:
-                                                            button.confirmMessage(
-                                                                props.selectedItems
-                                                            ),
-                                                        submitButtonText:
-                                                            button.title,
-                                                        onSubmit: async () => {
-                                                            await button.onClick(
-                                                                props.selectedItems
-                                                            );
-                                                        },
-                                                    });
-                                                    return;
-                                                }
+                                        >
+                                            <Button
+                                                key={i}
+                                                title={button.title}
+                                                buttonStyle={button.buttonStyleType}
+                                                className={button.className}
+                                                onClick={async () => {
+                                                    if (button.confirmMessage) {
+                                                        setConfirmModalProps({
+                                                            title: button.confirmTitle
+                                                                ? button.confirmTitle(
+                                                                    props.selectedItems
+                                                                )
+                                                                : 'Confirm',
+                                                            description:
+                                                                button.confirmMessage(
+                                                                    props.selectedItems
+                                                                ),
+                                                            submitButtonText:
+                                                                button.title,
+                                                            onSubmit: async () => {
+                                                                await button.onClick(
+                                                                    {
+                                                                        items: props.selectedItems,
+                                                                        onProgressInfo: (progressInfo: ProgressInfo<T>) => {
+                                                                            setProgressInfo(progressInfo);
+                                                                        },
+                                                                        onBulkActionStart: () => {
+                                                                            setShowProgressInfoModal(true);
+                                                                        },
+                                                                        onBulkActionEnd: () => {
+                                                                            setShowProgressInfoModal(false);
+                                                                        }
+                                                                    }
+                                                                );
+                                                            },
+                                                        });
+                                                        return;
+                                                    }
 
-                                                if (button.onClick) {
-                                                    await button.onClick(
-                                                        props.selectedItems
-                                                    );
-                                                }
-                                            }}
-                                            disabled={button.disabled}
-                                            icon={button.icon}
-                                            shortcutKey={button.shortcutKey}
-                                            buttonSize={ButtonSize.Small}
-                                            dataTestId="card-button"
-                                        />
-                                    </div>
-                                );
-                            }
-                        )}
-                    </div>
+                                                    if (button.onClick) {
+                                                        await button.onClick(
+                                                            {
+                                                                items: props.selectedItems,
+                                                                onProgressInfo: (progressInfo: ProgressInfo<T>) => {
+                                                                    setProgressInfo(progressInfo);
+                                                                },
+                                                                onBulkActionStart: () => {
+                                                                    setShowProgressInfoModal(true);
+                                                                },
+                                                                onBulkActionEnd: () => {
+                                                                    setShowProgressInfoModal(false);
+                                                                }
+                                                            }
+                                                        );
+                                                    }
+                                                }}
+                                                disabled={button.disabled}
+                                                icon={button.icon}
+                                                shortcutKey={button.shortcutKey}
+                                                buttonSize={ButtonSize.Small}
+                                                dataTestId="card-button"
+                                            />
+                                        </div>
+                                    );
+                                }
+                            )}
+                        </div>
 
-                    <div className="flex -ml-3 mt-3 -mb-2">
-                        {/** Edit Filter Button */}
-                        {!props.isAllItemsSelected && (
+                        <div className="flex -ml-3 mt-3 -mb-2">
+                            {/** Edit Filter Button */}
+                            {!props.isAllItemsSelected && (
+                                <Button
+                                    className="font-medium text-gray-900"
+                                    icon={IconProp.Filter}
+                                    onClick={() => {
+                                        props.onSelectAllClick();
+                                    }}
+                                    title={`Select All ${props.pluralLabel}`}
+                                    iconSize={SizeProp.Smaller}
+                                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                                />
+                            )}
+
+                            {/** Clear Filter Button */}
                             <Button
-                                className="font-medium text-gray-900"
-                                icon={IconProp.Filter}
                                 onClick={() => {
-                                    props.onSelectAllClick();
+                                    props.onClearSelectionClick();
                                 }}
-                                title={`Select All ${props.pluralLabel}`}
-                                iconSize={SizeProp.Smaller}
+                                className="font-medium text-gray-900"
+                                icon={IconProp.Close}
+                                title="Clear Selection"
                                 buttonStyle={ButtonStyleType.SECONDARY_LINK}
                             />
-                        )}
-
-                        {/** Clear Filter Button */}
-                        <Button
-                            onClick={() => {
-                                props.onClearSelectionClick();
-                            }}
-                            className="font-medium text-gray-900"
-                            icon={IconProp.Close}
-                            title="Clear Selection"
-                            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                        />
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {confirmModalProps && (
-                <ConfirmModal
-                    {...confirmModalProps}
-                    onSubmit={() => {
-                        confirmModalProps.onSubmit();
-                        setConfirmModalProps(null);
-                    }}
-                />
-            )}
-        </div>
-    );
-};
+                {confirmModalProps && (
+                    <ConfirmModal
+                        {...confirmModalProps}
+                        onSubmit={() => {
+                            confirmModalProps.onSubmit();
+                            setConfirmModalProps(null);
+                        }}
+                    />
+                )}
+
+                {showProgressInfoModal && progressInfo && (
+                    <ConfirmModal
+                        title="In Progress"
+                        description={
+                            <ProgressBar count={progressInfo.successItems.length + progressInfo.failed.length} totalCount={progressInfo.totalItems.length} suffix={props.pluralLabel} />
+                        }
+                        submitButtonType={ButtonStyleType.SECONDARY}
+                        disableSubmitButton={progressInfo.inProgressItems.length < progressInfo.totalItems.length}
+                        submitButtonText="Close"
+                        onSubmit={() => {
+                            setShowProgressInfoModal(false);
+                        }}
+                    />
+                )}
+            </div>
+        );
+    };
 
 export default BulkUpdateForm;
