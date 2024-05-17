@@ -7,7 +7,7 @@ import Monitor from 'Model/Models/Monitor';
 import MonitorService from 'CommonServer/Services/MonitorService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import MonitorStatusTimelineService from 'CommonServer/Services/MonitorStatusTimelineService';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -94,7 +94,7 @@ RunCron(
                 projectName: monitorStatusTimeline.project!.name!,
                 currentStatus: monitorStatus!.name!,
                 monitorDescription: await Markdown.convertToHTML(
-                    monitor.description! || ''
+                    monitor.description! || '',MarkdownContentType.Email
                 ),
                 statusChangedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(

@@ -28,7 +28,7 @@ import ShortLinkService from './ShortLinkService';
 import ShortLink from 'Model/Models/ShortLink';
 import Phone from 'Common/Types/Phone';
 import Dictionary from 'Common/Types/Dictionary';
-import Markdown from '../Types/Markdown';
+import Markdown, { MarkdownContentType } from '../Types/Markdown';
 import IncidentService from './IncidentService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import UserOnCallLogTimelineService from './UserOnCallLogTimelineService';
@@ -503,7 +503,7 @@ export class Service extends DatabaseService<Model> {
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
             incidentDescription: await Markdown.convertToHTML(
-                incident.description! || ''
+                incident.description! || '',MarkdownContentType.Email
             ),
             incidentSeverity: incident.incidentSeverity!.name!,
             rootCause:

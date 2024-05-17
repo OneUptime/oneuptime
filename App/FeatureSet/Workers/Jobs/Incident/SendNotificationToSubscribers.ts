@@ -20,7 +20,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
@@ -210,7 +210,7 @@ RunCron(
                                         ' - ',
                                     incidentTitle: incident.title || '',
                                     incidentDescription: await Markdown.convertToHTML(
-                                        incident.description || ''
+                                        incident.description || '',MarkdownContentType.Email
                                     ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },

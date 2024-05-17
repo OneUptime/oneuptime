@@ -7,7 +7,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
 import { SMSMessage } from 'Common/Types/SMS/SMS';
 import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
@@ -73,7 +73,7 @@ RunCron(
                 statusPageName: statusPage.name!,
                 projectName: statusPage.project!.name!,
                 statusPageDescription: await Markdown.convertToHTML(
-                    statusPage.description! || ''
+                    statusPage.description! || '',MarkdownContentType.Email
                 ),
                 statusPageViewLink: (
                     await StatusPageService.getStatusPageLinkInDashboard(

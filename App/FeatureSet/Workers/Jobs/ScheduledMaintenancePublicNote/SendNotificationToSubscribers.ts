@@ -21,7 +21,7 @@ import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintena
 import Monitor from 'Model/Models/Monitor';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
@@ -232,7 +232,7 @@ RunCron(
                                     EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
                                 vars: {
                                     note: await Markdown.convertToHTML(
-                                        publicNote.note!
+                                        publicNote.note!,MarkdownContentType.Email
                                     ),
                                     statusPageName: statusPageName,
                                     statusPageUrl: statusPageURL,

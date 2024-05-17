@@ -20,7 +20,7 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import Monitor from 'Model/Models/Monitor';
 import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
@@ -243,7 +243,7 @@ RunCron(
                                         ),
                                     eventTitle: event.title || '',
                                     eventDescription: await Markdown.convertToHTML(
-                                        event.description || ''
+                                        event.description || '',MarkdownContentType.Email
                                     ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },

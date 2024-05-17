@@ -6,7 +6,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import User from 'Model/Models/User';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import StatusPageOwnerTeamService from 'CommonServer/Services/StatusPageOwnerTeamService';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import ObjectID from 'Common/Types/ObjectID';
@@ -161,7 +161,7 @@ RunCron(
                 statusPageName: statusPage.name!,
                 projectName: statusPage.project!.name!,
                 statusPageDescription: await Markdown.convertToHTML(
-                    statusPage.description! || ''
+                    statusPage.description! || '',MarkdownContentType.Email
                 ),
                 statusPageViewLink: (
                     await StatusPageService.getStatusPageLinkInDashboard(

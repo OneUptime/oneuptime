@@ -6,7 +6,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import User from 'Model/Models/User';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import ScheduledMaintenanceOwnerTeamService from 'CommonServer/Services/ScheduledMaintenanceOwnerTeamService';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import ObjectID from 'Common/Types/ObjectID';
@@ -189,7 +189,7 @@ RunCron(
                     scheduledMaintenance.currentScheduledMaintenanceState!
                         .name!,
                 scheduledMaintenanceDescription: await Markdown.convertToHTML(
-                    scheduledMaintenance.description! || ''
+                    scheduledMaintenance.description! || '',MarkdownContentType.Email
                 ),
                 scheduledMaintenanceViewLink: (
                     await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(

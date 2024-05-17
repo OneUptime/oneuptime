@@ -7,7 +7,7 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
 import { SMSMessage } from 'Common/Types/SMS/SMS';
 import { CallRequestMessage } from 'Common/Types/Call/CallRequest';
@@ -83,7 +83,7 @@ RunCron(
                     scheduledMaintenance.currentScheduledMaintenanceState!
                         .name!,
                 scheduledMaintenanceDescription: await Markdown.convertToHTML(
-                    scheduledMaintenance.description! || ''
+                    scheduledMaintenance.description! || '',MarkdownContentType.Email
                 ),
                 scheduledMaintenanceViewLink: (
                     await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(

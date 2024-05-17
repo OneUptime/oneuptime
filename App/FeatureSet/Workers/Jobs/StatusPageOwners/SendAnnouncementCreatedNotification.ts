@@ -7,7 +7,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnouncementService';
 import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
@@ -82,7 +82,7 @@ RunCron(
                     statusPageName: statusPage.name!,
                     announcementTitle: announcement.title!,
                     announcementDescription: await Markdown.convertToHTML(
-                        announcement.description!
+                        announcement.description!,MarkdownContentType.Email
                     ),
                 };
 

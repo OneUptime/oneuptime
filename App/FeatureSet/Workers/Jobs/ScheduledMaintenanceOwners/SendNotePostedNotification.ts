@@ -7,7 +7,7 @@ import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import User from 'Model/Models/User';
 import ProjectService from 'CommonServer/Services/ProjectService';
-import Markdown from 'CommonServer/Types/Markdown';
+import Markdown, { MarkdownContentType } from 'CommonServer/Types/Markdown';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 import BaseModel from 'Common/Models/BaseModel';
@@ -151,7 +151,7 @@ RunCron(
                     scheduledMaintenance.currentScheduledMaintenanceState!
                         .name!,
                 note: await Markdown.convertToHTML(
-                    (note.getColumnValue('note')! as string) || ''
+                    (note.getColumnValue('note')! as string) || '',MarkdownContentType.Email
                 ),
                 scheduledMaintenanceViewLink: (
                     await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
