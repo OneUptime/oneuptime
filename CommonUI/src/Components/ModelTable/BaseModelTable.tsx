@@ -1227,11 +1227,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 onBulkActionStart,
                 onBulkActionEnd,
             }) => {
+
+                onBulkActionStart();
+
                 const inProgressItems: Array<TBaseModel> = [...items];
                 const successItems: Array<TBaseModel> = [];
                 const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
 
-                onBulkActionStart();
+                onProgressInfo({
+                    inProgressItems: inProgressItems,
+                    successItems: successItems,
+                    failed: failedItems,
+                    totalItems: items,
+                });
+
 
                 for (let i = 0; i < items.length; i++) {
                     try {
@@ -1249,13 +1258,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             failedMessage: API.getFriendlyMessage(err),
                         });
                     }
-
-                    onProgressInfo({
-                        inProgressItems: inProgressItems,
-                        successItems: successItems,
-                        failed: failedItems,
-                        totalItems: items,
-                    });
+                    
                 }
 
                 onBulkActionEnd();
