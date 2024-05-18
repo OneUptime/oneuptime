@@ -191,13 +191,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         <>
             <ModelTable<Incident>
                 name="Incidents"
-
                 bulkActions={{
-                    buttons: [
-                        ModalTableBulkDefaultActions.Delete
-                    ]
+                    buttons: [ModalTableBulkDefaultActions.Delete],
                 }}
-
                 onCreateEditModalClose={(): void => {
                     setInitialValuesForIncident({});
                 }}

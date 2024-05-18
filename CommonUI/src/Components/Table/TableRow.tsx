@@ -68,24 +68,22 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         </td>
                     )}
                     {props.isBulkActionsEnabled && (
-                        <td
-                            className="w-10"
-                            {...provided?.dragHandleProps}
-                        >
-                            <div className='ml-5'>
-                            <CheckboxElement value={props.isItemSelected} onChange={(value) => {
-
-                                if (value) {
-
-                                    if (props.onItemSelected) {
-                                        props.onItemSelected(props.item);
-                                    }
-                                } else {
-                                    if (props.onItemDeselected) {
-                                        props.onItemDeselected(props.item);
-                                    }
-                                }
-                            }} />
+                        <td className="w-10" {...provided?.dragHandleProps}>
+                            <div className="ml-5">
+                                <CheckboxElement
+                                    value={props.isItemSelected}
+                                    onChange={(value: boolean) => {
+                                        if (value) {
+                                            if (props.onItemSelected) {
+                                                props.onItemSelected(
+                                                    props.item
+                                                );
+                                            }
+                                        } else if (props.onItemDeselected) {
+                                            props.onItemDeselected(props.item);
+                                        }
+                                    }}
+                                />
                             </div>
                         </td>
                     )}
@@ -120,7 +118,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     true
                                                 )
@@ -128,11 +126,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                                 column.noValueMessage || ''
                                             )
                                         ) : column.type ===
-                                            FieldType.DateTime ? (
+                                          FieldType.DateTime ? (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     false
                                                 )
@@ -140,18 +138,18 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                                 column.noValueMessage || ''
                                             )
                                         ) : column.type ===
-                                            FieldType.USDCents ? (
+                                          FieldType.USDCents ? (
                                             props.item[column.key] ? (
                                                 ((props.item[
                                                     column.key
                                                 ] as number) || 0) /
-                                                100 +
+                                                    100 +
                                                 ' USD'
                                             ) : (
                                                 column.noValueMessage || '0 USD'
                                             )
                                         ) : column.type ===
-                                            FieldType.Percent ? (
+                                          FieldType.Percent ? (
                                             props.item[column.key] ? (
                                                 props.item[column.key] + '%'
                                             ) : (
@@ -162,7 +160,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                                 <ColorInput
                                                     value={
                                                         props.item[
-                                                        column.key
+                                                            column.key
                                                         ] as Color
                                                     }
                                                 />
@@ -170,7 +168,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                                 column.noValueMessage || '0%'
                                             )
                                         ) : column.type ===
-                                            FieldType.Boolean ? (
+                                          FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon
                                                     icon={IconProp.Check}
@@ -255,7 +253,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                                                 }
                                                                 isLoading={
                                                                     isButtonLoading[
-                                                                    i
+                                                                        i
                                                                     ]
                                                                 }
                                                                 onClick={() => {

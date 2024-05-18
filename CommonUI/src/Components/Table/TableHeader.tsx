@@ -36,23 +36,28 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
         <thead className="bg-gray-50" id={props.id}>
             <tr>
                 {props.enableDragAndDrop && <th></th>}
-                {props.isBulkActionsEnabled && <th>
-                    <div className='ml-5'>
-                    <CheckboxElement disabled={!props.hasTableItems} value={props.isAllBulkItemsChecked && props.hasTableItems} onChange={(value) => {
-
-                        if (value) {
-
-                            if (props.onAllItemsSelected) {
-                                props.onAllItemsSelected();
-                            }
-                        }else{
-                            if (props.onAllItemsDeselected) {
-                                props.onAllItemsDeselected();
-                            }
-                        }
-                    }} />
-                    </div>
-                </th>}
+                {props.isBulkActionsEnabled && (
+                    <th>
+                        <div className="ml-5">
+                            <CheckboxElement
+                                disabled={!props.hasTableItems}
+                                value={
+                                    props.isAllBulkItemsChecked &&
+                                    props.hasTableItems
+                                }
+                                onChange={(value: boolean) => {
+                                    if (value) {
+                                        if (props.onAllItemsSelected) {
+                                            props.onAllItemsSelected();
+                                        }
+                                    } else if (props.onAllItemsDeselected) {
+                                        props.onAllItemsDeselected();
+                                    }
+                                }}
+                            />
+                        </div>
+                    </th>
+                )}
                 {props.columns.map((column: Column<T>, i: number) => {
                     const canSort: boolean =
                         !column.disableSort && Boolean(column.key);
@@ -60,8 +65,9 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                     return (
                         <th
                             key={i}
-                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${canSort ? 'cursor-pointer' : ''
-                                }`}
+                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
+                                canSort ? 'cursor-pointer' : ''
+                            }`}
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -89,10 +95,11 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                             }}
                         >
                             <div
-                                className={`flex ${column.type === FieldType.Actions
+                                className={`flex ${
+                                    column.type === FieldType.Actions
                                         ? 'justify-end'
                                         : 'justify-start'
-                                    }`}
+                                }`}
                             >
                                 {column.title}
                                 {canSort &&

@@ -46,17 +46,26 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                     props.data.map((item: T, i: number) => {
                         return (
                             <TableRow
-                                isBulkActionsEnabled={props.isBulkActionsEnabled}
+                                isBulkActionsEnabled={
+                                    props.isBulkActionsEnabled
+                                }
                                 onItemSelected={props.onItemSelected}
                                 onItemDeselected={props.onItemDeselected}
                                 isItemSelected={
                                     props.selectedItems?.filter(
-                                        (selectedItem: T) =>
-                                            selectedItem[
-                                                props.matchBulkSelectedItemByField
-                                            ]?.toString() === item[props.matchBulkSelectedItemByField]?.toString()
+                                        (selectedItem: T) => {
+                                            return (
+                                                selectedItem[
+                                                    props
+                                                        .matchBulkSelectedItemByField
+                                                ]?.toString() ===
+                                                item[
+                                                    props
+                                                        .matchBulkSelectedItemByField
+                                                ]?.toString()
+                                            );
+                                        }
                                     ).length > 0 || false
-
                                 }
                                 dragAndDropScope={props.dragAndDropScope}
                                 enableDragAndDrop={props.enableDragAndDrop}

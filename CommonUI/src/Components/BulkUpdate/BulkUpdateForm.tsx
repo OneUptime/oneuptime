@@ -9,9 +9,8 @@ import ConfirmModal, {
 } from '../Modal/ConfirmModal';
 import ProgressBar from '../ProgressBar/ProgressBar';
 
-
 export interface BulkActionFailed<T extends GenericObject> {
-    failedMessage: string | ReactElement; 
+    failedMessage: string | ReactElement;
     item: T;
 }
 
@@ -22,7 +21,9 @@ export interface ProgressInfo<T extends GenericObject> {
     totalItems: Array<T>;
 }
 
-export type OnProgressInfoFunction<T  extends GenericObject> = (progressInfo: ProgressInfo<T>) => void;
+export type OnProgressInfoFunction<T extends GenericObject> = (
+    progressInfo: ProgressInfo<T>
+) => void;
 
 export type OnBulkActionStart = () => void;
 export type OnBulkActionEnd = () => void;
@@ -34,7 +35,12 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
     isLoading?: boolean | undefined;
     isVisible?: (items: Array<T>) => boolean | undefined;
     className?: string | undefined;
-    onClick: (props: {items: Array<T>, onProgressInfo: OnProgressInfoFunction<T>, onBulkActionStart: OnBulkActionStart, onBulkActionEnd: OnBulkActionEnd }) => Promise<void>;
+    onClick: (props: {
+        items: Array<T>;
+        onProgressInfo: OnProgressInfoFunction<T>;
+        onBulkActionStart: OnBulkActionStart;
+        onBulkActionEnd: OnBulkActionEnd;
+    }) => Promise<void>;
     disabled?: boolean | undefined;
     shortcutKey?: undefined | ShortcutKey;
     confirmMessage?: ((items: Array<T>) => string) | undefined;
@@ -58,37 +64,38 @@ const BulkUpdateForm: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-        const [confirmModalProps, setConfirmModalProps] =
-            React.useState<ConfirmModalProps | null>(null);
+    const [confirmModalProps, setConfirmModalProps] =
+        React.useState<ConfirmModalProps | null>(null);
 
-        const [progressInfo, setProgressInfo] = React.useState<ProgressInfo<T> | null>(null);
-        const [showProgressInfoModal, setShowProgressInfoModal] = React.useState<boolean>(false);
+    const [progressInfo, setProgressInfo] =
+        React.useState<ProgressInfo<T> | null>(null);
+    const [showProgressInfoModal, setShowProgressInfoModal] =
+        React.useState<boolean>(false);
 
-        if (props.selectedItems.length === 0) {
-            return <></>;
-        }
+    if (props.selectedItems.length === 0) {
+        return <></>;
+    }
 
-        return (
+    return (
+        <div>
             <div>
-                <div>
-                    <div className="flex mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100 justify-between">
-                        <div className="w-full -mt-1">
-                            <div className="flex mt-1">
-                                <div className="flex-auto py-0.5 text-sm leading-5">
-                                    <span className="font-semibold">
-                                        {props.selectedItems.length}{' '}
-                                        {props.pluralLabel + ' ' ||
-                                            ''}
-                                        Selected
-                                    </span>{' '}
-                                </div>
+                <div className="flex mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100 justify-between">
+                    <div className="w-full -mt-1">
+                        <div className="flex mt-1">
+                            <div className="flex-auto py-0.5 text-sm leading-5">
+                                <span className="font-semibold">
+                                    {props.selectedItems.length}{' '}
+                                    {props.pluralLabel + ' ' || ''}
+                                    Selected
+                                </span>{' '}
                             </div>
-                            <div className="flex -ml-3 mt-1">
+                        </div>
+                        <div className="flex -ml-3 mt-1">
                             {/** Edit Filter Button */}
                             {!props.isAllItemsSelected && (
                                 <Button
                                     className="font-medium text-gray-900"
-                                    icon={IconProp.CheckCircle}
+                                    icon={IconProp.Check}
                                     onClick={() => {
                                         props.onSelectAllClick();
                                     }}
@@ -109,122 +116,150 @@ const BulkUpdateForm: <T extends GenericObject>(
                                 buttonStyle={ButtonStyleType.SECONDARY_LINK}
                             />
                         </div>
-                        </div>
+                    </div>
 
-                        <div className="flex w-full h-full -mt-1 justify-end mt-auto mb-auto">
-                            {props.buttons?.map(
-                                (button: BulkActionButtonSchema<T>, i: number) => {
-                                    return (
-                                        <div
-                                            style={
-                                                i > 0
-                                                    ? {
-                                                        marginLeft: '10px',
-                                                    }
-                                                    : {}
-                                            }
+                    <div className="flex w-full h-full -mt-1 justify-end mt-auto mb-auto">
+                        {props.buttons?.map(
+                            (button: BulkActionButtonSchema<T>, i: number) => {
+                                return (
+                                    <div
+                                        style={
+                                            i > 0
+                                                ? {
+                                                      marginLeft: '10px',
+                                                  }
+                                                : {}
+                                        }
+                                        key={i}
+                                    >
+                                        <Button
                                             key={i}
-                                        >
-                                            <Button
-                                                key={i}
-                                                title={button.title}
-                                                buttonStyle={button.buttonStyleType}
-                                                className={button.className}
-                                                onClick={async () => {
-                                                    if (button.confirmMessage) {
-                                                        setConfirmModalProps({
-                                                            title: button.confirmTitle
-                                                                ? button.confirmTitle(
-                                                                    props.selectedItems
-                                                                )
-                                                                : 'Confirm',
-                                                            description:
-                                                                button.confirmMessage(
-                                                                    props.selectedItems
-                                                                ),
-                                                            submitButtonText:
-                                                                button.title,
-                                                            onSubmit: async () => {
-                                                                await button.onClick(
-                                                                    {
-                                                                        items: props.selectedItems,
-                                                                        onProgressInfo: (progressInfo: ProgressInfo<T>) => {
-                                                                            setProgressInfo(progressInfo);
+                                            title={button.title}
+                                            buttonStyle={button.buttonStyleType}
+                                            className={button.className}
+                                            onClick={async () => {
+                                                if (button.confirmMessage) {
+                                                    setConfirmModalProps({
+                                                        title: button.confirmTitle
+                                                            ? button.confirmTitle(
+                                                                  props.selectedItems
+                                                              )
+                                                            : 'Confirm',
+                                                        description:
+                                                            button.confirmMessage(
+                                                                props.selectedItems
+                                                            ),
+                                                        submitButtonText:
+                                                            button.title,
+                                                        onSubmit: async () => {
+                                                            await button.onClick(
+                                                                {
+                                                                    items: props.selectedItems,
+                                                                    onProgressInfo:
+                                                                        (
+                                                                            progressInfo: ProgressInfo<T>
+                                                                        ) => {
+                                                                            setProgressInfo(
+                                                                                progressInfo
+                                                                            );
                                                                         },
-                                                                        onBulkActionStart: () => {
-                                                                            setShowProgressInfoModal(true);
-                                                                            props.onActionStart && props.onActionStart();
+                                                                    onBulkActionStart:
+                                                                        () => {
+                                                                            setShowProgressInfoModal(
+                                                                                true
+                                                                            );
+                                                                            props.onActionStart &&
+                                                                                props.onActionStart();
                                                                         },
-                                                                        onBulkActionEnd: () => {
-                                                                            setShowProgressInfoModal(false);
-                                                                            props.onActionEnd && props.onActionEnd();
-                                                                        }
-                                                                    }
+                                                                    onBulkActionEnd:
+                                                                        () => {
+                                                                            setShowProgressInfoModal(
+                                                                                false
+                                                                            );
+                                                                            props.onActionEnd &&
+                                                                                props.onActionEnd();
+                                                                        },
+                                                                }
+                                                            );
+                                                        },
+                                                    });
+                                                    return;
+                                                }
+
+                                                if (button.onClick) {
+                                                    await button.onClick({
+                                                        items: props.selectedItems,
+                                                        onProgressInfo: (
+                                                            progressInfo: ProgressInfo<T>
+                                                        ) => {
+                                                            setProgressInfo(
+                                                                progressInfo
+                                                            );
+                                                        },
+                                                        onBulkActionStart:
+                                                            () => {
+                                                                setShowProgressInfoModal(
+                                                                    true
                                                                 );
                                                             },
-                                                        });
-                                                        return;
-                                                    }
-
-                                                    if (button.onClick) {
-                                                        await button.onClick(
-                                                            {
-                                                                items: props.selectedItems,
-                                                                onProgressInfo: (progressInfo: ProgressInfo<T>) => {
-                                                                    setProgressInfo(progressInfo);
-                                                                },
-                                                                onBulkActionStart: () => {
-                                                                    setShowProgressInfoModal(true);
-                                                                },
-                                                                onBulkActionEnd: () => {
-                                                                    setShowProgressInfoModal(false);
-                                                                }
-                                                            }
-                                                        );
-                                                    }
-                                                }}
-                                                disabled={button.disabled}
-                                                icon={button.icon}
-                                                shortcutKey={button.shortcutKey}
-                                                buttonSize={ButtonSize.Small}
-                                                dataTestId="card-button"
-                                            />
-                                        </div>
-                                    );
-                                }
-                            )}
-                        </div>
-
-                        
+                                                        onBulkActionEnd: () => {
+                                                            setShowProgressInfoModal(
+                                                                false
+                                                            );
+                                                        },
+                                                    });
+                                                }
+                                            }}
+                                            disabled={button.disabled}
+                                            icon={button.icon}
+                                            shortcutKey={button.shortcutKey}
+                                            buttonSize={ButtonSize.Small}
+                                            dataTestId="card-button"
+                                        />
+                                    </div>
+                                );
+                            }
+                        )}
                     </div>
                 </div>
-
-                {confirmModalProps && (
-                    <ConfirmModal
-                        {...confirmModalProps}
-                        onSubmit={() => {
-                            confirmModalProps.onSubmit();
-                            setConfirmModalProps(null);
-                        }}
-                    />
-                )}
-
-                {showProgressInfoModal && progressInfo && (
-                    <ConfirmModal
-                        title="In Progress"
-                        description={
-                            <ProgressBar count={progressInfo.successItems.length + progressInfo.failed.length} totalCount={progressInfo.totalItems.length} suffix={props.pluralLabel} />
-                        }
-                        submitButtonType={ButtonStyleType.SECONDARY}
-                        disableSubmitButton={progressInfo.inProgressItems.length < progressInfo.totalItems.length}
-                        submitButtonText="Close"
-                        onSubmit={() => {
-                            setShowProgressInfoModal(false);
-                        }}
-                    />
-                )}
             </div>
-        );
-    };
+
+            {confirmModalProps && (
+                <ConfirmModal
+                    {...confirmModalProps}
+                    onSubmit={() => {
+                        confirmModalProps.onSubmit();
+                        setConfirmModalProps(null);
+                    }}
+                />
+            )}
+
+            {showProgressInfoModal && progressInfo && (
+                <ConfirmModal
+                    title="In Progress"
+                    description={
+                        <ProgressBar
+                            count={
+                                progressInfo.successItems.length +
+                                progressInfo.failed.length
+                            }
+                            totalCount={progressInfo.totalItems.length}
+                            suffix={props.pluralLabel}
+                        />
+                    }
+                    submitButtonType={ButtonStyleType.SECONDARY}
+                    disableSubmitButton={
+                        progressInfo.inProgressItems.length <
+                        progressInfo.totalItems.length
+                    }
+                    submitButtonText="Close"
+                    onSubmit={() => {
+                        setShowProgressInfoModal(false);
+                    }}
+                />
+            )}
+        </div>
+    );
+};
 
 export default BulkUpdateForm;
