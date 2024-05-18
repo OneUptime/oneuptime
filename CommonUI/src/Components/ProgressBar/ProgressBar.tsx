@@ -8,7 +8,7 @@ import React, {
 export enum ProgressBarSize {
     Small = 'small',
     Medium = 'medium',
-    Large = 'large'
+    Large = 'large',
 }
 
 export interface ComponentProps {
@@ -48,7 +48,9 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div className={`w-full ${progressBarSize} mb-4 bg-gray-200 rounded-full`}>
+        <div
+            className={`w-full ${progressBarSize} mb-4 bg-gray-200 rounded-full`}
+        >
             <div
                 data-testid="progress-bar"
                 className={`${progressBarSize} bg-indigo-600 rounded-full `}

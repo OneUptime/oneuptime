@@ -1205,66 +1205,64 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     type GetDeleteBulkActionFunction = () => BulkActionButtonSchema<TBaseModel>;
 
-    const getDeleteBulkAction: GetDeleteBulkActionFunction = (): BulkActionButtonSchema<TBaseModel> => {
-        return {
-            title: 'Delete',
-            buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.Trash,
-            confirmMessage: (items: Array<TBaseModel>)=>{
-                return `Are you sure you want to delete ${items.length} ${
-                    props.pluralName || model.pluralName || 'items'
-                }?`;
-            },
-            confirmTitle: (items: Array<TBaseModel>)=>{
-                return `Delete ${items.length} ${
-                    props.pluralName || model.pluralName || 'items'
-                }`;
-            },
-            confirmButtonStyleType: ButtonStyleType.DANGER,
-            onClick: async ({
-                items,
-                onProgressInfo,
-                onBulkActionStart,
-                onBulkActionEnd,
-            }) => {
+    const getDeleteBulkAction: GetDeleteBulkActionFunction =
+        (): BulkActionButtonSchema<TBaseModel> => {
+            return {
+                title: 'Delete',
+                buttonStyleType: ButtonStyleType.NORMAL,
+                icon: IconProp.Trash,
+                confirmMessage: (items: Array<TBaseModel>) => {
+                    return `Are you sure you want to delete ${items.length} ${
+                        props.pluralName || model.pluralName || 'items'
+                    }?`;
+                },
+                confirmTitle: (items: Array<TBaseModel>) => {
+                    return `Delete ${items.length} ${
+                        props.pluralName || model.pluralName || 'items'
+                    }`;
+                },
+                confirmButtonStyleType: ButtonStyleType.DANGER,
+                onClick: async ({
+                    items,
+                    onProgressInfo,
+                    onBulkActionStart,
+                    onBulkActionEnd,
+                }) => {
+                    onBulkActionStart();
 
-                onBulkActionStart();
+                    const inProgressItems: Array<TBaseModel> = [...items];
+                    const successItems: Array<TBaseModel> = [];
+                    const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
 
-                const inProgressItems: Array<TBaseModel> = [...items];
-                const successItems: Array<TBaseModel> = [];
-                const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
+                    onProgressInfo({
+                        inProgressItems: inProgressItems,
+                        successItems: successItems,
+                        failed: failedItems,
+                        totalItems: items,
+                    });
 
-                onProgressInfo({
-                    inProgressItems: inProgressItems,
-                    successItems: successItems,
-                    failed: failedItems,
-                    totalItems: items,
-                });
-
-
-                for (let i = 0; i < items.length; i++) {
-                    try {
-                        const item: TBaseModel = items[i]!;
-                        // remove items from inProgressItems
-                        inProgressItems.splice(
-                            inProgressItems.indexOf(item),
-                            1
-                        );
-                        await props.callbacks.deleteItem(item);
-                        successItems.push(item);
-                    } catch (err) {
-                        failedItems.push({
-                            item: items[i]!,
-                            failedMessage: API.getFriendlyMessage(err),
-                        });
+                    for (let i = 0; i < items.length; i++) {
+                        try {
+                            const item: TBaseModel = items[i]!;
+                            // remove items from inProgressItems
+                            inProgressItems.splice(
+                                inProgressItems.indexOf(item),
+                                1
+                            );
+                            await props.callbacks.deleteItem(item);
+                            successItems.push(item);
+                        } catch (err) {
+                            failedItems.push({
+                                item: items[i]!,
+                                failedMessage: API.getFriendlyMessage(err),
+                            });
+                        }
                     }
-                    
-                }
 
-                onBulkActionEnd();
-            },
+                    onBulkActionEnd();
+                },
+            };
         };
-    };
 
     const getTable: GetReactElementFunction = (): ReactElement => {
         return (
@@ -1275,22 +1273,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 onFilterRefreshClick={async () => {
                     await getFilterDropdownItems();
                 }}
-
-
-
-
                 bulkActions={{
-                    buttons: props.bulkActions?.buttons.map((action: BulkActionButtonSchema<TBaseModel> | ModalTableBulkDefaultActions) => {
-                        const permissions: Array<Permission> =
-                            PermissionUtil.getAllPermissions();
-                        if (
-                            action === ModalTableBulkDefaultActions.Delete &&
-                            model.hasDeletePermissions(permissions)
-                        ) {
-                            return getDeleteBulkAction();
+                    buttons: props.bulkActions?.buttons.map(
+                        (
+                            action:
+                                | BulkActionButtonSchema<TBaseModel>
+                                | ModalTableBulkDefaultActions
+                        ) => {
+                            const permissions: Array<Permission> =
+                                PermissionUtil.getAllPermissions();
+                            if (
+                                action ===
+                                    ModalTableBulkDefaultActions.Delete &&
+                                model.hasDeletePermissions(permissions)
+                            ) {
+                                return getDeleteBulkAction();
+                            }
+                            return action;
                         }
-                        return action;
-                    }) as Array<BulkActionButtonSchema<TBaseModel>>,
+                    ) as Array<BulkActionButtonSchema<TBaseModel>>,
                 }}
                 onBulkActionEnd={() => {
                     setBulkSelectedItems([]);
@@ -1324,7 +1325,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     matchBulkSelectedItemByField || '_id'
                 }
                 bulkItemToString={(item: TBaseModel) => {
-                    return props.singularName + ' '+ item[matchBulkSelectedItemByField]?.toString() + ' ' || '';
+                    return (
+                        props.singularName +
+                            ' ' +
+                            item[matchBulkSelectedItemByField]?.toString() +
+                            ' ' || ''
+                    );
                 }}
                 filters={classicTableFilters}
                 filterError={tableFilterError}
@@ -1387,7 +1393,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     await fetchItems();
                 }}
                 actionButtons={actionButtonSchema}
-                
             />
         );
     };

@@ -213,9 +213,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                     <ConfirmModal
                         title={callModelTitle}
                         description={
-                            <SimpleLogViewer>
-                                {callText}
-                            </SimpleLogViewer>
+                            <SimpleLogViewer>{callText}</SimpleLogViewer>
                         }
                         onSubmit={() => {
                             setShowViewCallTextModal(false);
