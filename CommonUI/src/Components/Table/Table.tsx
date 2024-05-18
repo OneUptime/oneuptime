@@ -192,6 +192,22 @@ const Table: TableFunction = <T extends GenericObject>(
         );
     };
 
+    // check if all items on the page are selected.
+    let isAllItemsOnThePageSelected: boolean = true;
+
+    props.data.forEach((item: T) => {
+        const index: number = bulkSelectedItems.findIndex((x: T) => {
+            return (
+                x[props.matchBulkSelectedItemByField]?.toString() ===
+                item[props.matchBulkSelectedItemByField]?.toString()
+            );
+        });
+
+        if (index === -1) {
+            isAllItemsOnThePageSelected = false;
+        }
+    });
+
     return (
         <div>
             <FilterViewer
@@ -255,10 +271,12 @@ const Table: TableFunction = <T extends GenericObject>(
                                         setIsAllItemsSelected(false);
                                         props.onBulkClearAllItems();
                                     }}
-                                    onAllItemsSelected={() => {
+                                    onAllItemsOnThePageSelected={() => {
                                         props.onBulkSelectItemsOnCurrentPage();
                                     }}
-                                    isAllBulkItemsChecked={isAllItemsSelected}
+                                    isAllItemsOnThePageSelected={
+                                        isAllItemsOnThePageSelected
+                                    }
                                     hasTableItems={props.data.length > 0}
                                 />
                                 {getTablebody()}

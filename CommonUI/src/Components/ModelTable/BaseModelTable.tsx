@@ -230,7 +230,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     const model: TBaseModel = new props.modelType();
 
-    const [bulkSelecctedItems, setBulkSelectedItems] = useState<
+    const [bulkSelectedItems, setBulkSelectedItems] = useState<
         Array<TBaseModel>
     >([]);
 
@@ -1300,13 +1300,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     await fetchItems();
                 }}
                 onBulkActionStart={() => {}}
-                bulkSelectedItems={bulkSelecctedItems}
+                bulkSelectedItems={bulkSelectedItems}
                 onBulkSelectedItemAdded={(item: TBaseModel) => {
-                    setBulkSelectedItems([...bulkSelecctedItems, item]);
+                    setBulkSelectedItems([...bulkSelectedItems, item]);
                 }}
                 onBulkSelectedItemRemoved={(item: TBaseModel) => {
                     setBulkSelectedItems(
-                        bulkSelecctedItems.filter((i: TBaseModel) => {
+                        bulkSelectedItems.filter((i: TBaseModel) => {
                             return (
                                 i[matchBulkSelectedItemByField]?.toString() !==
                                 item[matchBulkSelectedItemByField]?.toString()
@@ -1315,7 +1315,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     );
                 }}
                 onBulkSelectItemsOnCurrentPage={() => {
-                    setBulkSelectedItems([...bulkSelecctedItems, ...data]);
+                    const items: TBaseModel[] = [...bulkSelectedItems, ...data];
+
+                    // remove duplicates
+
+                    const uniqueItems: TBaseModel[] = items.filter(
+                        (
+                            item: TBaseModel,
+                            index: number,
+                            self: Array<TBaseModel>
+                        ) => {
+                            return (
+                                index ===
+                                self.findIndex((t: TBaseModel) => {
+                                    return (
+                                        t[
+                                            matchBulkSelectedItemByField
+                                        ]?.toString() ===
+                                        item[
+                                            matchBulkSelectedItemByField
+                                        ]?.toString()
+                                    );
+                                })
+                            );
+                        }
+                    );
+
+                    setBulkSelectedItems(uniqueItems);
                 }}
                 onBulkClearAllItems={() => {
                     setBulkSelectedItems([]);

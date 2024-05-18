@@ -14,10 +14,10 @@ export interface ComponentProps<T extends GenericObject> {
     onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
     enableDragAndDrop?: undefined | boolean;
     isBulkActionsEnabled: undefined | boolean;
-    onAllItemsSelected: undefined | (() => void);
+    onAllItemsOnThePageSelected: undefined | (() => void);
     onAllItemsDeselected: undefined | (() => void);
-    isAllBulkItemsChecked: undefined | boolean;
     hasTableItems: undefined | boolean;
+    isAllItemsOnThePageSelected: undefined | boolean;
 }
 
 type TableHeaderFunction = <T extends GenericObject>(
@@ -32,6 +32,10 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
     );
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
+    const selectBulkSelectCheckbox: boolean = Boolean(
+        props.isAllItemsOnThePageSelected && props.hasTableItems
+    );
+
     return (
         <thead className="bg-gray-50" id={props.id}>
             <tr>
@@ -41,14 +45,11 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                         <div className="ml-5">
                             <CheckboxElement
                                 disabled={!props.hasTableItems}
-                                value={
-                                    props.isAllBulkItemsChecked &&
-                                    props.hasTableItems
-                                }
+                                value={selectBulkSelectCheckbox}
                                 onChange={(value: boolean) => {
                                     if (value) {
-                                        if (props.onAllItemsSelected) {
-                                            props.onAllItemsSelected();
+                                        if (props.onAllItemsOnThePageSelected) {
+                                            props.onAllItemsOnThePageSelected();
                                         }
                                     } else if (props.onAllItemsDeselected) {
                                         props.onAllItemsDeselected();
