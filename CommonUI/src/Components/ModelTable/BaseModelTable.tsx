@@ -1220,6 +1220,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     props.pluralName || model.pluralName || 'items'
                 }`;
             },
+            confirmButtonStyleType: ButtonStyleType.DANGER,
             onClick: async ({
                 items,
                 onProgressInfo,

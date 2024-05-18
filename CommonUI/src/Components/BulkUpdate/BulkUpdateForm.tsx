@@ -7,7 +7,7 @@ import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ConfirmModal, {
     ComponentProps as ConfirmModalProps,
 } from '../Modal/ConfirmModal';
-import ProgressBar from '../ProgressBar/ProgressBar';
+import ProgressBar, { ProgressBarSize } from '../ProgressBar/ProgressBar';
 
 export interface BulkActionFailed<T extends GenericObject> {
     failedMessage: string | ReactElement;
@@ -45,6 +45,7 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
     shortcutKey?: undefined | ShortcutKey;
     confirmMessage?: ((items: Array<T>) => string) | undefined;
     confirmTitle?: ((items: Array<T>) => string) | undefined;
+    confirmButtonStyleType?: ButtonStyleType;
 }
 
 export interface ComponentProps<T extends GenericObject> {
@@ -95,7 +96,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                             {!props.isAllItemsSelected && (
                                 <Button
                                     className="font-medium text-gray-900"
-                                    icon={IconProp.Check}
+                                    icon={IconProp.CheckCircle}
                                     onClick={() => {
                                         props.onSelectAllClick();
                                     }}
@@ -149,8 +150,12 @@ const BulkUpdateForm: <T extends GenericObject>(
                                                             button.confirmMessage(
                                                                 props.selectedItems
                                                             ),
+                                                            submitButtonType: button.confirmButtonStyleType,
                                                         submitButtonText:
                                                             button.title,
+                                                            onClose: () => {
+                                                                setConfirmModalProps(null);
+                                                            },
                                                         onSubmit: async () => {
                                                             await button.onClick(
                                                                 {
@@ -231,6 +236,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                         confirmModalProps.onSubmit();
                         setConfirmModalProps(null);
                     }}
+
                 />
             )}
 
@@ -245,6 +251,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                             }
                             totalCount={progressInfo.totalItems.length}
                             suffix={props.pluralLabel}
+                            size={ProgressBarSize.Small}
                         />
                     }
                     submitButtonType={ButtonStyleType.SECONDARY}

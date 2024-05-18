@@ -5,10 +5,17 @@ import React, {
     useState,
 } from 'react';
 
+export enum ProgressBarSize {
+    Small = 'small',
+    Medium = 'medium',
+    Large = 'large'
+}
+
 export interface ComponentProps {
     count: number;
     totalCount: number;
     suffix: string;
+    size?: ProgressBarSize;
 }
 
 const ProgressBar: FunctionComponent<ComponentProps> = (
@@ -32,11 +39,19 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
         setPercent(Math.ceil(percent));
     }, [props.count, props.totalCount]);
 
+    let progressBarSize = 'h-4';
+
+    if (props.size === ProgressBarSize.Small) {
+        progressBarSize = 'h-2';
+    } else if (props.size === ProgressBarSize.Large) {
+        progressBarSize = 'h-6';
+    }
+
     return (
-        <div className="w-full h-4 mb-4 bg-gray-200 rounded-full ">
+        <div className={`w-full ${progressBarSize} mb-4 bg-gray-200 rounded-full`}>
             <div
                 data-testid="progress-bar"
-                className="h-4 bg-indigo-600 rounded-full "
+                className={`${progressBarSize} bg-indigo-600 rounded-full `}
                 style={{ width: percent + '%' }}
             ></div>
             <div className="text-sm text-gray-400 mt-1 flex justify-between">
