@@ -159,9 +159,11 @@ const Table: TableFunction = <T extends GenericObject>(
                 }}
                 onItemDeselected={(item: T) => {
                     // set bulk selected items.
-                    setBulkSelectedItems(bulkSelectedItems.filter((selectedItem: T) => {
-                        return selectedItem?[props.matchSelectedItemByField]?.toString() !== item[props.matchSelectedItemByField]?.toString()
-                    }));
+                    const index = bulkSelectedItems.findIndex((x) => x[props.matchSelectedItemByField]?.toString() === item[props.matchSelectedItemByField]?.toString());
+
+                    if (index > -1) {
+                        bulkSelectedItems.splice(index, 1);
+                    }
                     
                     props.onBulkSelectedItemRemoved(item);
                 }}
