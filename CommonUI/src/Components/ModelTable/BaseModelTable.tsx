@@ -1234,23 +1234,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     const successItems: Array<TBaseModel> = [];
                     const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
 
-                    onProgressInfo({
-                        inProgressItems: inProgressItems,
-                        successItems: successItems,
-                        failed: failedItems,
-                        totalItems: items,
-                    });
-
                     for (let i = 0; i < items.length; i++) {
                         try {
+
+                            
+
                             const item: TBaseModel = items[i]!;
                             // remove items from inProgressItems
                             inProgressItems.splice(
                                 inProgressItems.indexOf(item),
                                 1
                             );
+
                             await props.callbacks.deleteItem(item);
                             successItems.push(item);
+
+                            failedItems.push({
+                                item: items[i]!,
+                                failedMessage: "Just a test message",
+                            });
+
+                            onProgressInfo({
+                                inProgressItems: inProgressItems,
+                                successItems: successItems,
+                                failed: failedItems,
+                                totalItems: items,
+                            });
+
                         } catch (err) {
                             failedItems.push({
                                 item: items[i]!,
@@ -1326,7 +1336,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 }
                 bulkItemToString={(item: TBaseModel) => {
                     return (
-                        props.singularName +
+                        (props.singularName || item.singularName || '') +
                             ' ' +
                             item[matchBulkSelectedItemByField]?.toString() +
                             ' ' || ''

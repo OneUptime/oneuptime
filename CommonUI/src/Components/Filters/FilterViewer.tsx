@@ -361,16 +361,13 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
             {showViewer && (
                 <div>
                     <div className="mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
-                        <div className="flex w-full mb-3 -mt-1">
-                            <div className="flex">
-                                <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                                    <span className="font-semibold text-xs text-gray-400">
-                                        FILTER{' '}
-                                        {props.pluralLabel?.toUpperCase() +
-                                            ' ' || ''}
-                                        BY
-                                    </span>{' '}
-                                </div>
+                        <div className="flex mt-1 mb-2">
+                            <div className="flex-auto py-0.5 text-sm leading-5">
+                                <span className="font-semibold">
+                                    Filter{' '}
+                                    {props.pluralLabel + ' ' || ''}
+                                    by the following criteria:
+                                </span>{' '}
                             </div>
                         </div>
 
@@ -434,9 +431,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                     modalWidth={ModalWidth.Large}
                     isLoading={props.isModalLoading}
                     title={`${props.singularLabel + ' ' || ''}Filters`}
-                    description={`Filter ${
-                        props.pluralLabel || ''
-                    } by the following criteria:`}
+                    description={`Filter ${props.pluralLabel || ''
+                        } by the following criteria:`}
                     submitButtonText={`Apply Filters`}
                     onClose={() => {
                         props.onFilterModalClose();
