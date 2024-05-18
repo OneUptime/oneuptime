@@ -81,6 +81,7 @@ import FilterData from '../Filters/Types/FilterData';
 import {
     BulkActionButtonSchema,
     BulkActionFailed,
+    BulkActionOnClickProps,
 } from '../BulkUpdate/BulkUpdateForm';
 
 export enum ShowAs {
@@ -1227,18 +1228,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     onProgressInfo,
                     onBulkActionStart,
                     onBulkActionEnd,
-                }) => {
+                }: BulkActionOnClickProps<TBaseModel>) => {
                     onBulkActionStart();
 
                     const inProgressItems: Array<TBaseModel> = [...items];
                     const successItems: Array<TBaseModel> = [];
                     const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
 
-                    for (let i = 0; i < items.length; i++) {
+                    for (let i: number = 0; i < items.length; i++) {
                         try {
-
-                            
-
                             const item: TBaseModel = items[i]!;
                             // remove items from inProgressItems
                             inProgressItems.splice(
@@ -1249,18 +1247,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             await props.callbacks.deleteItem(item);
                             successItems.push(item);
 
-                            failedItems.push({
-                                item: items[i]!,
-                                failedMessage: "Just a test message",
-                            });
-
                             onProgressInfo({
                                 inProgressItems: inProgressItems,
                                 successItems: successItems,
                                 failed: failedItems,
                                 totalItems: items,
                             });
-
                         } catch (err) {
                             failedItems.push({
                                 item: items[i]!,
@@ -1303,9 +1295,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         }
                     ) as Array<BulkActionButtonSchema<TBaseModel>>,
                 }}
-                onBulkActionEnd={() => {
+                onBulkActionEnd={async () => {
                     setBulkSelectedItems([]);
-                    fetchItems();
+                    await fetchItems();
                 }}
                 onBulkActionStart={() => {}}
                 bulkSelectedItems={bulkSelecctedItems}

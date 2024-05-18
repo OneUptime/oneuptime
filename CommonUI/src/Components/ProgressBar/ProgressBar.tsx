@@ -39,7 +39,7 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
         setPercent(Math.ceil(percent));
     }, [props.count, props.totalCount]);
 
-    let progressBarSize = 'h-4';
+    let progressBarSize: string = 'h-4';
 
     if (props.size === ProgressBarSize.Small) {
         progressBarSize = 'h-2';

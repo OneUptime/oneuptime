@@ -23,6 +23,7 @@ import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 import { Black, Gray500 } from 'Common/Types/BrandColors';
+import { ModalTableBulkDefaultActions } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -40,6 +41,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             modelType={Monitor}
             name="Monitors"
             id="Monitors-table"
+            bulkActions={{
+                buttons: [ModalTableBulkDefaultActions.Delete],
+            }}
             isDeleteable={false}
             showViewIdButton={true}
             isEditable={false}

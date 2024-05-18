@@ -364,8 +364,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                         <div className="flex mt-1 mb-2">
                             <div className="flex-auto py-0.5 text-sm leading-5">
                                 <span className="font-semibold">
-                                    Filter{' '}
-                                    {props.pluralLabel + ' ' || ''}
+                                    Filter {props.pluralLabel + ' ' || ''}
                                     by the following criteria:
                                 </span>{' '}
                             </div>
@@ -431,8 +430,9 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                     modalWidth={ModalWidth.Large}
                     isLoading={props.isModalLoading}
                     title={`${props.singularLabel + ' ' || ''}Filters`}
-                    description={`Filter ${props.pluralLabel || ''
-                        } by the following criteria:`}
+                    description={`Filter ${
+                        props.pluralLabel || ''
+                    } by the following criteria:`}
                     submitButtonText={`Apply Filters`}
                     onClose={() => {
                         props.onFilterModalClose();

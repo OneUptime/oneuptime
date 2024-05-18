@@ -223,7 +223,7 @@ const Table: TableFunction = <T extends GenericObject>(
                     pluralLabel={props.pluralLabel}
                     isAllItemsSelected={isAllItemsSelected}
                     onActionStart={props.onBulkActionStart}
-                    onActionEnd={()=>{
+                    onActionEnd={() => {
                         setIsAllItemsSelected(false);
                         setBulkSelectedItems([]);
                         props.onBulkActionEnd();
