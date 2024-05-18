@@ -49,6 +49,8 @@ export interface ComponentProps<T extends GenericObject> {
     pluralLabel: string;
     onClearSelectionClick: () => void;
     buttons: Array<BulkActionButtonSchema<T>>;
+    onActionStart?: () => void;
+    onActionEnd?: () => void;
 }
 
 const BulkUpdateForm: <T extends GenericObject>(
@@ -69,21 +71,47 @@ const BulkUpdateForm: <T extends GenericObject>(
         return (
             <div>
                 <div>
-                    <div className="mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
-                        <div className="flex w-full mb-3 -mt-1">
-                            <div className="flex">
-                                <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                                    <span className="font-semibold text-xs text-gray-400">
+                    <div className="flex mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100 justify-between">
+                        <div className="w-full -mt-1">
+                            <div className="flex mt-1">
+                                <div className="flex-auto py-0.5 text-sm leading-5">
+                                    <span className="font-semibold">
                                         {props.selectedItems.length}{' '}
-                                        {props.pluralLabel?.toUpperCase() + ' ' ||
+                                        {props.pluralLabel + ' ' ||
                                             ''}
-                                        SELECTED
+                                        Selected
                                     </span>{' '}
                                 </div>
                             </div>
+                            <div className="flex -ml-3 mt-1">
+                            {/** Edit Filter Button */}
+                            {!props.isAllItemsSelected && (
+                                <Button
+                                    className="font-medium text-gray-900"
+                                    icon={IconProp.CheckCircle}
+                                    onClick={() => {
+                                        props.onSelectAllClick();
+                                    }}
+                                    title={`Select All ${props.pluralLabel}`}
+                                    iconSize={SizeProp.Smaller}
+                                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                                />
+                            )}
+
+                            {/** Clear Filter Button */}
+                            <Button
+                                onClick={() => {
+                                    props.onClearSelectionClick();
+                                }}
+                                className="font-medium text-gray-900 -ml-2"
+                                icon={IconProp.Close}
+                                title="Clear Selection"
+                                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                            />
+                        </div>
                         </div>
 
-                        <div className="flex w-full mb-3 -mt-1">
+                        <div className="flex w-full h-full -mt-1 justify-end mt-auto mb-auto">
                             {props.buttons?.map(
                                 (button: BulkActionButtonSchema<T>, i: number) => {
                                     return (
@@ -125,9 +153,11 @@ const BulkUpdateForm: <T extends GenericObject>(
                                                                         },
                                                                         onBulkActionStart: () => {
                                                                             setShowProgressInfoModal(true);
+                                                                            props.onActionStart && props.onActionStart();
                                                                         },
                                                                         onBulkActionEnd: () => {
                                                                             setShowProgressInfoModal(false);
+                                                                            props.onActionEnd && props.onActionEnd();
                                                                         }
                                                                     }
                                                                 );
@@ -165,32 +195,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                             )}
                         </div>
 
-                        <div className="flex -ml-3 mt-3 -mb-2">
-                            {/** Edit Filter Button */}
-                            {!props.isAllItemsSelected && (
-                                <Button
-                                    className="font-medium text-gray-900"
-                                    icon={IconProp.Filter}
-                                    onClick={() => {
-                                        props.onSelectAllClick();
-                                    }}
-                                    title={`Select All ${props.pluralLabel}`}
-                                    iconSize={SizeProp.Smaller}
-                                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                                />
-                            )}
-
-                            {/** Clear Filter Button */}
-                            <Button
-                                onClick={() => {
-                                    props.onClearSelectionClick();
-                                }}
-                                className="font-medium text-gray-900"
-                                icon={IconProp.Close}
-                                title="Clear Selection"
-                                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                            />
-                        </div>
+                        
                     </div>
                 </div>
 

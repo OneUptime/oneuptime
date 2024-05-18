@@ -62,6 +62,8 @@ export interface ComponentProps<T extends GenericObject> {
     onBulkSelectItemsOnCurrentPage: () => void;
     onBulkClearAllItems: () => void;
     matchBulkSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
+    onBulkActionEnd: () => void;
+    onBulkActionStart: () => void;
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -201,6 +203,8 @@ const Table: TableFunction = <T extends GenericObject>(
                 singularLabel={props.singularLabel}
                 pluralLabel={props.pluralLabel}
                 isAllItemsSelected={isAllItemsSelected}
+                onActionStart={props.onBulkActionStart}
+                onActionEnd={props.onBulkActionEnd}
             />}
             <DragDropContext
                 onDragEnd={(result: DropResult) => {
@@ -228,7 +232,6 @@ const Table: TableFunction = <T extends GenericObject>(
                                     }}
 
                                     onAllItemsSelected={() => {
-                                        setIsAllItemsSelected(true);
                                         props.onBulkSelectItemsOnCurrentPage();
                                     }}
 

@@ -1254,7 +1254,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         await getFilterDropdownItems();
                     }}
 
-
+                    
                     bulkActions={{
                         buttons: props.bulkActions?.buttons.map((action) => {
                             const permissions: Array<Permission> =
@@ -1265,6 +1265,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             return action;
                         }) as Array<BulkActionButtonSchema<TBaseModel>>
                     }}
+                    onBulkActionEnd={() => {
+                        setBulkSelectedItems([]);
+                        fetchItems();
+                    }}
+                    onBulkActionStart={() => {}}
                     bulkSelectedItems={bulkSelecctedItems}
                     onBulkSelectedItemAdded={(item) => {
                         setBulkSelectedItems([...bulkSelecctedItems, item]);
