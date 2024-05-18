@@ -66,6 +66,7 @@ export interface ComponentProps<T extends GenericObject> {
     matchBulkSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
     onBulkActionEnd: () => void;
     onBulkActionStart: () => void;
+    bulkItemToString: (item: T) => string;
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -219,6 +220,7 @@ const Table: TableFunction = <T extends GenericObject>(
                     isAllItemsSelected={isAllItemsSelected}
                     onActionStart={props.onBulkActionStart}
                     onActionEnd={props.onBulkActionEnd}
+                    itemToString={props.bulkItemToString}
                 />
             )}
             <DragDropContext

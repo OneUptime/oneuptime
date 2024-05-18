@@ -9,6 +9,7 @@ import ConfirmModal, {
 } from '../Modal/ConfirmModal';
 import ProgressBar, { ProgressBarSize } from '../ProgressBar/ProgressBar';
 import { Green, Red } from 'Common/Types/BrandColors';
+import SimpleLogViewer from '../SimpleLogViewer/SimpleLogViewer';
 
 export interface BulkActionFailed<T extends GenericObject> {
     failedMessage: string | ReactElement;
@@ -59,6 +60,7 @@ export interface ComponentProps<T extends GenericObject> {
     buttons: Array<BulkActionButtonSchema<T>>;
     onActionStart?: () => void;
     onActionEnd?: () => void;
+    itemToString?: (item: T) => string;
 }
 
 const BulkUpdateForm: <T extends GenericObject>(
@@ -112,17 +114,23 @@ const BulkUpdateForm: <T extends GenericObject>(
                             {props.pluralLabel} Failed
                         </div>
                         <div>
-                            {progressInfo.failed.map((failedItem, i) => {
-                                return (
-                                    <div key={i}>
-                                        {failedItem.failedMessage}
-                                    </div>
-                                );
-                            })}
+                            <div className='font-semibold'>More information: </div>
+                            <SimpleLogViewer>
+                                {progressInfo.failed.map((failedItem, i) => {
+                                    return (
+                                        <div className='flex' key={i}>
+                                            {props.itemToString ? props.itemToString(failedItem.item) : ''}
+                                            {failedItem.failedMessage}
+                                        </div>
+                                    );
+                                })}
+                            </SimpleLogViewer>
                         </div>
                     </div>
                 </div>
             }
+
+            return <></>;
         }
 
 
@@ -292,7 +300,9 @@ const BulkUpdateForm: <T extends GenericObject>(
                     <ConfirmModal
                         title="In Progress"
                         description={
-
+                            <div>
+                                {showProgressInfo()}
+                            </div>
                         }
                         submitButtonType={ButtonStyleType.NORMAL}
                         disableSubmitButton={

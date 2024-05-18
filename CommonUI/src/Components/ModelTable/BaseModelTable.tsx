@@ -1272,6 +1272,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 onFilterRefreshClick={async () => {
                     await getFilterDropdownItems();
                 }}
+
+
+
+
                 bulkActions={{
                     buttons: props.bulkActions?.buttons.map((action: BulkActionButtonSchema<TBaseModel> | ModalTableBulkDefaultActions) => {
                         const permissions: Array<Permission> =
@@ -1316,6 +1320,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 matchBulkSelectedItemByField={
                     matchBulkSelectedItemByField || '_id'
                 }
+                bulkItemToString={(item: TBaseModel) => {
+                    return props.singularName + ' '+ item[matchBulkSelectedItemByField]?.toString() + ' ' || '';
+                }}
                 filters={classicTableFilters}
                 filterError={tableFilterError}
                 isFilterLoading={isFilterFetchLoading}
@@ -1377,6 +1384,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     await fetchItems();
                 }}
                 actionButtons={actionButtonSchema}
+                
             />
         );
     };
