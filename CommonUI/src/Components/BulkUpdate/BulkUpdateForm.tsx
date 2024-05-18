@@ -101,20 +101,20 @@ const BulkUpdateForm: <T extends GenericObject>(
             if (!actionInProgress && progressInfo) {
                 return <div className='mt-1 mb-1 space-y-1'>
                     <div className='flex'>
-                        <Icon icon={IconProp.CheckCircle} size={SizeProp.Small} color={Green} />
+                        <Icon className='h-4 w-4' icon={IconProp.CheckCircle} size={SizeProp.Small} color={Green} />
                         <div>
                             {progressInfo.successItems.length}{' '}
                             {props.pluralLabel} Succeeded
                         </div>
                     </div>
-                    <div className='flex'>
-                        <Icon icon={IconProp.Close} size={SizeProp.Small} color={Red} />
+                    {progressInfo.failed.length > 0 && <div className='flex'>
+                        <Icon className='h-4 w-4' icon={IconProp.Close} size={SizeProp.Small} color={Red} />
                         <div>
                             {progressInfo.failed.length}{' '}
                             {props.pluralLabel} Failed
                         </div>
                         <div>
-                            <div className='font-semibold'>More information: </div>
+                            <div  className='font-semibold'>More information: </div>
                             <SimpleLogViewer>
                                 {progressInfo.failed.map((failedItem, i) => {
                                     return (
@@ -126,7 +126,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                                 })}
                             </SimpleLogViewer>
                         </div>
-                    </div>
+                    </div>}
                 </div>
             }
 
@@ -263,6 +263,12 @@ const BulkUpdateForm: <T extends GenericObject>(
                                                                     setShowProgressInfoModal(
                                                                         true
                                                                     );
+                                                                    setProgressInfo({
+                                                                        inProgressItems: props.selectedItems,
+                                                                        successItems: [],
+                                                                        failed: [],
+                                                                        totalItems: props.selectedItems,
+                                                                    });
                                                                     setActionInProgress(true);
                                                                 },
                                                             onBulkActionEnd: () => {
