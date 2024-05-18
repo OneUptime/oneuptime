@@ -120,13 +120,14 @@ export interface BaseTableCallbacks<
 }
 
 
-enum ModalTableBulkDefaultActions {
+export enum ModalTableBulkDefaultActions {
     Delete = 'Delete',
 }
 
 
 export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
     buttons: Array<BulkActionButtonSchema<T> | ModalTableBulkDefaultActions>;
+    matchBulkSelectedItemByField?: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
 }
 
 export interface BaseTableProps<
@@ -202,9 +203,10 @@ export interface BaseTableProps<
     | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     name: string;
 
+    // bulk actions
     bulkActions?: BulkActionProps<TBaseModel> | undefined;
-    matchSelectedItemByField: keyof TBaseModel; // which field to use to match selected items. For exmaple this could be '_id'
 }
+   
 
 export interface ComponentProps<
     TBaseModel extends BaseModel | AnalyticsBaseModel
@@ -222,6 +224,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+
+        const matchBulkSelectedItemByField = props.bulkActions?.matchBulkSelectedItemByField || "_id";
+
         const model: TBaseModel = new props.modelType();
 
 
@@ -1200,7 +1205,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const getDeleteBulkAction = (): BulkActionButtonSchema<TBaseModel> => {
             return {
                 title: 'Delete',
-                buttonStyleType: ButtonStyleType.DANGER,
+                buttonStyleType: ButtonStyleType.NORMAL,
                 icon: IconProp.Trash,
 
                 onClick: async ({ items, onProgressInfo, onBulkActionStart, onBulkActionEnd }) => {
@@ -1266,7 +1271,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     }}
 
                     onBulkSelectedItemRemoved={(item) => {
-                        setBulkSelectedItems(bulkSelecctedItems.filter(i => i[props.matchSelectedItemByField]?.toString() !== item[props.matchSelectedItemByField]?.toString()));
+                        setBulkSelectedItems(bulkSelecctedItems.filter(i => i[matchBulkSelectedItemByField]?.toString() !== item[matchBulkSelectedItemByField]?.toString()));
+                    }}
+
+                    onBulkSelectItemsOnCurrentPage={()=>{
+                        setBulkSelectedItems([...bulkSelecctedItems, ...data]);
                     }}
 
                     onBulkClearAllItems={() => {
@@ -1277,7 +1286,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         await fetchAllBulkItems();
                     }}
 
-                    matchSelectedItemByField={props.matchSelectedItemByField}
+                    matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
 
                     filters={classicTableFilters}
                     filterError={tableFilterError}

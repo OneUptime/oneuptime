@@ -35,6 +35,7 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import { Black } from 'Common/Types/BrandColors';
+import { ModalTableBulkDefaultActions } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -190,6 +191,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         <>
             <ModelTable<Incident>
                 name="Incidents"
+
+                bulkActions={{
+                    buttons: [
+                        ModalTableBulkDefaultActions.Delete
+                    ]
+                }}
+
                 onCreateEditModalClose={(): void => {
                     setInitialValuesForIncident({});
                 }}

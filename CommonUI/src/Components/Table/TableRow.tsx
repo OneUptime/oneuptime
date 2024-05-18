@@ -69,9 +69,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     )}
                     {props.isBulkActionsEnabled && (
                         <td
-                            className="ml-5 w-10"
+                            className="w-10"
                             {...provided?.dragHandleProps}
                         >
+                            <div className='ml-5'>
                             <CheckboxElement value={props.isItemSelected} onChange={(value) => {
 
                                 if (value) {
@@ -85,6 +86,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                     }
                                 }
                             }} />
+                            </div>
                         </td>
                     )}
                     {props.columns &&

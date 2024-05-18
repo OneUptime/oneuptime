@@ -36,8 +36,6 @@ export interface ComponentProps<T extends GenericObject> {
     actionButtons?: undefined | Array<ActionButtonSchema<T>>;
     onRefreshClick?: undefined | (() => void);
 
-
-
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
 
@@ -61,8 +59,9 @@ export interface ComponentProps<T extends GenericObject> {
     onBulkSelectedItemAdded: (item: T) => void;
     onBulkSelectedItemRemoved: (item: T) => void;
     onBulkSelectAllItems: () => void;
+    onBulkSelectItemsOnCurrentPage: () => void;
     onBulkClearAllItems: () => void;
-    matchSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
+    matchBulkSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -159,7 +158,7 @@ const Table: TableFunction = <T extends GenericObject>(
                 }}
                 onItemDeselected={(item: T) => {
                     // set bulk selected items.
-                    const index = bulkSelectedItems.findIndex((x) => x[props.matchSelectedItemByField]?.toString() === item[props.matchSelectedItemByField]?.toString());
+                    const index = bulkSelectedItems.findIndex((x) => x[props.matchBulkSelectedItemByField]?.toString() === item[props.matchBulkSelectedItemByField]?.toString());
 
                     if (index > -1) {
                         bulkSelectedItems.splice(index, 1);
@@ -168,7 +167,7 @@ const Table: TableFunction = <T extends GenericObject>(
                     props.onBulkSelectedItemRemoved(item);
                 }}
                 selectedItems={bulkSelectedItems}
-                matchSelectedItemByField={props.matchSelectedItemByField}
+                matchBulkSelectedItemByField={props.matchBulkSelectedItemByField}
             />
         );
     };
@@ -223,6 +222,19 @@ const Table: TableFunction = <T extends GenericObject>(
                                     onSortChanged={props.onSortChanged}
                                     enableDragAndDrop={props.enableDragAndDrop}
                                     isBulkActionsEnabled={isBulkActionsEnabled}
+                                    onAllItemsDeselected={() => {
+                                        setIsAllItemsSelected(false);
+                                        props.onBulkClearAllItems();
+                                    }}
+
+                                    onAllItemsSelected={() => {
+                                        setIsAllItemsSelected(true);
+                                        props.onBulkSelectItemsOnCurrentPage();
+                                    }}
+
+                                    isAllBulkItemsChecked={isAllItemsSelected}
+                                    hasTableItems={props.data.length > 0}
+
                                 />
                                 {getTablebody()}
                             </table>

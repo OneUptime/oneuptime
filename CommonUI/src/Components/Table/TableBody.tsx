@@ -20,7 +20,7 @@ export interface ComponentProps<T extends GenericObject> {
     onItemSelected?: undefined | ((item: T) => void);
     onItemDeselected?: undefined | ((item: T) => void);
     selectedItems: Array<T>;
-    matchSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
+    matchBulkSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
 }
 
 type TableBodyFunction = <T extends GenericObject>(
@@ -53,8 +53,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                                     props.selectedItems?.filter(
                                         (selectedItem: T) =>
                                             selectedItem[
-                                                props.matchSelectedItemByField
-                                            ]?.toString() === item[props.matchSelectedItemByField]?.toString()
+                                                props.matchBulkSelectedItemByField
+                                            ]?.toString() === item[props.matchBulkSelectedItemByField]?.toString()
                                     ).length > 0 || false
 
                                 }

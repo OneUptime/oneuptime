@@ -13,10 +13,11 @@ export interface ComponentProps<T extends GenericObject> {
     id: string;
     onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
     enableDragAndDrop?: undefined | boolean;
-    isBulkActionsEnabled?: undefined | boolean;
-    onAllItemsSelected?: undefined | (() => void);
-    onAllItemsDeselected?: undefined | (() => void);
-    isAllBulkItemsChecked?: undefined | boolean;
+    isBulkActionsEnabled: undefined | boolean;
+    onAllItemsSelected: undefined | (() => void);
+    onAllItemsDeselected: undefined | (() => void);
+    isAllBulkItemsChecked: undefined | boolean;
+    hasTableItems: undefined | boolean;
 }
 
 type TableHeaderFunction = <T extends GenericObject>(
@@ -36,7 +37,8 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             <tr>
                 {props.enableDragAndDrop && <th></th>}
                 {props.isBulkActionsEnabled && <th>
-                    <CheckboxElement value={props.isAllBulkItemsChecked} onChange={(value) => {
+                    <div className='ml-5'>
+                    <CheckboxElement disabled={!props.hasTableItems} value={props.isAllBulkItemsChecked && props.hasTableItems} onChange={(value) => {
 
                         if (value) {
 
@@ -49,6 +51,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                             }
                         }
                     }} />
+                    </div>
                 </th>}
                 {props.columns.map((column: Column<T>, i: number) => {
                     const canSort: boolean =
