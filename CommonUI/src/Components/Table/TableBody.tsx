@@ -14,6 +14,13 @@ export interface ComponentProps<T extends GenericObject> {
     dragAndDropScope?: string | undefined;
     dragDropIdField?: keyof T | undefined;
     dragDropIndexField?: keyof T | undefined;
+
+    // bulk actions
+    isBulkActionsEnabled?: undefined | boolean;
+    onItemSelected?: undefined | ((item: T) => void);
+    onItemDeselected?: undefined | ((item: T) => void);
+    selectedItems: Array<T>;
+    matchSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
 }
 
 type TableBodyFunction = <T extends GenericObject>(
@@ -39,6 +46,18 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                     props.data.map((item: T, i: number) => {
                         return (
                             <TableRow
+                                isBulkActionsEnabled={props.isBulkActionsEnabled}
+                                onItemSelected={props.onItemSelected}
+                                onItemDeselected={props.onItemDeselected}
+                                isItemSelected={
+                                    props.selectedItems?.filter(
+                                        (selectedItem: T) =>
+                                            selectedItem[
+                                                props.matchSelectedItemByField
+                                            ]?.toString() === item[props.matchSelectedItemByField]?.toString()
+                                    ).length > 0 || false
+
+                                }
                                 dragAndDropScope={props.dragAndDropScope}
                                 enableDragAndDrop={props.enableDragAndDrop}
                                 key={i}

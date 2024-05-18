@@ -201,7 +201,9 @@ export interface BaseTableProps<
     | undefined
     | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
     name: string;
+
     bulkActions?: BulkActionProps<TBaseModel> | undefined;
+    matchSelectedItemByField: keyof TBaseModel; // which field to use to match selected items. For exmaple this could be '_id'
 }
 
 export interface ComponentProps<
@@ -221,6 +223,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
         const model: TBaseModel = new props.modelType();
+
+
+        const [bulkSelecctedItems, setBulkSelectedItems] = useState<Array<TBaseModel>>([]);
 
         let showAs: ShowAs | undefined = props.showAs;
 
@@ -602,6 +607,38 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                 setIsFilterFetchLoading(false);
             };
+
+
+            const fetchAllBulkItems: PromiseVoidFunction = async (): Promise<void> => {
+                setError('');
+                setIsLoading(true);
+
+                try {
+                    const listResult: ListResult<TBaseModel> =
+                        await props.callbacks.getList({
+                            modelType: props.modelType as
+                                | BaseModelType
+                                | AnalyticsBaseModelType,
+                            query: {
+                                ...query,
+                                ...props.query,
+                            },
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            select: {
+                                _id: true
+                            },
+                            sort: {},
+                            requestOptions: props.fetchRequestOptions,
+                        });
+    
+                   setBulkSelectedItems(listResult.data);
+                } catch (err) {
+                    setError(API.getFriendlyMessage(err));
+                }
+    
+                setIsLoading(false);
+            }
 
         const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
             setError('');
@@ -1211,6 +1248,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     onFilterRefreshClick={async () => {
                         await getFilterDropdownItems();
                     }}
+
+
                     bulkActions={{
                         buttons: props.bulkActions?.buttons.map((action) => {
                             const permissions: Array<Permission> =
@@ -1221,6 +1260,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                             return action;
                         }) as Array<BulkActionButtonSchema<TBaseModel>>
                     }}
+                    bulkSelectedItems={bulkSelecctedItems}
+                    onBulkSelectedItemAdded={(item) => {
+                        setBulkSelectedItems([...bulkSelecctedItems, item]);
+                    }}
+
+                    onBulkSelectedItemRemoved={(item) => {
+                        setBulkSelectedItems(bulkSelecctedItems.filter(i => i[props.matchSelectedItemByField]?.toString() !== item[props.matchSelectedItemByField]?.toString()));
+                    }}
+
+                    onBulkClearAllItems={() => {
+                        setBulkSelectedItems([]);
+                    }}
+
+                    onBulkSelectAllItems={async () => {
+                        await fetchAllBulkItems();
+                    }}
+
+                    matchSelectedItemByField={props.matchSelectedItemByField}
+
                     filters={classicTableFilters}
                     filterError={tableFilterError}
                     isFilterLoading={isFilterFetchLoading}

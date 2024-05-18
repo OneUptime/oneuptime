@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 export type CategoryCheckboxValue = string | number | boolean;
 
 export interface CategoryProps {
-    title: string | ReactElement;
+    title?: string | ReactElement | undefined;
     description?: string | undefined;
     initialValue?: undefined | boolean;
     onChange?: undefined | ((value: boolean, interminate?: boolean) => void);

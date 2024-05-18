@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
@@ -36,7 +36,7 @@ export interface ComponentProps<T extends GenericObject> {
     actionButtons?: undefined | Array<ActionButtonSchema<T>>;
     onRefreshClick?: undefined | (() => void);
 
-    
+
 
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
@@ -56,7 +56,13 @@ export interface ComponentProps<T extends GenericObject> {
     onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 
     // bulk actions
-    bulkActions?: BulkActionProps<T>;
+    bulkActions: BulkActionProps<T>;
+    bulkSelectedItems: Array<T>;
+    onBulkSelectedItemAdded: (item: T) => void;
+    onBulkSelectedItemRemoved: (item: T) => void;
+    onBulkSelectAllItems: () => void;
+    onBulkClearAllItems: () => void;
+    matchSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -66,6 +72,17 @@ type TableFunction = <T extends GenericObject>(
 const Table: TableFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
+
+    const isBulkActionsEnabled = props.bulkActions && props.bulkActions.buttons && props.bulkActions.buttons.length > 0;
+
+
+    const [isAllItemsSelected, setIsAllItemsSelected] = useState<boolean>(false);
+    const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
+
+    useEffect(() => {
+        setBulkSelectedItems(props.bulkSelectedItems);
+    }, [props.bulkSelectedItems]);
+
     let colspan: number = props.columns.length || 0;
     if (props.actionButtons && props.actionButtons?.length > 0) {
         colspan++;
@@ -134,6 +151,22 @@ const Table: TableFunction = <T extends GenericObject>(
                 dragAndDropScope={`${props.id}-dnd`}
                 dragDropIdField={props.dragDropIdField}
                 dragDropIndexField={props.dragDropIndexField}
+                isBulkActionsEnabled={isBulkActionsEnabled}
+                onItemSelected={(item: T) => {
+                    // set bulk selected items. 
+                    setBulkSelectedItems([...bulkSelectedItems, item]);
+                    props.onBulkSelectedItemAdded(item);
+                }}
+                onItemDeselected={(item: T) => {
+                    // set bulk selected items.
+                    setBulkSelectedItems(bulkSelectedItems.filter((selectedItem: T) => {
+                        return selectedItem?[props.matchSelectedItemByField]?.toString() !== item[props.matchSelectedItemByField]?.toString()
+                    }));
+                    
+                    props.onBulkSelectedItemRemoved(item);
+                }}
+                selectedItems={bulkSelectedItems}
+                matchSelectedItemByField={props.matchSelectedItemByField}
             />
         );
     };
@@ -153,7 +186,21 @@ const Table: TableFunction = <T extends GenericObject>(
                 singularLabel={props.singularLabel}
                 pluralLabel={props.pluralLabel}
             />
-            {props.bulkActions?.buttons && <BulkUpdateForm buttons={props.bulkActions.buttons} />}
+            {props.bulkActions?.buttons && <BulkUpdateForm
+                buttons={props.bulkActions.buttons}
+                onClearSelectionClick={()=>{
+                    props.onBulkClearAllItems();
+                    setIsAllItemsSelected(false);
+                }}
+                onSelectAllClick={()=>{
+                    props.onBulkSelectAllItems();
+                    setIsAllItemsSelected(true);
+                }}
+                selectedItems={bulkSelectedItems}
+                singularLabel={props.singularLabel}
+                pluralLabel={props.pluralLabel}
+                isAllItemsSelected={isAllItemsSelected}
+            />}
             <DragDropContext
                 onDragEnd={(result: DropResult) => {
                     result.destination?.index &&
@@ -173,6 +220,7 @@ const Table: TableFunction = <T extends GenericObject>(
                                     columns={props.columns}
                                     onSortChanged={props.onSortChanged}
                                     enableDragAndDrop={props.enableDragAndDrop}
+                                    isBulkActionsEnabled={isBulkActionsEnabled}
                                 />
                                 {getTablebody()}
                             </table>
