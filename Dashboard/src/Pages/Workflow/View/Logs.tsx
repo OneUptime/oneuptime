@@ -18,6 +18,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 import WorkflowStatusElement from 'CommonUI/src/Components/Workflow/WorkflowStatus';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -182,11 +183,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         submitButtonText={'Close'}
                         submitButtonStyleType={ButtonStyleType.NORMAL}
                     >
-                        <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                        <SimpleLogViewer>
                             {logs.split('\n').map((log: string, i: number) => {
                                 return <div key={i}>{log}</div>;
                             })}
-                        </div>
+                        </SimpleLogViewer>
                     </Modal>
                 )}
             </>

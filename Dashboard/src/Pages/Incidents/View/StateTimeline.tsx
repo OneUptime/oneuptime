@@ -22,6 +22,7 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import OneUptimeDate from 'Common/Types/Date';
 import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -264,11 +265,11 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                     submitButtonText={'Close'}
                     submitButtonStyleType={ButtonStyleType.NORMAL}
                 >
-                    <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                    <SimpleLogViewer>
                         {logs.split('\n').map((log: string, i: number) => {
                             return <div key={i}>{log}</div>;
                         })}
-                    </div>
+                    </SimpleLogViewer>
                 </Modal>
             ) : (
                 <></>

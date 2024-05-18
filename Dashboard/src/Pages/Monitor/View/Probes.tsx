@@ -31,6 +31,7 @@ import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ProbeUtil from '../../../Utils/Probe';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -284,11 +285,11 @@ const MonitorProbes: FunctionComponent<PageComponentProps> = (
                     submitButtonText={'Close'}
                     submitButtonStyleType={ButtonStyleType.NORMAL}
                 >
-                    <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                    <SimpleLogViewer>
                         {logs.split('\n').map((log: string, i: number) => {
                             return <div key={i}>{log}</div>;
                         })}
-                    </div>
+                    </SimpleLogViewer>
                 </Modal>
             )}
         </Fragment>

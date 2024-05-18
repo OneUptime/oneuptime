@@ -20,6 +20,7 @@ import Columns from 'CommonUI/src/Components/ModelTable/Columns';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const CallLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -212,9 +213,9 @@ const CallLogs: FunctionComponent<PageComponentProps> = (
                     <ConfirmModal
                         title={callModelTitle}
                         description={
-                            <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                            <SimpleLogViewer>
                                 {callText}
-                            </div>
+                            </SimpleLogViewer>
                         }
                         onSubmit={() => {
                             setShowViewCallTextModal(false);
