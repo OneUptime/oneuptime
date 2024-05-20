@@ -111,6 +111,12 @@ export default class MonitorStep extends DatabaseProperty {
         return this;
     }
 
+
+    public setCustomCode(customCode: string): MonitorStep {
+        this.data!.customCode = customCode;
+        return this;
+    }
+
     public setMonitorCriteria(monitorCriteria: MonitorCriteria): MonitorStep {
         this.data!.monitorCriteria = monitorCriteria;
         return this;
@@ -127,6 +133,7 @@ export default class MonitorStep extends DatabaseProperty {
                 requestType: HTTPMethod.GET,
                 requestHeaders: undefined,
                 requestBody: undefined,
+                customCode: undefined,  
             },
         };
     }
@@ -202,6 +209,7 @@ export default class MonitorStep extends DatabaseProperty {
                     requestType: this.data.requestType,
                     requestHeaders: this.data.requestHeaders || undefined,
                     requestBody: this.data.requestBody || undefined,
+                    customCode: this.data.customCode || undefined,
                 },
             });
         }
