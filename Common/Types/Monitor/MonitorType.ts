@@ -11,6 +11,10 @@ enum MonitorType {
     Port = 'Port',
     Server = 'Server',
     SSLCertificate = 'SSL Certificate',
+
+    // These two monitor types are same but we are keeping them separate for now - this is for marketing purposes
+    SyntheticMonitor = 'Synthetic Monitor',
+    CustomJavaScriptCode = 'Custom JavaScript Code',
 }
 
 export default MonitorType;
@@ -46,7 +50,7 @@ export class MonitorTypeHelper {
                 monitorType: MonitorType.Ping,
                 title: 'Ping',
                 description:
-                    'This monitor types does the basic ping test of an endpoint.',
+                    'This monitor type does the basic ping test of an endpoint.',
             },
             // {
             //     monitorType: MonitorType.Kubernetes,
@@ -58,31 +62,43 @@ export class MonitorTypeHelper {
                 monitorType: MonitorType.IP,
                 title: 'IP',
                 description:
-                    'This monitor types lets you monitor any IPv4 or IPv6 addresses.',
+                    'This monitor type lets you monitor any IPv4 or IPv6 addresses.',
             },
             {
                 monitorType: MonitorType.IncomingRequest,
                 title: 'Incoming Request',
                 description:
-                    'This monitor types lets you ping OneUptime from any external device or service with a custom payload.',
+                    'This monitor type lets you ping OneUptime from any external device or service with a custom payload.',
             },
             {
                 monitorType: MonitorType.Port,
                 title: 'Port',
                 description:
-                    'This monitor types lets you monitor any TCP or UDP port.',
+                    'This monitor type lets you monitor any TCP or UDP port.',
             },
             {
                 monitorType: MonitorType.Server,
                 title: 'Server / VM',
                 description:
-                    'This monitor types lets you monitor any server, VM, or any machine.',
+                    'This monitor type lets you monitor any server, VM, or any machine.',
             },
             {
                 monitorType: MonitorType.SSLCertificate,
                 title: 'SSL Certificate',
                 description:
-                    'This monitor types lets you monitor SSL certificates of any domain.',
+                    'This monitor type lets you monitor SSL certificates of any domain.',
+            },
+            {
+                monitorType: MonitorType.SyntheticMonitor,
+                title: 'Synthetic Monitor',
+                description:
+                    'This monitor type lets you monitor your web application UI.',
+            },
+            {
+                monitorType: MonitorType.CustomJavaScriptCode,
+                title: 'Custom JavaScript Code',
+                description:
+                    'This monitor type lets you run custom JavaScript code on a schedule.',
             },
         ];
 
