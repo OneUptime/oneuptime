@@ -99,10 +99,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         }
     }, [props.monitorType]);
 
+
+    const hasMonitorDestination: boolean = props.monitorType === MonitorType.IP || props.monitorType === MonitorType.Ping || props.monitorType === MonitorType.Port || props.monitorType === MonitorType.Website || props.monitorType === MonitorType.API || props.monitorType === MonitorType.SSLCertificate;
+
+    const isCodeMonitor: boolean = props.monitorType === MonitorType.CustomJavaScriptCode || props.monitorType === MonitorType.SyntheticMonitor;
+
     return (
         <div className="mt-5">
-            {props.monitorType !== MonitorType.IncomingRequest &&
-                props.monitorType !== MonitorType.Server && (
+            {hasMonitorDestination && (
                     <div>
                         <div className="mt-5">
                             <FieldLabelElement
@@ -236,6 +240,28 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 />
                                 <Input
                                     initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
+                                    onChange={(value: string) => {
+                                        const port: Port = new Port(value);
+                                        monitorStep.setPort(port);
+                                        setMonitorStep(
+                                            MonitorStep.clone(monitorStep)
+                                        );
+                                    }}
+                                />
+                            </div>
+                        )}
+                        {isCodeMonitor && (
+                            <div className="mt-5">
+                                <FieldLabelElement
+                                    title={props.monitorType === MonitorType.CustomJavaScriptCode ? 'JavaScript Code' : 'Playwright Code'}
+                                    description={
+                                        props.monitorType === MonitorType.CustomJavaScriptCode ? 'Write your JavaScript code here.' : 'Write your Playwright code here. Playwright is a Node.js library to automate Chromium, Firefox and WebKit with a single API.'
+                                    }
+                                    required={true}
+                                />
+                                <CodeEditor
+                                    initialValue={monitorStep?.data?.customCode?.toString()}
+                                    type={CodeType.JavaScript}
                                     onChange={(value: string) => {
                                         const port: Port = new Port(value);
                                         monitorStep.setPort(port);

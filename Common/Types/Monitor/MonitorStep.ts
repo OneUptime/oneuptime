@@ -16,11 +16,19 @@ import Port from '../Port';
 export interface MonitorStepType {
     id: string;
     monitorDestination?: URL | IP | Hostname | undefined;
-    monitorDestinationPort?: Port | undefined;
+    
     monitorCriteria: MonitorCriteria;
+    
+    // this is for API monitor. 
     requestType: HTTPMethod;
     requestHeaders?: Dictionary<string> | undefined;
     requestBody?: string | undefined;
+
+    // this is for port monitors. 
+    monitorDestinationPort?: Port | undefined;
+
+    // this is for custom code monitors or synthetic monitors.
+    customCode?: string | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -37,6 +45,7 @@ export default class MonitorStep extends DatabaseProperty {
             requestType: HTTPMethod.GET,
             requestHeaders: undefined,
             requestBody: undefined,
+            customCode: undefined,
         };
     }
 
@@ -57,6 +66,7 @@ export default class MonitorStep extends DatabaseProperty {
             requestType: HTTPMethod.GET,
             requestHeaders: undefined,
             requestBody: undefined,
+            customCode: undefined,
         };
 
         return monitorStep;
@@ -140,6 +150,11 @@ export default class MonitorStep extends DatabaseProperty {
                 monitorType === MonitorType.SSLCertificate)
         ) {
             return 'Monitor Destination is required';
+        }
+
+
+        if(!value.data.customCode && (monitorType === MonitorType.CustomJavaScriptCode || monitorType === MonitorType.SyntheticMonitor)) {
+            return 'Code is required';
         }
 
         if (!value.data.monitorCriteria) {
@@ -274,6 +289,7 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders:
                 (json['requestHeaders'] as Dictionary<string>) || undefined,
             requestBody: (json['requestBody'] as string) || undefined,
+            
         }) as any;
 
         return monitorStep;

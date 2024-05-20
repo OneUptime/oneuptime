@@ -24,6 +24,11 @@ export enum CheckOn {
     IsExpiredCertificate = 'Is Expired Certificate',
     IsValidCertificate = 'Is Valid Certificate',
     IsNotAValidCertificate = 'Is Not A Valid Certificate',
+
+    // Custom code or javascript monitor. 
+    Result = 'Result',
+    Error = 'Error',
+    ExecutionTime = 'Execution Time (in ms)',
 }
 
 export interface ServerMonitorOptions {

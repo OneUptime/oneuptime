@@ -105,6 +105,32 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             return monitorCriteriaInstance;
         }
 
+
+        if(arg.monitorType === MonitorType.CustomJavaScriptCode || arg.monitorType === MonitorType.SyntheticMonitor) {
+            const monitorCriteriaInstance: MonitorCriteriaInstance =
+                new MonitorCriteriaInstance();
+
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.All,
+                filters: [
+                    {
+                        checkOn: CheckOn.Error,
+                        filterType: FilterType.IsEmpty,
+                        value: undefined,
+                    },
+                ],
+                incidents: [],
+                changeMonitorStatus: true,
+                createIncidents: false,
+                name: `Check if ${arg.monitorName} is online`,
+                description: `This criteria checks if the ${arg.monitorName} is online`,
+            };
+
+            return monitorCriteriaInstance;
+        }
+
         if (arg.monitorType === MonitorType.Server) {
             const monitorCriteriaInstance: MonitorCriteriaInstance =
                 new MonitorCriteriaInstance();
@@ -265,6 +291,36 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                         checkOn: CheckOn.IncomingRequest,
                         filterType: FilterType.NotRecievedInMinutes,
                         value: 30, // if the request is not recieved in 30 minutes, then the monitor is offline
+                    },
+                ],
+                incidents: [
+                    {
+                        title: `${arg.monitorName} is offline`,
+                        description: `${arg.monitorName} is currently offline.`,
+                        incidentSeverityId: arg.incidentSeverityId,
+                        autoResolveIncident: true,
+                        id: ObjectID.generate().toString(),
+                        onCallPolicyIds: [],
+                    },
+                ],
+                changeMonitorStatus: true,
+                createIncidents: true,
+                name: `Check if ${arg.monitorName} is offline`,
+                description: `This criteria checks if the ${arg.monitorName} is offline`,
+            };
+        }
+
+
+        if(arg.monitorType === MonitorType.CustomJavaScriptCode || arg.monitorType === MonitorType.SyntheticMonitor) {
+            monitorCriteriaInstance.data = {
+                id: ObjectID.generate().toString(),
+                monitorStatusId: arg.monitorStatusId,
+                filterCondition: FilterCondition.Any,
+                filters: [
+                    {
+                        checkOn: CheckOn.Error,
+                        filterType: FilterType.IsNotEmpty,
+                        value: undefined,
                     },
                 ],
                 incidents: [
