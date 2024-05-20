@@ -183,6 +183,19 @@ export default class CriteriaFilterUtil {
             });
         }
 
+        if (
+            monitorType === MonitorType.SyntheticMonitor ||
+            monitorType === MonitorType.CustomJavaScriptCode
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === CheckOn.Error ||
+                    i.value === CheckOn.ResultValue ||
+                    i.value === CheckOn.ExecutionTime
+                );
+            });
+        }
+
         if (monitorType === MonitorType.SSLCertificate) {
             options = options.filter((i: DropdownOption) => {
                 return (
@@ -238,7 +251,10 @@ export default class CriteriaFilterUtil {
             return [];
         }
 
-        if (checkOn === CheckOn.ResponseTime) {
+        if (
+            checkOn === CheckOn.ResponseTime ||
+            checkOn === CheckOn.ExecutionTime
+        ) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === FilterType.GreaterThan ||
@@ -310,6 +326,23 @@ export default class CriteriaFilterUtil {
             });
         }
 
+        if (checkOn === CheckOn.Error || checkOn === CheckOn.ResultValue) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.Contains ||
+                    i.value === FilterType.NotContains ||
+                    i.value === FilterType.EqualTo ||
+                    i.value === FilterType.NotEqualTo ||
+                    i.value === FilterType.IsEmpty ||
+                    i.value === FilterType.IsNotEmpty ||
+                    i.value === FilterType.GreaterThan ||
+                    i.value === FilterType.LessThan ||
+                    i.value === FilterType.LessThanOrEqualTo ||
+                    i.value === FilterType.GreaterThanOrEqualTo
+                );
+            });
+        }
+
         if (checkOn === CheckOn.JavaScriptExpression) {
             options = options.filter((i: DropdownOption) => {
                 return i.value === FilterType.EvaluatesToTrue;
@@ -359,7 +392,10 @@ export default class CriteriaFilterUtil {
         return options;
     }
 
-    public static hasValueField(data: { checkOn: CheckOn }): boolean {
+    public static hasValueField(data: {
+        checkOn: CheckOn;
+        filterType: FilterType | undefined;
+    }): boolean {
         const { checkOn } = data;
 
         if (checkOn === CheckOn.IsOnline) {
@@ -371,6 +407,15 @@ export default class CriteriaFilterUtil {
             checkOn === CheckOn.IsSelfSignedCertificate ||
             checkOn === CheckOn.IsExpiredCertificate ||
             checkOn === CheckOn.IsNotAValidCertificate
+        ) {
+            return false;
+        }
+
+        if (
+            FilterType.IsEmpty === data.filterType ||
+            FilterType.IsNotEmpty === data.filterType ||
+            FilterType.True === data.filterType ||
+            FilterType.False === data.filterType
         ) {
             return false;
         }

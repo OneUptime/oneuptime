@@ -297,6 +297,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     (criteriaFilter?.checkOn &&
                         CriteriaFilterUiUtil.hasValueField({
                             checkOn: criteriaFilter?.checkOn,
+                            filterType: criteriaFilter?.filterType,
                         }) && (
                             <div className="mt-1">
                                 <FieldLabelElement title="Value" />

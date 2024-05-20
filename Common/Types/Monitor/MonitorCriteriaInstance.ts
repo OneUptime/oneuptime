@@ -105,8 +105,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             return monitorCriteriaInstance;
         }
 
-
-        if(arg.monitorType === MonitorType.CustomJavaScriptCode || arg.monitorType === MonitorType.SyntheticMonitor) {
+        if (
+            arg.monitorType === MonitorType.CustomJavaScriptCode ||
+            arg.monitorType === MonitorType.SyntheticMonitor
+        ) {
             const monitorCriteriaInstance: MonitorCriteriaInstance =
                 new MonitorCriteriaInstance();
 
@@ -310,8 +312,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             };
         }
 
-
-        if(arg.monitorType === MonitorType.CustomJavaScriptCode || arg.monitorType === MonitorType.SyntheticMonitor) {
+        if (
+            arg.monitorType === MonitorType.CustomJavaScriptCode ||
+            arg.monitorType === MonitorType.SyntheticMonitor
+        ) {
             monitorCriteriaInstance.data = {
                 id: ObjectID.generate().toString(),
                 monitorStatusId: arg.monitorStatusId,

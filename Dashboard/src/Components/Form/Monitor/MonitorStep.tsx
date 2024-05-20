@@ -99,10 +99,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         }
     }, [props.monitorType]);
 
+    const hasMonitorDestination: boolean =
+        props.monitorType === MonitorType.IP ||
+        props.monitorType === MonitorType.Ping ||
+        props.monitorType === MonitorType.Port ||
+        props.monitorType === MonitorType.Website ||
+        props.monitorType === MonitorType.API ||
+        props.monitorType === MonitorType.SSLCertificate;
 
-    const hasMonitorDestination: boolean = props.monitorType === MonitorType.IP || props.monitorType === MonitorType.Ping || props.monitorType === MonitorType.Port || props.monitorType === MonitorType.Website || props.monitorType === MonitorType.API || props.monitorType === MonitorType.SSLCertificate;
-
-    const isCodeMonitor: boolean = props.monitorType === MonitorType.CustomJavaScriptCode || props.monitorType === MonitorType.SyntheticMonitor;
+    const isCodeMonitor: boolean =
+        props.monitorType === MonitorType.CustomJavaScriptCode ||
+        props.monitorType === MonitorType.SyntheticMonitor;
 
     return (
         <div className="mt-5">
@@ -127,8 +134,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 ) {
                                     setErrors({
                                         ...errors,
-                                        destination:
-                                            'Destination is required',
+                                        destination: 'Destination is required',
                                     });
                                 } else {
                                     setErrors({
@@ -141,8 +147,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 }
                             }}
                             error={
-                                touched['destination'] &&
-                                    errors['destination']
+                                touched['destination'] && errors['destination']
                                     ? errors['destination']
                                     : undefined
                             }
@@ -154,28 +159,22 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     | undefined = undefined;
 
                                 try {
-                                    if (
-                                        props.monitorType === MonitorType.IP
-                                    ) {
+                                    if (props.monitorType === MonitorType.IP) {
                                         destination = IP.fromString(value);
                                     } else if (
-                                        props.monitorType ===
-                                        MonitorType.Ping
+                                        props.monitorType === MonitorType.Ping
                                     ) {
                                         if (IP.isIP(value)) {
-                                            destination =
-                                                IP.fromString(value);
+                                            destination = IP.fromString(value);
                                         } else {
                                             destination =
                                                 Hostname.fromString(value);
                                         }
                                     } else if (
-                                        props.monitorType ===
-                                        MonitorType.Port
+                                        props.monitorType === MonitorType.Port
                                     ) {
                                         if (IP.isIP(value)) {
-                                            destination =
-                                                IP.fromString(value);
+                                            destination = IP.fromString(value);
                                         } else {
                                             destination =
                                                 Hostname.fromString(value);
@@ -186,8 +185,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     ) {
                                         destination = URL.fromString(value);
                                     } else if (
-                                        props.monitorType ===
-                                        MonitorType.API
+                                        props.monitorType === MonitorType.API
                                     ) {
                                         destination = URL.fromString(value);
                                     } else if (
@@ -210,8 +208,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     } else {
                                         setErrors({
                                             ...errors,
-                                            destination:
-                                                'Invalid Destination',
+                                            destination: 'Invalid Destination',
                                         });
                                     }
                                 }
@@ -223,9 +220,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 }
 
                                 setDestinationInputValue(value);
-                                setMonitorStep(
-                                    MonitorStep.clone(monitorStep)
-                                );
+                                setMonitorStep(MonitorStep.clone(monitorStep));
                             }}
                         />
                     </div>
@@ -265,8 +260,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     (i: DropdownOption) => {
                                         return (
                                             i.value ===
-                                            (monitorStep?.data
-                                                ?.requestType ||
+                                            (monitorStep?.data?.requestType ||
                                                 HTTPMethod.GET)
                                         );
                                     }
@@ -280,7 +274,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 ) => {
                                     monitorStep.setRequestType(
                                         (value?.toString() as HTTPMethod) ||
-                                        HTTPMethod.GET
+                                            HTTPMethod.GET
                                     );
                                     setMonitorStep(
                                         MonitorStep.clone(monitorStep)
@@ -295,9 +289,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                             <div className="mt-1 -ml-3">
                                 <Button
                                     title="Advanced: Add Request Headers and Body"
-                                    buttonStyle={
-                                        ButtonStyleType.SECONDARY_LINK
-                                    }
+                                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
                                     onClick={() => {
                                         setShowAdvancedOptionsRequestBodyAndHeaders(
                                             true
@@ -321,15 +313,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     keyPlaceholder={'Header Name'}
                                     valuePlaceholder={'Header Value'}
                                     initialValue={
-                                        monitorStep.data?.requestHeaders ||
-                                        {}
+                                        monitorStep.data?.requestHeaders || {}
                                     }
-                                    onChange={(
-                                        value: Dictionary<string>
-                                    ) => {
-                                        monitorStep.setRequestHeaders(
-                                            value
-                                        );
+                                    onChange={(value: Dictionary<string>) => {
+                                        monitorStep.setRequestHeaders(value);
                                         setMonitorStep(
                                             MonitorStep.clone(monitorStep)
                                         );
@@ -358,13 +345,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     }}
                                     error={
                                         touched['requestBody'] &&
-                                            errors['requestBody']
+                                        errors['requestBody']
                                             ? errors['requestBody']
                                             : undefined
                                     }
-                                    initialValue={
-                                        monitorStep.data?.requestBody
-                                    }
+                                    initialValue={monitorStep.data?.requestBody}
                                     onChange={(value: string) => {
                                         try {
                                             JSON.parse(value);
@@ -392,29 +377,35 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-
             {isCodeMonitor && (
                 <div className="mt-5">
                     <FieldLabelElement
-                        title={props.monitorType === MonitorType.CustomJavaScriptCode ? 'JavaScript Code' : 'Playwright Code'}
+                        title={
+                            props.monitorType ===
+                            MonitorType.CustomJavaScriptCode
+                                ? 'JavaScript Code'
+                                : 'Playwright Code'
+                        }
                         description={
-                            props.monitorType === MonitorType.CustomJavaScriptCode ? 'Write your JavaScript code here.' : 'Write your Playwright code here. Playwright is a Node.js library to automate Chromium, Firefox and WebKit with a single API.'
+                            props.monitorType ===
+                            MonitorType.CustomJavaScriptCode
+                                ? 'Write your JavaScript code here.'
+                                : 'Write your Playwright code here. Playwright is a Node.js library to automate Chromium, Firefox and WebKit with a single API.'
                         }
                         required={true}
                     />
-                    <CodeEditor
-                        initialValue={monitorStep?.data?.customCode?.toString()}
-                        type={CodeType.JavaScript}
-                        onChange={(value: string) => {
-                            monitorStep.setCustomCode(value);
-                            setMonitorStep(
-                                MonitorStep.clone(monitorStep)
-                            );
-                        }}
-                    />
+                    <div className="mt-1">
+                        <CodeEditor
+                            initialValue={monitorStep?.data?.customCode?.toString()}
+                            type={CodeType.JavaScript}
+                            onChange={(value: string) => {
+                                monitorStep.setCustomCode(value);
+                                setMonitorStep(MonitorStep.clone(monitorStep));
+                            }}
+                        />
+                    </div>
                 </div>
             )}
-
 
             <div className="mt-5">
                 {props.monitorType !== MonitorType.IncomingRequest && (

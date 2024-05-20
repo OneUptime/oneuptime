@@ -25,8 +25,8 @@ export enum CheckOn {
     IsValidCertificate = 'Is Valid Certificate',
     IsNotAValidCertificate = 'Is Not A Valid Certificate',
 
-    // Custom code or javascript monitor. 
-    Result = 'Result',
+    // Custom code or javascript monitor.
+    ResultValue = 'Result Value',
     Error = 'Error',
     ExecutionTime = 'Execution Time (in ms)',
 }
