@@ -27,6 +27,7 @@ import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRul
 import Exception from 'Common/Types/Exception/Exception';
 import Hostname from 'Common/Types/API/Hostname';
 import Port from 'Common/Types/Port';
+import CheckBoxList from 'CommonUI/src/Components/CategoryCheckbox/CheckboxList';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -274,7 +275,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 ) => {
                                     monitorStep.setRequestType(
                                         (value?.toString() as HTTPMethod) ||
-                                            HTTPMethod.GET
+                                        HTTPMethod.GET
                                     );
                                     setMonitorStep(
                                         MonitorStep.clone(monitorStep)
@@ -345,7 +346,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     }}
                                     error={
                                         touched['requestBody'] &&
-                                        errors['requestBody']
+                                            errors['requestBody']
                                             ? errors['requestBody']
                                             : undefined
                                     }
@@ -382,13 +383,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement
                         title={
                             props.monitorType ===
-                            MonitorType.CustomJavaScriptCode
+                                MonitorType.CustomJavaScriptCode
                                 ? 'JavaScript Code'
                                 : 'Playwright Code'
                         }
                         description={
                             props.monitorType ===
-                            MonitorType.CustomJavaScriptCode
+                                MonitorType.CustomJavaScriptCode
                                 ? 'Write your JavaScript code here.'
                                 : 'Write your Playwright code here. Playwright is a Node.js library to automate Chromium, Firefox and WebKit with a single API.'
                         }
@@ -403,6 +404,42 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 setMonitorStep(MonitorStep.clone(monitorStep));
                             }}
                         />
+                    </div>
+                </div>
+            )}
+
+
+            {props.monitorType === MonitorType.SyntheticMonitor && (
+                <div className="mt-5">
+                    <FieldLabelElement
+                        title={
+                            'Browser Type'
+                        }
+                        description={
+                            'Select the browser type.'
+                        }
+                        required={true}
+                    />
+                    <div className="mt-1">
+                        <CheckBoxList />
+                    </div>
+                </div>
+            )}
+
+
+            {props.monitorType === MonitorType.SyntheticMonitor && (
+                <div className="mt-5">
+                    <FieldLabelElement
+                        title={
+                            'Screen Type'
+                        }
+                        description={
+                            'Which screen type should we use to run this test?'
+                        }
+                        required={true}
+                    />
+                    <div className="mt-1">
+                        <CheckBoxList />
                     </div>
                 </div>
             )}
