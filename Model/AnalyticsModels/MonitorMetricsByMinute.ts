@@ -7,10 +7,14 @@ import Route from 'Common/Types/API/Route';
 import Permission from 'Common/Types/Permission';
 import { JSONObject } from 'Common/Types/JSON';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
+import BrowserType from 'Common/Types/BrowserType';
+import ScreenSizeType from 'Common/Types/ScreenSizeType';
 
 export interface MonitorMetricsMiscData {
     diskPath?: string;
     probeId?: string;
+    browserType?: BrowserType;
+    screenSizeType?: ScreenSizeType;
 }
 
 export default class MonitorMetricsByMinute extends AnalyticsBaseModel {

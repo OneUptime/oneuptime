@@ -33,7 +33,7 @@ import IncidentSeverityService from '../../Services/IncidentSeverityService';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import MonitorType, { MonitorTypeHelper } from 'Common/Types/Monitor/MonitorType';
 import VMUtil from '../VM/VMAPI';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
 import BasicInfrastructureMetrics from 'Common/Types/Infrastructure/BasicMetrics';
@@ -45,6 +45,7 @@ import APIRequestCriteria from './Criteria/APIRequestCriteria';
 import DataToProcess from './DataToProcess';
 import SSLMonitorCriteria from './Criteria/SSLMonitorCriteria';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import CustomCodeMonitorResponse from 'Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -115,17 +116,13 @@ export default class ProbeMonitorResponseService {
 
         // get last log. We do this because there are many monitoring steps and we need to store those.
         logger.info(
-            `${dataToProcess.monitorId.toString()} - monitor type ${
-                monitor.monitorType
+            `${dataToProcess.monitorId.toString()} - monitor type ${monitor.monitorType
             }`
         );
 
         if (
-            monitor.monitorType === MonitorType.API ||
-            monitor.monitorType === MonitorType.IP ||
-            monitor.monitorType === MonitorType.Ping ||
-            monitor.monitorType === MonitorType.Website ||
-            monitor.monitorType === MonitorType.SSLCertificate
+            monitor.monitorType &&
+            MonitorTypeHelper.isProbableMonitors(monitor.monitorType)
         ) {
             dataToProcess = dataToProcess as ProbeMonitorResponse;
             if ((dataToProcess as ProbeMonitorResponse).probeId) {
@@ -261,7 +258,7 @@ export default class ProbeMonitorResponseService {
                     if (incidentTemplate.autoResolveIncident) {
                         if (
                             !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                                criteriaInstance.data.id.toString()
+                            criteriaInstance.data.id.toString()
                             ]
                         ) {
                             autoResolveCriteriaInstanceIdIncidentIdsDictionary[
@@ -326,13 +323,11 @@ export default class ProbeMonitorResponseService {
 
         if (response.criteriaMetId && response.rootCause) {
             logger.info(
-                `${dataToProcess.monitorId.toString()} - Criteria met: ${
-                    response.criteriaMetId
+                `${dataToProcess.monitorId.toString()} - Criteria met: ${response.criteriaMetId
                 }`
             );
             logger.info(
-                `${dataToProcess.monitorId.toString()} - Root cause: ${
-                    response.rootCause
+                `${dataToProcess.monitorId.toString()} - Root cause: ${response.rootCause
                 }`
             );
 
@@ -347,7 +342,7 @@ export default class ProbeMonitorResponseService {
             !response.criteriaMetId &&
             monitorSteps.data.defaultMonitorStatusId &&
             monitor.currentMonitorStatusId?.toString() !==
-                monitorSteps.data.defaultMonitorStatusId.toString()
+            monitorSteps.data.defaultMonitorStatusId.toString()
         ) {
             logger.info(
                 `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`
@@ -499,6 +494,49 @@ export default class ProbeMonitorResponseService {
             itemsToSave.push(monitorMetricsByMinute);
         }
 
+        if ((data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse) {
+
+            for (const syntheticMonitorResponse of (data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse || []) {
+                const monitorMetricsByMinute: MonitorMetricsByMinute =
+                    new MonitorMetricsByMinute();
+                monitorMetricsByMinute.monitorId = data.monitorId;
+                monitorMetricsByMinute.projectId = data.projectId;
+                monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
+                monitorMetricsByMinute.metricValue = syntheticMonitorResponse.executionTimeInMS.toNumber();
+                monitorMetricsByMinute.miscData = {
+                    probeId: (
+                        data.dataToProcess as ProbeMonitorResponse
+                    ).probeId.toString(),
+                    browserType: syntheticMonitorResponse.browserType,
+                    screenSizeType: syntheticMonitorResponse.screenSizeType,
+                };
+
+                itemsToSave.push(monitorMetricsByMinute);
+            }
+        }
+
+
+
+        if ((data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse) {
+
+            const customCodeMonitorResponse: CustomCodeMonitorResponse = (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse!;
+
+            const monitorMetricsByMinute: MonitorMetricsByMinute =
+                new MonitorMetricsByMinute();
+            monitorMetricsByMinute.monitorId = data.monitorId;
+            monitorMetricsByMinute.projectId = data.projectId;
+            monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
+            monitorMetricsByMinute.metricValue = customCodeMonitorResponse.executionTimeInMS.toNumber();
+            monitorMetricsByMinute.miscData = {
+                probeId: (
+                    data.dataToProcess as ProbeMonitorResponse
+                ).probeId.toString(),
+            };
+
+            itemsToSave.push(monitorMetricsByMinute);
+
+        }
+
         await MonitorMetricsByMinuteService.createMany({
             items: itemsToSave,
             props: {
@@ -576,7 +614,7 @@ export default class ProbeMonitorResponseService {
             input.criteriaInstance.data?.changeMonitorStatus &&
             input.criteriaInstance.data?.monitorStatusId &&
             input.criteriaInstance.data?.monitorStatusId.toString() !==
-                input.monitor.currentMonitorStatusId?.toString()
+            input.monitor.currentMonitorStatusId?.toString()
         ) {
             logger.info(
                 `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId.toString()}`
@@ -630,9 +668,9 @@ export default class ProbeMonitorResponseService {
                     openIncidents.find((incident: Incident) => {
                         return (
                             incident.createdCriteriaId ===
-                                input.criteriaInstance.data?.id.toString() &&
+                            input.criteriaInstance.data?.id.toString() &&
                             incident.createdIncidentTemplateId ===
-                                criteriaIncident.id.toString()
+                            criteriaIncident.id.toString()
                         );
                     });
 
@@ -739,9 +777,9 @@ export default class ProbeMonitorResponseService {
         openIncident: Incident;
         rootCause: string;
         dataToProcess:
-            | ProbeMonitorResponse
-            | IncomingMonitorRequest
-            | DataToProcess;
+        | ProbeMonitorResponse
+        | IncomingMonitorRequest
+        | DataToProcess;
     }): Promise<void> {
         const resolvedStateId: ObjectID =
             await IncidentStateTimelineService.getResolvedStateIdForProject(
@@ -801,7 +839,7 @@ export default class ProbeMonitorResponseService {
 
         if (
             input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                input.openIncident.createdCriteriaId?.toString()
+            input.openIncident.createdCriteriaId?.toString()
             ]
         ) {
             if (
@@ -923,7 +961,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.Any ===
-                    input.criteriaInstance.data?.filterCondition &&
+                input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria === true
             ) {
                 finalResult = rootCause;
@@ -931,7 +969,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.All ===
-                    input.criteriaInstance.data?.filterCondition &&
+                input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria === false
             ) {
                 finalResult = null;
@@ -940,7 +978,7 @@ export default class ProbeMonitorResponseService {
 
             if (
                 FilterCondition.All ===
-                    input.criteriaInstance.data?.filterCondition &&
+                input.criteriaInstance.data?.filterCondition &&
                 didMeetCriteria &&
                 rootCause
             ) {
