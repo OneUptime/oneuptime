@@ -15,6 +15,6 @@ export default interface ProbeMonitorResponse {
     probeId: ObjectID;
     failureCause: string;
     sslResponse?: SslMonitorResponse | undefined;
-    syntheticMonitorResponse?: SyntheticMonitorResponse | undefined;
+    syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
 
 }

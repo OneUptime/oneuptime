@@ -1,7 +1,7 @@
 export enum BrowserType {
-    Chrome = 'Chrome',
+    Chromium = 'Chromium',
     Firefox = 'Firefox',
-    Safari = 'Safari',
+    Webkit = 'Webkit',
 }
 
 export default BrowserType;

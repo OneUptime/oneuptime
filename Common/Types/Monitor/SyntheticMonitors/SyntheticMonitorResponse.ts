@@ -1,5 +1,7 @@
 import { JSONObject } from "../../JSON";
 import PositiveNumber from "../../PositiveNumber";
+import BrowserType from "./BrowserType";
+import ScreenSizeType from "./ScreenSizeType";
 import Screenshot from "./Screenshot";
 
 export default interface SyntheticMonitorResponse {
@@ -8,4 +10,6 @@ export default interface SyntheticMonitorResponse {
     screenshots?: Array<Screenshot> | undefined; // base 64 encoded screenshots
     logMessages: string[];
     executionTimeInMS: PositiveNumber;
+    browserType: BrowserType;
+    screenSizeType: ScreenSizeType; 
 }
