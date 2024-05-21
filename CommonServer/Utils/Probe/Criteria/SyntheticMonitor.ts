@@ -8,27 +8,25 @@ export default class SyntheticMonitoringCriteria {
         monitorResponse: Array<SyntheticMonitorResponse>;
         criteriaFilter: CriteriaFilter;
     }): Promise<string | null> {
-
         for (const syntheticMonitorResponse of input.monitorResponse) {
-
-
-            let threshold: number | string | undefined | null =
+            const threshold: number | string | undefined | null =
                 input.criteriaFilter.value;
 
+            // check custom code monitoring criteria first
 
-            // check custom code monitoring criteria first 
-
-            const result = CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
-                monitorResponse: syntheticMonitorResponse,
-                criteriaFilter: input.criteriaFilter
-            })
+            const result =
+                CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet(
+                    {
+                        monitorResponse: syntheticMonitorResponse,
+                        criteriaFilter: input.criteriaFilter,
+                    }
+                );
 
             if (result) {
                 return result;
             }
 
-
-            // check browser type and screen type. 
+            // check browser type and screen type.
 
             if (CheckOn.ScreenSizeType === input.criteriaFilter.checkOn) {
                 return CompareCriteria.checkEqualToOrNotEqualTo({
@@ -45,9 +43,7 @@ export default class SyntheticMonitoringCriteria {
                     criteriaFilter: input.criteriaFilter,
                 });
             }
-
         }
-
 
         return null;
     }

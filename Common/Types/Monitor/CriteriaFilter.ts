@@ -30,7 +30,7 @@ export enum CheckOn {
     Error = 'Error',
     ExecutionTime = 'Execution Time (in ms)',
 
-    // synthetic monitors 
+    // synthetic monitors
 
     ScreenSizeType = 'Screen Size',
     BrowserType = 'Browser Type',

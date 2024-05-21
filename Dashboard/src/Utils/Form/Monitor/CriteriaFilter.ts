@@ -9,6 +9,8 @@ import {
     FilterCondition,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
+import ScreenSizeType from 'Common/Types/Monitor/SyntheticMonitors/ScreenSizeType';
+import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
 
 export default class CriteriaFilterUtil {
     public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
@@ -183,10 +185,7 @@ export default class CriteriaFilterUtil {
             });
         }
 
-        if (
-           
-            monitorType === MonitorType.CustomJavaScriptCode
-        ) {
+        if (monitorType === MonitorType.CustomJavaScriptCode) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === CheckOn.Error ||
@@ -196,16 +195,13 @@ export default class CriteriaFilterUtil {
             });
         }
 
-        if (
-           
-            monitorType === MonitorType.SyntheticMonitor
-        ) {
+        if (monitorType === MonitorType.SyntheticMonitor) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === CheckOn.Error ||
                     i.value === CheckOn.ResultValue ||
-                    i.value === CheckOn.ExecutionTime || 
-                    i.value === CheckOn.BrowserType || 
+                    i.value === CheckOn.ExecutionTime ||
+                    i.value === CheckOn.BrowserType ||
                     i.value === CheckOn.ScreenSizeType
                 );
             });
@@ -358,7 +354,10 @@ export default class CriteriaFilterUtil {
             });
         }
 
-        if(checkOn === CheckOn.BrowserType || checkOn === CheckOn.ScreenSizeType) {
+        if (
+            checkOn === CheckOn.BrowserType ||
+            checkOn === CheckOn.ScreenSizeType
+        ) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === FilterType.EqualTo ||
@@ -458,6 +457,37 @@ export default class CriteriaFilterUtil {
         }
 
         return true;
+    }
+
+    public static isDropdownValueField(data: {
+        checkOn?: CheckOn | undefined;
+    }): boolean {
+        const { checkOn } = data;
+
+        if (
+            checkOn === CheckOn.ScreenSizeType ||
+            checkOn === CheckOn.BrowserType
+        ) {
+            return true;
+        }
+
+        return true;
+    }
+
+    public static getDropdownOptionsByCheckOn(data: {
+        checkOn: CheckOn;
+    }): Array<DropdownOption> {
+        const { checkOn } = data;
+
+        if (checkOn === CheckOn.ScreenSizeType) {
+            return DropdownUtil.getDropdownOptionsFromEnum(ScreenSizeType);
+        }
+
+        if (checkOn === CheckOn.BrowserType) {
+            return DropdownUtil.getDropdownOptionsFromEnum(BrowserType);
+        }
+
+        return [];
     }
 
     public static getFilterTypePlaceholderValueByCheckOn(data: {

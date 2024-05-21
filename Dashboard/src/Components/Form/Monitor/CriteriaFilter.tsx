@@ -298,6 +298,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         CriteriaFilterUiUtil.hasValueField({
                             checkOn: criteriaFilter?.checkOn,
                             filterType: criteriaFilter?.filterType,
+                        }) &&
+                        !CriteriaFilterUiUtil.isDropdownValueField({
+                            checkOn: criteriaFilter?.checkOn,
                         }) && (
                             <div className="mt-1">
                                 <FieldLabelElement title="Value" />
@@ -308,6 +311,47 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                                         setCriteriaFilter({
                                             ...criteriaFilter,
                                             value: value || '',
+                                        });
+                                    }}
+                                />
+                            </div>
+                        ))}
+
+                {!criteriaFilter?.checkOn ||
+                    (criteriaFilter?.checkOn &&
+                        CriteriaFilterUiUtil.hasValueField({
+                            checkOn: criteriaFilter?.checkOn,
+                            filterType: criteriaFilter?.filterType,
+                        }) &&
+                        CriteriaFilterUiUtil.isDropdownValueField({
+                            checkOn: criteriaFilter?.checkOn,
+                        }) && (
+                            <div className="mt-1">
+                                <FieldLabelElement title="Value" />
+                                <Dropdown
+                                    options={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn(
+                                        {
+                                            checkOn: criteriaFilter?.checkOn,
+                                        }
+                                    )}
+                                    value={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn(
+                                        {
+                                            checkOn: criteriaFilter?.checkOn,
+                                        }
+                                    ).find((i: DropdownOption) => {
+                                        return (
+                                            i.value === criteriaFilter?.value
+                                        );
+                                    })}
+                                    onChange={(
+                                        value:
+                                            | DropdownValue
+                                            | Array<DropdownValue>
+                                            | null
+                                    ) => {
+                                        setCriteriaFilter({
+                                            ...criteriaFilter,
+                                            value: value?.toString(),
                                         });
                                     }}
                                 />
