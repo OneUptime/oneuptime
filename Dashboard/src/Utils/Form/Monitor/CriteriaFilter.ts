@@ -184,7 +184,7 @@ export default class CriteriaFilterUtil {
         }
 
         if (
-            monitorType === MonitorType.SyntheticMonitor ||
+           
             monitorType === MonitorType.CustomJavaScriptCode
         ) {
             options = options.filter((i: DropdownOption) => {
@@ -192,6 +192,21 @@ export default class CriteriaFilterUtil {
                     i.value === CheckOn.Error ||
                     i.value === CheckOn.ResultValue ||
                     i.value === CheckOn.ExecutionTime
+                );
+            });
+        }
+
+        if (
+           
+            monitorType === MonitorType.SyntheticMonitor
+        ) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === CheckOn.Error ||
+                    i.value === CheckOn.ResultValue ||
+                    i.value === CheckOn.ExecutionTime || 
+                    i.value === CheckOn.BrowserType || 
+                    i.value === CheckOn.ScreenSizeType
                 );
             });
         }
@@ -339,6 +354,15 @@ export default class CriteriaFilterUtil {
                     i.value === FilterType.LessThan ||
                     i.value === FilterType.LessThanOrEqualTo ||
                     i.value === FilterType.GreaterThanOrEqualTo
+                );
+            });
+        }
+
+        if(checkOn === CheckOn.BrowserType || checkOn === CheckOn.ScreenSizeType) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.EqualTo ||
+                    i.value === FilterType.NotEqualTo
                 );
             });
         }

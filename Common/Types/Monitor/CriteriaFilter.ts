@@ -25,10 +25,15 @@ export enum CheckOn {
     IsValidCertificate = 'Is Valid Certificate',
     IsNotAValidCertificate = 'Is Not A Valid Certificate',
 
-    // Custom code or javascript monitor.
+    // Custom code or synthetic monitor.
     ResultValue = 'Result Value',
     Error = 'Error',
     ExecutionTime = 'Execution Time (in ms)',
+
+    // synthetic monitors 
+
+    ScreenSizeType = 'Screen Size',
+    BrowserType = 'Browser Type',
 }
 
 export interface ServerMonitorOptions {
