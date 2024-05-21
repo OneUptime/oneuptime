@@ -4,7 +4,8 @@ import https from 'https';
 import axios from 'axios';
 import vm, { Context } from 'node:vm';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
-import playwright from 'playwright';
+import Dictionary from 'Common/Types/Dictionary';
+import GenericObject from 'Common/Types/GenericObject';
 
 export default class VMRunner {
     public static async runCodeInSandbox(data: {
@@ -12,7 +13,7 @@ export default class VMRunner {
         options: {
             timeout?: number;
             args?: JSONObject | undefined;
-            includePlaywrightModule?: boolean;
+            context: Dictionary<GenericObject>
         };
     }): Promise<ReturnResult> {
         const { code, options } = data;
@@ -28,16 +29,9 @@ export default class VMRunner {
             http: http,
             https: https,
             axios: axios,
-            
+            ...options.context
         };
 
-
-        if(options.includePlaywrightModule) {
-            sandbox = {
-                ...sandbox,
-                playwright: playwright,
-            };
-        }
 
         if (options.args) {
             sandbox = {

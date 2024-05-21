@@ -45,7 +45,6 @@
         "node-cron": "^3.0.3",
         "nodemailer": "^6.9.10",
         "pg": "^8.7.3",
-        "playwright": "^1.44.0",
         "redis-semaphore": "^5.5.1",
         "socket.io": "^4.7.4",
         "stripe": "^10.17.0",
