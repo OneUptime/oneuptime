@@ -122,7 +122,7 @@ export default class CompareCriteria {
         return data.value !== data.threshold;
     }
 
-    public static convertThresholdToNumber(
+    public static convertToNumber(
         threshold: string | number | undefined
     ): number | null {
         if (!threshold) {

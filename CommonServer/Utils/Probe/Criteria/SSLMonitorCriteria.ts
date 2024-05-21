@@ -123,7 +123,7 @@ export default class ServerMonitorCriteria {
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.ExpiresInHours) {
-            threshold = CompareCriteria.convertThresholdToNumber(threshold);
+            threshold = CompareCriteria.convertToNumber(threshold);
 
             if (!threshold) {
                 return null;
@@ -150,7 +150,7 @@ export default class ServerMonitorCriteria {
         }
 
         if (input.criteriaFilter.checkOn === CheckOn.ExpiresInDays) {
-            threshold = CompareCriteria.convertThresholdToNumber(threshold);
+            threshold = CompareCriteria.convertToNumber(threshold);
 
             if (!threshold) {
                 return null;

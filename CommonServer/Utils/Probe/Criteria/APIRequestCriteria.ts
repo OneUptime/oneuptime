@@ -46,7 +46,7 @@ export default class APIRequestCriteria {
 
         // check response time filter
         if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
-            threshold = CompareCriteria.convertThresholdToNumber(threshold);
+            threshold = CompareCriteria.convertToNumber(threshold);
 
             const value: Array<number> | number =
                 overTimeValue ||
@@ -61,7 +61,7 @@ export default class APIRequestCriteria {
 
         //check response code
         if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
-            threshold = CompareCriteria.convertThresholdToNumber(threshold);
+            threshold = CompareCriteria.convertToNumber(threshold);
 
             const value: Array<number> | number =
                 overTimeValue ||

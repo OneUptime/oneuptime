@@ -3,170 +3,82 @@ import {
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
 import ServerMonitorResponse, {
     ServerProcess,
 } from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
-import OneUptimeDate from 'Common/Types/Date';
-import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import EvaluateOverTime from './EvaluateOverTime';
-import { JSONObject } from 'Common/Types/JSON';
 import CompareCriteria from './CompareCriteria';
-import DataToProcess from '../DataToProcess';
+import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 
-export default class ServerMonitorCriteria {
+export default class CustomCodeMonitoringCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {
-        dataToProcess: DataToProcess;
+        syntheticMonitorResponse: SyntheticMonitorResponse;
         criteriaFilter: CriteriaFilter;
     }): Promise<string | null> {
         // Server Monitoring Checks
 
         let threshold: number | string | undefined | null =
             input.criteriaFilter.value;
-        let overTimeValue: Array<number> | number | undefined = undefined;
+
+        const syntheticMonitorResponse: SyntheticMonitorResponse = input.syntheticMonitorResponse;
+
 
         if (
-            input.criteriaFilter.eveluateOverTime &&
-            input.criteriaFilter.evaluateOverTimeOptions
+            input.criteriaFilter.checkOn === CheckOn.ExecutionTime
         ) {
-            overTimeValue = await EvaluateOverTime.getValueOverTime({
-                monitorId: input.dataToProcess.monitorId!,
-                evaluateOverTimeOptions:
-                    input.criteriaFilter.evaluateOverTimeOptions,
-                metricType: input.criteriaFilter.checkOn,
-                miscData: input.criteriaFilter
-                    .serverMonitorOptions as JSONObject,
+            threshold = CompareCriteria.convertToNumber(threshold);
+
+            const currentExecutionTime: number = syntheticMonitorResponse.executionTimeInMS.toNumber() || 0;
+
+            return CompareCriteria.compareCriteriaNumbers({
+                value: currentExecutionTime,
+                threshold: threshold as number,
+                criteriaFilter: input.criteriaFilter,
             });
-
-            if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-                return null;
-            }
-
-            if (overTimeValue === undefined) {
-                return null;
-            }
         }
 
         if (
-            (input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
+            input.criteriaFilter.checkOn === CheckOn.ExecutionTime
         ) {
-            const lastCheckTime: Date = (
-                input.dataToProcess as ServerMonitorResponse
-            ).requestReceivedAt;
+            threshold = CompareCriteria.convertToNumber(threshold);
 
-            const differenceInMinutes: number =
-                OneUptimeDate.getDifferenceInMinutes(
-                    lastCheckTime,
-                    OneUptimeDate.getCurrentDate()
-                );
+            const currentExecutionTime: number = syntheticMonitorResponse.executionTimeInMS.toNumber() || 0;
 
-            const offlineIfNotCheckedInMinutes: number = 2;
+            return CompareCriteria.comp({
+                value: currentExecutionTime,
+                threshold: threshold as number,
+                criteriaFilter: input.criteriaFilter,
+            });
+        }
 
-            if (
-                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-                input.criteriaFilter.filterType === FilterType.True &&
-                differenceInMinutes <= offlineIfNotCheckedInMinutes
-            ) {
-                if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
-                    return 'Monitor is online.';
+
+
+        if (
+            input.criteriaFilter.checkOn === CheckOn.ResultValue
+        ) {
+
+            let thresholdAsNumber: number | null = null;
+
+            try {
+                if (threshold) {
+                    thresholdAsNumber = parseFloat(threshold.toString());
                 }
 
-                return null;
+            } catch (err) {
+                thresholdAsNumber = null;
             }
 
-            if (
-                input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-                input.criteriaFilter.filterType === FilterType.False &&
-                differenceInMinutes > offlineIfNotCheckedInMinutes
-            ) {
-                if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
-                    return 'Monitor is offline.';
+            if(thresholdAsNumber !== null && typeof syntheticMonitorResponse.result === 'number') {
+                const result: string | null =  CompareCriteria.compareCriteriaNumbers({
+                    value: syntheticMonitorResponse.result,
+                    threshold: thresholdAsNumber as number,
+                    criteriaFilter: input.criteriaFilter,
+                });
+                
+                if(result) {
+                    return result;
                 }
-                return null;
             }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.CPUUsagePercent &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            threshold = CompareCriteria.convertToNumber(threshold);
-
-            const currentCpuPercent: number | Array<number> =
-                overTimeValue ||
-                (input.dataToProcess as ServerMonitorResponse)
-                    .basicInfrastructureMetrics?.cpuMetrics.percentUsed ||
-                0;
-
-            return CompareCriteria.compareCriteriaNumbers({
-                value: currentCpuPercent,
-                threshold: threshold as number,
-                criteriaFilter: input.criteriaFilter,
-            });
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.MemoryUsagePercent &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            threshold = CompareCriteria.convertToNumber(threshold);
-
-            const memoryPercent: number | Array<number> =
-                overTimeValue ||
-                (input.dataToProcess as ServerMonitorResponse)
-                    .basicInfrastructureMetrics?.memoryMetrics.percentUsed ||
-                0;
-
-            return CompareCriteria.compareCriteriaNumbers({
-                value: memoryPercent,
-                threshold: threshold as number,
-                criteriaFilter: input.criteriaFilter,
-            });
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            threshold = CompareCriteria.convertToNumber(threshold);
-
-            const diskPath: string =
-                input.criteriaFilter.serverMonitorOptions?.diskPath || '/';
-
-            const diskPercent: number =
-                (
-                    input.dataToProcess as ServerMonitorResponse
-                ).basicInfrastructureMetrics?.diskMetrics.filter(
-                    (item: BasicDiskMetrics) => {
-                        return (
-                            item.diskPath.trim().toLowerCase() ===
-                            diskPath.trim().toLowerCase()
-                        );
-                    }
-                )[0]?.percentFree || 0;
-
-            return CompareCriteria.compareCriteriaNumbers({
-                value: diskPercent,
-                threshold: threshold as number,
-                criteriaFilter: input.criteriaFilter,
-            });
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.ServerProcessName &&
-            threshold &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            const thresholdProcessName: string = threshold
-                .toString()
-                .trim()
-                .toLowerCase();
-
+            
             if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
                 const processNames: Array<string> =
                     (

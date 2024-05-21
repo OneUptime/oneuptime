@@ -46,6 +46,7 @@ import DataToProcess from './DataToProcess';
 import SSLMonitorCriteria from './Criteria/SSLMonitorCriteria';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 import CustomCodeMonitorResponse from 'Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
+import CustomCodeMonitoringCriteria from './Criteria/CustomCodeMonitorCriteria';
 
 export default class ProbeMonitorResponseService {
     public static async processProbeResponse(
@@ -1098,6 +1099,19 @@ export default class ProbeMonitorResponseService {
 
             if (apiRequestCriteriaResult) {
                 return apiRequestCriteriaResult;
+            }
+        }
+
+        if(input.monitor.monitorType === MonitorType.CustomJavaScriptCode || input.monitor.monitorType === MonitorType.SyntheticMonitor) {
+            
+            const criteriaResult: string | null =
+                await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
+                    dataToProcess: input.dataToProcess,
+                    criteriaFilter: input.criteriaFilter,
+                });
+
+            if (criteriaResult) {
+                return criteriaResult;
             }
         }
 
