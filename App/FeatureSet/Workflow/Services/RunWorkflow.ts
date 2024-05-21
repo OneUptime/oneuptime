@@ -28,7 +28,7 @@ import logger from 'CommonServer/Utils/Logger';
 import TimeoutException from 'Common/Types/Exception/TimeoutException';
 import Exception from 'Common/Types/Exception/Exception';
 import WorkflowLog from 'Model/Models/WorkflowLog';
-import VMUtil from 'CommonServer/Utils/VM';
+import VMAPI from 'CommonServer/Utils/VM/VMAPI';
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -362,7 +362,7 @@ export default class RunWorkflow {
                 continue;
             }
 
-            argumentContent = VMUtil.replaceValueInPlace(
+            argumentContent = VMAPI.replaceValueInPlace(
                 storageMap as any,
                 argumentContent as string,
                 argument.type === ComponentInputType.JSON
