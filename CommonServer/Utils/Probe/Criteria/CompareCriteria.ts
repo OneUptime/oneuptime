@@ -145,6 +145,30 @@ export default class CompareCriteria {
         return threshold as number;
     }
 
+    public static checkEqualToOrNotEqualTo(data: {
+        value: string | number;
+        threshold: string | number;
+        criteriaFilter: CriteriaFilter;
+    }): string | null {
+        if (data.criteriaFilter.filterType === FilterType.EqualTo) {
+            if (data.value === data.threshold) {
+                return `${data.criteriaFilter.checkOn} is equal to ${data.threshold}.`;
+            }
+
+            return null;
+        }
+
+        if (data.criteriaFilter.filterType === FilterType.NotEqualTo) {
+            if (data.value !== data.threshold) {
+                return `${data.criteriaFilter.checkOn} is not equal to ${data.threshold}.`;
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     public static compareEmptyAndNotEmpty(data: {
         value: any;
         criteriaFilter: CriteriaFilter;
