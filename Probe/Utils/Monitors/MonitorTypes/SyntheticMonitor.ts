@@ -76,8 +76,7 @@ export default class SyntheticMonitor {
             let pageAndBrowser: {
                 page: Page;
                 browser: Browser;
-
-            } | null = null; 
+            } | null = null;
 
             try {
                 const startTime: [number, number] = process.hrtime();
@@ -112,21 +111,17 @@ export default class SyntheticMonitor {
                     result.returnValue?.screenshots || [];
 
                 scriptResult.result = result.returnValue.data;
-
-                
-
             } catch (err) {
-
                 logger.error(err);
                 scriptResult.scriptError =
                     (err as Error)?.message || (err as Error).toString();
             }
 
-            if(pageAndBrowser?.page) {
+            if (pageAndBrowser?.page) {
                 await pageAndBrowser.page.close();
             }
 
-            if(pageAndBrowser?.browser) {
+            if (pageAndBrowser?.browser) {
                 await pageAndBrowser.browser.close();
             }
 
@@ -208,7 +203,7 @@ export default class SyntheticMonitor {
             height: viewport.height,
         });
 
-        if(!browser) {
+        if (!browser) {
             throw new BadDataException('Invalid Browser Type.');
         }
 

@@ -1,11 +1,4 @@
-import {
-    CheckOn,
-    CriteriaFilter,
-    FilterType,
-} from 'Common/Types/Monitor/CriteriaFilter';
-import ServerMonitorResponse, {
-    ServerProcess,
-} from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
+import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 import CompareCriteria from './CompareCriteria';
 import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 
@@ -19,15 +12,14 @@ export default class CustomCodeMonitoringCriteria {
         let threshold: number | string | undefined | null =
             input.criteriaFilter.value;
 
-        const syntheticMonitorResponse: SyntheticMonitorResponse = input.syntheticMonitorResponse;
+        const syntheticMonitorResponse: SyntheticMonitorResponse =
+            input.syntheticMonitorResponse;
 
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.ExecutionTime
-        ) {
+        if (input.criteriaFilter.checkOn === CheckOn.ExecutionTime) {
             threshold = CompareCriteria.convertToNumber(threshold);
 
-            const currentExecutionTime: number = syntheticMonitorResponse.executionTimeInMS.toNumber() || 0;
+            const currentExecutionTime: number =
+                syntheticMonitorResponse.executionTimeInMS.toNumber() || 0;
 
             return CompareCriteria.compareCriteriaNumbers({
                 value: currentExecutionTime,
@@ -36,25 +28,44 @@ export default class CustomCodeMonitoringCriteria {
             });
         }
 
-        if (
-            input.criteriaFilter.checkOn === CheckOn.ExecutionTime
-        ) {
-            threshold = CompareCriteria.convertToNumber(threshold);
+        if (input.criteriaFilter.checkOn === CheckOn.Error) {
+            const emptyNotEmptyResult: string | null =
+                CompareCriteria.compareEmptyAndNotEmpty({
+                    value: syntheticMonitorResponse.result,
+                    criteriaFilter: input.criteriaFilter,
+                });
 
-            const currentExecutionTime: number = syntheticMonitorResponse.executionTimeInMS.toNumber() || 0;
+            if (emptyNotEmptyResult) {
+                return emptyNotEmptyResult;
+            }
 
-            return CompareCriteria.comp({
-                value: currentExecutionTime,
-                threshold: threshold as number,
-                criteriaFilter: input.criteriaFilter,
-            });
+            if (
+                threshold &&
+                typeof syntheticMonitorResponse.result === 'string'
+            ) {
+                const result: string | null =
+                    CompareCriteria.compareCriteriaStrings({
+                        value: syntheticMonitorResponse.result,
+                        threshold: threshold.toString(),
+                        criteriaFilter: input.criteriaFilter,
+                    });
+
+                if (result) {
+                    return result;
+                }
+            }
         }
 
+        if (input.criteriaFilter.checkOn === CheckOn.ResultValue) {
+            const emptyNotEmptyResult: string | null =
+                CompareCriteria.compareEmptyAndNotEmpty({
+                    value: syntheticMonitorResponse.result,
+                    criteriaFilter: input.criteriaFilter,
+                });
 
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.ResultValue
-        ) {
+            if (emptyNotEmptyResult) {
+                return emptyNotEmptyResult;
+            }
 
             let thresholdAsNumber: number | null = null;
 
@@ -62,140 +73,41 @@ export default class CustomCodeMonitoringCriteria {
                 if (threshold) {
                     thresholdAsNumber = parseFloat(threshold.toString());
                 }
-
             } catch (err) {
                 thresholdAsNumber = null;
             }
 
-            if(thresholdAsNumber !== null && typeof syntheticMonitorResponse.result === 'number') {
-                const result: string | null =  CompareCriteria.compareCriteriaNumbers({
-                    value: syntheticMonitorResponse.result,
-                    threshold: thresholdAsNumber as number,
-                    criteriaFilter: input.criteriaFilter,
-                });
-                
-                if(result) {
+            if (
+                thresholdAsNumber !== null &&
+                typeof syntheticMonitorResponse.result === 'number'
+            ) {
+                const result: string | null =
+                    CompareCriteria.compareCriteriaNumbers({
+                        value: syntheticMonitorResponse.result,
+                        threshold: thresholdAsNumber as number,
+                        criteriaFilter: input.criteriaFilter,
+                    });
+
+                if (result) {
                     return result;
                 }
             }
-            
-            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
-                const processNames: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.name.trim().toLowerCase();
-                    }) || [];
 
-                if (processNames.includes(thresholdProcessName)) {
-                    return `Process ${threshold} is executing.`;
+            if (
+                threshold &&
+                typeof syntheticMonitorResponse.result === 'string'
+            ) {
+                const result: string | null =
+                    CompareCriteria.compareCriteriaStrings({
+                        value: syntheticMonitorResponse.result,
+                        threshold: threshold.toString(),
+                        criteriaFilter: input.criteriaFilter,
+                    });
+
+                if (result) {
+                    return result;
                 }
-
-                return null;
             }
-
-            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
-                const processNames: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.name.trim().toLowerCase();
-                    }) || [];
-
-                if (!processNames.includes(thresholdProcessName)) {
-                    return `Process ${threshold} is not executing.`;
-                }
-
-                return null;
-            }
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.ServerProcessPID &&
-            threshold &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            const thresholdProcessPID: string = threshold
-                .toString()
-                .trim()
-                .toLowerCase();
-
-            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
-                const processPIDs: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.pid.toString().trim().toLowerCase();
-                    }) || [];
-
-                if (processPIDs.includes(thresholdProcessPID)) {
-                    return `Process with PID ${threshold} is executing.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
-                const processPIDs: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.pid.toString().trim().toLowerCase();
-                    }) || [];
-
-                if (!processPIDs.includes(thresholdProcessPID)) {
-                    return `Process with PID ${threshold} is not executing.`;
-                }
-
-                return null;
-            }
-
-            return null;
-        }
-
-        if (
-            input.criteriaFilter.checkOn === CheckOn.ServerProcessCommand &&
-            threshold &&
-            !(input.dataToProcess as ServerMonitorResponse)
-                .onlyCheckRequestReceivedAt
-        ) {
-            const thresholdProcessCommand: string = threshold
-                .toString()
-                .trim()
-                .toLowerCase();
-
-            if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
-                const processCommands: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.command.trim().toLowerCase();
-                    }) || [];
-
-                if (processCommands.includes(thresholdProcessCommand)) {
-                    return `Process with command ${threshold} is executing.`;
-                }
-
-                return null;
-            }
-
-            if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
-                const processCommands: Array<string> =
-                    (
-                        input.dataToProcess as ServerMonitorResponse
-                    )?.processes?.map((item: ServerProcess) => {
-                        return item.command.trim().toLowerCase();
-                    }) || [];
-
-                if (!processCommands.includes(thresholdProcessCommand)) {
-                    return `Process with command ${threshold} is not executing.`;
-                }
-
-                return null;
-            }
-
-            return null;
         }
 
         return null;

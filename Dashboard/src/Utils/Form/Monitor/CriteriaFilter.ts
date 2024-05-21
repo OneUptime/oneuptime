@@ -326,7 +326,7 @@ export default class CriteriaFilterUtil {
             });
         }
 
-        if (checkOn === CheckOn.Error || checkOn === CheckOn.ResultValue) {
+        if (checkOn === CheckOn.ResultValue) {
             options = options.filter((i: DropdownOption) => {
                 return (
                     i.value === FilterType.Contains ||
@@ -339,6 +339,19 @@ export default class CriteriaFilterUtil {
                     i.value === FilterType.LessThan ||
                     i.value === FilterType.LessThanOrEqualTo ||
                     i.value === FilterType.GreaterThanOrEqualTo
+                );
+            });
+        }
+
+        if (checkOn === CheckOn.Error) {
+            options = options.filter((i: DropdownOption) => {
+                return (
+                    i.value === FilterType.Contains ||
+                    i.value === FilterType.NotContains ||
+                    i.value === FilterType.EqualTo ||
+                    i.value === FilterType.NotEqualTo ||
+                    i.value === FilterType.IsEmpty ||
+                    i.value === FilterType.IsNotEmpty
                 );
             });
         }

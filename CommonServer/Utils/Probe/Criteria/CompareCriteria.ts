@@ -145,6 +145,101 @@ export default class CompareCriteria {
         return threshold as number;
     }
 
+    public static compareEmptyAndNotEmpty(data: {
+        value: any;
+        criteriaFilter: CriteriaFilter;
+    }): string | null {
+        if (data.criteriaFilter.filterType === FilterType.IsEmpty) {
+            if (data.value === null || data.value === undefined) {
+                return `${data.criteriaFilter.checkOn} is empty.`;
+            }
+
+            return null;
+        }
+
+        if (data.criteriaFilter.filterType === FilterType.IsNotEmpty) {
+            if (data.value !== null && data.value !== undefined) {
+                return `${data.criteriaFilter.checkOn} is not empty.`;
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
+    public static compareCriteriaStrings(data: {
+        value: string;
+        threshold: string;
+        criteriaFilter: CriteriaFilter;
+    }): string | null {
+        if (data.value === null || data.value === undefined) {
+            return null;
+        }
+
+        if (data.threshold === null || data.threshold === undefined) {
+            return null;
+        }
+
+        if (typeof data.value !== Typeof.String) {
+            data.value = data.value.toString();
+        }
+
+        if (typeof data.threshold !== Typeof.String) {
+            data.threshold = data.threshold.toString();
+        }
+
+        if (data.criteriaFilter.filterType === FilterType.Contains) {
+            if (data.value.includes(data.threshold)) {
+                return CompareCriteria.getCompareMessage({
+                    values: data.value,
+                    threshold: data.threshold,
+                    criteriaFilter: data.criteriaFilter,
+                });
+            }
+
+            return null;
+        }
+
+        if (data.criteriaFilter.filterType === FilterType.NotContains) {
+            if (!data.value.includes(data.threshold)) {
+                return CompareCriteria.getCompareMessage({
+                    values: data.value,
+                    threshold: data.threshold,
+                    criteriaFilter: data.criteriaFilter,
+                });
+            }
+
+            return null;
+        }
+
+        if (data.criteriaFilter.filterType === FilterType.StartsWith) {
+            if (data.value.startsWith(data.threshold)) {
+                return CompareCriteria.getCompareMessage({
+                    values: data.value,
+                    threshold: data.threshold,
+                    criteriaFilter: data.criteriaFilter,
+                });
+            }
+
+            return null;
+        }
+
+        if (data.criteriaFilter.filterType === FilterType.EndsWith) {
+            if (data.value.endsWith(data.threshold)) {
+                return CompareCriteria.getCompareMessage({
+                    values: data.value,
+                    threshold: data.threshold,
+                    criteriaFilter: data.criteriaFilter,
+                });
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     public static compareCriteriaNumbers(data: {
         value: Array<number> | number;
         threshold: number;
@@ -284,8 +379,8 @@ export default class CompareCriteria {
     }
 
     public static getCompareMessage(data: {
-        values: Array<number> | number;
-        threshold: number;
+        values: Array<number> | number | string;
+        threshold: number | string;
         criteriaFilter: CriteriaFilter;
     }): string {
         // CPU Percent over the last 5 minutes is 10 which is less than the threshold of 20
@@ -344,6 +439,21 @@ export default class CompareCriteria {
                 break;
             case FilterType.LessThanOrEqualTo:
                 message += ` less than or equal to threshold ${data.threshold}`;
+                break;
+            case FilterType.NotEqualTo:
+                message += ` not equal to threshold ${data.threshold}`;
+                break;
+            case FilterType.Contains:
+                message += ` contains ${data.threshold}`;
+                break;
+            case FilterType.NotContains:
+                message += ` does not contain ${data.threshold}`;
+                break;
+            case FilterType.StartsWith:
+                message += ` starts with ${data.threshold}`;
+                break;
+            case FilterType.EndsWith:
+                message += ` ends with ${data.threshold}`;
                 break;
         }
 
