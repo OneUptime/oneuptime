@@ -26,6 +26,8 @@ import SyntheticMonitor from './MonitorTypes/SyntheticMonitor';
 import ScreenSizeType from 'Common/Types/ScreenSizeType';
 import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
 import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
+import CustomCodeMonitor from './MonitorTypes/CustomCodeMonitor';
+import CustomCodeMonitorResponse from 'Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -223,6 +225,28 @@ export default class MonitorUtil {
             }
 
             result.syntheticMonitorResponse = response;
+        }
+
+
+        if (monitor.monitorType === MonitorType.CustomJavaScriptCode) {
+
+            if (!monitorStep.data?.customCode) {
+                result.failureCause = 'Code not specified. Please add playwright script.';
+                return result;
+            }
+
+            const response: CustomCodeMonitorResponse | null = await CustomCodeMonitor.execute(
+                {
+                    script: monitorStep.data.customCode,
+                    monitorId: monitor.id!,
+                }
+            );
+
+            if (!response) {
+                return null;
+            }
+
+            result.customCodeMonitorResponse = response;
         }
 
         if (monitor.monitorType === MonitorType.SSLCertificate) {
