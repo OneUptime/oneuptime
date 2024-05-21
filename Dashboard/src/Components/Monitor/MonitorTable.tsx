@@ -164,7 +164,21 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitoring Interval',
                     fieldType: FormFieldSchemaType.Dropdown,
                     required: true,
-                    dropdownOptions: MonitoringInterval,
+                    fetchDropdownOptions: (item: FormValues<Monitor>)=>{
+                        let interval = [...MonitoringInterval];
+
+                        if(item && (item.monitorType === MonitorType.SyntheticMonitor || item.monitorType === MonitorType.CustomJavaScriptCode || item.monitorType === MonitorType.SSLCertificate)){
+
+                            // remove the every minute option, every 5 minsm every 10 minutes 
+                            interval = interval.filter((option) => option.value !== '* * * * *' && option.value !== '*/5 * * * *' && option.value !== '*/10 * * * *');
+
+                            return Promise.resolve(interval);
+                        }
+
+                        return Promise.resolve(interval);
+
+                    },
+
                     placeholder: 'Select Monitoring Interval',
                 },
             ]}

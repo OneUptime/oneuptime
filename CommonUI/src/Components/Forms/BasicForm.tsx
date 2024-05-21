@@ -245,7 +245,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     // If a dropdown has fetch optiosn then we need to fetch them
                     try {
                         const options: Array<DropdownOption> =
-                            await item.fetchDropdownOptions();
+                            await item.fetchDropdownOptions(refCurrentValue.current);
                         item.dropdownOptions = options;
                     } catch (err) {
                         setFormError(API.getFriendlyMessage(err));
