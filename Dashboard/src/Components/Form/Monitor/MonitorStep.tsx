@@ -92,8 +92,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
         await page.goto('https://playwright.dev/');
         
-        Documentation here: https://playwright.dev/docs/intro
-        `;
+        Documentation here: https://playwright.dev/docs/intro`;
     }
 
     useEffect(() => {
