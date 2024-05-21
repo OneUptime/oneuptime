@@ -88,11 +88,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     if (props.monitorType === MonitorType.SyntheticMonitor) {
 
         codeEditorPlaceholder = `
-        You can use playwright modules here. 
+        You can use axios, playwright modules here. 
 
         await page.goto('https://playwright.dev/');
         
-        Documentation here: https://playwright.dev/docs/intro`;
+        Playwright Documentation here: https://playwright.dev/docs/intro`;
     }
 
     useEffect(() => {
