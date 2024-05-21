@@ -32,7 +32,7 @@ export interface MonitorStepType {
     // this is for custom code monitors or synthetic monitors.
     customCode?: string | undefined;
 
-    // this is for synthetic monitors. 
+    // this is for synthetic monitors.
     screenSizeTypes?: Array<ScreenSizeType> | undefined;
     browserTypes?: Array<BrowserType> | undefined;
 }
@@ -121,7 +121,9 @@ export default class MonitorStep extends DatabaseProperty {
         return this;
     }
 
-    public setScreenSizeTypes(screenSizeTypes: Array<ScreenSizeType>): MonitorStep {
+    public setScreenSizeTypes(
+        screenSizeTypes: Array<ScreenSizeType>
+    ): MonitorStep {
         this.data!.screenSizeTypes = screenSizeTypes;
         return this;
     }
@@ -187,9 +189,8 @@ export default class MonitorStep extends DatabaseProperty {
         ) {
             if (monitorType === MonitorType.CustomJavaScriptCode) {
                 return 'Custom Code is required';
-            } else {
-                return 'Playwright code is required.';
             }
+            return 'Playwright code is required.';
         }
 
         if (!value.data.monitorCriteria) {
@@ -268,7 +269,7 @@ export default class MonitorStep extends DatabaseProperty {
             json &&
             json['monitorDestination'] &&
             (json['monitorDestination'] as JSONObject)['_type'] ===
-            ObjectType.URL
+                ObjectType.URL
         ) {
             monitorDestination = URL.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -279,7 +280,7 @@ export default class MonitorStep extends DatabaseProperty {
             json &&
             json['monitorDestination'] &&
             (json['monitorDestination'] as JSONObject)['_type'] ===
-            ObjectType.Hostname
+                ObjectType.Hostname
         ) {
             monitorDestination = Hostname.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -290,7 +291,7 @@ export default class MonitorStep extends DatabaseProperty {
             json &&
             json['monitorDestination'] &&
             (json['monitorDestination'] as JSONObject)['_type'] ===
-            ObjectType.IP
+                ObjectType.IP
         ) {
             monitorDestination = IP.fromJSON(
                 json['monitorDestination'] as JSONObject

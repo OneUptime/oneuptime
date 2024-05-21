@@ -1,6 +1,5 @@
-import { JSONObject } from "../../JSON";
-import PositiveNumber from "../../PositiveNumber";
-
+import { JSONObject } from '../../JSON';
+import PositiveNumber from '../../PositiveNumber';
 
 export default interface CustomCodeMonitorResponse {
     result: string | number | boolean | JSONObject | undefined;

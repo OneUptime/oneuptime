@@ -27,10 +27,12 @@ import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRul
 import Exception from 'Common/Types/Exception/Exception';
 import Hostname from 'Common/Types/API/Hostname';
 import Port from 'Common/Types/Port';
-import CheckBoxList, { CategoryCheckboxValue, enumToCategoryCheckboxOption } from 'CommonUI/src/Components/CategoryCheckbox/CheckboxList';
+import CheckBoxList, {
+    CategoryCheckboxValue,
+    enumToCategoryCheckboxOption,
+} from 'CommonUI/src/Components/CategoryCheckbox/CheckboxList';
 import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
 import ScreenSizeType from 'Common/Types/ScreenSizeType';
-
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -74,9 +76,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         props.initialValue?.data?.monitorDestination?.toString() || ''
     );
 
-
-
-    let codeEditorPlaceholder: string = "";
+    let codeEditorPlaceholder: string = '';
 
     if (props.monitorType === MonitorType.CustomJavaScriptCode) {
         codeEditorPlaceholder = `
@@ -86,7 +86,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
 
     if (props.monitorType === MonitorType.SyntheticMonitor) {
-
         codeEditorPlaceholder = `
         You can use axios, playwright modules here. 
 
@@ -299,7 +298,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 ) => {
                                     monitorStep.setRequestType(
                                         (value?.toString() as HTTPMethod) ||
-                                        HTTPMethod.GET
+                                            HTTPMethod.GET
                                     );
                                     setMonitorStep(
                                         MonitorStep.clone(monitorStep)
@@ -370,7 +369,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                     }}
                                     error={
                                         touched['requestBody'] &&
-                                            errors['requestBody']
+                                        errors['requestBody']
                                             ? errors['requestBody']
                                             : undefined
                                     }
@@ -407,13 +406,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement
                         title={
                             props.monitorType ===
-                                MonitorType.CustomJavaScriptCode
+                            MonitorType.CustomJavaScriptCode
                                 ? 'JavaScript Code'
                                 : 'Playwright Code'
                         }
                         description={
                             props.monitorType ===
-                                MonitorType.CustomJavaScriptCode
+                            MonitorType.CustomJavaScriptCode
                                 ? 'Write your JavaScript code here.'
                                 : 'Write your Playwright code here. Playwright is a Node.js library to automate Chromium, Firefox and WebKit with a single API.'
                         }
@@ -433,44 +432,52 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-
             {props.monitorType === MonitorType.SyntheticMonitor && (
                 <div className="mt-5">
                     <FieldLabelElement
-                        title={
-                            'Browser Type'
-                        }
-                        description={
-                            'Select the browser type.'
-                        }
+                        title={'Browser Type'}
+                        description={'Select the browser type.'}
                         required={true}
                     />
                     <div className="mt-1">
-                        <CheckBoxList options={enumToCategoryCheckboxOption(BrowserType)} onChange={(values: Array<CategoryCheckboxValue>) => {
-                            monitorStep.setBrowserTypes(values as Array<BrowserType>);
-                            setMonitorStep(MonitorStep.clone(monitorStep));
-                        }} />
+                        <CheckBoxList
+                            options={enumToCategoryCheckboxOption(BrowserType)}
+                            onChange={(
+                                values: Array<CategoryCheckboxValue>
+                            ) => {
+                                monitorStep.setBrowserTypes(
+                                    values as Array<BrowserType>
+                                );
+                                setMonitorStep(MonitorStep.clone(monitorStep));
+                            }}
+                        />
                     </div>
                 </div>
             )}
 
-
             {props.monitorType === MonitorType.SyntheticMonitor && (
                 <div className="mt-5">
                     <FieldLabelElement
-                        title={
-                            'Screen Type'
-                        }
+                        title={'Screen Type'}
                         description={
                             'Which screen type should we use to run this test?'
                         }
                         required={true}
                     />
                     <div className="mt-1">
-                        <CheckBoxList options={enumToCategoryCheckboxOption(ScreenSizeType)} onChange={(values: Array<CategoryCheckboxValue>) => {
-                            monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
-                            setMonitorStep(MonitorStep.clone(monitorStep));
-                        }} />
+                        <CheckBoxList
+                            options={enumToCategoryCheckboxOption(
+                                ScreenSizeType
+                            )}
+                            onChange={(
+                                values: Array<CategoryCheckboxValue>
+                            ) => {
+                                monitorStep.setScreenSizeTypes(
+                                    values as Array<ScreenSizeType>
+                                );
+                                setMonitorStep(MonitorStep.clone(monitorStep));
+                            }}
+                        />
                     </div>
                 </div>
             )}

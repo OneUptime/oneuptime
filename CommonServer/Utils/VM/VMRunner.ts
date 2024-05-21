@@ -29,9 +29,8 @@ export default class VMRunner {
             http: http,
             https: https,
             axios: axios,
-            ...options.context
+            ...options.context,
         };
-
 
         if (options.args) {
             sandbox = {

@@ -18,5 +18,4 @@ export default interface ProbeMonitorResponse {
     sslResponse?: SslMonitorResponse | undefined;
     syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
     customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
-
 }

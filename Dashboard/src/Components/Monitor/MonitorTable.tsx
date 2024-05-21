@@ -24,6 +24,7 @@ import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 import { Black, Gray500 } from 'Common/Types/BrandColors';
 import { ModalTableBulkDefaultActions } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -163,19 +164,34 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     title: 'Monitoring Interval',
                     fieldType: FormFieldSchemaType.Dropdown,
                     required: true,
-                    fetchDropdownOptions: (item: FormValues<Monitor>)=>{
-                        let interval = [...MonitoringInterval];
+                    fetchDropdownOptions: (item: FormValues<Monitor>) => {
+                        let interval: Array<DropdownOption> = [
+                            ...MonitoringInterval,
+                        ];
 
-                        if(item && (item.monitorType === MonitorType.SyntheticMonitor || item.monitorType === MonitorType.CustomJavaScriptCode || item.monitorType === MonitorType.SSLCertificate)){
-
-                            // remove the every minute option, every 5 minsm every 10 minutes 
-                            interval = interval.filter((option) => option.value !== '* * * * *' && option.value !== '*/5 * * * *' && option.value !== '*/10 * * * *');
+                        if (
+                            item &&
+                            (item.monitorType ===
+                                MonitorType.SyntheticMonitor ||
+                                item.monitorType ===
+                                    MonitorType.CustomJavaScriptCode ||
+                                item.monitorType === MonitorType.SSLCertificate)
+                        ) {
+                            // remove the every minute option, every 5 minsm every 10 minutes
+                            interval = interval.filter(
+                                (option: DropdownOption) => {
+                                    return (
+                                        option.value !== '* * * * *' &&
+                                        option.value !== '*/5 * * * *' &&
+                                        option.value !== '*/10 * * * *'
+                                    );
+                                }
+                            );
 
                             return Promise.resolve(interval);
                         }
 
                         return Promise.resolve(interval);
-
                     },
 
                     placeholder: 'Select Monitoring Interval',

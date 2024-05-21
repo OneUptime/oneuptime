@@ -188,7 +188,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            
             {monitorSteps?.data?.monitorStepsInstanceArray.map(
                 (i: MonitorStep, index: number) => {
                     return (
@@ -314,7 +313,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            
             {error ? (
                 <p
                     data-testid="error-message"

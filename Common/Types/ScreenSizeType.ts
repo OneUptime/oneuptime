@@ -1,7 +1,7 @@
 enum ScreenSizeType {
     Mobile = 'Mobile',
     Tablet = 'Tablet',
-    Desktop = 'Desktop'
+    Desktop = 'Desktop',
 }
 
 export default ScreenSizeType;

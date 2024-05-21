@@ -9,7 +9,6 @@ import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 import { Browser, firefox, webkit, chromium, Page } from 'playwright';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
-
 export interface SyntheticMonitorOptions {
     monitorId?: ObjectID | undefined;
     screenSizeTypes?: Array<ScreenSizeType> | undefined;
@@ -18,25 +17,23 @@ export interface SyntheticMonitorOptions {
 }
 
 export default class SyntheticMonitor {
-
     public static async execute(
         options: SyntheticMonitorOptions
     ): Promise<Array<SyntheticMonitorResponse> | null> {
-
         const results: Array<SyntheticMonitorResponse> = [];
 
         for (const browserType of options.browserTypes || []) {
             for (const screenSizeType of options.screenSizeTypes || []) {
-
                 logger.info(
                     `Running Synthetic Monitor: ${options?.monitorId?.toString()}, Screen Size: ${screenSizeType}, Browser: ${browserType}`
                 );
 
-                const result = await this.executeByBrowserAndScreenSize({
-                    script: options.script,
-                    browserType: browserType,
-                    screenSizeType: screenSizeType
-                });
+                const result: SyntheticMonitorResponse | null =
+                    await this.executeByBrowserAndScreenSize({
+                        script: options.script,
+                        browserType: browserType,
+                        screenSizeType: screenSizeType,
+                    });
 
                 if (result) {
                     result.browserType = browserType;
@@ -48,7 +45,6 @@ export default class SyntheticMonitor {
 
         return results;
     }
-
 
     private static async executeByBrowserAndScreenSize(options: {
         script: string;
@@ -64,7 +60,6 @@ export default class SyntheticMonitor {
             };
         }
 
-
         const scriptResult: SyntheticMonitorResponse = {
             logMessages: [],
             scriptError: undefined,
@@ -73,18 +68,17 @@ export default class SyntheticMonitor {
             executionTimeInMS: new PositiveNumber(0),
             browserType: options.browserType,
             screenSizeType: options.screenSizeType,
-        }
+        };
 
         try {
             let result: ReturnResult | null = null;
 
             try {
-
-                let startTime: [number, number] = process.hrtime();
+                const startTime: [number, number] = process.hrtime();
 
                 const page: Page = await SyntheticMonitor.getPageByBrowserType({
                     browserType: options.browserType,
-                    screenSizeType: options.screenSizeType
+                    screenSizeType: options.screenSizeType,
                 });
 
                 result = await VMRunner.runCodeInSandbox({
@@ -93,8 +87,8 @@ export default class SyntheticMonitor {
                         timeout: 120000, // 2 minutes
                         args: {},
                         context: {
-                            page
-                        }
+                            page,
+                        },
                     },
                 });
 
@@ -108,29 +102,29 @@ export default class SyntheticMonitor {
 
                 scriptResult.logMessages = result.logMessages;
 
-                scriptResult.screenshots = result.returnValue?.screenshots || [];
+                scriptResult.screenshots =
+                    result.returnValue?.screenshots || [];
 
                 scriptResult.result = result.returnValue.data;
-
-
             } catch (err) {
                 logger.error(err);
-                scriptResult.scriptError = (err as Error)?.message || (err as Error).toString();
+                scriptResult.scriptError =
+                    (err as Error)?.message || (err as Error).toString();
             }
 
             return scriptResult;
-
-
         } catch (err: unknown) {
             logger.error(err);
-            scriptResult.scriptError = (err as Error)?.message || (err as Error).toString();
-
+            scriptResult.scriptError =
+                (err as Error)?.message || (err as Error).toString();
         }
 
         return scriptResult;
     }
 
-    private static getViewportHeightAndWidth(options: { screenSizeType: ScreenSizeType }): {
+    private static getViewportHeightAndWidth(options: {
+        screenSizeType: ScreenSizeType;
+    }): {
         height: number;
         width: number;
     } {
@@ -163,9 +157,11 @@ export default class SyntheticMonitor {
         browserType: BrowserType;
         screenSizeType: ScreenSizeType;
     }): Promise<Page> {
-
-        const viewport = SyntheticMonitor.getViewportHeightAndWidth({
-            screenSizeType: data.screenSizeType
+        const viewport: {
+            height: number;
+            width: number;
+        } = SyntheticMonitor.getViewportHeightAndWidth({
+            screenSizeType: data.screenSizeType,
         });
 
         let page: Page | null = null;
@@ -187,12 +183,11 @@ export default class SyntheticMonitor {
 
         await page?.setViewportSize({
             width: viewport.width,
-            height: viewport.height
+            height: viewport.height,
         });
 
-
         if (!page) {
-            throw new BadDataException("Invalid Browser Type.");
+            throw new BadDataException('Invalid Browser Type.');
         }
 
         return page;

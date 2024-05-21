@@ -1,3 +1,3 @@
-import BrowserType from "../../BrowserType";
+import BrowserType from '../../BrowserType';
 
 export default BrowserType;

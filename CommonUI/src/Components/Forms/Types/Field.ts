@@ -50,7 +50,9 @@ export default interface Field<TEntity> {
     stepId?: string | undefined;
     required?: boolean | ((item: FormValues<TEntity>) => boolean) | undefined;
     dropdownOptions?: Array<DropdownOption> | undefined;
-    fetchDropdownOptions?: ((item: FormValues<TEntity>) => Promise<Array<DropdownOption>>) | undefined;
+    fetchDropdownOptions?:
+        | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption>>)
+        | undefined;
     dropdownModal?: {
         type: BaseModelType;
         labelField: string;

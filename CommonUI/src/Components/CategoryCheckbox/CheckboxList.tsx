@@ -6,20 +6,23 @@ import { JSONObject } from 'Common/Types/JSON';
 
 export type CategoryCheckboxValue = string | number | boolean;
 
-export const enumToCategoryCheckboxOption = (obj: GenericObject): Array<CategoryCheckboxOption> => {
+type EnumToCategoryCheckboxOptionFunction = (
+    obj: GenericObject
+) => Array<CategoryCheckboxOption>;
 
-    const options: Array<CategoryCheckboxOption> = [];
+export const enumToCategoryCheckboxOption: EnumToCategoryCheckboxOptionFunction =
+    (obj: GenericObject): Array<CategoryCheckboxOption> => {
+        const options: Array<CategoryCheckboxOption> = [];
 
-    for(const key in obj) {
-        options.push({
-            label: ((obj as JSONObject)[key] as string).toString(),
-            value:  ((obj as JSONObject)[key] as string).toString(),
-            
-        })
-    }
+        for (const key in obj) {
+            options.push({
+                label: ((obj as JSONObject)[key] as string).toString(),
+                value: ((obj as JSONObject)[key] as string).toString(),
+            });
+        }
 
-    return options;
-}
+        return options;
+    };
 
 export interface CategoryProps {
     options: Array<CategoryCheckboxOption>;

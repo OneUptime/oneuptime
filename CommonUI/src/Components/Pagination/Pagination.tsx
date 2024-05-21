@@ -108,14 +108,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     <ul className="py-3">
                         <li
                             onClick={() => {
+                                let currentPageNumber: number =
+                                    props.currentPageNumber;
 
-
-                                let currentPageNumber: number = props.currentPageNumber; 
-
-                                if(typeof currentPageNumber === "string"){
-                                    currentPageNumber = parseInt(currentPageNumber);
+                                if (typeof currentPageNumber === 'string') {
+                                    currentPageNumber =
+                                        parseInt(currentPageNumber);
                                 }
-
 
                                 if (
                                     props.onNavigateToPage &&
@@ -148,11 +147,12 @@ const Pagination: FunctionComponent<ComponentProps> = (
                         </li>
                         <li
                             onClick={() => {
+                                let currentPageNumber: number =
+                                    props.currentPageNumber;
 
-                                let currentPageNumber: number = props.currentPageNumber; 
-
-                                if(typeof currentPageNumber === "string"){
-                                    currentPageNumber = parseInt(currentPageNumber);
+                                if (typeof currentPageNumber === 'string') {
+                                    currentPageNumber =
+                                        parseInt(currentPageNumber);
                                 }
 
                                 if (props.onNavigateToPage && !isNextDisabled) {

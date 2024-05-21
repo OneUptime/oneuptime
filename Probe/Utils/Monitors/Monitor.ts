@@ -205,20 +205,21 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.SyntheticMonitor) {
-
             if (!monitorStep.data?.customCode) {
-                result.failureCause = 'Code not specified. Please add playwright script.';
+                result.failureCause =
+                    'Code not specified. Please add playwright script.';
                 return result;
             }
 
-            const response: Array<SyntheticMonitorResponse> | null = await SyntheticMonitor.execute(
-                {
+            const response: Array<SyntheticMonitorResponse> | null =
+                await SyntheticMonitor.execute({
                     script: monitorStep.data.customCode,
                     monitorId: monitor.id!,
-                    screenSizeTypes: monitorStep.data.screenSizeTypes as Array<ScreenSizeType>,
-                    browserTypes: monitorStep.data.browserTypes as Array<BrowserType>,
-                }
-            );
+                    screenSizeTypes: monitorStep.data
+                        .screenSizeTypes as Array<ScreenSizeType>,
+                    browserTypes: monitorStep.data
+                        .browserTypes as Array<BrowserType>,
+                });
 
             if (!response) {
                 return null;
@@ -227,20 +228,18 @@ export default class MonitorUtil {
             result.syntheticMonitorResponse = response;
         }
 
-
         if (monitor.monitorType === MonitorType.CustomJavaScriptCode) {
-
             if (!monitorStep.data?.customCode) {
-                result.failureCause = 'Code not specified. Please add playwright script.';
+                result.failureCause =
+                    'Code not specified. Please add playwright script.';
                 return result;
             }
 
-            const response: CustomCodeMonitorResponse | null = await CustomCodeMonitor.execute(
-                {
+            const response: CustomCodeMonitorResponse | null =
+                await CustomCodeMonitor.execute({
                     script: monitorStep.data.customCode,
                     monitorId: monitor.id!,
-                }
-            );
+                });
 
             if (!response) {
                 return null;
