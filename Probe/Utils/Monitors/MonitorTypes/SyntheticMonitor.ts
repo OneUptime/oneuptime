@@ -73,10 +73,16 @@ export default class SyntheticMonitor {
         try {
             let result: ReturnResult | null = null;
 
+            let pageAndBrowser: {
+                page: Page;
+                browser: Browser;
+
+            } | null = null; 
+
             try {
                 const startTime: [number, number] = process.hrtime();
 
-                const page: Page = await SyntheticMonitor.getPageByBrowserType({
+                pageAndBrowser = await SyntheticMonitor.getPageByBrowserType({
                     browserType: options.browserType,
                     screenSizeType: options.screenSizeType,
                 });
@@ -87,7 +93,7 @@ export default class SyntheticMonitor {
                         timeout: 120000, // 2 minutes
                         args: {},
                         context: {
-                            page,
+                            page: pageAndBrowser.page,
                         },
                     },
                 });
@@ -106,10 +112,22 @@ export default class SyntheticMonitor {
                     result.returnValue?.screenshots || [];
 
                 scriptResult.result = result.returnValue.data;
+
+                
+
             } catch (err) {
+
                 logger.error(err);
                 scriptResult.scriptError =
                     (err as Error)?.message || (err as Error).toString();
+            }
+
+            if(pageAndBrowser?.page) {
+                await pageAndBrowser.page.close();
+            }
+
+            if(pageAndBrowser?.browser) {
+                await pageAndBrowser.browser.close();
             }
 
             return scriptResult;
@@ -156,7 +174,10 @@ export default class SyntheticMonitor {
     private static async getPageByBrowserType(data: {
         browserType: BrowserType;
         screenSizeType: ScreenSizeType;
-    }): Promise<Page> {
+    }): Promise<{
+        page: Page;
+        browser: Browser;
+    }> {
         const viewport: {
             height: number;
             width: number;
@@ -165,19 +186,20 @@ export default class SyntheticMonitor {
         });
 
         let page: Page | null = null;
+        let browser: Browser | null = null;
 
         if (data.browserType === BrowserType.Chromium) {
-            const browser: Browser = await chromium.launch();
+            browser = await chromium.launch();
             page = await browser.newPage();
         }
 
         if (data.browserType === BrowserType.Firefox) {
-            const browser: Browser = await firefox.launch();
+            browser = await firefox.launch();
             page = await browser.newPage();
         }
 
         if (data.browserType === BrowserType.Webkit) {
-            const browser: Browser = await webkit.launch();
+            browser = await webkit.launch();
             page = await browser.newPage();
         }
 
@@ -186,10 +208,19 @@ export default class SyntheticMonitor {
             height: viewport.height,
         });
 
-        if (!page) {
+        if(!browser) {
             throw new BadDataException('Invalid Browser Type.');
         }
 
-        return page;
+        if (!page) {
+            // close the browser if page is not created
+            await browser.close();
+            throw new BadDataException('Invalid Browser Type.');
+        }
+
+        return {
+            page: page,
+            browser: browser,
+        };
     }
 }
