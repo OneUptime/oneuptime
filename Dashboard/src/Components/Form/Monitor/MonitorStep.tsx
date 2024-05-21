@@ -74,6 +74,28 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         props.initialValue?.data?.monitorDestination?.toString() || ''
     );
 
+
+
+    let codeEditorPlaceholder: string = "";
+
+    if (props.monitorType === MonitorType.CustomJavaScriptCode) {
+        codeEditorPlaceholder = `
+        // You can use axios, playwright modules here. 
+        await axios.get('https://example.com'); 
+        `;
+    }
+
+    if (props.monitorType === MonitorType.SyntheticMonitor) {
+
+        codeEditorPlaceholder = `
+        You can use playwright modules here. 
+
+        await page.goto('https://playwright.dev/');
+        
+        Documentation here: https://playwright.dev/docs/intro
+        `;
+    }
+
     useEffect(() => {
         if (props.monitorType === MonitorType.API) {
             setDestinationFieldTitle('API URL');
@@ -406,6 +428,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 monitorStep.setCustomCode(value);
                                 setMonitorStep(MonitorStep.clone(monitorStep));
                             }}
+                            placeholder={codeEditorPlaceholder}
                         />
                     </div>
                 </div>
@@ -424,7 +447,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         required={true}
                     />
                     <div className="mt-1">
-                        <CheckBoxList options={enumToCategoryCheckboxOption(BrowserType)} onChange={(values: Array<CategoryCheckboxValue>)=>{
+                        <CheckBoxList options={enumToCategoryCheckboxOption(BrowserType)} onChange={(values: Array<CategoryCheckboxValue>) => {
                             monitorStep.setBrowserTypes(values as Array<BrowserType>);
                             setMonitorStep(MonitorStep.clone(monitorStep));
                         }} />
@@ -445,7 +468,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         required={true}
                     />
                     <div className="mt-1">
-                        <CheckBoxList options={enumToCategoryCheckboxOption(ScreenSizeType)} onChange={(values: Array<CategoryCheckboxValue>)=>{
+                        <CheckBoxList options={enumToCategoryCheckboxOption(ScreenSizeType)} onChange={(values: Array<CategoryCheckboxValue>) => {
                             monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
                             setMonitorStep(MonitorStep.clone(monitorStep));
                         }} />

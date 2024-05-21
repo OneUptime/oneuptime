@@ -56,7 +56,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
             if (props.type === CodeType.JavaScript) {
                 setPlaceholder(
-                    `// ${props.placeholder}. This is in JavaScript.`
+                    `/* ${props.placeholder}. This is in JavaScript. */`
                 );
             }
 
