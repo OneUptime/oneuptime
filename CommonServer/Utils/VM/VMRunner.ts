@@ -13,7 +13,7 @@ export default class VMRunner {
         options: {
             timeout?: number;
             args?: JSONObject | undefined;
-            context: Dictionary<GenericObject>
+            context?: Dictionary<GenericObject> | undefined;
         };
     }): Promise<ReturnResult> {
         const { code, options } = data;

@@ -1,5 +1,6 @@
 import Dictionary from '../Dictionary';
 import { JSONObject } from '../JSON';
+import CustomCodeMonitorResponse from '../Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
 import SslMonitorResponse from '../Monitor/SSLMonitor/SslMonitorResponse';
 import SyntheticMonitorResponse from '../Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 import ObjectID from '../ObjectID';
@@ -16,5 +17,6 @@ export default interface ProbeMonitorResponse {
     failureCause: string;
     sslResponse?: SslMonitorResponse | undefined;
     syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
+    customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
 
 }

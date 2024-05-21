@@ -1,15 +1,10 @@
-import { JSONObject } from "../../JSON";
-import PositiveNumber from "../../PositiveNumber";
+import CustomCodeMonitorResponse from "../CustomCodeMonitor/CustomCodeMonitorResponse";
 import BrowserType from "./BrowserType";
 import ScreenSizeType from "./ScreenSizeType";
 import Screenshot from "./Screenshot";
 
-export default interface SyntheticMonitorResponse {
-    result: string | number | boolean | JSONObject | undefined;
-    scriptError?: string | undefined;
+export default interface SyntheticMonitorResponse extends CustomCodeMonitorResponse {
     screenshots?: Array<Screenshot> | undefined; // base 64 encoded screenshots
-    logMessages: string[];
-    executionTimeInMS: PositiveNumber;
     browserType: BrowserType;
     screenSizeType: ScreenSizeType; 
 }
