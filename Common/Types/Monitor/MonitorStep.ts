@@ -164,7 +164,7 @@ export default class MonitorStep extends DatabaseProperty {
         monitorType: MonitorType
     ): string | null {
         if (!value.data) {
-            return 'Monitor Step is required';
+            return 'Monitor Step is required.';
         }
 
         // If the monitor type is incoming request, then the monitor destination is not required
@@ -177,7 +177,7 @@ export default class MonitorStep extends DatabaseProperty {
                 monitorType === MonitorType.IP ||
                 monitorType === MonitorType.SSLCertificate)
         ) {
-            return 'Monitor Destination is required';
+            return 'Monitor Destination is required.';
         }
 
         if (
@@ -185,7 +185,11 @@ export default class MonitorStep extends DatabaseProperty {
             (monitorType === MonitorType.CustomJavaScriptCode ||
                 monitorType === MonitorType.SyntheticMonitor)
         ) {
-            return 'Code is required';
+            if (monitorType === MonitorType.CustomJavaScriptCode) {
+                return 'Custom Code is required';
+            } else {
+                return 'Playwright code is required.';
+            }
         }
 
         if (!value.data.monitorCriteria) {

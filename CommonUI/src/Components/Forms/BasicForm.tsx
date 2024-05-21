@@ -135,7 +135,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 formSteps.length > 0 &&
                 (
                     (formSteps as Array<FormStep<T>>)[
-                        formSteps.length - 1
+                    formSteps.length - 1
                     ] as FormStep<T>
                 ).id === currentFormStepId
             ) {
@@ -240,6 +240,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             ];
 
             for (const item of fields) {
+
+
+                // if this field is not the current step.
+                if (
+                    currentFormStepId &&
+                    item.stepId &&
+                    item.stepId !== currentFormStepId
+                ) {
+                    continue;
+                }
+
                 if (item.fetchDropdownOptions) {
                     setIsDropdownOptionsLoading(true);
                     // If a dropdown has fetch optiosn then we need to fetch them
@@ -256,7 +267,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             setIsDropdownOptionsLoading(false);
 
             setFormFields(fields);
-        }, [props.fields]);
+        }, [props.fields, currentFormStepId]);
 
         type GetFieldNameFunction = (field: Field<T>) => string;
 
@@ -329,7 +340,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     formSteps.length > 0 &&
                     (
                         (formSteps as Array<FormStep<T>>)[
-                            formSteps.length - 1
+                        formSteps.length - 1
                         ] as FormStep<T>
                     ).id === currentFormStepId) ||
                 currentFormStepId === null
@@ -368,7 +379,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         ) {
                             (values as any)[fieldName] = (
                                 (values as any)[
-                                    fieldName
+                                fieldName
                                 ] as Array<DropdownOption>
                             ).map((item: DropdownOption) => {
                                 return item.value;
@@ -475,7 +486,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 if (
                     field.fieldType ===
-                        FormFieldSchemaType.MultiSelectDropdown &&
+                    FormFieldSchemaType.MultiSelectDropdown &&
                     (values as any)[fieldName]
                 ) {
                     const dropdownOptions: Array<DropdownOption> =
@@ -573,11 +584,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 </div>
                             )}
                             <div
-                                className={`${
-                                    formSteps && currentFormStepId
+                                className={`${formSteps && currentFormStepId
                                         ? 'w-2/3 pt-6'
                                         : 'w-full pt-1'
-                                }`}
+                                    }`}
                             >
                                 {props.error && (
                                     <div className="mb-3">
@@ -590,9 +600,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                                 <div>
                                     <div
-                                        className={`grid md:grid-cols-${
-                                            props.showAsColumns || 1
-                                        } grid-cols-1 gap-4`}
+                                        className={`grid md:grid-cols-${props.showAsColumns || 1
+                                            } grid-cols-1 gap-4`}
                                     >
                                         {formFields &&
                                             formFields
@@ -630,17 +639,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                                                         }
                                                                         error={
                                                                             errors[
-                                                                                getFieldName(
-                                                                                    field
-                                                                                )
+                                                                            getFieldName(
+                                                                                field
+                                                                            )
                                                                             ] ||
                                                                             ''
                                                                         }
                                                                         touched={
                                                                             touched[
-                                                                                getFieldName(
-                                                                                    field
-                                                                                )
+                                                                            getFieldName(
+                                                                                field
+                                                                            )
                                                                             ] ||
                                                                             false
                                                                         }
