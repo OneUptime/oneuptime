@@ -4,7 +4,7 @@ import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import Components from 'Common/Types/Workflow/Components/Condition';
 import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
-import VMUtil from '../../../../Utils/VM';
+import VMUtil from '../../../../Utils/VM/VMAPI';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 
 export default class IfElse extends ComponentCode {

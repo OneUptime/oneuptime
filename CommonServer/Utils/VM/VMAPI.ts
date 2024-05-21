@@ -3,9 +3,9 @@ import API from 'Common/Utils/API';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 import Protocol from 'Common/Types/API/Protocol';
 import URL from 'Common/Types/API/URL';
-import { IsolatedVMHostname } from '../EnvironmentConfig';
+import { IsolatedVMHostname } from '../../EnvironmentConfig';
 import Route from 'Common/Types/API/Route';
-import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import ClusterKeyAuthorization from '../../Middleware/ClusterKeyAuthorization';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 

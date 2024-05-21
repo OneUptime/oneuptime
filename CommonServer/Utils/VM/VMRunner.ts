@@ -5,7 +5,7 @@ import axios from 'axios';
 import vm, { Context } from 'node:vm';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 
-export default class VMUtil {
+export default class VMRunner {
     public static async runCodeInSandbox(data: {
         code: string;
         options: {

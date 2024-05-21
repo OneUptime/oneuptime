@@ -34,7 +34,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
-import VMUtil from '../../Utils/VM';
+import VMUtil from '../VM/VMAPI';
 import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
 import BasicInfrastructureMetrics from 'Common/Types/Infrastructure/BasicMetrics';
 import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';

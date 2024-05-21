@@ -4,7 +4,7 @@ import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JavaScriptComponents from 'Common/Types/Workflow/Components/JavaScript';
 import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
-import VMUtil from '../../../Utils/VM';
+import VMUtil from '../../../Utils/VM/VMAPI';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 
 export default class JavaScriptCode extends ComponentCode {

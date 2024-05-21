@@ -6,7 +6,7 @@ import Express, {
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
-import VMUtil from '../Utils/VM';
+import VMRunner from 'CommonServer/Utils/VM/VMRunner';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 import logger from 'CommonServer/Utils/Logger';
@@ -37,7 +37,7 @@ router.post(
             let result: ReturnResult | null = null;
 
             try {
-                result = await VMUtil.runCodeInSandbox({
+                result = await VMRunner.runCodeInSandbox({
                     code: req.body.code,
                     options: {
                         timeout: 5000,
