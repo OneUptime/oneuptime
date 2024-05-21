@@ -4,6 +4,7 @@ import https from 'https';
 import axios from 'axios';
 import vm, { Context } from 'node:vm';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import playwright from 'playwright';
 
 export default class VMRunner {
     public static async runCodeInSandbox(data: {
@@ -26,6 +27,7 @@ export default class VMRunner {
             http: http,
             https: https,
             axios: axios,
+            playwright: playwright,
         };
 
         if (options.args) {
