@@ -14,7 +14,7 @@ import ProbeService from './ProbeService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import MonitorProbe from 'Model/Models/MonitorProbe';
 import MonitorProbeService from './MonitorProbeService';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import MonitorType, { MonitorTypeHelper } from 'Common/Types/Monitor/MonitorType';
 import Probe from 'Model/Models/Probe';
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
@@ -156,12 +156,7 @@ export class Service extends DatabaseService<Model> {
 
         if (
             createdItem.monitorType &&
-            (createdItem.monitorType === MonitorType.API ||
-                createdItem.monitorType === MonitorType.Website ||
-                createdItem.monitorType === MonitorType.Ping ||
-                createdItem.monitorType === MonitorType.IP ||
-                createdItem.monitorType === MonitorType.Port ||
-                createdItem.monitorType === MonitorType.SSLCertificate)
+            (MonitorTypeHelper.isProbableMonitors(createdItem.monitorType))
         ) {
             await this.addDefaultProbesToMonitor(
                 createdItem.projectId,

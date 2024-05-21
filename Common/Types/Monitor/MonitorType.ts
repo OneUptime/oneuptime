@@ -142,7 +142,9 @@ export class MonitorTypeHelper {
             monitorType === MonitorType.IP ||
             monitorType === MonitorType.Ping ||
             monitorType === MonitorType.Port ||
-            monitorType === MonitorType.SSLCertificate;
+            monitorType === MonitorType.SSLCertificate ||
+            monitorType === MonitorType.SyntheticMonitor || 
+            monitorType === MonitorType.CustomJavaScriptCode;
         return isProbeableMonitor;
     }
 
