@@ -22,6 +22,9 @@ import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import Port from 'Common/Types/Port';
 import SSLMonitor, { SslResponse } from './MonitorTypes/SslMonitor';
+import SyntheticMonitor, { SyntheticMonitorResponse } from './MonitorTypes/SyntheticMonitor';
+import ScreenSizeType from 'Common/Types/ScreenSizeType';
+import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -186,6 +189,31 @@ export default class MonitorUtil {
                 {
                     retry: 5,
                     monitorId: monitor.id!,
+                }
+            );
+
+            if (!response) {
+                return null;
+            }
+
+            result.isOnline = response.isOnline;
+            result.responseTimeInMs = response.responseTimeInMS?.toNumber();
+            result.failureCause = response.failureCause;
+        }
+
+        if (monitor.monitorType === MonitorType.SyntheticMonitor) {
+
+            if (!monitorStep.data?.customCode) {
+                result.scriptError = 'Code not specified. Please add playwright script.';
+                return result;
+            }
+
+            const response: SyntheticMonitorResponse | null = await SyntheticMonitor.execute(
+                {
+                    script: monitorStep.data.customCode,
+                    monitorId: monitor.id!,
+                    screenSizeTypes: monitorStep.data.screenSizeTypes as Array<ScreenSizeType>,
+                    browserType: monitorStep.data.browserTypes as Array<BrowserType>,
                 }
             );
 

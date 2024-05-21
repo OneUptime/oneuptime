@@ -12,6 +12,7 @@ export default class VMRunner {
         options: {
             timeout?: number;
             args?: JSONObject | undefined;
+            includePlaywrightModule?: boolean;
         };
     }): Promise<ReturnResult> {
         const { code, options } = data;
@@ -27,8 +28,16 @@ export default class VMRunner {
             http: http,
             https: https,
             axios: axios,
-            playwright: playwright,
+            
         };
+
+
+        if(options.includePlaywrightModule) {
+            sandbox = {
+                ...sandbox,
+                playwright: playwright,
+            };
+        }
 
         if (options.args) {
             sandbox = {
