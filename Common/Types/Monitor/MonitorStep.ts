@@ -12,6 +12,8 @@ import MonitorType from './MonitorType';
 import JSONFunctions from '../JSONFunctions';
 import Hostname from '../API/Hostname';
 import Port from '../Port';
+import ScreenSizeType from './SyntheticMonitors/ScreenSizeType';
+import BrowserType from './SyntheticMonitors//BrowserType';
 
 export interface MonitorStepType {
     id: string;
@@ -29,6 +31,10 @@ export interface MonitorStepType {
 
     // this is for custom code monitors or synthetic monitors.
     customCode?: string | undefined;
+
+    // this is for synthetic monitors. 
+    screenSizeTypes?: Array<ScreenSizeType> | undefined;
+    browserTypes?: Array<BrowserType> | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -46,6 +52,8 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders: undefined,
             requestBody: undefined,
             customCode: undefined,
+            screenSizeTypes: undefined,
+            browserTypes: undefined,
         };
     }
 
@@ -67,6 +75,8 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders: undefined,
             requestBody: undefined,
             customCode: undefined,
+            screenSizeTypes: undefined,
+            browserTypes: undefined,
         };
 
         return monitorStep;
@@ -111,6 +121,16 @@ export default class MonitorStep extends DatabaseProperty {
         return this;
     }
 
+    public setScreenSizeTypes(screenSizeTypes: Array<ScreenSizeType>): MonitorStep {
+        this.data!.screenSizeTypes = screenSizeTypes;
+        return this;
+    }
+
+    public setBrowserTypes(browserTypes: Array<BrowserType>): MonitorStep {
+        this.data!.browserTypes = browserTypes;
+        return this;
+    }
+
     public setCustomCode(customCode: string): MonitorStep {
         this.data!.customCode = customCode;
         return this;
@@ -133,6 +153,8 @@ export default class MonitorStep extends DatabaseProperty {
                 requestHeaders: undefined,
                 requestBody: undefined,
                 customCode: undefined,
+                screenSizeTypes: undefined,
+                browserTypes: undefined,
             },
         };
     }
@@ -212,6 +234,8 @@ export default class MonitorStep extends DatabaseProperty {
                     requestHeaders: this.data.requestHeaders || undefined,
                     requestBody: this.data.requestBody || undefined,
                     customCode: this.data.customCode || undefined,
+                    screenSizeTypes: this.data.screenSizeTypes || undefined,
+                    browserTypes: this.data.browserTypes || undefined,
                 },
             });
         }
@@ -240,7 +264,7 @@ export default class MonitorStep extends DatabaseProperty {
             json &&
             json['monitorDestination'] &&
             (json['monitorDestination'] as JSONObject)['_type'] ===
-                ObjectType.URL
+            ObjectType.URL
         ) {
             monitorDestination = URL.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -251,7 +275,7 @@ export default class MonitorStep extends DatabaseProperty {
             json &&
             json['monitorDestination'] &&
             (json['monitorDestination'] as JSONObject)['_type'] ===
-                ObjectType.Hostname
+            ObjectType.Hostname
         ) {
             monitorDestination = Hostname.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -262,7 +286,7 @@ export default class MonitorStep extends DatabaseProperty {
             json &&
             json['monitorDestination'] &&
             (json['monitorDestination'] as JSONObject)['_type'] ===
-                ObjectType.IP
+            ObjectType.IP
         ) {
             monitorDestination = IP.fromJSON(
                 json['monitorDestination'] as JSONObject
@@ -299,6 +323,11 @@ export default class MonitorStep extends DatabaseProperty {
             requestHeaders:
                 (json['requestHeaders'] as Dictionary<string>) || undefined,
             requestBody: (json['requestBody'] as string) || undefined,
+            customCode: (json['customCode'] as string) || undefined,
+            screenSizeTypes:
+                (json['screenSizeTypes'] as Array<ScreenSizeType>) || undefined,
+            browserTypes:
+                (json['browserTypes'] as Array<BrowserType>) || undefined,
         }) as any;
 
         return monitorStep;

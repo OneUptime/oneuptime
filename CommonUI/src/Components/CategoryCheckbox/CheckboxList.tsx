@@ -1,8 +1,25 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import { CategoryCheckboxOption } from './CategoryCheckboxTypes';
 import CheckboxElement from '../Checkbox/Checkbox';
+import GenericObject from 'Common/Types/GenericObject';
+import { JSONObject } from 'Common/Types/JSON';
 
 export type CategoryCheckboxValue = string | number | boolean;
+
+export const enumToCategoryCheckboxOption = (obj: GenericObject): Array<CategoryCheckboxOption> => {
+
+    const options: Array<CategoryCheckboxOption> = [];
+
+    for(const key in obj) {
+        options.push({
+            label: ((obj as JSONObject)[key] as string).toString(),
+            value:  ((obj as JSONObject)[key] as string).toString(),
+            
+        })
+    }
+
+    return options;
+}
 
 export interface CategoryProps {
     options: Array<CategoryCheckboxOption>;

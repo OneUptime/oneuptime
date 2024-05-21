@@ -10,5 +10,5 @@ export interface CheckboxCategory {
 export interface CategoryCheckboxOption {
     value: CategoryCheckboxValue;
     label: string | ReactElement;
-    categoryId: string;
+    categoryId?: string | undefined;
 }
