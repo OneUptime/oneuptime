@@ -82,10 +82,7 @@ describe('AnalyticsDatabaseService', () => {
                 1,
                 '<table-name> Count Statement'
             );
-            expect(logger.debug).toHaveBeenNthCalledWith(
-                2,
-                statement
-            );
+            expect(logger.debug).toHaveBeenNthCalledWith(2, statement);
 
             expect(statement.query).toBe(
                 'SELECT\n' +
@@ -236,10 +233,7 @@ describe('AnalyticsDatabaseService', () => {
                     1,
                     '<table-name> Delete Statement'
                 );
-                expect(logger.debug).toHaveBeenNthCalledWith(
-                    2,
-                    statement
-                );
+                expect(logger.debug).toHaveBeenNthCalledWith(2, statement);
 
                 expect(statement.query).toBe(
                     'ALTER TABLE {p0:Identifier}.{p1:Identifier}\n' +
