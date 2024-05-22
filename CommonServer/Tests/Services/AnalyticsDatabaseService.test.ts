@@ -58,7 +58,7 @@ describe('AnalyticsDatabaseService', () => {
             service.statementGenerator.toWhereStatement = jest.fn(() => {
                 return SQL`<where-statement>`;
             });
-            jest.spyOn(logger, 'info').mockImplementation(() => {
+            jest.spyOn(logger, 'debug').mockImplementation(() => {
                 return undefined!;
             });
         });
@@ -77,12 +77,12 @@ describe('AnalyticsDatabaseService', () => {
                 '<query>'
             );
 
-            expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
-            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
+            expect(logger.debug).toHaveBeenCalledTimes(2);
+            expect(logger.debug).toHaveBeenNthCalledWith(
                 1,
                 '<table-name> Count Statement'
             );
-            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
+            expect(logger.debug).toHaveBeenNthCalledWith(
                 2,
                 statement
             );
@@ -156,7 +156,7 @@ describe('AnalyticsDatabaseService', () => {
             service.statementGenerator.toSortStatement = jest.fn(() => {
                 return SQL`<sort-statement>`;
             });
-            jest.spyOn(logger, 'info').mockImplementation(() => {
+            jest.spyOn(logger, 'debug').mockImplementation(() => {
                 return undefined!;
             });
         });
@@ -212,7 +212,7 @@ describe('AnalyticsDatabaseService', () => {
                 service.statementGenerator.toWhereStatement = jest.fn(() => {
                     return SQL`<where-statement>`;
                 });
-                jest.spyOn(logger, 'info').mockImplementation(() => {
+                jest.spyOn(logger, 'debug').mockImplementation(() => {
                     return undefined!;
                 });
             });
@@ -231,12 +231,12 @@ describe('AnalyticsDatabaseService', () => {
                     service.statementGenerator.toWhereStatement
                 ).toBeCalledWith('<query>');
 
-                expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
-                expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
+                expect(logger.debug).toHaveBeenCalledTimes(2);
+                expect(logger.debug).toHaveBeenNthCalledWith(
                     1,
                     '<table-name> Delete Statement'
                 );
-                expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
+                expect(logger.debug).toHaveBeenNthCalledWith(
                     2,
                     statement
                 );
