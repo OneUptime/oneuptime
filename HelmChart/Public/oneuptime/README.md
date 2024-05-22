@@ -84,6 +84,8 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `probe.<key>.description` | Probe description | `nil` | |
 | `probe.<key>.monitoringWorkers` | Number of threads / parallel processes you need to monitor your resources | `3` | |
 | `probe.<key>.monitorFetchLimit` | Number of resources to be monitored in parallel | `10` | |
+| `probe.<key>.syntheticMonitorScriptTimeoutInMs` | Timeout for synthetic monitor script | `60000` | |
+| `probe.<key>.customCodeMonitorScriptTimeoutInMs` | Timeout for custom code monitor script | `60000` | |
 | `statusPage.cnameRecord` | CNAME record for the status page | `nil` | |
 | `internalSmtp.sendingDomain` | Domain to send emails from  | `nil` |  |
 | `internalSmtp.dkimPrivateKey` | DKIM Private Key that is set for sending domain | `nil` |  |
@@ -103,6 +105,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `oneuptimeIngress.hosts` | Ingress hosts | `[]` |  |
 | `oneuptimeIngress.tls` | Ingress TLS. Please refer to values.yaml to set these | `[]` |  |
 | `oneuptimeIngress.className` | Ingress class name. Change this to your cloud providers ingress class | `nginx` |  |
+| `script.workflowScriptTimeoutInMs` | Timeout for workflow script | `5000` |  |
 
 ## If you would like to use a custom domain for your status page, please add these env vars 
 
