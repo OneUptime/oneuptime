@@ -108,19 +108,34 @@ export default class SyntheticMonitor {
 
                 scriptResult.logMessages = result.logMessages;
 
-                if(result.returnValue?.screenshots) {
-
-                    if(!scriptResult.screenshots) {
+                if (result.returnValue?.screenshots) {
+                    if (!scriptResult.screenshots) {
                         scriptResult.screenshots = {};
                     }
 
-                    for(const screenshotName in result.returnValue.screenshots) {
-
-                        if(!result.returnValue.screenshots.hasOwnProperty(screenshotName)) {
+                    for (const screenshotName in result.returnValue
+                        .screenshots) {
+                        if (!result.returnValue.screenshots[screenshotName]) {
                             continue;
                         }
 
-                        scriptResult.screenshots[screenshotName] = (result.returnValue.screenshots[screenshotName] as any).toString('base64'); // convert screennshots to base 64
+                        // check if this is of type Buffer. If it is not, continue.
+
+                        if (
+                            !(
+                                result.returnValue.screenshots[
+                                    screenshotName
+                                ] instanceof Buffer
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        scriptResult.screenshots[screenshotName] = (
+                            result.returnValue.screenshots[
+                                screenshotName
+                            ] as any
+                        ).toString('base64'); // convert screennshots to base 64
                     }
                 }
 
