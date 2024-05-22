@@ -69,6 +69,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         useState<string>('URL');
     const [destinationFieldDescription, setDestinationFieldDescription] =
         useState<string>('');
+
     const requestTypeDropdownOptions: Array<DropdownOption> =
         DropdownUtil.getDropdownOptionsFromEnum(HTTPMethod);
 
@@ -87,8 +88,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
         return {
             data: 'Hello World' 
-        };
-        `;
+        };`;
     }
 
     if (props.monitorType === MonitorType.SyntheticMonitor) {
@@ -118,9 +118,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         return {
             data: 'Hello World',
             screenshots: screenshots // array of screenshots 
-        };
-
-        `;
+        };`;
     }
 
     useEffect(() => {
@@ -471,6 +469,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     <div className="mt-1">
                         <CheckBoxList
                             options={enumToCategoryCheckboxOption(BrowserType)}
+                            initialValue={props.initialValue?.data?.browserTypes || []}
                             onChange={(
                                 values: Array<CategoryCheckboxValue>
                             ) => {
@@ -498,6 +497,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                             options={enumToCategoryCheckboxOption(
                                 ScreenSizeType
                             )}
+                            initialValue={props.initialValue?.data?.screenSizeTypes || []}
                             onChange={(
                                 values: Array<CategoryCheckboxValue>
                             ) => {
