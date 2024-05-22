@@ -130,14 +130,20 @@ export default class MonitorUtil {
             failureCause: '',
         };
 
-        if (!monitorStep.data || !monitorStep.data?.monitorDestination) {
+        if (!monitorStep.data) {
             return result;
         }
+       
 
         if (
             monitor.monitorType === MonitorType.Ping ||
             monitor.monitorType === MonitorType.IP
         ) {
+
+            if (!monitorStep.data?.monitorDestination) {
+                return result;
+            }
+
             if (LocalCache.getString('PROBE', 'PING_MONITORING') === 'PORT') {
                 // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
 
@@ -178,6 +184,11 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Port) {
+
+            if (!monitorStep.data?.monitorDestination) {
+                return result;
+            }
+
             if (!monitorStep.data?.monitorDestinationPort) {
                 result.isOnline = false;
                 result.responseTimeInMs = 0;
@@ -249,6 +260,11 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.SSLCertificate) {
+
+            if (!monitorStep.data?.monitorDestination) {
+                return result;
+            }
+
             if (!monitorStep.data?.monitorDestination) {
                 result.isOnline = false;
                 result.responseTimeInMs = 0;
@@ -277,6 +293,11 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Website) {
+
+            if (!monitorStep.data?.monitorDestination) {
+                return result;
+            }
+
             const response: ProbeWebsiteResponse | null =
                 await WebsiteMonitor.ping(
                     monitorStep.data?.monitorDestination as URL,
@@ -300,6 +321,11 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.API) {
+
+            if (!monitorStep.data?.monitorDestination) {
+                return result;
+            }
+            
             let requestBody: JSONObject | undefined = undefined;
             if (
                 monitorStep.data?.requestBody &&
