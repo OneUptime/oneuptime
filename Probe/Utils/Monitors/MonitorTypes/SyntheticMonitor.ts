@@ -1,5 +1,4 @@
 import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 import logger from 'CommonServer/Utils/Logger';
 import ScreenSizeType from 'Common/Types/Monitor/SyntheticMonitors/ScreenSizeType';
 import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
@@ -67,7 +66,7 @@ export default class SyntheticMonitor {
             scriptError: undefined,
             result: undefined,
             screenshots: [],
-            executionTimeInMS: new PositiveNumber(0),
+            executionTimeInMS: 0,
             browserType: options.browserType,
             screenSizeType: options.screenSizeType,
         };
@@ -103,9 +102,9 @@ export default class SyntheticMonitor {
 
                 const endTime: [number, number] = process.hrtime(startTime);
 
-                const executionTimeInMS: PositiveNumber = new PositiveNumber(
+                const executionTimeInMS: number = 
                     (endTime[0] * 1000000000 + endTime[1]) / 1000000
-                );
+                
 
                 scriptResult.executionTimeInMS = executionTimeInMS;
 

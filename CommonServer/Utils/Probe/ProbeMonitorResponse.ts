@@ -64,6 +64,8 @@ export default class ProbeMonitorResponseService {
         logger.debug('Processing probe response');
         logger.debug('Monitor ID: ' + dataToProcess.monitorId);
 
+        debugger;
+
         // fetch monitor
         const monitor: Monitor | null = await MonitorService.findOneById({
             id: dataToProcess.monitorId,
@@ -514,7 +516,7 @@ export default class ProbeMonitorResponseService {
                 monitorMetricsByMinute.projectId = data.projectId;
                 monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
                 monitorMetricsByMinute.metricValue =
-                    syntheticMonitorResponse.executionTimeInMS.toNumber();
+                    syntheticMonitorResponse.executionTimeInMS;
                 monitorMetricsByMinute.miscData = {
                     probeId: (
                         data.dataToProcess as ProbeMonitorResponse
@@ -541,7 +543,7 @@ export default class ProbeMonitorResponseService {
             monitorMetricsByMinute.projectId = data.projectId;
             monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
             monitorMetricsByMinute.metricValue =
-                customCodeMonitorResponse.executionTimeInMS.toNumber();
+                customCodeMonitorResponse.executionTimeInMS;
             monitorMetricsByMinute.miscData = {
                 probeId: (
                     data.dataToProcess as ProbeMonitorResponse

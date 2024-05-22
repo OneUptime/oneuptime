@@ -1,5 +1,4 @@
 import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 import logger from 'CommonServer/Utils/Logger';
 import VMRunner from 'CommonServer/Utils/VM/VMRunner';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
@@ -26,7 +25,7 @@ export default class CustomCodeMonitor {
             scriptError: undefined,
             result: undefined,
 
-            executionTimeInMS: new PositiveNumber(0),
+            executionTimeInMS: 0,
         };
 
         try {
@@ -45,9 +44,9 @@ export default class CustomCodeMonitor {
 
                 const endTime: [number, number] = process.hrtime(startTime);
 
-                const executionTimeInMS: PositiveNumber = new PositiveNumber(
+                const executionTimeInMS: number =
                     (endTime[0] * 1000000000 + endTime[1]) / 1000000
-                );
+                
 
                 scriptResult.executionTimeInMS = executionTimeInMS;
 
