@@ -123,14 +123,14 @@ export default class EmailLog extends BaseModel {
     })
     @Index()
     @TableColumn({
-        required: true,
+        required: false,
         type: TableColumnType.Email,
         title: 'To Email',
         description: 'Email address where the mail was sent',
         canReadOnRelationQuery: false,
     })
     @Column({
-        nullable: false,
+        nullable: true,
         type: ColumnType.Email,
         length: ColumnLength.Email,
         transformer: Email.getDatabaseTransformer(),
@@ -149,14 +149,14 @@ export default class EmailLog extends BaseModel {
     })
     @Index()
     @TableColumn({
-        required: true,
+        required: false,
         type: TableColumnType.Email,
         title: 'From Email',
         description: 'Email address where the mail was sent from',
         canReadOnRelationQuery: false,
     })
     @Column({
-        nullable: false,
+        nullable: true,
         type: ColumnType.Email,
         length: ColumnLength.Email,
         transformer: Email.getDatabaseTransformer(),

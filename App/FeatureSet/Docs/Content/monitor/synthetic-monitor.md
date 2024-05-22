@@ -56,3 +56,4 @@ We use Playwright to simulate user interactions. You can use Playwright `page` o
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
 - You can use `axios` module to make HTTP requests in the script. You can use it to make API calls from the script.
 - If you are using oneuptime.com, you will always have the latest version of Playwright & browsers available in the context of the script. If you're self-hosting, please make sure you update the probes to have the latest version of Playwright and the browsers. 
+- Timeout for the script is 2 minutes. If the script takes more than 2 mins, it will be terminated.

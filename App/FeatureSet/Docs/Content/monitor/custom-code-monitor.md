@@ -24,3 +24,4 @@ return {
 - You can return the data from the script using the `return` statement. 
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
 - You can use `axios` module to make HTTP requests in the script. You can use it to make API calls from the script.
+- Timeout for the script is 2 minutes. If the script takes more than 2 mins, it will be terminated.
