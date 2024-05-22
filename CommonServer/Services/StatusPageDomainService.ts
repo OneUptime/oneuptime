@@ -174,7 +174,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 return false;
             }
 
-            return false;
+            return true;
         } catch (err) {
             return false;
         }
