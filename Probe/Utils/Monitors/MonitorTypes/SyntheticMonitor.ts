@@ -21,8 +21,6 @@ export default class SyntheticMonitor {
     ): Promise<Array<SyntheticMonitorResponse> | null> {
         const results: Array<SyntheticMonitorResponse> = [];
 
-        debugger;
-
         for (const browserType of options.browserTypes || []) {
             for (const screenSizeType of options.screenSizeTypes || []) {
                 logger.debug(
@@ -102,9 +100,8 @@ export default class SyntheticMonitor {
 
                 const endTime: [number, number] = process.hrtime(startTime);
 
-                const executionTimeInMS: number = 
-                    (endTime[0] * 1000000000 + endTime[1]) / 1000000
-                
+                const executionTimeInMS: number =
+                    (endTime[0] * 1000000000 + endTime[1]) / 1000000;
 
                 scriptResult.executionTimeInMS = executionTimeInMS;
 

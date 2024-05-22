@@ -64,8 +64,6 @@ export default class ProbeMonitorResponseService {
         logger.debug('Processing probe response');
         logger.debug('Monitor ID: ' + dataToProcess.monitorId);
 
-        debugger;
-
         // fetch monitor
         const monitor: Monitor | null = await MonitorService.findOneById({
             id: dataToProcess.monitorId,

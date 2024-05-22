@@ -469,7 +469,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     <div className="mt-1">
                         <CheckBoxList
                             options={enumToCategoryCheckboxOption(BrowserType)}
-                            initialValue={props.initialValue?.data?.browserTypes || []}
+                            initialValue={
+                                props.initialValue?.data?.browserTypes || []
+                            }
                             onChange={(
                                 values: Array<CategoryCheckboxValue>
                             ) => {
@@ -497,7 +499,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                             options={enumToCategoryCheckboxOption(
                                 ScreenSizeType
                             )}
-                            initialValue={props.initialValue?.data?.screenSizeTypes || []}
+                            initialValue={
+                                props.initialValue?.data?.screenSizeTypes || []
+                            }
                             onChange={(
                                 values: Array<CategoryCheckboxValue>
                             ) => {

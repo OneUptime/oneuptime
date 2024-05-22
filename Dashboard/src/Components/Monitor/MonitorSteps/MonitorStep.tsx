@@ -122,8 +122,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 {
                     key: 'customCode',
                     title: 'JavaScript Code',
-                    description:
-                        'JavaScript code to run.',
+                    description: 'JavaScript code to run.',
                     fieldType: FieldType.JavaScript,
                     placeholder: 'No data entered',
                 },
@@ -133,25 +132,26 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 {
                     key: 'customCode',
                     title: 'JavaScript Code',
-                    description:
-                        'JavaScript code to run.',
+                    description: 'JavaScript code to run.',
                     fieldType: FieldType.JavaScript,
                     placeholder: 'No data entered',
                 },
                 {
                     key: 'browserTypes',
                     title: 'Browser Types',
-                    description: 'Browser types to run the synthetic monitor on.',
+                    description:
+                        'Browser types to run the synthetic monitor on.',
                     fieldType: FieldType.ArrayOfText,
                     placeholder: 'No data entered',
                 },
                 {
                     key: 'screenSizeTypes',
                     title: 'Screen Size Types',
-                    description: 'Screen size types to run the synthetic monitor on.',
+                    description:
+                        'Screen size types to run the synthetic monitor on.',
                     fieldType: FieldType.ArrayOfText,
                     placeholder: 'No data entered',
-                }
+                },
             ];
         }
         setRequestDetailsFields(fields);

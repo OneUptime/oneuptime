@@ -13,7 +13,6 @@ export default class SyntheticMonitoringCriteria {
                 input.criteriaFilter.value;
 
             // check custom code monitoring criteria first
-            debugger;
             const result: string | null =
                 await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet(
                     {
