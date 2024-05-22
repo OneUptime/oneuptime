@@ -64,7 +64,7 @@ export default class SyntheticMonitor {
             logMessages: [],
             scriptError: undefined,
             result: undefined,
-            screenshots: [],
+            screenshots: {},
             executionTimeInMS: 0,
             browserType: options.browserType,
             screenSizeType: options.screenSizeType,
@@ -108,8 +108,21 @@ export default class SyntheticMonitor {
 
                 scriptResult.logMessages = result.logMessages;
 
-                scriptResult.screenshots =
-                    result?.returnValue?.screenshots || [];
+                if(result.returnValue?.screenshots) {
+
+                    if(!scriptResult.screenshots) {
+                        scriptResult.screenshots = {};
+                    }
+
+                    for(const screenshotName in result.returnValue.screenshots) {
+
+                        if(!result.returnValue.screenshots.hasOwnProperty(screenshotName)) {
+                            continue;
+                        }
+
+                        scriptResult.screenshots[screenshotName] = (result.returnValue.screenshots[screenshotName] as any).toString('base64'); // convert screennshots to base 64
+                    }
+                }
 
                 scriptResult.result = result?.returnValue?.data;
             } catch (err) {

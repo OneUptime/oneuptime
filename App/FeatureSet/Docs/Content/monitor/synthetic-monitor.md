@@ -24,22 +24,15 @@ console.log(screenSizeType) // This will list the screen size type in the curren
 
 // To take screenshots,
 
-const screenshots = [];
+const screenshots = {};
 
-const screenshot = {
-    screenshotDataInBase64: (await page.screenshot()).toString('base64'), // returns base64 encoded image
-    screenshotName: 'Playwright Screenshot'
-};
-
-// make sure you add it to screnshot array
-
-screenshots.push(screenshot);
+screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
 // when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
 
 return {
     data: 'Hello World',
-    screenshots: screenshots // array of screenshots
+    screenshots: screenshots 
 };
 ```
 
@@ -53,20 +46,15 @@ You can take screenshots of the page at any point in the script. You can take mu
 
 ```javascript
 
-const screenshots = [];
+// To take screenshots,
 
-const screenshot = {
-    screenshotDataInBase64: (await page.screenshot()).toString('base64'), // returns base64 encoded image
-    screenshotName: 'Playwright Screenshot' // you can name the screenshot anything you like, this can be helpful for debugging
-};
+const screenshots = {};
 
-// make sure you add it to screnshot array
-
-screenshots.push(screenshot);
+screenshots['screenshot-name'] = await page.screenshot();
 
 return {
     data: 'Hello World',
-    screenshots: screenshots // array of screenshots
+    screenshots: screenshots 
 };
 
 ```

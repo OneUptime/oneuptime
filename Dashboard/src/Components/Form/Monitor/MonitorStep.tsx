@@ -93,31 +93,25 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
     if (props.monitorType === MonitorType.SyntheticMonitor) {
         codeEditorPlaceholder = `
-        You can use axios module, and page object from Playwright here.
-        Page Object is a class that represents a single page in a browser.
+        // You can use axios module, and page object from Playwright here.
+        // Page Object is a class that represents a single page in a browser.
 
         await page.goto('https://playwright.dev/');
         
-        Playwright Documentation here: https://playwright.dev/docs/intro
-        
-        To take screenshots, 
+        // Playwright Documentation here: https://playwright.dev/docs/intro
+    
+        // To take screenshots,
 
-        const screenshots = []; 
+        const screenshots = {};
 
-        const screenshot = {
-            screenshotDataInBase64: (await page.screenshot()).toString('base64'), // returns base64 encoded image
-            screenshotName: 'Playwright Screenshot'
-        };
+        screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
-        // make sure you add it to screnshot array
-
-        screenshots.push(screenshot);
 
         // when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
 
         return {
             data: 'Hello World',
-            screenshots: screenshots // array of screenshots 
+            screenshots: screenshots // obj containing screenshots
         };`;
     }
 

@@ -1,4 +1,10 @@
-export default interface Screenshot {
-    screenshotDataInBase64: string; // base64 encoded image
-    screenshotName: string;
-}
+import Dictionary from "../../Dictionary";
+
+export type Screenshot = string;  // base 64 encoded screenshots
+
+type Screenshots = Dictionary<Screenshot>;
+
+export default Screenshots;
+
+
+
