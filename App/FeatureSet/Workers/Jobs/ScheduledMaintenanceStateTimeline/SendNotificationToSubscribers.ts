@@ -99,6 +99,9 @@ RunCron(
                         monitors: {
                             _id: true,
                         },
+                        statusPages: {
+                            _id: true,
+                        },
                     },
                 });
 
@@ -158,9 +161,9 @@ RunCron(
 
             const statusPages: Array<StatusPage> =
                 await StatusPageSubscriberService.getStatusPagesToSendNotification(
-                    Object.keys(statusPageToResources).map((i: string) => {
-                        return new ObjectID(i);
-                    })
+                    event.statusPages?.map((i: StatusPage) => {
+                        return i.id!;
+                    }) || []
                 );
 
             for (const statuspage of statusPages) {
@@ -266,7 +269,7 @@ RunCron(
                                             ?.map((r: StatusPageResource) => {
                                                 return r.displayName;
                                             })
-                                            .join(', ') || 'None',
+                                            .join(', ') || '',
 
                                     eventState:
                                         scheduledEventStateTimeline

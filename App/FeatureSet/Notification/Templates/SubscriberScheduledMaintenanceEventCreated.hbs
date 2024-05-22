@@ -11,7 +11,9 @@
 {{> DetailBoxStart this }}
 {{> DetailBoxField title=eventTitle text="" }}
 {{> DetailBoxField title="Event Status: " text="Scheduled" }}
+{{#if resourcesAffected}}
 {{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{/if}}
 {{> DetailBoxField title="Event Scheduled At: " text=""  }}
 {{> DetailBoxField title="" text=scheduledAt  }}
 {{> DetailBoxField title="Event Description: " text=""  }}
