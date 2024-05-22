@@ -47,6 +47,30 @@ return {
 
 We use Playwright to simulate user interactions. You can use Playwright `page` object to interact with the browser and perform actions like clicking buttons, filling forms, and taking screenshots. 
 
+### Screenshots
+
+You can take screenshots of the page at any point in the script. You can take multiple screenshots and return them in the screenshots array. These screenshots will be available in the OneUptime Dashboard for that specific monitor.
+
+```javascript
+
+const screenshots = [];
+
+const screenshot = {
+    screenshotDataInBase64: (await page.screenshot()).toString('base64'), // returns base64 encoded image
+    screenshotName: 'Playwright Screenshot' // you can name the screenshot anything you like, this can be helpful for debugging
+};
+
+// make sure you add it to screnshot array
+
+screenshots.push(screenshot);
+
+return {
+    data: 'Hello World',
+    screenshots: screenshots // array of screenshots
+};
+
+```
+
 ### Things to consider
 
 - You only have `page` object available in the context of the script. This is from Playwright Page class. You can use it to run all the interactions with the browser.
