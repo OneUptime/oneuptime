@@ -471,7 +471,7 @@ export default class CriteriaFilterUtil {
             return true;
         }
 
-        return true;
+        return false;
     }
 
     public static getDropdownOptionsByCheckOn(data: {

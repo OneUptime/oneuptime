@@ -105,8 +105,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         const screenshots = []; 
 
         const screenshot = {
-            screenshotDataInBase64: (await page.screenshot()).toString('base64'); // returns base64 encoded image
-            screenshotName: 'Playwright Screenshot';
+            screenshotDataInBase64: (await page.screenshot()).toString('base64'), // returns base64 encoded image
+            screenshotName: 'Playwright Screenshot'
         };
 
         // make sure you add it to screnshot array
