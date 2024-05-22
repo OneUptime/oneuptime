@@ -53,7 +53,7 @@ export default class CustomCodeMonitor {
 
                 scriptResult.logMessages = result.logMessages;
 
-                scriptResult.result = result.returnValue.data;
+                scriptResult.result = result?.returnValue?.data;
             } catch (err) {
                 logger.error(err);
                 scriptResult.scriptError =

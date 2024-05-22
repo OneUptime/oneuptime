@@ -51,7 +51,6 @@ export default class FetchListAndProbe {
 
     private async fetchListAndProbe(): Promise<void> {
         try {
-
             debugger;
 
             logger.debug('Fetching monitor list');
@@ -81,7 +80,6 @@ export default class FetchListAndProbe {
             );
 
             for (const monitor of monitors) {
-
                 debugger;
                 try {
                     await MonitorUtil.probeMonitor(monitor);

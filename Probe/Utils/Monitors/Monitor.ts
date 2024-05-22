@@ -133,13 +133,11 @@ export default class MonitorUtil {
         if (!monitorStep.data) {
             return result;
         }
-       
 
         if (
             monitor.monitorType === MonitorType.Ping ||
             monitor.monitorType === MonitorType.IP
         ) {
-
             if (!monitorStep.data?.monitorDestination) {
                 return result;
             }
@@ -184,7 +182,6 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Port) {
-
             if (!monitorStep.data?.monitorDestination) {
                 return result;
             }
@@ -260,7 +257,6 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.SSLCertificate) {
-
             if (!monitorStep.data?.monitorDestination) {
                 return result;
             }
@@ -293,7 +289,6 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.Website) {
-
             if (!monitorStep.data?.monitorDestination) {
                 return result;
             }
@@ -321,11 +316,10 @@ export default class MonitorUtil {
         }
 
         if (monitor.monitorType === MonitorType.API) {
-
             if (!monitorStep.data?.monitorDestination) {
                 return result;
             }
-            
+
             let requestBody: JSONObject | undefined = undefined;
             if (
                 monitorStep.data?.requestBody &&

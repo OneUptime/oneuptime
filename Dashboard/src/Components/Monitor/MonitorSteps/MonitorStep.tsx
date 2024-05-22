@@ -117,6 +117,42 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     placeholder: 'No data entered',
                 },
             ];
+        } else if (props.monitorType === MonitorType.CustomJavaScriptCode) {
+            fields = [
+                {
+                    key: 'customCode',
+                    title: 'JavaScript Code',
+                    description:
+                        'JavaScript code to run.',
+                    fieldType: FieldType.JavaScript,
+                    placeholder: 'No data entered',
+                },
+            ];
+        } else if (props.monitorType === MonitorType.SyntheticMonitor) {
+            fields = [
+                {
+                    key: 'customCode',
+                    title: 'JavaScript Code',
+                    description:
+                        'JavaScript code to run.',
+                    fieldType: FieldType.JavaScript,
+                    placeholder: 'No data entered',
+                },
+                {
+                    key: 'browserTypes',
+                    title: 'Browser Types',
+                    description: 'Browser types to run the synthetic monitor on.',
+                    fieldType: FieldType.ArrayOfText,
+                    placeholder: 'No data entered',
+                },
+                {
+                    key: 'screenSizeTypes',
+                    title: 'Screen Size Types',
+                    description: 'Screen size types to run the synthetic monitor on.',
+                    fieldType: FieldType.ArrayOfText,
+                    placeholder: 'No data entered',
+                }
+            ];
         }
         setRequestDetailsFields(fields);
     }, [props.monitorType]);

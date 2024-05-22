@@ -95,6 +95,8 @@ export default class SyntheticMonitor {
                         args: {},
                         context: {
                             page: pageAndBrowser.page,
+                            screenSizeType: options.screenSizeType,
+                            browserType: options.browserType,
                         },
                     },
                 });
@@ -110,9 +112,9 @@ export default class SyntheticMonitor {
                 scriptResult.logMessages = result.logMessages;
 
                 scriptResult.screenshots =
-                    result.returnValue?.screenshots || [];
+                    result?.returnValue?.screenshots || [];
 
-                scriptResult.result = result.returnValue.data;
+                scriptResult.result = result?.returnValue?.data;
             } catch (err) {
                 logger.error(err);
                 scriptResult.scriptError =

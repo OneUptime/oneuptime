@@ -211,6 +211,10 @@ const Detail: DetailFunction = <T extends GenericObject>(
             );
         }
 
+        if (data && field.fieldType === FieldType.ArrayOfText) {
+            data = (data as any).join(", ")
+        }
+
         if (!data && field.fieldType === FieldType.Color && field.placeholder) {
             data = getColorField(new Color(field.placeholder));
         }
