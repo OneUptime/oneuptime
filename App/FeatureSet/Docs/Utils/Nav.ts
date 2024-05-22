@@ -39,9 +39,18 @@ const DocsNav: NavGroup[] = [
         title: 'Monitor',
         links: [
             {
+                title: 'Custom Code Monitor',
+                url: '/docs/monitor/custom-code-monitor',
+            },
+            {
+                title: 'Synthetic Monitor',
+                url: '/docs/monitor/synthetic-monitor',
+            },
+            {
                 title: 'JavaScript Expressions',
                 url: '/docs/monitor/javascript-expression',
             },
+
         ],
     },
     {

@@ -51,7 +51,6 @@ export default class FetchListAndProbe {
 
     private async fetchListAndProbe(): Promise<void> {
         try {
-
             logger.debug('Fetching monitor list');
 
             const monitorListUrl: URL = URL.fromString(
@@ -79,7 +78,6 @@ export default class FetchListAndProbe {
             );
 
             for (const monitor of monitors) {
-
                 try {
                     await MonitorUtil.probeMonitor(monitor);
                 } catch (err) {
