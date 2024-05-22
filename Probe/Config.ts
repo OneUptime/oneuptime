@@ -58,3 +58,20 @@ if (typeof monitorFetchLimit === 'string') {
 export const PROBE_MONITOR_FETCH_LIMIT: number = monitorFetchLimit;
 
 export const HOSTNAME: string = process.env['HOSTNAME'] || 'localhost';
+
+export const PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: number = process.env[
+    'PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS'
+]
+    ? parseInt(
+          process.env['PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS'].toString()
+      )
+    : 60000;
+
+export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number = process
+    .env['PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS']
+    ? parseInt(
+          process.env[
+              'PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS'
+          ].toString()
+      )
+    : 60000;

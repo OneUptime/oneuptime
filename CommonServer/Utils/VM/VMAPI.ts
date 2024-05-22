@@ -14,6 +14,7 @@ export default class VMUtil {
         code: string;
         options: {
             args?: JSONObject | undefined;
+            timeout?: number | undefined;
         };
     }): Promise<ReturnResult> {
         const returnResultHttpResponse:

@@ -40,7 +40,7 @@ router.post(
                 result = await VMRunner.runCodeInSandbox({
                     code: req.body.code,
                     options: {
-                        timeout: 5000,
+                        timeout: req.body?.['options']?.['timeout'] || 5000,
                         args: req.body?.['options']?.['args'] || {},
                     },
                 });

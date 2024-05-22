@@ -173,6 +173,9 @@ Usage:
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
   value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
 
+- name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
+  value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
+
 {{- end }}
 
 {{- define "oneuptime.env.pod" }}

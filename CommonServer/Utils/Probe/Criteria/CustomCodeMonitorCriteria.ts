@@ -31,7 +31,7 @@ export default class CustomCodeMonitoringCriteria {
         if (input.criteriaFilter.checkOn === CheckOn.Error) {
             const emptyNotEmptyResult: string | null =
                 CompareCriteria.compareEmptyAndNotEmpty({
-                    value: syntheticMonitorResponse.result,
+                    value: syntheticMonitorResponse.scriptError,
                     criteriaFilter: input.criteriaFilter,
                 });
 
@@ -41,11 +41,11 @@ export default class CustomCodeMonitoringCriteria {
 
             if (
                 threshold &&
-                typeof syntheticMonitorResponse.result === 'string'
+                typeof syntheticMonitorResponse.scriptError === 'string'
             ) {
                 const result: string | null =
                     CompareCriteria.compareCriteriaStrings({
-                        value: syntheticMonitorResponse.result,
+                        value: syntheticMonitorResponse.scriptError!,
                         threshold: threshold.toString(),
                         criteriaFilter: input.criteriaFilter,
                     });

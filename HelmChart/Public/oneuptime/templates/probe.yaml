@@ -57,6 +57,11 @@ spec:
               value: {{ $val.description }}
             - name: PROBE_MONITORING_WORKERS
               value: {{ $val.monitoringWorkers | squote }}
+            # syntheticMonitorScriptTimeoutInMs
+            - name: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS
+              value: {{ $val.syntheticMonitorScriptTimeoutInMs | squote }}
+            - name: PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS
+              value: {{ $val.customCodeMonitorScriptTimeoutInMs | squote }}
             - name: PROBE_KEY
               {{- if $val.key }}
               value: {{ $val.key }}

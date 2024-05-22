@@ -7,6 +7,7 @@ import VMRunner from 'CommonServer/Utils/VM/VMRunner';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 import { Browser, firefox, webkit, chromium, Page } from 'playwright';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from '../../../Config';
 
 export interface SyntheticMonitorOptions {
     monitorId?: ObjectID | undefined;
@@ -88,7 +89,7 @@ export default class SyntheticMonitor {
                 result = await VMRunner.runCodeInSandbox({
                     code: options.script,
                     options: {
-                        timeout: 120000, // 2 minutes
+                        timeout: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
                         args: {},
                         context: {
                             page: pageAndBrowser.page,

@@ -173,3 +173,9 @@ export const HttpProtocol: Protocol =
     process.env['HTTP_PROTOCOL'] === 'https' ? Protocol.HTTPS : Protocol.HTTP;
 
 export const Host: string = process.env['HOST'] || '';
+
+export const WorkflowScriptTimeoutInMS: number = process.env[
+    'WORKFLOW_SCRIPT_TIMEOUT_IN_MS'
+]
+    ? parseInt(process.env['WORKFLOW_SCRIPT_TIMEOUT_IN_MS'].toString())
+    : 5000;

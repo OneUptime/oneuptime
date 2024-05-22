@@ -6,6 +6,7 @@ import JavaScriptComponents from 'Common/Types/Workflow/Components/JavaScript';
 import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 import VMUtil from '../../../Utils/VM/VMAPI';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import { WorkflowScriptTimeoutInMS } from '../../../EnvironmentConfig';
 
 export default class JavaScriptCode extends ComponentCode {
     public constructor() {
@@ -69,6 +70,7 @@ export default class JavaScriptCode extends ComponentCode {
                 code,
                 options: {
                     args: scriptArgs as JSONObject,
+                    timeout: WorkflowScriptTimeoutInMS,
                 },
             });
 

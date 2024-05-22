@@ -143,7 +143,9 @@ probes:
     monitoringWorkers: 3
     monitorFetchLimit: 10
     key:
-    replicaCount: 1 
+    replicaCount: 1
+    syntheticMonitorScriptTimeoutInMs: 60000
+    customCodeMonitorScriptTimeoutInMs: 60000
     # Feel free to leave this blank if you're not integrating this with OpenTelemetry Backend.
     openTelemetryExporter: 
       headers:
@@ -154,6 +156,8 @@ probes:
   #   monitorFetchLimit: 10
   #   key:
   #   replicaCount: 1
+  #   syntheticMonitorScriptTimeoutInMs: 60000
+  #   customCodeMonitorScriptTimeoutInMs: 60000
   #   openTelemetryExporter:
   #     headers:
 
@@ -236,6 +240,9 @@ oneuptimeIngress:
       # - host: "oneuptime.com" # Host 1
       #   secretName: "oneuptime-tls
 
+
+script: 
+  workflowScriptTimeoutInMs: 5000
 
 # extraTemplates -- Array of extra objects to deploy with the release. Strings
 # are evaluated as a template and can use template expansions and functions. All
