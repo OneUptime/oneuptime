@@ -50,7 +50,6 @@ const DocsNav: NavGroup[] = [
                 title: 'JavaScript Expressions',
                 url: '/docs/monitor/javascript-expression',
             },
-
         ],
     },
     {
