@@ -4,7 +4,7 @@ Synthetic monitoring is a way to proactively monitor your applications by simula
 
 #### Example
 
-The following example shows how to use a Synthtic Monitor:
+The following example shows how to use a Synthetic Monitor:
 
 ```javascript
 // You can use axios module, and page object from Playwright here.

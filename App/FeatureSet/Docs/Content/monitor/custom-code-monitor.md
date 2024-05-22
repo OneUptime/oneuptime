@@ -4,10 +4,10 @@ Custom Code Monitor allows you to write custom scripts to monitor your applicati
 
 #### Example
 
-The following example shows how to use a Synthtic Monitor:
+The following example shows how to use a Synthetic Monitor:
 
 ```javascript
-// You can use axios module, and page object from Playwright here.
+// You can use axios module.
 
 await axios.get('https://api.example.com/');
 
