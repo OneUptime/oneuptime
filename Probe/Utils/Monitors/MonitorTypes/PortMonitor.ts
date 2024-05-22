@@ -63,7 +63,7 @@ export default class PortMonitor {
             throw new BadDataException('Port is not specified');
         }
 
-        logger.info(
+        logger.debug(
             `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${
                 pingOptions?.currentRetryCount
             }`
@@ -100,7 +100,7 @@ export default class PortMonitor {
                                 (endTime[0] * 1000000000 + endTime[1]) / 1000000
                             );
 
-                        logger.info(
+                        logger.debug(
                             `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port!.toString()} success: Response Time ${responseTimeInMS} ms`
                         );
 
@@ -115,7 +115,7 @@ export default class PortMonitor {
 
                     socket.on('timeout', () => {
                         socket.destroy();
-                        logger.info('Ping timeout');
+                        logger.debug('Ping timeout');
 
                         if (!hasPromiseResolved) {
                             reject(new UnableToReachServer('Ping timeout'));
@@ -127,7 +127,7 @@ export default class PortMonitor {
 
                     socket.on('error', (error: Error) => {
                         socket.destroy();
-                        logger.info(
+                        logger.debug(
                             'Could not connect to: ' + host + ':' + port
                         );
 
@@ -161,11 +161,11 @@ export default class PortMonitor {
                 failureCause: '',
             };
         } catch (err: unknown) {
-            logger.info(
+            logger.debug(
                 `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port.toString()} error: `
             );
 
-            logger.info(err);
+            logger.debug(err);
 
             if (!pingOptions) {
                 pingOptions = {};

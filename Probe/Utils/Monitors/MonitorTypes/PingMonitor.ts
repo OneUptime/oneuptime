@@ -54,7 +54,7 @@ export default class PingMonitor {
             hostAddress = host.toString();
         }
 
-        logger.info(
+        logger.debug(
             `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress} - Retry: ${
                 pingOptions?.currentRetryCount
             }`
@@ -70,10 +70,10 @@ export default class PingMonitor {
                 }
             );
 
-            logger.info(
+            logger.debug(
                 `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} success: `
             );
-            logger.info(res);
+            logger.debug(res);
 
             if (!res.alive) {
                 throw new UnableToReachServer(
@@ -103,10 +103,10 @@ export default class PingMonitor {
                 failureCause: '',
             };
         } catch (err: unknown) {
-            logger.info(
+            logger.debug(
                 `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} error: `
             );
-            logger.info(err);
+            logger.debug(err);
 
             if (!pingOptions) {
                 pingOptions = {};
@@ -127,7 +127,7 @@ export default class PingMonitor {
                 (err as any).toString().includes('timeout') &&
                 (err as any).toString().includes('exceeded')
             ) {
-                logger.info(
+                logger.debug(
                     `Ping Monitor - Timeout exceeded ${pingOptions.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
                 );
 

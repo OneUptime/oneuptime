@@ -358,8 +358,8 @@ export default class AnalyticsDatabaseService<
             }}
             `);
         }
-        logger.info(`${this.model.tableName} Count Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Count Statement`);
+        logger.debug(statement);
 
         return statement;
     }
@@ -423,8 +423,8 @@ export default class AnalyticsDatabaseService<
 
         /* eslint-enable prettier/prettier */
 
-        logger.info(`${this.model.tableName} Find Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Find Statement`);
+        logger.debug(statement);
 
         return { statement, columns: select.columns };
     }
@@ -445,8 +445,8 @@ export default class AnalyticsDatabaseService<
             DELETE WHERE TRUE `.append(whereStatement);
         /* eslint-enable prettier/prettier */
 
-        logger.info(`${this.model.tableName} Delete Statement`);
-        logger.info(statement);
+        logger.debug(`${this.model.tableName} Delete Statement`);
+        logger.debug(statement);
 
         return statement;
     }

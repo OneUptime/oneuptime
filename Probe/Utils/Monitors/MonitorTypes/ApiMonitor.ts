@@ -54,7 +54,7 @@ export default class ApiMonitor {
         }
 
         try {
-            logger.info(
+            logger.debug(
                 `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
                     options.currentRetryCount
                 }`
@@ -130,7 +130,7 @@ export default class ApiMonitor {
                 failureCause: '',
             };
 
-            logger.info(
+            logger.debug(
                 `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
                     apiResponse
                 )}`
@@ -179,7 +179,7 @@ export default class ApiMonitor {
                 (err as any).toString().includes('timeout') &&
                 (err as any).toString().includes('exceeded')
             ) {
-                logger.info(
+                logger.debug(
                     `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                 );
 

@@ -475,11 +475,11 @@ export class BillingService extends BaseService {
         meteredSubscriptionId: string;
         trialEndsAt?: Date | undefined;
     }> {
-        logger.info('Changing plan');
-        logger.info(data);
+        logger.debug('Changing plan');
+        logger.debug(data);
 
         if (!this.isBillingEnabled()) {
-            logger.info(Errors.BillingService.BILLING_NOT_ENABLED);
+            logger.debug(Errors.BillingService.BILLING_NOT_ENABLED);
 
             throw new BadDataException(
                 Errors.BillingService.BILLING_NOT_ENABLED
@@ -489,46 +489,46 @@ export class BillingService extends BaseService {
         const subscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.retrieve(data.subscriptionId);
 
-        logger.info('Subscription');
-        logger.info(subscription);
+        logger.debug('Subscription');
+        logger.debug(subscription);
 
         if (!subscription) {
-            logger.info(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);
+            logger.debug(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);
             throw new BadDataException(
                 Errors.BillingService.SUBSCRIPTION_NOT_FOUND
             );
         }
 
-        logger.info('Subscription status');
-        logger.info(subscription.status);
+        logger.debug('Subscription status');
+        logger.debug(subscription.status);
 
         const paymentMethods: Array<PaymentMethod> =
             await this.getPaymentMethods(subscription.customer.toString());
 
-        logger.info('Payment methods');
-        logger.info(paymentMethods);
+        logger.debug('Payment methods');
+        logger.debug(paymentMethods);
 
         if (paymentMethods.length === 0) {
-            logger.info('No payment methods');
+            logger.debug('No payment methods');
 
             throw new BadDataException(
                 Errors.BillingService.NO_PAYMENTS_METHODS
             );
         }
 
-        logger.info('Cancelling subscriptions');
-        logger.info(data.subscriptionId);
+        logger.debug('Cancelling subscriptions');
+        logger.debug(data.subscriptionId);
         await this.cancelSubscription(data.subscriptionId);
 
-        logger.info('Cancelling metered subscriptions');
-        logger.info(data.meteredSubscriptionId);
+        logger.debug('Cancelling metered subscriptions');
+        logger.debug(data.meteredSubscriptionId);
         await this.cancelSubscription(data.meteredSubscriptionId);
 
         if (data.endTrialAt && !OneUptimeDate.isInTheFuture(data.endTrialAt)) {
             data.endTrialAt = undefined;
         }
 
-        logger.info('Subscribing to plan');
+        logger.debug('Subscribing to plan');
 
         const subscribeToPlan: {
             subscriptionId: string;
@@ -546,7 +546,7 @@ export class BillingService extends BaseService {
             promoCode: undefined,
         });
 
-        logger.info('Subscribed to plan');
+        logger.debug('Subscribed to plan');
 
         const value: {
             subscriptionId: string;

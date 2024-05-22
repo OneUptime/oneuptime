@@ -82,9 +82,9 @@ export default class Register {
 
         while (currentRetry < maxRetry) {
             try {
-                logger.info(`Registering probe. Attempt: ${currentRetry + 1}`);
+                logger.debug(`Registering probe. Attempt: ${currentRetry + 1}`);
                 await Register._registerProbe();
-                logger.info(`Probe registered successfully.`);
+                logger.debug(`Probe registered successfully.`);
                 break;
             } catch (error) {
                 logger.error(
@@ -103,8 +103,8 @@ export default class Register {
                 INGESTOR_URL.toString()
             ).addRoute('/register');
 
-            logger.info('Registering Probe...');
-            logger.info(
+            logger.debug('Registering Probe...');
+            logger.debug(
                 'Sending request to: ' + probeRegistrationUrl.toString()
             );
 
@@ -119,7 +119,7 @@ export default class Register {
             );
 
             if (result.isSuccess()) {
-                logger.info('Probe Registered');
+                logger.debug('Probe Registered');
 
                 const probeId: string = result.data['_id'] as string;
 
@@ -147,7 +147,7 @@ export default class Register {
             );
         }
 
-        logger.info(
+        logger.debug(
             `Probe ID: ${
                 LocalCache.getString('PROBE', 'PROBE_ID') || 'Unknown'
             }`

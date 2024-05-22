@@ -284,8 +284,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
             return false;
         } catch (err) {
-            logger.info('Failed checking for CNAME ' + fullDomain);
-            logger.info(err);
+            logger.debug('Failed checking for CNAME ' + fullDomain);
+            logger.debug(err);
 
             await this.updateCnameStatusForStatusPageDomain({
                 domain: fullDomain,
@@ -321,7 +321,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
             throw new BadDataException('Domain not found');
         }
 
-        logger.info(
+        logger.debug(
             `StatusPageCerts:RemoveCerts - Checking CNAME ${statusPageDomain.fullDomain}`
         );
 
@@ -414,7 +414,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
                 return await this.isCnameValid(fullDomain);
             },
             notifyDomainRemoved: async (domain: string) => {
-                logger.info(`Domain removed from greenlock: ${domain}`);
+                logger.debug(`Domain removed from greenlock: ${domain}`);
             },
         });
     }

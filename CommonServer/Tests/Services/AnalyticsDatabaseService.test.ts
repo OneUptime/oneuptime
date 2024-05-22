@@ -77,12 +77,12 @@ describe('AnalyticsDatabaseService', () => {
                 '<query>'
             );
 
-            expect(jest.mocked(logger.info)).toHaveBeenCalledTimes(2);
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 1,
                 '<table-name> Count Statement'
             );
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 2,
                 statement
             );
@@ -185,12 +185,12 @@ describe('AnalyticsDatabaseService', () => {
                 '<sort>'
             );
 
-            expect(jest.mocked(logger.info)).toHaveBeenCalledTimes(2);
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 1,
                 '<table-name> Find Statement'
             );
-            expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+            expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                 2,
                 statement
             );
@@ -231,12 +231,12 @@ describe('AnalyticsDatabaseService', () => {
                     service.statementGenerator.toWhereStatement
                 ).toBeCalledWith('<query>');
 
-                expect(jest.mocked(logger.info)).toHaveBeenCalledTimes(2);
-                expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+                expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
+                expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                     1,
                     '<table-name> Delete Statement'
                 );
-                expect(jest.mocked(logger.info)).toHaveBeenNthCalledWith(
+                expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
                     2,
                     statement
                 );

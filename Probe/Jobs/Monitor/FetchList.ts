@@ -21,17 +21,17 @@ export default class FetchListAndProbe {
     }
 
     public async run(): Promise<void> {
-        logger.info(`Running worker ${this.workerName}`);
+        logger.debug(`Running worker ${this.workerName}`);
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
             const runTime: Date = OneUptimeDate.getCurrentDate();
 
-            logger.info(`Probing monitors ${this.workerName}`);
+            logger.debug(`Probing monitors ${this.workerName}`);
 
             await this.fetchListAndProbe();
 
-            logger.info(`Probing monitors ${this.workerName} complete`);
+            logger.debug(`Probing monitors ${this.workerName} complete`);
 
             // if rumTime  + 5 seconds is in the future, then this fetchLst either errored out or had no monitors in the list. Either way, wait for 5 seconds and proceed.
 
@@ -41,7 +41,7 @@ export default class FetchListAndProbe {
             );
 
             if (OneUptimeDate.isInTheFuture(twoSecondsAdded)) {
-                logger.info(
+                logger.debug(
                     `Worker ${this.workerName} is waiting for 2 seconds`
                 );
                 await Sleep.sleep(2000);
@@ -51,7 +51,10 @@ export default class FetchListAndProbe {
 
     private async fetchListAndProbe(): Promise<void> {
         try {
-            logger.info('Fetching monitor list');
+
+            debugger;
+
+            logger.debug('Fetching monitor list');
 
             const monitorListUrl: URL = URL.fromString(
                 INGESTOR_URL.toString()
@@ -69,8 +72,8 @@ export default class FetchListAndProbe {
                     {}
                 );
 
-            logger.info('Fetched monitor list');
-            logger.info(result);
+            logger.debug('Fetched monitor list');
+            logger.debug(result);
 
             const monitors: Array<Monitor> = BaseModel.fromJSONArray(
                 result.data as JSONArray,
@@ -78,6 +81,8 @@ export default class FetchListAndProbe {
             );
 
             for (const monitor of monitors) {
+
+                debugger;
                 try {
                     await MonitorUtil.probeMonitor(monitor);
                 } catch (err) {

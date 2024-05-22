@@ -23,7 +23,7 @@ export default class GreenlockUtil {
         validateCname: (domain: string) => Promise<boolean>;
         notifyDomainRemoved: (domain: string) => Promise<void>;
     }): Promise<void> {
-        logger.info('Renewing all certificates');
+        logger.debug('Renewing all certificates');
 
         // get all certificates which are expiring soon
 

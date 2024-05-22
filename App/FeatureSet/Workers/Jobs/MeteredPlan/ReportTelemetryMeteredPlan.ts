@@ -24,7 +24,7 @@ RunCron(
     },
     async () => {
         if (!IsBillingEnabled) {
-            logger.info(
+            logger.debug(
                 'MeteredPlan:ReportTelemetryMeteredPlan Billing is not enabled. Skipping job.'
             );
             return;

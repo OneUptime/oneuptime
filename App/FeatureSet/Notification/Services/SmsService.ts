@@ -251,8 +251,8 @@ export default class SmsService {
             smsLog.status = SmsStatus.Success;
             smsLog.statusMessage = 'Message ID: ' + twillioMessage.sid;
 
-            logger.info('SMS message sent successfully.');
-            logger.info(smsLog.statusMessage);
+            logger.debug('SMS message sent successfully.');
+            logger.debug(smsLog.statusMessage);
 
             if (shouldChargeForSMS && project) {
                 smsLog.smsCostInUSDCents = smsCost * 100;

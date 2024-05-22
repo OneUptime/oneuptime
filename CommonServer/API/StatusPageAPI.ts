@@ -96,7 +96,7 @@ export default class StatusPageAPI extends BaseAPI<
 
                 const token: string = req.params['token'] as string;
 
-                logger.info(
+                logger.debug(
                     `CNAME Verification: Host:${host}  - Token:${token}`
                 );
 

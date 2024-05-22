@@ -23,10 +23,10 @@ export default class Domain extends DomainCommon {
                             return reject(err);
                         }
 
-                        logger.info('Verify TXT Record');
-                        logger.info('Domain ' + domain.toString());
-                        logger.info('Data: ');
-                        logger.info(data);
+                        logger.debug('Verify TXT Record');
+                        logger.debug('Domain ' + domain.toString());
+                        logger.debug('Data: ');
+                        logger.debug(data);
 
                         let isVerified: boolean = false;
                         for (const item of data) {

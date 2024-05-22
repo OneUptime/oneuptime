@@ -296,7 +296,7 @@ export class Service extends DatabaseService<Model> {
                     project.paymentProviderPlanId !==
                     updateBy.data.paymentProviderPlanId
                 ) {
-                    logger.info('Changing plan for project ' + project.id);
+                    logger.debug('Changing plan for project ' + project.id);
 
                     const plan: SubscriptionPlan | undefined =
                         SubscriptionPlan.getSubscriptionPlanById(
@@ -308,7 +308,7 @@ export class Service extends DatabaseService<Model> {
                         throw new BadDataException('Invalid plan');
                     }
 
-                    logger.info(
+                    logger.debug(
                         'Changing plan for project ' +
                             project.id?.toString() +
                             ' to ' +
@@ -322,7 +322,7 @@ export class Service extends DatabaseService<Model> {
                             );
                     }
 
-                    logger.info(
+                    logger.debug(
                         'Changing plan for project ' +
                             project.id?.toString() +
                             ' to ' +
@@ -351,7 +351,7 @@ export class Service extends DatabaseService<Model> {
                         endTrialAt: project.trialEndsAt,
                     });
 
-                    logger.info(
+                    logger.debug(
                         'Changing plan for project ' +
                             project.id?.toString() +
                             ' to ' +
@@ -379,7 +379,7 @@ export class Service extends DatabaseService<Model> {
                         },
                     });
 
-                    logger.info(
+                    logger.debug(
                         'Changing plan for project ' +
                             project.id?.toString() +
                             ' to ' +
@@ -1040,7 +1040,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     public async reactiveSubscription(projectId: ObjectID): Promise<void> {
-        logger.info('Reactivating subscription for project ' + projectId);
+        logger.debug('Reactivating subscription for project ' + projectId);
 
         const project: Model | null = await this.findOneById({
             id: projectId!,

@@ -31,8 +31,8 @@ router.post(
                 );
             }
 
-            logger.info('Running code in sandbox');
-            logger.info(req.body.code);
+            logger.debug('Running code in sandbox');
+            logger.debug(req.body.code);
 
             let result: ReturnResult | null = null;
 
@@ -49,11 +49,11 @@ router.post(
                 throw new BadDataException((err as Error).message);
             }
 
-            logger.info('Code execution completed');
-            logger.info(result.returnValue);
+            logger.debug('Code execution completed');
+            logger.debug(result.returnValue);
 
-            logger.info('Code Logs ');
-            logger.info(result.logMessages);
+            logger.debug('Code Logs ');
+            logger.debug(result.logMessages);
 
             if (typeof result.returnValue === 'object') {
                 result.returnValue = JSONFunctions.removeCircularReferences(

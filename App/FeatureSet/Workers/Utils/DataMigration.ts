@@ -21,15 +21,15 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
                 });
 
             if (existingMigration) {
-                logger.info('Skipping Database Migration:' + migration.name);
+                logger.debug('Skipping Database Migration:' + migration.name);
                 continue;
             }
 
-            logger.info('Running Database Migration:' + migration.name);
+            logger.debug('Running Database Migration:' + migration.name);
 
             await migration.migrate();
 
-            logger.info('Database Migration Complete:' + migration.name);
+            logger.debug('Database Migration Complete:' + migration.name);
 
             // add it to the database.
             const dataMigration: DataMigration = new DataMigration();
@@ -46,7 +46,7 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
         } catch (err) {
             logger.error('Database Migration Failed:' + migration.name);
             logger.error(err);
-            logger.info('Rolling back Database Migration:' + migration.name);
+            logger.debug('Rolling back Database Migration:' + migration.name);
 
             try {
                 await migration.rollback();

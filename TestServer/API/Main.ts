@@ -42,10 +42,10 @@ const returnResponse: RequestHandler = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        logger.info('Request Headers: ');
-        logger.info(req.headers);
-        logger.info('Request Body: ');
-        logger.info(req.body);
+        logger.debug('Request Headers: ');
+        logger.debug(req.headers);
+        logger.debug('Request Body: ');
+        logger.debug(req.body);
 
         const responseCode: number | undefined =
             LocalCache.getNumber('TestServer', 'responseCode') || 200;
@@ -56,12 +56,12 @@ const returnResponse: RequestHandler = async (
         let responseHeaders: JSONValue | undefined =
             LocalCache.getJSON('TestServer', 'responseHeaders') || {};
 
-        logger.info('Response Code: ' + responseCode);
-        logger.info('Response Time: ' + responseTime);
-        logger.info('Response Body: ');
-        logger.info(responseBody);
-        logger.info('Response Headers: ');
-        logger.info(responseHeaders);
+        logger.debug('Response Code: ' + responseCode);
+        logger.debug('Response Time: ' + responseTime);
+        logger.debug('Response Body: ');
+        logger.debug(responseBody);
+        logger.debug('Response Headers: ');
+        logger.debug(responseHeaders);
 
         if (responseHeaders && typeof responseHeaders === Typeof.String) {
             responseHeaders = JSON.parse(responseHeaders.toString());

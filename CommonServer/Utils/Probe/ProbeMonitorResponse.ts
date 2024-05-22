@@ -61,8 +61,8 @@ export default class ProbeMonitorResponseService {
             rootCause: null,
         };
 
-        logger.info('Processing probe response');
-        logger.info('Monitor ID: ' + dataToProcess.monitorId);
+        logger.debug('Processing probe response');
+        logger.debug('Monitor ID: ' + dataToProcess.monitorId);
 
         // fetch monitor
         const monitor: Monitor | null = await MonitorService.findOneById({
@@ -87,7 +87,7 @@ export default class ProbeMonitorResponseService {
         }
 
         if (monitor.disableActiveMonitoring) {
-            logger.info(
+            logger.debug(
                 `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`
             );
 
@@ -97,7 +97,7 @@ export default class ProbeMonitorResponseService {
         }
 
         if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
-            logger.info(
+            logger.debug(
                 `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`
             );
 
@@ -107,7 +107,7 @@ export default class ProbeMonitorResponseService {
         }
 
         if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
-            logger.info(
+            logger.debug(
                 `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.`
             );
 
@@ -119,7 +119,7 @@ export default class ProbeMonitorResponseService {
         // save the last log to MonitorProbe.
 
         // get last log. We do this because there are many monitoring steps and we need to store those.
-        logger.info(
+        logger.debug(
             `${dataToProcess.monitorId.toString()} - monitor type ${
                 monitor.monitorType
             }`
@@ -223,7 +223,7 @@ export default class ProbeMonitorResponseService {
             monitorSteps.data?.monitorStepsInstanceArray.length === 0
         ) {
             // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
-            logger.info(
+            logger.debug(
                 `${dataToProcess.monitorId.toString()} - No monitoring steps.`
             );
             return response;
@@ -327,12 +327,12 @@ export default class ProbeMonitorResponseService {
         });
 
         if (response.criteriaMetId && response.rootCause) {
-            logger.info(
+            logger.debug(
                 `${dataToProcess.monitorId.toString()} - Criteria met: ${
                     response.criteriaMetId
                 }`
             );
-            logger.info(
+            logger.debug(
                 `${dataToProcess.monitorId.toString()} - Root cause: ${
                     response.rootCause
                 }`
@@ -351,7 +351,7 @@ export default class ProbeMonitorResponseService {
             monitor.currentMonitorStatusId?.toString() !==
                 monitorSteps.data.defaultMonitorStatusId.toString()
         ) {
-            logger.info(
+            logger.debug(
                 `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`
             );
 
@@ -630,7 +630,7 @@ export default class ProbeMonitorResponseService {
             input.criteriaInstance.data?.monitorStatusId.toString() !==
                 input.monitor.currentMonitorStatusId?.toString()
         ) {
-            logger.info(
+            logger.debug(
                 `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId.toString()}`
             );
             // change monitor status
@@ -659,7 +659,7 @@ export default class ProbeMonitorResponseService {
         }
 
         // check open incidents
-        logger.info(`${input.monitor.id?.toString()} - Check open incidents.`);
+        logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`);
         // check active incidents and if there are open incidents, do not cretae anothr incident.
         const openIncidents: Array<Incident> =
             await this.checkOpenIncidentsAndCloseIfResolved({
@@ -691,11 +691,11 @@ export default class ProbeMonitorResponseService {
                 const hasAlreadyOpenIncident: boolean =
                     Boolean(alreadyOpenIncident);
 
-                logger.info(
+                logger.debug(
                     `${input.monitor.id?.toString()} - Open Incident ${alreadyOpenIncident?.id?.toString()}`
                 );
 
-                logger.info(
+                logger.debug(
                     `${input.monitor.id?.toString()} - Has open incident ${hasAlreadyOpenIncident}`
                 );
 
@@ -705,7 +705,7 @@ export default class ProbeMonitorResponseService {
 
                 // create incident here.
 
-                logger.info(
+                logger.debug(
                     `${input.monitor.id?.toString()} - Create incident.`
                 );
 

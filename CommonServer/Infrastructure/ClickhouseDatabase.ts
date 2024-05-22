@@ -63,14 +63,14 @@ export default class ClickhouseDatabase {
                             );
                         }
 
-                        logger.info(
+                        logger.debug(
                             `Clickhouse Database Connected: ${dataSourceOptions.host?.toString()}`
                         );
 
                         return clickhouseClient;
                     } catch (err) {
                         if (retry < 3) {
-                            logger.info(
+                            logger.debug(
                                 'Cannot connect to Clickhouse. Retrying again in 5 seconds'
                             );
                             // sleep for 5 seconds.

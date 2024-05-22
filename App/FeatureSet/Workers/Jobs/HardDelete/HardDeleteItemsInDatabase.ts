@@ -16,7 +16,7 @@ RunCron(
     { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
     async () => {
         if (!IsBillingEnabled) {
-            logger.info(
+            logger.debug(
                 'HardDelete:HardDeleteItemsInDatabase: Billing is not enabled. Skipping hard delete.'
             );
             return;

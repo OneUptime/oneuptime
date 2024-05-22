@@ -217,19 +217,6 @@
             ],
         },
         {
-            "name": "Probe: Debug Tests",
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true,
-            "request": "launch",
-            "cwd": "${workspaceRoot}/Probe",
-            "runtimeExecutable": "npm",
-            "runtimeArgs": [
-                "run-script",
-                "debug:test"
-            ],
-        },
-        {
             "name": "Accounts: Debug Local Files",
             "type": "node",
             "restart": true,

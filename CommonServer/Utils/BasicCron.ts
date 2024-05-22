@@ -20,17 +20,17 @@ const BasicCron: BasicCronFunction = async (
 
     cron.schedule(options.schedule, async () => {
         try {
-            logger.info(`Job ${jobName} Start`);
+            logger.debug(`Job ${jobName} Start`);
             await runFunction();
-            logger.info(`Job ${jobName} End`);
+            logger.debug(`Job ${jobName} End`);
         } catch (e) {
-            logger.info(`Job ${jobName} Error`);
+            logger.debug(`Job ${jobName} Error`);
             logger.error(e);
         }
     });
 
     if (options.runOnStartup) {
-        logger.info(`Job ${jobName} - Start on Startup`);
+        logger.debug(`Job ${jobName} - Start on Startup`);
         await runFunction();
     }
 };

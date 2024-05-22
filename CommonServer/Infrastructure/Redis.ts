@@ -74,7 +74,7 @@ export default abstract class Redis {
             // Listen to the 'connect' event to Redis
             this.client.on('connect', (err: Error) => {
                 if (!err) {
-                    logger.info('Connected to Redis Session Store!');
+                    logger.debug('Connected to Redis Session Store!');
                 }
             });
 
@@ -89,7 +89,7 @@ export default abstract class Redis {
                     await client.connect();
                 } catch (err) {
                     if (retry < 3) {
-                        logger.info(
+                        logger.debug(
                             'Cannot connect to Redis. Retrying again in 5 seconds'
                         );
                         // sleep for 5 seconds.
@@ -105,7 +105,7 @@ export default abstract class Redis {
 
             await connectToDatabase(this.client);
 
-            logger.info(
+            logger.debug(
                 `Redis connected on ${RedisHostname}:${RedisPort.toNumber()}`
             );
             return this.client;

@@ -11,9 +11,9 @@ RunCron(
         runOnStartup: true,
     },
     async () => {
-        logger.info('Renewing Certs...');
+        logger.debug('Renewing Certs...');
         await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
-        logger.info('Renew Completed...');
+        logger.debug('Renew Completed...');
     }
 );
 

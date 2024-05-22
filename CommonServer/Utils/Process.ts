@@ -2,7 +2,7 @@
 import logger from './Logger';
 
 process.on('exit', () => {
-    logger.info('Server Shutting Shutdown');
+    logger.debug('Server Shutting Shutdown');
 });
 
 process.on(

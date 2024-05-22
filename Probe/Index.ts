@@ -30,7 +30,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             // Register this probe.
             await Register.registerProbe();
 
-            logger.info('Probe registered');
+            logger.debug('Probe registered');
 
             await Register.reportIfOffline();
         } catch (err) {
@@ -47,7 +47,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
                 const currentWorker: number = workers;
 
-                logger.info(`Starting worker ${currentWorker}`);
+                logger.debug(`Starting worker ${currentWorker}`);
 
                 new FetchListAndProbe('Worker ' + currentWorker)
                     .run()
@@ -71,6 +71,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
 init().catch((err: Error) => {
     logger.error(err);
-    logger.info('Exiting node process');
+    logger.debug('Exiting node process');
     process.exit(1);
 });

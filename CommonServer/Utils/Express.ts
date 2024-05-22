@@ -87,7 +87,7 @@ class Express {
                 port?.toNumber() || this.app.get('port'),
                 () => {
                     // eslint-disable-next-line
-                logger.info(`${appName} server started on port: ${port?.toNumber() || this.app.get('port')}`);
+                logger.debug(`${appName} server started on port: ${port?.toNumber() || this.app.get('port')}`);
                     return resolve(this.app);
                 }
             );

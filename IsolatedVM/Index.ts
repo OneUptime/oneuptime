@@ -23,7 +23,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
                 readyCheck: async () => {},
             },
         });
-        logger.info('App Init Success');
+        logger.debug('App Init Success');
 
         // add default routes
         await App.addDefaultRoutes();
@@ -36,6 +36,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
 init().catch((err: Error) => {
     logger.error(err);
-    logger.info('Exiting node process');
+    logger.debug('Exiting node process');
     process.exit(1);
 });

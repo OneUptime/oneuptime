@@ -49,7 +49,7 @@ export default class WebsiteMonitor {
         }
 
         try {
-            logger.info(
+            logger.debug(
                 `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
                     options.currentRetryCount
                 }`
@@ -101,7 +101,7 @@ export default class WebsiteMonitor {
                 failureCause: '',
             };
 
-            logger.info(
+            logger.debug(
                 `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
                     probeWebsiteResponse
                 )}`
@@ -157,7 +157,7 @@ export default class WebsiteMonitor {
                 (err as any).toString().includes('timeout') &&
                 (err as any).toString().includes('exceeded')
             ) {
-                logger.info(
+                logger.debug(
                     `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
                 );
                 probeWebsiteResponse.failureCause = 'Timeout exceeded';

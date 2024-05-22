@@ -31,7 +31,7 @@ const loadPartials: PromiseVoidFunction = async (): Promise<void> => {
 
         Handlebars.registerPartial(name, partialTemplate);
 
-        logger.info(`Loaded partial ${name}`);
+        logger.debug(`Loaded partial ${name}`);
     });
 };
 

@@ -240,12 +240,12 @@ export default class StatusPageDomainAPI extends BaseAPI<
                         );
                     }
 
-                    logger.info('Ordering SSL');
+                    logger.debug('Ordering SSL');
 
                     // provision SSL
                     await StatusPageDomainService.orderCert(domain);
 
-                    logger.info(
+                    logger.debug(
                         'SSL Provisioned for domain - ' + domain.fullDomain
                     );
 

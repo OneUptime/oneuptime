@@ -15,7 +15,7 @@ BasicCron({
         runOnStartup: false,
     },
     runFunction: async () => {
-        logger.info('Checking if probe is alive...');
+        logger.debug('Checking if probe is alive...');
 
         const probeId: string | undefined = LocalCache.getString(
             'PROBE',
@@ -30,7 +30,7 @@ BasicCron({
             return;
         }
 
-        logger.info('Probe ID: ' + probeId.toString());
+        logger.debug('Probe ID: ' + probeId.toString());
 
         await API.post(
             URL.fromString(INGESTOR_URL.toString()).addRoute('/alive'),

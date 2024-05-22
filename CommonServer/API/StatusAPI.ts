@@ -37,7 +37,7 @@ export default class StatusAPI {
             '/status/ready',
             async (req: ExpressRequest, res: ExpressResponse) => {
                 try {
-                    logger.info('Ready check');
+                    logger.debug('Ready check');
                     await options.readyCheck();
                     Response.sendJsonObjectResponse(req, res, {
                         status: 'ok',
@@ -59,7 +59,7 @@ export default class StatusAPI {
             '/status/live',
             async (req: ExpressRequest, res: ExpressResponse) => {
                 try {
-                    logger.info('Live check');
+                    logger.debug('Live check');
                     await options.readyCheck();
                     Response.sendJsonObjectResponse(req, res, {
                         status: 'ok',

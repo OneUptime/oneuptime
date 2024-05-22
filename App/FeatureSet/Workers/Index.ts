@@ -100,7 +100,7 @@ const WorkersFeatureSet: FeatureSet = {
                 async (job: QueueJob) => {
                     const name: string = job.name;
 
-                    logger.info('Running Job: ' + name);
+                    logger.debug('Running Job: ' + name);
 
                     const funcToRun: PromiseVoidFunction =
                         JobDictionary.getJobFunction(name);

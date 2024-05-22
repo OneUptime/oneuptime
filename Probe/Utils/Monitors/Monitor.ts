@@ -39,7 +39,7 @@ export default class MonitorUtil {
             !monitor.monitorSteps ||
             monitor.monitorSteps.data?.monitorStepsInstanceArray.length === 0
         ) {
-            logger.info('No monitor steps found');
+            logger.debug('No monitor steps found');
             return [];
         }
 

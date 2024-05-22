@@ -22,9 +22,11 @@ export default class SyntheticMonitor {
     ): Promise<Array<SyntheticMonitorResponse> | null> {
         const results: Array<SyntheticMonitorResponse> = [];
 
+        debugger;
+
         for (const browserType of options.browserTypes || []) {
             for (const screenSizeType of options.screenSizeTypes || []) {
-                logger.info(
+                logger.debug(
                     `Running Synthetic Monitor: ${options?.monitorId?.toString()}, Screen Size: ${screenSizeType}, Browser: ${browserType}`
                 );
 
@@ -115,10 +117,6 @@ export default class SyntheticMonitor {
                 logger.error(err);
                 scriptResult.scriptError =
                     (err as Error)?.message || (err as Error).toString();
-            }
-
-            if (pageAndBrowser?.page) {
-                await pageAndBrowser.page.close();
             }
 
             if (pageAndBrowser?.browser) {

@@ -146,7 +146,7 @@ const init: InitFunction = async (
 ): Promise<ExpressApplication> => {
     const { appName, port, isFrontendApp = false } = data;
 
-    logger.info(`App Version: ${AppVersion.toString()}`);
+    logger.debug(`App Version: ${AppVersion.toString()}`);
 
     await Express.launchApplication(appName, port);
     LocalCache.setString('app', 'name', appName);

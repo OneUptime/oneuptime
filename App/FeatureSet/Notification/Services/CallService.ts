@@ -41,7 +41,7 @@ export default class CallService {
         const callLog: CallLog = new CallLog();
 
         try {
-            logger.info('Call Request received.');
+            logger.debug('Call Request received.');
 
             let callCost: number = 0;
 
@@ -56,7 +56,7 @@ export default class CallService {
                 }
             }
 
-            logger.info('Call Cost: ' + callCost);
+            logger.debug('Call Cost: ' + callCost);
 
             const twilioConfig: TwilioConfig | null =
                 options.customTwilioConfig || (await getTwilioConfig());
@@ -101,7 +101,7 @@ export default class CallService {
                     },
                 });
 
-                logger.info('Project found.');
+                logger.debug('Project found.');
 
                 if (!project) {
                     callLog.status = CallStatus.Error;
@@ -243,7 +243,7 @@ export default class CallService {
                 }
             }
 
-            logger.info('Sending Call Request.');
+            logger.debug('Sending Call Request.');
 
             const twillioCall: CallInstance = await client.calls.create({
                 twiml: this.generateTwimlForCall(callRequest),
@@ -251,16 +251,16 @@ export default class CallService {
                 from: twilioConfig.phoneNumber.toString(), // From a valid Twilio number
             });
 
-            logger.info('Call Request sent successfully.');
+            logger.debug('Call Request sent successfully.');
 
             callLog.status = CallStatus.Success;
             callLog.statusMessage = 'Call ID: ' + twillioCall.sid;
 
-            logger.info('Call ID: ' + twillioCall.sid);
-            logger.info(callLog.statusMessage);
+            logger.debug('Call ID: ' + twillioCall.sid);
+            logger.debug(callLog.statusMessage);
 
             if (shouldChargeForCall && project) {
-                logger.info('Updating Project Balance.');
+                logger.debug('Updating Project Balance.');
 
                 callLog.callCostInUSDCents = callCost * 100;
 
@@ -271,7 +271,7 @@ export default class CallService {
                     );
                 }
 
-                logger.info('Call Cost: ' + callLog.callCostInUSDCents);
+                logger.debug('Call Cost: ' + callLog.callCostInUSDCents);
 
                 project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
                     project.smsOrCallCurrentBalanceInUSDCents! - callCost * 100
@@ -289,8 +289,8 @@ export default class CallService {
                     },
                 });
 
-                logger.info("Project's current balance updated.");
-                logger.info(
+                logger.debug("Project's current balance updated.");
+                logger.debug(
                     'Current Balance: ' +
                         project.smsOrCallCurrentBalanceInUSDCents
                 );
@@ -306,19 +306,19 @@ export default class CallService {
             callError = e;
         }
 
-        logger.info('Saving Call Log if project id is provided.');
+        logger.debug('Saving Call Log if project id is provided.');
 
         if (options.projectId) {
-            logger.info('Saving Call Log.');
+            logger.debug('Saving Call Log.');
             await CallLogService.create({
                 data: callLog,
                 props: {
                     isRoot: true,
                 },
             });
-            logger.info('Call Log saved.');
+            logger.debug('Call Log saved.');
         } else {
-            logger.info('Project Id is not provided. Call Log not saved.');
+            logger.debug('Project Id is not provided. Call Log not saved.');
         }
 
         if (options.userOnCallLogTimelineId) {

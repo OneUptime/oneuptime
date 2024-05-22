@@ -25,7 +25,7 @@ export default abstract class Realtime {
     public static async init(): Promise<SocketServer | null> {
         if (!this.socketServer) {
             this.socketServer = IO.getSocketServer();
-            logger.info('Realtime socket server initialized');
+            logger.debug('Realtime socket server initialized');
         }
 
         this.socketServer!.on('connection', (socket: Socket) => {

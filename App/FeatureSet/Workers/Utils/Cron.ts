@@ -22,7 +22,7 @@ const RunCron: RunCronFunction = (
 ): void => {
     JobDictionary.setJobFunction(jobName, runFunction);
 
-    logger.info('Adding job to the queue: ' + jobName);
+    logger.debug('Adding job to the queue: ' + jobName);
 
     Queue.addJob(
         QueueName.Worker,
