@@ -20,6 +20,7 @@ import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 import Dictionary from 'Common/Types/Dictionary';
 import GenericObject from 'Common/Types/GenericObject';
 import CopyableButton from '../CopyableButton/CopyableButton';
+import { Logger } from '../../Utils/Logger';
 
 export interface ComponentProps<T extends GenericObject> {
     item: T;
@@ -287,6 +288,18 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
             if (field.fieldType === FieldType.JSON) {
                 codeType = CodeType.JSON;
+
+                //make sure json is well formatted. 
+
+                if(typeof data === "string"){
+                    try{
+                    data = JSON.stringify(JSON.parse(data), null, 2);
+                    }catch(e){
+                        // cant format json for some reason. ignore. 
+                        Logger.error("Cant format json for field: " + field.title + " with value: " + data);
+                    }
+                }
+
             }
 
             if (field.fieldType === FieldType.JavaScript) {

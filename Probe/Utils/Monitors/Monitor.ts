@@ -129,7 +129,7 @@ export default class MonitorUtil {
             monitorId: monitor.id!,
             probeId: ProbeUtil.getProbeId(),
             failureCause: '',
-            monitoredAt: OneUptimeDate.getCurrentDate()
+            monitoredAt: OneUptimeDate.getCurrentDate(),
         };
 
         if (!monitorStep.data) {
