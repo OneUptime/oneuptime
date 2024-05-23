@@ -1,4 +1,4 @@
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import MonitorType, { MonitorTypeHelper } from 'Common/Types/Monitor/MonitorType';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import React, { FunctionComponent, ReactElement } from 'react';
@@ -18,6 +18,16 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
         probeMonitorResponse: ProbeMonitorResponse,
         key: number
     ): ReactElement => {
+
+
+        if ((!probeMonitorResponse)) {
+            return (
+                <div className="flex justify-center items-center h-48">
+                    <p className="text-gray-500">No metrics available for the selected probe. This could be because the probe has not yet started monitoring.</p>
+                </div>
+            );
+        }
+
         return probeMonitorResponse &&
             (props.monitorType === MonitorType.Website ||
                 props.monitorType === MonitorType.API) ? (
@@ -29,6 +39,9 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
             <></>
         );
     };
+
+
+
 
     return (
         <div>
@@ -43,7 +56,7 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
                 )}
 
             {props.incomingMonitorRequest &&
-            props.monitorType === MonitorType.IncomingRequest ? (
+                props.monitorType === MonitorType.IncomingRequest ? (
                 <IncomingRequestMonitorView
                     incomingMonitorRequest={props.incomingMonitorRequest}
                 />

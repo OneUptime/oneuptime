@@ -14,9 +14,8 @@ export interface ComponentProps {
 const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
-    const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
+    const [showMoreDetails, setShowMoreDetails] =
+        React.useState<boolean>(false);
 
     let responseTimeInMs: number =
         props.probeMonitorResponse?.responseTimeInMs || 0;
@@ -25,25 +24,22 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
         responseTimeInMs = Math.round(responseTimeInMs);
     }
 
-
-
     const fields: Array<Field<ProbeMonitorResponse>> = [
         {
             key: 'responseHeaders',
             title: 'Response Headers',
             description: 'Response headers of the request.',
-            fieldType: FieldType.JSON
+            fieldType: FieldType.JSON,
         },
-       
-    ]
+    ];
 
-    if(props.probeMonitorResponse?.responseBody){
+    if (props.probeMonitorResponse?.responseBody) {
         fields.push({
             key: 'responseBody',
             title: 'Response Body',
             description: 'Response body of the request.',
-            fieldType: FieldType.JSON
-        })
+            fieldType: FieldType.JSON,
+        });
     }
 
     return (
@@ -53,7 +49,8 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
                     className="w-1/3 shadow-none border-2 border-gray-100 "
                     title="Response Staus Code"
                     value={
-                        props.probeMonitorResponse?.responseCode?.toString() || '-'
+                        props.probeMonitorResponse?.responseCode?.toString() ||
+                        '-'
                     }
                 />
                 <InfoCard
@@ -67,31 +64,49 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
                     value={
                         props.probeMonitorResponse?.monitoredAt
                             ? OneUptimeDate.getDateAsLocalFormattedString(
-                                props.probeMonitorResponse.monitoredAt
-                            )
+                                  props.probeMonitorResponse.monitoredAt
+                              )
                             : '-'
                     }
                 />
             </div>
 
-            {showMoreDetails && <div>
-                <Detail<ProbeMonitorResponse>
-                    id={'website-monitor-metric-detail'}
-                    item={props.probeMonitorResponse}
-                    fields={fields}
-                    showDetailsInNumberOfColumns={1}
-                />
-            </div>}
+            {showMoreDetails && (
+                <div>
+                    <Detail<ProbeMonitorResponse>
+                        id={'website-monitor-metric-detail'}
+                        item={props.probeMonitorResponse}
+                        fields={fields}
+                        showDetailsInNumberOfColumns={1}
+                    />
+                </div>
+            )}
 
-            {!showMoreDetails && <div className='-ml-2'>
-                <Button buttonStyle={ButtonStyleType.SECONDARY_LINK} title='Show More Details' onClick={() => setShowMoreDetails(true)} />
-            </div>}
+            {!showMoreDetails && (
+                <div className="-ml-2">
+                    <Button
+                        buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                        title="Show More Details"
+                        onClick={() => {
+                            return setShowMoreDetails(true);
+                        }}
+                    />
+                </div>
+            )}
 
             {/* Hide details button */}
 
-            {showMoreDetails && <div className='-ml-3'>
-                <Button buttonStyle={ButtonStyleType.SECONDARY_LINK} title='Hide Details' onClick={() => setShowMoreDetails(false)} />
-            </div>}
+            {showMoreDetails && (
+                <div className="-ml-3">
+                    <Button
+                        buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                        title="Hide Details"
+                        onClick={() => {
+                            return setShowMoreDetails(false);
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 };

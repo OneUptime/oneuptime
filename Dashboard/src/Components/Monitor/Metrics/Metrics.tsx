@@ -52,6 +52,7 @@ const Metrics: FunctionComponent<ComponentProps> = (
         }
     }
 
+
     return (
         <Card
             title="Current Metrics"
@@ -74,11 +75,12 @@ const Metrics: FunctionComponent<ComponentProps> = (
             }
         >
             <div>
-                <MetricInfo
+               <MetricInfo
                     monitorType={props.monitorType}
                     probeMonitorResponses={probeResponses}
                     incomingMonitorRequest={props.incomingMonitorRequest}
-                />
+               />
+
             </div>
         </Card>
     );

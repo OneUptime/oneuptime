@@ -22,15 +22,16 @@ const ProbePicker: FunctionComponent<ComponentProps> = (
     });
 
     return (
-        <div className='flex'>
-            <div className='w-fit mr-2 flex h-full align-middle items-center'>
+        <div className="flex">
+            <div className="w-fit mr-2 flex h-full align-middle items-center">
                 <FieldLabelElement title="Select Probe:" required={true} />
             </div>
             <div>
                 <Dropdown
                     value={dropdownOptions.find(option => {
                         return (
-                            option.value === props.selectedProbe?._id?.toString()
+                            option.value ===
+                            props.selectedProbe?._id?.toString()
                         );
                     })}
                     options={dropdownOptions}
