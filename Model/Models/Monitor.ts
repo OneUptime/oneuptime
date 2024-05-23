@@ -33,6 +33,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
+import ServerMonitorResponse from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')
@@ -885,12 +886,7 @@ export default class Monitor extends BaseModel {
             Permission.ProjectMember,
             Permission.CanReadProjectMonitor,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CanEditProjectMonitor,
-        ],
+        update: [],
     })
     @TableColumn({
         type: TableColumnType.JSON,
@@ -903,4 +899,31 @@ export default class Monitor extends BaseModel {
         nullable: true,
     })
     public incomingMonitorRequest?: IncomingMonitorRequest = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadProjectMonitor,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.JSON,
+        required: false,
+        title: 'Server Monitor Response',
+        description: 'Server Monitor Response for Server Monitor',
+    })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+    })
+    public serverMonitorResponse?: ServerMonitorResponse = undefined;
 }
