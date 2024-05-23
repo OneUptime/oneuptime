@@ -288,8 +288,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 const probeMonitorResponses: Array<MonitorStepProbeResponse> =
                     [];
 
-                for (let i = 0; i < monitorProbes.data.length; i++) {
-                    const monitorProbe = monitorProbes.data[i];
+                for (let i: number = 0; i < monitorProbes.data.length; i++) {
+                    const monitorProbe: MonitorProbe | undefined =
+                        monitorProbes.data[i];
 
                     if (!monitorProbe) {
                         continue;

@@ -40,7 +40,7 @@ const Metrics: FunctionComponent<ComponentProps> = (
 
     for (const probeResponse of props.probeMonitorResponses || []) {
         for (const monitorStepId in probeResponse) {
-            const probeMonitorResponse = probeResponse[
+            const probeMonitorResponse: ProbeMonitorResponse = probeResponse[
                 monitorStepId
             ] as ProbeMonitorResponse;
             if (
@@ -51,7 +51,6 @@ const Metrics: FunctionComponent<ComponentProps> = (
             }
         }
     }
-
 
     return (
         <Card
@@ -75,12 +74,11 @@ const Metrics: FunctionComponent<ComponentProps> = (
             }
         >
             <div>
-               <MetricInfo
+                <MetricInfo
                     monitorType={props.monitorType}
                     probeMonitorResponses={probeResponses}
                     incomingMonitorRequest={props.incomingMonitorRequest}
-               />
-
+                />
             </div>
         </Card>
     );
