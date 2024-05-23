@@ -45,6 +45,7 @@ RunCron(
                 monitorId: monitor.id!,
                 requestHeaders: undefined,
                 requestBody: undefined,
+                requestMethod: undefined,
                 incomingRequestReceivedAt:
                     monitor.incomingRequestReceivedAt || monitor.createdAt!,
                 onlyCheckForIncomingRequestReceivedAt: true,

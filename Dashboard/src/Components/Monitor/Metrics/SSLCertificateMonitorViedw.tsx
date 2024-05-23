@@ -18,7 +18,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
         !props.probeMonitorResponse.sslResponse
     ) {
         return (
-            <ErrorMessage error="No metrics available for the selected probe. This could be because the probe has not yet started monitoring." />
+            <ErrorMessage error="No metrics available for the selected probe. Should be few minutes for metrics to show up. " />
         );
     }
 
@@ -30,97 +30,106 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
 
     return (
         <div className="space-y-5">
-            <div className="flex space-x-3">
-                <InfoCard
-                    className="w-1/3 shadow-none border-2 border-gray-100 "
-                    title="SSL Status"
-                    value={
-                        sslResponse.isSelfSigned
-                            ? 'Self Signed'
-                            : 'Signed by a CA'
-                    }
-                />
+            <div className="space-y-5">
+                <div className="flex space-x-3 w-full">
+                    <InfoCard
+                        className="w-1/3 shadow-none border-2 border-gray-100 "
+                        title="SSL Status"
+                        value={
+                            sslResponse.isSelfSigned
+                                ? 'Self Signed'
+                                : 'Signed by a CA'
+                        }
+                    />
 
-                <InfoCard
-                    className="w-1/3 shadow-none border-2 border-gray-100 "
-                    title="Issued At"
-                    value={
-                        sslResponse.createdAt
-                            ? OneUptimeDate.getDateAsLocalFormattedString(
-                                  sslResponse.createdAt
-                              )
-                            : '-'
-                    }
-                />
+                    <InfoCard
+                        className="w-1/3 shadow-none border-2 border-gray-100 "
+                        title="Issued At"
+                        value={
+                            sslResponse.createdAt
+                                ? OneUptimeDate.getDateAsLocalFormattedString(
+                                      sslResponse.createdAt
+                                  )
+                                : '-'
+                        }
+                    />
 
-                <InfoCard
-                    className="w-1/3 shadow-none border-2 border-gray-100 "
-                    title="Expires At"
-                    value={
-                        sslResponse.expiresAt
-                            ? OneUptimeDate.getDateAsLocalFormattedString(
-                                  sslResponse.expiresAt
-                              )
-                            : '-'
-                    }
-                />
+                    <InfoCard
+                        className="w-1/3 shadow-none border-2 border-gray-100 "
+                        title="Expires At"
+                        value={
+                            sslResponse.expiresAt
+                                ? OneUptimeDate.getDateAsLocalFormattedString(
+                                      sslResponse.expiresAt
+                                  )
+                                : '-'
+                        }
+                    />
+                </div>
 
                 {showMoreDetails && (
-                    <>
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Common Name"
-                            value={sslResponse.commonName || '-'}
-                        />
+                    <div className="space-y-5">
+                        <div className="flex space-x-3 w-full">
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Common Name"
+                                value={sslResponse.commonName || '-'}
+                            />
 
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Organizational Unit"
-                            value={sslResponse.organizationalUnit || '-'}
-                        />
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Organizational Unit"
+                                value={sslResponse.organizationalUnit || '-'}
+                            />
 
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Organization"
-                            value={sslResponse.organization || '-'}
-                        />
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Organization"
+                                value={sslResponse.organization || '-'}
+                            />
+                        </div>
+                        <div className="flex space-x-3 w-full">
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Locality"
+                                value={sslResponse.locality || '-'}
+                            />
 
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Locality"
-                            value={sslResponse.locality || '-'}
-                        />
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="State"
+                                value={sslResponse.state || '-'}
+                            />
 
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="State"
-                            value={sslResponse.state || '-'}
-                        />
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Country"
+                                value={sslResponse.country || '-'}
+                            />
+                        </div>
+                        <div className="flex space-x-3 w-full">
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Serial Number"
+                                value={sslResponse.serialNumber || '-'}
+                                textClassName="text-xs truncate"
+                            />
 
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Country"
-                            value={sslResponse.country || '-'}
-                        />
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Fingerprint"
+                                value={sslResponse.fingerprint || '-'}
+                                textClassName="text-xs truncate"
+                            />
 
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Serial Number"
-                            value={sslResponse.serialNumber || '-'}
-                        />
-
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Fingerprint"
-                            value={sslResponse.fingerprint || '-'}
-                        />
-
-                        <InfoCard
-                            className="w-1/3 shadow-none border-2 border-gray-100 "
-                            title="Fingerprint 256"
-                            value={sslResponse.fingerprint256 || '-'}
-                        />
-                    </>
+                            <InfoCard
+                                className="w-1/3 shadow-none border-2 border-gray-100 "
+                                title="Fingerprint 256"
+                                value={sslResponse.fingerprint256 || '-'}
+                                textClassName="text-xs truncate"
+                            />
+                        </div>
+                    </div>
                 )}
 
                 {!showMoreDetails && (

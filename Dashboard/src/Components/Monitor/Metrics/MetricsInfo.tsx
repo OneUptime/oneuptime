@@ -32,7 +32,7 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
             return (
                 <ErrorMessage
                     error={
-                        'No metrics available for the selected probe. This could be because the probe has not yet started monitoring.'
+                        'No metrics available for the selected probe. Should be few minutes for metrics to show up. '
                     }
                 />
             );
@@ -55,17 +55,21 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.IP ||
             props.monitorType === MonitorType.Port
         ) {
-            <PingMonitorView
-                key={key}
-                probeMonitorResponse={probeMonitorResponse}
-            />;
+            return (
+                <PingMonitorView
+                    key={key}
+                    probeMonitorResponse={probeMonitorResponse}
+                />
+            );
         }
 
         if (props.monitorType === MonitorType.SSLCertificate) {
-            <SSLCertificateMonitorView
-                key={key}
-                probeMonitorResponse={probeMonitorResponse}
-            />;
+            return (
+                <SSLCertificateMonitorView
+                    key={key}
+                    probeMonitorResponse={probeMonitorResponse}
+                />
+            );
         }
 
         return <></>;
@@ -79,7 +83,20 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
         return (
             <ErrorMessage
                 error={
-                    'No metrics available for the selected probe. This could be because the probe has not yet started monitoring.'
+                    'No metrics available for the selected probe. Should be few minutes for metrics to show up. '
+                }
+            />
+        );
+    }
+
+    if (
+        !props.incomingMonitorRequest &&
+        props.monitorType === MonitorType.IncomingRequest
+    ) {
+        return (
+            <ErrorMessage
+                error={
+                    'No metrics available for the selected probe. Should be few minutes for metrics to show up. '
                 }
             />
         );
