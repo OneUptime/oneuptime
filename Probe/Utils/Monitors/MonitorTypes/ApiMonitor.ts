@@ -32,7 +32,6 @@ export default class ApiMonitor {
             requestHeaders?: Headers | undefined;
             requestBody?: JSONObject | undefined;
             requestType?: HTTPMethod | undefined;
-            isHeadRequest?: boolean | undefined;
             retry?: number | undefined;
             currentRetryCount?: number | undefined;
             monitorId?: ObjectID | undefined;
@@ -47,11 +46,7 @@ export default class ApiMonitor {
             options.currentRetryCount = 1;
         }
 
-        let requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
-
-        if (options.isHeadRequest) {
-            requestType = HTTPMethod.HEAD;
-        }
+        const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
 
         try {
             logger.debug(

@@ -336,7 +336,6 @@ export default class MonitorUtil {
                     requestHeaders: monitorStep.data?.requestHeaders || {},
                     requestBody: requestBody || undefined,
                     monitorId: monitor.id!,
-                    isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
                     requestType:
                         monitorStep.data?.requestType || HTTPMethod.GET,
                     retry: 5,
