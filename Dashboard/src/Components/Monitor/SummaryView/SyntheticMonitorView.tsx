@@ -3,6 +3,7 @@ import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import React, { FunctionComponent, ReactElement } from 'react';
 import SyntheticMonitorItemView from './SyntheticMonitorItemView';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 
 export interface ComponentProps {
     probeMonitorResponse: ProbeMonitorResponse;
@@ -27,8 +28,12 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
         <div>
             {syntheticMonitorResponses &&
                 syntheticMonitorResponses.map(
-                    (syntheticMonitorResponse: SyntheticMonitorResponse, index: number) => {
+                    (
+                        syntheticMonitorResponse: SyntheticMonitorResponse,
+                        index: number
+                    ) => {
                         return (
+                            <div>
                             <SyntheticMonitorItemView
                                 key={index}
                                 syntheticMonitorResponse={
@@ -38,6 +43,8 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
                                     props.probeMonitorResponse.monitoredAt
                                 }
                             />
+                            {index !== (syntheticMonitorResponses.length -1) && <HorizontalRule />}
+                            </div>
                         );
                     }
                 )}

@@ -25,13 +25,20 @@ const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
     const getMoreDetails: GetReactElementFunction = (): ReactElement => {
         return (
             <div>
-                <SummaryScreenshotGroup screenshots={props.syntheticMonitorResponse.screenshots || {}} />
+                <SummaryScreenshotGroup
+                    screenshots={
+                        props.syntheticMonitorResponse.screenshots || {}
+                    }
+                />
             </div>
         );
     };
 
     return (
         <div>
+            <div className='mb-3'>
+                {props.syntheticMonitorResponse.browserType} - {props.syntheticMonitorResponse.screenSizeType}
+            </div>
             <CustomCodeMonitorSummaryView
                 customCodeMonitorResponse={syntheticMonitorResponse}
                 monitoredAt={props.monitoredAt}
