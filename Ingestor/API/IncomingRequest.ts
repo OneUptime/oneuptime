@@ -16,6 +16,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import MonitorService from 'CommonServer/Services/MonitorService';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Monitor from 'Model/Models/Monitor';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -36,6 +37,19 @@ const processIncomingRequest: RequestHandler = async (
 
         if (!monitorSecretKeyAsString) {
             throw new BadDataException('Invalid Secret Key');
+        }
+
+        const isGetRequest: boolean = req.method === 'GET';
+        const isPostRequest: boolean = req.method === 'POST';
+
+        let httpMethod: HTTPMethod = HTTPMethod.GET;
+
+        if (isGetRequest) {
+            httpMethod = HTTPMethod.GET;
+        }
+
+        if (isPostRequest) {
+            httpMethod = HTTPMethod.POST;
         }
 
         const monitor: Monitor | null = await MonitorService.findOneBy({
@@ -63,6 +77,7 @@ const processIncomingRequest: RequestHandler = async (
             requestBody: requestBody,
             incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
             onlyCheckForIncomingRequestReceivedAt: false,
+            requestMethod: httpMethod,
         };
 
         // process probe response here.

@@ -5,6 +5,7 @@ export interface ComponentProps {
     title: string;
     value: string | ReactElement;
     className?: string;
+    textClassName?: string;
 }
 
 const InfoCard: FunctionComponent<ComponentProps> = (
@@ -19,7 +20,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
             <div>
                 <FieldLabelElement title={props.title} />
             </div>
-            <div>{props.value}</div>
+            <div className={props.textClassName || ''}>{props.value}</div>
         </div>
     );
 };

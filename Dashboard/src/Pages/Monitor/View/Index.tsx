@@ -26,7 +26,9 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import API from 'CommonUI/src/Utils/API/API';
 import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import MonitorType, {
+    MonitorTypeHelper,
+} from 'Common/Types/Monitor/MonitorType';
 import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
 import { Green, Gray500, Black } from 'Common/Types/BrandColors';
 import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
@@ -53,6 +55,11 @@ import Probe from 'Model/Models/Probe';
 import ProbeUtil from '../../../Utils/Probe';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Metrics from '../../../Components/Monitor/SummaryView/Summary';
+import MonitorProbe, {
+    MonitorStepProbeResponse,
+} from 'Model/Models/MonitorProbe';
+import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -87,6 +94,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     const [monitor, setMonitor] = useState<Monitor | null>(null);
 
     const [probes, setProbes] = useState<Array<Probe>>([]);
+
+    const [probeResponses, setProbeResponses] = useState<
+        Array<MonitorStepProbeResponse> | undefined
+    >(undefined);
+
+    const [incomingMonitorRequest, setIncomingMonitorRequest] = useState<
+        IncomingMonitorRequest | undefined
+    >(undefined);
 
     const getUptimePercent: () => ReactElement = (): ReactElement => {
         if (isLoading) {
@@ -162,10 +177,15 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     serverMonitorSecretKey: true,
                     serverMonitorRequestReceivedAt: true,
                     incomingRequestReceivedAt: true,
+                    incomingMonitorRequest: true,
                 },
             });
 
             setMonitor(item);
+
+            if (item?.incomingMonitorRequest) {
+                setIncomingMonitorRequest(item.incomingMonitorRequest);
+            }
 
             const monitorStatuses: ListResult<MonitorStatus> =
                 await ModelAPI.getList({
@@ -237,16 +257,57 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             setStatusTimelines(monitorStatus.data);
             setMonitorMetricsByMinute(monitorMetricsByMinute.data.reverse());
 
-            const isMonitoredByProbe: boolean =
-                item.monitorType === MonitorType.Ping ||
-                item.monitorType === MonitorType.IP ||
-                item.monitorType === MonitorType.Website ||
-                item.monitorType === MonitorType.API;
+            const isMonitoredByProbe: boolean = item.monitorType
+                ? MonitorTypeHelper.isProbableMonitors(item.monitorType)
+                : false;
 
             if (isMonitoredByProbe) {
                 // get a list of probes
                 const probes: Array<Probe> = await ProbeUtil.getAllProbes();
                 setProbes(probes);
+
+                // get probe responses for this monitor
+
+                const monitorProbes: ListResult<MonitorProbe> =
+                    await ModelAPI.getList({
+                        modelType: MonitorProbe,
+                        query: {
+                            monitorId: modelId,
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        sort: {
+                            createdAt: SortOrder.Descending,
+                        },
+                        select: {
+                            probeId: true,
+                            lastMonitoringLog: true,
+                        },
+                    });
+
+                const probeMonitorResponses: Array<MonitorStepProbeResponse> =
+                    [];
+
+                for (let i: number = 0; i < monitorProbes.data.length; i++) {
+                    const monitorProbe: MonitorProbe | undefined =
+                        monitorProbes.data[i];
+
+                    if (!monitorProbe) {
+                        continue;
+                    }
+
+                    if (!monitorProbe.probeId) {
+                        continue;
+                    }
+
+                    if (!monitorProbe.lastMonitoringLog) {
+                        continue;
+                    }
+
+                    probeMonitorResponses.push(monitorProbe?.lastMonitoringLog);
+                }
+
+                setProbeResponses(probeMonitorResponses);
             }
         } catch (err) {
             setError(API.getFriendlyMessage(err));
@@ -486,6 +547,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     downtimeMonitorStatuses={downTimeMonitorStatues}
                 />
             </Card>
+
+            <Metrics
+                monitorType={monitorType!}
+                probes={probes}
+                incomingMonitorRequest={incomingMonitorRequest}
+                probeMonitorResponses={probeResponses}
+            />
 
             {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}
         </Fragment>

@@ -36,7 +36,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 switch (chart.type) {
                     case ChartType.LINE:
                         return (
-                            <div className="p-6 rounded-md bg-white shadow">
+                            <div
+                                key={index}
+                                className="p-6 rounded-md bg-white shadow"
+                            >
                                 <h2
                                     data-testid="card-details-heading"
                                     id="card-details-heading"

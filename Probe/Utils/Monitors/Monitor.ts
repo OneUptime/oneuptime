@@ -28,6 +28,7 @@ import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
 import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 import CustomCodeMonitor from './MonitorTypes/CustomCodeMonitor';
 import CustomCodeMonitorResponse from 'Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
+import OneUptimeDate from 'Common/Types/Date';
 
 export default class MonitorUtil {
     public static async probeMonitor(
@@ -128,6 +129,7 @@ export default class MonitorUtil {
             monitorId: monitor.id!,
             probeId: ProbeUtil.getProbeId(),
             failureCause: '',
+            monitoredAt: OneUptimeDate.getCurrentDate(),
         };
 
         if (!monitorStep.data) {

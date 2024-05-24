@@ -17,8 +17,11 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import Monitor from './Monitor';
 import Probe from './Probe';
-import { JSONObject } from 'Common/Types/JSON';
+import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import BaseModel from 'Common/Models/BaseModel';
+import Dictionary from 'Common/Types/Dictionary';
+
+export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -477,5 +480,5 @@ export default class MonitorProbe extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public lastMonitoringLog?: JSONObject = undefined;
+    public lastMonitoringLog?: MonitorStepProbeResponse = undefined;
 }

@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -8,8 +8,24 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import User from 'Model/Models/User';
+import { ErrorFunction } from 'Common/Types/FunctionTypes';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import API from 'CommonUI/src/Utils/API/API';
 
 const Users: FunctionComponent = (): ReactElement => {
+    const [showConfirmVerifyEmailModal, setShowConfirmVerifyEmailModal] =
+        useState<boolean>(false);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const [isConfimModalLoading, setIsConfirmModalLoading] =
+        useState<boolean>(false);
+
+    const [refreshItemsTrigger, setRefreshItemsTrigger] =
+        useState<boolean>(false);
+
     return (
         <Page
             title={'Users'}
@@ -34,6 +50,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 isDeleteable={false}
                 isEditable={false}
                 showViewIdButton={true}
+                refreshToggle={refreshItemsTrigger}
                 isCreateable={true}
                 name="Users"
                 isViewable={false}
@@ -41,6 +58,30 @@ const Users: FunctionComponent = (): ReactElement => {
                     title: 'Users',
                     description: 'Here is a list of users in OneUptime.',
                 }}
+                actionButtons={[
+                    {
+                        title: 'Verify Email',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        isVisible: (item: User) => {
+                            return !item.isEmailVerified;
+                        },
+                        onClick: async (
+                            item: User,
+                            onCompleteAction: VoidFunction,
+                            onError: ErrorFunction
+                        ) => {
+                            try {
+                                setSelectedUser(item);
+                                setShowConfirmVerifyEmailModal(true);
+
+                                onCompleteAction();
+                            } catch (err) {
+                                onCompleteAction();
+                                onError(err as Error);
+                            }
+                        },
+                    },
+                ]}
                 noItemsMessage={'No users found.'}
                 formFields={[
                     {
@@ -113,6 +154,13 @@ const Users: FunctionComponent = (): ReactElement => {
                     },
                     {
                         field: {
+                            isEmailVerified: true,
+                        },
+                        title: 'Email Verified',
+                        type: FieldType.Boolean,
+                    },
+                    {
+                        field: {
                             createdAt: true,
                         },
                         title: 'Created At',
@@ -120,6 +168,53 @@ const Users: FunctionComponent = (): ReactElement => {
                     },
                 ]}
             />
+
+            {error ? (
+                <ConfirmModal
+                    title={`Error`}
+                    description={error}
+                    submitButtonText={'Close'}
+                    onSubmit={async () => {
+                        setError(null);
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
+                />
+            ) : (
+                <></>
+            )}
+
+            {showConfirmVerifyEmailModal && selectedUser ? (
+                <ConfirmModal
+                    title={`Verify Email`}
+                    description={`Are you sure you want to verify the email - ${selectedUser.email}?`}
+                    isLoading={isConfimModalLoading}
+                    submitButtonText={'Verify Email'}
+                    onClose={async () => {
+                        setShowConfirmVerifyEmailModal(false);
+                        setSelectedUser(null);
+                    }}
+                    onSubmit={async () => {
+                        try {
+                            setIsConfirmModalLoading(true);
+                            await ModelAPI.updateById<User>({
+                                modelType: User,
+                                id: selectedUser.id!,
+                                data: {
+                                    isEmailVerified: true,
+                                },
+                            });
+                        } catch (err) {
+                            setError(API.getFriendlyMessage(err as Error));
+                        }
+
+                        setRefreshItemsTrigger(!refreshItemsTrigger);
+                        setIsConfirmModalLoading(false);
+                        setShowConfirmVerifyEmailModal(false);
+                    }}
+                />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };
