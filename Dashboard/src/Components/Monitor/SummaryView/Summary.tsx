@@ -52,6 +52,10 @@ const Summary: FunctionComponent<ComponentProps> = (
         }
     }
 
+    if (props.monitorType === MonitorType.Server) {
+        return <></>;
+    }
+
     return (
         <Card
             title="Monitor Summary"
