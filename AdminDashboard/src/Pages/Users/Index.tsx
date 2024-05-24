@@ -186,7 +186,7 @@ const Users: FunctionComponent = (): ReactElement => {
             {showConfirmVerifyEmailModal && selectedUser ? (
                 <ConfirmModal
                     title={`Verify Email`}
-                    description={`Are you sure you want to verify the email for ${selectedUser.email}?`}
+                    description={`Are you sure you want to verify the email - ${selectedUser.email}?`}
                     isLoading={isConfimModalLoading}
                     submitButtonText={'Verify Email'}
                     onClose={async () => {
