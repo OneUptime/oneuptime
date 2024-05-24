@@ -82,7 +82,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
                     <InfoCard
                         className="w-1/3 shadow-none border-2 border-gray-100 "
-                        title="Is Error"
+                        title="Error"
                         value={customMonitorResponse.scriptError ? 'Yes' : 'No'}
                     />
 

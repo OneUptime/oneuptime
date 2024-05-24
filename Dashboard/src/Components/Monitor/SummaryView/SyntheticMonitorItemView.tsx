@@ -36,8 +36,9 @@ const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            <div className='mb-3'>
-                {props.syntheticMonitorResponse.browserType} - {props.syntheticMonitorResponse.screenSizeType}
+            <div className="mb-3">
+                {props.syntheticMonitorResponse.browserType} -{' '}
+                {props.syntheticMonitorResponse.screenSizeType}
             </div>
             <CustomCodeMonitorSummaryView
                 customCodeMonitorResponse={syntheticMonitorResponse}

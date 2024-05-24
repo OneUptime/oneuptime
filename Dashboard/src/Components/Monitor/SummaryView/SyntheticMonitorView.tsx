@@ -33,17 +33,20 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
                         index: number
                     ) => {
                         return (
-                            <div>
-                            <SyntheticMonitorItemView
-                                key={index}
-                                syntheticMonitorResponse={
-                                    syntheticMonitorResponse
-                                }
-                                monitoredAt={
-                                    props.probeMonitorResponse.monitoredAt
-                                }
-                            />
-                            {index !== (syntheticMonitorResponses.length -1) && <HorizontalRule />}
+                            <div key={index}>
+                                <SyntheticMonitorItemView
+                                    key={index}
+                                    syntheticMonitorResponse={
+                                        syntheticMonitorResponse
+                                    }
+                                    monitoredAt={
+                                        props.probeMonitorResponse.monitoredAt
+                                    }
+                                />
+                                {index !==
+                                    syntheticMonitorResponses.length - 1 && (
+                                    <HorizontalRule />
+                                )}
                             </div>
                         );
                     }
