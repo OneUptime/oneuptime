@@ -60,7 +60,7 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
             {showMoreDetails && (
                 <div>
                     <Detail<IncomingMonitorRequest>
-                        id={'website-monitor-metric-detail'}
+                        id={'website-monitor-summary-detail'}
                         item={props.incomingMonitorRequest}
                         fields={fields}
                         showDetailsInNumberOfColumns={1}

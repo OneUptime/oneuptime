@@ -5,7 +5,7 @@ import ProbePicker from './ProbePicker';
 import MonitorType, {
     MonitorTypeHelper,
 } from 'Common/Types/Monitor/MonitorType';
-import MetricInfo from './MetricsInfo';
+import SummaryInfo from './SummaryInfo';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { MonitorStepProbeResponse } from 'Model/Models/MonitorProbe';
@@ -17,7 +17,7 @@ export interface ComponentProps {
     monitorType: MonitorType;
 }
 
-const Metrics: FunctionComponent<ComponentProps> = (
+const Summary: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [selectedProbe, setSelectedProbe] = React.useState<Probe | undefined>(
@@ -54,7 +54,7 @@ const Metrics: FunctionComponent<ComponentProps> = (
 
     return (
         <Card
-            title="Current Metrics"
+            title="Monitor Summary"
             description="Here is how your monitor is performing at this moment."
             rightElement={
                 MonitorTypeHelper.isProbableMonitors(props.monitorType) &&
@@ -74,7 +74,7 @@ const Metrics: FunctionComponent<ComponentProps> = (
             }
         >
             <div>
-                <MetricInfo
+                <SummaryInfo
                     monitorType={props.monitorType}
                     probeMonitorResponses={probeResponses}
                     incomingMonitorRequest={props.incomingMonitorRequest}
@@ -84,4 +84,4 @@ const Metrics: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default Metrics;
+export default Summary;

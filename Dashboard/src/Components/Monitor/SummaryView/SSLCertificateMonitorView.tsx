@@ -18,7 +18,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
         !props.probeMonitorResponse.sslResponse
     ) {
         return (
-            <ErrorMessage error="No metrics available for the selected probe. Should be few minutes for metrics to show up. " />
+            <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
         );
     }
 

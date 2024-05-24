@@ -4,11 +4,12 @@ import MonitorType, {
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import React, { FunctionComponent, ReactElement } from 'react';
-import WebsiteMonitorMetricView from './WebsiteMonitorMetricView';
-import IncomingRequestMonitorView from './IncomingRequestMonitorRequestView';
+import WebsiteMonitorSummaryView from './WebsiteMonitorView';
+import IncomingRequestMonitorView from './IncomingRequestMonitorSummaryView';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import PingMonitorView from './PingMonitorView';
-import SSLCertificateMonitorView from './SSLCertificateMonitorViedw';
+import SSLCertificateMonitorView from './SSLCertificateMonitorView';
+import SyntheticMonitorView from './SyntheticMonitorView';
 
 export interface ComponentProps {
     monitorType: MonitorType;
@@ -16,15 +17,15 @@ export interface ComponentProps {
     incomingMonitorRequest?: IncomingMonitorRequest | undefined;
 }
 
-const MetricInfo: FunctionComponent<ComponentProps> = (
+const SummaryInfo: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    type GetProbeableMonitorMetricsInfo = (
+    type GetProbeableMonitorSummarysInfo = (
         probeMonitorResponse: ProbeMonitorResponse,
         key: number
     ) => ReactElement;
 
-    const getProbableMonitorMetricsInfo: GetProbeableMonitorMetricsInfo = (
+    const getProbableMonitorSummarysInfo: GetProbeableMonitorSummarysInfo = (
         probeMonitorResponse: ProbeMonitorResponse,
         key: number
     ): ReactElement => {
@@ -32,7 +33,7 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
             return (
                 <ErrorMessage
                     error={
-                        'No metrics available for the selected probe. Should be few minutes for metrics to show up. '
+                        'No summary available for the selected probe. Should be few minutes for summary to show up. '
                     }
                 />
             );
@@ -43,7 +44,7 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.API
         ) {
             return (
-                <WebsiteMonitorMetricView
+                <WebsiteMonitorSummaryView
                     key={key}
                     probeMonitorResponse={probeMonitorResponse}
                 />
@@ -72,6 +73,15 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
             );
         }
 
+        if (props.monitorType === MonitorType.SyntheticMonitor) {
+            return (
+                <SyntheticMonitorView
+                    key={key}
+                    probeMonitorResponse={probeMonitorResponse}
+                />
+            );
+        }
+
         return <></>;
     };
 
@@ -83,7 +93,7 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
         return (
             <ErrorMessage
                 error={
-                    'No metrics available for the selected probe. Should be few minutes for metrics to show up. '
+                    'No summary available for the selected probe. Should be few minutes for summary to show up. '
                 }
             />
         );
@@ -96,7 +106,7 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
         return (
             <ErrorMessage
                 error={
-                    'No metrics available for the selected probe. Should be few minutes for metrics to show up. '
+                    'No summary available for the selected probe. Should be few minutes for summary to show up. '
                 }
             />
         );
@@ -110,7 +120,7 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
                         probeMonitorResponse: ProbeMonitorResponse,
                         index: number
                     ) => {
-                        return getProbableMonitorMetricsInfo(
+                        return getProbableMonitorSummarysInfo(
                             probeMonitorResponse,
                             index
                         );
@@ -129,4 +139,4 @@ const MetricInfo: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default MetricInfo;
+export default SummaryInfo;

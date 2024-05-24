@@ -11,7 +11,7 @@ export interface ComponentProps {
     probeMonitorResponse: ProbeMonitorResponse;
 }
 
-const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
+const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [showMoreDetails, setShowMoreDetails] =
@@ -24,14 +24,16 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
         responseTimeInMs = Math.round(responseTimeInMs);
     }
 
-    const fields: Array<Field<ProbeMonitorResponse>> = [
-        {
+    const fields: Array<Field<ProbeMonitorResponse>> = [];
+
+    if (props.probeMonitorResponse?.responseHeaders) {
+        fields.push({
             key: 'responseHeaders',
             title: 'Response Headers',
             description: 'Response headers of the request.',
             fieldType: FieldType.JSON,
-        },
-    ];
+        });
+    }
 
     if (props.probeMonitorResponse?.responseBody) {
         fields.push({
@@ -71,10 +73,10 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            {showMoreDetails && (
+            {showMoreDetails && fields.length > 0 && (
                 <div>
                     <Detail<ProbeMonitorResponse>
-                        id={'website-monitor-metric-detail'}
+                        id={'website-monitor-summary-detail'}
                         item={props.probeMonitorResponse}
                         fields={fields}
                         showDetailsInNumberOfColumns={1}
@@ -82,7 +84,7 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-            {!showMoreDetails && (
+            {!showMoreDetails && fields.length > 0 && (
                 <div className="-ml-2">
                     <Button
                         buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -96,7 +98,7 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
 
             {/* Hide details button */}
 
-            {showMoreDetails && (
+            {showMoreDetails && fields.length > 0 && (
                 <div className="-ml-3">
                     <Button
                         buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -111,4 +113,4 @@ const WebsiteMonitorMetricView: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default WebsiteMonitorMetricView;
+export default WebsiteMonitorSummaryView;

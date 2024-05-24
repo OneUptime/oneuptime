@@ -55,7 +55,7 @@ import Probe from 'Model/Models/Probe';
 import ProbeUtil from '../../../Utils/Probe';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import Metrics from '../../../Components/Monitor/Metrics/Metrics';
+import Metrics from '../../../Components/Monitor/SummaryView/Summary';
 import MonitorProbe, {
     MonitorStepProbeResponse,
 } from 'Model/Models/MonitorProbe';
