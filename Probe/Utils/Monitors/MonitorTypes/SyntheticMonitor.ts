@@ -5,7 +5,7 @@ import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
 import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 import VMRunner from 'CommonServer/Utils/VM/VMRunner';
 import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
-import { Browser, firefox, webkit, chromium, Page } from 'playwright';
+import { Browser, firefox, chromium, Page } from 'playwright';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from '../../../Config';
 
@@ -218,10 +218,10 @@ export default class SyntheticMonitor {
             page = await browser.newPage();
         }
 
-        if (data.browserType === BrowserType.Webkit) {
-            browser = await webkit.launch();
-            page = await browser.newPage();
-        }
+        // if (data.browserType === BrowserType.Webkit) {
+        //     browser = await webkit.launch();
+        //     page = await browser.newPage();
+        // }
 
         await page?.setViewportSize({
             width: viewport.width,
