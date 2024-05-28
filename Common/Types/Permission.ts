@@ -417,7 +417,6 @@ enum Permission {
     CanDeleteProjectOnCallDutyPolicyEscalationRuleSchedule = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleSchedule',
     CanReadProjectOnCallDutyPolicyEscalationRuleSchedule = 'CanReadProjectOnCallDutyPolicyEscalationRuleSchedule',
 
-
     // Monitor Secret Permissions
     CanCreateMonitorSecret = 'CanCreateMonitorSecret',
     CanEditMonitorSecret = 'CanEditMonitorSecret',
@@ -1822,40 +1821,31 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
-                permission:
-                    Permission.CanCreateMonitorSecret,
+                permission: Permission.CanCreateMonitorSecret,
                 title: 'Can Create Monitor Secret',
-                description:
-                    'This permission can create monitor secret.',
+                description: 'This permission can create monitor secret.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.CanDeleteMonitorSecret,
+                permission: Permission.CanDeleteMonitorSecret,
                 title: 'Can Delete Monitor Secret',
-                description:
-                    'This permission can delete monitor secret',
+                description: 'This permission can delete monitor secret',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.CanEditMonitorSecret,
+                permission: Permission.CanEditMonitorSecret,
                 title: 'Can Edit Monitor Secret',
-                description:
-                    'This permission can edit monitor secret.',
+                description: 'This permission can edit monitor secret.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.CanReadMonitorSecret,
+                permission: Permission.CanReadMonitorSecret,
                 title: 'Can Read Monitor Secret',
-                description:
-                    'This permission can read monitor secret.',
+                description: 'This permission can read monitor secret.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
