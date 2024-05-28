@@ -1,74 +1,36 @@
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorSecret from 'Model/Models/MonitorSecret';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Color from 'Common/Types/Color';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-
+import Monitor from 'Model/Models/Monitor';
 
 const MonitorSecrets: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     return (
         <Fragment>
-            <ModelTable<MonitorStatus>
-                modelType={MonitorStatus}
+            <ModelTable<MonitorSecret>
+                modelType={MonitorSecret}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
-                id="monitor-status-table"
-                name="Settings > Monitor Status"
+                id="monitor-secret-table"
+                name="Settings > Monitor Secret"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    title: 'Monitor Status',
+                    title: 'Monitor Secrets',
                     description:
-                        'Define different status types (eg: Operational, Degraded, Down) here.',
+                        'Monitor secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with monitors.',
                 }}
-                noItemsMessage={'No monitor status found.'}
-                orderedStatesListProps={{
-                    titleField: 'name',
-                    descriptionField: 'description',
-                    orderField: 'priority',
-                }}
-                showAs={ShowAs.OrderedStatesList}
-                onBeforeDelete={(
-                    item: MonitorStatus
-                ): Promise<MonitorStatus> => {
-                    if (item.isOperationalState) {
-                        throw new BadDataException(
-                            'This monitor status cannot be deleted because its the operational state of monitors. Operational status or Offline Status cannot be deleted.'
-                        );
-                    }
-
-                    if (item.isOfflineState) {
-                        throw new BadDataException(
-                            'This monitor status cannot be deleted because its the offline state of monitors. Operational status or Offline Status cannot be deleted.'
-                        );
-                    }
-
-                    return Promise.resolve(item);
-                }}
+                noItemsMessage={'No monitor secret found. Click on the "Create" button to add a new monitor secret.'}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                onBeforeCreate={(
-                    item: MonitorStatus
-                ): Promise<MonitorStatus> => {
-                    if (!props.currentProject || !props.currentProject._id) {
-                        throw new BadDataException('Project ID cannot be null');
-                    }
-
-                    item.projectId = new ObjectID(props.currentProject._id);
-                    return Promise.resolve(item);
-                }}
                 formFields={[
                     {
                         field: {
@@ -77,7 +39,7 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Operational',
+                        placeholder: 'Secret Name',
                         validation: {
                             minLength: 2,
                         },
@@ -89,29 +51,65 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder: 'Monitors are up and operating normally.',
+                        placeholder: 'Secret Description',
                     },
                     {
                         field: {
-                            color: true,
+                            secretValue: true,
                         },
-                        title: 'Monitor Status Color',
-                        fieldType: FormFieldSchemaType.Color,
+                        title: 'Secret Value',
+                        fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder:
-                            'Please select color for this monitor status.',
+                            'Secret Value (eg: API Key, Password, etc.)',
+                    },
+                    {
+                        field: {
+                            monitors: true,
+                        },
+                        title: 'Monitors',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Monitor,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        description: 'Whcih monitors should have access to this secret?',
+                        placeholder:
+                            'Select monitors',
                     },
                 ]}
-                sortBy="priority"
+                sortBy="name"
                 sortOrder={SortOrder.Ascending}
                 showRefreshButton={true}
-                selectMoreFields={{
-                    color: true,
-                    isOperationalState: true,
-                    isOfflineState: true,
-                    priority: true,
-                }}
-                filters={[]}
+                filters={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            monitors: true,
+                        },
+                        title: 'Monitors',
+                        type: FieldType.EntityArray,
+
+                        filterEntityType: Monitor,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+
+                    }
+                ]}
                 columns={[
                     {
                         field: {
@@ -120,15 +118,6 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
 
-                        getElement: (item: MonitorStatus): ReactElement => {
-                            return (
-                                <StatusBubble
-                                    color={item['color'] as Color}
-                                    text={item['name'] as string}
-                                    shouldAnimate={false}
-                                />
-                            );
-                        },
                     },
                     {
                         field: {
@@ -137,16 +126,6 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
 
-                        getElement: (item: MonitorStatus): ReactElement => {
-                            return (
-                                <div>
-                                    <p>{`${item['description']}`}</p>
-                                    <p className="text-xs text-gray-400">
-                                        ID: {`${item['_id']}`}
-                                    </p>
-                                </div>
-                            );
-                        },
                     },
                 ]}
             />
