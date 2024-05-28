@@ -105,6 +105,7 @@ export const SettingsRoutePath: Dictionary<string> = {
     [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
     [PageMap.SETTINGS_MONITORS_STATUS]: 'monitors-status',
     [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: 'monitor-custom-fields',
+    [PageMap.SETTINGS_MONITOR_SECRETS]: 'monitor-secrets',
     [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: 'incident-custom-fields',
     [PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]:
         'on-call-duty-policy-custom-fields',
@@ -1016,6 +1017,12 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/${
             SettingsRoutePath[PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]
+        }`
+    ),
+
+    [PageMap.SETTINGS_MONITOR_SECRETS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/${
+            SettingsRoutePath[PageMap.SETTINGS_MONITOR_SECRETS]
         }`
     ),
 

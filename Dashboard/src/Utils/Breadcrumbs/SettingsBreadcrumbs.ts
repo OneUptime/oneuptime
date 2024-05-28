@@ -24,6 +24,10 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
             ['Project', 'Settings', 'Monitor Custom Fields']
         ),
         ...BuildBreadcrumbLinksByTitles(
+            PageMap.SETTINGS_MONITOR_SECRETS,
+            ['Project', 'Settings', 'Monitor Secrets']
+        ),
+        ...BuildBreadcrumbLinksByTitles(
             PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS,
             ['Project', 'Settings', 'Status Page Custom Fields']
         ),

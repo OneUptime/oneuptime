@@ -106,6 +106,13 @@ const MonitorCustomFields: LazyExoticComponent<
 > = lazy(() => {
     return import('../Pages/Settings/MonitorCustomFields');
 });
+
+const MonitorSecrets: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Settings/MonitorSecrets');
+});
+
 const StatusPageCustomFields: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -210,7 +217,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_INCIDENT_TEMPLATES
+                                    PageMap.SETTINGS_INCIDENT_TEMPLATES
                                     ] as Route
                                 }
                             />
@@ -229,7 +236,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
+                                    PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW
                                     ] as Route
                                 }
                             />
@@ -247,7 +254,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_USAGE_HISTORY
+                                    PageMap.SETTINGS_USAGE_HISTORY
                                     ] as Route
                                 }
                             />
@@ -265,7 +272,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_FEATURE_FLAGS
+                                    PageMap.SETTINGS_FEATURE_FLAGS
                                     ] as Route
                                 }
                             />
@@ -283,7 +290,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
                                     ] as Route
                                 }
                             />
@@ -302,8 +309,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap
-                                            .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                                    PageMap
+                                        .SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
                                     ] as Route
                                 }
                             />
@@ -321,8 +328,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap
-                                            .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
                                     ] as Route
                                 }
                             />
@@ -341,8 +348,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap
-                                            .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
                                     ] as Route
                                 }
                             />
@@ -360,7 +367,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_CALL_LOGS
+                                    PageMap.SETTINGS_CALL_LOGS
                                     ] as Route
                                 }
                             />
@@ -378,7 +385,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_EMAIL_LOGS
+                                    PageMap.SETTINGS_EMAIL_LOGS
                                     ] as Route
                                 }
                             />
@@ -396,7 +403,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                                    PageMap.SETTINGS_NOTIFICATION_SETTINGS
                                     ] as Route
                                 }
                             />
@@ -414,7 +421,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_MONITORS_STATUS
+                                    PageMap.SETTINGS_MONITORS_STATUS
                                     ] as Route
                                 }
                             />
@@ -432,7 +439,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_INCIDENTS_STATE
+                                    PageMap.SETTINGS_INCIDENTS_STATE
                                     ] as Route
                                 }
                             />
@@ -450,8 +457,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap
-                                            .SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                     ] as Route
                                 }
                             />
@@ -483,7 +490,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
                                     ] as Route
                                 }
                             />
@@ -530,7 +537,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_APIKEY_VIEW
+                                    PageMap.SETTINGS_APIKEY_VIEW
                                     ] as Route
                                 }
                             />
@@ -548,7 +555,25 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                    PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SETTINGS_MONITOR_SECRETS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <MonitorSecrets
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                    PageMap.SETTINGS_MONITOR_SECRETS
                                     ] as Route
                                 }
                             />
@@ -566,8 +591,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap
-                                            .SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                    PageMap
+                                        .SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
                                     ] as Route
                                 }
                             />
@@ -585,8 +610,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap
-                                            .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                    PageMap
+                                        .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                                     ] as Route
                                 }
                             />
@@ -604,7 +629,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                    PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
                                     ] as Route
                                 }
                             />
@@ -622,8 +647,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap
-                                            .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                                    PageMap
+                                        .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                                     ] as Route
                                 }
                             />
@@ -655,7 +680,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_BILLING_INVOICES
+                                    PageMap.SETTINGS_BILLING_INVOICES
                                     ] as Route
                                 }
                             />
@@ -716,7 +741,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SETTINGS_TEAM_VIEW
+                                    PageMap.SETTINGS_TEAM_VIEW
                                     ] as Route
                                 }
                             />
