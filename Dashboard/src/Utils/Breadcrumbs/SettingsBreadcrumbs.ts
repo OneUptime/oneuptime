@@ -1,7 +1,7 @@
-import Dictionary from 'Common/Types/Dictionary';
 import PageMap from '../PageMap';
-import Link from 'Common/Types/Link';
 import { BuildBreadcrumbLinksByTitles } from './Helper';
+import Dictionary from 'Common/Types/Dictionary';
+import Link from 'Common/Types/Link';
 
 export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     const breadcrumpLinksMap: Dictionary<Link[]> = {
@@ -23,10 +23,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
             PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS,
             ['Project', 'Settings', 'Monitor Custom Fields']
         ),
-        ...BuildBreadcrumbLinksByTitles(
-            PageMap.SETTINGS_MONITOR_SECRETS,
-            ['Project', 'Settings', 'Monitor Secrets']
-        ),
+        ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MONITOR_SECRETS, [
+            'Project',
+            'Settings',
+            'Monitor Secrets',
+        ]),
         ...BuildBreadcrumbLinksByTitles(
             PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS,
             ['Project', 'Settings', 'Status Page Custom Fields']

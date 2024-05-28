@@ -1,10 +1,10 @@
-import Project from 'Model/Models/Project';
-import Route from 'Common/Types/API/Route';
-import Dictionary from 'Common/Types/Dictionary';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
 import PageMap from './PageMap';
 import RouteParams from './RouteParams';
+import Route from 'Common/Types/API/Route';
+import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import Project from 'Model/Models/Project';
 
 export const MonitorsRoutePath: Dictionary<string> = {
     [PageMap.MONITORS_INOPERATIONAL]: 'inoperational',
