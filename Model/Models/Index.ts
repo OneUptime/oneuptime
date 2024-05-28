@@ -144,6 +144,7 @@ import UsageBilling from './TelemetryUsageBilling';
 import ProjectCallSMSConfig from './ProjectCallSMSConfig';
 import AcmeCertificate from './AcmeCertificate';
 import AcmeChallenge from './AcmeChallenge';
+import MonitorSecret from './MonitorSecret';
 
 export default [
     User,
@@ -168,8 +169,10 @@ export default [
     OnCallDutyPolicyExecutionLogTimeline,
 
     Monitor,
+    MonitorSecret,
     MonitorStatus,
     MonitorCustomField,
+    
     IncidentState,
     Incident,
     IncidentCustomField,
@@ -278,4 +281,5 @@ export default [
     AcmeCertificate,
 
     AcmeChallenge,
+
 ];
