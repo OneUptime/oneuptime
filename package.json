@@ -5,6 +5,7 @@
     "main": "ts",
     "type": "module",
     "dependencies": {
+        "@trivago/prettier-plugin-sort-imports": "^4.3.0",
         "@types/lodash": "^4.17.0",
         "eslint-plugin-progress": "^0.0.1",
         "jest": "^29.7.0",

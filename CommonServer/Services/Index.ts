@@ -34,6 +34,7 @@ import OnCallDutyPolicyService from './OnCallDutyPolicyService';
 import MonitorService from './MonitorService';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorStatusTimelineService from './MonitorStatusTimelineService';
+import MonitorSecretService from './MonitorSecretService';
 
 // Incidents
 import IncidentService from './IncidentService';
@@ -188,6 +189,7 @@ const services: Array<BaseService> = [
     MonitorService,
     MonitorStatusService,
     MonitorStatusTimelineService,
+    MonitorSecretService,
 
     NotificationService,
 

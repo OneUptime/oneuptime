@@ -140,6 +140,11 @@ import MonitorProbeService, {
     Service as MonitorProbeServiceType,
 } from 'CommonServer/Services/MonitorProbeService';
 
+import MonitorSecret from 'Model/Models/MonitorSecret';
+import MonitorSecretService, {
+    Service as MonitorSecretServiceType,
+} from 'CommonServer/Services/MonitorSecretService';
+
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import StatusPagePrivateUserService, {
     Service as StatusPagePrivateUserServiceType,
@@ -527,6 +532,14 @@ const BaseAPIFeatureSet: FeatureSet = {
             new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
                 MonitorProbe,
                 MonitorProbeService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<MonitorSecret, MonitorSecretServiceType>(
+                MonitorSecret,
+                MonitorSecretService
             ).getRouter()
         );
 
