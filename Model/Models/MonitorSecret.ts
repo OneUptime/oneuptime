@@ -1,25 +1,32 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
-import User from './User';
-import Project from './Project';
-import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
-import TableColumn from 'Common/Types/Database/TableColumn';
-import ColumnType from 'Common/Types/Database/ColumnType';
-import ObjectID from 'Common/Types/ObjectID';
-import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
-import Permission from 'Common/Types/Permission';
-import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import TenantColumn from 'Common/Types/Database/TenantColumn';
-import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';
-import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 import Monitor from './Monitor';
+import Project from './Project';
+import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
-
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import Permission from 'Common/Types/Permission';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -32,7 +39,7 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        
+
         Permission.CanReadMonitorSecret,
     ],
     delete: [
@@ -74,7 +81,7 @@ export default class MonitorSecret extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [],
@@ -110,7 +117,7 @@ export default class MonitorSecret extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [],
@@ -131,24 +138,23 @@ export default class MonitorSecret extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanCreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanEditMonitorSecret,
         ],
     })
@@ -167,24 +173,23 @@ export default class MonitorSecret extends BaseModel {
     @UniqueColumnBy('projectId')
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanCreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanEditMonitorSecret,
         ],
     })
@@ -201,26 +206,22 @@ export default class MonitorSecret extends BaseModel {
     })
     public description?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanCreateMonitorSecret,
         ],
-        read: [
-          
-        ],
-        update: [
-           
-        ],
+        read: [],
+        update: [],
     })
     @TableColumn({
         required: false,
         type: TableColumnType.LongText,
         title: 'Secret Value',
-        description: 'Secret value that you want to store in this object. This value will be encrypted and only accessible by the probe.',
+        description:
+            'Secret value that you want to store in this object. This value will be encrypted and only accessible by the probe.',
     })
     @Column({
         nullable: true,
@@ -228,9 +229,6 @@ export default class MonitorSecret extends BaseModel {
         length: ColumnLength.LongText,
     })
     public secretValue?: string = undefined;
-
-
-
 
     @ColumnAccessControl({
         create: [
@@ -273,7 +271,7 @@ export default class MonitorSecret extends BaseModel {
             referencedColumnName: '_id',
         },
     })
-    public monitors?: Array<Monitor> = undefined; 
+    public monitors?: Array<Monitor> = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -284,7 +282,7 @@ export default class MonitorSecret extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [],
@@ -320,7 +318,7 @@ export default class MonitorSecret extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [],
@@ -343,7 +341,7 @@ export default class MonitorSecret extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [],
@@ -375,7 +373,7 @@ export default class MonitorSecret extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            
+
             Permission.CanReadMonitorSecret,
         ],
         update: [],
@@ -392,5 +390,4 @@ export default class MonitorSecret extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
 }
