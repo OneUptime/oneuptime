@@ -65,10 +65,6 @@ RunCron(
             });
 
         for (const event of scheduledEvents) {
-            if (!event.monitors || event.monitors.length === 0) {
-                continue;
-            }
-
             // update the flag.
 
             await ScheduledMaintenanceService.updateOneById({
@@ -84,8 +80,10 @@ RunCron(
 
             // get status page resources from monitors.
 
-            const statusPageResources: Array<StatusPageResource> =
-                await StatusPageResourceService.findBy({
+            let statusPageResources: Array<StatusPageResource> = [];
+
+            if (event.monitors && event.monitors.length > 0) {
+                statusPageResources = await StatusPageResourceService.findBy({
                     query: {
                         monitorId: QueryHelper.in(
                             event.monitors
@@ -109,6 +107,7 @@ RunCron(
                         statusPageId: true,
                     },
                 });
+            }
 
             const statusPageToResources: Dictionary<Array<StatusPageResource>> =
                 {};

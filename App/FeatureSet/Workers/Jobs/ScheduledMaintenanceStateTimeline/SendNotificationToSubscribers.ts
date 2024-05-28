@@ -109,14 +109,12 @@ RunCron(
                 continue;
             }
 
-            if (!event.monitors || event.monitors.length === 0) {
-                continue;
-            }
-
             // get status page resources from monitors.
 
-            const statusPageResources: Array<StatusPageResource> =
-                await StatusPageResourceService.findBy({
+            let statusPageResources: Array<StatusPageResource> = [];
+
+            if (event.monitors && event.monitors.length > 0) {
+                statusPageResources = await StatusPageResourceService.findBy({
                     query: {
                         monitorId: QueryHelper.in(
                             event.monitors
@@ -140,6 +138,7 @@ RunCron(
                         statusPageId: true,
                     },
                 });
+            }
 
             const statusPageToResources: Dictionary<Array<StatusPageResource>> =
                 {};
