@@ -8,6 +8,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
+import MonitorsElement from '../../Components/Monitor/Monitors';
 
 const MonitorSecrets: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -67,7 +68,7 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         field: {
                             monitors: true,
                         },
-                        title: 'Monitors',
+                        title: 'Monitors which have access to this secret',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Monitor,
@@ -95,7 +96,7 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         field: {
                             monitors: true,
                         },
-                        title: 'Monitors',
+                        title: 'Monitors which have access to this secret',
                         type: FieldType.EntityArray,
 
                         filterEntityType: Monitor,
@@ -126,6 +127,25 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
 
+                    },
+                    {
+                        field: {
+                            monitors: {
+                                name: true,
+                                _id: true,
+                                projectId: true,
+                            },
+                        },
+                        title: 'Monitors which have access to this secret',
+                        type: FieldType.EntityArray,
+
+                        getElement: (item: MonitorSecret): ReactElement => {
+                            return (
+                                <MonitorsElement
+                                    monitors={item['monitors'] || []}
+                                />
+                            );
+                        },
                     },
                 ]}
             />
