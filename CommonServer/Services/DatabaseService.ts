@@ -279,6 +279,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         
 
         for (const key of data.getEncryptedColumns().columns) {
+
+            if(!data.hasValue(key)){
+                continue;
+            }
+
             // If data is an object.
             if (typeof (data as any)[key] === Typeof.Object) {
                 const dataObj: JSONObject = (data as any)[key] as JSONObject;
@@ -321,6 +326,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     protected async decrypt(data: TBaseModel): Promise<TBaseModel> {
        
         for (const key of data.getEncryptedColumns().columns) {
+
+            if(!data.hasValue(key)){
+                continue;
+            }
+
             // If data is an object.
             if (typeof data.getValue(key) === Typeof.Object) {
                 const dataObj: JSONObject = data.getValue(key) as JSONObject;
