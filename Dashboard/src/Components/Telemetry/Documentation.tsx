@@ -1,22 +1,22 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import ImageTiles from 'CommonUI/src/Components/ImageTiles/ImageTiles';
-import JavaScriptImage from '../Images/SvgImages/javascript.svg';
-import TypeScriptImage from '../Images/SvgImages/typescript.svg';
-import ReactImage from '../Images/SvgImages/react.svg';
-import NodeImage from '../Images/SvgImages/node.svg';
-import RustImage from '../Images/SvgImages/rust.svg';
-import GoImage from '../Images/SvgImages/go.svg';
-import PythonImage from '../Images/SvgImages/python.svg';
-import JavaImage from '../Images/SvgImages/java.svg';
 import CSharpImage from '../Images/SvgImages/csharp.svg';
 import DockerImage from '../Images/SvgImages/docker.svg';
-import SyslogImage from '../Images/SvgImages/syslog.svg';
-import PostgresSQLImage from '../Images/SvgImages/postgres.svg';
-import MySQLImage from '../Images/SvgImages/mysql.svg';
-import SystemdImage from '../Images/SvgImages/systemd.svg';
+import GoImage from '../Images/SvgImages/go.svg';
+import JavaImage from '../Images/SvgImages/java.svg';
+import JavaScriptImage from '../Images/SvgImages/javascript.svg';
 import MoreSourcesImage from '../Images/SvgImages/moresources.svg';
-import Card from 'CommonUI/src/Components/Card/Card';
+import MySQLImage from '../Images/SvgImages/mysql.svg';
+import NodeImage from '../Images/SvgImages/node.svg';
+import PostgresSQLImage from '../Images/SvgImages/postgres.svg';
+import PythonImage from '../Images/SvgImages/python.svg';
+import ReactImage from '../Images/SvgImages/react.svg';
+import RustImage from '../Images/SvgImages/rust.svg';
+import SyslogImage from '../Images/SvgImages/syslog.svg';
+import SystemdImage from '../Images/SvgImages/systemd.svg';
+import TypeScriptImage from '../Images/SvgImages/typescript.svg';
 import Route from 'Common/Types/API/Route';
+import Card from 'CommonUI/src/Components/Card/Card';
+import ImageTiles from 'CommonUI/src/Components/ImageTiles/ImageTiles';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
     const openTelemetryDocUrl: Route = Route.fromString(

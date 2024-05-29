@@ -1,26 +1,26 @@
-import Project from 'Model/Models/Project';
+import CustomCallSMSTable from '../../Components/CallSMS/CallSMSConfigTable';
+import CustomSMTPTable from '../../Components/CustomSMTP/CustomSMTPTable';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { APP_API_URL, BILLING_ENABLED } from 'CommonUI/src/Config';
+import API from 'CommonUI/src/Utils/API/API';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Project from 'Model/Models/Project';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import DashboardNavigation from '../../Utils/Navigation';
-import PageComponentProps from '../PageComponentProps';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { BILLING_ENABLED, APP_API_URL } from 'CommonUI/src/Config';
-import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
-import { JSONObject } from 'Common/Types/JSON';
-import API from 'CommonUI/src/Utils/API/API';
-import URL from 'Common/Types/API/URL';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import CustomSMTPTable from '../../Components/CustomSMTP/CustomSMTPTable';
-import CustomCallSMSTable from '../../Components/CallSMS/CallSMSConfigTable';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

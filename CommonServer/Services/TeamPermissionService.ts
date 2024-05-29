@@ -1,18 +1,18 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/TeamPermission';
-import DatabaseService from './DatabaseService';
-import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
-import AccessTokenService from './AccessTokenService';
-import TeamMemberService from './TeamMemberService';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import TeamMember from 'Model/Models/TeamMember';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import TeamService from './TeamService';
-import UpdateBy from '../Types/Database/UpdateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
+import UpdateBy from '../Types/Database/UpdateBy';
+import AccessTokenService from './AccessTokenService';
+import DatabaseService from './DatabaseService';
+import TeamMemberService from './TeamMemberService';
+import TeamService from './TeamService';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import Team from 'Model/Models/Team';
+import TeamMember from 'Model/Models/TeamMember';
+import Model from 'Model/Models/TeamPermission';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

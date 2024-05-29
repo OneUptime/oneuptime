@@ -1,10 +1,10 @@
+import BaseModel from 'Common/Models/BaseModel';
+import Dictionary from 'Common/Types/Dictionary';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import { FindOperator, Raw } from 'typeorm';
 import Text from 'Common/Types/Text';
 import Typeof from 'Common/Types/Typeof';
-import Dictionary from 'Common/Types/Dictionary';
-import BaseModel from 'Common/Models/BaseModel';
-import { JSONObject } from 'Common/Types/JSON';
+import { FindOperator, Raw } from 'typeorm';
 
 export default class QueryHelper {
     public static findWithSameText(text: string | number): FindOperator<any> {

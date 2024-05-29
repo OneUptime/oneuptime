@@ -1,36 +1,36 @@
+import CriteriaFilters from './CriteriaFilters';
+import MonitorCriteriaIncidentsForm from './MonitorCriteriaIncidentsForm';
+import Dictionary from 'Common/Types/Dictionary';
+import IconProp from 'Common/Types/Icon/IconProp';
+import {
+    CriteriaFilter,
+    FilterCondition,
+} from 'Common/Types/Monitor/CriteriaFilter';
+import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
+import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import ObjectID from 'Common/Types/ObjectID';
+import Button, {
+    ButtonSize,
+    ButtonStyleType,
+} from 'CommonUI/src/Components/Button/Button';
+import Dropdown, {
+    DropdownOption,
+    DropdownValue,
+} from 'CommonUI/src/Components/Dropdown/Dropdown';
+import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import Input from 'CommonUI/src/Components/Input/Input';
+import Radio from 'CommonUI/src/Components/Radio/Radio';
+import TextArea from 'CommonUI/src/Components/TextArea/TextArea';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import Dropdown, {
-    DropdownOption,
-    DropdownValue,
-} from 'CommonUI/src/Components/Dropdown/Dropdown';
-import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
-import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import ObjectID from 'Common/Types/ObjectID';
-import {
-    CriteriaFilter,
-    FilterCondition,
-} from 'Common/Types/Monitor/CriteriaFilter';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import CriteriaFilters from './CriteriaFilters';
-import Button, {
-    ButtonSize,
-    ButtonStyleType,
-} from 'CommonUI/src/Components/Button/Button';
-import MonitorCriteriaIncidentsForm from './MonitorCriteriaIncidentsForm';
-import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
-import Radio from 'CommonUI/src/Components/Radio/Radio';
-import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Input from 'CommonUI/src/Components/Input/Input';
-import TextArea from 'CommonUI/src/Components/TextArea/TextArea';
-import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
-import Dictionary from 'Common/Types/Dictionary';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;

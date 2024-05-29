@@ -1,14 +1,14 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import LabelsElement from '../../../Components/Label/Labels';
 import PageComponentProps from '../../PageComponentProps';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import StatusPagePreviewLink from './StatusPagePreviewLink';
+import ObjectID from 'Common/Types/ObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import ObjectID from 'Common/Types/ObjectID';
-import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
-import StatusPagePreviewLink from './StatusPagePreviewLink';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

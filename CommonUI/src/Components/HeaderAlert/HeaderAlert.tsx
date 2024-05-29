@@ -1,6 +1,6 @@
-import React, { ReactElement } from 'react';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps {
     icon: IconProp;

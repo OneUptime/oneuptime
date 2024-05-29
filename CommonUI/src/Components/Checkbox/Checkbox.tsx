@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
+
 export type CategoryCheckboxValue = string | number | boolean;
 
 export interface CategoryProps {

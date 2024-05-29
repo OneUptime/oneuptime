@@ -1,11 +1,11 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
+import Recurring from 'Common/Types/Events/Recurring';
+import RecurringFieldElement from 'CommonUI/src/Components/Events/RecurringFieldElement';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
-import RecurringFieldElement from 'CommonUI/src/Components/Events/RecurringFieldElement';
-import Recurring from 'Common/Types/Events/Recurring';
+import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;

@@ -1,10 +1,10 @@
-import Hostname from 'Common/Types/API/Hostname';
-import IPv4 from 'Common/Types/IP/IPv4';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 import Ping, {
     PingResponse,
 } from '../../Utils/Monitors/MonitorTypes/PingMonitor';
+import Hostname from 'Common/Types/API/Hostname';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import IPv4 from 'Common/Types/IP/IPv4';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 describe('Ping', () => {
     jest.setTimeout(240000);

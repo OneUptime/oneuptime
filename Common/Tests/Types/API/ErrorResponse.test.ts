@@ -1,4 +1,5 @@
 import ErrorResponse from '../../../Types/API/HTTPErrorResponse';
+
 describe('ErrorResponse', () => {
     test('should return a valid error response object', () => {
         const errorResponseObject: ErrorResponse = new ErrorResponse(

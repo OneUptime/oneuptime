@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const IncidentsPage: FunctionComponent<
     PageComponentProps

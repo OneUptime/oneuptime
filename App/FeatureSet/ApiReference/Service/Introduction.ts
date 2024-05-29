@@ -1,6 +1,6 @@
-import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
-import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
 import { ViewsPath } from '../Utils/Config';
+import ResourceUtil, { ModelDocumentation } from '../Utils/Resources';
+import { ExpressRequest, ExpressResponse } from 'CommonServer/Utils/Express';
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const FeaturedResources: Array<ModelDocumentation> =

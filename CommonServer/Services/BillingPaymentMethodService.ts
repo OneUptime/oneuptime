@@ -1,14 +1,14 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/BillingPaymentMethod';
-import DatabaseService from './DatabaseService';
-import { OnDelete, OnFind } from '../Types/Database/Hooks';
-import FindBy from '../Types/Database/FindBy';
-import ProjectService from './ProjectService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Project from 'Model/Models/Project';
-import BillingService, { PaymentMethod } from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
+import FindBy from '../Types/Database/FindBy';
+import { OnDelete, OnFind } from '../Types/Database/Hooks';
+import BillingService, { PaymentMethod } from './BillingService';
+import DatabaseService from './DatabaseService';
+import ProjectService from './ProjectService';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import Model from 'Model/Models/BillingPaymentMethod';
+import Project from 'Model/Models/Project';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

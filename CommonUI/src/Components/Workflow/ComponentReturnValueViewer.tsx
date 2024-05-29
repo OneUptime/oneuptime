@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import { ReturnValue } from 'Common/Types/Workflow/Component';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Pill from '../Pill/Pill';
 import { Black } from 'Common/Types/BrandColors';
+import { ReturnValue } from 'Common/Types/Workflow/Component';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     returnValues: Array<ReturnValue>;

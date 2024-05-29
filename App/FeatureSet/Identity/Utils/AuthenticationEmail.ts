@@ -1,23 +1,18 @@
 import { AccountsRoute } from 'Common/ServiceRoute';
-
-import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
-
-import ObjectID from 'Common/Types/ObjectID';
-import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
-
-import MailService from 'CommonServer/Services/MailService';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import URL from 'Common/Types/API/URL';
-
-import OneUptimeDate from 'Common/Types/Date';
-
-import Route from 'Common/Types/API/Route';
-import logger from 'CommonServer/Utils/Logger';
-import User from 'Model/Models/User';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
 import Email from 'Common/Types/Email';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import ObjectID from 'Common/Types/ObjectID';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
+import MailService from 'CommonServer/Services/MailService';
+import logger from 'CommonServer/Utils/Logger';
+import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
+import User from 'Model/Models/User';
 
 export default class AuthenticationEmail {
     public static async sendVerificationEmail(user: User): Promise<void> {

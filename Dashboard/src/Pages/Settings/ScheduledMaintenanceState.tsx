@@ -1,15 +1,16 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import Color from 'Common/Types/Color';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import BadDataException from 'Common/Types/Exception/BadDataException';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+
 const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {

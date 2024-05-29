@@ -1,24 +1,24 @@
+import EventName from '../../Utils/EventName';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
+import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
+import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
+import { ADMIN_DASHBOARD_URL } from 'CommonUI/src/Config';
+import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
+import FileUtil from 'CommonUI/src/Utils/File';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import User from 'CommonUI/src/Utils/User';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
-import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
-import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
-import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { ADMIN_DASHBOARD_URL } from 'CommonUI/src/Config';
-import User from 'CommonUI/src/Utils/User';
-import ObjectID from 'Common/Types/ObjectID';
-import FileUtil from 'CommonUI/src/Utils/File';
-import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
-import EventName from '../../Utils/EventName';
 
 export interface ComponentProps {
     onClickUserProfile: () => void;

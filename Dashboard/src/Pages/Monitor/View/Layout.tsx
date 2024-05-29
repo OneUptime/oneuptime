@@ -1,17 +1,17 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import { Outlet, useParams } from 'react-router-dom';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getMonitorBreadcrumbs } from '../../../Utils/Breadcrumbs';
 import { RouteUtil } from '../../../Utils/RouteMap';
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
 import SideMenu from './SideMenu';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import API from 'CommonUI/src/Utils/API/API';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Monitor from 'Model/Models/Monitor';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
+import { Outlet, useParams } from 'react-router-dom';
 import useAsyncEffect from 'use-async-effect';
 
 const MonitorViewLayout: FunctionComponent = (): ReactElement => {

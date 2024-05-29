@@ -1,6 +1,6 @@
+import TeamElement from './Team';
 import Team from 'Model/Models/Team';
 import React, { FunctionComponent, ReactElement } from 'react';
-import TeamElement from './Team';
 
 export interface ComponentProps {
     teams: Array<Team>;

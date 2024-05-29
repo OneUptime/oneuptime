@@ -1,11 +1,11 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import CustomFieldsDetail from 'CommonUI/src/Components/CustomFields/CustomFieldsDetail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPageCustomField from 'Model/Models/StatusPageCustomField';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageCustomFields: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

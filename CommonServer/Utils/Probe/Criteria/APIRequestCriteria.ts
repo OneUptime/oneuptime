@@ -1,14 +1,14 @@
+import DataToProcess from '../DataToProcess';
+import CompareCriteria from './CompareCriteria';
+import EvaluateOverTime from './EvaluateOverTime';
+import { JSONObject } from 'Common/Types/JSON';
 import {
     CheckOn,
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import Typeof from 'Common/Types/Typeof';
-import { JSONObject } from 'Common/Types/JSON';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import CompareCriteria from './CompareCriteria';
-import EvaluateOverTime from './EvaluateOverTime';
-import DataToProcess from '../DataToProcess';
+import Typeof from 'Common/Types/Typeof';
 
 export default class APIRequestCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {

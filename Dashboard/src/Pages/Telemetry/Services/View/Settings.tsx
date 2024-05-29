@@ -1,12 +1,12 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import TelemetryService from 'Model/Models/TelemetryService';
-import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import TelemetryService from 'Model/Models/TelemetryService';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

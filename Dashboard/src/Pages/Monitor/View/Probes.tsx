@@ -1,37 +1,37 @@
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
+import DashboardNavigation from '../../../Utils/Navigation';
+import ProbeUtil from '../../../Utils/Probe';
+import PageComponentProps from '../../PageComponentProps';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import ObjectID from 'Common/Types/ObjectID';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Monitor from 'Model/Models/Monitor';
+import MonitorProbe from 'Model/Models/MonitorProbe';
+import Probe from 'Model/Models/Probe';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
-import IconProp from 'Common/Types/Icon/IconProp';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import API from 'CommonUI/src/Utils/API/API';
-import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorProbe from 'Model/Models/MonitorProbe';
-import DashboardNavigation from '../../../Utils/Navigation';
-import Probe from 'Model/Models/Probe';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
-import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
-import ProbeStatusElement from '../../../Components/Probe/ProbeStatus';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import ProbeUtil from '../../../Utils/Probe';
-import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const MonitorProbes: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

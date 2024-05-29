@@ -1,14 +1,14 @@
-import React, { ReactElement, useState } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
-import ObjectID from 'Common/Types/ObjectID';
 import API from '../../Utils/API/API';
-import Card from '../Card/Card';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import { ButtonStyleType } from '../Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
+import Card from '../Card/Card';
 import ConfirmModal from '../Modal/ConfirmModal';
+import BaseModel from 'Common/Models/BaseModel';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import React, { ReactElement, useState } from 'react';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };

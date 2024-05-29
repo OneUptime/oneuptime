@@ -1,9 +1,9 @@
-import Email from 'Common/Types/Email';
-import ObjectID from 'Common/Types/ObjectID';
+import { PaymentMethod } from '../../../Services/BillingService';
 import ServerMeteredPlan from '../../../Types/Billing/MeteredPlan/ServerMeteredPlan';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { PaymentMethod } from '../../../Services/BillingService';
 import Dictionary from 'Common/Types/Dictionary';
+import Email from 'Common/Types/Email';
+import ObjectID from 'Common/Types/ObjectID';
 
 export type CustomerData = {
     id: ObjectID;

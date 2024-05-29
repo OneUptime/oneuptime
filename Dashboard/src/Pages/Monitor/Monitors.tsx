@@ -1,12 +1,12 @@
-import Route from 'Common/Types/API/Route';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import MonitorTable from '../../Components/Monitor/MonitorTable';
+import DashboardNavigation from '../../Utils/Navigation';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import MonitorTable from '../../Components/Monitor/MonitorTable';
-import DashboardNavigation from '../../Utils/Navigation';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
+import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (

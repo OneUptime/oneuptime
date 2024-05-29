@@ -1,10 +1,10 @@
 import DataMigrationBase from './DataMigrationBase';
+import Color from 'Common/Types/Color';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import Project from 'Model/Models/Project';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import ScheduledMaintenanceStateService from 'CommonServer/Services/ScheduledMaintenanceStateService';
+import Project from 'Model/Models/Project';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
-import Color from 'Common/Types/Color';
 
 export default class AddEndedState extends DataMigrationBase {
     public constructor() {

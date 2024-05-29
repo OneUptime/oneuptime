@@ -1,23 +1,23 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import OnCallDutyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
-import ObjectID from 'Common/Types/ObjectID';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import DashboardNavigation from '../../../Utils/Navigation';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Team from 'Model/Models/Team';
-import ProjectUser from '../../../Utils/ProjectUser';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import OnCallDutyScheduleView from '../../../Components/OnCallPolicy/EscalationRule/OnCallScheduleView';
 import TeamView from '../../../Components/OnCallPolicy/EscalationRule/TeamView';
 import UserView from '../../../Components/OnCallPolicy/EscalationRule/UserView';
+import DashboardNavigation from '../../../Utils/Navigation';
+import ProjectUser from '../../../Utils/ProjectUser';
+import PageComponentProps from '../../PageComponentProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import OnCallDutyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
 import OnCallDutyPolicySchedule from 'Model/Models/OnCallDutyPolicySchedule';
-import OnCallDutyScheduleView from '../../../Components/OnCallPolicy/EscalationRule/OnCallScheduleView';
+import Team from 'Model/Models/Team';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

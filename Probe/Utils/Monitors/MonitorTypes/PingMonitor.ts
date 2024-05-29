@@ -1,15 +1,15 @@
+import OnlineCheck from '../../OnlineCheck';
 import Hostname from 'Common/Types/API/Hostname';
 import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
 import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import Sleep from 'Common/Types/Sleep';
 import logger from 'CommonServer/Utils/Logger';
 import ping from 'ping';
-import UnableToReachServer from 'Common/Types/Exception/UnableToReachServer';
-import Sleep from 'Common/Types/Sleep';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import OnlineCheck from '../../OnlineCheck';
 
 // TODO - make sure it  work for the IPV6
 export interface PingResponse {

@@ -1,21 +1,21 @@
+import MonitorCriteriaElement from './MonitorCriteria';
+import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
+import MonitorStep, { MonitorStepType } from 'Common/Types/Monitor/MonitorStep';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import Detail from 'CommonUI/src/Components/Detail/Detail';
+import Field from 'CommonUI/src/Components/Detail/Field';
+import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import MonitorStep, { MonitorStepType } from 'Common/Types/Monitor/MonitorStep';
-import MonitorCriteriaElement from './MonitorCriteria';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
-import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
-import Detail from 'CommonUI/src/Components/Detail/Detail';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Field from 'CommonUI/src/Components/Detail/Field';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 
 export interface ComponentProps {
     monitorStatusOptions: Array<MonitorStatus>;

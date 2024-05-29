@@ -1,3 +1,13 @@
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import BasicForm, { FormProps } from '../Forms/BasicForm';
+import FormValues from '../Forms/Types/FormValues';
+import ComponentValuePickerModal from './ComponentValuePickerModal';
+import { componentInputTypeToFormFieldType } from './Utils';
+import VariableModal from './VariableModal';
+import Dictionary from 'Common/Types/Dictionary';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import { Argument, NodeDataProp } from 'Common/Types/Workflow/Component';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -5,16 +15,6 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import { Argument, NodeDataProp } from 'Common/Types/Workflow/Component';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import BasicForm, { FormProps } from '../Forms/BasicForm';
-import FormValues from '../Forms/Types/FormValues';
-import { JSONObject } from 'Common/Types/JSON';
-import Dictionary from 'Common/Types/Dictionary';
-import { componentInputTypeToFormFieldType } from './Utils';
-import VariableModal from './VariableModal';
-import ObjectID from 'Common/Types/ObjectID';
-import ComponentValuePickerModal from './ComponentValuePickerModal';
 
 export interface ComponentProps {
     component: NodeDataProp;

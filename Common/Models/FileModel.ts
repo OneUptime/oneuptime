@@ -1,4 +1,3 @@
-import { Column } from 'typeorm';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import ColumnLength from '../Types/Database/ColumnLength';
 import ColumnType from '../Types/Database/ColumnType';
@@ -9,6 +8,7 @@ import MimeType from '../Types/File/MimeType';
 import ObjectID from '../Types/ObjectID';
 import Permission from '../Types/Permission';
 import BaseModel from './BaseModel';
+import { Column } from 'typeorm';
 
 @SlugifyColumn('name', 'slug')
 export default class FileModel extends BaseModel {

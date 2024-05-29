@@ -1,6 +1,6 @@
+import 'highlight.js/styles/a11y-dark.css';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Highlight from 'react-highlight';
-import 'highlight.js/styles/a11y-dark.css';
 
 export interface ComponentProps {
     code: string | ReactElement;

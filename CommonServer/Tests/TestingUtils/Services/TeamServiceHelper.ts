@@ -1,7 +1,7 @@
-import Team from 'Model/Models/Team';
-import ObjectID from 'Common/Types/ObjectID';
-import faker from '@faker-js/faker';
 import CreateBy from '../../../Types/Database/CreateBy';
+import faker from '@faker-js/faker';
+import ObjectID from 'Common/Types/ObjectID';
+import Team from 'Model/Models/Team';
 
 export default class TeamTestService {
     public static generateRandomTeam(

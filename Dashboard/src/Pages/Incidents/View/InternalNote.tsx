@@ -1,35 +1,35 @@
+import UserElement from '../../../Components/User/User';
+import DashboardNavigation from '../../../Utils/Navigation';
+import ProjectUser from '../../../Utils/ProjectUser';
+import PageComponentProps from '../../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import AlignItem from 'CommonUI/src/Types/AlignItem';
+import API from 'CommonUI/src/Utils/API/API';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
+import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
+import User from 'Model/Models/User';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
-import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
-import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
-import UserElement from '../../../Components/User/User';
-import User from 'Model/Models/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import AlignItem from 'CommonUI/src/Types/AlignItem';
-import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import API from 'CommonUI/src/Utils/API/API';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import IconProp from 'Common/Types/Icon/IconProp';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
-import ProjectUser from '../../../Utils/ProjectUser';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

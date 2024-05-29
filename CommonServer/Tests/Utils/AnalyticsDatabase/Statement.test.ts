@@ -1,6 +1,6 @@
+import { SQL, Statement } from '../../../Utils/AnalyticsDatabase/Statement';
 import '../../TestingUtils/Init';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
-import { SQL, Statement } from '../../../Utils/AnalyticsDatabase/Statement';
 
 describe('Statement', () => {
     describe('constructor', () => {

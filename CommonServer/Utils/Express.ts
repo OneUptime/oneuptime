@@ -1,18 +1,18 @@
-import 'ejs';
-import express from 'express';
 import logger from './Logger';
+import Dictionary from 'Common/Types/Dictionary';
+import GenericFunction from 'Common/Types/GenericFunction';
 import { JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import ObjectID from 'Common/Types/ObjectID';
 import {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import UserType from 'Common/Types/UserType';
-import Dictionary from 'Common/Types/Dictionary';
 import Port from 'Common/Types/Port';
+import UserType from 'Common/Types/UserType';
+import 'ejs';
+import express from 'express';
 import { Server, createServer } from 'http';
-import GenericFunction from 'Common/Types/GenericFunction';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;

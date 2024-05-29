@@ -1,13 +1,13 @@
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import Route from 'Common/Types/API/Route';
+import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
-import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
-import ObjectID from 'Common/Types/ObjectID';
-import Route from 'Common/Types/API/Route';
-import Permission from 'Common/Types/Permission';
+import BrowserType from 'Common/Types/BrowserType';
 import { JSONObject } from 'Common/Types/JSON';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
-import BrowserType from 'Common/Types/BrowserType';
+import ObjectID from 'Common/Types/ObjectID';
+import Permission from 'Common/Types/Permission';
 import ScreenSizeType from 'Common/Types/ScreenSizeType';
 
 export interface MonitorMetricsMiscData {

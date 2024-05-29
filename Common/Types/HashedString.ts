@@ -1,11 +1,11 @@
-import { FindOperator } from 'typeorm';
 import UUID from '../Utils/UUID';
 import DatabaseProperty from './Database/DatabaseProperty';
+import BadDataException from './Exception/BadDataException';
 import BadOperationException from './Exception/BadOperationException';
+import { JSONObject, ObjectType } from './JSON';
 import ObjectID from './ObjectID';
 import CryptoJS from 'crypto-js';
-import { JSONObject, ObjectType } from './JSON';
-import BadDataException from './Exception/BadDataException';
+import { FindOperator } from 'typeorm';
 
 export default class HashedString extends DatabaseProperty {
     private isHashed: boolean = false;

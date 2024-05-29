@@ -1,7 +1,3 @@
-import IconProp from 'Common/Types/Icon/IconProp';
-import { JSONObject } from 'Common/Types/JSON';
-import Dictionary from 'Common/Types/Dictionary';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import Divider from '../Divider/Divider';
 import BasicForm from '../Forms/BasicForm';
@@ -9,12 +5,16 @@ import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
 import FormValues from '../Forms/Types/FormValues';
 import ConfirmModal from '../Modal/ConfirmModal';
 import SideOver from '../SideOver/SideOver';
+import ArgumentsForm from './ArgumentsForm';
 import ComponentPortViewer from './ComponentPortViewer';
 import ComponentReturnValueViewer from './ComponentReturnValueViewer';
-import ArgumentsForm from './ArgumentsForm';
+import DocumentationViewer from './DocumentationViewer';
+import Dictionary from 'Common/Types/Dictionary';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import { NodeDataProp } from 'Common/Types/Workflow/Component';
-import DocumentationViewer from './DocumentationViewer';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export interface ComponentProps {
     title: string;

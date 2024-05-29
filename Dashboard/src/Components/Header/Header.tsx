@@ -1,36 +1,36 @@
+import EventName from '../../Utils/EventName';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+// import SearchBox from './SearchBox';
+// import Notifications from './Notifications';
+import Help from './Help';
+import Logo from './Logo';
+import ProjectPicker from './ProjectPicker';
+import Upgrade from './Upgrade';
+import UserProfile from './UserProfile';
+import Route from 'Common/Types/API/Route';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import OneUptimeDate from 'Common/Types/Date';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Header from 'CommonUI/src/Components/Header/Header';
+import HeaderAlert from 'CommonUI/src/Components/HeaderAlert/HeaderAlert';
+import HeaderModelAlert from 'CommonUI/src/Components/HeaderAlert/HeaderModelAlert';
+import { SizeProp } from 'CommonUI/src/Components/Icon/Icon';
+import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import User from 'CommonUI/src/Utils/User';
+import Incident from 'Model/Models/Incident';
+import Project from 'Model/Models/Project';
+import TeamMember from 'Model/Models/TeamMember';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-// import SearchBox from './SearchBox';
-// import Notifications from './Notifications';
-import Help from './Help';
-import UserProfile from './UserProfile';
-import ProjectPicker from './ProjectPicker';
-import Header from 'CommonUI/src/Components/Header/Header';
-import Project from 'Model/Models/Project';
-import Logo from './Logo';
-import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
-import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
-import EventName from '../../Utils/EventName';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Upgrade from './Upgrade';
-import { SizeProp } from 'CommonUI/src/Components/Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Route from 'Common/Types/API/Route';
-import TeamMember from 'Model/Models/TeamMember';
-import User from 'CommonUI/src/Utils/User';
-import Incident from 'Model/Models/Incident';
-import OneUptimeDate from 'Common/Types/Date';
-import HeaderModelAlert from 'CommonUI/src/Components/HeaderAlert/HeaderModelAlert';
-import HeaderAlert from 'CommonUI/src/Components/HeaderAlert/HeaderAlert';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps {
     projects: Array<Project>;

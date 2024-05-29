@@ -1,13 +1,13 @@
 import DataMigrationBase from './DataMigrationBase';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import Project from 'Model/Models/Project';
-import ProjectService from 'CommonServer/Services/ProjectService';
-import Monitor from 'Model/Models/Monitor';
-import MonitorService from 'CommonServer/Services/MonitorService';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import MonitorStatusTimelineService from 'CommonServer/Services/MonitorStatusTimelineService';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import MonitorService from 'CommonServer/Services/MonitorService';
+import MonitorStatusTimelineService from 'CommonServer/Services/MonitorStatusTimelineService';
+import ProjectService from 'CommonServer/Services/ProjectService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
+import Monitor from 'Model/Models/Monitor';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import Project from 'Model/Models/Project';
 
 export default class AddEndDateToMonitorStatusTimeline extends DataMigrationBase {
     public constructor() {

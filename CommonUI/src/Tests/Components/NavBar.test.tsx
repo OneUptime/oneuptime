@@ -1,9 +1,9 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
 import Navbar, { ComponentProps } from '../../Components/Navbar/NavBar';
-import '@testing-library/jest-dom/extend-expect';
-import { ReactElement } from 'react-markdown/lib/react-markdown';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { ReactElement } from 'react-markdown/lib/react-markdown';
 
 describe('Navbar', () => {
     const defaultProps: ComponentProps = {

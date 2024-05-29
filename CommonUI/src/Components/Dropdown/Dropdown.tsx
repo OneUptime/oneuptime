@@ -1,4 +1,4 @@
-import Select, { ControlProps, GroupBase, OptionProps } from 'react-select';
+import ObjectID from 'Common/Types/ObjectID';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -6,7 +6,7 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import ObjectID from 'Common/Types/ObjectID';
+import Select, { ControlProps, GroupBase, OptionProps } from 'react-select';
 
 export type DropdownValue = string | number | boolean;
 

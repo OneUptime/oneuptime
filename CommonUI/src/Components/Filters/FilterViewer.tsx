@@ -1,20 +1,20 @@
-import React, { ReactElement, useEffect, useState } from 'react';
-import Filter from './Types/Filter';
-import GenericObject from 'Common/Types/GenericObject';
-import FilterData from './Types/FilterData';
-import FilterViewerItem from './FilterViewerItem';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Button, { ButtonStyleType } from '../Button/Button';
-import Modal, { ModalWidth } from '../Modal/Modal';
-import FiltersForm from './FiltersForm';
-import IconProp from 'Common/Types/Icon/IconProp';
+import { DropdownOption } from '../Dropdown/Dropdown';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import { SizeProp } from '../Icon/Icon';
+import Modal, { ModalWidth } from '../Modal/Modal';
+import FieldType from '../Types/FieldType';
+import FilterViewerItem from './FilterViewerItem';
+import FiltersForm from './FiltersForm';
+import Filter from './Types/Filter';
+import FilterData from './Types/FilterData';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
 import Search from 'Common/Types/BaseDatabase/Search';
 import OneUptimeDate from 'Common/Types/Date';
-import InBetween from 'Common/Types/BaseDatabase/InBetween';
-import FieldType from '../Types/FieldType';
-import { DropdownOption } from '../Dropdown/Dropdown';
 import Dictionary from 'Common/Types/Dictionary';
+import GenericObject from 'Common/Types/GenericObject';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React, { ReactElement, useEffect, useState } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;

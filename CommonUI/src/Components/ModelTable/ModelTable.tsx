@@ -1,17 +1,17 @@
-import React, { ReactElement } from 'react';
-import BaseModelTable, { BaseTableProps, ModalType } from './BaseModelTable';
-import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
-import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
-import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
-import Dictionary from 'Common/Types/Dictionary';
-import Select from '../../Utils/BaseDatabase/Select';
-import Query from '../../Utils/BaseDatabase/Query';
-import Sort from '../../Utils/BaseDatabase/Sort';
-import ModelFormModal from '../ModelFormModal/ModelFormModal';
-import { FormType } from '../Forms/ModelForm';
-import { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
 import GroupBy from '../../Utils/BaseDatabase/GroupBy';
+import Query from '../../Utils/BaseDatabase/Query';
+import Select from '../../Utils/BaseDatabase/Select';
+import Sort from '../../Utils/BaseDatabase/Sort';
+import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
+import { FormType } from '../Forms/ModelForm';
+import ModelFormModal from '../ModelFormModal/ModelFormModal';
+import BaseModelTable, { BaseTableProps, ModalType } from './BaseModelTable';
+import { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
+import Dictionary from 'Common/Types/Dictionary';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps<TBaseModel extends BaseModel>
     extends BaseTableProps<TBaseModel> {

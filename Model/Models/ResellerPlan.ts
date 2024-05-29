@@ -1,20 +1,20 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import Reseller from './Reseller';
 import User from './User';
-import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
-import TableColumn from 'Common/Types/Database/TableColumn';
-import ColumnType from 'Common/Types/Database/ColumnType';
-import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
-import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
-import BaseModel from 'Common/Models/BaseModel';
-import Reseller from './Reseller';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 
 @TableAccessControl({
     create: [],

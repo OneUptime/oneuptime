@@ -1,16 +1,16 @@
-import React, { Fragment, ReactElement } from 'react';
+import DashboardNavigation from '../../../Utils/Navigation';
 import PageComponentProps from '../../PageComponentProps';
+import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import DashboardNavigation from '../../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import CustomFieldType from 'Common/Types/CustomField/CustomFieldType';
-import MonitorCustomField from 'Model/Models/MonitorCustomField';
-import StatusPageCustomField from 'Model/Models/StatusPageCustomField';
 import IncidentCustomField from 'Model/Models/IncidentCustomField';
-import ScheduledMaintenanceCustomField from 'Model/Models/ScheduledMaintenanceCustomField';
+import MonitorCustomField from 'Model/Models/MonitorCustomField';
 import OnCallDutyPolicyCustomField from 'Model/Models/OnCallDutyPolicyCustomField';
+import ScheduledMaintenanceCustomField from 'Model/Models/ScheduledMaintenanceCustomField';
+import StatusPageCustomField from 'Model/Models/StatusPageCustomField';
+import React, { Fragment, ReactElement } from 'react';
 
 export type CustomFieldsBaseModels =
     | MonitorCustomField

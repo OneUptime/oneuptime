@@ -1,26 +1,26 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/StatusPageSubscriber';
-import DatabaseService from './DatabaseService';
-import { OnCreate } from '../Types/Database/Hooks';
-import CreateBy from '../Types/Database/CreateBy';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import StatusPageService from './StatusPageService';
-import MailService from './MailService';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import URL from 'Common/Types/API/URL';
-import { FileRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import ProjectSMTPConfigService from '../Services/ProjectSmtpConfigService';
+import CreateBy from '../Types/Database/CreateBy';
+import { OnCreate } from '../Types/Database/Hooks';
+import QueryHelper from '../Types/Database/QueryHelper';
 import logger from '../Utils/Logger';
-import StatusPage from 'Model/Models/StatusPage';
-import ObjectID from 'Common/Types/ObjectID';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import DatabaseService from './DatabaseService';
+import MailService from './MailService';
+import ProjectService from './ProjectService';
+import StatusPageService from './StatusPageService';
+import { FileRoute } from 'Common/ServiceRoute';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
-import ProjectService from './ProjectService';
+import URL from 'Common/Types/API/URL';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import StatusPage from 'Model/Models/StatusPage';
 import StatusPageResource from 'Model/Models/StatusPageResource';
-import QueryHelper from '../Types/Database/QueryHelper';
-import ProjectSMTPConfigService from '../Services/ProjectSmtpConfigService';
+import Model from 'Model/Models/StatusPageSubscriber';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

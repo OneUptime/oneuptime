@@ -1,5 +1,5 @@
-import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 import CompareCriteria from './CompareCriteria';
+import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 import CustomCodeMonitorResponse from 'Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
 
 export default class CustomCodeMonitoringCriteria {

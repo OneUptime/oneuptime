@@ -1,12 +1,12 @@
-import { Worker } from 'bullmq';
-import TimeoutException from 'Common/Types/Exception/TimeoutException';
 import { RedisHostname, RedisPassword, RedisPort } from '../EnvironmentConfig';
 import { QueueJob, QueueName } from './Queue';
+import TimeoutException from 'Common/Types/Exception/TimeoutException';
 import {
     PromiseRejectErrorFunction,
     PromiseVoidFunction,
     VoidFunction,
 } from 'Common/Types/FunctionTypes';
+import { Worker } from 'bullmq';
 
 export default class QueueWorker {
     public static getWorker(

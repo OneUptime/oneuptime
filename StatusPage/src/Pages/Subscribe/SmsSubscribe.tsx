@@ -1,36 +1,36 @@
+import Page from '../../Components/Page/Page';
+import API from '../../Utils/API';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import StatusPageUtil from '../../Utils/StatusPage';
+import SubscribeSideMenu from './SideMenu';
+import { SubscribePageProps } from './SubscribePageUtils';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import Card from 'CommonUI/src/Components/Card/Card';
+import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/CategoryCheckbox/Index';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import ModelForm, {
+    FormType,
+    ModelField,
+} from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import Page from '../../Components/Page/Page';
-import ModelForm, {
-    FormType,
-    ModelField,
-} from 'CommonUI/src/Components/Forms/ModelForm';
-import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Route from 'Common/Types/API/Route';
-import SubscribeSideMenu from './SideMenu';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Card from 'CommonUI/src/Components/Card/Card';
-import URL from 'Common/Types/API/URL';
-import API from '../../Utils/API';
-import StatusPageUtil from '../../Utils/StatusPage';
-import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import { SubscribePageProps } from './SubscribePageUtils';
-import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/CategoryCheckbox/Index';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
     props: SubscribePageProps

@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import CopyableButton from '../CopyableButton/CopyableButton';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-import CopyableButton from '../CopyableButton/CopyableButton';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export interface ComponentProps {
     text: string;

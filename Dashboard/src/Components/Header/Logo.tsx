@@ -1,9 +1,8 @@
 // Tailwind
-
-import React, { FunctionComponent, ReactElement } from 'react';
+import Route from 'Common/Types/API/Route';
 import Image from 'CommonUI/src/Components/Image/Image';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
-import Route from 'Common/Types/API/Route';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     onClick: () => void;

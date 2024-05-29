@@ -1,10 +1,10 @@
-import React, { ReactElement } from 'react';
-import Filter from './Types/Filter';
-import GenericObject from 'Common/Types/GenericObject';
+import DictionaryForm, { ValueType } from '../Dictionary/Dictionary';
 import FieldType from '../Types/FieldType';
+import Filter from './Types/Filter';
 import FilterData from './Types/FilterData';
 import Dictionary from 'Common/Types/Dictionary';
-import DictionaryForm, { ValueType } from '../Dictionary/Dictionary';
+import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     filter: Filter<T>;

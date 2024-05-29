@@ -1,18 +1,18 @@
-import React, { FunctionComponent, useEffect, useState } from 'react';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import Link from 'CommonUI/src/Components/Link/Link';
-import Route from 'Common/Types/API/Route';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import UserUtil from '../../Utils/User';
-import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import { FILE_URL } from 'CommonUI/src/Config';
-import URL from 'Common/Types/API/URL';
 import { RESET_PASSWORD_API_URL } from '../../Utils/ApiPaths';
-import ObjectID from 'Common/Types/ObjectID';
-import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import RouteMap from '../../Utils/RouteMap';
 import StatusPageUtil from '../../Utils/StatusPage';
+import UserUtil from '../../Utils/User';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import ObjectID from 'Common/Types/ObjectID';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Link from 'CommonUI/src/Components/Link/Link';
+import { FILE_URL } from 'CommonUI/src/Config';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import React, { FunctionComponent, useEffect, useState } from 'react';
 
 export interface ComponentProps {
     statusPageName: string;

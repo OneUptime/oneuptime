@@ -1,38 +1,37 @@
+import Page from '../../Components/Page/Page';
+import API from '../../Utils/API';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import StatusPageUtil from '../../Utils/StatusPage';
+import PageComponentProps from '../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import { Blue500 } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import EventItem, {
+    ComponentProps as EventItemComponentProps,
+} from 'CommonUI/src/Components/EventItem/EventItem';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import PageComponentProps from '../PageComponentProps';
-import Page from '../../Components/Page/Page';
-import URL from 'Common/Types/API/URL';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
 import useAsyncEffect from 'use-async-effect';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
-import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import EventItem, {
-    ComponentProps as EventItemComponentProps,
-} from 'CommonUI/src/Components/EventItem/EventItem';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import IconProp from 'Common/Types/Icon/IconProp';
-import { Blue500 } from 'Common/Types/BrandColors';
-import OneUptimeDate from 'Common/Types/Date';
-import API from '../../Utils/API';
-import StatusPageUtil from '../../Utils/StatusPage';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 type GetAnnouncementEventItemFunctionProps = {
     announcement: StatusPageAnnouncement;

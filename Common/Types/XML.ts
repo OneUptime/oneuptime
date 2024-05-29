@@ -1,4 +1,5 @@
 import BadDataException from './Exception/BadDataException';
+
 export default class XML {
     private _xml: string = '';
     public get xml(): string {

@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement, Suspense, lazy } from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import Route from 'Common/Types/API/Route';
-import { RoutesProps } from '../Types/RoutesProps';
-import RouteMap from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
 import Loader from '../Components/Loader/Loader';
+import { RoutesProps } from '../Types/RoutesProps';
+import PageMap from '../Utils/PageMap';
+import RouteMap from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import React, { FunctionComponent, ReactElement, Suspense, lazy } from 'react';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 const Init: any = lazy(() => {
     return import('../Pages/Init/Init');

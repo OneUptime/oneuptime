@@ -1,47 +1,47 @@
+import Page from '../../Components/Page/Page';
+import API from '../../Utils/API';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import StatusPageUtil from '../../Utils/StatusPage';
+import PageComponentProps from '../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import { Gray500, Green, Red } from 'Common/Types/BrandColors';
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import EventItem, {
+    ComponentProps as EventItemComponentProps,
+    TimelineItem,
+    TimelineItemType,
+} from 'CommonUI/src/Components/EventItem/EventItem';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Incident from 'Model/Models/Incident';
+import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import Label from 'Model/Models/Label';
+import Monitor from 'Model/Models/Monitor';
+import StatusPageResource from 'Model/Models/StatusPageResource';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import Page from '../../Components/Page/Page';
-import URL from 'Common/Types/API/URL';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import BaseModel from 'Common/Models/BaseModel';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import useAsyncEffect from 'use-async-effect';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPageResource from 'Model/Models/StatusPageResource';
-import Incident from 'Model/Models/Incident';
-import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import OneUptimeDate from 'Common/Types/Date';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import EventItem, {
-    TimelineItem,
-    ComponentProps as EventItemComponentProps,
-    TimelineItemType,
-} from 'CommonUI/src/Components/EventItem/EventItem';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import Monitor from 'Model/Models/Monitor';
-import Color from 'Common/Types/Color';
-import { Green, Gray500, Red } from 'Common/Types/BrandColors';
-import IconProp from 'Common/Types/Icon/IconProp';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import API from '../../Utils/API';
-import StatusPageUtil from '../../Utils/StatusPage';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import Label from 'Model/Models/Label';
-import Dictionary from 'Common/Types/Dictionary';
 
 type GetIncidentEventItemFunctionProps = {
     incident: Incident;

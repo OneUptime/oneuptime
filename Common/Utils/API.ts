@@ -1,17 +1,17 @@
-import axios, { AxiosError, AxiosResponse } from 'axios';
-import URL from '../Types/API/URL';
-import { JSONObject, JSONArray } from '../Types/JSON';
-import Headers from '../Types/API/Headers';
-import HTTPResponse from '../Types/API/HTTPResponse';
+import AnalyticsBaseModel from '../AnalyticsModels/BaseModel';
+import BaseModel from '../Models/BaseModel';
 import HTTPErrorResponse from '../Types/API/HTTPErrorResponse';
 import HTTPMethod from '../Types/API/HTTPMethod';
-import APIException from '../Types/Exception/ApiException';
-import Protocol from '../Types/API/Protocol';
+import HTTPResponse from '../Types/API/HTTPResponse';
+import Headers from '../Types/API/Headers';
 import Hostname from '../Types/API/Hostname';
+import Protocol from '../Types/API/Protocol';
 import Route from '../Types/API/Route';
-import BaseModel from '../Models/BaseModel';
+import URL from '../Types/API/URL';
 import Dictionary from '../Types/Dictionary';
-import AnalyticsBaseModel from '../AnalyticsModels/BaseModel';
+import APIException from '../Types/Exception/ApiException';
+import { JSONArray, JSONObject } from '../Types/JSON';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 
 export default class API {
     private _protocol: Protocol = Protocol.HTTPS;

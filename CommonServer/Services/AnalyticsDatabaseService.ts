@@ -1,13 +1,16 @@
+import { AppApiHostname } from '../EnvironmentConfig';
 import ClickhouseDatabase, {
     ClickhouseAppInstance,
     ClickhouseClient,
 } from '../Infrastructure/ClickhouseDatabase';
-import BaseService from './BaseService';
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import logger from '../Utils/Logger';
-import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import CountBy from '../Types/AnalyticsDatabase/CountBy';
 import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
+import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
+import DeleteBy from '../Types/AnalyticsDatabase/DeleteBy';
+import FindBy from '../Types/AnalyticsDatabase/FindBy';
+import FindOneBy from '../Types/AnalyticsDatabase/FindOneBy';
+import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
 import {
     DatabaseTriggerType,
     OnCreate,
@@ -15,40 +18,37 @@ import {
     OnFind,
     OnUpdate,
 } from '../Types/AnalyticsDatabase/Hooks';
-import Typeof from 'Common/Types/Typeof';
 import ModelPermission, {
     CheckReadPermissionType,
 } from '../Types/AnalyticsDatabase/ModelPermission';
-import ObjectID from 'Common/Types/ObjectID';
-import Exception from 'Common/Types/Exception/Exception';
-import API from 'Common/Utils/API';
-import URL from 'Common/Types/API/URL';
-import Protocol from 'Common/Types/API/Protocol';
-import { AppApiHostname } from '../EnvironmentConfig';
-import Route from 'Common/Types/API/Route';
-import { WorkflowRoute } from 'Common/ServiceRoute';
-import Text from 'Common/Types/Text';
-import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
-import DeleteBy from '../Types/AnalyticsDatabase/DeleteBy';
-import UpdateBy from '../Types/AnalyticsDatabase/UpdateBy';
-import FindBy from '../Types/AnalyticsDatabase/FindBy';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Select from '../Types/AnalyticsDatabase/Select';
-import { ExecResult } from '@clickhouse/client';
-import { Stream } from 'node:stream';
-import StreamUtil from '../Utils/Stream';
-import { JSONObject } from 'Common/Types/JSON';
-import FindOneBy from '../Types/AnalyticsDatabase/FindOneBy';
-import FindOneByID from '../Types/AnalyticsDatabase/FindOneByID';
-import OneUptimeDate from 'Common/Types/Date';
-import CreateManyBy from '../Types/AnalyticsDatabase/CreateManyBy';
-import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
-import CountBy from '../Types/AnalyticsDatabase/CountBy';
-import Realtime from '../Utils/Realtime';
-import { ModelEventType } from 'Common/Utils/Realtime';
+import UpdateBy from '../Types/AnalyticsDatabase/UpdateBy';
 import { SQL, Statement } from '../Utils/AnalyticsDatabase/Statement';
+import StatementGenerator from '../Utils/AnalyticsDatabase/StatementGenerator';
+import logger from '../Utils/Logger';
+import Realtime from '../Utils/Realtime';
+import StreamUtil from '../Utils/Stream';
+import BaseService from './BaseService';
+import { ExecResult } from '@clickhouse/client';
+import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import { WorkflowRoute } from 'Common/ServiceRoute';
+import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import Exception from 'Common/Types/Exception/Exception';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Text from 'Common/Types/Text';
+import Typeof from 'Common/Types/Typeof';
+import API from 'Common/Utils/API';
+import { ModelEventType } from 'Common/Utils/Realtime';
+import { Stream } from 'node:stream';
 
 export default class AnalyticsDatabaseService<
     TBaseModel extends AnalyticsBaseModel

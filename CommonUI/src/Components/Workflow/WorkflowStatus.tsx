@@ -1,7 +1,7 @@
-import { Green, Red, Yellow } from 'Common/Types/BrandColors';
-import React, { FunctionComponent, ReactElement } from 'react';
-import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
 import Pill from '../Pill/Pill';
+import { Green, Red, Yellow } from 'Common/Types/BrandColors';
+import WorkflowStatus from 'Common/Types/Workflow/WorkflowStatus';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     status: WorkflowStatus;

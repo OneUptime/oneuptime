@@ -1,3 +1,32 @@
+import IncidentSeverity from './IncidentSeverity';
+import IncidentState from './IncidentState';
+import Label from './Label';
+import Monitor from './Monitor';
+import MonitorStatus from './MonitorStatus';
+import OnCallDutyPolicy from './OnCallDutyPolicy';
+import Probe from './Probe';
+import Project from './Project';
+import User from './User';
+import BaseModel from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import Permission from 'Common/Types/Permission';
 import {
     Column,
     Entity,
@@ -7,35 +36,6 @@ import {
     ManyToMany,
     ManyToOne,
 } from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
-import User from './User';
-import Project from './Project';
-import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
-import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
-import TableColumn from 'Common/Types/Database/TableColumn';
-import ColumnType from 'Common/Types/Database/ColumnType';
-import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
-import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
-import Permission from 'Common/Types/Permission';
-import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import TenantColumn from 'Common/Types/Database/TenantColumn';
-import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Monitor from './Monitor';
-import IncidentState from './IncidentState';
-import MonitorStatus from './MonitorStatus';
-import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
-import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
-import Label from './Label';
-import IncidentSeverity from './IncidentSeverity';
-import { JSONObject } from 'Common/Types/JSON';
-import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
-import OnCallDutyPolicy from './OnCallDutyPolicy';
-import Probe from './Probe';
 
 @EnableDocumentation()
 @AccessControlColumn('labels')

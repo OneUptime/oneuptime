@@ -1,13 +1,13 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/IncidentTemplate';
-import DatabaseService from './DatabaseService';
 import { OnCreate } from '../Types/Database/Hooks';
-import ObjectID from 'Common/Types/ObjectID';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import Typeof from 'Common/Types/Typeof';
-import IncidentTemplateOwnerTeam from 'Model/Models/IncidentTemplateOwnerTeam';
+import DatabaseService from './DatabaseService';
 import IncidentTemplateOwnerTeamService from './IncidentTemplateOwnerTeamService';
 import IncidentTemplateOwnerUserService from './IncidentTemplateOwnerUserService';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import ObjectID from 'Common/Types/ObjectID';
+import Typeof from 'Common/Types/Typeof';
+import Model from 'Model/Models/IncidentTemplate';
+import IncidentTemplateOwnerTeam from 'Model/Models/IncidentTemplateOwnerTeam';
 import IncidentTemplateOwnerUser from 'Model/Models/IncidentTemplateOwnerUser';
 
 export class Service extends DatabaseService<Model> {

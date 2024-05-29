@@ -1,17 +1,17 @@
-import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { Blue500 } from 'Common/Types/BrandColors';
+import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
+import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
+import moment from 'moment-timezone';
+import React, { FunctionComponent, ReactElement, useMemo } from 'react';
 import {
     Calendar,
-    momentLocalizer,
     DateLocalizer,
     EventPropGetter,
+    momentLocalizer,
 } from 'react-big-calendar';
-import React, { FunctionComponent, ReactElement, useMemo } from 'react';
-import moment from 'moment-timezone';
-import OneUptimeDate from 'Common/Types/Date';
-import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
-import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
-import Color from 'Common/Types/Color';
-import { Blue500 } from 'Common/Types/BrandColors';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const localizer: DateLocalizer = momentLocalizer(moment);
 

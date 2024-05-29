@@ -1,6 +1,6 @@
-import moment, { isMoment } from 'moment';
 import OneUptimeDate from '../../Types/Date';
 import PositiveNumber from '../../Types/PositiveNumber';
+import moment, { isMoment } from 'moment';
 
 describe('class OneUptimeDate', () => {
     test('OneUptimeDate.getCurrentDate should return current date', () => {

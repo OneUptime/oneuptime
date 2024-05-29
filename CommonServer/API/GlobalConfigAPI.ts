@@ -1,4 +1,3 @@
-import GlobalConfig from 'Model/Models/GlobalConfig';
 import GlobalConfigService, {
     Service as GlobalConfigServiceType,
 } from '../Services/GlobalConfigService';
@@ -9,6 +8,8 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
+import GlobalConfig from 'Model/Models/GlobalConfig';
+
 // import ObjectID from 'Common/Types/ObjectID';
 
 export default class GlobalConfigAPI extends BaseAPI<

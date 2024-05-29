@@ -1,10 +1,10 @@
-import '@testing-library/jest-dom/extend-expect';
-import React from 'react';
-import { render, screen } from '@testing-library/react';
 import MasterPage, {
     ComponentProps,
 } from '../../Components/MasterPage/MasterPage';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
+import { render, screen } from '@testing-library/react';
+import React from 'react';
 
 describe('MasterPage', () => {
     const defaultProps: ComponentProps = {

@@ -1,13 +1,13 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import TelemetryService from 'Model/Models/TelemetryService';
-import Link from 'CommonUI/src/Components/Link/Link';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import { Black } from 'Common/Types/BrandColors';
 import ObjectID from 'Common/Types/ObjectID';
 import ColorSquareCube from 'CommonUI/src/Components/ColorSquareCube/ColorSquareCube';
-import { Black } from 'Common/Types/BrandColors';
+import Link from 'CommonUI/src/Components/Link/Link';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import TelemetryService from 'Model/Models/TelemetryService';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     telemetryService: TelemetryService;

@@ -1,3 +1,9 @@
+import Loader from '../Components/Loader/Loader';
+import ComponentProps from '../Pages/PageComponentProps';
+import TelemetryServiceViewLayout from '../Pages/Telemetry/Services/View/Layout';
+import PageMap from '../Utils/PageMap';
+import RouteMap, { RouteUtil, TelemetryRouthPath } from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import React, {
     FunctionComponent,
     LazyExoticComponent,
@@ -5,13 +11,7 @@ import React, {
     Suspense,
     lazy,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil, TelemetryRouthPath } from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
-import ComponentProps from '../Pages/PageComponentProps';
-import Loader from '../Components/Loader/Loader';
-import TelemetryServiceViewLayout from '../Pages/Telemetry/Services/View/Layout';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Lazy Pages
 const TelemetryServices: LazyExoticComponent<

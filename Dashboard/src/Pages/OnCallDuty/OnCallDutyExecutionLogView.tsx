@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
 import ExecutionLogTimelineTable from '../../Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable';
+import PageComponentProps from '../PageComponentProps';
+import ObjectID from 'Common/Types/ObjectID';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

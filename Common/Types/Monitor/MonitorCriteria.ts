@@ -1,11 +1,11 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONArray, JSONObject, ObjectType } from '../JSON';
-import MonitorCriteriaInstance from './MonitorCriteriaInstance';
 import BadDataException from '../Exception/BadDataException';
-import MonitorType from './MonitorType';
-import ObjectID from '../ObjectID';
+import { JSONArray, JSONObject, ObjectType } from '../JSON';
 import JSONFunctions from '../JSONFunctions';
+import ObjectID from '../ObjectID';
+import MonitorCriteriaInstance from './MonitorCriteriaInstance';
+import MonitorType from './MonitorType';
+import { FindOperator } from 'typeorm';
 
 export interface MonitorCriteriaType {
     monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;

@@ -1,25 +1,25 @@
-import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
+import DatabaseConfig from '../DatabaseConfig';
+import NotificationMiddleware from '../Middleware/NotificationMiddleware';
 import UserOnCallLogTimelineService, {
     Service as UserNotificationLogTimelineServiceType,
 } from '../Services/UserOnCallLogTimelineService';
-import BaseAPI from './BaseAPI';
 import {
     ExpressRequest,
     ExpressResponse,
     OneUptimeRequest,
 } from '../Utils/Express';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import Response from '../Utils/Response';
-import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
-import NotificationMiddleware from '../Middleware/NotificationMiddleware';
-import OneUptimeDate from 'Common/Types/Date';
-import URL from 'Common/Types/API/URL';
+import BaseAPI from './BaseAPI';
 import { DashboardRoute } from 'Common/ServiceRoute';
-import DatabaseConfig from '../DatabaseConfig';
-import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
     UserOnCallLogTimeline,

@@ -1,27 +1,27 @@
-import ResellerPlan from 'Model/Models/ResellerPlan';
+import DatabaseConfig from '../DatabaseConfig';
+import BearerTokenAuthorization from '../Middleware/BearerTokenAuthorization';
+import BillingService from '../Services/BillingService';
+import ProjectService from '../Services/ProjectService';
+import PromoCodeService from '../Services/PromoCodeService';
 import ResellerPlanService, {
     Service as ResellerPlanServiceType,
 } from '../Services/ResellerPlanService';
-import BaseAPI from './BaseAPI';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
 } from '../Utils/Express';
-import BearerTokenAuthorization from '../Middleware/BearerTokenAuthorization';
+import Response from '../Utils/Response';
+import BaseAPI from './BaseAPI';
+import StatusCode from 'Common/Types/API/StatusCode';
+import URL from 'Common/Types/API/URL';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import BillingService from '../Services/BillingService';
-import Response from '../Utils/Response';
-import URL from 'Common/Types/API/URL';
-import PromoCode from 'Model/Models/PromoCode';
-import PromoCodeService from '../Services/PromoCodeService';
-import StatusCode from 'Common/Types/API/StatusCode';
-import Project from 'Model/Models/Project';
-import ProjectService from '../Services/ProjectService';
-import DatabaseConfig from '../DatabaseConfig';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ObjectID from 'Common/Types/ObjectID';
+import Project from 'Model/Models/Project';
+import PromoCode from 'Model/Models/PromoCode';
+import ResellerPlan from 'Model/Models/ResellerPlan';
 
 export default class ResellerPlanAPI extends BaseAPI<
     ResellerPlan,

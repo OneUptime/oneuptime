@@ -1,64 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import Route from 'Common/Types/API/Route';
-import {
-    Routes,
-    Route as PageRoute,
-    useNavigate,
-    useLocation,
-    useParams,
-} from 'react-router-dom';
 import MasterPage from './Components/MasterPage/MasterPage';
+import ActiveIncidents from './Pages/Global/NewIncidents';
+import ProjectInvitations from './Pages/Global/ProjectInvitations';
+// User Profile
+import UserProfileOverview from './Pages/Global/UserProfile/Index';
+import UserProfilePassword from './Pages/Global/UserProfile/Password';
+import UserProfilePicture from './Pages/Global/UserProfile/Picture';
 // Pages
 import Home from './Pages/Home/Home';
 import NotOperationalMonitors from './Pages/Home/NotOperationalMonitors';
 import OngoingScheduledEvents from './Pages/Home/OngoingScheduledMaintenance';
-
-import useAsyncEffect from 'use-async-effect';
-
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import RouteMap from './Utils/RouteMap';
-import PageMap from './Utils/PageMap';
-
-import { BILLING_ENABLED, APP_API_URL } from 'CommonUI/src/Config';
-
-import ActiveIncidents from './Pages/Global/NewIncidents';
-import ProjectInvitations from './Pages/Global/ProjectInvitations';
-
-import SettingsDangerZone from './Pages/Settings/DangerZone';
-
-// User Profile
-import UserProfileOverview from './Pages/Global/UserProfile/Index';
-import UserProfilePicture from './Pages/Global/UserProfile/Picture';
-import UserProfilePassword from './Pages/Global/UserProfile/Password';
-
 import Logout from './Pages/Logout/Logout';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import Project from 'Model/Models/Project';
-import PageNotFound from './Pages/PageNotFound/PageNotFound';
-import Welcome from './Pages/Onboarding/Welcome';
-import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
-import EventName from './Utils/EventName';
-
 import Sso from './Pages/Onboarding/SSO';
-import API from 'CommonUI/src/Utils/API/API';
-import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
+import Welcome from './Pages/Onboarding/Welcome';
 import PageComponentProps from './Pages/PageComponentProps';
-
-import URL from 'Common/Types/API/URL';
-
+import PageNotFound from './Pages/PageNotFound/PageNotFound';
+import SettingsDangerZone from './Pages/Settings/DangerZone';
+import IncidentsRoutes from './Routes/IncidentsRoutes';
 //Routes
 import InitRoutes from './Routes/InitRoutes';
-import TelemetryRoutes from './Routes/TelemetryRoutes';
+import MonitorGroupRoutes from './Routes/MonitorGroupRoutes';
 import MonitorsRoutes from './Routes/MonitorsRoutes';
-import WorkflowRoutes from './Routes/WorkflowRoutes';
-import StatusPagesRoutes from './Routes/StatusPagesRoutes';
-import IncidentsRoutes from './Routes/IncidentsRoutes';
+import OnCallDutyRoutes from './Routes/OnCallDutyRoutes';
 import ScheduledMaintenanceEventsRoutes from './Routes/ScheduleMaintenaceEventsRoutes';
 import SettingsRoutes from './Routes/SettingsRoutes';
-import OnCallDutyRoutes from './Routes/OnCallDutyRoutes';
-import MonitorGroupRoutes from './Routes/MonitorGroupRoutes';
+import StatusPagesRoutes from './Routes/StatusPagesRoutes';
+import TelemetryRoutes from './Routes/TelemetryRoutes';
 import UserSettingsRoutes from './Routes/UserSettingsRoutes';
+import WorkflowRoutes from './Routes/WorkflowRoutes';
+import EventName from './Utils/EventName';
+import PageMap from './Utils/PageMap';
+import RouteMap from './Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { APP_API_URL, BILLING_ENABLED } from 'CommonUI/src/Config';
+import API from 'CommonUI/src/Utils/API/API';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
+import Project from 'Model/Models/Project';
+import React, { useEffect, useState } from 'react';
+import {
+    Route as PageRoute,
+    Routes,
+    useLocation,
+    useNavigate,
+    useParams,
+} from 'react-router-dom';
+import useAsyncEffect from 'use-async-effect';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());

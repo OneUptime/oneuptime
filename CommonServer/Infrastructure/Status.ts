@@ -1,9 +1,8 @@
 // This class checks the status of all the datasources.
-
-import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
-import Redis from './Redis';
-import { PostgresAppInstance } from './PostgresDatabase';
 import { ClickhouseAppInstance } from './ClickhouseDatabase';
+import { PostgresAppInstance } from './PostgresDatabase';
+import Redis from './Redis';
+import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 
 export default class InfrastructureStatus {
     public static async checkStatus(data: {

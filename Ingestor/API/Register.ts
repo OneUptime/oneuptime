@@ -1,3 +1,8 @@
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
+import ProbeService from 'CommonServer/Services/ProbeService';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -5,12 +10,7 @@ import Express, {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ProbeService from 'CommonServer/Services/ProbeService';
-import OneUptimeDate from 'Common/Types/Date';
-import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import Probe from 'Model/Models/Probe';
-import { JSONObject } from 'Common/Types/JSON';
 
 const router: ExpressRouter = Express.getRouter();
 

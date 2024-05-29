@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal from './Modal';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     title: string;

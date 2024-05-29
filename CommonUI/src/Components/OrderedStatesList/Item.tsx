@@ -1,8 +1,8 @@
-import React, { ReactElement, useState } from 'react';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Button, { ButtonSize } from '../Button/Button';
 import ConfirmModal from '../Modal/ConfirmModal';
 import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement, useState } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     item: T;

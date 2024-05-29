@@ -1,5 +1,5 @@
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import JobDictionary from './JobDictionary';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Queue, { QueueName } from 'CommonServer/Infrastructure/Queue';
 import logger from 'CommonServer/Utils/Logger';
 

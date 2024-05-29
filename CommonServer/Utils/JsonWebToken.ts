@@ -1,14 +1,14 @@
+import { EncryptionSecret } from '../EnvironmentConfig';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import jwt from 'jsonwebtoken';
-import { EncryptionSecret } from '../EnvironmentConfig';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Name from 'Common/Types/Name';
-import User from 'Model/Models/User';
+import ObjectID from 'Common/Types/ObjectID';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import JSONFunctions from 'Common/Types/JSONFunctions';
+import User from 'Model/Models/User';
+import jwt from 'jsonwebtoken';
 
 class JSONWebToken {
     public static signUserLoginToken(data: {

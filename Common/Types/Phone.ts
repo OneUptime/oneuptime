@@ -1,7 +1,7 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 import { JSONObject, ObjectType } from './JSON';
+import { FindOperator } from 'typeorm';
 
 export default class Phone extends DatabaseProperty {
     private _phone: string = '';

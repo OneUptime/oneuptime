@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import ProjectPickerFilterBox from './ProjectPickerFilterBox';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;

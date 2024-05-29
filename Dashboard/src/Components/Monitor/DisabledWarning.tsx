@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
-import { useAsyncEffect } from 'use-async-effect';
-import Monitor from 'Model/Models/Monitor';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import Monitor from 'Model/Models/Monitor';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
+import { useAsyncEffect } from 'use-async-effect';
 
 export interface ComponentProps {
     monitorId: ObjectID;

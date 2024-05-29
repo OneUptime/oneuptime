@@ -1,14 +1,14 @@
-import Route from 'Common/Types/API/Route';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import DashboardSideMenu from '../SideMenu';
-import GlobalConfig from 'Model/Models/GlobalConfig';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import Page from 'CommonUI/src/Components/Page/Page';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import GlobalConfig from 'Model/Models/GlobalConfig';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const Settings: FunctionComponent = (): ReactElement => {
     return (

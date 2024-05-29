@@ -1,13 +1,14 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Label from 'Model/Models/Label';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import Color from 'Common/Types/Color';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import Label from 'Model/Models/Label';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+
 const Labels: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {

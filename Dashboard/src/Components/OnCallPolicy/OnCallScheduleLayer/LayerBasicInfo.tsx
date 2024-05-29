@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;

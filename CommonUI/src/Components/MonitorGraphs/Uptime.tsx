@@ -1,19 +1,18 @@
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import DayUptimeGraph, { BarChartRule, Event } from '../Graphs/DayUptimeGraph';
+import UptimeUtil from './UptimeUtil';
+import Color from 'Common/Types/Color';
+import ObjectID from 'Common/Types/ObjectID';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import DayUptimeGraph, { BarChartRule, Event } from '../Graphs/DayUptimeGraph';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import ObjectID from 'Common/Types/ObjectID';
-import UptimeUtil from './UptimeUtil';
-import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import Color from 'Common/Types/Color';
 
 export interface MonitorEvent extends Event {
     monitorId: ObjectID;

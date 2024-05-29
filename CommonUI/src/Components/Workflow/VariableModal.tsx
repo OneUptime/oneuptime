@@ -1,8 +1,8 @@
+import ModelListModal from '../ModelListModal/ModelListModal';
 import EqualToOrNull from 'Common/Types/BaseDatabase/EqualToOrNull';
 import ObjectID from 'Common/Types/ObjectID';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import React, { FunctionComponent, ReactElement } from 'react';
-import ModelListModal from '../ModelListModal/ModelListModal';
 
 export interface ComponentProps {
     workflowId: ObjectID;

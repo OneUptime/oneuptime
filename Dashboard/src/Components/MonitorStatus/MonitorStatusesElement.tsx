@@ -1,6 +1,6 @@
+import MonitorStatusElement from './MonitorStatusElement';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import React, { FunctionComponent, ReactElement } from 'react';
-import MonitorStatusElement from './MonitorStatusElement';
 
 export interface ComponentProps {
     monitorStatuses: Array<MonitorStatus>;

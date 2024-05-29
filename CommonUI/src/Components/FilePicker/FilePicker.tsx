@@ -1,3 +1,14 @@
+import { FILE_URL } from '../../Config';
+import API from '../../Utils/API/API';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import Icon, { SizeProp } from '../Icon/Icon';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import CommonURL from 'Common/Types/API/URL';
+import Dictionary from 'Common/Types/Dictionary';
+import MimeType from 'Common/Types/File/MimeType';
+import IconProp from 'Common/Types/Icon/IconProp';
+import FileModel from 'Model/Models/File';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -5,17 +16,6 @@ import React, {
     useState,
 } from 'react';
 import { useDropzone } from 'react-dropzone';
-import MimeType from 'Common/Types/File/MimeType';
-import FileModel from 'Model/Models/File';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
-import CommonURL from 'Common/Types/API/URL';
-import { FILE_URL } from '../../Config';
-import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import Icon, { SizeProp } from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Dictionary from 'Common/Types/Dictionary';
-import API from '../../Utils/API/API';
 
 export interface ComponentProps {
     initialValue?: undefined | Array<FileModel> | FileModel;

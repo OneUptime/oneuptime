@@ -1,10 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/Label';
-import DatabaseService from './DatabaseService';
-import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
+import { OnCreate } from '../Types/Database/Hooks';
 import QueryHelper from '../Types/Database/QueryHelper';
+import DatabaseService from './DatabaseService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Model from 'Model/Models/Label';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

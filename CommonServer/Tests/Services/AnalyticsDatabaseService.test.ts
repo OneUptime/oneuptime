@@ -1,12 +1,12 @@
+import AnalyticsDatabaseService from '../../Services/AnalyticsDatabaseService';
+import { SQL, Statement } from '../../Utils/AnalyticsDatabase/Statement';
+import logger from '../../Utils/Logger';
 import '../TestingUtils/Init';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import Route from 'Common/Types/API/Route';
 import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
-import AnalyticsDatabaseService from '../../Services/AnalyticsDatabaseService';
-import { SQL, Statement } from '../../Utils/AnalyticsDatabase/Statement';
-import logger from '../../Utils/Logger';
 import GenericObject from 'Common/Types/GenericObject';
 
 describe('AnalyticsDatabaseService', () => {

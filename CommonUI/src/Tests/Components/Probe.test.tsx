@@ -1,9 +1,9 @@
-import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
 import ProbeElement from '../../Components/Probe/Probe';
-import Probe from 'Model/Models/Probe';
+import '@testing-library/jest-dom/extend-expect';
+import { render, screen } from '@testing-library/react';
 import ObjectID from 'Common/Types/ObjectID';
+import Probe from 'Model/Models/Probe';
+import * as React from 'react';
 
 describe('ProbeElement Component', () => {
     const mockProbe: Probe = new Probe();

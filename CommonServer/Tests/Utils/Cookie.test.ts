@@ -1,8 +1,8 @@
-import { JSONObject } from 'Common/Types/JSON';
 import CookieUtil from '../../Utils/Cookie';
 import { ExpressRequest, ExpressResponse } from '../../Utils/Express';
-import ObjectID from 'Common/Types/ObjectID';
 import Dictionary from 'Common/Types/Dictionary';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
 
 describe('CookieUtils', () => {
     let mockRequest: ExpressRequest;

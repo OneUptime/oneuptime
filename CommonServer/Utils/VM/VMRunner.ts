@@ -1,11 +1,11 @@
-import { JSONObject, JSONValue } from 'Common/Types/JSON';
-import http from 'http';
-import https from 'https';
-import axios from 'axios';
-import vm, { Context } from 'node:vm';
-import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
 import Dictionary from 'Common/Types/Dictionary';
 import GenericObject from 'Common/Types/GenericObject';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
+import axios from 'axios';
+import http from 'http';
+import https from 'https';
+import vm, { Context } from 'node:vm';
 
 export default class VMRunner {
     public static async runCodeInSandbox(data: {

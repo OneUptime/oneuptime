@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import { Box, CartesianMarkerProps } from '@nivo/core';
+import { LegendProps } from '@nivo/legends';
 import { Point, ResponsiveLine } from '@nivo/line';
 import { BrightColors } from 'Common/Types/BrandColors';
-import { Box, CartesianMarkerProps } from '@nivo/core';
-import OneUptimeDate from 'Common/Types/Date';
 import Color from 'Common/Types/Color';
-import { LegendProps } from '@nivo/legends';
+import OneUptimeDate from 'Common/Types/Date';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export type XValue = string | number | Date;
 export type YValue = number;

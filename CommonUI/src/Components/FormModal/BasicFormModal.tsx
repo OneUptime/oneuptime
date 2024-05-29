@@ -1,12 +1,12 @@
-import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
-import Modal from '../Modal/Modal';
+import ButtonType from '../Button/ButtonTypes';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import BasicForm, {
     BaseComponentProps as BasicFormComponentProps,
 } from '../Forms/BasicForm';
-import ButtonType from '../Button/ButtonTypes';
-import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import Modal from '../Modal/Modal';
 import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement, useEffect, useRef, useState } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     title: string;

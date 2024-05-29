@@ -1,20 +1,3 @@
-import nodemailer, { Transporter } from 'nodemailer';
-import Handlebars from 'handlebars';
-import fsp from 'fs/promises';
-import EmailMessage from 'Common/Types/Email/EmailMessage';
-import Path from 'path';
-import Email from 'Common/Types/Email';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import EmailServer from 'Common/Types/Email/EmailServer';
-import LocalCache from 'CommonServer/Infrastructure/LocalCache';
-import OneUptimeDate from 'Common/Types/Date';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import Dictionary from 'Common/Types/Dictionary';
-import Hostname from 'Common/Types/API/Hostname';
-import Port from 'Common/Types/Port';
-import { JSONObject } from 'Common/Types/JSON';
-import logger from 'CommonServer/Utils/Logger';
-import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import {
     InternalSmtpEmail,
     InternalSmtpFromName,
@@ -22,19 +5,36 @@ import {
     InternalSmtpPassword,
     InternalSmtpPort,
     InternalSmtpSecure,
+    SendGridConfig,
     getEmailServerType,
     getGlobalSMTPConfig,
-    SendGridConfig,
     getSendgridConfig,
 } from '../Config';
 import SendgridMail, { MailDataRequired } from '@sendgrid/mail';
-import ObjectID from 'Common/Types/ObjectID';
-import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
-import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
-import EmailLog from 'Model/Models/EmailLog';
+import Hostname from 'Common/Types/API/Hostname';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import Email from 'Common/Types/Email';
+import EmailMessage from 'Common/Types/Email/EmailMessage';
+import EmailServer from 'Common/Types/Email/EmailServer';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
 import MailStatus from 'Common/Types/Mail/MailStatus';
+import ObjectID from 'Common/Types/ObjectID';
+import Port from 'Common/Types/Port';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
+import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import EmailLogService from 'CommonServer/Services/EmailLogService';
+import UserOnCallLogTimelineService from 'CommonServer/Services/UserOnCallLogTimelineService';
+import logger from 'CommonServer/Utils/Logger';
+import EmailLog from 'Model/Models/EmailLog';
 import { EmailServerType } from 'Model/Models/GlobalConfig';
+import fsp from 'fs/promises';
+import Handlebars from 'handlebars';
+import nodemailer, { Transporter } from 'nodemailer';
+import Path from 'path';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {

@@ -1,4 +1,4 @@
-import { marked, Renderer } from 'marked';
+import { Renderer, marked } from 'marked';
 
 export type MarkdownRenderer = Renderer;
 

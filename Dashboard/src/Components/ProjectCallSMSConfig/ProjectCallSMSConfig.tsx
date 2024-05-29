@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import ProjectCallSMSConfig from 'Model/Models/ProjectCallSMSConfig';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     callSmsConfig: ProjectCallSMSConfig;

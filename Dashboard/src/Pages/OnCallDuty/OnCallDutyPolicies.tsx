@@ -1,15 +1,15 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Label from 'Model/Models/Label';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
+import PageComponentProps from '../PageComponentProps';
 import URL from 'Common/Types/API/URL';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Label from 'Model/Models/Label';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

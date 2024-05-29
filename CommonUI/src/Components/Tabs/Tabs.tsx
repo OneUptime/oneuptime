@@ -1,10 +1,10 @@
+import TabElement, { Tab } from './Tab';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import TabElement, { Tab } from './Tab';
 
 export interface ComponentProps {
     tabs: Array<Tab>;

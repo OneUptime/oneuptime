@@ -1,9 +1,9 @@
-import MasterPage from 'CommonUI/src/Components/MasterPage/MasterPage';
 import Footer from '../Footer/Footer';
 import Header from '../Header/Header';
 import NavBar from '../NavBar/NavBar';
-import React, { FunctionComponent, ReactElement } from 'react';
+import MasterPage from 'CommonUI/src/Components/MasterPage/MasterPage';
 import TopAlert from 'CommonUI/src/Components/TopAlert/TopAlert';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;

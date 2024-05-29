@@ -1,7 +1,7 @@
-import React, { ReactElement } from 'react';
 import Card, { CardButtonSchema } from '../Card/Card';
 import Table, { ComponentProps as TableComponentProps } from './Table';
 import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     title: string;

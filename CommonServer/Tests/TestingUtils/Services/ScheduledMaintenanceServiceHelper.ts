@@ -1,8 +1,8 @@
-import ObjectID from 'Common/Types/ObjectID';
 import CreateBy from '../../../Types/Database/CreateBy';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import Faker from 'Common/Utils/Faker';
 import faker from '@faker-js/faker';
+import ObjectID from 'Common/Types/ObjectID';
+import Faker from 'Common/Utils/Faker';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 
 export default class ScheduledMaintenanceTestService {
     public static generateRandomScheduledMaintenance(

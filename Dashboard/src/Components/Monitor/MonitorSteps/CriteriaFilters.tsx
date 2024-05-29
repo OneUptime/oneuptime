@@ -1,9 +1,9 @@
+import CriteriaFilterElement from './CriteriaFilter';
 import {
     CriteriaFilter,
     FilterCondition,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement } from 'react';
-import CriteriaFilterElement from './CriteriaFilter';
 
 export interface ComponentProps {
     criteriaFilters: Array<CriteriaFilter>;

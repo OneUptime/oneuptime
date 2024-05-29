@@ -1,23 +1,23 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import AdminModelAPI from '../../../Utils/ModelAPI';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import DashboardSideMenu from '../SideMenu';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Probe from 'Model/Models/Probe';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import OneUptimeDate from 'Common/Types/Date';
-import { Green, Red } from 'Common/Types/BrandColors';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
+import Route from 'Common/Types/API/Route';
 import IsNull from 'Common/Types/BaseDatabase/IsNull';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import AdminModelAPI from '../../../Utils/ModelAPI';
+import { Green, Red } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
 import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Page from 'CommonUI/src/Components/Page/Page';
+import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Probe from 'Model/Models/Probe';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 const Settings: FunctionComponent = (): ReactElement => {
     const [showKeyModal, setShowKeyModal] = useState<boolean>(false);

@@ -1,13 +1,13 @@
+import LocalCache from '../Infrastructure/LocalCache';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from '../Utils/Express';
-import LocalCache from '../Infrastructure/LocalCache';
-import Response from '../Utils/Response';
-import ServerException from 'Common/Types/Exception/ServerException';
 import logger from '../Utils/Logger';
+import Response from '../Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
+import ServerException from 'Common/Types/Exception/ServerException';
 
 export interface StatusAPIOptions {
     readyCheck: () => Promise<void>;

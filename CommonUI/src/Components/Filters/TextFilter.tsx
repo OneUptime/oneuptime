@@ -1,12 +1,12 @@
-import React, { ReactElement } from 'react';
-import Filter from './Types/Filter';
-import GenericObject from 'Common/Types/GenericObject';
-import FieldType from '../Types/FieldType';
-import FilterData from './Types/FilterData';
 import Input, { InputType } from '../Input/Input';
-import OneUptimeDate from 'Common/Types/Date';
+import FieldType from '../Types/FieldType';
+import Filter from './Types/Filter';
+import FilterData from './Types/FilterData';
 import Search from 'Common/Types/BaseDatabase/Search';
 import DatabaseDate from 'Common/Types/Database/Date';
+import OneUptimeDate from 'Common/Types/Date';
+import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     filter: Filter<T>;

@@ -1,10 +1,10 @@
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import JSONComponents from 'Common/Types/Workflow/Components/JSON';
-import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class JsonToText extends ComponentCode {
     public constructor() {

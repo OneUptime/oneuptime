@@ -1,17 +1,17 @@
-import React, { ReactElement } from 'react';
-import Pagination from '../Pagination/Pagination';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import ListBody from './ListBody';
-import Field from '../Detail/Field';
-import { DragDropContext, DropResult } from 'react-beautiful-dnd';
-import { ListDetailProps } from './ListRow';
 import { GetReactElementFunction } from '../../Types/FunctionTypes';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import Field from '../Detail/Field';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import FilterViewer from '../Filters/FilterViewer';
 import FilterType from '../Filters/Types/Filter';
 import FilterData from '../Filters/Types/FilterData';
+import Pagination from '../Pagination/Pagination';
+import ListBody from './ListBody';
+import { ListDetailProps } from './ListRow';
 import GenericObject from 'Common/Types/GenericObject';
-import FilterViewer from '../Filters/FilterViewer';
+import React, { ReactElement } from 'react';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 export interface ComponentProps<T extends GenericObject> {
     data: Array<T>;

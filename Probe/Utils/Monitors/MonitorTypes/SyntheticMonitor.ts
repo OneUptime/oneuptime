@@ -1,13 +1,13 @@
+import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from '../../../Config';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
+import ScreenSizeType from 'Common/Types/Monitor/SyntheticMonitors/ScreenSizeType';
+import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 import ObjectID from 'Common/Types/ObjectID';
 import logger from 'CommonServer/Utils/Logger';
-import ScreenSizeType from 'Common/Types/Monitor/SyntheticMonitors/ScreenSizeType';
-import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
-import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 import VMRunner from 'CommonServer/Utils/VM/VMRunner';
-import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
-import { Browser, firefox, chromium, Page } from 'playwright';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from '../../../Config';
+import { Browser, Page, chromium, firefox } from 'playwright';
 
 export interface SyntheticMonitorOptions {
     monitorId?: ObjectID | undefined;

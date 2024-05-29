@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import PageError from '../Error/PageError';
 import PageLoader from '../Loader/PageLoader';
 import TopSection from '../TopSection/TopSection';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     header?: undefined | ReactElement;

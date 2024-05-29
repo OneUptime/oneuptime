@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import EventHistoryDayList, {
     ComponentProps as EventHistoryDayListComponentProps,
 } from './EventHistoryDayList';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     items: Array<EventHistoryDayListComponentProps>;

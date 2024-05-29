@@ -1,26 +1,26 @@
+import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import { Green, Red, Yellow } from 'Common/Types/BrandColors';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import User from 'CommonUI/src/Utils/User';
+import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import DashboardNavigation from '../../Utils/Navigation';
-import User from 'CommonUI/src/Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import UserNotificationStatus from 'Common/Types/UserNotification/UserNotificationStatus';
-import { Green, Red, Yellow } from 'Common/Types/BrandColors';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import ObjectID from 'Common/Types/ObjectID';
-import UserOnCallLogTimeline from 'Model/Models/UserOnCallLogTimeline';
-import NotificationMethodView from '../../Components/NotificationMethods/NotificationMethod';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import { VoidFunction, ErrorFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

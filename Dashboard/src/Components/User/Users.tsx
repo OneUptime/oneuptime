@@ -1,5 +1,5 @@
-import User from 'Model/Models/User';
 import UserElement from './User';
+import User from 'Model/Models/User';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {

@@ -1,16 +1,16 @@
-import URL from 'Common/Types/API/URL';
-import Headers from 'Common/Types/API/Headers';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import API from 'Common/Utils/API';
-import Protocol from 'Common/Types/API/Protocol';
-import { JSONObject } from 'Common/Types/JSON';
+import OnlineCheck from '../../OnlineCheck';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import logger from 'CommonServer/Utils/Logger';
+import Headers from 'Common/Types/API/Headers';
+import Protocol from 'Common/Types/API/Protocol';
+import URL from 'Common/Types/API/URL';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import Sleep from 'Common/Types/Sleep';
-import OnlineCheck from '../../OnlineCheck';
+import API from 'Common/Utils/API';
+import logger from 'CommonServer/Utils/Logger';
 
 export interface APIResponse {
     url: URL;

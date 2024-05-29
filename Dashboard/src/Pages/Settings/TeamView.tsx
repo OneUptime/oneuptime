@@ -1,36 +1,36 @@
+import LabelsElement from '../../Components/Label/Labels';
+import UserElement from '../../Components/User/User';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../Utils/PageMap';
+import ProjectUser from '../../Utils/ProjectUser';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageComponentProps from '../PageComponentProps';
 import Route from 'Common/Types/API/Route';
+import { Green, Yellow } from 'Common/Types/BrandColors';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import PermissionUtil from 'CommonUI/src/Utils/Permission';
+import Label from 'Model/Models/Label';
+import Team from 'Model/Models/Team';
+import TeamMember from 'Model/Models/TeamMember';
+import TeamPermission from 'Model/Models/TeamPermission';
+import User from 'Model/Models/User';
 import React, {
     Fragment,
     FunctionComponent,
     MutableRefObject,
     ReactElement,
 } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Team from 'Model/Models/Team';
-import TeamMember from 'Model/Models/TeamMember';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import PermissionUtil from 'CommonUI/src/Utils/Permission';
-import Label from 'Model/Models/Label';
-import Permission, { PermissionHelper } from 'Common/Types/Permission';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
-import ObjectID from 'Common/Types/ObjectID';
-import TeamPermission from 'Model/Models/TeamPermission';
-import UserElement from '../../Components/User/User';
-import User from 'Model/Models/User';
-import LabelsElement from '../../Components/Label/Labels';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Green, Yellow } from 'Common/Types/BrandColors';
-import DashboardNavigation from '../../Utils/Navigation';
-import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
-import ProjectUser from '../../Utils/ProjectUser';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

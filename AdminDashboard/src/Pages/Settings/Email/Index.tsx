@@ -1,21 +1,21 @@
-import Route from 'Common/Types/API/Route';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import DashboardSideMenu from '../SideMenu';
-import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
-import ObjectID from 'Common/Types/ObjectID';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
+import Route from 'Common/Types/API/Route';
 import { Green, Red } from 'Common/Types/BrandColors';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import Page from 'CommonUI/src/Components/Page/Page';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 const Settings: FunctionComponent = (): ReactElement => {
     const [emailServerType, setemailServerType] =

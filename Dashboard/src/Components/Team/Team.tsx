@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Team from 'Model/Models/Team';
-import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
+import Link from 'CommonUI/src/Components/Link/Link';
+import Team from 'Model/Models/Team';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     team: Team;

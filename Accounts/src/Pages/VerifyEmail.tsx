@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import { VERIFY_EMAIL_API_URL } from '../Utils/ApiPaths';
 import Route from 'Common/Types/API/Route';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
+import URL from 'Common/Types/API/URL';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import Link from 'CommonUI/src/Components/Link/Link';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
-import { VERIFY_EMAIL_API_URL } from '../Utils/ApiPaths';
-import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import URL from 'Common/Types/API/URL';
+import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import API from 'CommonUI/src/Utils/API/API';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
+import React, { useEffect, useState } from 'react';
 
 const VerifyEmail: () => JSX.Element = () => {
     const apiUrl: URL = VERIFY_EMAIL_API_URL;

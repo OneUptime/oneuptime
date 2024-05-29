@@ -1,20 +1,20 @@
-import '../TestingUtils/Init';
-import ObjectID from 'Common/Types/ObjectID';
 import ProjectMiddleware from '../../Middleware/ProjectAuthorization';
+import AccessTokenService from '../../Services/AccessTokenService';
+import ApiKeyService from '../../Services/ApiKeyService';
+import GlobalConfigService from '../../Services/GlobalConfigService';
+import QueryHelper from '../../Types/Database/QueryHelper';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
 } from '../../Utils/Express';
-import ApiKeyService from '../../Services/ApiKeyService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import OneUptimeDate from 'Common/Types/Date';
-import QueryHelper from '../../Types/Database/QueryHelper';
-import ApiKey from 'Model/Models/ApiKey';
-import AccessTokenService from '../../Services/AccessTokenService';
-import { UserTenantAccessPermission } from 'Common/Types/Permission';
 import Database from '../TestingUtils/Database';
-import GlobalConfigService from '../../Services/GlobalConfigService';
+import '../TestingUtils/Init';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import { UserTenantAccessPermission } from 'Common/Types/Permission';
+import ApiKey from 'Model/Models/ApiKey';
 
 jest.mock('../../Services/ApiKeyService');
 jest.mock('../../Services/AccessTokenService');

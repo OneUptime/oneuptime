@@ -1,17 +1,17 @@
-import React, { ReactElement, useState } from 'react';
+import DashboardNavigation from '../../Utils/Navigation';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import IconProp from 'Common/Types/Icon/IconProp';
-import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
-import Project from 'Model/Models/Project';
-import Navigation from 'CommonUI/src/Utils/Navigation';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
-import DashboardNavigation from '../../Utils/Navigation';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
+import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Project from 'Model/Models/Project';
+import React, { ReactElement, useState } from 'react';
 
 const Upgrade: () => JSX.Element = (): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);

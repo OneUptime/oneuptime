@@ -1,11 +1,11 @@
 import UserUtil from './User';
-import Email from 'Common/Types/Email';
-import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
-import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import Cookie from 'CommonUI/src/Utils/Cookie';
-import Route from 'Common/Types/API/Route';
 import BaseModel from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import Email from 'Common/Types/Email';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import Cookie from 'CommonUI/src/Utils/Cookie';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 
 export default abstract class LoginUtil {
     public static login(value: JSONObject): void {

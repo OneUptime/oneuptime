@@ -1,18 +1,17 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/UserEmail';
-import DatabaseService from './DatabaseService';
-
-import { OnCreate, OnDelete } from '../Types/Database/Hooks';
-import MailService from './MailService';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import logger from '../Utils/Logger';
-import ObjectID from 'Common/Types/ObjectID';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Text from 'Common/Types/Text';
-import DeleteBy from '../Types/Database/DeleteBy';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import UserNotificationRuleService from './UserNotificationRuleService';
 import CreateBy from '../Types/Database/CreateBy';
+import DeleteBy from '../Types/Database/DeleteBy';
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
+import logger from '../Utils/Logger';
+import DatabaseService from './DatabaseService';
+import MailService from './MailService';
+import UserNotificationRuleService from './UserNotificationRuleService';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import Text from 'Common/Types/Text';
+import Model from 'Model/Models/UserEmail';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

@@ -1,8 +1,8 @@
-import URL from 'Common/Types/API/URL';
-import WebsiteMonitor from './Monitors/MonitorTypes/WebsiteMonitor';
 import PingMonitor from './Monitors/MonitorTypes/PingMonitor';
-import Hostname from 'Common/Types/API/Hostname';
 import PortMonitor from './Monitors/MonitorTypes/PortMonitor';
+import WebsiteMonitor from './Monitors/MonitorTypes/WebsiteMonitor';
+import Hostname from 'Common/Types/API/Hostname';
+import URL from 'Common/Types/API/URL';
 import Port from 'Common/Types/Port';
 
 export default class OnlineCheck {

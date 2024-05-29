@@ -1,39 +1,39 @@
+import PageComponentProps from '../../PageComponentProps';
+import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
+import ComponentMetadata, {
+    ComponentCategory,
+    ComponentType,
+    NodeDataProp,
+    NodeType,
+} from 'Common/Types/Workflow/Component';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Card from 'CommonUI/src/Components/Card/Card';
+import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
+import Workflow, {
+    getEdgeDefaultProps,
+    getPlaceholderTriggerNode,
+} from 'CommonUI/src/Components/Workflow/Workflow';
+import { WORKFLOW_URL } from 'CommonUI/src/Config';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import WorkflowModel from 'Model/Models/Workflow';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import Workflow, {
-    getEdgeDefaultProps,
-    getPlaceholderTriggerNode,
-} from 'CommonUI/src/Components/Workflow/Workflow';
-import Card from 'CommonUI/src/Components/Card/Card';
 import { Edge, Node } from 'reactflow';
-import { JSONObject } from 'Common/Types/JSON';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import WorkflowModel from 'Model/Models/Workflow';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
-import IconProp from 'Common/Types/Icon/IconProp';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import { loadComponentsAndCategories } from 'CommonUI/src/Components/Workflow/Utils';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ComponentMetadata, {
-    NodeDataProp,
-    NodeType,
-    ComponentCategory,
-    ComponentType,
-} from 'Common/Types/Workflow/Component';
-import API from 'CommonUI/src/Utils/API/API';
-import { WORKFLOW_URL } from 'CommonUI/src/Config';
-import URL from 'Common/Types/API/URL';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
 import { useAsyncEffect } from 'use-async-effect';
 
 const Delete: FunctionComponent<PageComponentProps> = (

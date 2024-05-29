@@ -1,21 +1,21 @@
-import * as opentelemetry from '@opentelemetry/sdk-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import Dictionary from 'Common/Types/Dictionary';
-import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
+import { Logger, logs } from '@opentelemetry/api-logs';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
+import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
+import { Resource } from '@opentelemetry/resources';
 import {
     BatchLogRecordProcessor,
     LoggerProvider,
 } from '@opentelemetry/sdk-logs';
-import URL from 'Common/Types/API/URL';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import * as opentelemetry from '@opentelemetry/sdk-node';
 import { SpanExporter } from '@opentelemetry/sdk-trace-node';
-import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { Logger, logs } from '@opentelemetry/api-logs';
-import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
+import URL from 'Common/Types/API/URL';
+import Dictionary from 'Common/Types/Dictionary';
 
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);

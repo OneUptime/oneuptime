@@ -1,13 +1,13 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import User from 'CommonUI/src/Utils/User';
 import UserNotificationSetting from 'Model/Models/UserNotificationSetting';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

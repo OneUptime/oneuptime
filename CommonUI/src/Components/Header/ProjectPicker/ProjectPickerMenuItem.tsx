@@ -1,9 +1,9 @@
-import Project from 'Model/Models/Project';
-import Route from 'Common/Types/API/Route';
-import React, { FunctionComponent, ReactElement } from 'react';
-import Icon from '../../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from '../../../Utils/Navigation';
+import Icon from '../../Icon/Icon';
+import Route from 'Common/Types/API/Route';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Project from 'Model/Models/Project';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     icon: IconProp;

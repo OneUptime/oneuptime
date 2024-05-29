@@ -1,7 +1,7 @@
 import Query from './Query';
 import BaseModel from 'Common/Models/BaseModel';
-import User from 'Model/Models/User';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import User from 'Model/Models/User';
 
 export default interface DeleteOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;

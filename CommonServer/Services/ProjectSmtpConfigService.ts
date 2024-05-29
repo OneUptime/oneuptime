@@ -1,8 +1,8 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/ProjectSmtpConfig';
 import DatabaseService from './DatabaseService';
 import EmailServer from 'Common/Types/Email/EmailServer';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Model from 'Model/Models/ProjectSmtpConfig';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

@@ -1,11 +1,11 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
 import Layers from '../../../Components/OnCallPolicy/OnCallScheduleLayer/Layers';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
+import PageComponentProps from '../../PageComponentProps';
 import URL from 'Common/Types/API/URL';
+import ObjectID from 'Common/Types/ObjectID';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const OnCallScheduleDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

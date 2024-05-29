@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import SearchBox from 'CommonUI/src/Components/Header/SearchBox';
 import Project from 'Model/Models/Project';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     onChange: (search: string) => void;

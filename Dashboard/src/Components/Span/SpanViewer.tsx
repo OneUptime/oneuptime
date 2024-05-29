@@ -1,32 +1,32 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import LogsViewer from 'CommonUI/src/Components/LogsViewer/LogsViewer';
-import Log from 'Model/AnalyticsModels/Log';
+import SpanUtil, { DivisibilityFactor } from '../../Utils/SpanUtil';
+import TelemetryServiceElement from '../TelemetryService/TelemetryServiceElement';
+import SpanStatusElement from './SpanStatusElement';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import CodeType from 'Common/Types/Code/CodeType';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
+import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
+import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
+import Detail from 'CommonUI/src/Components/Detail/Detail';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import LogsViewer from 'CommonUI/src/Components/LogsViewer/LogsViewer';
+import { TabType } from 'CommonUI/src/Components/Tabs/Tab';
+import Tabs from 'CommonUI/src/Components/Tabs/Tabs';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import API from 'CommonUI/src/Utils/API/API';
 import AnalyticsModelAPI, {
     ListResult,
 } from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
-import API from 'CommonUI/src/Utils/API/API';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
 import Select from 'CommonUI/src/Utils/BaseDatabase/Select';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import Log from 'Model/AnalyticsModels/Log';
 import Span, { SpanEvent, SpanEventType } from 'Model/AnalyticsModels/Span';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import Tabs from 'CommonUI/src/Components/Tabs/Tabs';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import Detail from 'CommonUI/src/Components/Detail/Detail';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import TelemetryService from 'Model/Models/TelemetryService';
-import TelemetryServiceElement from '../TelemetryService/TelemetryServiceElement';
-import SpanUtil, { DivisibilityFactor } from '../../Utils/SpanUtil';
-import SpanStatusElement from './SpanStatusElement';
-import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
-import CodeType from 'Common/Types/Code/CodeType';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
-import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
-import { TabType } from 'CommonUI/src/Components/Tabs/Tab';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
     id: string;

@@ -1,21 +1,21 @@
-import React, { FunctionComponent, useEffect } from 'react';
-import Route from 'Common/Types/API/Route';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import { LOGIN_API_URL } from '../../Utils/ApiPaths';
-import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
 import LoginUtil from '../../Utils/Login';
-import UserUtil from '../../Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { FILE_URL } from 'CommonUI/src/Config';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import Link from 'CommonUI/src/Components/Link/Link';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
-import BadDataException from 'Common/Types/Exception/BadDataException';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import StatusPageUtil from '../../Utils/StatusPage';
+import UserUtil from '../../Utils/User';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Link from 'CommonUI/src/Components/Link/Link';
+import { FILE_URL } from 'CommonUI/src/Config';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import React, { FunctionComponent, useEffect } from 'react';
 
 export interface ComponentProps {
     statusPageName: string;

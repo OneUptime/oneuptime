@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import TextArea from '../TextArea/TextArea';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     initialValue?: undefined | string;

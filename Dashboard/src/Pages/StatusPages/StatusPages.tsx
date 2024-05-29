@@ -1,19 +1,19 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import LabelsElement from '../../Components/Label/Labels';
+import DashboardNavigation from '../../Utils/Navigation';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import StatusPage from 'Model/Models/StatusPage';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Label from 'Model/Models/Label';
-import LabelsElement from '../../Components/Label/Labels';
-import DashboardNavigation from '../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
+import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Page from 'CommonUI/src/Components/Page/Page';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Label from 'Model/Models/Label';
+import StatusPage from 'Model/Models/StatusPage';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const StatusPages: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

@@ -1,18 +1,18 @@
-import React, { ReactElement } from 'react';
-import {
-    Routes,
-    Route,
-    useNavigate,
-    useLocation,
-    useParams,
-} from 'react-router-dom';
+import ForgotPasswordPage from './Pages/ForgotPassword';
 import LoginPage from './Pages/Login';
 import NotFound from './Pages/NotFound';
-import ForgotPasswordPage from './Pages/ForgotPassword';
 import RegisterPage from './Pages/Register';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import VerifyEmail from './Pages/VerifyEmail';
 import ResetPasswordPage from './Pages/ResetPassword';
+import VerifyEmail from './Pages/VerifyEmail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { ReactElement } from 'react';
+import {
+    Route,
+    Routes,
+    useLocation,
+    useNavigate,
+    useParams,
+} from 'react-router-dom';
 
 function App(): ReactElement {
     Navigation.setNavigateHook(useNavigate());

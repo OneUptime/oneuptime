@@ -1,86 +1,65 @@
-import logger from 'CommonServer/Utils/Logger';
-import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
-import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
-import FeatureSet from 'CommonServer/Types/FeatureSet';
-
-// Payments.
-import './Jobs/PaymentProvider/CheckSubscriptionStatus';
-import './Jobs/PaymentProvider/UpdateTeamMembersIfNull';
-import './Jobs/PaymentProvider/PopulatePlanNameInProject';
-
 // Announcements.
 import './Jobs/Announcement/SendNotificationToSubscribers';
-
-// Incidents
-import './Jobs/Incident/SendNotificationToSubscribers';
-import './Jobs/IncidentStateTimeline/SendNotificationToSubscribers';
-
-// Incident Notes
-import './Jobs/IncidentPublicNote/SendNotificationToSubscribers';
-
 // Hard Delete
 import './Jobs/HardDelete/HardDeleteItemsInDatabase';
-
-// Scheduled Event
-import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
-import './Jobs/ScheduledMaintenance/ChangeStateToEnded';
-import './Jobs/ScheduledMaintenance/SendNotificationToSubscribers';
-import './Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers';
-
-// Telemetry Service
-import './Jobs/TelemetryService/DeleteOldData';
-
-// Scheduled Event Notes
-import './Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers';
-
-// Certs Routers
-import './Jobs/StatusPageCerts/StatusPageCerts';
-
-import JobDictionary from './Utils/JobDictionary';
-
+// Incidents
+import './Jobs/Incident/SendNotificationToSubscribers';
+// Incident Owners
+import './Jobs/IncidentOwners/SendCreatedResourceNotification';
+import './Jobs/IncidentOwners/SendNotePostedNotification';
+import './Jobs/IncidentOwners/SendOwnerAddedNotification';
+import './Jobs/IncidentOwners/SendStateChangeNotification';
+// Incident Notes
+import './Jobs/IncidentPublicNote/SendNotificationToSubscribers';
+import './Jobs/IncidentStateTimeline/SendNotificationToSubscribers';
+import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
+import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
+// Monitor Metrics
+import './Jobs/MonitorMetrics/MonitorMetricsByMinute';
 // Monitor Owners
 import './Jobs/MonitorOwners/SendCreatedResourceNotification';
 import './Jobs/MonitorOwners/SendOwnerAddedNotification';
 import './Jobs/MonitorOwners/SendStatusChangeNotification';
-
-// Incident Owners
-import './Jobs/IncidentOwners/SendCreatedResourceNotification';
-import './Jobs/IncidentOwners/SendOwnerAddedNotification';
-import './Jobs/IncidentOwners/SendStateChangeNotification';
-import './Jobs/IncidentOwners/SendNotePostedNotification';
-
-// Scheduled Event Owners
-import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification';
-import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification';
-import './Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification';
-import './Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification';
-
-// Status Page Owners
-import './Jobs/StatusPageOwners/SendCreatedResourceNotification';
-import './Jobs/StatusPageOwners/SendOwnerAddedNotification';
-import './Jobs/StatusPageOwners/SendAnnouncementCreatedNotification';
-import RunDatabaseMigrations from './Utils/DataMigration';
-
 // On-Call Duty Policy Executions.
 import './Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions';
 import './Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions';
-
+// Payments.
+import './Jobs/PaymentProvider/CheckSubscriptionStatus';
+import './Jobs/PaymentProvider/PopulatePlanNameInProject';
+import './Jobs/PaymentProvider/UpdateTeamMembersIfNull';
+import './Jobs/ScheduledMaintenance/ChangeStateToEnded';
+// Scheduled Event
+import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
+import './Jobs/ScheduledMaintenance/SendNotificationToSubscribers';
+// Scheduled Event Owners
+import './Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification';
+import './Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification';
+import './Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification';
+import './Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification';
+// Scheduled Event Notes
+import './Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers';
+import './Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers';
+import './Jobs/ServerMonitor/CheckOnlineStatus';
+// Certs Routers
+import './Jobs/StatusPageCerts/StatusPageCerts';
+import './Jobs/StatusPageOwners/SendAnnouncementCreatedNotification';
+// Status Page Owners
+import './Jobs/StatusPageOwners/SendCreatedResourceNotification';
+import './Jobs/StatusPageOwners/SendOwnerAddedNotification';
+// Telemetry Service
+import './Jobs/TelemetryService/DeleteOldData';
 // User Notifications Log
 import './Jobs/UserOnCallLog/ExecutePendingExecutions';
 import './Jobs/UserOnCallLog/TimeoutStuckExecutions';
-
-import './Jobs/IncomingRequestMonitor/CheckHeartbeat';
-import './Jobs/ServerMonitor/CheckOnlineStatus';
-
-import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
-
 import './Jobs/Workflow/TimeoutJobs';
-import './Jobs/MeteredPlan/ReportTelemetryMeteredPlan';
-
-// Monitor Metrics
-import './Jobs/MonitorMetrics/MonitorMetricsByMinute';
-
+import AnalyticsTableManagement from './Utils/AnalyticsDatabase/TableManegement';
+import RunDatabaseMigrations from './Utils/DataMigration';
+import JobDictionary from './Utils/JobDictionary';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { QueueJob, QueueName } from 'CommonServer/Infrastructure/Queue';
+import QueueWorker from 'CommonServer/Infrastructure/QueueWorker';
+import FeatureSet from 'CommonServer/Types/FeatureSet';
+import logger from 'CommonServer/Utils/Logger';
 
 const WorkersFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {

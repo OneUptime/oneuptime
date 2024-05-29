@@ -1,14 +1,14 @@
+import { DropdownOption } from '../Dropdown/Dropdown';
+import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Typeof from 'Common/Types/Typeof';
 import ComponentMetadata, {
     ComponentCategory,
     ComponentInputType,
 } from 'Common/Types/Workflow/Component';
-import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
-import { DropdownOption } from '../Dropdown/Dropdown';
-import Entities from 'Model/Models/Index';
-import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Components, { Categories } from 'Common/Types/Workflow/Components';
-import Typeof from 'Common/Types/Typeof';
+import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
+import Entities from 'Model/Models/Index';
 
 type LoadComponentsAndCategoriesFunction = () => {
     components: Array<ComponentMetadata>;

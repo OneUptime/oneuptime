@@ -1,6 +1,6 @@
 import URL from 'Common/Types/API/URL';
-import logger from 'CommonServer/Utils/Logger';
 import ObjectID from 'Common/Types/ObjectID';
+import logger from 'CommonServer/Utils/Logger';
 
 if (!process.env['INGESTOR_URL'] && !process.env['ONEUPTIME_URL']) {
     logger.error('INGESTOR_URL or ONEUPTIME_URL is not set');

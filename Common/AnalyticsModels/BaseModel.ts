@@ -1,24 +1,24 @@
-import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
-import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
-import BadDataException from '../Types/Exception/BadDataException';
+import Route from '../Types/API/Route';
 import AnalyticsTableEngine from '../Types/AnalyticsDatabase/AnalyticsTableEngine';
-import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
-import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
+import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
+import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import {
     ColumnAccessControl,
     TableAccessControl,
 } from '../Types/BaseDatabase/AccessControl';
+import ColumnBillingAccessControl from '../Types/BaseDatabase/ColumnBillingAccessControl';
 import EnableWorkflowOn from '../Types/BaseDatabase/EnableWorkflowOn';
-import ObjectID from '../Types/ObjectID';
-import CommonModel from './CommonModel';
-import Route from '../Types/API/Route';
-import { EnableRealtimeEventsOn } from '../Utils/Realtime';
-import Text from '../Types/Text';
-import Dictionary from '../Types/Dictionary';
 import ModelPermission from '../Types/BaseDatabase/ModelPermission';
-import Permission, { UserTenantAccessPermission } from '../Types/Permission';
+import TableBillingAccessControl from '../Types/BaseDatabase/TableBillingAccessControl';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
+import Dictionary from '../Types/Dictionary';
+import BadDataException from '../Types/Exception/BadDataException';
 import { JSONValue } from '../Types/JSON';
+import ObjectID from '../Types/ObjectID';
+import Permission, { UserTenantAccessPermission } from '../Types/Permission';
+import Text from '../Types/Text';
+import { EnableRealtimeEventsOn } from '../Utils/Realtime';
+import CommonModel from './CommonModel';
 
 export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };
 

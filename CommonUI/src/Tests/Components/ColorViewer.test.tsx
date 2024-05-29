@@ -1,8 +1,8 @@
-import * as React from 'react';
-import { fireEvent, render } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
 import ColorViewer from '../../Components/ColorViewer/ColorViewer';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render } from '@testing-library/react';
 import Color from 'Common/Types/Color';
+import * as React from 'react';
 
 describe('Color Viewer', () => {
     test('Render the component', () => {

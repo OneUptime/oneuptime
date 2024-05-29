@@ -1,9 +1,9 @@
-import React from 'react';
 import RadioButtons, {
     RadioButton,
 } from '../../Components/RadioButtons/GroupRadioButtons';
-import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render } from '@testing-library/react';
+import React from 'react';
 
 describe('RadioButtons', () => {
     const options: RadioButton[] = [

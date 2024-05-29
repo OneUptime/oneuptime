@@ -1,6 +1,6 @@
+import DictionaryForm, { ValueType } from './Dictionary';
 import Dictionary from 'Common/Types/Dictionary';
 import React, { FunctionComponent, ReactElement } from 'react';
-import DictionaryForm, { ValueType } from './Dictionary';
 
 export interface ComponentProps {
     onChange?: undefined | ((value: Dictionary<string>) => void);

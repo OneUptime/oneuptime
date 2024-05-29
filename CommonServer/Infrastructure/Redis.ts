@@ -1,16 +1,16 @@
-import Sleep from 'Common/Types/Sleep';
-import { Redis as RedisClient, RedisOptions } from 'ioredis';
 import {
-    RedisHostname,
-    RedisPort,
-    RedisUsername,
-    RedisPassword,
     RedisDb,
+    RedisHostname,
+    RedisPassword,
+    RedisPort,
     RedisTlsCa,
     RedisTlsSentinelMode,
+    RedisUsername,
     ShouldRedisTlsEnable,
 } from '../EnvironmentConfig';
 import logger from '../Utils/Logger';
+import Sleep from 'Common/Types/Sleep';
+import { Redis as RedisClient, RedisOptions } from 'ioredis';
 
 export type ClientType = RedisClient;
 

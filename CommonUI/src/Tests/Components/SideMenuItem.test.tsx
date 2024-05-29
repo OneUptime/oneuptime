@@ -1,19 +1,17 @@
 // Libraries
-import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-
+import { BadgeType } from '../../Components/Badge/Badge';
 // Components
 import SideMenuItem, {
     ComponentProps,
 } from '../../Components/SideMenu/SideMenuItem';
 import * as Navigation from '../../Utils/Navigation';
-
+import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen } from '@testing-library/react';
 // Types
 import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { BadgeType } from '../../Components/Badge/Badge';
-import { describe, expect, it } from '@jest/globals';
+import React from 'react';
 
 const highlightClassList: string =
     'bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium';

@@ -1,37 +1,37 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService';
-import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
-import CreateBy from '../Types/Database/CreateBy';
-import AccessTokenService from './AccessTokenService';
-import Email from 'Common/Types/Email';
-import UserService from './UserService';
-import User from 'Model/Models/User';
-import UpdateBy from '../Types/Database/UpdateBy';
-import DeleteBy from '../Types/Database/DeleteBy';
-import ObjectID from 'Common/Types/ObjectID';
-import QueryHelper from '../Types/Database/QueryHelper';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import ProjectService from './ProjectService';
-import { IsBillingEnabled } from '../EnvironmentConfig';
-import { AccountsRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
+import { IsBillingEnabled } from '../EnvironmentConfig';
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import CreateBy from '../Types/Database/CreateBy';
+import DeleteBy from '../Types/Database/DeleteBy';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
+import QueryHelper from '../Types/Database/QueryHelper';
+import UpdateBy from '../Types/Database/UpdateBy';
+import Errors from '../Utils/Errors';
+import logger from '../Utils/Logger';
+import AccessTokenService from './AccessTokenService';
 import BillingService from './BillingService';
+import DatabaseService from './DatabaseService';
+import MailService from './MailService';
+import ProjectService from './ProjectService';
+import UserNotificationRuleService from './UserNotificationRuleService';
+import UserNotificationSettingService from './UserNotificationSettingService';
+import UserService from './UserService';
+import { AccountsRoute } from 'Common/ServiceRoute';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
+import URL from 'Common/Types/API/URL';
 import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
-import Project from 'Model/Models/Project';
-import MailService from './MailService';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import Email from 'Common/Types/Email';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import URL from 'Common/Types/API/URL';
-import logger from '../Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import Project from 'Model/Models/Project';
 import TeamMember from 'Model/Models/TeamMember';
-import UserNotificationRuleService from './UserNotificationRuleService';
-import UserNotificationSettingService from './UserNotificationSettingService';
-import Hostname from 'Common/Types/API/Hostname';
-import Protocol from 'Common/Types/API/Protocol';
-import Errors from '../Utils/Errors';
+import User from 'Model/Models/User';
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {

@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../../Link/Link';
 import { FormFieldSideLink } from '../Types/Field';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     title: string;

@@ -1,8 +1,8 @@
 // This is for Object ID for all the things in our database.
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
-import { JSONObject, ObjectType } from './JSON';
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, ObjectType } from './JSON';
+import { FindOperator } from 'typeorm';
 
 export default class Decimal extends DatabaseProperty {
     private _value: number = 0;

@@ -1,16 +1,16 @@
-import UserEmail from 'Model/Models/UserEmail';
+import UserMiddleware from '../Middleware/UserAuthorization';
 import UserEmailService, {
     Service as UserEmailServiceType,
 } from '../Services/UserEmailService';
-import BaseAPI from './BaseAPI';
 import {
     ExpressRequest,
     ExpressResponse,
     OneUptimeRequest,
 } from '../Utils/Express';
-import UserMiddleware from '../Middleware/UserAuthorization';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import Response from '../Utils/Response';
+import BaseAPI from './BaseAPI';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import UserEmail from 'Model/Models/UserEmail';
 
 export default class UserEmailAPI extends BaseAPI<
     UserEmail,

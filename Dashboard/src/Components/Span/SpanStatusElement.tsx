@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Span, { SpanStatus } from 'Model/AnalyticsModels/Span';
-import ColorCircle from 'CommonUI/src/Components/ColorCircle/ColorCircle';
 import { Green, Red } from 'Common/Types/BrandColors';
+import ColorCircle from 'CommonUI/src/Components/ColorCircle/ColorCircle';
+import Span, { SpanStatus } from 'Model/AnalyticsModels/Span';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     span: Span;

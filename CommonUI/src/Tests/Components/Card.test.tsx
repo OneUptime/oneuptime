@@ -1,12 +1,12 @@
-import React, { ReactElement } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
+import { ButtonStyleType } from '../../Components/Button/Button';
 import Card, {
     CardButtonSchema,
     ComponentProps,
 } from '../../Components/Card/Card';
-import { ButtonStyleType } from '../../Components/Button/Button';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen } from '@testing-library/react';
 import IconProp from 'Common/Types/Icon/IconProp';
+import React, { ReactElement } from 'react';
 
 describe('Card', () => {
     const props: ComponentProps = {

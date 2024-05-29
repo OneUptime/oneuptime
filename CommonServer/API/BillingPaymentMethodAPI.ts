@@ -1,7 +1,3 @@
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Permission, { UserPermission } from 'Common/Types/Permission';
-import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
-import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import UserMiddleware from '../Middleware/UserAuthorization';
 import BillingPaymentMethodService, {
@@ -16,6 +12,10 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import Permission, { UserPermission } from 'Common/Types/Permission';
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
+import Project from 'Model/Models/Project';
 
 export default class UserAPI extends BaseAPI<
     BillingPaymentMethod,

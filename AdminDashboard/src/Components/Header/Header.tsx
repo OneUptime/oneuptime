@@ -1,11 +1,11 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Help from './Help';
-import Header from 'CommonUI/src/Components/Header/Header';
 import Logo from './Logo';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import UserProfile from './UserProfile';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Header from 'CommonUI/src/Components/Header/Header';
+import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const DashboardHeader: FunctionComponent = (): ReactElement => {
     return (

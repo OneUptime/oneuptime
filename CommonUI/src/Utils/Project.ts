@@ -1,12 +1,12 @@
+import { BILLING_ENABLED, getAllEnvVars } from '../Config';
 import LocalStorage from './LocalStorage';
-import { JSONObject } from 'Common/Types/JSON';
-import Project from 'Model/Models/Project';
+import BaseModel from 'Common/Models/BaseModel';
 import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
-import { BILLING_ENABLED, getAllEnvVars } from '../Config';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
+import Project from 'Model/Models/Project';
 
 export default class ProjectUtil {
     public static getCurrentProject(): Project | null {

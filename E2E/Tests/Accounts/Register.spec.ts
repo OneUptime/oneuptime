@@ -1,7 +1,8 @@
-import { test, expect, Page } from '@playwright/test';
-import { BASE_URL, IS_USER_REGISTERED, IS_BILLING_ENABLED } from '../../Config';
-import Faker from 'Common/Utils/Faker';
+import { BASE_URL, IS_BILLING_ENABLED, IS_USER_REGISTERED } from '../../Config';
+import { Page, expect, test } from '@playwright/test';
 import URL from 'Common/Types/API/URL';
+import Faker from 'Common/Utils/Faker';
+
 test.describe('Account Registration', () => {
     test('should register a new account', async ({ page }: { page: Page }) => {
         if (IS_USER_REGISTERED) {

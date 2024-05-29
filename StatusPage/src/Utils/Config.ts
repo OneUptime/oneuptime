@@ -1,6 +1,6 @@
-import URL from 'Common/Types/API/URL';
-import Route from 'Common/Types/API/Route';
 import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
 
 const PROTOCOL: Protocol = window.location.protocol.includes('https')
     ? Protocol.HTTPS

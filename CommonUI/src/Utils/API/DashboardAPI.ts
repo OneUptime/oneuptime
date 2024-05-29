@@ -1,6 +1,6 @@
 import { APP_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
-import { AppApiRoute } from 'Common/ServiceRoute';
 import BaseAPI from './API';
+import { AppApiRoute } from 'Common/ServiceRoute';
 
 class BackendAPI extends BaseAPI {
     public constructor() {

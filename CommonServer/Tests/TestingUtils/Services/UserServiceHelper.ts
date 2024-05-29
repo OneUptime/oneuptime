@@ -1,8 +1,8 @@
-import User from 'Model/Models/User';
-import Faker from 'Common/Utils/Faker';
+import CreateBy from '../../../Types/Database/CreateBy';
 import CompanySize from 'Common/Types/Company/CompanySize';
 import JobRole from 'Common/Types/Company/JobRole';
-import CreateBy from '../../../Types/Database/CreateBy';
+import Faker from 'Common/Utils/Faker';
+import User from 'Model/Models/User';
 
 export default class UserTestService {
     public static generateRandomUser(): CreateBy<User> {

@@ -1,18 +1,18 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
+import BadDataException from '../Exception/BadDataException';
 import { JSONObject, ObjectType } from '../JSON';
+import JSONFunctions from '../JSONFunctions';
 import ObjectID from '../ObjectID';
-import { CriteriaIncident } from './CriteriaIncident';
+import Typeof from '../Typeof';
 import {
     CheckOn,
     CriteriaFilter,
     FilterCondition,
     FilterType,
 } from './CriteriaFilter';
-import BadDataException from '../Exception/BadDataException';
+import { CriteriaIncident } from './CriteriaIncident';
 import MonitorType from './MonitorType';
-import Typeof from '../Typeof';
-import JSONFunctions from '../JSONFunctions';
+import { FindOperator } from 'typeorm';
 
 export interface MonitorCriteriaInstanceType {
     monitorStatusId: ObjectID | undefined;

@@ -1,16 +1,16 @@
+import { AgnosticRouteMatch } from '@remix-run/router';
+import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 import {
-    NavigateFunction,
     Location,
+    NavigateFunction,
     Params,
     matchRoutes,
 } from 'react-router-dom';
-import URL from 'Common/Types/API/URL';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Hostname from 'Common/Types/API/Hostname';
-import ObjectID from 'Common/Types/ObjectID';
-import Dictionary from 'Common/Types/Dictionary';
-import { AgnosticRouteMatch } from '@remix-run/router';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;

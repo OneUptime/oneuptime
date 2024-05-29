@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorCriteriaIncident from './MonitorCriteriaIncident';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     incidents: Array<CriteriaIncident>;

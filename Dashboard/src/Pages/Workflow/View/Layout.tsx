@@ -1,12 +1,12 @@
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import { getWorkflowsBreadcrumbs } from '../../../Utils/Breadcrumbs';
 import { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import Workflow from 'Model/Models/Workflow';
-import { getWorkflowsBreadcrumbs } from '../../../Utils/Breadcrumbs';
+import React, { FunctionComponent, ReactElement } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 
 const WorkflowViewLayout: FunctionComponent<PageComponentProps> = (

@@ -1,17 +1,17 @@
+import Loader from '../Components/Loader/Loader';
+import ComponentProps from '../Pages/PageComponentProps';
+import UserSettingsLayout from '../Pages/UserSettings/Layout';
+import PageMap from '../Utils/PageMap';
+import RouteMap, { UserSettingsRoutePath } from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import React, {
     FunctionComponent,
     LazyExoticComponent,
     ReactElement,
-    lazy,
     Suspense,
+    lazy,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { UserSettingsRoutePath } from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
-import ComponentProps from '../Pages/PageComponentProps';
-import Loader from '../Components/Loader/Loader';
-import UserSettingsLayout from '../Pages/UserSettings/Layout';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Pages
 const UserSettingsNotificationMethods: LazyExoticComponent<

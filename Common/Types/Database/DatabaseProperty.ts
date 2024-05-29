@@ -1,8 +1,8 @@
-import { FindOperator } from 'typeorm';
-import { ValueTransformer } from 'typeorm/decorator/options/ValueTransformer';
 import NotImplementedException from '../Exception/NotImplementedException';
 import { JSONArray, JSONObject } from '../JSON';
 import SerializableObject from '../SerializableObject';
+import { FindOperator } from 'typeorm';
+import { ValueTransformer } from 'typeorm/decorator/options/ValueTransformer';
 
 export default class DatabaseProperty extends SerializableObject {
     public constructor() {

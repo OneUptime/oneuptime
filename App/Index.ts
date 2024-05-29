@@ -1,26 +1,24 @@
-process.env['SERVICE_NAME'] = 'app';
-
-import 'CommonServer/Utils/Telemetry';
-import 'ejs';
-import Redis from 'CommonServer/Infrastructure/Redis';
-import logger from 'CommonServer/Utils/Logger';
-import App from 'CommonServer/Utils/StartServer';
-import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
-import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
-import Realtime from 'CommonServer/Utils/Realtime';
-
+import APIReferenceRoutes from './FeatureSet/ApiReference/Index';
+import BaseAPIRoutes from './FeatureSet/BaseAPI/Index';
+import DocsRoutes from './FeatureSet/Docs/Index';
+import HomeRoutes from './FeatureSet/Home/Index';
 // import FeatureSets.
 import IdentityRoutes from './FeatureSet/Identity/Index';
 import NotificationRoutes from './FeatureSet/Notification/Index';
-import DocsRoutes from './FeatureSet/Docs/Index';
-import BaseAPIRoutes from './FeatureSet/BaseAPI/Index';
-import APIReferenceRoutes from './FeatureSet/ApiReference/Index';
 import Workers from './FeatureSet/Workers/Index';
 import Workflow from './FeatureSet/Workflow/Index';
-import HomeRoutes from './FeatureSet/Home/Index';
-import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
-
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
+import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
+import Redis from 'CommonServer/Infrastructure/Redis';
+import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
+import logger from 'CommonServer/Utils/Logger';
+import Realtime from 'CommonServer/Utils/Realtime';
+import App from 'CommonServer/Utils/StartServer';
+import 'CommonServer/Utils/Telemetry';
+import 'ejs';
+
+process.env['SERVICE_NAME'] = 'app';
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {

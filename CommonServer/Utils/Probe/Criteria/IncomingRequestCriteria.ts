@@ -1,14 +1,14 @@
+import logger from '../../../Utils/Logger';
+import DataToProcess from '../DataToProcess';
+import OneUptimeDate from 'Common/Types/Date';
+import { JSONObject } from 'Common/Types/JSON';
 import {
     CheckOn,
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import logger from '../../../Utils/Logger';
-import Typeof from 'Common/Types/Typeof';
 import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
-import { JSONObject } from 'Common/Types/JSON';
-import OneUptimeDate from 'Common/Types/Date';
-import DataToProcess from '../DataToProcess';
+import Typeof from 'Common/Types/Typeof';
 
 export default class IncomingRequestCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {

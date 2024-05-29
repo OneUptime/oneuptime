@@ -1,22 +1,22 @@
-import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
 import MonitorStepElement from './MonitorStep';
-import MonitorStep from 'Common/Types/Monitor/MonitorStep';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import API from 'CommonUI/src/Utils/API/API';
-import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
-import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import Icon from 'CommonUI/src/Components/Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Color from 'Common/Types/Color';
 import { Black } from 'Common/Types/BrandColors';
+import Color from 'Common/Types/Color';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import IconProp from 'Common/Types/Icon/IconProp';
+import MonitorStep from 'Common/Types/Monitor/MonitorStep';
+import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
+import Icon from 'CommonUI/src/Components/Icon/Icon';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import MonitorStatus from 'Model/Models/MonitorStatus';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps extends CustomElementProps {

@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorStatus from 'Model/Models/MonitorStatus';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     monitorStatus: MonitorStatus;

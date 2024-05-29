@@ -1,17 +1,17 @@
 import { Green } from 'Common/Types/BrandColors';
+import Color from 'Common/Types/Color';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Icon from 'CommonUI/src/Components/Icon/Icon';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
-import React, { FunctionComponent, ReactElement } from 'react';
+import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
+import Tooltip from 'CommonUI/src/Components/Tooltip/Tooltip';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusTimelne from 'Model/Models/MonitorStatusTimeline';
-import Icon from 'CommonUI/src/Components/Icon/Icon';
-import Tooltip from 'CommonUI/src/Components/Tooltip/Tooltip';
-import IconProp from 'Common/Types/Icon/IconProp';
-import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer';
-import { UptimePrecision } from 'Model/Models/StatusPageResource';
-import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
 import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
-import Color from 'Common/Types/Color';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import { UptimePrecision } from 'Model/Models/StatusPageResource';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     monitorName: string;

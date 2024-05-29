@@ -1,12 +1,12 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Category from './Category';
 import {
     CategoryCheckboxOption,
-    CheckboxCategory,
     CategoryCheckboxValue,
+    CheckboxCategory,
 } from './CategoryCheckboxTypes';
-import Category from './Category';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import BaseModel from 'Common/Models/BaseModel';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface CategoryCheckboxOptionsAndCategories {
     categories: Array<CheckboxCategory>;

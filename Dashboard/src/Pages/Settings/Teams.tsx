@@ -1,11 +1,12 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import DashboardNavigation from '../../Utils/Navigation';
 import { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Team from 'Model/Models/Team';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import DashboardNavigation from '../../Utils/Navigation';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Team from 'Model/Models/Team';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+
 const Teams: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {

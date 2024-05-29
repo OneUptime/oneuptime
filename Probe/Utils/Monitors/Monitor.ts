@@ -1,34 +1,34 @@
-import MonitorStep from 'Common/Types/Monitor/MonitorStep';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import Monitor from 'Model/Models/Monitor';
+import { INGESTOR_URL } from '../../Config';
+import ProbeUtil from '../Probe';
+import ProbeAPIRequest from '../ProbeAPIRequest';
+import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
+import CustomCodeMonitor from './MonitorTypes/CustomCodeMonitor';
 import PingMonitor, { PingResponse } from './MonitorTypes/PingMonitor';
 import PortMonitor, { PortMonitorResponse } from './MonitorTypes/PortMonitor';
-import API from 'Common/Utils/API';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import URL from 'Common/Types/API/URL';
-import { INGESTOR_URL } from '../../Config';
-import ProbeAPIRequest from '../ProbeAPIRequest';
-import { JSONObject } from 'Common/Types/JSON';
+import SSLMonitor, { SslResponse } from './MonitorTypes/SslMonitor';
+import SyntheticMonitor from './MonitorTypes/SyntheticMonitor';
 import WebsiteMonitor, {
     ProbeWebsiteResponse,
 } from './MonitorTypes/WebsiteMonitor';
-import ApiMonitor, { APIResponse } from './MonitorTypes/ApiMonitor';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import logger from 'CommonServer/Utils/Logger';
-import ProbeUtil from '../Probe';
-import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
-import LocalCache from 'CommonServer/Infrastructure/LocalCache';
-import Port from 'Common/Types/Port';
-import SSLMonitor, { SslResponse } from './MonitorTypes/SslMonitor';
-import SyntheticMonitor from './MonitorTypes/SyntheticMonitor';
-import ScreenSizeType from 'Common/Types/ScreenSizeType';
+import CustomCodeMonitorResponse from 'Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
+import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
+import MonitorStep from 'Common/Types/Monitor/MonitorStep';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
 import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
-import CustomCodeMonitor from './MonitorTypes/CustomCodeMonitor';
-import CustomCodeMonitorResponse from 'Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse';
-import OneUptimeDate from 'Common/Types/Date';
+import Port from 'Common/Types/Port';
+import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
+import ScreenSizeType from 'Common/Types/ScreenSizeType';
+import API from 'Common/Utils/API';
+import LocalCache from 'CommonServer/Infrastructure/LocalCache';
+import logger from 'CommonServer/Utils/Logger';
+import Monitor from 'Model/Models/Monitor';
 
 export default class MonitorUtil {
     public static async probeMonitor(

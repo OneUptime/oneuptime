@@ -1,11 +1,11 @@
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import Icon from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);

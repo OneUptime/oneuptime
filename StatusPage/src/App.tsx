@@ -1,43 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import Route from 'Common/Types/API/Route';
-import {
-    Routes,
-    Route as PageRoute,
-    useNavigate,
-    useLocation,
-    useParams,
-} from 'react-router-dom';
 import MasterPage from './Components/MasterPage/MasterPage';
-
-import PageNotFound from './Pages/NotFound/PageNotFound';
-import Overview from './Pages/Overview/Overview';
-import IncidentList from './Pages/Incidents/List';
-import IncidentDetail from './Pages/Incidents/Detail';
-import AnnouncementList from './Pages/Announcement/List';
-import AnnouncementDetail from './Pages/Announcement/Detail';
-import ScheduledEventList from './Pages/ScheduledEvent/List';
-import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
-import EmailSubscribe from './Pages/Subscribe/EmailSubscribe';
-import SMSSubscribe from './Pages/Subscribe/SmsSubscribe';
+import ForgotPassword from './Pages/Accounts/ForgotPassword';
 // Accounts.
 import Login from './Pages/Accounts/Login';
-import Sso from './Pages/Accounts/SSO';
-import ForgotPassword from './Pages/Accounts/ForgotPassword';
+// Logout.
+import Logout from './Pages/Accounts/Logout';
 import ResetPassword from './Pages/Accounts/ResetPassword';
-
-import RouteMap from './Utils/RouteMap';
+import Sso from './Pages/Accounts/SSO';
+import AnnouncementDetail from './Pages/Announcement/Detail';
+import AnnouncementList from './Pages/Announcement/List';
+import IncidentDetail from './Pages/Incidents/Detail';
+import IncidentList from './Pages/Incidents/List';
+import PageNotFound from './Pages/NotFound/PageNotFound';
+import Overview from './Pages/Overview/Overview';
+import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
+import ScheduledEventList from './Pages/ScheduledEvent/List';
+import EmailSubscribe from './Pages/Subscribe/EmailSubscribe';
+import SMSSubscribe from './Pages/Subscribe/SmsSubscribe';
+import UpdateSubscription from './Pages/Subscribe/UpdateSubscription';
 import PageMap from './Utils/PageMap';
-
-import Navigation from 'CommonUI/src/Utils/Navigation';
+import RouteMap from './Utils/RouteMap';
+import StatusPageUtil from './Utils/StatusPage';
+import Route from 'Common/Types/API/Route';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import ObjectID from 'Common/Types/ObjectID';
-
-// Logout.
-import Logout from './Pages/Accounts/Logout';
-import StatusPageUtil from './Utils/StatusPage';
-import UpdateSubscription from './Pages/Subscribe/UpdateSubscription';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { useEffect, useState } from 'react';
+import {
+    Route as PageRoute,
+    Routes,
+    useLocation,
+    useNavigate,
+    useParams,
+} from 'react-router-dom';
 
 const App: () => JSX.Element = () => {
     Navigation.setNavigateHook(useNavigate());

@@ -1,9 +1,9 @@
 import React, {
-    useState,
+    MouseEvent,
+    MouseEventHandler,
     useEffect,
     useRef,
-    MouseEventHandler,
-    MouseEvent,
+    useState,
 } from 'react';
 
 type UseComponentOutsideClickFunction = (isVisible: boolean) => {

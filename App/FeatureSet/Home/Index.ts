@@ -1,26 +1,25 @@
-import 'ejs';
+// improt API
+import './API/BlogAPI';
+import { StaticPath, ViewsPath } from './Utils/Config';
+import NotFoundUtil from './Utils/NotFound';
+import ProductCompare, { Product } from './Utils/ProductCompare';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import { JSONObject } from 'Common/Types/JSON';
+import API from 'Common/Utils/API';
+import FeatureSet from 'CommonServer/Types/FeatureSet';
 import Express, {
+    ExpressApplication,
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
-    ExpressApplication,
 } from 'CommonServer/Utils/Express';
-import Dictionary from 'Common/Types/Dictionary';
-import OneUptimeDate from 'Common/Types/Date';
-import URL from 'Common/Types/API/URL';
-import ProductCompare, { Product } from './Utils/ProductCompare';
+import 'ejs';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
-import API from 'Common/Utils/API';
-import { JSONObject } from 'Common/Types/JSON';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { StaticPath, ViewsPath } from './Utils/Config';
-import NotFoundUtil from './Utils/NotFound';
-
-// improt API
-import './API/BlogAPI';
-import FeatureSet from 'CommonServer/Types/FeatureSet';
 
 const HomeFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {

@@ -1,9 +1,9 @@
+import CriteriaFilterUtil from '../../../Utils/Form/Monitor/CriteriaFilter';
 import {
     CriteriaFilter,
     FilterCondition,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import React, { FunctionComponent, ReactElement } from 'react';
-import CriteriaFilterUtil from '../../../Utils/Form/Monitor/CriteriaFilter';
 
 export interface ComponentProps {
     criteriaFilter: CriteriaFilter | undefined;

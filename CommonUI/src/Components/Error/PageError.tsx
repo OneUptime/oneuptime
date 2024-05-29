@@ -1,9 +1,9 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Navigation from '../../Utils/Navigation';
 import { ButtonStyleType } from '../Button/Button';
 import { IconType } from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Modal from '../Modal/Modal';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     title?: string;

@@ -1,8 +1,8 @@
-import 'reflect-metadata';
 import BaseModel from '../../../Models/BaseModel';
+import { ColumnAccessControl } from '../../BaseDatabase/AccessControl';
 import Dictionary from '../../Dictionary';
 import { ReflectionMetadataType } from '../../Reflection';
-import { ColumnAccessControl } from '../../BaseDatabase/AccessControl';
+import 'reflect-metadata';
 
 const accessControlSymbol: Symbol = Symbol('ColumnAccessControl');
 

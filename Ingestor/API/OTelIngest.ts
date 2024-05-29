@@ -1,27 +1,27 @@
+import TelemetryIngest, {
+    TelemetryRequest,
+} from '../Middleware/TelemetryIngest';
+import OTelIngestService from '../Service/OTelIngest';
+import OneUptimeDate from 'Common/Types/Date';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
+import Text from 'Common/Types/Text';
+import LogService from 'CommonServer/Services/LogService';
+import MetricService from 'CommonServer/Services/MetricService';
+import SpanService from 'CommonServer/Services/SpanService';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
-import protobuf from 'protobufjs';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
+import Response from 'CommonServer/Utils/Response';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
-import OneUptimeDate from 'Common/Types/Date';
-import SpanService from 'CommonServer/Services/SpanService';
-import MetricService from 'CommonServer/Services/MetricService';
 import Metric from 'Model/AnalyticsModels/Metric';
-import LogService from 'CommonServer/Services/LogService';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import OTelIngestService from '../Service/OTelIngest';
-import ProductType from 'Common/Types/MeteredPlan/ProductType';
-import TelemetryIngest, {
-    TelemetryRequest,
-} from '../Middleware/TelemetryIngest';
-import Text from 'Common/Types/Text';
+import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
+import protobuf from 'protobufjs';
 
 // Load proto file for OTel
 

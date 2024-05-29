@@ -1,11 +1,11 @@
-import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
-import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorCriteriaInstanceElement from './MonitorCriteriaInstance';
+import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
 import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import Text from 'Common/Types/Text';
-import MonitorStatus from 'Model/Models/MonitorStatus';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import MonitorStatus from 'Model/Models/MonitorStatus';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     monitorCriteria: MonitorCriteria;

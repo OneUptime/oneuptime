@@ -1,22 +1,22 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import DashboardNavigation from '../../../Utils/Navigation';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
+import UserElement from '../../User/User';
+import EscalationRule from '../EscalationRule/EscalationRule';
+import BaseModel from 'Common/Models/BaseModel';
 import { Green, Red, Yellow } from 'Common/Types/BrandColors';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
-import OnCallDutyExecutionLogTimelineStatus from 'Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus';
-import UserElement from '../../User/User';
-import User from 'Model/Models/User';
-import EscalationRule from '../EscalationRule/EscalationRule';
-import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
-import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
-import ObjectID from 'Common/Types/ObjectID';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import BaseModel from 'Common/Models/BaseModel';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
+import OnCallDutyPolicyExecutionLogTimeline from 'Model/Models/OnCallDutyPolicyExecutionLogTimeline';
+import User from 'Model/Models/User';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export interface ComponentProps {
     onCallPolicyExecutionLogId: ObjectID;

@@ -1,5 +1,5 @@
-import React, { ReactElement } from 'react';
 import CompactLoader from './CompactLoader';
+import React, { ReactElement } from 'react';
 
 const ComponentLoader: () => JSX.Element = (): ReactElement => {
     return (

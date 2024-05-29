@@ -1,10 +1,10 @@
+import Icon from '../../Icon/Icon';
+import Image from '../../Image/Image';
+import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Name from 'Common/Types/Name';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon from '../../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Route from 'Common/Types/API/Route';
-import Image from '../../Image/Image';
 
 export interface ComponentProps {
     userFullName: Name;

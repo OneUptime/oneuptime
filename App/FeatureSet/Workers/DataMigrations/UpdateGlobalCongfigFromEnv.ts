@@ -1,8 +1,8 @@
 import DataMigrationBase from './DataMigrationBase';
-import ObjectID from 'Common/Types/ObjectID';
-import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import Hostname from 'Common/Types/API/Hostname';
+import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
+import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
 import { EmailServerType } from 'Model/Models/GlobalConfig';
 
 export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {

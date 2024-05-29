@@ -1,16 +1,16 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/TelemetryUsageBilling';
-import ProductType from 'Common/Types/MeteredPlan/ProductType';
+import { MeteredPlanUtil } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
+import TelemetryMeteredPlan from '../Types/Billing/MeteredPlan/TelemetryMeteredPlan';
+import QueryHelper from '../Types/Database/QueryHelper';
 import DatabaseService from './DatabaseService';
-import ObjectID from 'Common/Types/ObjectID';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import OneUptimeDate from 'Common/Types/Date';
-import QueryHelper from '../Types/Database/QueryHelper';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { MeteredPlanUtil } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import Decimal from 'Common/Types/Decimal';
-import TelemetryMeteredPlan from '../Types/Billing/MeteredPlan/TelemetryMeteredPlan';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ProductType from 'Common/Types/MeteredPlan/ProductType';
+import ObjectID from 'Common/Types/ObjectID';
+import Model from 'Model/Models/TelemetryUsageBilling';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

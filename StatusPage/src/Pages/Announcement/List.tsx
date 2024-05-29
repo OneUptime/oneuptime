@@ -1,40 +1,39 @@
+import Page from '../../Components/Page/Page';
+import Section from '../../Components/Section/Section';
+import API from '../../Utils/API';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import StatusPageUtil from '../../Utils/StatusPage';
+import PageComponentProps from '../PageComponentProps';
+import { getAnnouncementEventItem } from './Detail';
+import BaseModel from 'Common/Models/BaseModel';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryDayList';
+import EventHistoryList, {
+    ComponentProps as EventHistoryListComponentProps,
+} from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import PageComponentProps from '../PageComponentProps';
-import Page from '../../Components/Page/Page';
-import URL from 'Common/Types/API/URL';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-
 import useAsyncEffect from 'use-async-effect';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
-import EventHistoryList, {
-    ComponentProps as EventHistoryListComponentProps,
-} from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
-import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryDayList';
-import OneUptimeDate from 'Common/Types/Date';
-import Dictionary from 'Common/Types/Dictionary';
-import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import { getAnnouncementEventItem } from './Detail';
-import Route from 'Common/Types/API/Route';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import IconProp from 'Common/Types/Icon/IconProp';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import API from '../../Utils/API';
-import StatusPageUtil from '../../Utils/StatusPage';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import Section from '../../Components/Section/Section';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

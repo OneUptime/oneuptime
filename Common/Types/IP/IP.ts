@@ -1,9 +1,9 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import BadDataException from '../Exception/BadDataException';
 import { JSONObject, ObjectType } from '../JSON';
 import Typeof from '../Typeof';
 import IPType from './IPType';
+import { FindOperator } from 'typeorm';
 
 export default class IP extends DatabaseProperty {
     private _ip: string = '';

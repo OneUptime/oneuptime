@@ -1,3 +1,9 @@
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import BasicForm, { FormProps } from '../Forms/BasicForm';
+import FormValues from '../Forms/Types/FormValues';
+import { componentInputTypeToFormFieldType } from './Utils';
+import { JSONObject } from 'Common/Types/JSON';
+import { NodeDataProp, ReturnValue } from 'Common/Types/Workflow/Component';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -5,12 +11,6 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import { NodeDataProp, ReturnValue } from 'Common/Types/Workflow/Component';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import BasicForm, { FormProps } from '../Forms/BasicForm';
-import FormValues from '../Forms/Types/FormValues';
-import { JSONObject } from 'Common/Types/JSON';
-import { componentInputTypeToFormFieldType } from './Utils';
 
 export interface ComponentProps {
     component: NodeDataProp;

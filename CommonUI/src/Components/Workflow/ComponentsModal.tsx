@@ -1,21 +1,20 @@
 // Show a large modal full of components.
-
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Icon from '../Icon/Icon';
+import Input from '../Input/Input';
+import SideOver from '../SideOver/SideOver';
+import ComponentElement from './Component';
+import ComponentMetadata, {
+    ComponentCategory,
+    ComponentType,
+    NodeType,
+} from 'Common/Types/Workflow/Component';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import ComponentMetadata, {
-    ComponentType,
-    ComponentCategory,
-    NodeType,
-} from 'Common/Types/Workflow/Component';
-import ComponentElement from './Component';
-import Input from '../Input/Input';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import Icon from '../Icon/Icon';
-import SideOver from '../SideOver/SideOver';
 
 export interface ComponentProps {
     componentsType: ComponentType;

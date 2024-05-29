@@ -1,10 +1,10 @@
-import React, { ReactElement, useState } from 'react';
+import URL from 'Common/Types/API/URL';
+import IconProp from 'Common/Types/Icon/IconProp';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
 import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
 import IconDropdownRow from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownRow';
-import IconProp from 'Common/Types/Icon/IconProp';
-import URL from 'Common/Types/API/URL';
+import React, { ReactElement, useState } from 'react';
 
 const Help: () => JSX.Element = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);

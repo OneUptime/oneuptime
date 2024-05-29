@@ -1,23 +1,23 @@
+import LocalStorage from '../LocalStorage';
+import Navigation from '../Navigation';
+import PermissionUtil from '../Permission';
 import User from '../User';
-import Headers from 'Common/Types/API/Headers';
-import API from 'Common/Utils/API';
-import APIException from 'Common/Types/Exception/ApiException';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import Cookies from 'universal-cookie';
-import Protocol from 'Common/Types/API/Protocol';
+import Headers from 'Common/Types/API/Headers';
 import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import Navigation from '../Navigation';
 import Dictionary from 'Common/Types/Dictionary';
-import PermissionUtil from '../Permission';
+import APIException from 'Common/Types/Exception/ApiException';
+import Exception from 'Common/Types/Exception/Exception';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import LocalStorage from '../LocalStorage';
-import Exception from 'Common/Types/Exception/Exception';
+import API from 'Common/Utils/API';
+import Cookies from 'universal-cookie';
 
 class BaseAPI extends API {
     public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {

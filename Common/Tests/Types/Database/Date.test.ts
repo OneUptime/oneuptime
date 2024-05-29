@@ -1,8 +1,8 @@
-import DatabaseDate from '../../../Types/Database/Date';
-import moment from 'moment';
 import InBetween from '../../../Types/BaseDatabase/InBetween';
+import DatabaseDate from '../../../Types/Database/Date';
 import { JSONObject } from '../../../Types/JSON';
 import { describe, expect, it } from '@jest/globals';
+import moment from 'moment';
 
 describe('DatabaseDate', () => {
     describe('asDateStartOfTheDayEndOfTheDayForDatabaseQuery', () => {

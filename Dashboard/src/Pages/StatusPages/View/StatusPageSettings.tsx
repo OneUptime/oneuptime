@@ -1,11 +1,11 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPage from 'Model/Models/StatusPage';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

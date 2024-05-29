@@ -1,10 +1,11 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import RouteMap from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../Utils/PageMap';
+import RouteMap from '../../Utils/RouteMap';
+import PageComponentProps from '../PageComponentProps';
+import Route from 'Common/Types/API/Route';
+import React, { FunctionComponent, ReactElement } from 'react';
+
 const ScheduledMaintenancesPage: FunctionComponent<
     PageComponentProps
 > = (): ReactElement => {

@@ -1,26 +1,26 @@
+import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import { Green, Red } from 'Common/Types/BrandColors';
+import CallStatus from 'Common/Types/Call/CallStatus';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
+import Column from 'CommonUI/src/Components/ModelTable/Column';
+import Columns from 'CommonUI/src/Components/ModelTable/Columns';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import CallLog from 'Model/Models/CallLog';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import IconProp from 'Common/Types/Icon/IconProp';
-import CallLog from 'Model/Models/CallLog';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import DashboardNavigation from '../../Utils/Navigation';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import CallStatus from 'Common/Types/Call/CallStatus';
-import { Green, Red } from 'Common/Types/BrandColors';
-import { BILLING_ENABLED } from 'CommonUI/src/Config';
-import Column from 'CommonUI/src/Components/ModelTable/Column';
-import Columns from 'CommonUI/src/Components/ModelTable/Columns';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const CallLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

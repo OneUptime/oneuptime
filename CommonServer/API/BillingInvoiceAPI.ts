@@ -1,8 +1,3 @@
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
-import Permission, { UserPermission } from 'Common/Types/Permission';
-import BillingInvoice, { InvoiceStatus } from 'Model/Models/BillingInvoice';
-import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import UserMiddleware from '../Middleware/UserAuthorization';
 import BillingInvoiceService, {
@@ -17,8 +12,13 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
-import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 import BaseModel from 'Common/Models/BaseModel';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import Permission, { UserPermission } from 'Common/Types/Permission';
+import BillingInvoice, { InvoiceStatus } from 'Model/Models/BillingInvoice';
+import Project from 'Model/Models/Project';
 
 export default class UserAPI extends BaseAPI<
     BillingInvoice,

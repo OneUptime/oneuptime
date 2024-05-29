@@ -1,15 +1,15 @@
-import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorCriteriaInstanceElement from './MonitorCriteriaInstance';
+import IconProp from 'Common/Types/Icon/IconProp';
+import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
+import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Button, {
     ButtonSize,
     ButtonStyleType,
 } from 'CommonUI/src/Components/Button/Button';
-import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
-import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
     initialValue: MonitorCriteria | undefined;

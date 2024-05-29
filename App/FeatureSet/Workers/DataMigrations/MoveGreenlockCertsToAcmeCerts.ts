@@ -1,6 +1,6 @@
-import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import DataMigrationBase from './DataMigrationBase';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 import logger from 'CommonServer/Utils/Logger';
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';

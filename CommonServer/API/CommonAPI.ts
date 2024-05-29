@@ -1,9 +1,9 @@
 import { IsBillingEnabled } from '../EnvironmentConfig';
 import ProjectService from '../Services/ProjectService';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import UserType from 'Common/Types/UserType';
 import { ExpressRequest, OneUptimeRequest } from '../Utils/Express';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import UserType from 'Common/Types/UserType';
 
 export default class CommonAPI {
     public static async getDatabaseCommonInteractionProps(

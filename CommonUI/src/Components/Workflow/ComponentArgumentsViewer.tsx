@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import { Argument } from 'Common/Types/Workflow/Component';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Pill from '../Pill/Pill';
 import { Black } from 'Common/Types/BrandColors';
+import { Argument } from 'Common/Types/Workflow/Component';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     arguments: Array<Argument>;

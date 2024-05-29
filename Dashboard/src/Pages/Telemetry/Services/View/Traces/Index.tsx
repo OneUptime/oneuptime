@@ -1,15 +1,15 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../../../PageComponentProps';
-import AnalyticsModelTable from 'CommonUI/src/Components/ModelTable/AnalyticsModelTable';
-import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import DashboardNavigation from '../../../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import SpanStatusElement from '../../../../../Components/Span/SpanStatusElement';
+import DashboardNavigation from '../../../../../Utils/Navigation';
+import PageComponentProps from '../../../../PageComponentProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import ObjectID from 'Common/Types/ObjectID';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import AnalyticsModelTable from 'CommonUI/src/Components/ModelTable/AnalyticsModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const TracesList: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

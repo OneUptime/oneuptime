@@ -1,11 +1,11 @@
+import BarLabel from './BarLabel';
+import Color from 'Common/Types/Color';
 import React, {
     FunctionComponent,
     MouseEventHandler,
     ReactElement,
     useState,
 } from 'react';
-import Color from 'Common/Types/Color';
-import BarLabel from './BarLabel';
 
 export interface GanttChartBar {
     id: string;

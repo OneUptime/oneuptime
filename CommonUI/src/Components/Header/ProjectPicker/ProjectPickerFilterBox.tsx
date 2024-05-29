@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Input from '../../Input/Input';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     onChange: (search: string) => void;

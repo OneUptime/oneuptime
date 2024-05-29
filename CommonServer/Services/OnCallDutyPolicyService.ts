@@ -1,12 +1,12 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import DatabaseService from './DatabaseService';
-import ObjectID from 'Common/Types/ObjectID';
-import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import OnCallDutyPolicyExecutionLogService from './OnCallDutyPolicyExecutionLogService';
-import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
+import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
     public constructor(postgresDatabase?: PostgresDatabase) {

@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import { Port } from 'Common/Types/Workflow/Component';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import { Port } from 'Common/Types/Workflow/Component';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     ports: Array<Port>;

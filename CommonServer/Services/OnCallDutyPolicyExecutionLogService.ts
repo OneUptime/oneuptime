@@ -1,12 +1,12 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/OnCallDutyPolicyExecutionLog';
-import DatabaseService from './DatabaseService';
-import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
-import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
-import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
+import { OnCreate } from '../Types/Database/Hooks';
+import DatabaseService from './DatabaseService';
 import OnCallDutyPolicyEscalationRuleService from './OnCallDutyPolicyEscalationRuleService';
+import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
 import UserNotificationEventType from 'Common/Types/UserNotification/UserNotificationEventType';
+import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
+import Model from 'Model/Models/OnCallDutyPolicyExecutionLog';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

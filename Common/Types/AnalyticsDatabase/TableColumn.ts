@@ -1,8 +1,8 @@
+import NestedModel from '../../AnalyticsModels/NestedModel';
+import TableColumnType from '../AnalyticsDatabase/TableColumnType';
 import { ColumnAccessControl } from '../BaseDatabase/AccessControl';
 import ColumnBillingAccessControl from '../BaseDatabase/ColumnBillingAccessControl';
-import TableColumnType from '../AnalyticsDatabase/TableColumnType';
 import { JSONValue } from '../JSON';
-import NestedModel from '../../AnalyticsModels/NestedModel';
 
 export default class AnalyticsTableColumn {
     private _key: string = 'id';

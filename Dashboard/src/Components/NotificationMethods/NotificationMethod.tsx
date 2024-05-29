@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     item: BaseModel;

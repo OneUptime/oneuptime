@@ -1,7 +1,7 @@
-import Dictionary from 'Common/Types/Dictionary';
-import { Mutex } from 'redis-semaphore';
 import Redis, { ClientType } from './Redis';
+import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
+import { Mutex } from 'redis-semaphore';
 
 export default class Semaphore {
     private static mutexDictionary: Dictionary<Mutex> = {};

@@ -1,6 +1,6 @@
+import CompareBase from '../Database/CompareBase';
 import BadDataException from '../Exception/BadDataException';
 import { JSONObject, ObjectType } from '../JSON';
-import CompareBase from '../Database/CompareBase';
 
 export default class GreaterThan extends CompareBase {
     public constructor(value: number | Date) {

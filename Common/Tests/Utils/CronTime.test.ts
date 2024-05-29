@@ -1,9 +1,9 @@
 import {
-    EVERY_MINUTE,
     EVERY_DAY,
-    EVERY_HOUR,
     EVERY_FIVE_MINUTE,
     EVERY_FIVE_SECONDS,
+    EVERY_HOUR,
+    EVERY_MINUTE,
     EVERY_WEEK,
 } from '../../Utils/CronTime';
 

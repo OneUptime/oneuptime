@@ -1,3 +1,27 @@
+import Label from './Label';
+import Project from './Project';
+import User from './User';
+import BaseModel from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
+import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import Permission from 'Common/Types/Permission';
 import {
     Column,
     Entity,
@@ -7,30 +31,6 @@ import {
     ManyToMany,
     ManyToOne,
 } from 'typeorm';
-import User from './User';
-import Project from './Project';
-import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
-import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
-import TableColumn from 'Common/Types/Database/TableColumn';
-import ColumnType from 'Common/Types/Database/ColumnType';
-import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
-import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
-import Permission from 'Common/Types/Permission';
-import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
-import TenantColumn from 'Common/Types/Database/TenantColumn';
-import TableMetadata from 'Common/Types/Database/TableMetadata';
-import IconProp from 'Common/Types/Icon/IconProp';
-import BaseModel from 'Common/Models/BaseModel';
-import { JSONObject } from 'Common/Types/JSON';
-import Label from './Label';
-import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
-import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
 
 @EnableDocumentation()
 @TableBillingAccessControl({

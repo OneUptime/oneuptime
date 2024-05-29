@@ -1,18 +1,18 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import DashboardNavigation from '../../Utils/Navigation';
+import ProjectUser from '../../Utils/ProjectUser';
 import { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Team from 'Model/Models/Team';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import DashboardNavigation from '../../Utils/Navigation';
-import IncidentTemplate from 'Model/Models/IncidentTemplate';
-import ProjectUser from '../../Utils/ProjectUser';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import Label from 'Model/Models/Label';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import IncidentTemplate from 'Model/Models/IncidentTemplate';
+import Label from 'Model/Models/Label';
 import Monitor from 'Model/Models/Monitor';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import Team from 'Model/Models/Team';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

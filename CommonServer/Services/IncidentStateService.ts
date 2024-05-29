@@ -1,16 +1,16 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import IncidentState from 'Model/Models/IncidentState';
-import DatabaseService from './DatabaseService';
-import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import ObjectID from 'Common/Types/ObjectID';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import QueryHelper from '../Types/Database/QueryHelper';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import UpdateBy from '../Types/Database/UpdateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
+import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
+import QueryHelper from '../Types/Database/QueryHelper';
+import UpdateBy from '../Types/Database/UpdateBy';
+import DatabaseService from './DatabaseService';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import IncidentState from 'Model/Models/IncidentState';
 
 export class Service extends DatabaseService<IncidentState> {
     public constructor(postgresDatabase?: PostgresDatabase) {

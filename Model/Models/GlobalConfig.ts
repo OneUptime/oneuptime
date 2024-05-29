@@ -1,20 +1,20 @@
-import { Column, Entity } from 'typeorm';
 import GlobalConfigModel from 'Common/Models/GlobalConfig';
-import TableMetadata from 'Common/Types/Database/TableMetadata';
-import IconProp from 'Common/Types/Icon/IconProp';
+import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
-import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import TableColumn from 'Common/Types/Database/TableColumn';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import ColumnType from 'Common/Types/Database/ColumnType';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
 import Email from 'Common/Types/Email';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
 import Phone from 'Common/Types/Phone';
 import Port from 'Common/Types/Port';
-import Hostname from 'Common/Types/API/Hostname';
-import ObjectID from 'Common/Types/ObjectID';
+import { Column, Entity } from 'typeorm';
 
 export enum EmailServerType {
     Internal = 'Internal',

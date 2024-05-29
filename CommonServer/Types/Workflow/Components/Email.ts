@@ -1,9 +1,9 @@
+import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import Components from 'Common/Types/Workflow/Components/Email';
-import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
 import nodemailer, { Transporter } from 'nodemailer';
 
 export default class Email extends ComponentCode {

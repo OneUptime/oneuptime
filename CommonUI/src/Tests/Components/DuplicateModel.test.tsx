@@ -1,22 +1,22 @@
-import React from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import Select from '../../Utils/BaseDatabase/Select';
+import DuplicateModel from '../../Components/DuplicateModel/DuplicateModel';
 import { ModelField } from '../../Components/Forms/ModelForm';
-import TableMetaData from 'Common/Types/Database/TableMetadata';
-import IconProp from 'Common/Types/Icon/IconProp';
+import Select from '../../Utils/BaseDatabase/Select';
 import { describe, expect, it } from '@jest/globals';
 import {
+    fireEvent,
     render,
     screen,
-    within,
-    fireEvent,
     waitFor,
+    within,
 } from '@testing-library/react';
-import DuplicateModel from '../../Components/DuplicateModel/DuplicateModel';
-import ObjectID from 'Common/Types/ObjectID';
-import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import { act } from 'react-test-renderer';
+import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import TableMetaData from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import React from 'react';
+import { act } from 'react-test-renderer';
 
 @TableMetaData({
     tableName: 'Foo',

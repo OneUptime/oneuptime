@@ -1,37 +1,37 @@
+import UserElement from '../../../Components/User/User';
+import DashboardNavigation from '../../../Utils/Navigation';
+import ProjectUser from '../../../Utils/ProjectUser';
+import PageComponentProps from '../../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
+import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import AlignItem from 'CommonUI/src/Types/AlignItem';
+import API from 'CommonUI/src/Utils/API/API';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
+import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import User from 'Model/Models/User';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import BaseModel from 'Common/Models/BaseModel';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { JSONObject } from 'Common/Types/JSON';
-import UserElement from '../../../Components/User/User';
-import User from 'Model/Models/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import AlignItem from 'CommonUI/src/Types/AlignItem';
-import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import API from 'CommonUI/src/Utils/API/API';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import IconProp from 'Common/Types/Icon/IconProp';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import OneUptimeDate from 'Common/Types/Date';
-import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
-import ProjectUser from '../../../Utils/ProjectUser';
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

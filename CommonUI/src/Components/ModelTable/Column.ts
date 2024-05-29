@@ -1,11 +1,11 @@
-import BaseModel from 'Common/Models/BaseModel';
-import ObjectID from 'Common/Types/ObjectID';
-import { ReactElement } from 'react';
 import AlignItem from '../../Types/AlignItem';
 import SelectEntityField from '../../Types/SelectEntityField';
-import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from '../Types/FieldType';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import { ReactElement } from 'react';
 
 export interface ActionButton {
     buttonText: string;

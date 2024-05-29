@@ -1,7 +1,7 @@
-import React from 'react';
-import { fireEvent, render } from '@testing-library/react';
 import TextArea from '../../Components/TextArea/TextArea';
 import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render } from '@testing-library/react';
+import React from 'react';
 
 describe('TextArea', () => {
     test('renders textarea element with initialValue only', () => {

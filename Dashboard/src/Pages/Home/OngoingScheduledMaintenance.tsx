@@ -1,12 +1,12 @@
+import ScheduledMaintenanceTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageComponentProps from '../PageComponentProps';
+import SideMenu from './SideMenu';
+import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
-import ScheduledMaintenanceTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
-import SideMenu from './SideMenu';
-import DashboardNavigation from '../../Utils/Navigation';
 
 const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

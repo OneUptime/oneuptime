@@ -1,10 +1,10 @@
-import React from 'react';
-import { render } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import Item, { ComponentProps } from '../../Components/OrderedStatesList/Item';
 import { ButtonStyleType } from '../../Components/Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
+import Item, { ComponentProps } from '../../Components/OrderedStatesList/Item';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom';
+import { render } from '@testing-library/react';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React from 'react';
 
 describe('Item component', () => {
     interface ItemData {

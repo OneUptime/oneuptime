@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import User from 'Model/Models/User';
-import Route from 'Common/Types/API/Route';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
-import Link from 'CommonUI/src/Components/Link/Link';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import { LOGIN_API_URL } from '../Utils/ApiPaths';
+import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
-import LoginUtil from 'CommonUI/src/Utils/Login';
-import UserUtil from 'CommonUI/src/Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Link from 'CommonUI/src/Components/Link/Link';
+import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import UiAnalytics from 'CommonUI/src/Utils/Analytics';
+import LoginUtil from 'CommonUI/src/Utils/Login';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import UserUtil from 'CommonUI/src/Utils/User';
+import User from 'Model/Models/User';
+import React, { useState } from 'react';
 import useAsyncEffect from 'use-async-effect';
 
 const LoginPage: () => JSX.Element = () => {

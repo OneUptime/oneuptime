@@ -1,8 +1,8 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import Tabs from '../../Components/Tabs/Tabs';
 import { Tab } from '../../Components/Tabs/Tab';
+import Tabs from '../../Components/Tabs/Tabs';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render } from '@testing-library/react';
+import React from 'react';
 
 describe('Tabs', () => {
     const activeClass: string = 'bg-gray-100 text-gray-700';

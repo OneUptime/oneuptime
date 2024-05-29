@@ -1,9 +1,9 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import FieldType from '../../Components/Types/FieldType';
 import List, { ComponentProps } from '../../Components/List/List';
+import FieldType from '../../Components/Types/FieldType';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
 
 describe('List', () => {
     interface ListData {

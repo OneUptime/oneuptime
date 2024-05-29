@@ -1,6 +1,6 @@
-import MetricSum from 'Model/AnalyticsModels/Metric';
-import AnalyticsDatabaseService from './AnalyticsDatabaseService';
 import ClickhouseDatabase from '../Infrastructure/ClickhouseDatabase';
+import AnalyticsDatabaseService from './AnalyticsDatabaseService';
+import MetricSum from 'Model/AnalyticsModels/Metric';
 
 export class MetricService extends AnalyticsDatabaseService<MetricSum> {
     public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {

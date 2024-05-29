@@ -1,4 +1,3 @@
-import Probe from 'Model/Models/Probe';
 import UserMiddleware from '../Middleware/UserAuthorization';
 import ProbeService, {
     Service as ProbeServiceType,
@@ -12,6 +11,7 @@ import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import Probe from 'Model/Models/Probe';
 
 export default class Ingestor extends BaseAPI<Probe, ProbeServiceType> {
     public constructor() {

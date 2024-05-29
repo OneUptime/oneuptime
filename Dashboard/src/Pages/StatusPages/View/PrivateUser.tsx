@@ -1,14 +1,14 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../PageComponentProps';
 import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
+import PageComponentProps from '../../PageComponentProps';
 import { Green, Yellow } from 'Common/Types/BrandColors';
+import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

@@ -1,6 +1,6 @@
 import csvConverter from '../../Utils/JsonToCsv';
-import { JSONArray } from 'Common/Types/JSON';
 import { describe, expect, it } from '@jest/globals';
+import { JSONArray } from 'Common/Types/JSON';
 
 describe('CSV Converter', () => {
     it('throws an error when the input JSON array is empty', () => {

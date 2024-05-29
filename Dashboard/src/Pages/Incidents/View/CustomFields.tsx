@@ -1,11 +1,11 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import CustomFieldsDetail from 'CommonUI/src/Components/CustomFields/CustomFieldsDetail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 import Incident from 'Model/Models/Incident';
 import IncidentCustomField from 'Model/Models/IncidentCustomField';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const IncidentCustomFields: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

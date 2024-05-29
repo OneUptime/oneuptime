@@ -1,15 +1,15 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
-import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import IconProp from 'Common/Types/Icon/IconProp';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import IconDropdownItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
 import IconDropdownMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import User from 'CommonUI/src/Utils/User';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 const DashboardUserProfile: FunctionComponent = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);

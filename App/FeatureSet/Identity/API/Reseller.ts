@@ -1,15 +1,15 @@
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ResellerService from 'CommonServer/Services/ResellerService';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Reseller from 'Model/Models/Reseller';
-import ResellerService from 'CommonServer/Services/ResellerService';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
-import OneUptimeDate from 'Common/Types/Date';
 import Response from 'CommonServer/Utils/Response';
+import Reseller from 'Model/Models/Reseller';
 
 const router: ExpressRouter = Express.getRouter();
 

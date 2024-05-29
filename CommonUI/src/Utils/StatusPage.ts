@@ -1,14 +1,14 @@
-import ObjectID from 'Common/Types/ObjectID';
 import {
     CategoryCheckboxOption,
     CheckboxCategory,
 } from '../Components/CategoryCheckbox/CategoryCheckboxTypes';
-import StatusPageResource from 'Model/Models/StatusPageResource';
-import ModelAPI, { ListResult } from '../Utils/ModelAPI/ModelAPI';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import URL from 'Common/Types/API/URL';
-import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import { CategoryCheckboxOptionsAndCategories } from '../Components/CategoryCheckbox/Index';
+import ModelAPI, { ListResult } from '../Utils/ModelAPI/ModelAPI';
+import URL from 'Common/Types/API/URL';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import ObjectID from 'Common/Types/ObjectID';
+import StatusPageGroup from 'Model/Models/StatusPageGroup';
+import StatusPageResource from 'Model/Models/StatusPageResource';
 
 export default class StatusPageUtil {
     public static async getCategoryCheckboxPropsBasedOnResources(

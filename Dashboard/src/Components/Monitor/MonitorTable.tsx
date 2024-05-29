@@ -1,30 +1,30 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Monitor from 'Model/Models/Monitor';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Label from 'Model/Models/Label';
 import LabelsElement from '../../Components/Label/Labels';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
-import Route from 'Common/Types/API/Route';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import DashboardNavigation from '../../Utils/Navigation';
+import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
 import MonitorTypeUtil from '../../Utils/MonitorType';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import DashboardNavigation from '../../Utils/Navigation';
 import MonitorSteps from '../Form/Monitor/MonitorSteps';
+import Route from 'Common/Types/API/Route';
+import { Black, Gray500 } from 'Common/Types/BrandColors';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import {
     CustomElementProps,
     FormFieldStyleType,
 } from 'CommonUI/src/Components/Forms/Types/Field';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import MonitoringInterval from '../../Utils/MonitorIntervalDropdownOptions';
-import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
-import { Black, Gray500 } from 'Common/Types/BrandColors';
 import { ModalTableBulkDefaultActions } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
+import Label from 'Model/Models/Label';
+import Monitor from 'Model/Models/Monitor';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;

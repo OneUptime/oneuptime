@@ -1,16 +1,16 @@
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
+import { ApiComponentUtils } from './Utils';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
+import Dictionary from 'Common/Types/Dictionary';
+import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import APIComponents from 'Common/Types/Workflow/Components/API';
 import API from 'Common/Utils/API';
-import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
-import { ApiComponentUtils } from './Utils';
-import URL from 'Common/Types/API/URL';
-import Dictionary from 'Common/Types/Dictionary';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import APIException from 'Common/Types/Exception/ApiException';
 
 export default class ApiGet extends ComponentCode {
     public constructor() {

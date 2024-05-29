@@ -1,6 +1,6 @@
+import Link from '../Link/Link';
 import Route from 'Common/Types/API/Route';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Link from '../Link/Link';
 
 export interface ComponentProps {
     title: string;

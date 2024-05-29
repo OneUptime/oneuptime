@@ -1,4 +1,8 @@
+import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
+import Icon from '../../Icon/Icon';
+import Input, { InputType } from '../../Input/Input';
 import Color from 'Common/Types/Color';
+import IconProp from 'Common/Types/Icon/IconProp';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -6,10 +10,6 @@ import React, {
     useState,
 } from 'react';
 import { ChromePicker, ColorResult } from 'react-color';
-import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import Input, { InputType } from '../../Input/Input';
-import Icon from '../../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     onChange: (value: Color | null) => void;

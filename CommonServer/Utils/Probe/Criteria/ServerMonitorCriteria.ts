@@ -1,18 +1,18 @@
+import DataToProcess from '../DataToProcess';
+import CompareCriteria from './CompareCriteria';
+import EvaluateOverTime from './EvaluateOverTime';
+import OneUptimeDate from 'Common/Types/Date';
+import { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
+import { JSONObject } from 'Common/Types/JSON';
 import {
     CheckOn,
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import { BasicDiskMetrics } from 'Common/Types/Infrastructure/BasicMetrics';
 import ServerMonitorResponse, {
     ServerProcess,
 } from 'Common/Types/Monitor/ServerMonitor/ServerMonitorResponse';
-import OneUptimeDate from 'Common/Types/Date';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import EvaluateOverTime from './EvaluateOverTime';
-import { JSONObject } from 'Common/Types/JSON';
-import CompareCriteria from './CompareCriteria';
-import DataToProcess from '../DataToProcess';
 
 export default class ServerMonitorCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {

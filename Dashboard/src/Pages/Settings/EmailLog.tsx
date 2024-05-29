@@ -1,25 +1,25 @@
+import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import { Green, Red } from 'Common/Types/BrandColors';
+import IconProp from 'Common/Types/Icon/IconProp';
+import EmailStatus from 'Common/Types/Mail/MailStatus';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
+import Columns from 'CommonUI/src/Components/ModelTable/Columns';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import EmailLog from 'Model/Models/EmailLog';
+import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import IconProp from 'Common/Types/Icon/IconProp';
-import EmailLog from 'Model/Models/EmailLog';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import DashboardNavigation from '../../Utils/Navigation';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import EmailStatus from 'Common/Types/Mail/MailStatus';
-import { Green, Red } from 'Common/Types/BrandColors';
-import Columns from 'CommonUI/src/Components/ModelTable/Columns';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
-import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
-import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 const EmailLogs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

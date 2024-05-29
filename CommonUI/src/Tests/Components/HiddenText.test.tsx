@@ -1,7 +1,7 @@
-import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
 import HiddenText from '../../Components/HiddenText/HiddenText';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
 
 describe('tests for HiddenText component', () => {
     test('it should click hidden-text and reveal text in document', async () => {

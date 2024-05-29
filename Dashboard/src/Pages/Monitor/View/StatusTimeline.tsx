@@ -1,29 +1,29 @@
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import DashboardNavigation from '../../../Utils/Navigation';
+import PageComponentProps from '../../PageComponentProps';
+import { Black } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import IconProp from 'Common/Types/Icon/IconProp';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import OneUptimeDate from 'Common/Types/Date';
-import { Black } from 'Common/Types/BrandColors';
-import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
-import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const StatusTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

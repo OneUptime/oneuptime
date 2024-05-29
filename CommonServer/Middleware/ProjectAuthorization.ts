@@ -1,24 +1,23 @@
+import AccessTokenService from '../Services/AccessTokenService';
 import ApiKeyService from '../Services/ApiKeyService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ObjectID from 'Common/Types/ObjectID';
+import GlobalConfigService from '../Services/GlobalConfigService';
+import UserService from '../Services/UserService';
+import QueryHelper from '../Types/Database/QueryHelper';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
-
-import ApiKey from 'Model/Models/ApiKey';
 import OneUptimeDate from 'Common/Types/Date';
-import UserType from 'Common/Types/UserType';
-import AccessTokenService from '../Services/AccessTokenService';
-import { UserTenantAccessPermission } from 'Common/Types/Permission';
 import Dictionary from 'Common/Types/Dictionary';
-import QueryHelper from '../Types/Database/QueryHelper';
-import GlobalConfigService from '../Services/GlobalConfigService';
-import User from 'Model/Models/User';
-import UserService from '../Services/UserService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import { UserTenantAccessPermission } from 'Common/Types/Permission';
+import UserType from 'Common/Types/UserType';
+import ApiKey from 'Model/Models/ApiKey';
 import GlobalConfig from 'Model/Models/GlobalConfig';
+import User from 'Model/Models/User';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {

@@ -1,7 +1,7 @@
-import React from 'react';
 import Dropdown, { DropdownOption } from '../../Components/Dropdown/Dropdown';
-import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
 
 describe('Dropdown', () => {
     const options: DropdownOption[] = [

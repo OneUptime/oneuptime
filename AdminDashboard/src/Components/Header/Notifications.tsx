@@ -1,8 +1,8 @@
-import React, { ReactElement, useState } from 'react';
-import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
-import Notifications from 'CommonUI/src/Components/Header/Notifications/Notifications';
-import NotificationItem from 'CommonUI/src/Components/Header/Notifications/NotificationItem';
 import IconProp from 'Common/Types/Icon/IconProp';
+import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
+import NotificationItem from 'CommonUI/src/Components/Header/Notifications/NotificationItem';
+import Notifications from 'CommonUI/src/Components/Header/Notifications/Notifications';
+import React, { ReactElement, useState } from 'react';
 
 const DashboardHeader: () => JSX.Element = (): ReactElement => {
     const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);

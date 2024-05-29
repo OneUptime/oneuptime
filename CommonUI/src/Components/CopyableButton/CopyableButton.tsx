@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Icon, { SizeProp, ThickProp } from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Tooltip from '../Tooltip/Tooltip';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export interface ComponentProps {
     textToBeCopied: string;

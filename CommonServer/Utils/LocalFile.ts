@@ -1,5 +1,5 @@
-import fs from 'fs';
 import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
+import fs from 'fs';
 
 export default class LocalFile {
     public static async makeDirectory(path: string): Promise<void> {

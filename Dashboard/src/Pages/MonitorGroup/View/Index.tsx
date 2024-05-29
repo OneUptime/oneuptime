@@ -1,38 +1,38 @@
+import LabelsElement from '../../../Components/Label/Labels';
+import PageComponentProps from '../../PageComponentProps';
+import URL from 'Common/Types/API/URL';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { Green } from 'Common/Types/BrandColors';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import OneUptimeDate from 'Common/Types/Date';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import Card from 'CommonUI/src/Components/Card/Card';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
+import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { APP_API_URL } from 'CommonUI/src/Config';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import Label from 'Model/Models/Label';
+import MonitorGroup from 'Model/Models/MonitorGroup';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import Label from 'Model/Models/Label';
-import ObjectID from 'Common/Types/ObjectID';
-import LabelsElement from '../../../Components/Label/Labels';
-import MonitorGroup from 'Model/Models/MonitorGroup';
-import Card from 'CommonUI/src/Components/Card/Card';
-import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import useAsyncEffect from 'use-async-effect';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import URL from 'Common/Types/API/URL';
-import { APP_API_URL } from 'CommonUI/src/Config';
-import API from 'CommonUI/src/Utils/API/API';
-import OneUptimeDate from 'Common/Types/Date';
-import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
-import { UptimePrecision } from 'Model/Models/StatusPageResource';
-import { Green } from 'Common/Types/BrandColors';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorGroupView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

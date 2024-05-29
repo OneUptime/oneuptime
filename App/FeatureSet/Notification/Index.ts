@@ -1,13 +1,12 @@
-import 'ejs';
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
-
+import CallAPI from './API/Call';
 // API
 import MailAPI from './API/Mail';
 import SmsAPI from './API/SMS';
-import CallAPI from './API/Call';
 import SMTPConfigAPI from './API/SMTPConfig';
 import './Utils/Handlebars';
 import FeatureSet from 'CommonServer/Types/FeatureSet';
+import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import 'ejs';
 
 const NotificationFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {

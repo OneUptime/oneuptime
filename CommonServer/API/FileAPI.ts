@@ -1,16 +1,16 @@
+import FileService, {
+    Service as FileServiceType,
+} from '../Services/FileService';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
 } from '../Utils/Express';
 import Response from '../Utils/Response';
-import FileService, {
-    Service as FileServiceType,
-} from '../Services/FileService';
 import BaseAPI from './BaseAPI';
+import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import ObjectID from 'Common/Types/ObjectID';
 import File from 'Model/Models/File';
-import NotFoundException from 'Common/Types/Exception/NotFoundException';
 
 export default class FileAPI extends BaseAPI<File, FileServiceType> {
     public constructor() {

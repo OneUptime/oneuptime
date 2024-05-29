@@ -1,21 +1,21 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import LabelsElement from '../../Components/Label/Labels';
+import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';
+import DashboardNavigation from '../../Utils/Navigation';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from '../Monitor/SideMenu';
-import DashboardNavigation from '../../Utils/Navigation';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Label from 'Model/Models/Label';
-import LabelsElement from '../../Components/Label/Labels';
-import MonitorGroup from 'Model/Models/MonitorGroup';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import CurrentStatusElement from '../../Components/MonitorGroup/CurrentStatus';
-import ObjectID from 'Common/Types/ObjectID';
+import PageComponentProps from '../PageComponentProps';
+import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Page from 'CommonUI/src/Components/Page/Page';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Label from 'Model/Models/Label';
+import MonitorGroup from 'Model/Models/MonitorGroup';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

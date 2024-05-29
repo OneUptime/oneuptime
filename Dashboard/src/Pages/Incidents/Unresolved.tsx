@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageComponentProps from '../PageComponentProps';
+import Route from 'Common/Types/API/Route';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const IncidentsPage: FunctionComponent<
     PageComponentProps

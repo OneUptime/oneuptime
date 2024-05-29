@@ -1,20 +1,19 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService';
-
-import { OnCreate, OnDelete } from '../Types/Database/Hooks';
-import MonitorService from './MonitorService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import DeleteBy from '../Types/Database/DeleteBy';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import ObjectID from 'Common/Types/ObjectID';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import CreateBy from '../Types/Database/CreateBy';
-import UserService from './UserService';
-import User from 'Model/Models/User';
-import OneUptimeDate from 'Common/Types/Date';
-import QueryHelper from '../Types/Database/QueryHelper';
 import Semaphore from '../Infrastructure/Semaphore';
+import CreateBy from '../Types/Database/CreateBy';
+import DeleteBy from '../Types/Database/DeleteBy';
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
+import QueryHelper from '../Types/Database/QueryHelper';
+import DatabaseService from './DatabaseService';
+import MonitorService from './MonitorService';
+import UserService from './UserService';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import User from 'Model/Models/User';
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {

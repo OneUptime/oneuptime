@@ -1,38 +1,38 @@
+import AuthenticationEmail from '../Utils/AuthenticationEmail';
+import SSOUtil from '../Utils/SSO';
+import { DashboardRoute } from 'Common/ServiceRoute';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import Email from 'Common/Types/Email';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import Exception from 'Common/Types/Exception/Exception';
+import ServerException from 'Common/Types/Exception/ServerException';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
+import AccessTokenService from 'CommonServer/Services/AccessTokenService';
+import ProjectSSOService from 'CommonServer/Services/ProjectSsoService';
+import TeamMemberService from 'CommonServer/Services/TeamMemberService';
+import UserService from 'CommonServer/Services/UserService';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import ServerException from 'Common/Types/Exception/ServerException';
+import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
+import logger from 'CommonServer/Utils/Logger';
 import Response from 'CommonServer/Utils/Response';
 import ProjectSSO from 'Model/Models/ProjectSso';
-import ProjectSSOService from 'CommonServer/Services/ProjectSsoService';
-import ObjectID from 'Common/Types/ObjectID';
-import xml2js from 'xml2js';
-import { JSONObject } from 'Common/Types/JSON';
-import logger from 'CommonServer/Utils/Logger';
-import Email from 'Common/Types/Email';
-import User from 'Model/Models/User';
-import UserService from 'CommonServer/Services/UserService';
-import AuthenticationEmail from '../Utils/AuthenticationEmail';
-import OneUptimeDate from 'Common/Types/Date';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
-import URL from 'Common/Types/API/URL';
-import { DashboardRoute } from 'Common/ServiceRoute';
-import Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
-import TeamMemberService from 'CommonServer/Services/TeamMemberService';
-import AccessTokenService from 'CommonServer/Services/AccessTokenService';
-import SSOUtil from '../Utils/SSO';
-import Exception from 'Common/Types/Exception/Exception';
-import Hostname from 'Common/Types/API/Hostname';
-import Protocol from 'Common/Types/API/Protocol';
-import DatabaseConfig from 'CommonServer/DatabaseConfig';
-import CookieUtil from 'CommonServer/Utils/Cookie';
-import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
+import User from 'Model/Models/User';
+import xml2js from 'xml2js';
 
 const router: ExpressRouter = Express.getRouter();
 

@@ -1,9 +1,9 @@
-import React, { ReactElement, useState } from 'react';
-import Modal from '../Modal/Modal';
 import Query from '../../Utils/BaseDatabase/Query';
-import BaseModel from 'Common/Models/BaseModel';
 import Select from '../../Utils/BaseDatabase/Select';
+import Modal from '../Modal/Modal';
 import ModelList from '../ModelList/ModelList';
+import BaseModel from 'Common/Models/BaseModel';
+import React, { ReactElement, useState } from 'react';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;

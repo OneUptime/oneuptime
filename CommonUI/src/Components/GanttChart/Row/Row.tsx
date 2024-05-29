@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import RowLabel from './RowLabel';
-import Bar, { GanttChartBar } from '../Bar/Index';
 import Icon from '../../Icon/Icon';
+import Bar, { GanttChartBar } from '../Bar/Index';
+import RowLabel from './RowLabel';
 import IconProp from 'Common/Types/Icon/IconProp';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export interface GanttChartRow {
     rowInfo: {

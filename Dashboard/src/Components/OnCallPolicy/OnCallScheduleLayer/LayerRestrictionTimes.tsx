@@ -1,11 +1,11 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import RestrictionTimesFieldElement from './RestrictionTimesFieldElement';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
 import RestrictionTimes from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;

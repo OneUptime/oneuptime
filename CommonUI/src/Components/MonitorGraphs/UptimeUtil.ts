@@ -1,10 +1,10 @@
-import ObjectID from 'Common/Types/ObjectID';
-import { MonitorEvent } from './Uptime';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import OneUptimeDate from 'Common/Types/Date';
-import { Green } from 'Common/Types/BrandColors';
 import { Event } from '../Graphs/DayUptimeGraph';
+import { MonitorEvent } from './Uptime';
+import { Green } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
+import ObjectID from 'Common/Types/ObjectID';
 import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import { UptimePrecision } from 'Model/Models/StatusPageResource';
 
 export default class UptimeUtil {

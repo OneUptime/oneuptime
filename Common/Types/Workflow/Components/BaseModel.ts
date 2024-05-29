@@ -1,10 +1,10 @@
+import BaseModel from '../../../Models/BaseModel';
 import IconProp from '../../Icon/IconProp';
+import Text from '../../Text';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
 } from './../Component';
-import BaseModel from '../../../Models/BaseModel';
-import Text from '../../Text';
 
 export default class BaseModelComponent {
     public static getComponents(model: BaseModel): Array<ComponentMetadata> {

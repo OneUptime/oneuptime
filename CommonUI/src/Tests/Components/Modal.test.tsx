@@ -1,11 +1,11 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import Modal, { ModalWidth } from '../../Components/Modal/Modal';
 import { ButtonStyleType } from '../../Components/Button/Button';
 import ButtonType from '../../Components/Button/ButtonTypes';
-import IconProp from 'Common/Types/Icon/IconProp';
+import Modal, { ModalWidth } from '../../Components/Modal/Modal';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render } from '@testing-library/react';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React from 'react';
 
 describe('Modal', () => {
     test('renders the modal with the title and description', () => {

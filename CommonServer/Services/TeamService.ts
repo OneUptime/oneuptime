@@ -1,11 +1,11 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/Team';
-import DatabaseService from './DatabaseService';
+import DeleteBy from '../Types/Database/DeleteBy';
 import { OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import UpdateBy from '../Types/Database/UpdateBy';
+import DatabaseService from './DatabaseService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import DeleteBy from '../Types/Database/DeleteBy';
+import Model from 'Model/Models/Team';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

@@ -1,24 +1,24 @@
+import OneUptimeDate from 'Common/Types/Date';
+import DayOfWeek from 'Common/Types/Day/DayOfWeek';
+import IconProp from 'Common/Types/Icon/IconProp';
 import RestrictionTimes, {
-    WeeklyResctriction,
     RestrictionType,
+    WeeklyResctriction,
 } from 'Common/Types/OnCallDutyPolicy/RestrictionTimes';
+import Typeof from 'Common/Types/Typeof';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import FieldLabelElement from 'CommonUI/src/Components/Detail/FieldLabel';
+import Dropdown from 'CommonUI/src/Components/Dropdown/Dropdown';
+import Input, { InputType } from 'CommonUI/src/Components/Input/Input';
+import BasicRadioButtons from 'CommonUI/src/Components/RadioButtons/BasicRadioButtons';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import BasicRadioButtons from 'CommonUI/src/Components/RadioButtons/BasicRadioButtons';
-import FieldLabelElement from 'CommonUI/src/Components/Detail/FieldLabel';
-import Input, { InputType } from 'CommonUI/src/Components/Input/Input';
-import OneUptimeDate from 'Common/Types/Date';
-import Typeof from 'Common/Types/Typeof';
-import Dropdown from 'CommonUI/src/Components/Dropdown/Dropdown';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import DayOfWeek from 'Common/Types/Day/DayOfWeek';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     error?: string | undefined;

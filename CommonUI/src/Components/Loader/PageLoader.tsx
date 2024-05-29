@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Loader, { LoaderType } from './Loader';
 import { VeryLightGray } from 'Common/Types/BrandColors';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     isVisible: boolean;

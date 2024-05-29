@@ -1,22 +1,22 @@
+import { Blue500, BrightColors } from 'Common/Types/BrandColors';
+import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import HashCode from 'Common/Types/HashCode';
+import LayerUtil, { LayerProps } from 'Common/Types/OnCallDutyPolicy/Layer';
+import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
+import Calendar from 'CommonUI/src/Components/Calendar/Calendar';
+import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
+import User from 'Model/Models/User';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import Calendar from 'CommonUI/src/Components/Calendar/Calendar';
-import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import OneUptimeDate from 'Common/Types/Date';
-import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
-import LayerUtil, { LayerProps } from 'Common/Types/OnCallDutyPolicy/Layer';
-import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
-import { Blue500, BrightColors } from 'Common/Types/BrandColors';
-import HashCode from 'Common/Types/HashCode';
-import User from 'Model/Models/User';
-import Color from 'Common/Types/Color';
-import Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps {
     layers: Array<OnCallDutyPolicyScheduleLayer>;

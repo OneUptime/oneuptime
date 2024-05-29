@@ -1,11 +1,11 @@
 import { IsBillingEnabled } from '../EnvironmentConfig';
+import logger from '../Utils/Logger';
+import BaseService from './BaseService';
+import BillingService from './BillingService';
+import ProjectService from './ProjectService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import Project from 'Model/Models/Project';
-import ProjectService from './ProjectService';
-import BillingService from './BillingService';
-import logger from '../Utils/Logger';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import BaseService from './BaseService';
 
 export class NotificationService extends BaseService {
     public constructor() {

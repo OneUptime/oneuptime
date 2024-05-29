@@ -1,15 +1,14 @@
-import React from 'react';
+import ComponentsModal from '../../Components/Workflow/ComponentsModal';
 import { faker } from '@faker-js/faker';
-import { render, fireEvent, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen } from '@testing-library/react';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ComponentMetadata, {
     ComponentCategory,
     ComponentType,
 } from 'Common/Types/Workflow/Component';
-import IconProp from 'Common/Types/Icon/IconProp';
-
-import ComponentsModal from '../../Components/Workflow/ComponentsModal';
+import React from 'react';
 
 /// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique
 

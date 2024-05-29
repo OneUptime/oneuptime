@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import { DetailSideLink } from './Field';
 import Link from '../Link/Link';
+import { DetailSideLink } from './Field';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export enum Size {
     Normal = 'text-sm',

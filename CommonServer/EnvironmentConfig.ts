@@ -1,11 +1,11 @@
+import BillingConfig from './BillingConfig';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import Email from 'Common/Types/Email';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
-import Hostname from 'Common/Types/API/Hostname';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject } from 'Common/Types/JSON';
-import BillingConfig from './BillingConfig';
-import Email from 'Common/Types/Email';
-import Protocol from 'Common/Types/API/Protocol';
 
 export enum ConfigLogLevel {
     INFO = 'INFO',

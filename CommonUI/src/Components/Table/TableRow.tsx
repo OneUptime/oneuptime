@@ -1,19 +1,19 @@
-import OneUptimeDate from 'Common/Types/Date';
-import React, { ReactElement, useState } from 'react';
-import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
-import Icon, { ThickProp } from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
+import CheckboxElement from '../Checkbox/Checkbox';
+import ColorInput from '../ColorViewer/ColorViewer';
+import Icon, { ThickProp } from '../Icon/Icon';
+import ConfirmModal from '../Modal/ConfirmModal';
+import FieldType from '../Types/FieldType';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
-import FieldType from '../Types/FieldType';
-import get from 'lodash/get';
-import ConfirmModal from '../Modal/ConfirmModal';
-import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
-import ColorInput from '../ColorViewer/ColorViewer';
 import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
 import GenericObject from 'Common/Types/GenericObject';
-import CheckboxElement from '../Checkbox/Checkbox';
+import IconProp from 'Common/Types/Icon/IconProp';
+import get from 'lodash/get';
+import React, { ReactElement, useState } from 'react';
+import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
 
 export interface ComponentProps<T extends GenericObject> {
     item: T;

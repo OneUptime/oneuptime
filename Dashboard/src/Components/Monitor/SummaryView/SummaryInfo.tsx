@@ -1,15 +1,15 @@
+import IncomingRequestMonitorView from './IncomingRequestMonitorSummaryView';
+import PingMonitorView from './PingMonitorView';
+import SSLCertificateMonitorView from './SSLCertificateMonitorView';
+import SyntheticMonitorView from './SyntheticMonitorView';
+import WebsiteMonitorSummaryView from './WebsiteMonitorView';
+import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType, {
     MonitorTypeHelper,
 } from 'Common/Types/Monitor/MonitorType';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
-import React, { FunctionComponent, ReactElement } from 'react';
-import WebsiteMonitorSummaryView from './WebsiteMonitorView';
-import IncomingRequestMonitorView from './IncomingRequestMonitorSummaryView';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import PingMonitorView from './PingMonitorView';
-import SSLCertificateMonitorView from './SSLCertificateMonitorView';
-import SyntheticMonitorView from './SyntheticMonitorView';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     monitorType: MonitorType;

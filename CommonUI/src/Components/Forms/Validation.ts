@@ -1,27 +1,21 @@
-import FormValues from './Types/FormValues';
-
-import { JSONObject } from 'Common/Types/JSON';
+import Field from './Types/Field';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
-import Email from 'Common/Types/Email';
-
-import Color from 'Common/Types/Color';
-
-import OneUptimeDate from 'Common/Types/Date';
-import Port from 'Common/Types/Port';
+import FormValues from './Types/FormValues';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
-import Exception from 'Common/Types/Exception/Exception';
-
-import Phone from 'Common/Types/Phone';
-import Domain from 'Common/Types/Domain';
-
 import URL from 'Common/Types/API/URL';
-
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
-import Field from './Types/Field';
+import Domain from 'Common/Types/Domain';
+import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Typeof from 'Common/Types/Typeof';
+import Exception from 'Common/Types/Exception/Exception';
 import GenericObject from 'Common/Types/GenericObject';
+import { JSONObject } from 'Common/Types/JSON';
+import Phone from 'Common/Types/Phone';
+import Port from 'Common/Types/Port';
+import Typeof from 'Common/Types/Typeof';
 
 export default class Validation {
     public static validateLength<T extends GenericObject>(

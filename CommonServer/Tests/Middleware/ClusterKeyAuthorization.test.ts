@@ -1,5 +1,3 @@
-import Dictionary from 'Common/Types/Dictionary';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import { ClusterKey as ONEUPTIME_SECRET } from '../../EnvironmentConfig';
 import ClusterKeyAuthorization from '../../Middleware/ClusterKeyAuthorization';
 import {
@@ -8,6 +6,8 @@ import {
     NextFunction,
 } from '../../Utils/Express';
 import Response from '../../Utils/Response';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 describe('ClusterKeyAuthorization', () => {
     describe('getClusterKeyHeaders', () => {

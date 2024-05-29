@@ -1,14 +1,14 @@
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
+import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import SlackComponents from 'Common/Types/Workflow/Components/Slack';
 import API from 'Common/Utils/API';
-import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
-import URL from 'Common/Types/API/URL';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import APIException from 'Common/Types/Exception/ApiException';
 
 export default class SendMessageToChannel extends ComponentCode {
     public constructor() {

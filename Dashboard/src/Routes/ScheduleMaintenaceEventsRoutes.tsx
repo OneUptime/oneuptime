@@ -1,21 +1,21 @@
-import React, {
-    FunctionComponent,
-    LazyExoticComponent,
-    ReactElement,
-    lazy,
-    Suspense,
-} from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import Route from 'Common/Types/API/Route';
+import Loader from '../Components/Loader/Loader';
+import ComponentProps from '../Pages/PageComponentProps';
+import ScheduledMaintenancesLaoyut from '../Pages/ScheduledMaintenanceEvents/Layout';
+import ScheduledMaintenanceViewLayout from '../Pages/ScheduledMaintenanceEvents/View/Layout';
+import PageMap from '../Utils/PageMap';
 import RouteMap, {
     RouteUtil,
     ScheduledMaintenanceEventsRoutePath,
 } from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
-import ComponentProps from '../Pages/PageComponentProps';
-import Loader from '../Components/Loader/Loader';
-import ScheduledMaintenancesLaoyut from '../Pages/ScheduledMaintenanceEvents/Layout';
-import ScheduledMaintenanceViewLayout from '../Pages/ScheduledMaintenanceEvents/View/Layout';
+import Route from 'Common/Types/API/Route';
+import React, {
+    FunctionComponent,
+    LazyExoticComponent,
+    ReactElement,
+    Suspense,
+    lazy,
+} from 'react';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Pages
 

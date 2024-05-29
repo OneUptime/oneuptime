@@ -1,13 +1,13 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../../../PageComponentProps';
-import AnalyticsModelTable from 'CommonUI/src/Components/ModelTable/AnalyticsModelTable';
-import Metric from 'Model/AnalyticsModels/Metric';
 import DashboardNavigation from '../../../../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import PageComponentProps from '../../../../PageComponentProps';
 import Route from 'Common/Types/API/Route';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import ObjectID from 'Common/Types/ObjectID';
+import AnalyticsModelTable from 'CommonUI/src/Components/ModelTable/AnalyticsModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Metric from 'Model/AnalyticsModels/Metric';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const ServiceDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

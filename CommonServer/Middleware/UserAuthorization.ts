@@ -1,36 +1,36 @@
+import AccessTokenService from '../Services/AccessTokenService';
+import ProjectService from '../Services/ProjectService';
+import UserService from '../Services/UserService';
+import QueryHelper from '../Types/Database/QueryHelper';
+import CookieUtil from '../Utils/Cookie';
 import {
-    ExpressResponse,
     ExpressRequest,
+    ExpressResponse,
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
-import UserService from '../Services/UserService';
-import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
-import ObjectID from 'Common/Types/ObjectID';
+import logger from '../Utils/Logger';
+import Response from '../Utils/Response';
+import ProjectMiddleware from './ProjectAuthorization';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import OneUptimeDate from 'Common/Types/Date';
-import UserType from 'Common/Types/UserType';
+import Dictionary from 'Common/Types/Dictionary';
+import Exception from 'Common/Types/Exception/Exception';
+import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
+import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
+import TenantNotFoundException from 'Common/Types/Exception/TenantNotFoundException';
+import HashedString from 'Common/Types/HashedString';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import ObjectID from 'Common/Types/ObjectID';
 import {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import AccessTokenService from '../Services/AccessTokenService';
-import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import HashedString from 'Common/Types/HashedString';
-import Dictionary from 'Common/Types/Dictionary';
+import UserType from 'Common/Types/UserType';
 import Project from 'Model/Models/Project';
-import ProjectService from '../Services/ProjectService';
-import QueryHelper from '../Types/Database/QueryHelper';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Response from '../Utils/Response';
-import TenantNotFoundException from 'Common/Types/Exception/TenantNotFoundException';
-import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
-import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import logger from '../Utils/Logger';
-import Exception from 'Common/Types/Exception/Exception';
-import CookieUtil from '../Utils/Cookie';
-import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
 
 export default class UserMiddleware {
     /*

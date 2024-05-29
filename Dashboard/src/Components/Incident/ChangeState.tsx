@@ -1,25 +1,25 @@
+import UserElement from '../User/User';
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ObjectID from 'Common/Types/ObjectID';
 import Button, {
     ButtonSize,
     ButtonStyleType,
 } from 'CommonUI/src/Components/Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
+import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import React, {
-    useState,
-    useEffect,
     FunctionComponent,
     ReactElement,
+    useEffect,
+    useState,
 } from 'react';
-import UserElement from '../User/User';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 
 export enum IncidentType {
     Ack,

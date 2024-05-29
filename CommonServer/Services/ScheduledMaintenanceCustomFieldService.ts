@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/ScheduledMaintenanceCustomField';
 import DatabaseService from './DatabaseService';
+import Model from 'Model/Models/ScheduledMaintenanceCustomField';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

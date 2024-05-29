@@ -1,17 +1,17 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import DashboardNavigation from '../../Utils/Navigation';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
+import Route from 'Common/Types/API/Route';
+import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
-import Project from 'Model/Models/Project';
-import ObjectID from 'Common/Types/ObjectID';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
+import Page from 'CommonUI/src/Components/Page/Page';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
-import DashboardNavigation from '../../Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import Project from 'Model/Models/Project';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps extends PageComponentProps {
     onProjectDeleted: () => void;

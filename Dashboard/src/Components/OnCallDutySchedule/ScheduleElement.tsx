@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
-import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
+import Link from 'CommonUI/src/Components/Link/Link';
+import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     schedule: OnCallDutySchedule;

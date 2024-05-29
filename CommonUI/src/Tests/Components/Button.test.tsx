@@ -1,13 +1,13 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
 import Button, {
     ButtonSize,
     ButtonStyleType,
 } from '../../Components/Button/Button';
 import ButtonType from '../../Components/Button/ButtonTypes';
 import ShortcutKey from '../../Components/ShortcutKey/ShortcutKey';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen } from '@testing-library/react';
 import IconProp from 'Common/Types/Icon/IconProp';
+import React from 'react';
 
 describe('Button', () => {
     test('it should render correctly with title and icon', () => {

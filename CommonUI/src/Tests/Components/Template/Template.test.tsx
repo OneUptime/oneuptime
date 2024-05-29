@@ -1,10 +1,10 @@
-import React from 'react';
-import '@testing-library/jest-dom';
-import { screen, render } from '@testing-library/react';
 import Component, {
     ComponentProps,
 } from '../../../Components/Template/Template';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import React from 'react';
 
 describe('Template Component', () => {
     const props: ComponentProps = {

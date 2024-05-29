@@ -1,5 +1,5 @@
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import BaseAPI from './BaseAPI';
+import { StatusPageCNameRecord } from '../EnvironmentConfig';
+import UserMiddleware from '../Middleware/UserAuthorization';
 import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from '../Services/StatusPageDomainService';
@@ -8,15 +8,15 @@ import {
     ExpressResponse,
     NextFunction,
 } from '../Utils/Express';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Response from '../Utils/Response';
-import ObjectID from 'Common/Types/ObjectID';
-import UserMiddleware from '../Middleware/UserAuthorization';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import CommonAPI from './CommonAPI';
 import logger from '../Utils/Logger';
+import Response from '../Utils/Response';
+import BaseAPI from './BaseAPI';
+import CommonAPI from './CommonAPI';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import { StatusPageCNameRecord } from '../EnvironmentConfig';
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
 
 export default class StatusPageDomainAPI extends BaseAPI<
     StatusPageDomain,

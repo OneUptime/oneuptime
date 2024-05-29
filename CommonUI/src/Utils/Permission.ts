@@ -1,3 +1,4 @@
+import { DropdownOption } from '../Components/Dropdown/Dropdown';
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
 import Permission, {
@@ -7,7 +8,6 @@ import Permission, {
     UserPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import { DropdownOption } from '../Components/Dropdown/Dropdown';
 
 export default class PermissionUtil {
     public static getGlobalPermissions(): UserGlobalAccessPermission | null {

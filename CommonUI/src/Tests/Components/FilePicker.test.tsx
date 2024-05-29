@@ -1,25 +1,23 @@
-import React from 'react';
-import { act } from 'react-test-renderer';
-import { describe, expect, it } from '@jest/globals';
+import FilePicker from '../../Components/FilePicker/FilePicker';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import { faker } from '@faker-js/faker';
+import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
 import {
-    render,
     fireEvent,
+    queryAllByAttribute,
+    queryByAttribute,
+    queryByTestId,
+    render,
     screen,
     waitFor,
-    queryByAttribute,
-    queryAllByAttribute,
-    queryByTestId,
 } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-
-import MimeType from 'Common/Types/File/MimeType';
-import FileModel from 'Model/Models/File';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import MimeType from 'Common/Types/File/MimeType';
 import ObjectID from 'Common/Types/ObjectID';
-
-import FilePicker from '../../Components/FilePicker/FilePicker';
+import FileModel from 'Model/Models/File';
+import React from 'react';
+import { act } from 'react-test-renderer';
 
 const mockOnChange: jest.Mock = jest.fn();
 const mockOnBlur: jest.Mock = jest.fn();

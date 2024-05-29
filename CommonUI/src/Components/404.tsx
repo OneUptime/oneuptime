@@ -1,11 +1,10 @@
 // Tailwind.
-
+import Navigation from '../Utils/Navigation';
+import Button, { ButtonStyleType } from './Button/Button';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import Email from 'Common/Types/Email';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Navigation from '../Utils/Navigation';
-import Button, { ButtonStyleType } from './Button/Button';
 
 export interface ComponentProps {
     homeRoute: Route;

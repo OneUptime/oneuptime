@@ -1,16 +1,16 @@
+import { AppApiHostname } from '../EnvironmentConfig';
+import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import BaseService from './BaseService';
 import EmptyResponseData from 'Common/Types/API/EmptyResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Protocol from 'Common/Types/API/Protocol';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
-import API from 'Common/Utils/API';
-import { AppApiHostname } from '../EnvironmentConfig';
 import Email from 'Common/Types/Email/EmailMessage';
 import EmailServer from 'Common/Types/Email/EmailServer';
-import Protocol from 'Common/Types/API/Protocol';
-import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseService from './BaseService';
+import API from 'Common/Utils/API';
 
 export class MailService extends BaseService {
     public async sendMail(

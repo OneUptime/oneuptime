@@ -1,9 +1,9 @@
-import { FindOperator } from 'typeorm/find-options/FindOperator';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, ObjectType } from './JSON';
 import PositiveNumber from './PositiveNumber';
 import Typeof from './Typeof';
-import { JSONObject, ObjectType } from './JSON';
+import { FindOperator } from 'typeorm/find-options/FindOperator';
 
 export default class Port extends DatabaseProperty {
     private _port: PositiveNumber = new PositiveNumber(0);

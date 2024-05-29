@@ -1,28 +1,28 @@
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import MonitoringIntervalElement from '../../../Components/Monitor/MonitoringIntervalElement';
+import MonitoringInterval from '../../../Utils/MonitorIntervalDropdownOptions';
+import PageComponentProps from '../../PageComponentProps';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import ObjectID from 'Common/Types/ObjectID';
+import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Monitor from 'Model/Models/Monitor';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import IconProp from 'Common/Types/Icon/IconProp';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import MonitoringInterval from '../../../Utils/MonitorIntervalDropdownOptions';
-import MonitoringIntervalElement from '../../../Components/Monitor/MonitoringIntervalElement';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import API from 'CommonUI/src/Utils/API/API';
-import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import useAsyncEffect from 'use-async-effect';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorCriteria: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

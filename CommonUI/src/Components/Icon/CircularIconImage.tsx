@@ -1,7 +1,7 @@
-import Color from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { SizeProp } from './Icon';
+import Color from 'Common/Types/Color';
 import IconProp from 'Common/Types/Icon/IconProp';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     backgroundColor?: undefined | Color;

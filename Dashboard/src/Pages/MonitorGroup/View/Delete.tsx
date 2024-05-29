@@ -1,12 +1,12 @@
-import Route from 'Common/Types/API/Route';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import MonitorGroup from 'Model/Models/MonitorGroup';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const MonitorGroupDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

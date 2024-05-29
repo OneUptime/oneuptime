@@ -1,21 +1,21 @@
-import ObjectID from 'Common/Types/ObjectID';
-import TeamMemberService from './TeamMemberService';
-import TeamMember from 'Model/Models/TeamMember';
 import GlobalCache from '../Infrastructure/GlobalCache';
+import QueryHelper from '../Types/Database/QueryHelper';
+import ApiKeyPermissionService from './ApiKeyPermissionService';
+import BaseService from './BaseService';
+import TeamMemberService from './TeamMemberService';
+import TeamPermissionService from './TeamPermissionService';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
 import Permission, {
     UserGlobalAccessPermission,
     UserPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import TeamPermission from 'Model/Models/TeamPermission';
-import TeamPermissionService from './TeamPermissionService';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import Label from 'Model/Models/Label';
-import QueryHelper from '../Types/Database/QueryHelper';
 import APIKeyPermission from 'Model/Models/ApiKeyPermission';
-import ApiKeyPermissionService from './ApiKeyPermissionService';
-import BaseService from './BaseService';
+import Label from 'Model/Models/Label';
+import TeamMember from 'Model/Models/TeamMember';
+import TeamPermission from 'Model/Models/TeamPermission';
 
 enum PermissionNamespace {
     GlobalPermission = 'global-permissions',

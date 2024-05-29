@@ -1,5 +1,5 @@
-import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import NestedModel from 'Common/AnalyticsModels/NestedModel';
+import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
 
 export default class KeyValueNestedModel extends NestedModel {

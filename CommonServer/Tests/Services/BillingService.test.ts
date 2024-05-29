@@ -1,30 +1,23 @@
-import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
-import { describe, expect, it } from '@jest/globals';
 import {
     BillingService,
     Invoice,
     PaymentMethod,
     SubscriptionItem,
 } from '../../Services/BillingService';
-
+import { ActiveMonitoringMeteredPlan } from '../../Types/Billing/MeteredPlan/AllMeteredPlans';
 import Errors from '../../Utils/Errors';
-
-import { mockStripe, Stripe } from '../TestingUtils/__mocks__/Stripe.mock';
 import {
-    mockIsBillingEnabled,
-    getStripeCustomer,
-    getStripeSubscription,
-    getSubscriptionPlanData,
-    getCustomerData,
-    getSubscriptionData,
-    getMeteredSubscription,
     getChangePlanData,
     getCouponData,
+    getCustomerData,
+    getMeteredSubscription,
+    getStripeCustomer,
     getStripeInvoice,
+    getStripeSubscription,
+    getSubscriptionData,
+    getSubscriptionPlanData,
+    mockIsBillingEnabled,
 } from '../TestingUtils/Services/Helpers';
-
 import {
     ChangePlan,
     CouponData,
@@ -33,7 +26,11 @@ import {
     PaymentMethodsResponse,
     Subscription,
 } from '../TestingUtils/Services/Types';
-import { ActiveMonitoringMeteredPlan } from '../../Types/Billing/MeteredPlan/AllMeteredPlans';
+import { Stripe, mockStripe } from '../TestingUtils/__mocks__/Stripe.mock';
+import { describe, expect, it } from '@jest/globals';
+import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
 
 describe('BillingService', () => {
     let billingService: BillingService;

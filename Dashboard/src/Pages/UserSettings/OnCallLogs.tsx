@@ -1,27 +1,27 @@
+import EscalationRuleView from '../../Components/OnCallPolicy/EscalationRule/EscalationRule';
+import OnCallDutyPolicyView from '../../Components/OnCallPolicy/OnCallPolicy';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import { Green, Red, Yellow } from 'Common/Types/BrandColors';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import User from 'CommonUI/src/Utils/User';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
+import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import UserOnCallLog from 'Model/Models/UserOnCallLog';
-import DashboardNavigation from '../../Utils/Navigation';
-import User from 'CommonUI/src/Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import OnCallDutyPolicyView from '../../Components/OnCallPolicy/OnCallPolicy';
-import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
-import EscalationRuleView from '../../Components/OnCallPolicy/EscalationRule/EscalationRule';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import UserNotificationExecutionStatus from 'Common/Types/UserNotification/UserNotificationExecutionStatus';
-import { Green, Red, Yellow } from 'Common/Types/BrandColors';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

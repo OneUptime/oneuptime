@@ -4,8 +4,8 @@ import {
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
-import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import JSONWebToken from '../Utils/JsonWebToken';
+import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import { JSONObject } from 'Common/Types/JSON';
 
 export default class BearerTokenAuthorization {

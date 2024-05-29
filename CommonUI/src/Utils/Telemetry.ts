@@ -1,19 +1,19 @@
+import {
+    OpenTelemetryExporterOtlpEndpoint,
+    OpenTelemetryExporterOtlpHeaders,
+} from '../Config';
+import { ZoneContextManager } from '@opentelemetry/context-zone';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
+import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
+import { Resource } from '@opentelemetry/resources';
 import {
     BatchSpanProcessor,
     TracerConfig,
     WebTracerProvider,
 } from '@opentelemetry/sdk-trace-web';
-import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { Resource } from '@opentelemetry/resources';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import {
-    OpenTelemetryExporterOtlpEndpoint,
-    OpenTelemetryExporterOtlpHeaders,
-} from '../Config';
-import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
-import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
 
 export default class Telemetry {
     public static init(data: { serviceName: string }): void {

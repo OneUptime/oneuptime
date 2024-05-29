@@ -1,19 +1,19 @@
+import IO, { Socket, SocketServer } from '../Infrastructure/SocketIO';
+import logger from './Logger';
+import AnalyticsBaseModel, {
+    AnalyticsBaseModelType,
+} from 'Common/AnalyticsModels/BaseModel';
+import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
+import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
-import IO, { SocketServer, Socket } from '../Infrastructure/SocketIO';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
 import RealtimeUtil, {
     EventName,
     ListenToModelEventJSON,
     ModelEventType,
 } from 'Common/Utils/Realtime';
-import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ObjectID from 'Common/Types/ObjectID';
-import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
-import AnalyticsBaseModel, {
-    AnalyticsBaseModelType,
-} from 'Common/AnalyticsModels/BaseModel';
-import logger from './Logger';
 
 export default abstract class Realtime {
     private static socketServer: SocketServer | null = null;

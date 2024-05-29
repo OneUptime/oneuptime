@@ -1,13 +1,13 @@
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import { getMonitorGroupBreadcrumbs } from '../../../Utils/Breadcrumbs';
 import { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import MonitorGroup from 'Model/Models/MonitorGroup';
+import React, { FunctionComponent, ReactElement } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
-import { getMonitorGroupBreadcrumbs } from '../../../Utils/Breadcrumbs';
 
 const MonitorGroupViewLayout: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

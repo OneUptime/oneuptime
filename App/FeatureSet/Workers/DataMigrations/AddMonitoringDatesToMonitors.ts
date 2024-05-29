@@ -1,9 +1,9 @@
 import DataMigrationBase from './DataMigrationBase';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import OneUptimeDate from 'Common/Types/Date';
+import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import MonitorProbe from 'Model/Models/MonitorProbe';
-import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
-import OneUptimeDate from 'Common/Types/Date';
 
 export default class AddMonitoringDatesToMonitor extends DataMigrationBase {
     public constructor() {

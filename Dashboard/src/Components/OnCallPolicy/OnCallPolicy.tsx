@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Link from 'CommonUI/src/Components/Link/Link';
-import Route from 'Common/Types/API/Route';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
+import Link from 'CommonUI/src/Components/Link/Link';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     onCallPolicy: OnCallDutyPolicy;

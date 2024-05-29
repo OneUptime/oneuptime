@@ -1,13 +1,13 @@
 import logger from '../Utils/Logger';
 import {
+    ClickHouseClientConfigOptions,
     dataSourceOptions,
     testDataSourceOptions,
-    ClickHouseClientConfigOptions,
 } from './ClickhouseConfig';
-import Sleep from 'Common/Types/Sleep';
 import { ClickHouseClient, PingResult, createClient } from '@clickhouse/client';
-import Stream from 'stream';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
+import Sleep from 'Common/Types/Sleep';
+import Stream from 'stream';
 
 export type ClickhouseClient = ClickHouseClient<Stream.Readable>;
 

@@ -1,11 +1,11 @@
-process.env['SERVICE_NAME'] = 'ingress';
-
-import logger from 'CommonServer/Utils/Logger';
-import App from 'CommonServer/Utils/StartServer';
-import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import AcmeWriteCertificatesJob from './Jobs/AcmeWriteCertificates';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
+import logger from 'CommonServer/Utils/Logger';
+import App from 'CommonServer/Utils/StartServer';
+
+process.env['SERVICE_NAME'] = 'ingress';
 
 const APP_NAME: string = process.env['SERVICE_NAME'];
 

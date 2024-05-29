@@ -1,10 +1,10 @@
+import UserUtil from './User';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
 import Typeof from 'Common/Types/Typeof';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import UserUtil from './User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import Route from 'Common/Types/API/Route';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export default class StatusPageUtil {
     public static getStatusPageId(): ObjectID | null {

@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     smtpConfig: ProjectSmtpConfig;

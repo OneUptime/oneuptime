@@ -1,20 +1,17 @@
-import { Stripe } from 'stripe';
-import { faker } from '@faker-js/faker';
-
-import Email from 'Common/Types/Email';
-import ObjectID from 'Common/Types/ObjectID';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-
 import { BillingService } from '../../../Services/BillingService';
-
 import {
-    CustomerData,
-    Subscription,
-    MeteredSubscription,
     ChangePlan,
     CouponData,
+    CustomerData,
+    MeteredSubscription,
+    Subscription,
 } from '../../TestingUtils/Services/Types';
+import { faker } from '@faker-js/faker';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import Email from 'Common/Types/Email';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
+import ObjectID from 'Common/Types/ObjectID';
+import { Stripe } from 'stripe';
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 

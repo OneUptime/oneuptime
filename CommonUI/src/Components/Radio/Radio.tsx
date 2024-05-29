@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
 import { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
 import Text from 'Common/Types/Text';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export interface RadioOption extends DropdownOption {}
 

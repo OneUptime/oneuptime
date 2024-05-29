@@ -1,12 +1,12 @@
-import Protocol from 'Common/Types/API/Protocol';
-import ObjectID from 'Common/Types/ObjectID';
-import Hostname from 'Common/Types/API/Hostname';
-import { JSONValue } from 'Common/Types/JSON';
-import URL from 'Common/Types/API/URL';
 import GlobalConfigService from './Services/GlobalConfigService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import GlobalConfig from 'Model/Models/GlobalConfig';
 import { AccountsRoute, DashboardRoute } from 'Common/ServiceRoute';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
+import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONValue } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import GlobalConfig from 'Model/Models/GlobalConfig';
 
 export default class DatabaseConfig {
     public static async getFromGlobalConfig(key: string): Promise<JSONValue> {

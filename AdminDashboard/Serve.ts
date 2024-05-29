@@ -1,7 +1,7 @@
-import App from 'CommonServer/Utils/StartServer';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import App from 'CommonServer/Utils/StartServer';
 
 export const APP_NAME: string = 'admin';
 

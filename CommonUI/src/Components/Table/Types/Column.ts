@@ -1,7 +1,7 @@
-import { ReactElement } from 'react';
 import AlignItem from '../../../Types/AlignItem';
 import FieldType from '../../Types/FieldType';
 import GenericObject from 'Common/Types/GenericObject';
+import { ReactElement } from 'react';
 
 export default interface Column<T extends GenericObject> {
     title: string;

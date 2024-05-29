@@ -1,21 +1,18 @@
-import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
-
 import NotificationMiddleware from '../../Middleware/NotificationMiddleware';
-
-// Helpers
-import Response from '../../Utils/Response';
-import JSONWebToken from '../../Utils/JsonWebToken';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-
 // Types
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
 } from '../../Utils/Express';
+import JSONWebToken from '../../Utils/JsonWebToken';
+// Helpers
+import Response from '../../Utils/Response';
 import { OnCallInputRequest } from 'Common/Types/Call/CallRequest';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 
 jest.mock('twilio/lib/twiml/VoiceResponse');
 jest.mock('../../Utils/Response');

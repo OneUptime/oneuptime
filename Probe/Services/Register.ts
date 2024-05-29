@@ -1,4 +1,3 @@
-import API from 'Common/Utils/API';
 import {
     HOSTNAME,
     INGESTOR_URL,
@@ -7,17 +6,18 @@ import {
     PROBE_KEY,
     PROBE_NAME,
 } from '../Config';
-import URL from 'Common/Types/API/URL';
-import { ClusterKey, HasClusterKey } from 'CommonServer/EnvironmentConfig';
-import logger from 'CommonServer/Utils/Logger';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import { JSONObject } from 'Common/Types/JSON';
-import LocalCache from 'CommonServer/Infrastructure/LocalCache';
-import Sleep from 'Common/Types/Sleep';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
 import OnlineCheck from '../Utils/OnlineCheck';
+import ProbeAPIRequest from '../Utils/ProbeAPIRequest';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
+import { JSONObject } from 'Common/Types/JSON';
 import ProbeStatusReport from 'Common/Types/Probe/ProbeStatusReport';
+import Sleep from 'Common/Types/Sleep';
+import API from 'Common/Utils/API';
+import { ClusterKey, HasClusterKey } from 'CommonServer/EnvironmentConfig';
+import LocalCache from 'CommonServer/Infrastructure/LocalCache';
+import logger from 'CommonServer/Utils/Logger';
 
 export default class Register {
     public static async reportIfOffline(): Promise<void> {

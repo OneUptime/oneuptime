@@ -1,12 +1,12 @@
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import Email from 'Common/Types/Email';
-import xmldom from 'xmldom';
-import xmlCrypto, { FileKeyInfo } from 'xml-crypto';
-import logger from 'CommonServer/Utils/Logger';
-import OneUptimeDate from 'Common/Types/Date';
-import Text from 'Common/Types/Text';
 import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import Email from 'Common/Types/Email';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import Text from 'Common/Types/Text';
+import logger from 'CommonServer/Utils/Logger';
+import xmlCrypto, { FileKeyInfo } from 'xml-crypto';
+import xmldom from 'xmldom';
 import zlib from 'zlib';
 
 export default class SSOUtil {

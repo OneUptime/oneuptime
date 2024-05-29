@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import OneUptimeDate from 'Common/Types/Date';
 import {
     AxisBottom,
     AxisLeft,
@@ -7,7 +7,7 @@ import {
     XValue,
     YValue,
 } from 'CommonUI/src/Components/Charts/Line/LineChart';
-import OneUptimeDate from 'Common/Types/Date';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     points: Array<LineChartPoint>;

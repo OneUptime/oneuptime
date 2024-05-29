@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     title: string | ReactElement;

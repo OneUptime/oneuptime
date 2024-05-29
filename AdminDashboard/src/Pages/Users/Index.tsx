@@ -1,18 +1,18 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import User from 'Model/Models/User';
+import Route from 'Common/Types/API/Route';
 import { ErrorFunction } from 'Common/Types/FunctionTypes';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Page from 'CommonUI/src/Components/Page/Page';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import User from 'Model/Models/User';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 const Users: FunctionComponent = (): ReactElement => {
     const [showConfirmVerifyEmailModal, setShowConfirmVerifyEmailModal] =

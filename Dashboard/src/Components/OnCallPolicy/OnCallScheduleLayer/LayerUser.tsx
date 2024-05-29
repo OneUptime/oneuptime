@@ -1,16 +1,16 @@
+import DashboardNavigation from '../../../Utils/Navigation';
+import ProjectUser from '../../../Utils/ProjectUser';
+import UserElement from '../../User/User';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Button from 'CommonUI/src/Components/Button/Button';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import ModelList from 'CommonUI/src/Components/ModelList/ModelList';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
 import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ProjectUser from '../../../Utils/ProjectUser';
-import UserElement from '../../User/User';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;

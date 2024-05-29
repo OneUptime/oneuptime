@@ -1,23 +1,23 @@
+import DashboardNavigation from '../../Utils/Navigation';
+import ProjectUser from '../../Utils/ProjectUser';
+import LabelsElement from '../Label/Labels';
+import MonitorsElement from '../Monitor/Monitors';
+import StatusPagesElement from '../StatusPage/StatusPagesLabel';
+import Route from 'Common/Types/API/Route';
+import { Black } from 'Common/Types/BrandColors';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import React, { FunctionComponent, ReactElement } from 'react';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Monitor from 'Model/Models/Monitor';
-import MonitorsElement from '../Monitor/Monitors';
-import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
-import Label from 'Model/Models/Label';
-import LabelsElement from '../Label/Labels';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
-import Route from 'Common/Types/API/Route';
-import StatusPage from 'Model/Models/StatusPage';
-import StatusPagesElement from '../StatusPage/StatusPagesLabel';
+import Label from 'Model/Models/Label';
+import Monitor from 'Model/Models/Monitor';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import DashboardNavigation from '../../Utils/Navigation';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import StatusPage from 'Model/Models/StatusPage';
 import Team from 'Model/Models/Team';
-import ProjectUser from '../../Utils/ProjectUser';
-import { Black } from 'Common/Types/BrandColors';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;

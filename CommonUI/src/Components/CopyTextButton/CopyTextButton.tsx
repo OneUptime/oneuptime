@@ -1,9 +1,9 @@
+import Clipboard from '../../Utils/Clipboard';
 import React, {
     FunctionComponent,
     MouseEventHandler,
     ReactElement,
 } from 'react';
-import Clipboard from '../../Utils/Clipboard';
 
 export interface ComponentProps {
     textToBeCopied: string;

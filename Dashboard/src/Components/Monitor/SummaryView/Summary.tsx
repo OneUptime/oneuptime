@@ -1,14 +1,14 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import Probe from 'Model/Models/Probe';
 import ProbePicker from './ProbePicker';
+import SummaryInfo from './SummaryInfo';
+import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 import MonitorType, {
     MonitorTypeHelper,
 } from 'Common/Types/Monitor/MonitorType';
-import SummaryInfo from './SummaryInfo';
-import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
+import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { MonitorStepProbeResponse } from 'Model/Models/MonitorProbe';
+import Probe from 'Model/Models/Probe';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
     probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;

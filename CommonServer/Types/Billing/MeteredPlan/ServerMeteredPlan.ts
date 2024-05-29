@@ -1,8 +1,8 @@
-import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
-import ObjectID from 'Common/Types/ObjectID';
 import BillingService from '../../../Services/BillingService';
 import MeteredPlan from 'Common/Types/Billing/MeteredPlan';
+import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class ServerMeteredPlan {
     public getProductType(): ProductType {

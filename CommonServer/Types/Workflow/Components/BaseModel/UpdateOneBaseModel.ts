@@ -1,14 +1,14 @@
-import BaseModel from 'Common/Models/BaseModel';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import DatabaseService from '../../../../Services/DatabaseService';
-import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
-import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
-import Text from 'Common/Types/Text';
-import { JSONObject } from 'Common/Types/JSON';
 import Query from '../../../Database/Query';
+import ComponentCode, { RunOptions, RunReturnType } from '../../ComponentCode';
+import BaseModel from 'Common/Models/BaseModel';
 import QueryDeepPartialEntity from 'Common/Types/Database/PartialEntity';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import Text from 'Common/Types/Text';
+import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
+import BaseModelComponents from 'Common/Types/Workflow/Components/BaseModel';
 
 export default class UpdateOneBaseModel<
     TBaseModel extends BaseModel

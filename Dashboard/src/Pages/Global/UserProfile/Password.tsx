@@ -1,16 +1,16 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import Page from 'CommonUI/src/Components/Page/Page';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
-import User from 'Model/Models/User';
-import UserUtil from 'CommonUI/src/Utils/User';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Card from 'CommonUI/src/Components/Card/Card';
+import Route from 'Common/Types/API/Route';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Card from 'CommonUI/src/Components/Card/Card';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Page from 'CommonUI/src/Components/Page/Page';
+import UserUtil from 'CommonUI/src/Utils/User';
+import User from 'Model/Models/User';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 class UserWithConfirmPassword extends User {
     public confirmPassword: string = '';

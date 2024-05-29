@@ -1,17 +1,17 @@
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from '../../../Types/SelectEntityField';
-import { DropdownOption } from '../../Dropdown/Dropdown';
-import { BaseModelType } from 'Common/Models/BaseModel';
-import MimeType from 'Common/Types/File/MimeType';
-import FormValues from './FormValues';
-import { RadioButton } from '../../RadioButtons/GroupRadioButtons';
-import { ReactElement } from 'react';
 import {
     CategoryCheckboxOption,
     CheckboxCategory,
 } from '../../CategoryCheckbox/CategoryCheckboxTypes';
+import { DropdownOption } from '../../Dropdown/Dropdown';
+import { RadioButton } from '../../RadioButtons/GroupRadioButtons';
+import FormFieldSchemaType from './FormFieldSchemaType';
+import FormValues from './FormValues';
+import { BaseModelType } from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import MimeType from 'Common/Types/File/MimeType';
+import { ReactElement } from 'react';
 
 export enum FormFieldStyleType {
     Default = 'Default',

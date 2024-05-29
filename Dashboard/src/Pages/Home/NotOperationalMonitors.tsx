@@ -1,12 +1,12 @@
-import Route from 'Common/Types/API/Route';
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import MonitorTable from '../../Components/Monitor/MonitorTable';
+import DashboardNavigation from '../../Utils/Navigation';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import MonitorTable from '../../Components/Monitor/MonitorTable';
 import DashboardSideMenu from './SideMenu';
-import DashboardNavigation from '../../Utils/Navigation';
+import Route from 'Common/Types/API/Route';
+import Page from 'CommonUI/src/Components/Page/Page';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

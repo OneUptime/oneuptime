@@ -1,19 +1,19 @@
-import React, { FunctionComponent, useState } from 'react';
-import Route from 'Common/Types/API/Route';
-import ModelList from 'CommonUI/src/Components/ModelList/ModelList';
-import URL from 'Common/Types/API/URL';
-import UserUtil from '../../Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { FILE_URL } from 'CommonUI/src/Config';
 import {
     STATUS_PAGE_API_URL,
     STATUS_PAGE_SSO_API_URL,
 } from '../../Utils/Config';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPageSSO from 'Model/Models/StatusPageSso';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import StatusPageUtil from '../../Utils/StatusPage';
+import UserUtil from '../../Utils/User';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import ObjectID from 'Common/Types/ObjectID';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ModelList from 'CommonUI/src/Components/ModelList/ModelList';
+import { FILE_URL } from 'CommonUI/src/Config';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPageSSO from 'Model/Models/StatusPageSso';
+import React, { FunctionComponent, useState } from 'react';
 
 export interface ComponentProps {
     statusPageName: string;

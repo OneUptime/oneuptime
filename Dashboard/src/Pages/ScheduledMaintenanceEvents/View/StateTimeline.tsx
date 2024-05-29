@@ -1,17 +1,18 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../PageComponentProps';
 import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import OneUptimeDate from 'Common/Types/Date';
+import PageComponentProps from '../../PageComponentProps';
 import { Black } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {

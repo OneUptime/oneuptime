@@ -1,20 +1,20 @@
-import MasterPage from 'CommonUI/src/Components/MasterPage/MasterPage';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import Footer from '../Footer/Footer';
 import Header from '../Header/Header';
 import NavBar from '../NavBar/NavBar';
-import React, { FunctionComponent, ReactElement } from 'react';
-import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
+import { SubscriptionStatusUtil } from 'Common/Types/Billing/SubscriptionStatus';
 import SSOAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
+import Link from 'CommonUI/src/Components/Link/Link';
+import MasterPage from 'CommonUI/src/Components/MasterPage/MasterPage';
 import TopAlert, {
     TopAlertType,
 } from 'CommonUI/src/Components/TopAlert/TopAlert';
-import Link from 'CommonUI/src/Components/Link/Link';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
-import { SubscriptionStatusUtil } from 'Common/Types/Billing/SubscriptionStatus';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Project from 'Model/Models/Project';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;

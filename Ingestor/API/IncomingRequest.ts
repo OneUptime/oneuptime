@@ -1,3 +1,12 @@
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import ObjectID from 'Common/Types/ObjectID';
+import MonitorService from 'CommonServer/Services/MonitorService';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -5,18 +14,9 @@ import Express, {
     NextFunction,
     RequestHandler,
 } from 'CommonServer/Utils/Express';
-import Response from 'CommonServer/Utils/Response';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import ProbeMonitorResponseService from 'CommonServer/Utils/Probe/ProbeMonitorResponse';
-import Dictionary from 'Common/Types/Dictionary';
-import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
-import OneUptimeDate from 'Common/Types/Date';
-import MonitorService from 'CommonServer/Services/MonitorService';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import Response from 'CommonServer/Utils/Response';
 import Monitor from 'Model/Models/Monitor';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
 
 const router: ExpressRouter = Express.getRouter();
 

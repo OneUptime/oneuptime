@@ -1,6 +1,6 @@
+import MonitorElement from './Monitor';
 import Monitor from 'Model/Models/Monitor';
 import React, { FunctionComponent, ReactElement } from 'react';
-import MonitorElement from './Monitor';
 
 export interface ComponentProps {
     monitors: Array<Monitor>;

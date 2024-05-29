@@ -1,10 +1,10 @@
-import { test, expect, Page } from '@playwright/test';
 import {
     BASE_URL,
     IS_USER_REGISTERED,
     REGISTERED_USER_EMAIL,
     REGISTERED_USER_PASSWORD,
 } from '../../Config';
+import { Page, expect, test } from '@playwright/test';
 import URL from 'Common/Types/API/URL';
 
 test.describe('Login', () => {

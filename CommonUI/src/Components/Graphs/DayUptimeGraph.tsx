@@ -1,15 +1,15 @@
+import Tooltip from '../Tooltip/Tooltip';
 import { Green } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
+import ObjectID from 'Common/Types/ObjectID';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import Tooltip from '../Tooltip/Tooltip';
-import ObjectID from 'Common/Types/ObjectID';
 
 export interface Event {
     startDate: Date;

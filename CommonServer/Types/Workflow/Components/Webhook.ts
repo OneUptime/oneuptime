@@ -1,13 +1,13 @@
+import { ExpressRequest, ExpressResponse } from '../../../Utils/Express';
+import Response from '../../../Utils/Response';
+import { RunOptions, RunReturnType } from '../ComponentCode';
+import TriggerCode, { ExecuteWorkflowType, InitProps } from '../TriggerCode';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
 import ComponentID from 'Common/Types/Workflow/ComponentID';
 import WebhookComponents from 'Common/Types/Workflow/Components/Webhook';
-import { ExpressRequest, ExpressResponse } from '../../../Utils/Express';
-import Response from '../../../Utils/Response';
-import TriggerCode, { ExecuteWorkflowType, InitProps } from '../TriggerCode';
-import { JSONObject } from 'Common/Types/JSON';
-import { RunOptions, RunReturnType } from '../ComponentCode';
 
 export default class WebhookTrigger extends TriggerCode {
     public constructor() {

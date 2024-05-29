@@ -1,5 +1,5 @@
-import slugify from 'slugify';
 import Faker from './Faker';
+import slugify from 'slugify';
 
 export default class Slug {
     public static getSlug(name: string | null): string {

@@ -1,6 +1,6 @@
-import version from './VersionAPI';
-import StatusAPI, { StatusAPIOptions } from './StatusAPI';
 import Express, { ExpressApplication } from '../Utils/Express';
+import StatusAPI, { StatusAPIOptions } from './StatusAPI';
+import version from './VersionAPI';
 
 const app: ExpressApplication = Express.getExpressApp();
 

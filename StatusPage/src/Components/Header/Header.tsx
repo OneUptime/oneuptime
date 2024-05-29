@@ -1,9 +1,9 @@
-import Link from 'Common/Types/Link';
-import React, { FunctionComponent, ReactElement } from 'react';
 import Logo from '../Logo/Logo';
+import Link from 'Common/Types/Link';
+import Header from 'CommonUI/src/Components/Header/Header';
 import UILink from 'CommonUI/src/Components/Link/Link';
 import File from 'Model/Models/File';
-import Header from 'CommonUI/src/Components/Header/Header';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     links: Array<Link>;

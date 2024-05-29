@@ -1,31 +1,28 @@
-import '../TestingUtils/Init';
-import Database from '../TestingUtils/Database';
-import UserServiceHelper from '../TestingUtils/Services/UserServiceHelper';
-import ProjectServiceHelper from '../TestingUtils/Services/ProjectServiceHelper';
-import TeamServiceHelper from '../TestingUtils/Services/TeamServiceHelper';
-import TeamMemberServiceHelper from '../TestingUtils/Services/TeamMemberServiceHelper';
-import { describe, expect, it } from '@jest/globals';
-import ObjectID from 'Common/Types/ObjectID';
-import Email from 'Common/Types/Email';
-import { faker } from '@faker-js/faker';
-
-import TeamMember from 'Model/Models/TeamMember';
-import User from 'Model/Models/User';
-import Project from 'Model/Models/Project';
-import Team from 'Model/Models/Team';
-
-import TeamService from '../../Services/TeamService';
-import { TeamMemberService } from '../../Services/TeamMemberService';
+import { Host, HttpProtocol } from '../../EnvironmentConfig';
 import AccessTokenService from '../../Services/AccessTokenService';
 import BillingService from '../../Services/BillingService';
-import ProjectService from '../../Services/ProjectService';
 import MailService from '../../Services/MailService';
-import UserNotificationSettingService from '../../Services/UserNotificationSettingService';
+import ProjectService from '../../Services/ProjectService';
+import { TeamMemberService } from '../../Services/TeamMemberService';
+import TeamService from '../../Services/TeamService';
 import UserNotificationRuleService from '../../Services/UserNotificationRuleService';
-
-import Errors from '../../Utils/Errors';
+import UserNotificationSettingService from '../../Services/UserNotificationSettingService';
 import CreateBy from '../../Types/Database/CreateBy';
-import { Host, HttpProtocol } from '../../EnvironmentConfig';
+import Errors from '../../Utils/Errors';
+import Database from '../TestingUtils/Database';
+import '../TestingUtils/Init';
+import ProjectServiceHelper from '../TestingUtils/Services/ProjectServiceHelper';
+import TeamMemberServiceHelper from '../TestingUtils/Services/TeamMemberServiceHelper';
+import TeamServiceHelper from '../TestingUtils/Services/TeamServiceHelper';
+import UserServiceHelper from '../TestingUtils/Services/UserServiceHelper';
+import { faker } from '@faker-js/faker';
+import { describe, expect, it } from '@jest/globals';
+import Email from 'Common/Types/Email';
+import ObjectID from 'Common/Types/ObjectID';
+import Project from 'Model/Models/Project';
+import Team from 'Model/Models/Team';
+import TeamMember from 'Model/Models/TeamMember';
+import User from 'Model/Models/User';
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 

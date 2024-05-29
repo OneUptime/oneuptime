@@ -1,11 +1,11 @@
-import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import { getUserSettingsBreadcrumbs } from '../../Utils/Breadcrumbs/UserSettingsBreadcrumbs';
 import { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import { Outlet } from 'react-router-dom';
-import { getUserSettingsBreadcrumbs } from '../../Utils/Breadcrumbs/UserSettingsBreadcrumbs';
+import Page from 'CommonUI/src/Components/Page/Page';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { FunctionComponent, ReactElement } from 'react';
+import { Outlet } from 'react-router-dom';
 
 const UserSettingsLayout: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

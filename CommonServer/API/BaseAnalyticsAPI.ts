@@ -1,3 +1,10 @@
+import UserMiddleware from '../Middleware/UserAuthorization';
+import AnalyticsDatabaseService from '../Services/AnalyticsDatabaseService';
+import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
+import GroupBy from '../Types/AnalyticsDatabase/GroupBy';
+import Query from '../Types/AnalyticsDatabase/Query';
+import Select from '../Types/AnalyticsDatabase/Select';
+import Sort from '../Types/AnalyticsDatabase/Sort';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -5,27 +12,20 @@ import Express, {
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
-import UserMiddleware from '../Middleware/UserAuthorization';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
-import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import CreateBy from '../Types/AnalyticsDatabase/CreateBy';
+import CommonAPI from './CommonAPI';
+import AnalyticsDataModel from 'Common/AnalyticsModels/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import Query from '../Types/AnalyticsDatabase/Query';
-import Select from '../Types/AnalyticsDatabase/Select';
-import Sort from '../Types/AnalyticsDatabase/Sort';
 import {
     DEFAULT_LIMIT,
     LIMIT_PER_PROJECT,
 } from 'Common/Types/Database/LimitMax';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
 import { UserPermission } from 'Common/Types/Permission';
-import AnalyticsDataModel from 'Common/AnalyticsModels/BaseModel';
-import AnalyticsDatabaseService from '../Services/AnalyticsDatabaseService';
-import CommonAPI from './CommonAPI';
-import GroupBy from '../Types/AnalyticsDatabase/GroupBy';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class BaseAnalyticsAPI<
     TAnalyticsDataModel extends AnalyticsDataModel,

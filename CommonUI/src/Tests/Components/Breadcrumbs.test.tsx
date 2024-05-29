@@ -1,13 +1,14 @@
-import * as React from 'react';
-import { describe, test, expect } from '@jest/globals';
+import Breadcrumbs from '../../Components/Breadcrumbs/Breadcrumbs';
+import Navigation from '../../Utils/Navigation';
+import { describe, expect, test } from '@jest/globals';
 import Route from 'Common/Types/API/Route';
+import Link from 'Common/Types/Link';
+import * as React from 'react';
 import renderer, {
     ReactTestInstance,
     ReactTestRenderer,
 } from 'react-test-renderer';
-import Breadcrumbs from '../../Components/Breadcrumbs/Breadcrumbs';
-import Link from 'Common/Types/Link';
-import Navigation from '../../Utils/Navigation';
+
 describe('Breadcrumbs', () => {
     test('Should render correctly and also contain "Home" and "Projects" string', () => {
         const links: Array<Link> = [

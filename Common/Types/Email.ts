@@ -1,8 +1,8 @@
-import { FindOperator } from 'typeorm';
 import Hostname from './API/Hostname';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 import { JSONObject, ObjectType } from './JSON';
+import { FindOperator } from 'typeorm';
 
 const nonBusinessEmailDomains: Array<string> = [
     'gmail',

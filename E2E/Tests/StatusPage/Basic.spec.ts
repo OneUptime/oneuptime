@@ -1,5 +1,5 @@
-import { Page, test } from '@playwright/test';
 import { STATUS_PAGE_URL } from '../../Config';
+import { Page, test } from '@playwright/test';
 import URL from 'Common/Types/API/URL';
 
 test.describe('Basic Status Page', () => {

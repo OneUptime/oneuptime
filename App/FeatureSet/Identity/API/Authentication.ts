@@ -1,40 +1,40 @@
-import {
-    IsBillingEnabled,
-    EncryptionSecret,
-} from 'CommonServer/EnvironmentConfig';
+import AuthenticationEmail from '../Utils/AuthenticationEmail';
+import BaseModel from 'Common/Models/BaseModel';
 import { AccountsRoute } from 'Common/ServiceRoute';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import Email from 'Common/Types/Email';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import { JSONObject } from 'Common/Types/JSON';
+import Name from 'Common/Types/Name';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import DatabaseConfig from 'CommonServer/DatabaseConfig';
+import {
+    EncryptionSecret,
+    IsBillingEnabled,
+} from 'CommonServer/EnvironmentConfig';
+import AccessTokenService from 'CommonServer/Services/AccessTokenService';
+import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
+import MailService from 'CommonServer/Services/MailService';
+import UserService from 'CommonServer/Services/UserService';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import { JSONObject } from 'Common/Types/JSON';
-import User from 'Model/Models/User';
-import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
-import UserService from 'CommonServer/Services/UserService';
-import ObjectID from 'Common/Types/ObjectID';
-import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import MailService from 'CommonServer/Services/MailService';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import URL from 'Common/Types/API/URL';
-import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
-import OneUptimeDate from 'Common/Types/Date';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import Route from 'Common/Types/API/Route';
 import logger from 'CommonServer/Utils/Logger';
-import Email from 'Common/Types/Email';
-import Name from 'Common/Types/Name';
-import AuthenticationEmail from '../Utils/AuthenticationEmail';
-import AccessTokenService from 'CommonServer/Services/AccessTokenService';
-import Hostname from 'Common/Types/API/Hostname';
-import Protocol from 'Common/Types/API/Protocol';
-import DatabaseConfig from 'CommonServer/DatabaseConfig';
-import CookieUtil from 'CommonServer/Utils/Cookie';
-import BaseModel from 'Common/Models/BaseModel';
+import Response from 'CommonServer/Utils/Response';
+import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
+import User from 'Model/Models/User';
 
 const router: ExpressRouter = Express.getRouter();
 

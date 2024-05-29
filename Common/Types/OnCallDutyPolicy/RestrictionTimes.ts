@@ -1,4 +1,3 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import OneUptimeDate from '../Date';
 import DayOfWeek from '../Day/DayOfWeek';
@@ -6,6 +5,7 @@ import BadDataException from '../Exception/BadDataException';
 import { JSONObject, ObjectType } from '../JSON';
 import JSONFunctions from '../JSONFunctions';
 import StartAndEndTime from '../Time/StartAndEndTime';
+import { FindOperator } from 'typeorm';
 
 export enum RestrictionType {
     Daily = 'Daily',

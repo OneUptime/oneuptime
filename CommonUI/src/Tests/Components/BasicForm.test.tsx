@@ -1,14 +1,13 @@
-import * as React from 'react';
-
+import BasicForm from '../../Components/Forms/BasicForm';
+import Fields from '../../Components/Forms/Types/Fields';
+import FormFieldSchemaType from '../../Components/Forms/Types/FormFieldSchemaType';
+import FormValues from '../../Components/Forms/Types/FormValues';
+import '@testing-library/jest-dom/extend-expect';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import BasicForm from '../../Components/Forms/BasicForm';
-import FormFieldSchemaType from '../../Components/Forms/Types/FormFieldSchemaType';
-import Route from 'Common/Types/API/Route';
-import FormValues from '../../Components/Forms/Types/FormValues';
-import Fields from '../../Components/Forms/Types/Fields';
 import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
-import '@testing-library/jest-dom/extend-expect';
+import Route from 'Common/Types/API/Route';
+import * as React from 'react';
 
 describe('BasicForm test', () => {
     const fields: Fields<FormValues<any>> = [

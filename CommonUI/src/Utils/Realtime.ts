@@ -1,20 +1,20 @@
+import { HOST, HTTP_PROTOCOL } from '../Config';
+import Query from './BaseDatabase/Query';
+import Select from './BaseDatabase/Select';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
 import BaseModel from 'Common/Models/BaseModel';
-import Query from './BaseDatabase/Query';
+import { RealtimeRoute } from 'Common/ServiceRoute';
+import URL from 'Common/Types/API/URL';
+import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
 import RealtimeUtil, {
     EventName,
     ListenToModelEventJSON,
     ModelEventType,
 } from 'Common/Utils/Realtime';
-import ObjectID from 'Common/Types/ObjectID';
 import SocketIO, { Socket } from 'socket.io-client';
-import { HOST, HTTP_PROTOCOL } from '../Config';
-import URL from 'Common/Types/API/URL';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import DatabaseType from 'Common/Types/BaseDatabase/DatabaseType';
-import Select from './BaseDatabase/Select';
-import { JSONObject } from 'Common/Types/JSON';
-import { RealtimeRoute } from 'Common/ServiceRoute';
 
 export interface ListenToModelEvent<
     Model extends AnalyticsBaseModel | BaseModel

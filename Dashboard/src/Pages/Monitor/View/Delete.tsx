@@ -1,13 +1,13 @@
-import Route from 'Common/Types/API/Route';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
-import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const MonitorDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

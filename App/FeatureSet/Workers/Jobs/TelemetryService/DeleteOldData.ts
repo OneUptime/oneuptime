@@ -1,13 +1,13 @@
-import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import RunCron from '../../Utils/Cron';
-import { EVERY_HOUR, EVERY_MINUTE } from 'Common/Utils/CronTime';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import TelemetryService from 'Model/Models/TelemetryService';
-import TelemetryServiceService from 'CommonServer/Services/TelemetryServiceService';
-import LogService from 'CommonServer/Services/LogService';
-import QueryHelper from 'CommonServer/Types/AnalyticsDatabase/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
+import { EVERY_HOUR, EVERY_MINUTE } from 'Common/Utils/CronTime';
+import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
+import LogService from 'CommonServer/Services/LogService';
 import SpanService from 'CommonServer/Services/SpanService';
+import TelemetryServiceService from 'CommonServer/Services/TelemetryServiceService';
+import QueryHelper from 'CommonServer/Types/AnalyticsDatabase/QueryHelper';
+import TelemetryService from 'Model/Models/TelemetryService';
 
 RunCron(
     'TelemetryService:DeleteOldData',

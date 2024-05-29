@@ -28,15 +28,13 @@ export interface ComponentProps {
     onProjectSelected: (project: Project) => void;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
+    selectedProject: Project | null;
 }
 
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(
-        null
-    );
 
     const [initialValues, setInitialValues] = useState<any>({});
 
@@ -118,44 +116,35 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
     useEffect(() => {
         const currentProject: Project | null = getCurrentProject();
-        setSelectedProject(currentProject);
+
         if (currentProject && props.onProjectSelected) {
             props.onProjectSelected(currentProject);
         }
     }, []);
 
     useEffect(() => {
-        if (selectedProject) {
-            ProjectUtil.setCurrentProject(selectedProject);
-            if (props.onProjectSelected) {
-                props.onProjectSelected(selectedProject);
-            }
-        }
-    }, [selectedProject]);
-
-    useEffect(() => {
         if (
             props.projects &&
             props.projects.length > 0 &&
-            !selectedProject &&
+            !props.selectedProject &&
             props.projects[0]
         ) {
             const currentProject: Project | null = getCurrentProject();
 
             if (!currentProject) {
-                setSelectedProject(props.projects[0]);
+                props.onProjectSelected(props.projects[0]);
             } else if (
                 props.projects.filter((project: Project) => {
                     return project._id === currentProject._id;
                 }).length > 0
             ) {
-                setSelectedProject(
+                props.onProjectSelected(
                     props.projects.filter((project: Project) => {
                         return project._id === currentProject._id;
                     })[0] as Project
                 );
             } else {
-                setSelectedProject(props.projects[0]);
+                props.onProjectSelected(props.projects[0]);
             }
         }
     }, [props.projects]);
@@ -200,15 +189,13 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     ).map((plan: SubscriptionPlan): RadioButton => {
                         let description: string = plan.isCustomPricing()
                             ? `Our sales team will contact you soon.`
-                            : `Billed ${
-                                  isSubscriptionPlanYearly
-                                      ? 'yearly'
-                                      : 'monthly'
-                              }. ${
-                                  plan.getTrialPeriod() > 0
-                                      ? `Free ${plan.getTrialPeriod()} days trial.`
-                                      : ''
-                              }`;
+                            : `Billed ${isSubscriptionPlanYearly
+                                ? 'yearly'
+                                : 'monthly'
+                            }. ${plan.getTrialPeriod() > 0
+                                ? `Free ${plan.getTrialPeriod()} days trial.`
+                                : ''
+                            }`;
 
                         if (
                             isSubscriptionPlanYearly &&
@@ -233,23 +220,22 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                             sideTitle: plan.isCustomPricing()
                                 ? 'Custom Price'
                                 : isSubscriptionPlanYearly
-                                ? '$' +
-                                  plan
-                                      .getYearlySubscriptionAmountInUSD()
-                                      .toString() +
-                                  '/mo billed yearly'
-                                : '$' +
-                                  plan
-                                      .getMonthlySubscriptionAmountInUSD()
-                                      .toString(),
+                                    ? '$' +
+                                    plan
+                                        .getYearlySubscriptionAmountInUSD()
+                                        .toString() +
+                                    '/mo billed yearly'
+                                    : '$' +
+                                    plan
+                                        .getMonthlySubscriptionAmountInUSD()
+                                        .toString(),
                             sideDescription: plan.isCustomPricing()
                                 ? ''
                                 : isSubscriptionPlanYearly
-                                ? `~ $${
-                                      plan.getYearlySubscriptionAmountInUSD() *
-                                      12
-                                  } per user / year`
-                                : `/month per user`,
+                                    ? `~ $${plan.getYearlySubscriptionAmountInUSD() *
+                                    12
+                                    } per user / year`
+                                    : `/month per user`,
                         };
                     }),
                     title: 'Please select a plan.',
@@ -277,7 +263,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         <>
             {props.projects.length !== 0 && (
                 <ProjectPicker
-                    selectedProjectName={selectedProject?.name || ''}
+                    selectedProjectName={props.selectedProject?.name || ''}
                     selectedProjectIcon={IconProp.Folder}
                     projects={props.projects}
                     onCreateProjectButtonClicked={() => {
@@ -285,7 +271,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         props.onProjectModalClose();
                     }}
                     onProjectSelected={(project: Project) => {
-                        setSelectedProject(project);
+                        props.onProjectSelected(project);
                     }}
                 />
             )}
@@ -303,7 +289,9 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     submitButtonText="Create Project"
                     onSuccess={(project: Project | null) => {
                         LocalStorage.removeItem('promoCode');
-                        setSelectedProject(project);
+                        if (project && props.onProjectSelected) {
+                            props.onProjectSelected(project);
+                        }
                         if (project && props.onProjectSelected) {
                             props.onProjectSelected(project);
                         }
@@ -314,15 +302,15 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         name: 'Create New Project',
                         steps: BILLING_ENABLED
                             ? [
-                                  {
-                                      title: 'Basic',
-                                      id: 'basic',
-                                  },
-                                  {
-                                      title: 'Select Plan',
-                                      id: 'plan',
-                                  },
-                              ]
+                                {
+                                    title: 'Basic',
+                                    id: 'basic',
+                                },
+                                {
+                                    title: 'Select Plan',
+                                    id: 'plan',
+                                },
+                            ]
                             : undefined,
                         saveRequestOptions: {
                             isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request

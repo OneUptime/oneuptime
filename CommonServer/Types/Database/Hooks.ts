@@ -1,8 +1,8 @@
-import BaseModel from 'Common/Models/BaseModel';
 import CreateBy from './CreateBy';
 import DeleteBy from './DeleteBy';
 import FindBy from './FindBy';
 import UpdateBy from './UpdateBy';
+import BaseModel from 'Common/Models/BaseModel';
 
 export type DatabaseTriggerType = 'on-create' | 'on-update' | 'on-delete';
 

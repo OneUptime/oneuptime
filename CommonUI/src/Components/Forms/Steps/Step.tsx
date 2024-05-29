@@ -1,6 +1,6 @@
-import React, { ReactElement } from 'react';
 import { FormStep, FormStepState } from '../Types/FormStep';
 import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps<T> {
     step: FormStep<T>;

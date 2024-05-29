@@ -1,3 +1,4 @@
+import logger from '../../../Utils/Logger';
 import {
     CheckOn,
     CriteriaFilter,
@@ -5,7 +6,6 @@ import {
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import Typeof from 'Common/Types/Typeof';
-import logger from '../../../Utils/Logger';
 
 export default class CompareCriteria {
     public static greaterThan(data: {

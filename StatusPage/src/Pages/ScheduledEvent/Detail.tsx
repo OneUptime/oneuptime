@@ -1,47 +1,47 @@
+import Page from '../../Components/Page/Page';
+import API from '../../Utils/API';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import StatusPageUtil from '../../Utils/StatusPage';
+import PageComponentProps from '../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import { Gray500, Green, Yellow } from 'Common/Types/BrandColors';
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import EventItem, {
+    ComponentProps as EventItemComponentProps,
+    TimelineItem,
+    TimelineItemType,
+} from 'CommonUI/src/Components/EventItem/EventItem';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Label from 'Model/Models/Label';
+import Monitor from 'Model/Models/Monitor';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import StatusPageResource from 'Model/Models/StatusPageResource';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import Page from '../../Components/Page/Page';
-import URL from 'Common/Types/API/URL';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import useAsyncEffect from 'use-async-effect';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import OneUptimeDate from 'Common/Types/Date';
-import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import EventItem, {
-    TimelineItem,
-    ComponentProps as EventItemComponentProps,
-    TimelineItemType,
-} from 'CommonUI/src/Components/EventItem/EventItem';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import Color from 'Common/Types/Color';
-import { Green, Gray500, Yellow } from 'Common/Types/BrandColors';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import IconProp from 'Common/Types/Icon/IconProp';
-import API from '../../Utils/API';
-import StatusPageUtil from '../../Utils/StatusPage';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import StatusPageResource from 'Model/Models/StatusPageResource';
-import Dictionary from 'Common/Types/Dictionary';
-import Monitor from 'Model/Models/Monitor';
-import Label from 'Model/Models/Label';
-import BaseModel from 'Common/Models/BaseModel';
 
 export type GetScheduledEventEventItemFunctionProps = {
     scheduledMaintenance: ScheduledMaintenance;

@@ -1,9 +1,9 @@
-import Log from 'Model/AnalyticsModels/Log';
-import React, { FunctionComponent, ReactElement, Ref } from 'react';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import LogItem from './LogItem';
 import LogsFilters, { FilterOption } from './LogsFilters';
-import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import { VoidFunction } from 'Common/Types/FunctionTypes';
+import Log from 'Model/AnalyticsModels/Log';
+import React, { FunctionComponent, ReactElement, Ref } from 'react';
 
 export interface ComponentProps {
     logs: Array<Log>;

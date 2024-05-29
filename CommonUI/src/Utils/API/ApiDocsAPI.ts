@@ -1,6 +1,6 @@
 import { API_DOCS_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
-import API from 'Common/Utils/API';
 import { ApiReferenceRoute } from 'Common/ServiceRoute';
+import API from 'Common/Utils/API';
 
 class ApiDocsRoute extends API {
     public constructor() {

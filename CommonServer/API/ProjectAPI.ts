@@ -1,23 +1,23 @@
-import Project from 'Model/Models/Project';
+import UserMiddleware from '../Middleware/UserAuthorization';
 import ProjectService, {
     Service as ProjectServiceType,
 } from '../Services/ProjectService';
-import BaseAPI from './BaseAPI';
-import UserMiddleware from '../Middleware/UserAuthorization';
+import ResellerService from '../Services/ResellerService';
+import TeamMemberService from '../Services/TeamMemberService';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
-import TeamMemberService from '../Services/TeamMemberService';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 import Response from '../Utils/Response';
-import TeamMember from 'Model/Models/TeamMember';
+import BaseAPI from './BaseAPI';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import NotAuthenticatedException from 'Common/Types/Exception/NotAuthenticatedException';
-import ResellerService from '../Services/ResellerService';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Project from 'Model/Models/Project';
 import Reseller from 'Model/Models/Reseller';
+import TeamMember from 'Model/Models/TeamMember';
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
     public constructor() {

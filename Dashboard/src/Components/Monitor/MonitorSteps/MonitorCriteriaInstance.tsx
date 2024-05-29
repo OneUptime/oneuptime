@@ -1,20 +1,17 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
-
 import CriteriaFilters from './CriteriaFilters';
-
 import MonitorCriteriaIncidents from './MonitorCriteriaIncidents';
-
+import { Black } from 'Common/Types/BrandColors';
+import Color from 'Common/Types/Color';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { FilterCondition } from 'Common/Types/Monitor/CriteriaFilter';
+import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
 import Icon from 'CommonUI/src/Components/Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import Color from 'Common/Types/Color';
-import { Black } from 'Common/Types/BrandColors';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import { FilterCondition } from 'Common/Types/Monitor/CriteriaFilter';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import MonitorStatus from 'Model/Models/MonitorStatus';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     monitorStatusOptions: Array<MonitorStatus>;

@@ -1,19 +1,19 @@
-import { FindOperator } from 'typeorm';
-import DatabaseProperty from '../Database/DatabaseProperty';
-import { JSONObject, ObjectType } from '../JSON';
-import URL from '../API/URL';
-import IP from '../IP/IP';
-import MonitorCriteria from './MonitorCriteria';
-import BadDataException from '../Exception/BadDataException';
 import HTTPMethod from '../API/HTTPMethod';
-import Dictionary from '../Dictionary';
-import ObjectID from '../ObjectID';
-import MonitorType from './MonitorType';
-import JSONFunctions from '../JSONFunctions';
 import Hostname from '../API/Hostname';
+import URL from '../API/URL';
+import DatabaseProperty from '../Database/DatabaseProperty';
+import Dictionary from '../Dictionary';
+import BadDataException from '../Exception/BadDataException';
+import IP from '../IP/IP';
+import { JSONObject, ObjectType } from '../JSON';
+import JSONFunctions from '../JSONFunctions';
+import ObjectID from '../ObjectID';
 import Port from '../Port';
-import ScreenSizeType from './SyntheticMonitors/ScreenSizeType';
+import MonitorCriteria from './MonitorCriteria';
+import MonitorType from './MonitorType';
 import BrowserType from './SyntheticMonitors//BrowserType';
+import ScreenSizeType from './SyntheticMonitors/ScreenSizeType';
+import { FindOperator } from 'typeorm';
 
 export interface MonitorStepType {
     id: string;

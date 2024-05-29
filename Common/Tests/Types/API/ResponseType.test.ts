@@ -1,4 +1,5 @@
 import ResponseType from '../../../Types/API/ResponseType';
+
 describe('ResponseType', () => {
     test('ResponseType.CSV to be csv', () => {
         expect(ResponseType.CSV).toBe('csv');

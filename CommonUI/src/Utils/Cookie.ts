@@ -1,11 +1,11 @@
+import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
 import Email from 'Common/Types/Email';
 import { JSONObject, JSONValue } from 'Common/Types/JSON';
-import Typeof from 'Common/Types/Typeof';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import Typeof from 'Common/Types/Typeof';
 import UniversalCookies, { CookieSetOptions } from 'universal-cookie';
-import Route from 'Common/Types/API/Route';
-import OneUptimeDate from 'Common/Types/Date';
 
 export default class Cookie {
     public static setItem(

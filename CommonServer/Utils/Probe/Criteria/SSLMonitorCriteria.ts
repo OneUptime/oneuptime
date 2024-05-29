@@ -1,13 +1,13 @@
+import DataToProcess from '../DataToProcess';
+import CompareCriteria from './CompareCriteria';
+import OneUptimeDate from 'Common/Types/Date';
 import {
     CheckOn,
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import OneUptimeDate from 'Common/Types/Date';
-import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
-import CompareCriteria from './CompareCriteria';
-import DataToProcess from '../DataToProcess';
 import SslMonitorResponse from 'Common/Types/Monitor/SSLMonitor/SslMonitorResponse';
+import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 
 export default class ServerMonitorCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {

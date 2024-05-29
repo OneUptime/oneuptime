@@ -1,35 +1,35 @@
-import React, {
-    Fragment,
-    FunctionComponent,
-    ReactElement,
-    useState,
-} from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import DashboardNavigation from '../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ProjectSSO from 'Model/Models/ProjectSso';
-import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
-import DigestMethod from 'Common/Types/SSO/DigestMethod';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Project from 'Model/Models/Project';
-import Team from 'Model/Models/Team';
 import TeamsElement from '../../Components/Team/TeamsElement';
-import Card from 'CommonUI/src/Components/Card/Card';
-import Link from 'CommonUI/src/Components/Link/Link';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
 import URL from 'Common/Types/API/URL';
+import DigestMethod from 'Common/Types/SSO/DigestMethod';
+import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Card from 'CommonUI/src/Components/Card/Card';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Link from 'CommonUI/src/Components/Link/Link';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import {
     DASHBOARD_URL,
     HOST,
     HTTP_PROTOCOL,
     IDENTITY_URL,
 } from 'CommonUI/src/Config';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Project from 'Model/Models/Project';
+import ProjectSSO from 'Model/Models/ProjectSso';
+import Team from 'Model/Models/Team';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

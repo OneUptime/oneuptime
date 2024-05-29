@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import ButtonType from '../Button/ButtonTypes';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     onClose?: undefined | (() => void) | undefined;

@@ -1,17 +1,17 @@
-import React, { MutableRefObject, ReactElement, useRef, useState } from 'react';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import Alert, { AlertType } from '../Alerts/Alert';
 import { ButtonStyleType } from '../Button/Button';
-import Modal, { ModalWidth } from '../Modal/Modal';
+import ButtonType from '../Button/ButtonTypes';
+import { FormProps } from '../Forms/BasicForm';
 import ModelForm, {
     ComponentProps as ModelFormComponentProps,
 } from '../Forms/ModelForm';
+import FormValues from '../Forms/Types/FormValues';
+import Modal, { ModalWidth } from '../Modal/Modal';
 import BaseModel from 'Common/Models/BaseModel';
-import ButtonType from '../Button/ButtonTypes';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import Alert, { AlertType } from '../Alerts/Alert';
-import FormValues from '../Forms/Types/FormValues';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
-import { FormProps } from '../Forms/BasicForm';
+import React, { MutableRefObject, ReactElement, useRef, useState } from 'react';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;

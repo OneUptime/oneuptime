@@ -1,14 +1,14 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import TeamsElement from '../../Team/TeamsElement';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import ObjectID from 'Common/Types/ObjectID';
-import Team from 'Model/Models/Team';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import API from 'CommonUI/src/Utils/API/API';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import OnCallDutyPolicyEscalationRuleTeam from 'Model/Models/OnCallDutyPolicyEscalationRuleTeam';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import Team from 'Model/Models/Team';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import useAsyncEffect from 'use-async-effect';
-import API from 'CommonUI/src/Utils/API/API';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import TeamsElement from '../../Team/TeamsElement';
 
 export interface ComponentProps {
     escalationRuleId: ObjectID;

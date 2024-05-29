@@ -1,13 +1,13 @@
-import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import { getScheduleMaintenanceBreadcrumbs } from '../../../Utils/Breadcrumbs';
 import { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import ModelPage from 'CommonUI/src/Components/Page/ModelPage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import React, { FunctionComponent, ReactElement } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
-import { getScheduleMaintenanceBreadcrumbs } from '../../../Utils/Breadcrumbs';
 
 const ScheduledMaintenanceViewLayout: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

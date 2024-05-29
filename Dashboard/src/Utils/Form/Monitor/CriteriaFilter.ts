@@ -1,6 +1,3 @@
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import {
     CheckOn,
     CriteriaFilter,
@@ -9,8 +6,11 @@ import {
     FilterCondition,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import ScreenSizeType from 'Common/Types/Monitor/SyntheticMonitors/ScreenSizeType';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
+import ScreenSizeType from 'Common/Types/Monitor/SyntheticMonitors/ScreenSizeType';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 
 export default class CriteriaFilterUtil {
     public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {

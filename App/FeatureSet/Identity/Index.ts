@@ -1,11 +1,11 @@
-import 'ejs';
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import AuthenticationAPI from './API/Authentication';
-import SsoAPI from './API/SSO';
 import ResellerAPI from './API/Reseller';
-import StatusPageSsoAPI from './API/StatusPageSSO';
+import SsoAPI from './API/SSO';
 import StatusPageAuthenticationAPI from './API/StatusPageAuthentication';
+import StatusPageSsoAPI from './API/StatusPageSSO';
 import FeatureSet from 'CommonServer/Types/FeatureSet';
+import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import 'ejs';
 
 const IdentityFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {

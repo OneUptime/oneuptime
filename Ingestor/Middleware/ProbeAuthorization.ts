@@ -1,15 +1,14 @@
-import { ClusterKey as ONEUPTIME_SECRET } from 'CommonServer/EnvironmentConfig';
-import { ExpressResponse, NextFunction } from 'CommonServer/Utils/Express';
-
-import Response from 'CommonServer/Utils/Response';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ObjectID from 'Common/Types/ObjectID';
-import Dictionary from 'Common/Types/Dictionary';
-import { JSONObject } from 'Common/Types/JSON';
-import Probe from 'Model/Models/Probe';
-import ProbeService from 'CommonServer/Services/ProbeService';
-import OneUptimeDate from 'Common/Types/Date';
 import { ProbeExpressRequest } from '../Types/Request';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import { ClusterKey as ONEUPTIME_SECRET } from 'CommonServer/EnvironmentConfig';
+import ProbeService from 'CommonServer/Services/ProbeService';
+import { ExpressResponse, NextFunction } from 'CommonServer/Utils/Express';
+import Response from 'CommonServer/Utils/Response';
+import Probe from 'Model/Models/Probe';
 
 export default class ProbeAuthorization {
     public static getClusterKeyHeaders(): Dictionary<string> {

@@ -1,4 +1,3 @@
-import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageSubscriberService, {
     Service as StatusPageSubscriberServiceType,
 } from '../Services/StatusPageSubscriberService';
@@ -7,8 +6,9 @@ import {
     ExpressResponse,
     NextFunction,
 } from '../Utils/Express';
-import BaseAPI from './BaseAPI';
 import Response from '../Utils/Response';
+import BaseAPI from './BaseAPI';
+import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 
 export default class StatusPageSubscriberAPI extends BaseAPI<
     StatusPageSubscriber,

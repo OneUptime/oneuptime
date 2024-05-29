@@ -1,23 +1,23 @@
-import Color from '../../Types/Color';
-import { describe, expect, it } from '@jest/globals';
 import {
     Black,
-    White,
-    Slate500,
-    Purple500,
-    Pink500,
-    Red500,
-    Orange500,
-    Yellow500,
-    Green500,
-    Teal500,
+    Blue500,
     Cyan500,
-    VeryLightGray,
     Gray500,
+    Green500,
     LightGray,
     Moroon500,
-    Blue500,
+    Orange500,
+    Pink500,
+    Purple500,
+    Red500,
+    Slate500,
+    Teal500,
+    VeryLightGray,
+    White,
+    Yellow500,
 } from '../../Types/BrandColors';
+import Color from '../../Types/Color';
+import { describe, expect, it } from '@jest/globals';
 
 describe('Color', () => {
     describe('Verify color hex', () => {

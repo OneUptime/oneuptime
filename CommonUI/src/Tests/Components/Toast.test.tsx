@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
-import userEvent from '@testing-library/user-event';
 import Toast, { ToastType } from '../../Components/Toast/Toast';
+import '@testing-library/jest-dom/extend-expect';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
 import OneUptimeDate from 'Common/Types/Date';
+import * as React from 'react';
 
 describe('Test for Toast.tsx', () => {
     test('should render the component', () => {

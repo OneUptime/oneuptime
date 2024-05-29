@@ -1,13 +1,11 @@
+import Editor from '@monaco-editor/react';
 import CodeType from 'Common/Types/Code/CodeType';
-
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-
-import Editor from '@monaco-editor/react';
 
 export interface ComponentProps {
     initialValue?: undefined | string;

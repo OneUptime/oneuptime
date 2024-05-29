@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
 import OneUptimeDate from 'Common/Types/Date';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export enum ToastType {
     DANGER,

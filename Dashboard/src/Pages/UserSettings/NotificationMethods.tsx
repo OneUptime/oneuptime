@@ -1,8 +1,8 @@
+import UserCall from '../../Components/NotificationMethods/Call';
 import UserEmail from '../../Components/NotificationMethods/Email';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import UserSMS from '../../Components/NotificationMethods/SMS';
 import PageComponentProps from '../PageComponentProps';
-import UserCall from '../../Components/NotificationMethods/Call';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

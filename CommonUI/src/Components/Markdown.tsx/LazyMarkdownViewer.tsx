@@ -1,10 +1,10 @@
+import { ComponentProps } from './MarkdownViewer';
 import React, {
     FunctionComponent,
     LazyExoticComponent,
     Suspense,
     lazy,
 } from 'react';
-import { ComponentProps } from './MarkdownViewer';
 
 const MarkdownViewer: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     lazy(() => {

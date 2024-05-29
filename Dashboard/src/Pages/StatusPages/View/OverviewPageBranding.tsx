@@ -1,18 +1,18 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import MonitorStatuesElement from '../../../Components/MonitorStatus/MonitorStatusesElement';
+import DashboardNavigation from '../../../Utils/Navigation';
 import PageComponentProps from '../../PageComponentProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import DashboardNavigation from '../../../Utils/Navigation';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import MonitorStatuesElement from '../../../Components/MonitorStatus/MonitorStatusesElement';
+import StatusPage from 'Model/Models/StatusPage';
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

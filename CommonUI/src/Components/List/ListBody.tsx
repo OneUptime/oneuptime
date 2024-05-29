@@ -1,9 +1,9 @@
-import React, { ReactElement } from 'react';
-import ListRow, { ListDetailProps } from './ListRow';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Field from '../Detail/Field';
-import { Droppable, DroppableProvided } from 'react-beautiful-dnd';
+import ListRow, { ListDetailProps } from './ListRow';
 import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement } from 'react';
+import { Droppable, DroppableProvided } from 'react-beautiful-dnd';
 
 export interface ComponentProps<T extends GenericObject> {
     data: Array<T>;

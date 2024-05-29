@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
 import NotFound, { ComponentProps } from '../../Components/404';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen } from '@testing-library/react';
 import Route from 'Common/Types/API/Route';
-import Email from 'Common/Types/Email';
 import URL from 'Common/Types/API/URL';
+import Email from 'Common/Types/Email';
+import * as React from 'react';
 
 // Mock the Navigation module to avoid real navigation
 jest.mock('../../Utils/Navigation', () => {

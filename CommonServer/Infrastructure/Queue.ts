@@ -1,7 +1,7 @@
-import { Queue as BullQueue, JobsOptions, Job } from 'bullmq';
-import { JSONObject } from 'Common/Types/JSON';
 import { RedisHostname, RedisPassword, RedisPort } from '../EnvironmentConfig';
 import Dictionary from 'Common/Types/Dictionary';
+import { JSONObject } from 'Common/Types/JSON';
+import { Queue as BullQueue, Job, JobsOptions } from 'bullmq';
 
 export enum QueueName {
     Workflow = 'Workflow',

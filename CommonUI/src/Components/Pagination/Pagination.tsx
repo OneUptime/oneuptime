@@ -1,13 +1,13 @@
+import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
+import BasicFormModal from '../FormModal/BasicFormModal';
+import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
+import IconProp from 'Common/Types/Icon/IconProp';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import BasicFormModal from '../FormModal/BasicFormModal';
-import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
 
 export interface PaginationNavigationItem {
     pageNumber: number;

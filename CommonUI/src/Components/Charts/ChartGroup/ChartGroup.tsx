@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
 import LineChart, { ComponentProps as LineChartProps } from '../Line/LineChart';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 
 export enum ChartGroupInterval {
     ONE_HOUR = '1 hour',

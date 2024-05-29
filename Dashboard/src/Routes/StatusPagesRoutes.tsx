@@ -1,3 +1,9 @@
+import Loader from '../Components/Loader/Loader';
+import ComponentProps from '../Pages/PageComponentProps';
+import StatusPageViewLayout from '../Pages/StatusPages/View/Layout';
+import PageMap from '../Utils/PageMap';
+import RouteMap, { RouteUtil, StatusPagesRoutePath } from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import React, {
     FunctionComponent,
     LazyExoticComponent,
@@ -5,13 +11,7 @@ import React, {
     Suspense,
     lazy,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import PageMap from '../Utils/PageMap';
-import RouteMap, { RouteUtil, StatusPagesRoutePath } from '../Utils/RouteMap';
-import ComponentProps from '../Pages/PageComponentProps';
-import Route from 'Common/Types/API/Route';
-import Loader from '../Components/Loader/Loader';
-import StatusPageViewLayout from '../Pages/StatusPages/View/Layout';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Pages
 const StatusPages: LazyExoticComponent<FunctionComponent<ComponentProps>> =

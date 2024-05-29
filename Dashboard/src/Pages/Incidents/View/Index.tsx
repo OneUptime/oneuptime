@@ -1,3 +1,37 @@
+import ChangeIncidentState, {
+    IncidentType,
+} from '../../../Components/Incident/ChangeState';
+import LabelsElement from '../../../Components/Label/Labels';
+import MonitorsElement from '../../../Components/Monitor/Monitors';
+import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
+import EventName from '../../../Utils/EventName';
+import PageComponentProps from '../../PageComponentProps';
+import BaseModel from 'Common/Models/BaseModel';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { Black } from 'Common/Types/BrandColors';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import InfoCard from 'CommonUI/src/Components/InfoCard/InfoCard';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import BaseAPI from 'CommonUI/src/Utils/API/API';
+import GlobalEvent from 'CommonUI/src/Utils/GlobalEvents';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Incident from 'Model/Models/Incident';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import IncidentState from 'Model/Models/IncidentState';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import Label from 'Model/Models/Label';
 import React, {
     Fragment,
     FunctionComponent,
@@ -5,40 +39,6 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Incident from 'Model/Models/Incident';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import MonitorsElement from '../../../Components/Monitor/Monitors';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import ChangeIncidentState, {
-    IncidentType,
-} from '../../../Components/Incident/ChangeState';
-import BaseModel from 'Common/Models/BaseModel';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import Label from 'Model/Models/Label';
-import LabelsElement from '../../../Components/Label/Labels';
-import GlobalEvent from 'CommonUI/src/Utils/GlobalEvents';
-import EventName from '../../../Utils/EventName';
-import OnCallDutyPoliciesView from '../../../Components/OnCallPolicy/OnCallPolicies';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import CheckboxViewer from 'CommonUI/src/Components/Checkbox/CheckboxViewer';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import { Black } from 'Common/Types/BrandColors';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import BaseAPI from 'CommonUI/src/Utils/API/API';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import OneUptimeDate from 'Common/Types/Date';
-import InfoCard from 'CommonUI/src/Components/InfoCard/InfoCard';
-import IncidentState from 'Model/Models/IncidentState';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

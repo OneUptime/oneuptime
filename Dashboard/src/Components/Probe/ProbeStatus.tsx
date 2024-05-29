@@ -1,9 +1,9 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Probe from 'Model/Models/Probe';
-import { JSONObject } from 'Common/Types/JSON';
-import OneUptimeDate from 'Common/Types/Date';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import { Green, Red } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
+import { JSONObject } from 'Common/Types/JSON';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import Probe from 'Model/Models/Probe';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     probe: Probe | JSONObject;

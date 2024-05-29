@@ -1,22 +1,22 @@
-import { DataSource, DataSourceOptions } from 'typeorm';
 import {
     DatabaseHost,
     DatabaseName,
     DatabasePassword,
     DatabasePort,
-    DatabaseUsername,
-    DatabaseSslCa,
-    DatabaseSslKey,
-    DatabaseSslCert,
     DatabaseRejectUnauthorized,
-    ShouldDatabaseSslEnable,
+    DatabaseSslCa,
+    DatabaseSslCert,
+    DatabaseSslKey,
+    DatabaseUsername,
     Env,
+    ShouldDatabaseSslEnable,
 } from '../EnvironmentConfig';
-import Entities from 'Model/Models/Index';
-import Migrations from 'Model/Migrations/Index';
-import DatabaseType from 'Common/Types/DatabaseType';
 import AppEnvironment from 'Common/Types/AppEnvironment';
+import DatabaseType from 'Common/Types/DatabaseType';
 import Faker from 'Common/Utils/Faker';
+import Migrations from 'Model/Migrations/Index';
+import Entities from 'Model/Models/Index';
+import { DataSource, DataSourceOptions } from 'typeorm';
 
 export const dataSourceOptions: DataSourceOptions = {
     type: DatabaseType.Postgres,

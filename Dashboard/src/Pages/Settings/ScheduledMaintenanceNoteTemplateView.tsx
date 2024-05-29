@@ -1,15 +1,15 @@
-import Route from 'Common/Types/API/Route';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import ScheduledMaintenanceNoteTemplate from 'Model/Models/ScheduledMaintenanceNoteTemplate';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ScheduledMaintenanceNoteTemplate from 'Model/Models/ScheduledMaintenanceNoteTemplate';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

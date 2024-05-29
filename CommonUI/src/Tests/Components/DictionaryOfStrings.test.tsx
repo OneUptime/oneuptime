@@ -1,14 +1,13 @@
 // Libraries
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import Dictionary from 'Common/Types/Dictionary';
-import { describe, expect, it } from '@jest/globals';
-
 // Custom components
 import DictionaryOfStrings, {
     ComponentProps,
 } from '../../Components/Dictionary/DictionaryOfStrings';
+import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen } from '@testing-library/react';
+import Dictionary from 'Common/Types/Dictionary';
+import React from 'react';
 
 jest.mock('Common/Types/Date', () => {
     return {

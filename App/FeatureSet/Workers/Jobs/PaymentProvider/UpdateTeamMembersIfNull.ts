@@ -1,11 +1,11 @@
-import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import RunCron from '../../Utils/Cron';
-import { EVERY_DAY, EVERY_MINUTE } from 'Common/Utils/CronTime';
-import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import Project from 'Model/Models/Project';
+import { EVERY_DAY, EVERY_MINUTE } from 'Common/Utils/CronTime';
+import { IsDevelopment } from 'CommonServer/EnvironmentConfig';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
+import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
+import Project from 'Model/Models/Project';
 
 RunCron(
     'PaymentProvider:UpdateTeamMembersIfNull',

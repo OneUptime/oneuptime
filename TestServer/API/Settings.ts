@@ -1,3 +1,4 @@
+import { JSONObject } from 'Common/Types/JSON';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import Express, {
     ExpressRequest,
@@ -6,7 +7,6 @@ import Express, {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
-import { JSONObject } from 'Common/Types/JSON';
 
 const router: ExpressRouter = Express.getRouter();
 

@@ -1,12 +1,11 @@
 // this class is the base class that all the component can implement
 //
-
-import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
 import { ExpressRouter } from '../../Utils/Express';
 import ComponentCode, { RunOptions, RunReturnType } from './ComponentCode';
-import { Port } from 'Common/Types/Workflow/Component';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import { Port } from 'Common/Types/Workflow/Component';
 
 export interface ExecuteWorkflowType {
     workflowId: ObjectID;

@@ -1,11 +1,11 @@
-import { ExpressRequest, ExpressResponse } from '../Utils/Express';
-import Response from '../Utils/Response';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import ShortLinkService, {
     Service as ShortLinkServiceType,
 } from '../Services/ShortLinkService';
-import ShortLink from 'Model/Models/ShortLink';
+import { ExpressRequest, ExpressResponse } from '../Utils/Express';
+import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ShortLink from 'Model/Models/ShortLink';
 
 export default class ShortLinkAPI extends BaseAPI<
     ShortLink,

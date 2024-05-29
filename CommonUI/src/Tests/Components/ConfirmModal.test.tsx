@@ -1,10 +1,10 @@
-import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { ButtonStyleType } from '../../Components/Button/Button';
 import ConfirmModal, {
     ComponentProps,
 } from '../../Components/Modal/ConfirmModal';
 import { describe, expect, it } from '@jest/globals';
-import { ButtonStyleType } from '../../Components/Button/Button';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
 
 describe('ConfirmModal', () => {
     const mockProps: ComponentProps = {

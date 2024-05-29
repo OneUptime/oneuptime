@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Alert, { AlertType } from '../Alerts/Alert';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: Array<ReactElement> | ReactElement;

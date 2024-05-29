@@ -1,10 +1,10 @@
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import Email from 'Common/Types/Email';
-import ObjectID from 'Common/Types/ObjectID';
-import Name from 'Common/Types/Name';
-import { IDENTITY_URL } from 'CommonUI/src/Config';
-import API from 'Common/Utils/API';
 import URL from 'Common/Types/API/URL';
+import Email from 'Common/Types/Email';
+import Name from 'Common/Types/Name';
+import ObjectID from 'Common/Types/ObjectID';
+import API from 'Common/Utils/API';
+import { IDENTITY_URL } from 'CommonUI/src/Config';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 
 export default class User {
     public static setUserId(statusPageId: ObjectID, userId: ObjectID): void {

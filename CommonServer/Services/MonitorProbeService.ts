@@ -1,10 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService';
-import { OnCreate } from '../Types/Database/Hooks';
 import CreateBy from '../Types/Database/CreateBy';
+import { OnCreate } from '../Types/Database/Hooks';
+import DatabaseService from './DatabaseService';
+import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorProbe from 'Model/Models/MonitorProbe';
-import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<MonitorProbe> {
     public constructor(postgresDatabase?: PostgresDatabase) {

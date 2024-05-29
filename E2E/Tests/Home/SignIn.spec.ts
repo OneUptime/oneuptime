@@ -1,6 +1,7 @@
-import { test, expect, Page } from '@playwright/test';
 import { BASE_URL, IS_BILLING_ENABLED } from '../../Config';
+import { Page, expect, test } from '@playwright/test';
 import URL from 'Common/Types/API/URL';
+
 test.beforeEach(async ({ page }: { page: Page }) => {
     if (!IS_BILLING_ENABLED) {
         return;

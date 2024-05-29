@@ -1,8 +1,8 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import EmptyState from '../../../Components/EmptyState/EmptyState';
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
 import IconProp from 'Common/Types/Icon/IconProp';
+import React from 'react';
 
 describe('EmptyState', () => {
     test('renders correctly with all props', () => {

@@ -1,8 +1,8 @@
-import ComponentMetadata from 'Common/Types/Workflow/Component';
-import Entities from 'Model/Models/Index';
-import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
-import Components from 'Common/Types/Workflow/Components';
 import Dictionary from 'Common/Types/Dictionary';
+import ComponentMetadata from 'Common/Types/Workflow/Component';
+import Components from 'Common/Types/Workflow/Components';
+import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
+import Entities from 'Model/Models/Index';
 
 type LoadAllComponentMetadataFunction = () => Dictionary<ComponentMetadata>;
 

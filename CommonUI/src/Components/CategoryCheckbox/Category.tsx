@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import CheckboxElement from '../Checkbox/Checkbox';
 import {
     CategoryCheckboxOption,
     CheckboxCategory,
 } from './CategoryCheckboxTypes';
-import CheckboxElement from '../Checkbox/Checkbox';
 import CheckBoxList from './CheckboxList';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export type CategoryCheckboxValue = string | number | boolean;
 

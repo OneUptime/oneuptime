@@ -4,6 +4,7 @@ import AddDowntimeMonitorStatusToStatusPage from './AddDowntimeMonitorStatusToSt
 import AddDurationColumnToSpanTable from './AddDurationColumnToSpanTable';
 import AddEndDateToIncidentStateTimeline from './AddEndDateToIncidentStateTimeline';
 import AddEndDateToMonitorStatusTimeline from './AddEndDateToMonitorStatusTimeline';
+import AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing from './AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing';
 import AddEndDateToScheduledEventsStateTimeline from './AddEndDateToScheduledEventsStateTimeline';
 import AddEndedState from './AddEndedState';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
@@ -13,18 +14,17 @@ import AddSecretKeyToIncomingRequestMonitor from './AddSecretKeyToIncomingReques
 import AddStartDateToIncidentStateTimeline from './AddStartDateToIncidentStateTimeline';
 import AddStartDateToMonitorStatusTimeline from './AddStartDateToMonitorStatusTimeline';
 import AddStartDateToScheduledEventsStateTimeline from './AddStartDateToScheduledEventsStateTimeline';
+import AddTelemetryServiceColor from './AddTelemetryServiceColor';
 import ChangeLogSeverityColumnTypeFromTextToNumber from './ChangeLogSeverityColumnTypeFromTextToNumber';
 import DataMigrationBase from './DataMigrationBase';
+import GenerateNewCertsForStatusPage from './GenerateNewCertsForStatusPage';
 import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotificationRule';
 import MigrateDefaultUserNotificationSetting from './MigrateDefaultUserSettingNotification';
 import MigrateToMeteredSubscription from './MigrateToMeteredSubscription';
 import MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage from './MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage';
+import MoveGreenlockCertsToAcmeCerts from './MoveGreenlockCertsToAcmeCerts';
 import UpdateActiveMonitorCountToBillingProvider from './UpdateActiveMonitorCountToBillingProvider';
 import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
-import AddTelemetryServiceColor from './AddTelemetryServiceColor';
-import MoveGreenlockCertsToAcmeCerts from './MoveGreenlockCertsToAcmeCerts';
-import GenerateNewCertsForStatusPage from './GenerateNewCertsForStatusPage';
-import AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing from './AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing';
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 

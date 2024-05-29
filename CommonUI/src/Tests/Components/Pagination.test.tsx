@@ -1,10 +1,10 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
 import Pagination, {
     ComponentProps,
 } from '../../Components/Pagination/Pagination';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom/extend-expect';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
 
 describe('Pagination', () => {
     it('renders Component', () => {

@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Row, { GanttChartRow } from './Row';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     row: GanttChartRow;

@@ -1,13 +1,13 @@
-import Link from 'Common/Types/Link';
-import React, { ReactElement, useEffect, useState } from 'react';
-import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
-import BaseModel from 'Common/Models/BaseModel';
+import API from '../../Utils/API/API';
 import Query from '../../Utils/BaseDatabase/Query';
+import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
-import API from '../../Utils/API/API';
-import IconProp from 'Common/Types/Icon/IconProp';
+import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Link from 'Common/Types/Link';
+import React, { ReactElement, useEffect, useState } from 'react';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;

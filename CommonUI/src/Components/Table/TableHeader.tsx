@@ -1,12 +1,12 @@
-import React, { ReactElement, useState } from 'react';
+import CheckboxElement from '../Checkbox/Checkbox';
+import Icon, { ThickProp } from '../Icon/Icon';
+import FieldType from '../Types/FieldType';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
-import Icon, { ThickProp } from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import FieldType from '../Types/FieldType';
 import GenericObject from 'Common/Types/GenericObject';
-import CheckboxElement from '../Checkbox/Checkbox';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React, { ReactElement, useState } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     columns: Columns<T>;

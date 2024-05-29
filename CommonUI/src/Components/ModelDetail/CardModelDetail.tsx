@@ -1,24 +1,24 @@
+import PermissionUtil from '../../Utils/Permission';
+import User from '../../Utils/User';
+import { ButtonStyleType } from '../Button/Button';
+import Card, {
+    CardButtonSchema,
+    ComponentProps as CardProps,
+} from '../Card/Card';
+import { FormType } from '../Forms/ModelForm';
+import Fields from '../Forms/Types/Fields';
+import { FormStep } from '../Forms/Types/FormStep';
+import { ModalWidth } from '../Modal/Modal';
+import ModelFormModal from '../ModelFormModal/ModelFormModal';
+import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
+import BaseModel from 'Common/Models/BaseModel';
+import IconProp from 'Common/Types/Icon/IconProp';
 import {
     PermissionHelper,
     UserPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import React, { ReactElement, useEffect, useState } from 'react';
-import PermissionUtil from '../../Utils/Permission';
-import Card, {
-    CardButtonSchema,
-    ComponentProps as CardProps,
-} from '../Card/Card';
-import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
-import BaseModel from 'Common/Models/BaseModel';
-import { ButtonStyleType } from '../Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
-import ModelFormModal from '../ModelFormModal/ModelFormModal';
-import { FormType } from '../Forms/ModelForm';
-import Fields from '../Forms/Types/Fields';
-import { FormStep } from '../Forms/Types/FormStep';
-import { ModalWidth } from '../Modal/Modal';
-import User from '../../Utils/User';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;

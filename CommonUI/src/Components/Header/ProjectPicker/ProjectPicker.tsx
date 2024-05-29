@@ -1,16 +1,16 @@
+import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
+import Icon from '../../Icon/Icon';
+import CreateNewProjectButton from './CreateNewProjectButton';
+import ProjectPickerMenu from './ProjectPickerMenu';
+import ProjectPickerMenuItem from './ProjectPickerMenuItem';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Project from 'Model/Models/Project';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import Icon from '../../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Project from 'Model/Models/Project';
-import ProjectPickerMenu from './ProjectPickerMenu';
-import ProjectPickerMenuItem from './ProjectPickerMenuItem';
-import CreateNewProjectButton from './CreateNewProjectButton';
 
 export interface ComponentProps {
     projects: Array<Project>;

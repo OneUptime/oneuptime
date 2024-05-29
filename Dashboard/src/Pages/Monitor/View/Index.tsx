@@ -1,65 +1,65 @@
+import LabelsElement from '../../../Components/Label/Labels';
+import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
+import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
+import { MonitorCharts } from '../../../Components/Monitor/MonitorCharts/MonitorChart';
+import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
+import Metrics from '../../../Components/Monitor/SummaryView/Summary';
+import ProbeUtil from '../../../Utils/Probe';
+import PageComponentProps from '../../PageComponentProps';
+import InBetween from 'Common/Types/BaseDatabase/InBetween';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { Black, Gray500, Green } from 'Common/Types/BrandColors';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import {
+    CheckOn,
+    CriteriaFilterUtil,
+} from 'Common/Types/Monitor/CriteriaFilter';
+import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
+import MonitorType, {
+    MonitorTypeHelper,
+} from 'Common/Types/Monitor/MonitorType';
+import ObjectID from 'Common/Types/ObjectID';
+import Card from 'CommonUI/src/Components/Card/Card';
+import ChartGroup, {
+    Chart,
+    ChartGroupInterval,
+} from 'CommonUI/src/Components/Charts/ChartGroup/ChartGroup';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
+import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import API from 'CommonUI/src/Utils/API/API';
+import AnalyticsModelAPI, {
+    ListResult as AnalyticsListResult,
+} from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
+import Label from 'Model/Models/Label';
+import Monitor from 'Model/Models/Monitor';
+import MonitorProbe, {
+    MonitorStepProbeResponse,
+} from 'Model/Models/MonitorProbe';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import Probe from 'Model/Models/Probe';
+import { UptimePrecision } from 'Model/Models/StatusPageResource';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import Label from 'Model/Models/Label';
-import ObjectID from 'Common/Types/ObjectID';
-import LabelsElement from '../../../Components/Label/Labels';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Monitor from 'Model/Models/Monitor';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Card from 'CommonUI/src/Components/Card/Card';
-import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
-import OneUptimeDate from 'Common/Types/Date';
 import useAsyncEffect from 'use-async-effect';
-import InBetween from 'Common/Types/BaseDatabase/InBetween';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import API from 'CommonUI/src/Utils/API/API';
-import DisabledWarning from '../../../Components/Monitor/DisabledWarning';
-import MonitorType, {
-    MonitorTypeHelper,
-} from 'Common/Types/Monitor/MonitorType';
-import IncomingMonitorLink from '../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink';
-import { Green, Gray500, Black } from 'Common/Types/BrandColors';
-import UptimeUtil from 'CommonUI/src/Components/MonitorGraphs/UptimeUtil';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import { UptimePrecision } from 'Model/Models/StatusPageResource';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import ServerMonitorDocumentation from '../../../Components/Monitor/ServerMonitor/Documentation';
-import ChartGroup, {
-    Chart,
-    ChartGroupInterval,
-} from 'CommonUI/src/Components/Charts/ChartGroup/ChartGroup';
-import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
-import AnalyticsModelAPI, {
-    ListResult as AnalyticsListResult,
-} from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
-import {
-    CheckOn,
-    CriteriaFilterUtil,
-} from 'Common/Types/Monitor/CriteriaFilter';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import { MonitorCharts } from '../../../Components/Monitor/MonitorCharts/MonitorChart';
-import Probe from 'Model/Models/Probe';
-import ProbeUtil from '../../../Utils/Probe';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import Metrics from '../../../Components/Monitor/SummaryView/Summary';
-import MonitorProbe, {
-    MonitorStepProbeResponse,
-} from 'Model/Models/MonitorProbe';
-import IncomingMonitorRequest from 'Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

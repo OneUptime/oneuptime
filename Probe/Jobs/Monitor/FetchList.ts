@@ -1,17 +1,17 @@
-import API from 'Common/Utils/API';
 import { INGESTOR_URL, PROBE_MONITOR_FETCH_LIMIT } from '../../Config';
-import URL from 'Common/Types/API/URL';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import Monitor from 'Model/Models/Monitor';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import BaseModel from 'Common/Models/BaseModel';
-import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
 import MonitorUtil from '../../Utils/Monitors/Monitor';
-import logger from 'CommonServer/Utils/Logger';
-import { JSONArray } from 'Common/Types/JSON';
+import ProbeAPIRequest from '../../Utils/ProbeAPIRequest';
+import BaseModel from 'Common/Models/BaseModel';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
 import OneUptimeDate from 'Common/Types/Date';
+import { JSONArray } from 'Common/Types/JSON';
 import Sleep from 'Common/Types/Sleep';
+import API from 'Common/Utils/API';
+import logger from 'CommonServer/Utils/Logger';
+import Monitor from 'Model/Models/Monitor';
 
 export default class FetchListAndProbe {
     private workerName: string = '';

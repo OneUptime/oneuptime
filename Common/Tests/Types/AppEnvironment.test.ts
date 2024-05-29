@@ -1,4 +1,5 @@
 import AppEnvironment from '../../Types/AppEnvironment';
+
 describe('AppEnvironment', () => {
     test('AppEnvironment.Production should be production', () => {
         expect(AppEnvironment.Production).toEqual('production');

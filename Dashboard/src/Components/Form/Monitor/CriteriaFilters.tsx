@@ -1,17 +1,17 @@
+import CriteriaFilterElement from './CriteriaFilter';
+import IconProp from 'Common/Types/Icon/IconProp';
 import {
     CheckOn,
     CriteriaFilter,
     FilterType,
 } from 'Common/Types/Monitor/CriteriaFilter';
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import CriteriaFilterElement from './CriteriaFilter';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 import Button, {
     ButtonSize,
     ButtonStyleType,
 } from 'CommonUI/src/Components/Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
     initialValue: Array<CriteriaFilter> | undefined;

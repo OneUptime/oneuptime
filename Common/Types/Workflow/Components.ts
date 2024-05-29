@@ -1,18 +1,17 @@
+import IconProp from '../Icon/IconProp';
 import ComponentMetadata, { ComponentCategory } from './Component';
-import LogComponents from './Components/Log';
 import APIComponents from './Components/API';
-import ScheduleComponents from './Components/Schedule';
-import SlackComponents from './Components/Slack';
 import ConditionComponents from './Components/Condition';
+import EmailComponents from './Components/Email';
 import JsonComponents from './Components/JSON';
 import JavaScriptComponents from './Components/JavaScript';
-import EmailComponents from './Components/Email';
-import WebhookComponents from './Components/Webhook';
+import LogComponents from './Components/Log';
 import ManualComponents from './Components/Manual';
-import WorkflowComponents from './Components/Workflow';
 import MicrosoftTeamsComponents from './Components/MicrosoftTeams';
-
-import IconProp from '../Icon/IconProp';
+import ScheduleComponents from './Components/Schedule';
+import SlackComponents from './Components/Slack';
+import WebhookComponents from './Components/Webhook';
+import WorkflowComponents from './Components/Workflow';
 
 const components: Array<ComponentMetadata> = [
     ...LogComponents,

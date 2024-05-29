@@ -1,44 +1,44 @@
-import React, {
-    FunctionComponent,
-    useCallback,
-    useRef,
-    useEffect,
-    useState,
-} from 'react';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
-import ReactFlow, {
-    MiniMap,
-    Controls,
-    Background,
-    useNodesState,
-    useEdgesState,
-    addEdge,
-    MarkerType,
-    Edge,
-    Connection,
-    updateEdge,
-    Node,
-    ProOptions,
-    NodeTypes,
-    OnConnect,
-    getConnectedEdges,
-} from 'reactflow';
-// 👇 you need to import the reactflow styles
-import 'reactflow/dist/style.css';
 import WorkflowComponent from './Component';
-import ObjectID from 'Common/Types/ObjectID';
+import ComponentSettingsModal from './ComponentSettingsModal';
+import ComponentsModal from './ComponentsModal';
+import RunModal from './RunModal';
+import { loadComponentsAndCategories } from './Utils';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
 import ComponentMetadata, {
     ComponentCategory,
     ComponentType,
     NodeDataProp,
     NodeType,
 } from 'Common/Types/Workflow/Component';
-import ComponentsModal from './ComponentsModal';
-import { JSONObject } from 'Common/Types/JSON';
-import ComponentSettingsModal from './ComponentSettingsModal';
-import { loadComponentsAndCategories } from './Utils';
-import RunModal from './RunModal';
+import React, {
+    FunctionComponent,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+import ReactFlow, {
+    Background,
+    Connection,
+    Controls,
+    Edge,
+    MarkerType,
+    MiniMap,
+    Node,
+    NodeTypes,
+    OnConnect,
+    ProOptions,
+    addEdge,
+    getConnectedEdges,
+    updateEdge,
+    useEdgesState,
+    useNodesState,
+} from 'reactflow';
+// 👇 you need to import the reactflow styles
+import 'reactflow/dist/style.css';
 
 type GetPlaceholderTriggerNodeFunction = () => Node;
 

@@ -1,31 +1,31 @@
+import SSOUtil from '../Utils/SSO';
+import URL from 'Common/Types/API/URL';
+import OneUptimeDate from 'Common/Types/Date';
+import Email from 'Common/Types/Email';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import Exception from 'Common/Types/Exception/Exception';
+import ServerException from 'Common/Types/Exception/ServerException';
+import HashedString from 'Common/Types/HashedString';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
+import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivateUserService';
+import StatusPageService from 'CommonServer/Services/StatusPageService';
+import StatusPageSsoService from 'CommonServer/Services/StatusPageSsoService';
+import CookieUtil from 'CommonServer/Utils/Cookie';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import ServerException from 'Common/Types/Exception/ServerException';
-import Response from 'CommonServer/Utils/Response';
-import StatusPageSsoService from 'CommonServer/Services/StatusPageSsoService';
-import ObjectID from 'Common/Types/ObjectID';
-import xml2js from 'xml2js';
-import { JSONObject } from 'Common/Types/JSON';
-import logger from 'CommonServer/Utils/Logger';
-import Email from 'Common/Types/Email';
-import OneUptimeDate from 'Common/Types/Date';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
-import URL from 'Common/Types/API/URL';
-import SSOUtil from '../Utils/SSO';
-import Exception from 'Common/Types/Exception/Exception';
-import StatusPageSSO from 'Model/Models/StatusPageSso';
+import logger from 'CommonServer/Utils/Logger';
+import Response from 'CommonServer/Utils/Response';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivateUserService';
-import HashedString from 'Common/Types/HashedString';
-import StatusPageService from 'CommonServer/Services/StatusPageService';
-import CookieUtil from 'CommonServer/Utils/Cookie';
-import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
+import StatusPageSSO from 'Model/Models/StatusPageSso';
+import xml2js from 'xml2js';
 
 const router: ExpressRouter = Express.getRouter();
 

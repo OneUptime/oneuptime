@@ -1,12 +1,12 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import MonitorGroup from 'Model/Models/MonitorGroup';
-import Link from 'CommonUI/src/Components/Link/Link';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ObjectID from 'Common/Types/ObjectID';
 import Icon from 'CommonUI/src/Components/Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
+import Link from 'CommonUI/src/Components/Link/Link';
+import MonitorGroup from 'Model/Models/MonitorGroup';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     monitorGroup: MonitorGroup;

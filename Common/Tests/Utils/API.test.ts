@@ -1,25 +1,25 @@
-import Protocol from '../../Types/API/Protocol';
-import API from '../../Utils/API';
-import Hostname from '../../Types/API/Hostname';
-import HTTPMethod from '../../Types/API/HTTPMethod';
-import URL from '../../Types/API/URL';
-import Route from '../../Types/API/Route';
-import axios, {
-    AxiosResponse,
-    AxiosError,
-    AxiosStatic,
-    AxiosRequestConfig,
-    Method,
-    AxiosHeaders,
-} from 'axios';
-import { expect, jest } from '@jest/globals';
-import HTTPResponse from '../../Types/API/HTTPResponse';
 import HTTPErrorResponse from '../../Types/API/HTTPErrorResponse';
-import APIException from '../../Types/Exception/ApiException';
-import Dictionary from '../../Types/Dictionary';
+import HTTPMethod from '../../Types/API/HTTPMethod';
+import HTTPResponse from '../../Types/API/HTTPResponse';
 import Headers from '../../Types/API/Headers';
-import { JSONObject } from '../../Types/JSON';
+import Hostname from '../../Types/API/Hostname';
+import Protocol from '../../Types/API/Protocol';
+import Route from '../../Types/API/Route';
+import URL from '../../Types/API/URL';
+import Dictionary from '../../Types/Dictionary';
+import APIException from '../../Types/Exception/ApiException';
 import GenericObject from '../../Types/GenericObject';
+import { JSONObject } from '../../Types/JSON';
+import API from '../../Utils/API';
+import { expect, jest } from '@jest/globals';
+import axios, {
+    AxiosError,
+    AxiosHeaders,
+    AxiosRequestConfig,
+    AxiosResponse,
+    AxiosStatic,
+    Method,
+} from 'axios';
 
 const DEFAULT_HEADERS: Headers = {
     'Access-Control-Allow-Origin': '*',

@@ -1,13 +1,13 @@
-import '../TestingUtils/Init';
 import { Service as ProbeService } from '../../Services/ProbeService';
-import Probe from 'Model/Models/Probe';
 import Database from '../TestingUtils/Database';
+import '../TestingUtils/Init';
+import UserTestService from '../TestingUtils/Services/UserServiceHelper';
 import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import Version from 'Common/Types/Version';
 import Faker from 'Common/Utils/Faker';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import Probe from 'Model/Models/Probe';
 import User from 'Model/Models/User';
-import UserTestService from '../TestingUtils/Services/UserServiceHelper';
 import { fail } from 'assert';
 
 describe('probeService', () => {

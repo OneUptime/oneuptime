@@ -1,29 +1,29 @@
+import MonitorElement from '../../../Components/Monitor/Monitor';
+import DashboardNavigation from '../../../Utils/Navigation';
+import PageComponentProps from '../../PageComponentProps';
+import Color from 'Common/Types/Color';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Monitor from 'Model/Models/Monitor';
+import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
+import MonitorStatus from 'Model/Models/MonitorStatus';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useEffect,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import MonitorGroupResource from 'Model/Models/MonitorGroupResource';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Monitor from 'Model/Models/Monitor';
-import MonitorElement from '../../../Components/Monitor/Monitor';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import API from 'CommonUI/src/Utils/API/API';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Color from 'Common/Types/Color';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

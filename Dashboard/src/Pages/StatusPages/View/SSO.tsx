@@ -1,36 +1,36 @@
-import React, {
-    Fragment,
-    FunctionComponent,
-    ReactElement,
-    useState,
-} from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import DashboardNavigation from '../../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import StatusPageSSO from 'Model/Models/StatusPageSso';
-import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
-import DigestMethod from 'Common/Types/SSO/DigestMethod';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Card from 'CommonUI/src/Components/Card/Card';
-import Link from 'CommonUI/src/Components/Link/Link';
+import PageComponentProps from '../../PageComponentProps';
 import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import DigestMethod from 'Common/Types/SSO/DigestMethod';
+import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Card from 'CommonUI/src/Components/Card/Card';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Link from 'CommonUI/src/Components/Link/Link';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import {
     HOST,
     HTTP_PROTOCOL,
     IDENTITY_URL,
     STATUS_PAGE_URL,
 } from 'CommonUI/src/Config';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import ObjectID from 'Common/Types/ObjectID';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import StatusPage from 'Model/Models/StatusPage';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
+import StatusPageSSO from 'Model/Models/StatusPageSso';
+import React, {
+    Fragment,
+    FunctionComponent,
+    ReactElement,
+    useState,
+} from 'react';
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

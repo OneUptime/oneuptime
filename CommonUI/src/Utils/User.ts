@@ -1,13 +1,13 @@
-import LocalStorage from './LocalStorage';
-import Email from 'Common/Types/Email';
-import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import Name from 'Common/Types/Name';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Dictionary from 'Common/Types/Dictionary';
-import API from 'Common/Utils/API';
 import { IDENTITY_URL } from '../Config';
+import LocalStorage from './LocalStorage';
+import URL from 'Common/Types/API/URL';
+import Dictionary from 'Common/Types/Dictionary';
+import Email from 'Common/Types/Email';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import Name from 'Common/Types/Name';
+import ObjectID from 'Common/Types/ObjectID';
+import API from 'Common/Utils/API';
 
 export default class User {
     public static setProfilePicId(id: ObjectID | null): void {

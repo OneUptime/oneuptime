@@ -1,3 +1,25 @@
+import Label from './Label';
+import Project from './Project';
+import Team from './Team';
+import User from './User';
+import BaseModel from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
+import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import Permission from 'Common/Types/Permission';
 import {
     Column,
     Entity,
@@ -7,28 +29,6 @@ import {
     ManyToMany,
     ManyToOne,
 } from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
-import User from './User';
-import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import Route from 'Common/Types/API/Route';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
-import TableColumn from 'Common/Types/Database/TableColumn';
-import ColumnType from 'Common/Types/Database/ColumnType';
-import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
-import Permission from 'Common/Types/Permission';
-import Label from './Label';
-import Team from './Team';
-import Project from './Project';
-import TenantColumn from 'Common/Types/Database/TenantColumn';
-import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
-import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Database/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';
-import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
-import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 @TableBillingAccessControl({
     create: PlanSelect.Growth,

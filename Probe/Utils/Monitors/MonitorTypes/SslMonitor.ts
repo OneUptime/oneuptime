@@ -1,16 +1,16 @@
-import tls, { TLSSocket } from 'tls';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import ObjectID from 'Common/Types/ObjectID';
-import logger from 'CommonServer/Utils/Logger';
 import OnlineCheck from '../../OnlineCheck';
-import Sleep from 'Common/Types/Sleep';
 import URL from 'Common/Types/API/URL';
-import SSLMonitorReponse from 'Common/Types/Monitor/SSLMonitor/SslMonitorResponse';
-import https, { RequestOptions } from 'https';
-import ObjectUtil from 'Common/Utils/ObjectUtil';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import SSLMonitorReponse from 'Common/Types/Monitor/SSLMonitor/SslMonitorResponse';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Sleep from 'Common/Types/Sleep';
+import ObjectUtil from 'Common/Utils/ObjectUtil';
+import logger from 'CommonServer/Utils/Logger';
 import { ClientRequest, IncomingMessage } from 'http';
+import https, { RequestOptions } from 'https';
+import tls, { TLSSocket } from 'tls';
 
 export interface SslResponse extends SSLMonitorReponse {
     isOnline: boolean;

@@ -1,10 +1,9 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-
+import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Navigation from '../../Utils/Navigation';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement> | string;

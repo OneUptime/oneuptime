@@ -1,16 +1,16 @@
-import UserSMS from 'Model/Models/UserSMS';
+import UserMiddleware from '../Middleware/UserAuthorization';
 import UserSMSService, {
     Service as UserSMSServiceType,
 } from '../Services/UserSmsService';
-import BaseAPI from './BaseAPI';
-import UserMiddleware from '../Middleware/UserAuthorization';
 import {
     ExpressRequest,
     ExpressResponse,
     OneUptimeRequest,
 } from '../Utils/Express';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import Response from '../Utils/Response';
+import BaseAPI from './BaseAPI';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import UserSMS from 'Model/Models/UserSMS';
 
 export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
     public constructor() {

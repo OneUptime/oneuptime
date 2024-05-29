@@ -1,3 +1,31 @@
+import MonitorElement from '../../../Components/Monitor/Monitor';
+import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupElement';
+import DashboardNavigation from '../../../Utils/Navigation';
+import PageComponentProps from '../../PageComponentProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import { ModelField } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import Link from 'CommonUI/src/Components/Link/Link';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import API from 'CommonUI/src/Utils/API/API';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Monitor from 'Model/Models/Monitor';
+import MonitorGroup from 'Model/Models/MonitorGroup';
+import StatusPageGroup from 'Model/Models/StatusPageGroup';
+import StatusPageResource, {
+    UptimePrecision,
+} from 'Model/Models/StatusPageResource';
 import React, {
     Fragment,
     FunctionComponent,
@@ -5,34 +33,6 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPageResource, {
-    UptimePrecision,
-} from 'Model/Models/StatusPageResource';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Monitor from 'Model/Models/Monitor';
-import MonitorElement from '../../../Components/Monitor/Monitor';
-import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import StatusPageGroup from 'Model/Models/StatusPageGroup';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import API from 'CommonUI/src/Utils/API/API';
-import { ModelField } from 'CommonUI/src/Components/Forms/ModelForm';
-import MonitorGroup from 'Model/Models/MonitorGroup';
-import Link from 'CommonUI/src/Components/Link/Link';
-import MonitorGroupElement from '../../../Components/MonitorGroup/MonitorGroupElement';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

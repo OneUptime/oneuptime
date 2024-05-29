@@ -1,15 +1,16 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
-import TableColumn from 'Common/Types/Database/TableColumn';
-import ColumnType from 'Common/Types/Database/ColumnType';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
-import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import IconProp from 'Common/Types/Icon/IconProp';
-import User from './User';
 import ObjectID from 'Common/Types/ObjectID';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+
 @TableAccessControl({
     create: [],
     read: [],

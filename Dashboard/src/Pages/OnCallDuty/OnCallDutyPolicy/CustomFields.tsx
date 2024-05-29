@@ -1,11 +1,11 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import CustomFieldsDetail from 'CommonUI/src/Components/CustomFields/CustomFieldsDetail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
 import OnCallDutyPolicyCustomField from 'Model/Models/OnCallDutyPolicyCustomField';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const OnCallDutyPolicyCustomFields: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

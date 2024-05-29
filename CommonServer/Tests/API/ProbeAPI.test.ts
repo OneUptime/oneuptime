@@ -1,16 +1,16 @@
+import Ingestor from '../../API/ProbeAPI';
 import ProbeService from '../../Services/ProbeService';
-import Probe from 'Model/Models/Probe';
-import Response from '../../Utils/Response';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
 } from '../../Utils/Express';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import { describe, expect, it } from '@jest/globals';
+import Response from '../../Utils/Response';
 import { mockRouter } from './Helpers';
-import Ingestor from '../../API/ProbeAPI';
+import { describe, expect, it } from '@jest/globals';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import Probe from 'Model/Models/Probe';
 
 jest.mock('../../Utils/Express', () => {
     return {

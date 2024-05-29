@@ -1,5 +1,4 @@
 // This model will be extended by BaseModel and Nested Mdoel
-
 import AnalyticsTableColumn from '../Types/AnalyticsDatabase/TableColumn';
 import TableColumnType from '../Types/AnalyticsDatabase/TableColumnType';
 import GreaterThan from '../Types/BaseDatabase/GreaterThan';

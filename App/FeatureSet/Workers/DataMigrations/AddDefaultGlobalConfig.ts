@@ -1,7 +1,7 @@
 import DataMigrationBase from './DataMigrationBase';
-import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
 import ObjectID from 'Common/Types/ObjectID';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
+import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
 
 export default class AddDefaultGlobalConfig extends DataMigrationBase {
     public constructor() {

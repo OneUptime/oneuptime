@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom/extend-expect';
-import React, { useEffect, FunctionComponent } from 'react';
-import { render, screen } from '@testing-library/react';
 import ErrorBoundary from '../../Components/ErrorBoundary';
+import '@testing-library/jest-dom/extend-expect';
+import { render, screen } from '@testing-library/react';
+import React, { FunctionComponent, useEffect } from 'react';
 
 describe('ErrorBoundary', () => {
     const spy: jest.SpyInstance = jest.spyOn(console, 'error');

@@ -1,19 +1,19 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorGroupOwnerTeam from 'Model/Models/MonitorGroupOwnerTeam';
-import DashboardNavigation from '../../../Utils/Navigation';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Team from 'Model/Models/Team';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import TeamElement from '../../../Components/Team/Team';
-import MonitorGroupOwnerUser from 'Model/Models/MonitorGroupOwnerUser';
-import User from 'Model/Models/User';
 import UserElement from '../../../Components/User/User';
+import DashboardNavigation from '../../../Utils/Navigation';
 import ProjectUser from '../../../Utils/ProjectUser';
+import PageComponentProps from '../../PageComponentProps';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import MonitorGroupOwnerTeam from 'Model/Models/MonitorGroupOwnerTeam';
+import MonitorGroupOwnerUser from 'Model/Models/MonitorGroupOwnerUser';
+import Team from 'Model/Models/Team';
+import User from 'Model/Models/User';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const MonitorGroupOwners: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

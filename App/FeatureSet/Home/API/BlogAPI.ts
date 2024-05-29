@@ -1,14 +1,14 @@
+import BlogPostUtil, { BlogPost, BlogPostHeader } from '../Utils/BlogPost';
+import { ViewsPath } from '../Utils/Config';
+import NotFoundUtil from '../Utils/NotFound';
+import ServerErrorUtil from '../Utils/ServerError';
+import Text from 'Common/Types/Text';
 import Express, {
     ExpressApplication,
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-import BlogPostUtil, { BlogPost, BlogPostHeader } from '../Utils/BlogPost';
-import { ViewsPath } from '../Utils/Config';
 import logger from 'CommonServer/Utils/Logger';
-import ServerErrorUtil from '../Utils/ServerError';
-import NotFoundUtil from '../Utils/NotFound';
-import Text from 'Common/Types/Text';
 
 const app: ExpressApplication = Express.getExpressApp();
 

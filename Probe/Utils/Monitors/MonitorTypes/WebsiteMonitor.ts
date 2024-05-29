@@ -1,15 +1,15 @@
-import URL from 'Common/Types/API/URL';
-import Headers from 'Common/Types/API/Headers';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import Protocol from 'Common/Types/API/Protocol';
-import WebsiteRequest, { WebsiteResponse } from 'Common/Types/WebsiteRequest';
-import HTML from 'Common/Types/Html';
-import { AxiosError } from 'axios';
-import logger from 'CommonServer/Utils/Logger';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import ObjectID from 'Common/Types/ObjectID';
-import Sleep from 'Common/Types/Sleep';
 import OnlineCheck from '../../OnlineCheck';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import Headers from 'Common/Types/API/Headers';
+import Protocol from 'Common/Types/API/Protocol';
+import URL from 'Common/Types/API/URL';
+import HTML from 'Common/Types/Html';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Sleep from 'Common/Types/Sleep';
+import WebsiteRequest, { WebsiteResponse } from 'Common/Types/WebsiteRequest';
+import logger from 'CommonServer/Utils/Logger';
+import { AxiosError } from 'axios';
 
 export interface ProbeWebsiteResponse {
     url: URL;

@@ -1,14 +1,14 @@
-import React from 'react';
-import Footer from 'CommonUI/src/Components/Footer/Footer';
-import URL from 'Common/Types/API/URL';
-import API from 'Common/Utils/API';
-import { HOST, HTTP_PROTOCOL } from 'CommonUI/src/Config';
-import { JSONObject } from 'Common/Types/JSON';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import Dictionary from 'Common/Types/Dictionary';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { JSONObject } from 'Common/Types/JSON';
+import API from 'Common/Utils/API';
+import Footer from 'CommonUI/src/Components/Footer/Footer';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import { HOST, HTTP_PROTOCOL } from 'CommonUI/src/Config';
+import React from 'react';
 
 const DashboardFooter: () => JSX.Element = () => {
     const [showAboutModal, setShowAboutModal] = React.useState<boolean>(false);

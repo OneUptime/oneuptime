@@ -1,19 +1,19 @@
+import TelemetryIngest, {
+    TelemetryRequest,
+} from '../Middleware/TelemetryIngest';
+import OneUptimeDate from 'Common/Types/Date';
+import { JSONObject } from 'Common/Types/JSON';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
+import LogService from 'CommonServer/Services/LogService';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import TelemetryIngest, {
-    TelemetryRequest,
-} from '../Middleware/TelemetryIngest';
-import Response from 'CommonServer/Utils/Response';
 import logger from 'CommonServer/Utils/Logger';
-import { JSONObject } from 'Common/Types/JSON';
+import Response from 'CommonServer/Utils/Response';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
-import LogService from 'CommonServer/Services/LogService';
-import OneUptimeDate from 'Common/Types/Date';
 
 export class FluentRequestMiddleware {
     public static async getProductType(

@@ -1,17 +1,18 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import DashboardNavigation from '../../Utils/Navigation';
 import PageComponentProps from '../PageComponentProps';
-import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import Color from 'Common/Types/Color';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import DashboardNavigation from '../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {

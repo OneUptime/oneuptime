@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import MonitorCriteriaIncidentForm from './MonitorCriteriaIncidentForm';
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
-import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import ObjectID from 'Common/Types/ObjectID';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
     initialValue: Array<CriteriaIncident> | undefined;

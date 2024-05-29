@@ -1,14 +1,15 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import Color from 'Common/Types/Color';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { ShowAs } from 'CommonUI/src/Components/ModelTable/BaseModelTable';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+
 const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {

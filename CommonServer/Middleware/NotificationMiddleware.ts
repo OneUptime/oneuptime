@@ -4,12 +4,11 @@ import {
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
-
+import JSONWebToken from '../Utils/JsonWebToken';
 import Response from '../Utils/Response';
+import { OnCallInputRequest } from 'Common/Types/Call/CallRequest';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import JSONWebToken from '../Utils/JsonWebToken';
-import { OnCallInputRequest } from 'Common/Types/Call/CallRequest';
 import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 
 export default class NotificationMiddleware {

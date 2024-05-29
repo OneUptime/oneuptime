@@ -1,8 +1,8 @@
-import BaseModel from 'Common/Models/BaseModel';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import Query from './Query';
 import GroupBy from './GroupBy';
+import Query from './Query';
+import BaseModel from 'Common/Models/BaseModel';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default interface CountBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;

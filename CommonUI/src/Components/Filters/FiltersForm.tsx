@@ -1,14 +1,14 @@
-import React, { ReactElement } from 'react';
-import Filter from './Types/Filter';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import GenericObject from 'Common/Types/GenericObject';
-import FilterData from './Types/FilterData';
-import EntityFilter from './EntityFilter';
 import BooleanFilter from './BooleanFilter';
-import TextFilter from './TextFilter';
 import DropdownFilter from './DropdownFilter';
+import EntityFilter from './EntityFilter';
 import JSONFilter from './JSONFilter';
+import TextFilter from './TextFilter';
+import Filter from './Types/Filter';
+import FilterData from './Types/FilterData';
+import GenericObject from 'Common/Types/GenericObject';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     filters: Array<Filter<T>>;

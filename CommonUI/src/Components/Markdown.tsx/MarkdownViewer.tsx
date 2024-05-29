@@ -1,8 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-
 // https://github.com/remarkjs/react-markdown
 import ReactMarkdown from 'react-markdown';
-
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from 'remark-gfm';
 

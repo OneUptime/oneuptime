@@ -1,11 +1,11 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import DashboardNavigation from '../../Utils/Navigation';
 import { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import DashboardNavigation from '../../Utils/Navigation';
 import IncidentNoteTemplate from 'Model/Models/IncidentNoteTemplate';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

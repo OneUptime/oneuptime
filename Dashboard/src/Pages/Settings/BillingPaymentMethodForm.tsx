@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import {
-    useStripe,
-    useElements,
     PaymentElement,
+    useElements,
+    useStripe,
 } from '@stripe/react-stripe-js';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { FunctionComponent, ReactElement, Ref } from 'react';
 
 export interface ComponentProps {
     onError: (error: string) => void;

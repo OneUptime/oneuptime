@@ -1,3 +1,4 @@
+import ProbeAuthorization from '../Middleware/ProbeAuthorization';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -5,7 +6,6 @@ import Express, {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
-import ProbeAuthorization from '../Middleware/ProbeAuthorization';
 
 const router: ExpressRouter = Express.getRouter();
 

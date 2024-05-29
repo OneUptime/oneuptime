@@ -1,11 +1,11 @@
-import React, { ReactElement } from 'react';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Icon, { SizeProp } from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import Item from './Item';
 import GenericObject from 'Common/Types/GenericObject';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     data: Array<T>;

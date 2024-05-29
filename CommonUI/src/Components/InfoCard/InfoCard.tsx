@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import FieldLabelElement from '../Detail/FieldLabel';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     title: string;

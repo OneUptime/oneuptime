@@ -1,19 +1,19 @@
+import { ButtonStyleType } from '../Button/Button';
+import BasicForm, {
+    DefaultValidateFunction,
+    FormErrors,
+    FormProps,
+} from './BasicForm';
+import Fields from './Types/Fields';
+import { FormStep } from './Types/FormStep';
+import FormValues from './Types/FormValues';
+import BaseModel from 'Common/Models/BaseModel';
 import React, {
     MutableRefObject,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import FormValues from './Types/FormValues';
-import Fields from './Types/Fields';
-import BasicForm, {
-    DefaultValidateFunction,
-    FormErrors,
-    FormProps,
-} from './BasicForm';
-import { ButtonStyleType } from '../Button/Button';
-import { FormStep } from './Types/FormStep';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;

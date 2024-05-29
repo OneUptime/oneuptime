@@ -1,10 +1,11 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import OrderedStatesList, {
     ComponentProps,
 } from '../../Components/OrderedStatesList/OrderedStatesList';
 import { describe, expect, it } from '@jest/globals';
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+
 describe('OrderedSateList', () => {
     interface ItemData {
         title: string;

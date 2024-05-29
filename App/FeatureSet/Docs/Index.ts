@@ -1,16 +1,16 @@
-import 'ejs';
+import { ContentPath, StaticPath, ViewsPath } from './Utils/Config';
+import DocsNav, { NavGroup, NavLink } from './Utils/Nav';
+import DocsRender from './Utils/Render';
+import FeatureSet from 'CommonServer/Types/FeatureSet';
 import Express, {
+    ExpressApplication,
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
-    ExpressApplication,
 } from 'CommonServer/Utils/Express';
-import { ContentPath, StaticPath, ViewsPath } from './Utils/Config';
-import DocsNav, { NavGroup, NavLink } from './Utils/Nav';
 import LocalFile from 'CommonServer/Utils/LocalFile';
-import DocsRender from './Utils/Render';
 import logger from 'CommonServer/Utils/Logger';
-import FeatureSet from 'CommonServer/Types/FeatureSet';
+import 'ejs';
 
 const DocsFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {

@@ -1,28 +1,28 @@
+import ProbeStatusElement from '../../Components/Probe/ProbeStatus';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import { Green, Red } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { APP_API_URL } from 'CommonUI/src/Config';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Probe from 'Model/Models/Probe';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Probe from 'Model/Models/Probe';
-import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import DashboardNavigation from '../../Utils/Navigation';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ProbeElement from 'CommonUI/src/Components/Probe/Probe';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import { Green, Red } from 'Common/Types/BrandColors';
-import OneUptimeDate from 'Common/Types/Date';
-import URL from 'Common/Types/API/URL';
-import { APP_API_URL } from 'CommonUI/src/Config';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
-import ProbeStatusElement from '../../Components/Probe/ProbeStatus';
-import Route from 'Common/Types/API/Route';
 
 const ProbePage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

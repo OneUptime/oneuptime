@@ -1,12 +1,12 @@
+import PageMap from '../../Utils/PageMap';
+import RouteMap from '../../Utils/RouteMap';
+import PageComponentProps from '../PageComponentProps';
 import Route from 'Common/Types/API/Route';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Project from 'Model/Models/Project';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
 
 export interface ComponentProps extends PageComponentProps {
     isLoadingProjects: boolean;

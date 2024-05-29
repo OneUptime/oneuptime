@@ -1,9 +1,9 @@
+import SyntheticMonitorItemView from './SyntheticMonitorItemView';
 import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
 import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import React, { FunctionComponent, ReactElement } from 'react';
-import SyntheticMonitorItemView from './SyntheticMonitorItemView';
 import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     probeMonitorResponse: ProbeMonitorResponse;

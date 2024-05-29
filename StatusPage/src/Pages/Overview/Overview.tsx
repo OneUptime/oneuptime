@@ -1,60 +1,60 @@
+import MonitorOverview from '../../Components/Monitor/MonitorOverview';
+import Page from '../../Components/Page/Page';
+import Section from '../../Components/Section/Section';
+import IncidentGroup from '../../Types/IncidentGroup';
+import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
+import API from '../../Utils/API';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import StatusPageUtil from '../../Utils/StatusPage';
+import { getAnnouncementEventItem } from '../Announcement/Detail';
+import { getIncidentEventItem } from '../Incidents/Detail';
+import PageComponentProps from '../PageComponentProps';
+import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
+import BaseModel from 'Common/Models/BaseModel';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import { Green } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
+import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
+import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
+import Alert from 'CommonUI/src/Components/Alerts/Alert';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Incident from 'Model/Models/Incident';
+import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import StatusPage from 'Model/Models/StatusPage';
+import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
+import StatusPageGroup from 'Model/Models/StatusPageGroup';
+import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
+import StatusPageResource, {
+    UptimePrecision,
+} from 'Model/Models/StatusPageResource';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import PageComponentProps from '../PageComponentProps';
-import Page from '../../Components/Page/Page';
-import Accordion from 'CommonUI/src/Components/Accordion/Accordion';
-import AccordionGroup from 'CommonUI/src/Components/Accordion/AccordionGroup';
-import Alert from 'CommonUI/src/Components/Alerts/Alert';
-import URL from 'Common/Types/API/URL';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPageGroup from 'Model/Models/StatusPageGroup';
-import StatusPageResource, {
-    UptimePrecision,
-} from 'Model/Models/StatusPageResource';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import Incident from 'Model/Models/Incident';
-import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import MonitorOverview from '../../Components/Monitor/MonitorOverview';
-import { Green } from 'Common/Types/BrandColors';
-import OneUptimeDate from 'Common/Types/Date';
-import Dictionary from 'Common/Types/Dictionary';
-import IncidentGroup from '../../Types/IncidentGroup';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import Route from 'Common/Types/API/Route';
-import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
-import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { getIncidentEventItem } from '../Incidents/Detail';
-import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
-import { getAnnouncementEventItem } from '../Announcement/Detail';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import IconProp from 'Common/Types/Icon/IconProp';
-import API from '../../Utils/API';
-import StatusPage from 'Model/Models/StatusPage';
-import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer';
-import StatusPageUtil from '../../Utils/StatusPage';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import Section from '../../Components/Section/Section';
-import StatusPageHistoryChartBarColorRule from 'Model/Models/StatusPageHistoryChartBarColorRule';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

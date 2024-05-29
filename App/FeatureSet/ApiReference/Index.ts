@@ -1,22 +1,22 @@
+import AuthenticationServiceHandler from './Service/Authentication';
+import DataTypeServiceHandler from './Service/DataType';
+import ErrorServiceHandler from './Service/Errors';
+import IntroductionServiceHandler from './Service/Introduction';
+import ModelServiceHandler from './Service/Model';
+import PageNotFoundServiceHandler from './Service/PageNotFound';
+import PaginationServiceHandler from './Service/Pagination';
+import PermissionServiceHandler from './Service/Permissions';
+import StatusServiceHandler from './Service/Status';
+import { StaticPath } from './Utils/Config';
+import ResourceUtil, { ModelDocumentation } from './Utils/Resources';
+import Dictionary from 'Common/Types/Dictionary';
+import FeatureSet from 'CommonServer/Types/FeatureSet';
 import Express, {
     ExpressApplication,
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
-import ResourceUtil, { ModelDocumentation } from './Utils/Resources';
-import IntroductionServiceHandler from './Service/Introduction';
-import ErrorServiceHandler from './Service/Errors';
-import PermissionServiceHandler from './Service/Permissions';
-import AuthenticationServiceHandler from './Service/Authentication';
-import PageNotFoundServiceHandler from './Service/PageNotFound';
-import ModelServiceHandler from './Service/Model';
-import PaginationServiceHandler from './Service/Pagination';
-import StatusServiceHandler from './Service/Status';
-import DataTypeServiceHandler from './Service/DataType';
-import Dictionary from 'Common/Types/Dictionary';
-import { StaticPath } from './Utils/Config';
-import FeatureSet from 'CommonServer/Types/FeatureSet';
 
 const APIReferenceFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {

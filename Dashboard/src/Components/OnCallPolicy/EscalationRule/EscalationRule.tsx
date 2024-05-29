@@ -1,10 +1,10 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Link from 'CommonUI/src/Components/Link/Link';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageMap from '../../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
+import Link from 'CommonUI/src/Components/Link/Link';
 import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     escalationRule: OnCallDutyPolicyEscalationRule;

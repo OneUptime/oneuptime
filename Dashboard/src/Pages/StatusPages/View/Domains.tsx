@@ -1,30 +1,30 @@
+import DashboardNavigation from '../../../Utils/Navigation';
+import PageComponentProps from '../../PageComponentProps';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { APP_API_URL, StatusPageCNameRecord } from 'CommonUI/src/Config';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Domain from 'Model/Models/Domain';
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Domain from 'Model/Models/Domain';
-import IconProp from 'Common/Types/Icon/IconProp';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { APP_API_URL, StatusPageCNameRecord } from 'CommonUI/src/Config';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import { ErrorFunction, VoidFunction } from 'Common/Types/FunctionTypes';
-import API from 'CommonUI/src/Utils/API/API';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import { JSONObject } from 'Common/Types/JSON';
-import URL from 'Common/Types/API/URL';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

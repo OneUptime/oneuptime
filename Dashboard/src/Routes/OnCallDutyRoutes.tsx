@@ -1,19 +1,19 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    LazyExoticComponent,
-    lazy,
-    Suspense,
-} from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { OnCallDutyRoutePath, RouteUtil } from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
-import ComponentProps from '../Pages/PageComponentProps';
 import Loader from '../Components/Loader/Loader';
 import OnCallDutyLayout from '../Pages/OnCallDuty/Layout';
 import OnCallDutyPolicyViewLayout from '../Pages/OnCallDuty/OnCallDutyPolicy/Layout';
 import OnCallDutyScheduleViewLayout from '../Pages/OnCallDuty/OnCallDutySchedule/Layout';
+import ComponentProps from '../Pages/PageComponentProps';
+import PageMap from '../Utils/PageMap';
+import RouteMap, { OnCallDutyRoutePath, RouteUtil } from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import React, {
+    FunctionComponent,
+    LazyExoticComponent,
+    ReactElement,
+    Suspense,
+    lazy,
+} from 'react';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Polcies
 const OnCallDutyPoliciesPage: LazyExoticComponent<

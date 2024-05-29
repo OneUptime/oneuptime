@@ -1,5 +1,6 @@
 import BaseModel from 'Common/AnalyticsModels/BaseModel';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+
 /**
  * Order by find options.
  */

@@ -1,13 +1,13 @@
-import BaseModel from 'Common/Models/BaseModel';
-import ObjectID from 'Common/Types/ObjectID';
-import React, { ReactElement, useState } from 'react';
+import API from '../../Utils/API/API';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import { ButtonStyleType } from '../Button/Button';
 import Card from '../Card/Card';
-import API from '../../Utils/API/API';
-import IconProp from 'Common/Types/Icon/IconProp';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import ConfirmModal from '../Modal/ConfirmModal';
+import BaseModel from 'Common/Models/BaseModel';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import React, { ReactElement, useState } from 'react';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };

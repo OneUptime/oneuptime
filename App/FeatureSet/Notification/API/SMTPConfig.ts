@@ -1,22 +1,22 @@
+import MailService from '../Services/MailService';
+import Email from 'Common/Types/Email';
+import EmailMessage from 'Common/Types/Email/EmailMessage';
+import EmailServer from 'Common/Types/Email/EmailServer';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
-const router: ExpressRouter = Express.getRouter();
-
-import Response from 'CommonServer/Utils/Response';
-import MailService from '../Services/MailService';
-import EmailMessage from 'Common/Types/Email/EmailMessage';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import { JSONObject } from 'Common/Types/JSON';
-import Email from 'Common/Types/Email';
-import EmailServer from 'Common/Types/Email/EmailServer';
-import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
-import ProjectSMTPConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ObjectID from 'Common/Types/ObjectID';
 import logger from 'CommonServer/Utils/Logger';
+import Response from 'CommonServer/Utils/Response';
+import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
+
+const router: ExpressRouter = Express.getRouter();
 
 router.post('/test', async (req: ExpressRequest, res: ExpressResponse) => {
     const body: JSONObject = req.body;

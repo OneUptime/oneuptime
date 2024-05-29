@@ -1,35 +1,34 @@
-import React, { ReactElement, useEffect } from 'react';
-
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from '../Types/FormFieldSchemaType';
-import ColorPicker from '../Fields/ColorPicker';
-import Color from 'Common/Types/Color';
-import TextArea from '../../TextArea/TextArea';
-import Dropdown, { DropdownValue } from '../../Dropdown/Dropdown';
-import Toggle from '../../Toggle/Toggle';
-import Input, { InputType } from '../../Input/Input';
-import CodeEditor from '../../CodeEditor/CodeEditor';
-import CodeType from 'Common/Types/Code/CodeType';
-import FilePicker from '../../FilePicker/FilePicker';
-import MimeType from 'Common/Types/File/MimeType';
-import FileModel from 'Common/Models/FileModel';
-import RadioButtons from '../../RadioButtons/GroupRadioButtons';
-import Field, { FormFieldStyleType } from '../Types/Field';
-import FieldLabelElement from '../Fields/FieldLabel';
-import FormValues from '../Types/FormValues';
-import { JSONValue } from 'Common/Types/JSON';
-import IDGenerator from '../../ObjectID/IDGenerator';
-import ObjectID from 'Common/Types/ObjectID';
-import OneUptimeDate from 'Common/Types/Date';
+import { GetReactElementFunction } from '../../../Types/FunctionTypes';
+import CategoryCheckbox from '../../CategoryCheckbox/Index';
 import CheckboxElement, {
     CategoryCheckboxValue,
 } from '../../Checkbox/Checkbox';
-import CategoryCheckbox from '../../CategoryCheckbox/Index';
-import Typeof from 'Common/Types/Typeof';
-import Modal from '../../Modal/Modal';
+import CodeEditor from '../../CodeEditor/CodeEditor';
+import Dropdown, { DropdownValue } from '../../Dropdown/Dropdown';
+import FilePicker from '../../FilePicker/FilePicker';
+import Input, { InputType } from '../../Input/Input';
 import Link from '../../Link/Link';
-import { GetReactElementFunction } from '../../../Types/FunctionTypes';
+import Modal from '../../Modal/Modal';
+import IDGenerator from '../../ObjectID/IDGenerator';
+import RadioButtons from '../../RadioButtons/GroupRadioButtons';
+import TextArea from '../../TextArea/TextArea';
+import Toggle from '../../Toggle/Toggle';
+import ColorPicker from '../Fields/ColorPicker';
+import FieldLabelElement from '../Fields/FieldLabel';
+import Field, { FormFieldStyleType } from '../Types/Field';
+import FormFieldSchemaType from '../Types/FormFieldSchemaType';
+import FormValues from '../Types/FormValues';
+import FileModel from 'Common/Models/FileModel';
+import CodeType from 'Common/Types/Code/CodeType';
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import MimeType from 'Common/Types/File/MimeType';
 import GenericObject from 'Common/Types/GenericObject';
+import { JSONValue } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import Typeof from 'Common/Types/Typeof';
+import React, { ReactElement, useEffect } from 'react';
 
 export interface ComponentProps<T extends GenericObject> {
     field: Field<T>;

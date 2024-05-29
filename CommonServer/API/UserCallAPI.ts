@@ -1,16 +1,16 @@
-import UserCall from 'Model/Models/UserCall';
+import UserMiddleware from '../Middleware/UserAuthorization';
 import UserCallService, {
     Service as UserCallServiceType,
 } from '../Services/UserCallService';
-import BaseAPI from './BaseAPI';
-import UserMiddleware from '../Middleware/UserAuthorization';
 import {
     ExpressRequest,
     ExpressResponse,
     OneUptimeRequest,
 } from '../Utils/Express';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import Response from '../Utils/Response';
+import BaseAPI from './BaseAPI';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import UserCall from 'Model/Models/UserCall';
 import UserSMS from 'Model/Models/UserSMS';
 
 export default class UserCallAPI extends BaseAPI<

@@ -1,16 +1,16 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Input, { InputType } from '../Input/Input';
+import DropdownUtil from '../../Utils/Dropdown';
 import Button, { ButtonStyleType } from '../Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
-import FieldLabelElement from '../Forms/Fields/FieldLabel';
 // import TelemetryService from 'Model/Models/TelemetryService';
 import CodeEditor from '../CodeEditor/CodeEditor';
-import CodeType from 'Common/Types/Code/CodeType';
-import DropdownUtil from '../../Utils/Dropdown';
-import { LogSeverity } from 'Model/AnalyticsModels/Log';
-import OneUptimeDate from 'Common/Types/Date';
+import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import FieldLabelElement from '../Forms/Fields/FieldLabel';
+import Input, { InputType } from '../Input/Input';
+import CodeType from 'Common/Types/Code/CodeType';
+import OneUptimeDate from 'Common/Types/Date';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { LogSeverity } from 'Model/AnalyticsModels/Log';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface FilterOption {
     searchText?: string | undefined;

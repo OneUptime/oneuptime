@@ -1,15 +1,15 @@
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Input from '../Input/Input';
+import Modal, { ModalWidth } from '../Modal/Modal';
+import Pill from '../Pill/Pill';
 import { Black } from 'Common/Types/BrandColors';
 import { NodeDataProp, ReturnValue } from 'Common/Types/Workflow/Component';
 import React, {
-    useState,
     FunctionComponent,
     ReactElement,
     useEffect,
+    useState,
 } from 'react';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import Modal, { ModalWidth } from '../Modal/Modal';
-import Pill from '../Pill/Pill';
-import Input from '../Input/Input';
 
 export interface ComponentProps {
     onClose: () => void;

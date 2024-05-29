@@ -1,15 +1,15 @@
 import UserModel from '../../Models/UserModel';
-import Recurring from '../Events/Recurring';
 import CalendarEvent from '../Calendar/CalendarEvent';
+import OneUptimeDate from '../Date';
+import DayOfWeek from '../Day/DayOfWeek';
+import EventInterval from '../Events/EventInterval';
+import Recurring from '../Events/Recurring';
+import StartAndEndTime from '../Time/StartAndEndTime';
+import Typeof from '../Typeof';
 import RestrictionTimes, {
     RestrictionType,
     WeeklyResctriction,
 } from './RestrictionTimes';
-import OneUptimeDate from '../Date';
-import EventInterval from '../Events/EventInterval';
-import StartAndEndTime from '../Time/StartAndEndTime';
-import Typeof from '../Typeof';
-import DayOfWeek from '../Day/DayOfWeek';
 
 export interface LayerProps {
     users: Array<UserModel>;

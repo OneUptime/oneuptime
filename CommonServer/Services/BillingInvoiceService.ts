@@ -1,14 +1,14 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model, { InvoiceStatus } from 'Model/Models/BillingInvoice';
-import DatabaseService from './DatabaseService';
 import FindBy from '../Types/Database/FindBy';
 import { OnFind } from '../Types/Database/Hooks';
-import ProjectService from './ProjectService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Project from 'Model/Models/Project';
 import BillingService, { Invoice } from './BillingService';
+import DatabaseService from './DatabaseService';
+import ProjectService from './ProjectService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import Model, { InvoiceStatus } from 'Model/Models/BillingInvoice';
+import Project from 'Model/Models/Project';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

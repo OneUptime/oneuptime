@@ -1,5 +1,8 @@
-import Dictionary from 'Common/Types/Dictionary';
+import ProjectMiddleware from '../../Middleware/ProjectAuthorization';
 import UserMiddleware from '../../Middleware/UserAuthorization';
+import AccessTokenService from '../../Services/AccessTokenService';
+import ProjectService from '../../Services/ProjectService';
+import UserService from '../../Services/UserService';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -7,23 +10,20 @@ import {
 } from '../../Utils/Express';
 import JSONWebToken from '../../Utils/JsonWebToken';
 import logger from '../../Utils/Logger';
+import Response from '../../Utils/Response';
+import Dictionary from 'Common/Types/Dictionary';
+import Email from 'Common/Types/Email';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
+import HashedString from 'Common/Types/HashedString';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import ObjectID from 'Common/Types/ObjectID';
-import ProjectMiddleware from '../../Middleware/ProjectAuthorization';
-import UserService from '../../Services/UserService';
-import Email from 'Common/Types/Email';
-import ProjectService from '../../Services/ProjectService';
-import Response from '../../Utils/Response';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Project from 'Model/Models/Project';
-import SsoAuthorizationException from 'Common/Types/Exception/SsoAuthorizationException';
-import AccessTokenService from '../../Services/AccessTokenService';
 import {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import HashedString from 'Common/Types/HashedString';
+import Project from 'Model/Models/Project';
 
 jest.mock('../../Utils/Logger');
 jest.mock('../../Middleware/ProjectAuthorization');

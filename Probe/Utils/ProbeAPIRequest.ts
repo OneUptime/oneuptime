@@ -1,6 +1,6 @@
-import { JSONObject } from 'Common/Types/JSON';
-import ProbeUtil from './Probe';
 import { PROBE_KEY } from '../Config';
+import ProbeUtil from './Probe';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class ProbeAPIRequest {
     public static getDefaultRequestBody(): JSONObject {

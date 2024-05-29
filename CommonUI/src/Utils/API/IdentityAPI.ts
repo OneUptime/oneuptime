@@ -1,6 +1,6 @@
-import { IDENTITY_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
-import { IdentityRoute } from 'Common/ServiceRoute';
+import { HTTP_PROTOCOL, IDENTITY_HOSTNAME } from '../../Config';
 import BaseAPI from './API';
+import { IdentityRoute } from 'Common/ServiceRoute';
 
 class IdentityAPI extends BaseAPI {
     public constructor() {

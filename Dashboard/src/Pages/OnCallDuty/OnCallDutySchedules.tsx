@@ -1,13 +1,13 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Label from 'Model/Models/Label';
 import LabelsElement from '../../Components/Label/Labels';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import Label from 'Model/Models/Label';
+import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

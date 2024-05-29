@@ -1,11 +1,11 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import ExecutionLogTimelineTable from '../../../Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap from '../../../Utils/RouteMap';
-import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
 import RouteParams from '../../../Utils/RouteParams';
-import ExecutionLogTimelineTable from '../../../Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable';
+import PageComponentProps from '../../PageComponentProps';
+import ObjectID from 'Common/Types/ObjectID';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

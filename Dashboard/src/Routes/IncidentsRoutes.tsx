@@ -1,17 +1,17 @@
+import Loader from '../Components/Loader/Loader';
+import Layout from '../Pages/Incidents/Layout';
+import IncidentViewLayout from '../Pages/Incidents/View/Layout';
+import ComponentProps from '../Pages/PageComponentProps';
+import PageMap from '../Utils/PageMap';
+import RouteMap, { IncidentsRoutePath, RouteUtil } from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import React, {
     FunctionComponent,
     LazyExoticComponent,
     Suspense,
     lazy,
 } from 'react';
-import ComponentProps from '../Pages/PageComponentProps';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import RouteMap, { IncidentsRoutePath, RouteUtil } from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
-import Loader from '../Components/Loader/Loader';
-import Layout from '../Pages/Incidents/Layout';
-import IncidentViewLayout from '../Pages/Incidents/View/Layout';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Pages
 const Incidents: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(

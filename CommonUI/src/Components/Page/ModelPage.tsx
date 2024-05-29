@@ -1,12 +1,12 @@
-import Link from 'Common/Types/Link';
-import React, { ReactElement, useState } from 'react';
-import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
-import Page from './Page';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import API from '../../Utils/API/API';
-import useAsyncEffect from 'use-async-effect';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import Page from './Page';
+import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import Link from 'Common/Types/Link';
+import ObjectID from 'Common/Types/ObjectID';
+import React, { ReactElement, useState } from 'react';
+import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title?: string | undefined;

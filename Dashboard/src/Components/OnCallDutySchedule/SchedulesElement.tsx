@@ -1,6 +1,6 @@
+import OnCallDutyScheduleElement from './ScheduleElement';
 import OnCallDutySchedule from 'Model/Models/OnCallDutyPolicySchedule';
 import React, { FunctionComponent, ReactElement } from 'react';
-import OnCallDutyScheduleElement from './ScheduleElement';
 
 export interface ComponentProps {
     schedules: Array<OnCallDutySchedule>;

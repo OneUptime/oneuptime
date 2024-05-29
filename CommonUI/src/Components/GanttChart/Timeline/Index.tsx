@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import TimelineInterval from './TimelineInterval';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface GanttChartTimeline {
     start: number;

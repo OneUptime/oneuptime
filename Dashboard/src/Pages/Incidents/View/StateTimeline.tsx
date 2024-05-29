@@ -1,28 +1,28 @@
+import DashboardNavigation from '../../../Utils/Navigation';
+import PageComponentProps from '../../PageComponentProps';
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import IncidentState from 'Model/Models/IncidentState';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import React, {
     Fragment,
     FunctionComponent,
     ReactElement,
     useState,
 } from 'react';
-import PageComponentProps from '../../PageComponentProps';
-import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import IconProp from 'Common/Types/Icon/IconProp';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import IncidentState from 'Model/Models/IncidentState';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Color from 'Common/Types/Color';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import OneUptimeDate from 'Common/Types/Date';
-import MarkdownViewer from 'CommonUI/src/Components/Markdown.tsx/MarkdownViewer';
-import SimpleLogViewer from 'CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer';
 
 const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

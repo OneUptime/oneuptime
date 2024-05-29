@@ -1,9 +1,9 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import BadDataException from '../Exception/BadDataException';
+import { JSONObject, ObjectType } from '../JSON';
 import Port from '../Port';
 import Typeof from '../Typeof';
-import { JSONObject, ObjectType } from '../JSON';
+import { FindOperator } from 'typeorm';
 
 export default class Hostname extends DatabaseProperty {
     private _route: string = '';

@@ -1,39 +1,39 @@
-import MasterPage from 'CommonUI/src/Components/MasterPage/MasterPage';
+import API from '../../Utils/API';
+import { STATUS_PAGE_API_URL } from '../../Utils/Config';
+import LoginUtil from '../../Utils/Login';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import RouteParams from '../../Utils/RouteParams';
+import StatusPageUtil from '../../Utils/StatusPage';
+import Banner from '../Banner/Banner';
 import Footer from '../Footer/Footer';
 import Header from '../Header/Header';
-import Banner from '../Banner/Banner';
 import NavBar from '../NavBar/NavBar';
+import BaseModel from 'Common/Models/BaseModel';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import Link from 'Common/Types/Link';
+import ObjectID from 'Common/Types/ObjectID';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import MasterPage from 'CommonUI/src/Components/MasterPage/MasterPage';
+import JSONWebToken from 'CommonUI/src/Utils/JsonWebToken';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import File from 'Model/Models/File';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import URL from 'Common/Types/API/URL';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
-import { JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import RouteParams from '../../Utils/RouteParams';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import BaseModel from 'Common/Models/BaseModel';
-import File from 'Model/Models/File';
-import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Link from 'Common/Types/Link';
-import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import JSONWebToken from 'CommonUI/src/Utils/JsonWebToken';
-import Route from 'Common/Types/API/Route';
-import LoginUtil from '../../Utils/Login';
-import StatusPageUtil from '../../Utils/StatusPage';
-import API from '../../Utils/API';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;

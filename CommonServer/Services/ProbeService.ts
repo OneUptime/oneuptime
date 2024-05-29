@@ -1,10 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/Probe';
-import DatabaseService from './DatabaseService';
+import CreateBy from '../Types/Database/CreateBy';
 import { OnCreate } from '../Types/Database/Hooks';
+import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
-import CreateBy from '../Types/Database/CreateBy';
+import Model from 'Model/Models/Probe';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

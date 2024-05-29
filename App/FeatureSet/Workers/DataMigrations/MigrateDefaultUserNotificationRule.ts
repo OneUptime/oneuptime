@@ -1,10 +1,10 @@
-import User from 'Model/Models/User';
 import DataMigrationBase from './DataMigrationBase';
-import UserService from 'CommonServer/Services/UserService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 import UserNotificationRuleService from 'CommonServer/Services/UserNotificationRuleService';
+import UserService from 'CommonServer/Services/UserService';
+import TeamMember from 'Model/Models/TeamMember';
+import User from 'Model/Models/User';
 
 export default class MigrateDefaultUserNotificationRule extends DataMigrationBase {
     public constructor() {

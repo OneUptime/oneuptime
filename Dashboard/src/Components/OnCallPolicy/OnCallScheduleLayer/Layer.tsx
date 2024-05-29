@@ -1,22 +1,22 @@
+import LayerBasicInfo from './LayerBasicInfo';
+import LayerPreview from './LayerPreview';
+import LayerReestrictionTimes from './LayerRestrictionTimes';
+import LayerRotation from './LayerRotation';
+import LayerStartsAt from './LayerStartTime';
+import LayerUser from './LayerUser';
+import BaseModel from 'Common/Models/BaseModel';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Card from 'CommonUI/src/Components/Card/Card';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
+import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
-import Card from 'CommonUI/src/Components/Card/Card';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
-import LayerBasicInfo from './LayerBasicInfo';
-import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
-import LayerStartsAt from './LayerStartTime';
-import LayerReestrictionTimes from './LayerRestrictionTimes';
-import LayerUser from './LayerUser';
-import LayerRotation from './LayerRotation';
-import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
-import LayerPreview from './LayerPreview';
-import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     layer: OnCallDutyPolicyScheduleLayer;

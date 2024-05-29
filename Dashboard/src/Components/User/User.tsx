@@ -1,13 +1,13 @@
+import BaseModel from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import User from 'Model/Models/User';
-import React, { FunctionComponent, ReactElement } from 'react';
 import Image from 'CommonUI/src/Components/Image/Image';
-import URL from 'Common/Types/API/URL';
 import { FILE_URL } from 'CommonUI/src/Config';
 import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
-import Route from 'Common/Types/API/Route';
-import BaseModel from 'Common/Models/BaseModel';
+import User from 'Model/Models/User';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     user?: User | JSONObject | undefined | null;

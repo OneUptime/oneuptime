@@ -1,32 +1,32 @@
+import LabelsElement from '../../Components/Label/Labels';
+import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../Utils/PageMap';
+import RouteMap from '../../Utils/RouteMap';
+import PageComponentProps from '../PageComponentProps';
 import Route from 'Common/Types/API/Route';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import PermissionUtil from 'CommonUI/src/Utils/Permission';
+import ApiKey from 'Model/Models/ApiKey';
+import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
+import Label from 'Model/Models/Label';
+import TeamPermission from 'Model/Models/TeamPermission';
 import React, {
     Fragment,
     FunctionComponent,
     MutableRefObject,
     ReactElement,
 } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import ApiKey from 'Model/Models/ApiKey';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import PermissionUtil from 'CommonUI/src/Utils/Permission';
-import Label from 'Model/Models/Label';
-import Permission, { PermissionHelper } from 'Common/Types/Permission';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
-import ObjectID from 'Common/Types/ObjectID';
-import LabelsElement from '../../Components/Label/Labels';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import DashboardNavigation from '../../Utils/Navigation';
-import ResetObjectID from 'CommonUI/src/Components/ResetObjectID/ResetObjectID';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import TeamPermission from 'Model/Models/TeamPermission';
-import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

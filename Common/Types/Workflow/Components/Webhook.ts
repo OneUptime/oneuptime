@@ -1,10 +1,10 @@
+import Route from '../../API/Route';
 import IconProp from '../../Icon/IconProp';
+import ComponentID from '../ComponentID';
 import ComponentMetadata, {
     ComponentInputType,
     ComponentType,
 } from './../Component';
-import ComponentID from '../ComponentID';
-import Route from '../../API/Route';
 
 const components: Array<ComponentMetadata> = [
     {

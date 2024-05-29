@@ -1,8 +1,8 @@
-import TeamMember from 'Model/Models/TeamMember';
+import CreateBy from '../../../Types/Database/CreateBy';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Team from 'Model/Models/Team';
-import { JSONObject } from 'Common/Types/JSON';
-import CreateBy from '../../../Types/Database/CreateBy';
+import TeamMember from 'Model/Models/TeamMember';
 
 export default class TeamMemberTestService {
     public static generateRandomTeamMember(

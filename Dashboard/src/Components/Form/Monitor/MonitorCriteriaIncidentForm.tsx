@@ -1,11 +1,10 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-
 import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Incident from 'Model/Models/Incident';
-import BasicForm from 'CommonUI/src/Components/Forms/BasicForm';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
+import BasicForm from 'CommonUI/src/Components/Forms/BasicForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import Incident from 'Model/Models/Incident';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     initialValue?: undefined | CriteriaIncident;

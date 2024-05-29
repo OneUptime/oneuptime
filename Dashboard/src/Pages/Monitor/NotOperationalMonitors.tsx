@@ -1,9 +1,10 @@
-import Route from 'Common/Types/API/Route';
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import MonitorTable from '../../Components/Monitor/MonitorTable';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
+import React, { FunctionComponent, ReactElement } from 'react';
+
 const NotOperationalMonitors: FunctionComponent = (): ReactElement => {
     return (
         <MonitorTable

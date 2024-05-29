@@ -1,6 +1,6 @@
+import StatusPageElement from './StatusPageLabel';
 import StatusPage from 'Model/Models/StatusPage';
 import React, { FunctionComponent, ReactElement } from 'react';
-import StatusPageElement from './StatusPageLabel';
 
 export interface ComponentProps {
     statusPages: Array<StatusPage>;

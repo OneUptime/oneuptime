@@ -1,6 +1,6 @@
+import Link from '../Link/Link';
 import URL from 'Common/Types/API/URL';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Link from '../Link/Link';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;

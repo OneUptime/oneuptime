@@ -1,7 +1,7 @@
-import React from 'react';
-import { render, fireEvent, screen, cleanup } from '@testing-library/react';
 import Input, { ComponentProps, InputType } from '../../Components/Input/Input';
 import '@testing-library/jest-dom/extend-expect';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
 
 describe('Input', () => {
     afterEach(() => {

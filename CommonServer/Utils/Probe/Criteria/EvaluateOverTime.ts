@@ -1,3 +1,5 @@
+import MonitorMetricsByMinuteService from '../../../Services/MonitorMetricsByMinuteService';
+import Query from '../../../Types/AnalyticsDatabase/Query';
 import GreaterThanOrEqual from 'Common/Types/BaseDatabase/GreaterThanOrEqual';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import OneUptimeDate from 'Common/Types/Date';
@@ -8,8 +10,6 @@ import {
     EvaluateOverTimeType,
 } from 'Common/Types/Monitor/CriteriaFilter';
 import ObjectID from 'Common/Types/ObjectID';
-import MonitorMetricsByMinuteService from '../../../Services/MonitorMetricsByMinuteService';
-import Query from '../../../Types/AnalyticsDatabase/Query';
 import MonitorMetricsByMinute from 'Model/AnalyticsModels/MonitorMetricsByMinute';
 
 export default class EvaluateOverTime {

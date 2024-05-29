@@ -1,6 +1,6 @@
+import Query from './Query';
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import Query from './Query';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 
 export default interface UpdateOneBy<TBaseModel extends BaseModel> {

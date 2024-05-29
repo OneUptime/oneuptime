@@ -1,10 +1,10 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import EventInterval from './EventInterval';
 import BadDataException from '../Exception/BadDataException';
 import { JSONObject, ObjectType } from '../JSON';
 import JSONFunctions from '../JSONFunctions';
 import PositiveNumber from '../PositiveNumber';
+import EventInterval from './EventInterval';
+import { FindOperator } from 'typeorm';
 
 export interface RecurringData extends JSONObject {
     intervalType: EventInterval;

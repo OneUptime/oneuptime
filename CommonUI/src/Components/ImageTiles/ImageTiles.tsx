@@ -1,9 +1,9 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import URL from 'Common/Types/API/URL';
 import Navigation from '../../Utils/Navigation';
-import Image from '../Image/Image';
 import FieldLabelElement from '../Detail/FieldLabel';
+import Image from '../Image/Image';
 import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ImageTile {
     image: ReactElement;

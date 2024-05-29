@@ -1,5 +1,8 @@
-import React from 'react';
+import MonitorChartTooltip from './MonitorChartTooltip';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import { CheckOn } from 'Common/Types/Monitor/CriteriaFilter';
+import Text from 'Common/Types/Text';
 import {
     Chart,
     ChartType,
@@ -21,11 +24,8 @@ import {
 import MonitorMetricsByMinute, {
     MonitorMetricsMiscData,
 } from 'Model/AnalyticsModels/MonitorMetricsByMinute';
-import MonitorChartTooltip from './MonitorChartTooltip';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import Text from 'Common/Types/Text';
 import Probe from 'Model/Models/Probe';
-import { JSONObject } from 'Common/Types/JSON';
+import React from 'react';
 
 export class MonitorCharts {
     public static getDataForCharts(data: {

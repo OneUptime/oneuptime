@@ -1,15 +1,15 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
-import Detail from 'CommonUI/src/Components/Detail/Detail';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import { JSONObject } from 'Common/Types/JSON';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
+import OnCallDutyPoliciesView from '../../OnCallPolicy/OnCallPolicies';
 import { Black } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import OnCallDutyPoliciesView from '../../OnCallPolicy/OnCallPolicies';
+import { JSONObject } from 'Common/Types/JSON';
+import { CriteriaIncident } from 'Common/Types/Monitor/CriteriaIncident';
 import ObjectID from 'Common/Types/ObjectID';
+import Detail from 'CommonUI/src/Components/Detail/Detail';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     incident: CriteriaIncident;

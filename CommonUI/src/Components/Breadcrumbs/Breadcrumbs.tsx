@@ -1,10 +1,10 @@
-import Link from 'Common/Types/Link';
-import React, { FunctionComponent, ReactElement } from 'react';
 import Icon from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
 import UILink from '../Link/Link';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Link from 'Common/Types/Link';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 interface ComponentProps {
     links: Array<Link>;

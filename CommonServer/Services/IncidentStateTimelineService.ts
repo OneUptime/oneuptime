@@ -1,25 +1,24 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import DatabaseService from './DatabaseService';
-
-import { OnCreate, OnDelete } from '../Types/Database/Hooks';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import IncidentService from './IncidentService';
+import CreateBy from '../Types/Database/CreateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
+import { OnCreate, OnDelete } from '../Types/Database/Hooks';
+import QueryHelper from '../Types/Database/QueryHelper';
+import DatabaseService from './DatabaseService';
+import IncidentPublicNoteService from './IncidentPublicNoteService';
+import IncidentService from './IncidentService';
+import IncidentStateService from './IncidentStateService';
+import UserService from './UserService';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import IncidentState from 'Model/Models/IncidentState';
-import IncidentStateService from './IncidentStateService';
-import CreateBy from '../Types/Database/CreateBy';
-import UserService from './UserService';
-import User from 'Model/Models/User';
 import Incident from 'Model/Models/Incident';
-import OneUptimeDate from 'Common/Types/Date';
-import QueryHelper from '../Types/Database/QueryHelper';
-import { JSONObject } from 'Common/Types/JSON';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import IncidentPublicNoteService from './IncidentPublicNoteService';
+import IncidentState from 'Model/Models/IncidentState';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import User from 'Model/Models/User';
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {

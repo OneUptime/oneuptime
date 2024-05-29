@@ -1,9 +1,8 @@
 // To run this script:
 // export $(grep -v '^#' config.env | xargs) && ts-node ./Scripts/PaymentProvider/CouponCodeGenerator.ts > coupons.csv
-
-import BillingService from 'CommonServer/Services/BillingService';
-import Sleep from 'Common/Types/Sleep';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import Sleep from 'Common/Types/Sleep';
+import BillingService from 'CommonServer/Services/BillingService';
 
 const main: PromiseVoidFunction = async (): Promise<void> => {
     for (let i: number = 0; i < 2000; i++) {

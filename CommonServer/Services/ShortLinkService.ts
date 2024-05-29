@@ -1,15 +1,15 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/ShortLink';
-import DatabaseService from './DatabaseService';
-import { OnCreate } from '../Types/Database/Hooks';
-import CreateBy from '../Types/Database/CreateBy';
-import Text from 'Common/Types/Text';
-import URL from 'Common/Types/API/URL';
-import { LinkShortenerRoute } from 'Common/ServiceRoute';
 import DatabaseConfig from '../DatabaseConfig';
-import Route from 'Common/Types/API/Route';
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import CreateBy from '../Types/Database/CreateBy';
+import { OnCreate } from '../Types/Database/Hooks';
+import DatabaseService from './DatabaseService';
+import { LinkShortenerRoute } from 'Common/ServiceRoute';
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import Text from 'Common/Types/Text';
+import Model from 'Model/Models/ShortLink';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

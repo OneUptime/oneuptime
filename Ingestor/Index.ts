@@ -1,21 +1,21 @@
-import 'ejs';
+import AliveAPI from './API/Alive';
+import FluentIngestAPI from './API/FluentIngest';
+import IncomingRequestAPI from './API/IncomingRequest';
+import MonitorAPI from './API/Monitor';
+import OTelIngestAPI from './API/OTelIngest';
+import Ingestor from './API/Probe';
+import RegisterAPI from './API/Register';
+import ServerMonitorAPI from './API/ServerMonitor';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
+import Redis from 'CommonServer/Infrastructure/Redis';
+import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
-import App from 'CommonServer/Utils/StartServer';
-import AliveAPI from './API/Alive';
-import RegisterAPI from './API/Register';
-import MonitorAPI from './API/Monitor';
-import Ingestor from './API/Probe';
-import IncomingRequestAPI from './API/IncomingRequest';
-import OTelIngestAPI from './API/OTelIngest';
-import FluentIngestAPI from './API/FluentIngest';
-import { ClickhouseAppInstance } from 'CommonServer/Infrastructure/ClickhouseDatabase';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import Redis from 'CommonServer/Infrastructure/Redis';
 import Realtime from 'CommonServer/Utils/Realtime';
-import ServerMonitorAPI from './API/ServerMonitor';
-import InfrastructureStatus from 'CommonServer/Infrastructure/Status';
+import App from 'CommonServer/Utils/StartServer';
+import 'ejs';
 
 const app: ExpressApplication = Express.getExpressApp();
 

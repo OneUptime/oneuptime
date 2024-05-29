@@ -1,9 +1,10 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
 import ScheduledMaintenancesTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import { useParams } from 'react-router-dom';
+import PageComponentProps from '../PageComponentProps';
 import ObjectID from 'Common/Types/ObjectID';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { FunctionComponent, ReactElement } from 'react';
+import { useParams } from 'react-router-dom';
+
 const ScheduledMaintenancesPage: FunctionComponent<
     PageComponentProps
 > = (): ReactElement => {

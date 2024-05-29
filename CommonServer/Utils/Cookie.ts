@@ -1,7 +1,7 @@
-import { CookieOptions } from 'express';
 import { ExpressRequest, ExpressResponse } from './Express';
-import ObjectID from 'Common/Types/ObjectID';
 import Dictionary from 'Common/Types/Dictionary';
+import ObjectID from 'Common/Types/ObjectID';
+import { CookieOptions } from 'express';
 
 export default class CookieUtil {
     // set cookie with express response

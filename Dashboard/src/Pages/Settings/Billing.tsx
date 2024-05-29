@@ -1,15 +1,45 @@
+import DashboardNavigation from '../../Utils/Navigation';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageComponentProps from '../PageComponentProps';
+import CheckoutForm from './BillingPaymentMethodForm';
+import { Elements } from '@stripe/react-stripe-js';
+import { Stripe, loadStripe } from '@stripe/stripe-js';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject } from 'Common/Types/JSON';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Card from 'CommonUI/src/Components/Card/Card';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONObject } from 'Common/Types/JSON';
+import Text from 'Common/Types/Text';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import ButtonType from 'CommonUI/src/Components/Button/ButtonTypes';
+import Card from 'CommonUI/src/Components/Card/Card';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Icon from 'CommonUI/src/Components/Icon/Icon';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import Modal from 'CommonUI/src/Components/Modal/Modal';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import {
+    APP_API_URL,
+    BILLING_ENABLED,
+    BILLING_PUBLIC_KEY,
+    getAllEnvVars,
+} from 'CommonUI/src/Config';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import BaseAPI from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import Project from 'Model/Models/Project';
+import Reseller from 'Model/Models/Reseller';
+import ResellerPlan from 'Model/Models/ResellerPlan';
 import React, {
     Fragment,
     FunctionComponent,
@@ -17,37 +47,7 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
-import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import Modal from 'CommonUI/src/Components/Modal/Modal';
-import ButtonType from 'CommonUI/src/Components/Button/ButtonTypes';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import BaseAPI from 'CommonUI/src/Utils/API/API';
-import URL from 'Common/Types/API/URL';
-import {
-    BILLING_ENABLED,
-    BILLING_PUBLIC_KEY,
-    APP_API_URL,
-    getAllEnvVars,
-} from 'CommonUI/src/Config';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe, Stripe } from '@stripe/stripe-js';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import useAsyncEffect from 'use-async-effect';
-import CheckoutForm from './BillingPaymentMethodForm';
-import Text from 'Common/Types/Text';
-import DashboardNavigation from '../../Utils/Navigation';
-import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
-import Reseller from 'Model/Models/Reseller';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import ResellerPlan from 'Model/Models/ResellerPlan';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import Icon from 'CommonUI/src/Components/Icon/Icon';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 
 export interface ComponentProps extends PageComponentProps {}
 

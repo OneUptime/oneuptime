@@ -1,9 +1,9 @@
 import SubscriptionPlan, {
     PlanSelect,
 } from '../../../Types/Billing/SubscriptionPlan';
-import { describe, expect, it } from '@jest/globals';
-import { JSONObject } from '../../../Types/JSON';
 import BadDataException from '../../../Types/Exception/BadDataException';
+import { JSONObject } from '../../../Types/JSON';
+import { describe, expect, it } from '@jest/globals';
 
 describe('SubscriptionPlan', () => {
     const monthlyPlanId: string = 'monthly_plan_id';

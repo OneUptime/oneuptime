@@ -1,14 +1,14 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import UsersElement from '../../User/Users';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import ObjectID from 'Common/Types/ObjectID';
-import User from 'Model/Models/User';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import API from 'CommonUI/src/Utils/API/API';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import OnCallDutyPolicyEscalationRuleUser from 'Model/Models/OnCallDutyPolicyEscalationRuleUser';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import User from 'Model/Models/User';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import useAsyncEffect from 'use-async-effect';
-import API from 'CommonUI/src/Utils/API/API';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import UsersElement from '../../User/Users';
 
 export interface ComponentProps {
     escalationRuleId: ObjectID;

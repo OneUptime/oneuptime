@@ -1,17 +1,17 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import ObjectID from 'Common/Types/ObjectID';
-import API from 'CommonUI/src/Utils/API/API';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import MonitorStatus from 'Model/Models/MonitorStatus';
 import URL from 'Common/Types/API/URL';
-import { APP_API_URL } from 'CommonUI/src/Config';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
-import MonitorGroup from 'Model/Models/MonitorGroup';
-import Loader from 'CommonUI/src/Components/Loader/Loader';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ObjectID from 'Common/Types/ObjectID';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Loader from 'CommonUI/src/Components/Loader/Loader';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import { APP_API_URL } from 'CommonUI/src/Config';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import MonitorGroup from 'Model/Models/MonitorGroup';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
     monitorGroupId: ObjectID;

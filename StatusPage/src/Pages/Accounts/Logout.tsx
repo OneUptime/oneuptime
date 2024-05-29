@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import UserUtil from '../../Utils/User';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import StatusPageUtil from '../../Utils/StatusPage';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import UserUtil from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import React, { useEffect } from 'react';
 
 const Logout: () => JSX.Element = () => {
     const [error, setError] = React.useState<string | null>(null);

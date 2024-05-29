@@ -1,13 +1,13 @@
-import React, { ReactElement, useState } from 'react';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Button, { ButtonSize } from '../Button/Button';
 import Detail from '../Detail/Detail';
 import Field from '../Detail/Field';
-import ConfirmModal from '../Modal/ConfirmModal';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
-import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
 import Icon, { ThickProp } from '../Icon/Icon';
-import IconProp from 'Common/Types/Icon/IconProp';
+import ConfirmModal from '../Modal/ConfirmModal';
 import GenericObject from 'Common/Types/GenericObject';
+import IconProp from 'Common/Types/Icon/IconProp';
+import React, { ReactElement, useState } from 'react';
+import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
 
 export interface ListDetailProps {
     showDetailsInNumberOfColumns?: number | undefined;

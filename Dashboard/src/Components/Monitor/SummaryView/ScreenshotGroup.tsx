@@ -1,9 +1,9 @@
+import SummarysScreenshot from './Screenshot';
 import Screenshots, {
     Screenshot,
 } from 'Common/Types/Monitor/SyntheticMonitors/Screenshot';
-import React, { FunctionComponent, ReactElement } from 'react';
-import SummarysScreenshot from './Screenshot';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     screenshots: Screenshots | undefined;

@@ -1,5 +1,5 @@
-import React, { ReactElement, FunctionComponent } from 'react';
 import Char from 'Common/Types/Char';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     shortcuts: Array<Char>;

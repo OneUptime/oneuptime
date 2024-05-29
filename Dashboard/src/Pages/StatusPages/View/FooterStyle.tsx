@@ -1,16 +1,16 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../../PageComponentProps';
 import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
+import PageComponentProps from '../../PageComponentProps';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import StatusPage from 'Model/Models/StatusPage';
+import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

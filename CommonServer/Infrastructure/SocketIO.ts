@@ -1,9 +1,9 @@
-import SocketIO from 'socket.io';
-import http from 'http';
 import Express from '../Utils/Express';
 import Redis from './Redis';
-import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 import { RealtimeRoute } from 'Common/ServiceRoute';
+import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
+import http from 'http';
+import SocketIO from 'socket.io';
 
 export type Socket = SocketIO.Socket;
 export type SocketServer = SocketIO.Server;

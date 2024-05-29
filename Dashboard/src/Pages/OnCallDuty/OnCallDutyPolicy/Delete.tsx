@@ -1,12 +1,12 @@
-import Route from 'Common/Types/API/Route';
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Route from 'Common/Types/API/Route';
 import ObjectID from 'Common/Types/ObjectID';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

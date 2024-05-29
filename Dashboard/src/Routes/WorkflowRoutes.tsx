@@ -1,3 +1,10 @@
+import Loader from '../Components/Loader/Loader';
+import ComponentProps from '../Pages/PageComponentProps';
+import WorkflowsLayout from '../Pages/Workflow/Layout';
+import WorkflowViewLayout from '../Pages/Workflow/View/Layout';
+import PageMap from '../Utils/PageMap';
+import RouteMap, { RouteUtil, WorkflowRoutePath } from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import React, {
     FunctionComponent,
     LazyExoticComponent,
@@ -5,14 +12,7 @@ import React, {
     Suspense,
     lazy,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { RouteUtil, WorkflowRoutePath } from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
-import ComponentProps from '../Pages/PageComponentProps';
-import Loader from '../Components/Loader/Loader';
-import WorkflowsLayout from '../Pages/Workflow/Layout';
-import WorkflowViewLayout from '../Pages/Workflow/View/Layout';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Lazy Pages
 const Workflows: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(

@@ -1,5 +1,5 @@
-import OneUptimeDate from '../Date';
 import InBetween from '../BaseDatabase/InBetween';
+import OneUptimeDate from '../Date';
 
 export default class DatabaseDate {
     public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(

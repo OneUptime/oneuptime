@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
-import OneUptimeDate from 'Common/Types/Date';
 import CopyTextButton from '../CopyTextButton/CopyTextButton';
+import OneUptimeDate from 'Common/Types/Date';
+import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
     log: Log;

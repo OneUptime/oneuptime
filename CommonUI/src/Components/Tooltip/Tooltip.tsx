@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
 import Tippy from '@tippyjs/react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import 'tippy.js/dist/tippy.css';
 
 export interface ComponentProps {

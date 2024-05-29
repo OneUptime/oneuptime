@@ -1,3 +1,5 @@
+import CriteriaFilterUiUtil from '../../../Utils/Form/Monitor/CriteriaFilter';
+import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
 import {
     CheckOn,
@@ -12,6 +14,8 @@ import Button, {
     ButtonSize,
     ButtonStyleType,
 } from 'CommonUI/src/Components/Button/Button';
+import CheckboxElement from 'CommonUI/src/Components/Checkbox/Checkbox';
+import FieldLabelElement from 'CommonUI/src/Components/Detail/FieldLabel';
 import Dropdown, {
     DropdownOption,
     DropdownValue,
@@ -20,10 +24,6 @@ import Input from 'CommonUI/src/Components/Input/Input';
 import Link from 'CommonUI/src/Components/Link/Link';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import FieldLabelElement from 'CommonUI/src/Components/Detail/FieldLabel';
-import Route from 'Common/Types/API/Route';
-import CheckboxElement from 'CommonUI/src/Components/Checkbox/Checkbox';
-import CriteriaFilterUiUtil from '../../../Utils/Form/Monitor/CriteriaFilter';
 
 export interface ComponentProps {
     initialValue: CriteriaFilter | undefined;

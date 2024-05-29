@@ -1,13 +1,13 @@
-import BaseModel from 'Common/Models/BaseModel';
-import React, { ReactElement, useEffect, useState } from 'react';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import API from '../../Utils/API/API';
 import Query from '../../Utils/BaseDatabase/Query';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import Card from '../Card/Card';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ProgressBar from '../ProgressBar/ProgressBar';
-import API from '../../Utils/API/API';
+import BaseModel from 'Common/Models/BaseModel';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import React, { ReactElement, useEffect, useState } from 'react';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;

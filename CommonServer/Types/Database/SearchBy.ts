@@ -1,7 +1,7 @@
 import Select from './Select';
-import PositiveNumber from 'Common/Types/PositiveNumber';
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default interface SearchBy<TBaseModel extends BaseModel> {
     text: string;

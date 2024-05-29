@@ -1,8 +1,10 @@
+import { GetReactElementFunction } from '../../Types/FunctionTypes';
+import Button, { ButtonStyleType } from '../Button/Button';
+import Icon from '../Icon/Icon';
 import BaseModel from 'Common/Models/BaseModel';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Typeof from 'Common/Types/Typeof';
 import React, { ReactElement } from 'react';
-import Button, { ButtonStyleType } from '../Button/Button';
-import IconProp from 'Common/Types/Icon/IconProp';
 import {
     DragDropContext,
     Draggable,
@@ -11,8 +13,6 @@ import {
     Droppable,
     DroppableProvided,
 } from 'react-beautiful-dnd';
-import Icon from '../Icon/Icon';
-import { GetReactElementFunction } from '../../Types/FunctionTypes';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     list: Array<TBaseModel>;

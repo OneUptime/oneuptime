@@ -1,12 +1,12 @@
-import 'ejs';
-import logger from 'CommonServer/Utils/Logger';
-import App from 'CommonServer/Utils/StartServer';
-import Register from './Services/Register';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
+import { PROBE_MONITORING_WORKERS } from './Config';
 import './Jobs/Alive';
 import FetchListAndProbe from './Jobs/Monitor/FetchList';
-import { PROBE_MONITORING_WORKERS } from './Config';
+import Register from './Services/Register';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import Sleep from 'Common/Types/Sleep';
+import logger from 'CommonServer/Utils/Logger';
+import App from 'CommonServer/Utils/StartServer';
+import 'ejs';
 
 const APP_NAME: string = 'probe';
 

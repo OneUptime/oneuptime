@@ -1,13 +1,13 @@
+import DatabaseProperty from '../Database/DatabaseProperty';
+import Dictionary from '../Dictionary';
+import Email from '../Email';
+import BadDataException from '../Exception/BadDataException';
+import { JSONObject, ObjectType } from '../JSON';
+import Typeof from '../Typeof';
+import Hostname from './Hostname';
 import Protocol from './Protocol';
 import Route from './Route';
-import Hostname from './Hostname';
-import DatabaseProperty from '../Database/DatabaseProperty';
 import { FindOperator } from 'typeorm';
-import Dictionary from '../Dictionary';
-import Typeof from '../Typeof';
-import Email from '../Email';
-import { JSONObject, ObjectType } from '../JSON';
-import BadDataException from '../Exception/BadDataException';
 
 export default class URL extends DatabaseProperty {
     private _route: Route = new Route();

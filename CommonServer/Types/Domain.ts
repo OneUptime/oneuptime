@@ -1,7 +1,7 @@
-import DomainCommon from 'Common/Types/Domain';
-import dns from 'dns';
 import logger from '../Utils/Logger';
+import DomainCommon from 'Common/Types/Domain';
 import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
+import dns from 'dns';
 
 export default class Domain extends DomainCommon {
     public static verifyTxtRecord(

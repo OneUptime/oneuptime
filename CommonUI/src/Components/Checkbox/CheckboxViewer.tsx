@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import Icon from '../Icon/Icon';
 import { Green, Red } from 'Common/Types/BrandColors';
 import IconProp from 'Common/Types/Icon/IconProp';
-import Icon from '../Icon/Icon';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     text: string;

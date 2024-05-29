@@ -1,15 +1,15 @@
-import Route from 'Common/Types/API/Route';
-import { VeryLightGray } from 'Common/Types/BrandColors';
-import OneUptimeDate from 'Common/Types/Date';
-import React, { FunctionComponent, ReactElement } from 'react';
+import Icon from '../Icon/Icon';
 import Link from '../Link/Link';
-import URL from 'Common/Types/API/URL';
-import Color from 'Common/Types/Color';
+import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
 import Pill from '../Pill/Pill';
 import BaseModel from 'Common/Models/BaseModel';
-import Icon from '../Icon/Icon';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import { VeryLightGray } from 'Common/Types/BrandColors';
+import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
 import IconProp from 'Common/Types/Icon/IconProp';
-import MarkdownViewer from '../Markdown.tsx/LazyMarkdownViewer';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export enum TimelineItemType {
     StateChange = 'StateChange',

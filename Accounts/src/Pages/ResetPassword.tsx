@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import User from 'Model/Models/User';
-import Link from 'CommonUI/src/Components/Link/Link';
-import Route from 'Common/Types/API/Route';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
-
-import URL from 'Common/Types/API/URL';
 import { RESET_PASSWORD_API_URL } from '../Utils/ApiPaths';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import Link from 'CommonUI/src/Components/Link/Link';
+import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import User from 'Model/Models/User';
+import React, { useState } from 'react';
 
 const RegisterPage: () => JSX.Element = () => {
     const apiUrl: URL = RESET_PASSWORD_API_URL;

@@ -1,11 +1,11 @@
+import AlignItem from '../../Types/AlignItem';
+import { DropdownOption } from '../Dropdown/Dropdown';
+import FieldType from '../Types/FieldType';
+import { Size } from './FieldLabel';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import { ReactElement } from 'react';
-import AlignItem from '../../Types/AlignItem';
-import FieldType from '../Types/FieldType';
-import { DropdownOption } from '../Dropdown/Dropdown';
-import { Size } from './FieldLabel';
 import { JSONObject } from 'Common/Types/JSON';
+import { ReactElement } from 'react';
 
 export interface DetailSideLink {
     text: string;

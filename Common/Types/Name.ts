@@ -1,7 +1,7 @@
-import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
-import { JSONObject, ObjectType } from './JSON';
 import BadDataException from './Exception/BadDataException';
+import { JSONObject, ObjectType } from './JSON';
+import { FindOperator } from 'typeorm';
 
 export default class Name extends DatabaseProperty {
     private _title: string = '';

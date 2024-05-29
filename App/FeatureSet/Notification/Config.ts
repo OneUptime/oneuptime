@@ -1,12 +1,12 @@
-import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
 import Hostname from 'Common/Types/API/Hostname';
+import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
 import Email from 'Common/Types/Email';
+import EmailServer from 'Common/Types/Email/EmailServer';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
-import EmailServer from 'Common/Types/Email/EmailServer';
-import TwilioConfig from 'Common/Types/CallAndSMS/TwilioConfig';
+import GlobalConfig, { EmailServerType } from 'Model/Models/GlobalConfig';
 
 export const InternalSmtpPassword: string =
     process.env['INTERNAL_SMTP_PASSWORD'] || '';

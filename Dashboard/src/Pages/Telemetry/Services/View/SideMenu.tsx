@@ -1,12 +1,12 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import PageMap from '../../../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../../../Utils/RouteMap';
 import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
-import RouteMap, { RouteUtil } from '../../../../Utils/RouteMap';
-import PageMap from '../../../../Utils/PageMap';
-import ObjectID from 'Common/Types/ObjectID';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     modelId: ObjectID;

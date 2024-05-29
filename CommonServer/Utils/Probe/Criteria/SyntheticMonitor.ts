@@ -1,7 +1,7 @@
+import CompareCriteria from './CompareCriteria';
+import CustomCodeMonitoringCriteria from './CustomCodeMonitorCriteria';
 import { CheckOn, CriteriaFilter } from 'Common/Types/Monitor/CriteriaFilter';
 import SyntheticMonitorResponse from 'Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse';
-import CustomCodeMonitoringCriteria from './CustomCodeMonitorCriteria';
-import CompareCriteria from './CompareCriteria';
 
 export default class SyntheticMonitoringCriteria {
     public static async isMonitorInstanceCriteriaFilterMet(input: {

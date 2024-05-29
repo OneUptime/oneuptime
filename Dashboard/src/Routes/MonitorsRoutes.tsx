@@ -1,18 +1,18 @@
+import Loader from '../Components/Loader/Loader';
+import MonitorLayout from '../Pages/Monitor/Layout';
+import MonitorViewLayout from '../Pages/Monitor/View/Layout';
+import ComponentProps from '../Pages/PageComponentProps';
+import PageMap from '../Utils/PageMap';
+import RouteMap, { MonitorsRoutePath, RouteUtil } from '../Utils/RouteMap';
+import Route from 'Common/Types/API/Route';
 import React, {
     FunctionComponent,
     LazyExoticComponent,
     ReactElement,
-    lazy,
     Suspense,
+    lazy,
 } from 'react';
-import { Routes, Route as PageRoute } from 'react-router-dom';
-import Route from 'Common/Types/API/Route';
-import RouteMap, { MonitorsRoutePath, RouteUtil } from '../Utils/RouteMap';
-import PageMap from '../Utils/PageMap';
-import ComponentProps from '../Pages/PageComponentProps';
-import Loader from '../Components/Loader/Loader';
-import MonitorLayout from '../Pages/Monitor/Layout';
-import MonitorViewLayout from '../Pages/Monitor/View/Layout';
+import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Pages
 const MonitorPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =

@@ -1,4 +1,5 @@
 import Slug from '../../Utils/Slug';
+
 describe('Slug.getSlug()', () => {
     test('should return empty string, if name is empty ', () => {
         expect(Slug.getSlug('')).toEqual('');

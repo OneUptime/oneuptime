@@ -1,9 +1,9 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import HTTPMethod from './API/HTTPMethod';
 import Headers from './API/Headers';
 import URL from './API/URL';
-import HTML from './Html';
-import HTTPMethod from './API/HTTPMethod';
 import Dictionary from './Dictionary';
+import HTML from './Html';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export interface WebsiteResponse {
     url: URL;

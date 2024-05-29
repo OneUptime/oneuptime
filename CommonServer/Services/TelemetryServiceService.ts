@@ -1,12 +1,12 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/TelemetryService';
-import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import { OnCreate } from '../Types/Database/Hooks';
-import ObjectID from 'Common/Types/ObjectID';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { BrightColors } from 'Common/Types/BrandColors';
+import DatabaseService from './DatabaseService';
 import ArrayUtil from 'Common/Types/ArrayUtil';
+import { BrightColors } from 'Common/Types/BrandColors';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
+import Model from 'Model/Models/TelemetryService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
