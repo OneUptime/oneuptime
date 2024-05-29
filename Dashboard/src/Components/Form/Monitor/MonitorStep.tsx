@@ -1,38 +1,40 @@
+import MonitorCriteriaElement from './MonitorCriteria';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import Hostname from 'Common/Types/API/Hostname';
+import URL from 'Common/Types/API/URL';
+import CodeType from 'Common/Types/Code/CodeType';
+import Dictionary from 'Common/Types/Dictionary';
+import Exception from 'Common/Types/Exception/Exception';
+import IP from 'Common/Types/IP/IP';
+import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
+import MonitorStep from 'Common/Types/Monitor/MonitorStep';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
+import Port from 'Common/Types/Port';
+import ScreenSizeType from 'Common/Types/ScreenSizeType';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import CheckBoxList, {
+    CategoryCheckboxValue,
+    enumToCategoryCheckboxOption,
+} from 'CommonUI/src/Components/CategoryCheckbox/CheckboxList';
+import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
+import DictionaryOfStrings from 'CommonUI/src/Components/Dictionary/DictionaryOfStrings';
+import Dropdown, {
+    DropdownOption,
+    DropdownValue,
+} from 'CommonUI/src/Components/Dropdown/Dropdown';
+import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
+import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
+import Input from 'CommonUI/src/Components/Input/Input';
+import Link from 'CommonUI/src/Components/Link/Link';
+import { DOCS_URL } from 'CommonUI/src/Config';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
     useState,
 } from 'react';
-import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import MonitorStep from 'Common/Types/Monitor/MonitorStep';
-import Input from 'CommonUI/src/Components/Input/Input';
-import MonitorCriteriaElement from './MonitorCriteria';
-import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
-import Dropdown, {
-    DropdownOption,
-    DropdownValue,
-} from 'CommonUI/src/Components/Dropdown/Dropdown';
-import URL from 'Common/Types/API/URL';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import IP from 'Common/Types/IP/IP';
-import DictionaryOfStrings from 'CommonUI/src/Components/Dictionary/DictionaryOfStrings';
-import Dictionary from 'Common/Types/Dictionary';
-import CodeEditor from 'CommonUI/src/Components/CodeEditor/CodeEditor';
-import CodeType from 'Common/Types/Code/CodeType';
-import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
-import Exception from 'Common/Types/Exception/Exception';
-import Hostname from 'Common/Types/API/Hostname';
-import Port from 'Common/Types/Port';
-import CheckBoxList, {
-    CategoryCheckboxValue,
-    enumToCategoryCheckboxOption,
-} from 'CommonUI/src/Components/CategoryCheckbox/CheckboxList';
-import BrowserType from 'Common/Types/Monitor/SyntheticMonitors/BrowserType';
-import ScreenSizeType from 'Common/Types/ScreenSizeType';
 
 export interface ComponentProps {
     monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -349,7 +351,19 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 <FieldLabelElement
                                     title={'Request Headers'}
                                     description={
-                                        'Request Headers to send, if any.'
+                                        <p>
+                                            Request Headers to send.{' '}
+                                            <Link
+                                                className="underline"
+                                                openInNewTab={true}
+                                                to={URL.fromString(
+                                                    DOCS_URL.toString() +
+                                                        '/monitor/monitor-secrets'
+                                                )}
+                                            >
+                                                You can use secrets here.
+                                            </Link>
+                                        </p>
                                     }
                                     required={false}
                                 />
@@ -376,7 +390,19 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                                 <FieldLabelElement
                                     title={'Request Body (in JSON)'}
                                     description={
-                                        'Request Body to send in JSON, if any.'
+                                        <p>
+                                            Request Headers to send in JSON.{' '}
+                                            <Link
+                                                className="underline"
+                                                openInNewTab={true}
+                                                to={URL.fromString(
+                                                    DOCS_URL.toString() +
+                                                        '/monitor/monitor-secrets'
+                                                )}
+                                            >
+                                                You can use secrets here.
+                                            </Link>
+                                        </p>
                                     }
                                     required={false}
                                 />
@@ -433,9 +459,37 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                         }
                         description={
                             props.monitorType ===
-                            MonitorType.CustomJavaScriptCode
-                                ? 'Write your JavaScript code here.'
-                                : 'Write your Playwright code here. Playwright is a Node.js library to automate Chromium, Firefox and WebKit with a single API.'
+                            MonitorType.CustomJavaScriptCode ? (
+                                <p>
+                                    Write your JavaScript code here.{' '}
+                                    <Link
+                                        className="underline"
+                                        openInNewTab={true}
+                                        to={URL.fromString(
+                                            DOCS_URL.toString() +
+                                                '/monitor/monitor-secrets'
+                                        )}
+                                    >
+                                        You can use secrets here.
+                                    </Link>
+                                </p>
+                            ) : (
+                                <p>
+                                    Write your Playwright code here. Playwright
+                                    is a Node.js library to automate Chromium,
+                                    Firefox and WebKit with a single API.{' '}
+                                    <Link
+                                        className="underline"
+                                        openInNewTab={true}
+                                        to={URL.fromString(
+                                            DOCS_URL.toString() +
+                                                '/monitor/monitor-secrets'
+                                        )}
+                                    >
+                                        You can use secrets here.
+                                    </Link>
+                                </p>
+                            )
                         }
                         required={true}
                     />

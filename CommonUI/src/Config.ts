@@ -1,26 +1,27 @@
-import Hostname from 'Common/Types/API/Hostname';
-import Protocol from 'Common/Types/API/Protocol';
 import {
     AccountsRoute,
     AdminDashboardRoute,
     ApiReferenceRoute,
     AppApiRoute,
     DashboardRoute,
+    DocsRoute,
     FileRoute,
+    HomeRoute,
     IdentityRoute,
+    IngestorRoute,
     IntegrationRoute,
     NotificationRoute,
-    IngestorRoute,
+    RealtimeRoute,
     StatusPageRoute,
     WorkflowRoute,
-    homeRoute,
-    RealtimeRoute,
 } from 'Common/ServiceRoute';
-import Version from 'Common/Types/Version';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject } from 'Common/Types/JSON';
 import Dictionary from 'Common/Types/Dictionary';
+import { JSONObject } from 'Common/Types/JSON';
+import Version from 'Common/Types/Version';
 
 type GetAllEnvVarsFunction = () => JSONObject;
 
@@ -87,6 +88,12 @@ export const REALTIME_URL: URL = new URL(
     RealtimeRoute
 );
 
+export const DOCS_URL: URL = new URL(
+    HTTP_PROTOCOL,
+    REALTIME_HOSTNAME,
+    DocsRoute
+);
+
 export const IDENTITY_URL: URL = new URL(
     HTTP_PROTOCOL,
     IDENTITY_HOSTNAME,
@@ -147,7 +154,7 @@ export const ACCOUNTS_URL: URL = new URL(
     ACCOUNTS_HOSTNAME,
     AccountsRoute
 );
-export const HOME_URL: URL = new URL(HTTP_PROTOCOL, HOME_HOSTNAME, homeRoute);
+export const HOME_URL: URL = new URL(HTTP_PROTOCOL, HOME_HOSTNAME, HomeRoute);
 
 export const SubscriptionPlans: Array<SubscriptionPlan> =
     SubscriptionPlan.getSubscriptionPlans(getAllEnvVars());

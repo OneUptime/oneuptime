@@ -1,6 +1,6 @@
 import Route from './Types/API/Route';
 
-export const homeRoute: Route = new Route('/');
+export const HomeRoute: Route = new Route('/');
 
 export const AppApiRoute: Route = new Route('/api');
 
@@ -29,3 +29,5 @@ export const AdminDashboardRoute: Route = new Route('/admin');
 export const IngestorRoute: Route = new Route('/ingestor');
 
 export const RealtimeRoute: Route = new Route('/realtime/socket');
+
+export const DocsRoute: Route = new Route('/docs');
