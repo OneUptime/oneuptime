@@ -1,27 +1,27 @@
+import DashboardNavigation from '../../Utils/Navigation';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import { VoidFunction } from 'Common/Types/FunctionTypes';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { JSONValue } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import Field from 'CommonUI/src/Components/Forms/Types/Field';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
+import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
+import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
+import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
+import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import Project from 'Model/Models/Project';
 import React, {
     FunctionComponent,
     ReactElement,
-    useState,
     useEffect,
+    useState,
 } from 'react';
-import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
-import IconProp from 'Common/Types/Icon/IconProp';
-import Project from 'Model/Models/Project';
-import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import ProjectUtil from 'CommonUI/src/Utils/Project';
-import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import Field from 'CommonUI/src/Components/Forms/Types/Field';
-import { RadioButton } from 'CommonUI/src/Components/RadioButtons/GroupRadioButtons';
-import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import { JSONValue } from 'Common/Types/JSON';
-import { GetReactElementFunction } from 'CommonUI/src/Types/FunctionTypes';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
-import DashboardNavigation from '../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -189,13 +189,15 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     ).map((plan: SubscriptionPlan): RadioButton => {
                         let description: string = plan.isCustomPricing()
                             ? `Our sales team will contact you soon.`
-                            : `Billed ${isSubscriptionPlanYearly
-                                ? 'yearly'
-                                : 'monthly'
-                            }. ${plan.getTrialPeriod() > 0
-                                ? `Free ${plan.getTrialPeriod()} days trial.`
-                                : ''
-                            }`;
+                            : `Billed ${
+                                  isSubscriptionPlanYearly
+                                      ? 'yearly'
+                                      : 'monthly'
+                              }. ${
+                                  plan.getTrialPeriod() > 0
+                                      ? `Free ${plan.getTrialPeriod()} days trial.`
+                                      : ''
+                              }`;
 
                         if (
                             isSubscriptionPlanYearly &&
@@ -220,22 +222,23 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                             sideTitle: plan.isCustomPricing()
                                 ? 'Custom Price'
                                 : isSubscriptionPlanYearly
-                                    ? '$' +
-                                    plan
-                                        .getYearlySubscriptionAmountInUSD()
-                                        .toString() +
-                                    '/mo billed yearly'
-                                    : '$' +
-                                    plan
-                                        .getMonthlySubscriptionAmountInUSD()
-                                        .toString(),
+                                ? '$' +
+                                  plan
+                                      .getYearlySubscriptionAmountInUSD()
+                                      .toString() +
+                                  '/mo billed yearly'
+                                : '$' +
+                                  plan
+                                      .getMonthlySubscriptionAmountInUSD()
+                                      .toString(),
                             sideDescription: plan.isCustomPricing()
                                 ? ''
                                 : isSubscriptionPlanYearly
-                                    ? `~ $${plan.getYearlySubscriptionAmountInUSD() *
-                                    12
-                                    } per user / year`
-                                    : `/month per user`,
+                                ? `~ $${
+                                      plan.getYearlySubscriptionAmountInUSD() *
+                                      12
+                                  } per user / year`
+                                : `/month per user`,
                         };
                     }),
                     title: 'Please select a plan.',
@@ -302,15 +305,15 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         name: 'Create New Project',
                         steps: BILLING_ENABLED
                             ? [
-                                {
-                                    title: 'Basic',
-                                    id: 'basic',
-                                },
-                                {
-                                    title: 'Select Plan',
-                                    id: 'plan',
-                                },
-                            ]
+                                  {
+                                      title: 'Basic',
+                                      id: 'basic',
+                                  },
+                                  {
+                                      title: 'Select Plan',
+                                      id: 'plan',
+                                  },
+                              ]
                             : undefined,
                         saveRequestOptions: {
                             isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request

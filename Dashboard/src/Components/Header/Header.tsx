@@ -108,6 +108,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             onProjectModalClose={props.onProjectModalClose}
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
+                            selectedProject={props.selectedProject}
                         />
 
                         <div className="flex ml-3">
