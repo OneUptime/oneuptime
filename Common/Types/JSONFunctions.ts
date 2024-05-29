@@ -1,10 +1,10 @@
-import Typeof from './Typeof';
+import BaseModel from '../Models/BaseModel';
 import DatabaseProperty from './Database/DatabaseProperty';
 import OneUptimeDate from './Date';
-import BaseModel from '../Models/BaseModel';
 import { JSONArray, JSONObject, JSONValue, ObjectType } from './JSON';
 import SerializableObject from './SerializableObject';
 import SerializableObjectDictionary from './SerializableObjectDictionary';
+import Typeof from './Typeof';
 import JSON5 from 'json5';
 
 export default class JSONFunctions {
@@ -139,6 +139,10 @@ export default class JSONFunctions {
     }
 
     public static toString(val: JSONValue): string {
+        if (typeof val === Typeof.String) {
+            return val as string;
+        }
+
         return JSON.stringify(val);
     }
 

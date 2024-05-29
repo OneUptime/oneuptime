@@ -1,58 +1,15 @@
-import Slug from 'Common/Utils/Slug';
-import FindOneBy from '../Types/Database/FindOneBy';
-import UpdateOneBy from '../Types/Database/UpdateOneBy';
-import CountBy from '../Types/Database/CountBy';
-import DeleteOneBy from '../Types/Database/DeleteOneBy';
-import SearchBy from '../Types/Database/SearchBy';
-import DeleteBy from '../Types/Database/DeleteBy';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import FindBy from '../Types/Database/FindBy';
-import UpdateBy from '../Types/Database/UpdateBy';
-import Query, { FindWhere } from '../Types/Database/Query';
-import CreateBy from '../Types/Database/CreateBy';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
-import Exception from 'Common/Types/Exception/Exception';
-import SearchResult from '../Types/Database/SearchResult';
-import Encryption from '../Utils/Encryption';
-import { JSONObject, JSONValue } from 'Common/Types/JSON';
-import BaseModel from 'Common/Models/BaseModel';
+import { AppApiHostname, EncryptionSecret } from '../EnvironmentConfig';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
-import ObjectID from 'Common/Types/ObjectID';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { EncryptionSecret, AppApiHostname } from '../EnvironmentConfig';
-import { WorkflowRoute } from 'Common/ServiceRoute';
-import HashedString from 'Common/Types/HashedString';
-import UpdateByID from '../Types/Database/UpdateByID';
-import Columns from 'Common/Types/Database/Columns';
-import FindOneByID from '../Types/Database/FindOneByID';
-import Dictionary from 'Common/Types/Dictionary';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import QueryHelper from '../Types/Database/QueryHelper';
-import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
-import Typeof from 'Common/Types/Typeof';
-import TableColumnType from 'Common/Types/Database/TableColumnType';
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import ModelPermission, {
-    CheckReadPermissionType,
-} from '../Types/Database/ModelPermission';
-import Select from '../Types/Database/Select';
-import RelationSelect from '../Types/Database/RelationSelect';
-import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
-import API from 'Common/Utils/API';
-import Protocol from 'Common/Types/API/Protocol';
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
 import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
-import Text from 'Common/Types/Text';
-import logger from '../Utils/Logger';
-import BaseService from './BaseService';
-import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
+import CountBy from '../Types/Database/CountBy';
+import CreateBy from '../Types/Database/CreateBy';
+import DeleteBy from '../Types/Database/DeleteBy';
+import DeleteOneBy from '../Types/Database/DeleteOneBy';
+import FindBy from '../Types/Database/FindBy';
+import FindOneBy from '../Types/Database/FindOneBy';
+import FindOneByID from '../Types/Database/FindOneByID';
 import {
     DatabaseTriggerType,
     OnCreate,
@@ -60,7 +17,50 @@ import {
     OnFind,
     OnUpdate,
 } from '../Types/Database/Hooks';
+import ModelPermission, {
+    CheckReadPermissionType,
+} from '../Types/Database/ModelPermission';
+import Query, { FindWhere } from '../Types/Database/Query';
+import QueryHelper from '../Types/Database/QueryHelper';
+import RelationSelect from '../Types/Database/RelationSelect';
+import SearchBy from '../Types/Database/SearchBy';
+import SearchResult from '../Types/Database/SearchResult';
+import Select from '../Types/Database/Select';
+import UpdateBy from '../Types/Database/UpdateBy';
+import UpdateByID from '../Types/Database/UpdateByID';
+import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
+import UpdateOneBy from '../Types/Database/UpdateOneBy';
+import Encryption from '../Utils/Encryption';
+import logger from '../Utils/Logger';
+import BaseService from './BaseService';
+import BaseModel from 'Common/Models/BaseModel';
+import { WorkflowRoute } from 'Common/ServiceRoute';
+import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
+import Columns from 'Common/Types/Database/Columns';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
+import Dictionary from 'Common/Types/Dictionary';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
+import Exception from 'Common/Types/Exception/Exception';
+import HashedString from 'Common/Types/HashedString';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Text from 'Common/Types/Text';
+import Typeof from 'Common/Types/Typeof';
+import API from 'Common/Utils/API';
+import Slug from 'Common/Utils/Slug';
+import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private postgresDatabase!: PostgresDatabase;
@@ -276,11 +276,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     protected async encrypt(data: TBaseModel): Promise<TBaseModel> {
-        
-
         for (const key of data.getEncryptedColumns().columns) {
-
-            if(!data.hasValue(key)){
+            if (!data.hasValue(key)) {
                 continue;
             }
 
@@ -290,7 +287,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
                 for (const key in dataObj) {
                     dataObj[key] = await Encryption.encrypt(
-                        dataObj[key] as string,
+                        dataObj[key] as string
                     );
                 }
 
@@ -298,7 +295,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             } else {
                 //If its string or other type.
                 (data as any)[key] = await Encryption.encrypt(
-                    (data as any)[key] as string,
+                    (data as any)[key] as string
                 );
             }
         }
@@ -324,10 +321,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     protected async decrypt(data: TBaseModel): Promise<TBaseModel> {
-       
         for (const key of data.getEncryptedColumns().columns) {
-
-            if(!data.hasValue(key)){
+            if (!data.hasValue(key)) {
                 continue;
             }
 
@@ -337,15 +332,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
                 for (const key in dataObj) {
                     dataObj[key] = await Encryption.decrypt(
-                        dataObj[key] as string,
-                       
+                        dataObj[key] as string
                     );
                 }
 
                 data.setValue(key, dataObj);
             } else {
                 //If its string or other type.
-                data.setValue(key, await Encryption.decrypt((data as any)[key]));
+                data.setValue(
+                    key,
+                    await Encryption.decrypt((data as any)[key])
+                );
             }
         }
 

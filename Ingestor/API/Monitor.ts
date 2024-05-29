@@ -1,3 +1,21 @@
+import ProbeAuthorization from '../Middleware/ProbeAuthorization';
+import { ProbeExpressRequest } from '../Types/Request';
+import MonitorUtil from '../Utils/Monitor';
+import BaseModel from 'Common/Models/BaseModel';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import OneUptimeDate from 'Common/Types/Date';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Semaphore from 'CommonServer/Infrastructure/Semaphore';
+import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
+import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
+import Query from 'CommonServer/Types/Database/Query';
+import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
+import CronTab from 'CommonServer/Utils/CronTab';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -5,27 +23,10 @@ import Express, {
     NextFunction,
     OneUptimeRequest,
 } from 'CommonServer/Utils/Express';
-import Response from 'CommonServer/Utils/Response';
-import ProbeAuthorization from '../Middleware/ProbeAuthorization';
-import MonitorProbe from 'Model/Models/MonitorProbe';
-import MonitorProbeService from 'CommonServer/Services/MonitorProbeService';
-import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
-import OneUptimeDate from 'Common/Types/Date';
-import { ProbeExpressRequest } from '../Types/Request';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import CronTab from 'CommonServer/Utils/CronTab';
-import Monitor from 'Model/Models/Monitor';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import { JSONObject } from 'Common/Types/JSON';
-import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
-import ObjectID from 'Common/Types/ObjectID';
-import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import Query from 'CommonServer/Types/Database/Query';
 import logger from 'CommonServer/Utils/Logger';
-import BaseModel from 'Common/Models/BaseModel';
-import Semaphore from 'CommonServer/Infrastructure/Semaphore';
+import Response from 'CommonServer/Utils/Response';
+import Monitor from 'Model/Models/Monitor';
+import MonitorProbe from 'Model/Models/MonitorProbe';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -302,13 +303,24 @@ router.post(
                     return Boolean(monitor._id);
                 });
 
+            // check if the monitor needs secrets to be filled.
+
+            const monitorsWithSecretPopulated: Array<Monitor> = [];
+
+            for (const monitor of monitors) {
+                const monitorWithSecrets: Monitor =
+                    await MonitorUtil.populateSecrets(monitor);
+
+                monitorsWithSecretPopulated.push(monitorWithSecrets);
+            }
+
             // return the list of monitors to be monitored
 
             return Response.sendEntityArrayResponse(
                 req,
                 res,
-                monitors,
-                new PositiveNumber(monitors.length),
+                monitorsWithSecretPopulated,
+                new PositiveNumber(monitorsWithSecretPopulated.length),
                 Monitor
             );
         } catch (err) {

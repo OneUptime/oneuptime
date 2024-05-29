@@ -43,6 +43,9 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         placeholder: 'Secret Name',
                         validation: {
                             minLength: 2,
+                            noSpaces: true,
+                            noNumbers: true,
+                            noSpecialCharacters: true,
                         },
                     },
                     {
