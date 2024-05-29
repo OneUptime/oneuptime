@@ -275,9 +275,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return await this.onBeforeCreate(createBy);
     }
 
-    protected encrypt(data: TBaseModel): TBaseModel {
-        const iv: Buffer = Encryption.getIV();
-        (data as any)['iv'] = iv;
+    protected async encrypt(data: TBaseModel): Promise<TBaseModel> {
+        
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
@@ -285,18 +284,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 const dataObj: JSONObject = (data as any)[key] as JSONObject;
 
                 for (const key in dataObj) {
-                    dataObj[key] = Encryption.encrypt(
+                    dataObj[key] = await Encryption.encrypt(
                         dataObj[key] as string,
-                        iv
                     );
                 }
 
                 (data as any)[key] = dataObj;
             } else {
                 //If its string or other type.
-                (data as any)[key] = Encryption.encrypt(
+                (data as any)[key] = await Encryption.encrypt(
                     (data as any)[key] as string,
-                    iv
                 );
             }
         }
@@ -321,25 +318,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return data;
     }
 
-    protected decrypt(data: TBaseModel): TBaseModel {
-        const iv: Buffer = (data as any)['iv'];
-
+    protected async decrypt(data: TBaseModel): Promise<TBaseModel> {
+       
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
             if (typeof data.getValue(key) === Typeof.Object) {
                 const dataObj: JSONObject = data.getValue(key) as JSONObject;
 
                 for (const key in dataObj) {
-                    dataObj[key] = Encryption.decrypt(
+                    dataObj[key] = await Encryption.decrypt(
                         dataObj[key] as string,
-                        iv
+                       
                     );
                 }
 
                 data.setValue(key, dataObj);
             } else {
                 //If its string or other type.
-                data.setValue(key, Encryption.decrypt((data as any)[key], iv));
+                data.setValue(key, await Encryption.decrypt((data as any)[key]));
             }
         }
 
@@ -616,7 +612,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         await this.checkTotalItemsBy(_createdBy);
 
         // Encrypt data
-        data = this.encrypt(data);
+        data = await this.encrypt(data);
 
         // hash data
         data = await this.hash(data);
@@ -1159,7 +1155,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             let decryptedItems: Array<TBaseModel> = [];
 
             for (const item of items) {
-                decryptedItems.push(this.decrypt(item));
+                decryptedItems.push(await this.decrypt(item));
             }
 
             decryptedItems = this.sanitizeFindByItems(
