@@ -203,6 +203,8 @@ router.post(
                     httpOnly: true,
                 });
 
+                logger.info('User signed up: ' + savedUser.email?.toString());
+
                 return Response.sendEntityResponse(req, res, savedUser, User);
             }
 
@@ -398,6 +400,8 @@ router.post(
                 logger.error(err);
             });
 
+            logger.info('User email verified: ' + user.email?.toString());
+
             return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
@@ -490,6 +494,10 @@ router.post(
                 logger.error(err);
             });
 
+            logger.info(
+                'User password reset: ' + alreadySavedUser.email?.toString()
+            );
+
             return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
             return next(err);
@@ -581,6 +589,10 @@ router.post(
                     alreadySavedUser.password.toString() ===
                     user.password!.toString()
                 ) {
+                    logger.info(
+                        'User logged in: ' + alreadySavedUser.email?.toString()
+                    );
+
                     const token: string = JSONWebToken.signUserLoginToken({
                         tokenData: {
                             userId: alreadySavedUser.id!,

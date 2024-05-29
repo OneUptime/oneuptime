@@ -449,6 +449,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+        logger.info('User logged in with SSO' + email.toString());
+
         return Response.redirect(
             req,
             res,
