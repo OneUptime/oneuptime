@@ -1,13 +1,13 @@
-import { JSONObject, JSONValue } from 'Common/Types/JSON';
-import API from 'Common/Utils/API';
-import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
-import Protocol from 'Common/Types/API/Protocol';
-import URL from 'Common/Types/API/URL';
 import { IsolatedVMHostname } from '../../EnvironmentConfig';
-import Route from 'Common/Types/API/Route';
 import ClusterKeyAuthorization from '../../Middleware/ClusterKeyAuthorization';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import ReturnResult from 'Common/Types/IsolatedVM/ReturnResult';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
+import API from 'Common/Utils/API';
 
 export default class VMUtil {
     public static async runCodeInSandbox(data: {
@@ -47,6 +47,17 @@ export default class VMUtil {
         valueToReplaceInPlace: string,
         isJSON: boolean | undefined
     ): string {
+        let didStringify: boolean = false;
+
+        if (typeof valueToReplaceInPlace === 'object') {
+            try {
+                valueToReplaceInPlace = JSON.stringify(valueToReplaceInPlace);
+                didStringify = true;
+            } catch (err) {
+                return valueToReplaceInPlace;
+            }
+        }
+
         if (
             typeof valueToReplaceInPlace === 'string' &&
             valueToReplaceInPlace.toString().includes('{{') &&
@@ -91,6 +102,14 @@ export default class VMUtil {
             }
 
             valueToReplaceInPlace = valueToReplaceInPlaceCopy;
+        }
+
+        if (didStringify) {
+            try {
+                valueToReplaceInPlace = JSON.parse(valueToReplaceInPlace);
+            } catch (err) {
+                return valueToReplaceInPlace;
+            }
         }
 
         return valueToReplaceInPlace;

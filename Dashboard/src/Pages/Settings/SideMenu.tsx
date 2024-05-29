@@ -1,12 +1,12 @@
-import React, { ReactElement } from 'react';
+import PageMap from '../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import Route from 'Common/Types/API/Route';
 import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import React, { ReactElement } from 'react';
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     return (
@@ -47,7 +47,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
+                                PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS
                             ] as Route
                         ),
                     }}
@@ -58,9 +58,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     link={{
                         title: 'Secrets',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                            PageMap.SETTINGS_MONITOR_SECRETS
-                            ] as Route
+                            RouteMap[PageMap.SETTINGS_MONITOR_SECRETS] as Route
                         ),
                     }}
                     icon={IconProp.Lock}
@@ -72,7 +70,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
+                                PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS
                             ] as Route
                         ),
                     }}
@@ -85,8 +83,8 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap
-                                .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                             ] as Route
                         ),
                     }}
@@ -108,7 +106,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Incident Severity',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                PageMap.SETTINGS_INCIDENTS_SEVERITY
                             ] as Route
                         ),
                     }}
@@ -119,7 +117,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Incident Templates',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_INCIDENT_TEMPLATES
+                                PageMap.SETTINGS_INCIDENT_TEMPLATES
                             ] as Route
                         ),
                     }}
@@ -130,7 +128,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Note Templates',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
+                                PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES
                             ] as Route
                         ),
                     }}
@@ -141,7 +139,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
+                                PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS
                             ] as Route
                         ),
                     }}
@@ -161,7 +159,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Event State',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                             ] as Route
                         ),
                     }}
@@ -172,8 +170,8 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Note Templates',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap
-                                .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
                             ] as Route
                         ),
                     }}
@@ -184,8 +182,8 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Custom Fields',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap
-                                .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                                PageMap
+                                    .SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                             ] as Route
                         ),
                     }}
@@ -209,7 +207,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                         title: 'Notification Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                                PageMap.SETTINGS_NOTIFICATION_SETTINGS
                             ] as Route
                         ),
                     }}
@@ -305,7 +303,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                             title: 'Usage History',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[
-                                PageMap.SETTINGS_USAGE_HISTORY
+                                    PageMap.SETTINGS_USAGE_HISTORY
                                 ] as Route
                             ),
                         }}
@@ -316,7 +314,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                             title: 'Invoices',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[
-                                PageMap.SETTINGS_BILLING_INVOICES
+                                    PageMap.SETTINGS_BILLING_INVOICES
                                 ] as Route
                             ),
                         }}

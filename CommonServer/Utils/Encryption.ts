@@ -24,7 +24,7 @@ export default class Encryption {
         const decryptedText: string = CryptoJS.AES.decrypt(
             encryptedText,
             secret
-        ).toString();
+        ).toString(CryptoJS.enc.Utf8);
         return decryptedText;
     }
 

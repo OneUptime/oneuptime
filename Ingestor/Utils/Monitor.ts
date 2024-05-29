@@ -8,7 +8,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import MonitorSecretService from 'CommonServer/Services/MonitorSecretService';
-import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import VMUtil from 'CommonServer/Utils/VM/VMAPI';
 import Monitor from 'Model/Models/Monitor';
 import MonitorSecret from 'Model/Models/MonitorSecret';
@@ -30,7 +29,7 @@ export default class MonitorUtil {
             const secrets: Array<MonitorSecret> =
                 await MonitorSecretService.findBy({
                     query: {
-                        monitors: QueryHelper.in([monitor.id]),
+                        monitors: [monitor.id] as any,
                     },
                     select: {
                         secretValue: true,

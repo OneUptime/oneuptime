@@ -1,14 +1,14 @@
-import React, { Fragment, FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorSecret from 'Model/Models/MonitorSecret';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import MonitorsElement from '../../Components/Monitor/Monitors';
 import DashboardNavigation from '../../Utils/Navigation';
+import PageComponentProps from '../PageComponentProps';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
-import MonitorsElement from '../../Components/Monitor/Monitors';
+import MonitorSecret from 'Model/Models/MonitorSecret';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const MonitorSecrets: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -30,7 +30,9 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                     description:
                         'Monitor secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with monitors.',
                 }}
-                noItemsMessage={'No monitor secret found. Click on the "Create" button to add a new monitor secret.'}
+                noItemsMessage={
+                    'No monitor secret found. Click on the "Create" button to add a new monitor secret.'
+                }
                 viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={[
                     {
@@ -79,9 +81,9 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                             valueField: '_id',
                         },
                         required: true,
-                        description: 'Whcih monitors should have access to this secret?',
-                        placeholder:
-                            'Select monitors',
+                        description:
+                            'Whcih monitors should have access to this secret?',
+                        placeholder: 'Select monitors',
                     },
                 ]}
                 sortBy="name"
@@ -111,8 +113,7 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                             label: 'name',
                             value: '_id',
                         },
-
-                    }
+                    },
                 ]}
                 columns={[
                     {
@@ -121,7 +122,6 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-
                     },
                     {
                         field: {
@@ -129,7 +129,6 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-
                     },
                     {
                         field: {
