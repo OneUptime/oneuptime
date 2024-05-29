@@ -95,25 +95,25 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     </h2>
                 </div>
                 {props.eventDescription && (
-                    <div className="mt-2 text-sm">
+                    <div className="mt-2 text-sm active-event-box-body-description">
                         <MarkdownViewer text={props.eventDescription || ''} />
                     </div>
                 )}
 
                 {props.eventSecondDescription && (
-                    <div className="mt-3 text-gray-500 text-sm">
+                    <div className="mt-3 text-gray-500 text-sm active-event-box-body-second-description">
                         {props.eventSecondDescription}
                     </div>
                 )}
 
                 {props.eventMiniDescription && (
-                    <div className="mt-3 text-gray-400 text-sm">
+                    <div className="mt-3 text-gray-400 text-sm active-event-box-body-mini-description">
                         {props.eventMiniDescription}
                     </div>
                 )}
 
                 {props.labels && props.labels.length > 0 ? (
-                    <div className="flex space-x-1 mt-3">
+                    <div className="flex space-x-1 mt-3 active-event-box-body-labels">
                         {props.labels.map(
                             (label: EventItemLabel, i: number) => {
                                 return (
@@ -143,7 +143,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 {props.eventResourcesAffected &&
                 props.eventResourcesAffected?.length > 0 ? (
                     <div key={0}>
-                        <div className="flex flex-wrap gap-y-4 space-x-1">
+                        <div className="flex flex-wrap gap-y-4 space-x-1 active-event-box-body-reesources">
                             <div className="text-sm text-gray-400 mr-3 mt-1">
                                 Affected resources
                             </div>
