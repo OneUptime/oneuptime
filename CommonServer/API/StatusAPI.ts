@@ -27,6 +27,8 @@ export default class StatusAPI {
 
         // General status
         router.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
+            logger.info('Status check: ok');
+
             Response.sendJsonObjectResponse(req, res, {
                 status: 'ok',
             });
@@ -39,6 +41,7 @@ export default class StatusAPI {
                 try {
                     logger.debug('Ready check');
                     await options.readyCheck();
+                    logger.info('Ready check: ok');
                     Response.sendJsonObjectResponse(req, res, {
                         status: 'ok',
                     });
@@ -61,6 +64,7 @@ export default class StatusAPI {
                 try {
                     logger.debug('Live check');
                     await options.readyCheck();
+                    logger.info('Live check: ok');
                     Response.sendJsonObjectResponse(req, res, {
                         status: 'ok',
                     });
