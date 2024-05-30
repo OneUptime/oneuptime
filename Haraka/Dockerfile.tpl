@@ -49,5 +49,12 @@ COPY ./Haraka/init.sh /init.sh
 RUN chmod 755 /init.sh
 
 EXPOSE 2525
+EXPOSE 110
+EXPOSE 25
+EXPOSE 587
+EXPOSE 465
+EXPOSE 143
+EXPOSE 993
+EXPOSE 995
 
 CMD ["/init.sh"]

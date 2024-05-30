@@ -4,7 +4,7 @@
 {{- $harakaQueue := dict "SizeLimit" "1Gi" "MountPath" "/harakaapp/queue" -}}
 {{- $harakaVolumes := dict "haraka-queue" $harakaQueue -}}
 {{- $harakaPorts := dict "port" $.Values.port.haraka -}}
-{{- $harakaEnv := dict "SMTP_EMAIL" $.Values.internalSmtp.email "SMTP_PASSWORD" "internal_smtp_password" "DKIM_SELECTOR" "oneuptime" "DOMAIN" $.Values.internalSmtp.sendingDomain "DKIM_PRIVATE_KEY" $.Values.internalSmtp.dkimPrivateKey "DKIM_PUBLIC_KEY" $.Values.internalSmtp.dkimPublicKey -}}
+{{- $harakaEnv := dict "SMTP_EMAIL" $.Values.internalSmtp.email "SMTP_PASSWORD" "internal_smtp_password" "DKIM_SELECTOR" "oneuptime" "DOMAIN" $.Values.internalSmtp.sendingDomain "INCOMING_EMAIL_DOMAIN" $.Values.internalSmtp.incomingEmailDomain "DKIM_PRIVATE_KEY" $.Values.internalSmtp.dkimPrivateKey "DKIM_PUBLIC_KEY" $.Values.internalSmtp.dkimPublicKey -}}
 {{- $harakaDeploymentArgs :=dict "ServiceName" "haraka" "Ports" $harakaPorts "Release" $.Release "Values" $.Values "Env" $harakaEnv "Volumes" $harakaVolumes -}}
 {{- include "oneuptime.deployment" $harakaDeploymentArgs }}
 ---
@@ -13,6 +13,72 @@
 {{- $harakaPorts := dict "port" $.Values.port.haraka -}}
 {{- $harakaServiceArgs := dict "ServiceName" "haraka" "Ports" $harakaPorts "Release" $.Release "Values" $.Values  -}}
 {{- include "oneuptime.service" $harakaServiceArgs }}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "haraka"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+  name: {{ printf "%s-%s" $.Release.Name "haraka"  }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+  {{- if $.Values.metalLb.enabled }}
+    metallb.universe.tf/address-pool: {{ printf "%s-%s" $.Release.Name "metallb-address-pool"  }}
+  {{- end }}
+spec:
+  {{- if $.Values.internalSmtp.service.loadBalancerIP }}
+  loadBalancerIP: {{ $.Values.internalSmtp.service.loadBalancerIP }}
+  {{- end }}
+  {{- if $.Values.internalSmtp.service.externalIPs }}
+  externalIPs:
+    {{- range $key, $val := $.Values.internalSmtp.service.externalIPs }}
+    - {{ $val }}
+    {{- end }}
+  {{- end }}
+  ports:
+    - name: pop3
+      protocol: TCP
+      port: 110
+      targetPort: 110
+    - name: imap
+      protocol: TCP
+      port: 143
+      targetPort: 143
+    - name: pop3s
+      protocol: TCP
+      port: 995
+      targetPort: 995
+    - name: imaps
+      protocol: TCP
+      port: 993
+      targetPort: 993
+    - name: smtp
+      protocol: TCP
+      port: 25
+      targetPort: 25
+    - name: submission
+      protocol: TCP
+      port: 587
+      targetPort: 587
+    - name: smtps
+      protocol: TCP
+      port: 465
+      targetPort: 465
+    - name: haraka
+      protocol: TCP
+      port: 2525
+      targetPort: 2525
+  selector:
+      app: {{ printf "%s-%s" $.Release.Name "internalSmtp"  }}
+  {{- if ($.Values.internalSmtp.service.type) }}
+  type: {{ $.Values.internalSmtp.service.type }}
+  {{- else }}
+  type: ClusterIP
+  {{- end}}
 ---
 
 # OneUptime haraka autoscaler

@@ -124,11 +124,18 @@ analytics:
 
 internalSmtp:
   enabled: true
+  incomingEmailDomain:
   sendingDomain: 
   dkimPrivateKey: 
   dkimPublicKey: 
   email: 
-  name: 
+  name:
+  service: 
+    loadBalancerIP: 
+    type: LoadBalancer
+    externalIPs:
+      # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
+
 
 incidents:
   disableAutomaticCreation: false
