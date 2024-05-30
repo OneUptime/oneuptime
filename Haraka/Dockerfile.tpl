@@ -42,7 +42,7 @@ COPY ./Haraka/config/tls.ini /harakaapp/config/tls.ini
 COPY ./Haraka/config/auth_flat_file.ini /harakaapp/config/auth_flat_file.ini
 COPY ./Haraka/config/dkim_sign.ini /harakaapp/config/dkim_sign.ini
 COPY ./Haraka/config/host_list.ini /harakaapp/config/host_list.ini
-
+COPY ./Haraka/config/loglevel /harakaapp/config/loglevel
 
 # create plugin directory
 RUN mkdir -p /harakaapp/plugins
