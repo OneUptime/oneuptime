@@ -1,3 +1,17 @@
 tls
 auth/flat_file
 dkim_sign
+
+# block mails from known bad hosts (see config/dnsbl.zones for the DNS zones queried)
+dnsbl
+
+# block mail from some known bad HELOs - see config/helo.checks.ini for configuration
+helo.checks
+
+# block mail from known bad email addresses you put in config/mail_from.blocklist
+mail_from.blocklist
+
+# Only accept mail where the MAIL FROM domain is resolvable to an MX record
+mail_from.is_resolvable
+
+email_parser
