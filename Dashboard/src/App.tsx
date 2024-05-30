@@ -75,10 +75,12 @@ const App: () => JSX.Element = () => {
 
     useAsyncEffect(async () => {
         try {
+            if (selectedProject && selectedProject._id) {
+                ProjectUtil.setCurrentProject(selectedProject);
+            }
+
             if (selectedProject && selectedProject._id && BILLING_ENABLED) {
                 setPaymentMethodsCountLoading(true);
-
-                ProjectUtil.setCurrentProject(selectedProject);
 
                 const paymentMethodsCount: number = await ModelAPI.count({
                     modelType: BillingPaymentMethod,
