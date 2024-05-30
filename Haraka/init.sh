@@ -23,5 +23,9 @@ echo "Type: TXT"
 echo "Key: $DKIM_SELECTOR._domainkey"
 echo "v=DKIM1;p=$(grep -v '^-' /harakaapp/config/dkim/$DOMAIN/public | tr -d '\n')"
 
+# Add Hosts
+echo $DOMAIN >> /harakaapp/config/host_list.ini
+echo $INCOMING_EMAIL_DOMAIN >> /harakaapp/config/host_list.ini
+
 # Run haraka
 haraka -c /harakaapp

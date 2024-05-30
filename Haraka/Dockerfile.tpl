@@ -41,6 +41,9 @@ COPY ./Haraka/config/smtp.ini /harakaapp/config/smtp.ini
 COPY ./Haraka/config/tls.ini /harakaapp/config/tls.ini
 COPY ./Haraka/config/auth_flat_file.ini /harakaapp/config/auth_flat_file.ini
 COPY ./Haraka/config/dkim_sign.ini /harakaapp/config/dkim_sign.ini
+COPY ./Haraka/config/host_list.ini /harakaapp/config/host_list.ini
+
+COPY ./Haraka/plugins/email_parser.js /harakaapp/config/email_parser.js
 
 COPY ./Haraka/init.sh /init.sh
 RUN chmod 755 /init.sh
