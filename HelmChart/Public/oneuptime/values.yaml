@@ -132,7 +132,8 @@ internalSmtp:
   name:
   service: 
     loadBalancerIP: 
-    type: LoadBalancer
+    # Change this to LoadBalancer if you want to receive emails from the internet. This could be useful for Incoming Email monitors.
+    type: ClusterIP
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
 
