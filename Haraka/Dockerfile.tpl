@@ -43,10 +43,21 @@ COPY ./Haraka/config/auth_flat_file.ini /harakaapp/config/auth_flat_file.ini
 COPY ./Haraka/config/dkim_sign.ini /harakaapp/config/dkim_sign.ini
 COPY ./Haraka/config/host_list.ini /harakaapp/config/host_list.ini
 
-COPY ./Haraka/plugins/email_parser.js /harakaapp/config/email_parser.js
+
+# create plugin directory
+RUN mkdir -p /harakaapp/plugins
+
+COPY ./Haraka/plugins/email_parser.js /harakaapp/plugins/email_parser.js
 
 COPY ./Haraka/init.sh /init.sh
 RUN chmod 755 /init.sh
+
+# Copy package.json and package-lock.json
+COPY ./Haraka/package.json /harakaapp/package.json
+COPY ./Haraka/package-lock.json /harakaapp/package-lock.json
+
+# Install dependencies
+RUN cd /harakaapp && npm install
 
 EXPOSE 2525
 EXPOSE 110

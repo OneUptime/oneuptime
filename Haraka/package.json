@@ -1,0 +1,17 @@
+{
+  "name": "haraka",
+  "version": "1.0.0",
+  "description": "``` sudo docker build . -t haraka:latest ```",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mailparser": "^3.7.1"
+  }
+}
