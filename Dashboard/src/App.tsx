@@ -38,6 +38,7 @@ import API from 'CommonUI/src/Utils/API/API';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import Project from 'Model/Models/Project';
 import React, { useEffect, useState } from 'react';
@@ -76,6 +77,9 @@ const App: () => JSX.Element = () => {
         try {
             if (selectedProject && selectedProject._id && BILLING_ENABLED) {
                 setPaymentMethodsCountLoading(true);
+
+                ProjectUtil.setCurrentProject(selectedProject);
+
                 const paymentMethodsCount: number = await ModelAPI.count({
                     modelType: BillingPaymentMethod,
                     query: { projectId: selectedProject._id },
