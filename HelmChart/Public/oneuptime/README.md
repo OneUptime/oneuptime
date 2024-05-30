@@ -92,7 +92,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `internalSmtp.dkimPublicKey` | DKIM Public Key that is set for sending domain | `nil` |  |
 | `internalSmtp.email` | Email address to send emails from | `nil` |  |
 | `internalSmtp.name` | Name to send emails from | `nil` |  |
-| `logLevel` | Can be one of the following - INFO, WARN, ERROR, DEBUG | `ERROR` |  |
+| `logLevel` | Can be one of the following - INFO, WARN, ERROR, DEBUG | `INFO` |  |
 | `incidents.disableAutomaticCreation` | Disable incident creation (use this when your team is overloaded with incidents or in emergencies) | `false` |  |
 | `podSecurityContext` | Pod Security Context. Please refer to Kubernetes docuemntation to set these. This chart depends on other bitnami charts. You will have to set security context for those as well | `{}` |  |
 | `conatinerSecurityContext` | Container Security Context. Please refer to kubernetes documentation to set these. This chart depends on other bitnami charts. You will have to set security context for those as well | `{}` |  |

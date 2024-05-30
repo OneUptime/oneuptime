@@ -203,7 +203,7 @@ nodeSelector:
 
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR
-logLevel: ERROR
+logLevel: INFO
 
 # Enable cleanup cron jobs
 cronJobs:
