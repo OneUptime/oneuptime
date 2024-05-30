@@ -267,19 +267,24 @@ router.post(
                 const httpProtocol: Protocol =
                     await DatabaseConfig.getHttpProtocol();
 
+                const tokenVerifyUrl: string = new URL(
+                    httpProtocol,
+                    host,
+                    new Route(AccountsRoute.toString()).addRoute(
+                        '/reset-password/' + token
+                    )
+                ).toString();
+
+                logger.info('User forgot password: ' + user.email?.toString());
+                logger.info('Reset Password URL: ' + tokenVerifyUrl);
+
                 MailService.sendMail({
                     toEmail: user.email!,
                     subject: 'Password Reset Request for OneUptime',
                     templateType: EmailTemplateType.ForgotPassword,
                     vars: {
                         homeURL: new URL(httpProtocol, host).toString(),
-                        tokenVerifyUrl: new URL(
-                            httpProtocol,
-                            host,
-                            new Route(AccountsRoute.toString()).addRoute(
-                                '/reset-password/' + token
-                            )
-                        ).toString(),
+                        tokenVerifyUrl: tokenVerifyUrl,
                     },
                 }).catch((err: Error) => {
                     logger.error(err);
