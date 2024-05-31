@@ -1,5 +1,6 @@
-import * as mock from 'jest-mock-extended';
 // import libraries to mock (we do it here because of hoisting)
+// import the mock library
+import * as mock from 'jest-mock-extended';
 import Stripe from 'stripe';
 
 let mockStripe: jest.Mocked<Stripe> | null = null;
