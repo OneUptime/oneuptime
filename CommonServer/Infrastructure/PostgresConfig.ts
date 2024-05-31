@@ -44,6 +44,8 @@ export const dataSourceOptions: DataSourceOptions = {
 export const datasource: DataSource = new DataSource(dataSourceOptions);
 
 export const getTestDataSourceOptions = (): DataSourceOptions => {
+
+    // we use process.env values directly here because it can change during test runs and we need to get the latest values.
     return {
         type: DatabaseType.Postgres,
         host: process.env['DATABASE_HOST'] || 'localhost',
