@@ -129,6 +129,7 @@ export class Service extends DatabaseService<Model> {
                     },
                     select: {
                         userId: true,
+                        projectId: true,
                     },
                     props: {
                         isRoot: true,
@@ -144,7 +145,7 @@ export class Service extends DatabaseService<Model> {
                 );
                 await AccessTokenService.refreshUserTenantAccessPermission(
                     member.userId!,
-                    permission.data.projectId!
+                    permission.projectId!
                 );
             }
         }
