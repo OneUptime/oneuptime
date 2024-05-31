@@ -30,11 +30,11 @@ export const dataSourceOptions: DataSourceOptions = {
     entities: Entities,
     ssl: ShouldDatabaseSslEnable
         ? {
-            rejectUnauthorized: DatabaseRejectUnauthorized,
-            ca: DatabaseSslCa,
-            key: DatabaseSslKey,
-            cert: DatabaseSslCert,
-        }
+              rejectUnauthorized: DatabaseRejectUnauthorized,
+              ca: DatabaseSslCa,
+              key: DatabaseSslKey,
+              cert: DatabaseSslCert,
+          }
         : false,
     // logging: 'all',
     // synchronize: Env === AppEnvironment.Development,
@@ -43,18 +43,21 @@ export const dataSourceOptions: DataSourceOptions = {
 
 export const datasource: DataSource = new DataSource(dataSourceOptions);
 
-export const getTestDataSourceOptions = (): DataSourceOptions => {
+type GetTestDataSourceOptions = () => DataSourceOptions;
 
-    // we use process.env values directly here because it can change during test runs and we need to get the latest values.
-    return {
-        type: DatabaseType.Postgres,
-        host: process.env['DATABASE_HOST'] || 'localhost',
-        port: parseInt(process.env['DATABASE_PORT']?.toString() || '5432'),
-        username: process.env['DATABASE_USERNAME'] || 'postgres',
-        password: process.env['DATABASE_PASSWORD'] || 'password',
-        database: DatabaseName + Faker.randomNumbers(16),
-        entities: Entities,
-        synchronize:
-            Env === AppEnvironment.Test || Env === AppEnvironment.Development,
-    }
-};
+export const getTestDataSourceOptions: GetTestDataSourceOptions =
+    (): DataSourceOptions => {
+        // we use process.env values directly here because it can change during test runs and we need to get the latest values.
+        return {
+            type: DatabaseType.Postgres,
+            host: process.env['DATABASE_HOST'] || 'localhost',
+            port: parseInt(process.env['DATABASE_PORT']?.toString() || '5432'),
+            username: process.env['DATABASE_USERNAME'] || 'postgres',
+            password: process.env['DATABASE_PASSWORD'] || 'password',
+            database: DatabaseName + Faker.randomNumbers(16),
+            entities: Entities,
+            synchronize:
+                Env === AppEnvironment.Test ||
+                Env === AppEnvironment.Development,
+        };
+    };
