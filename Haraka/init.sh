@@ -3,6 +3,7 @@
 # Setup auth
 echo "domain = $DOMAIN" >> /harakaapp/config/dkim_sign.ini
 echo "$DOMAIN" > /harakaapp/config/host_list
+echo "$INCOMING_EMAIL_DOMAIN" >> /harakaapp/config/host_list
 echo "$DOMAIN" > /harakaapp/config/me
 echo "$SMTP_EMAIL=$SMTP_PASSWORD" >> /harakaapp/config/auth_flat_file.ini
 
@@ -23,9 +24,6 @@ echo "Type: TXT"
 echo "Key: $DKIM_SELECTOR._domainkey"
 echo "v=DKIM1;p=$(grep -v '^-' /harakaapp/config/dkim/$DOMAIN/public | tr -d '\n')"
 
-# Add Hosts
-echo $DOMAIN >> /harakaapp/config/host_list.ini
-echo $INCOMING_EMAIL_DOMAIN >> /harakaapp/config/host_list.ini
 
 # Run haraka
 haraka -c /harakaapp
