@@ -23,6 +23,7 @@ import MigrateDefaultUserNotificationSetting from './MigrateDefaultUserSettingNo
 import MigrateToMeteredSubscription from './MigrateToMeteredSubscription';
 import MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage from './MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage';
 import MoveGreenlockCertsToAcmeCerts from './MoveGreenlockCertsToAcmeCerts';
+import RemoveCanFromPermissions from './RemoveCanFromPermissions';
 import UpdateActiveMonitorCountToBillingProvider from './UpdateActiveMonitorCountToBillingProvider';
 import UpdateGlobalConfigFromEnv from './UpdateGlobalCongfigFromEnv';
 
@@ -55,6 +56,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new MoveGreenlockCertsToAcmeCerts(),
     new GenerateNewCertsForStatusPage(),
     new AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing(),
+    new RemoveCanFromPermissions()
 ];
 
 export default DataMigrations;

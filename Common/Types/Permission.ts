@@ -35,416 +35,415 @@ enum Permission {
 
     Public = 'Public', // non-registered user. Everyone has this permission.
 
-        // Billing Permissions (Owner Permission)
-        CreateProjectApiKey = 'CreateProjectApiKey',
-        DeleteProjectApiKey = 'DeleteProjectApiKey',
-        ReadProjectApiKey = 'ReadProjectApiKey',
-        EditProjectApiKey = 'EditProjectApiKey',
-        EditProjectApiKeyPermissions = 'EditProjectApiKeyPermissions',
-    
-        // Logs
-    
-        CreateTelemetryServiceLog = 'CreateTelemetryServiceLog',
-        DeleteTelemetryServiceLog = 'DeleteTelemetryServiceLog',
-        EditTelemetryServiceLog = 'EditTelemetryServiceLog',
-        ReadTelemetryServiceLog = 'ReadTelemetryServiceLog',
-    
-        // Spans
-    
-        CreateTelemetryServiceTraces = 'CreateTelemetryServiceTraces',
-        DeleteTelemetryServiceTraces = 'DeleteTelemetryServiceTraces',
-        EditTelemetryServiceTraces = 'EditTelemetryServiceTraces',
-        ReadTelemetryServiceTraces = 'ReadTelemetryServiceTraces',
-    
-        // Billing Permissions (Owner Permission)
-        ManageProjectBilling = 'ManageProjectBilling',
-    
-        // Billing Permissions (Owner Permission)
-        CreateProjectTeam = 'CreateProjectTeam',
-        DeleteProjectTeam = 'DeleteProjectTeam',
-        ReadProjectTeam = 'ReadProjectTeam',
-        EditProjectTeam = 'EditProjectTeam',
-        InviteProjectTeamMembers = 'InviteProjectTeamMembers',
-        EditProjectTeamPermissions = 'EditProjectTeamPermissions',
-    
-        CreateProjectProbe = 'CreateProjectProbe',
-        DeleteProjectProbe = 'DeleteProjectProbe',
-        EditProjectProbe = 'EditProjectProbe',
-        ReadProjectProbe = 'ReadProjectProbe',
-    
-        CreateTelemetryService = 'CreateTelemetryService',
-        DeleteTelemetryService = 'DeleteTelemetryService',
-        EditTelemetryService = 'EditTelemetryService',
-        ReadTelemetryService = 'ReadTelemetryService',
-    
-        CreateMonitorGroupResource = 'CreateMonitorGroupResource',
-        DeleteMonitorGroupResource = 'DeleteMonitorGroupResource',
-        EditMonitorGroupResource = 'EditMonitorGroupResource',
-        ReadMonitorGroupResource = 'ReadMonitorGroupResource',
-    
-        CreateMonitorCustomField = 'CreateMonitorCustomField',
-        DeleteMonitorCustomField = 'DeleteMonitorCustomField',
-        EditMonitorCustomField = 'EditMonitorCustomField',
-        ReadMonitorCustomField = 'ReadMonitorCustomField',
-    
-        CreateOnCallDutyPolicyCustomField = 'CreateOnCallDutyPolicyCustomField',
-        DeleteOnCallDutyPolicyCustomField = 'DeleteOnCallDutyPolicyCustomField',
-        EditOnCallDutyPolicyCustomField = 'EditOnCallDutyPolicyCustomField',
-        ReadOnCallDutyPolicyCustomField = 'ReadOnCallDutyPolicyCustomField',
-    
-        CreateOnCallDutyPolicyScheduleLayer = 'CreateOnCallDutyPolicyScheduleLayer',
-        DeleteOnCallDutyPolicyScheduleLayer = 'DeleteOnCallDutyPolicyScheduleLayer',
-        EditOnCallDutyPolicyScheduleLayer = 'EditOnCallDutyPolicyScheduleLayer',
-        ReadOnCallDutyPolicyScheduleLayer = 'ReadOnCallDutyPolicyScheduleLayer',
-    
-        CreateOnCallDutyPolicyScheduleLayerUser = 'CreateOnCallDutyPolicyScheduleLayerUser',
-        DeleteOnCallDutyPolicyScheduleLayerUser = 'DeleteOnCallDutyPolicyScheduleLayerUser',
-        EditOnCallDutyPolicyScheduleLayerUser = 'EditOnCallDutyPolicyScheduleLayerUser',
-        ReadOnCallDutyPolicyScheduleLayerUser = 'ReadOnCallDutyPolicyScheduleLayerUser',
-    
-        CreateScheduledMaintenanceCustomField = 'CreateScheduledMaintenanceCustomField',
-        DeleteScheduledMaintenanceCustomField = 'DeleteScheduledMaintenanceCustomField',
-        EditScheduledMaintenanceCustomField = 'EditScheduledMaintenanceCustomField',
-        ReadScheduledMaintenanceCustomField = 'ReadScheduledMaintenanceCustomField',
-    
-        CreateMonitorProbe = 'CreateMonitorProbe',
-        DeleteMonitorProbe = 'DeleteMonitorProbe',
-        EditMonitorProbe = 'EditMonitorProbe',
-        ReadMonitorProbe = 'ReadMonitorProbe',
-    
-        ReadSmsLog = 'ReadSmsLog',
-        ReadEmailLog = 'ReadEmailLog',
-        ReadCallLog = 'ReadCallLog',
-    
-        CreateIncidentOwnerTeam = 'CreateIncidentOwnerTeam',
-        DeleteIncidentOwnerTeam = 'DeleteIncidentOwnerTeam',
-        EditIncidentOwnerTeam = 'EditIncidentOwnerTeam',
-        ReadIncidentOwnerTeam = 'ReadIncidentOwnerTeam',
-    
-        CreateIncidentOwnerUser = 'CreateIncidentOwner',
-        DeleteIncidentOwnerUser = 'DeleteIncidentOwnerUser',
-        EditIncidentOwnerUser = 'EditIncidentOwnerUser',
-        ReadIncidentOwnerUser = 'ReadIncidentOwnerUser',
-    
-        CreateIncidentTemplate = 'CreateIncidentTemplate',
-        DeleteIncidentTemplate = 'DeleteIncidentTemplate',
-        EditIncidentTemplate = 'EditIncidentTemplate',
-        ReadIncidentTemplate = 'ReadIncidentTemplate',
-    
-        CreateIncidentNoteTemplate = 'CreateIncidentNoteTemplate',
-        DeleteIncidentNoteTemplate = 'DeleteIncidentNoteTemplate',
-        EditIncidentNoteTemplate = 'EditIncidentNoteTemplate',
-        ReadIncidentNoteTemplate = 'ReadIncidentNoteTemplate',
-    
-        CreateScheduledMaintenanceNoteTemplate = 'CreateScheduledMaintenanceNoteTemplate',
-        DeleteScheduledMaintenanceNoteTemplate = 'DeleteScheduledMaintenanceNoteTemplate',
-        EditScheduledMaintenanceNoteTemplate = 'EditScheduledMaintenanceNoteTemplate',
-        ReadScheduledMaintenanceNoteTemplate = 'ReadScheduledMaintenanceNoteTemplate',
-    
-        CreateIncidentTemplateOwnerTeam = 'CreateIncidentTemplateOwnerTeam',
-        DeleteIncidentTemplateOwnerTeam = 'DeleteIncidentTemplateOwnerTeam',
-        EditIncidentTemplateOwnerTeam = 'EditIncidentTemplateOwnerTeam',
-        ReadIncidentTemplateOwnerTeam = 'ReadIncidentTemplateOwnerTeam',
-    
-        CreateIncidentTemplateOwnerUser = 'CreateIncidentTemplateOwner',
-        DeleteIncidentTemplateOwnerUser = 'DeleteIncidentTemplateOwnerUser',
-        EditIncidentTemplateOwnerUser = 'EditIncidentTemplateOwnerUser',
-        ReadIncidentTemplateOwnerUser = 'ReadIncidentTemplateOwnerUser',
-    
-        CreateScheduledMaintenanceOwnerTeam = 'CreateScheduledMaintenanceOwnerTeam',
-        DeleteScheduledMaintenanceOwnerTeam = 'DeleteScheduledMaintenanceOwnerTeam',
-        EditScheduledMaintenanceOwnerTeam = 'EditScheduledMaintenanceOwnerTeam',
-        ReadScheduledMaintenanceOwnerTeam = 'ReadScheduledMaintenanceOwnerTeam',
-    
-        CreateScheduledMaintenanceOwnerUser = 'CreateScheduledMaintenanceOwner',
-        DeleteScheduledMaintenanceOwnerUser = 'DeleteScheduledMaintenanceOwnerUser',
-        EditScheduledMaintenanceOwnerUser = 'EditScheduledMaintenanceOwnerUser',
-        ReadScheduledMaintenanceOwnerUser = 'ReadScheduledMaintenanceOwnerUser',
-    
-        CreateStatusPageOwnerTeam = 'CreateStatusPageOwnerTeam',
-        DeleteStatusPageOwnerTeam = 'DeleteStatusPageOwnerTeam',
-        EditStatusPageOwnerTeam = 'EditStatusPageOwnerTeam',
-        ReadStatusPageOwnerTeam = 'ReadStatusPageOwnerTeam',
-    
-        CreateStatusPageOwnerUser = 'CreateStatusPageOwner',
-        DeleteStatusPageOwnerUser = 'DeleteStatusPageOwnerUser',
-        EditStatusPageOwnerUser = 'EditStatusPageOwnerUser',
-        ReadStatusPageOwnerUser = 'ReadStatusPageOwnerUser',
-    
-        CreateMonitorOwnerTeam = 'CreateMonitorOwnerTeam',
-        DeleteMonitorOwnerTeam = 'DeleteMonitorOwnerTeam',
-        EditMonitorOwnerTeam = 'EditMonitorOwnerTeam',
-        ReadMonitorOwnerTeam = 'ReadMonitorOwnerTeam',
-    
-        CreateMonitorOwnerUser = 'CreateMonitorOwner',
-        DeleteMonitorOwnerUser = 'DeleteMonitorOwnerUser',
-        EditMonitorOwnerUser = 'EditMonitorOwnerUser',
-        ReadMonitorOwnerUser = 'ReadMonitorOwnerUser',
-    
-        CreateMonitorGroupOwnerTeam = 'CreateMonitorGroupOwnerTeam',
-        DeleteMonitorGroupOwnerTeam = 'DeleteMonitorGroupOwnerTeam',
-        EditMonitorGroupOwnerTeam = 'EditMonitorGroupOwnerTeam',
-        ReadMonitorGroupOwnerTeam = 'ReadMonitorGroupOwnerTeam',
-    
-        CreateMonitorGroupOwnerUser = 'CreateMonitorGroupOwner',
-        DeleteMonitorGroupOwnerUser = 'DeleteMonitorGroupOwnerUser',
-        EditMonitorGroupOwnerUser = 'EditMonitorGroupOwnerUser',
-        ReadMonitorGroupOwnerUser = 'ReadMonitorGroupOwnerUser',
-    
-        CreateStatusPageCustomField = 'CreateStatusPageCustomField',
-        DeleteStatusPageCustomField = 'DeleteStatusPageCustomField',
-        EditStatusPageCustomField = 'EditStatusPageCustomField',
-        ReadStatusPageCustomField = 'ReadStatusPageCustomField',
-    
-        CreateIncidentCustomField = 'CreateIncidentCustomField',
-        DeleteIncidentCustomField = 'DeleteIncidentCustomField',
-        EditIncidentCustomField = 'EditIncidentCustomField',
-        ReadIncidentCustomField = 'ReadIncidentCustomField',
-    
-        CreateProjectIncident = 'CreateProjectIncident',
-        DeleteProjectIncident = 'DeleteProjectIncident',
-        EditProjectIncident = 'EditProjectIncident',
-        ReadProjectIncident = 'ReadProjectIncident',
-    
-        CreateStatusPageSubscriber = 'CreateStatusPageSubscriber',
-        DeleteStatusPageSubscriber = 'DeleteStatusPageSubscriber',
-        EditStatusPageSubscriber = 'EditStatusPageSubscriber',
-        ReadStatusPageSubscriber = 'ReadStatusPageSubscriber',
-    
-        CreateStatusPagePrivateUser = 'CreateStatusPagePrivateUser',
-        DeleteStatusPagePrivateUser = 'DeleteStatusPagePrivateUser',
-        EditStatusPagePrivateUser = 'EditStatusPagePrivateUser',
-        ReadStatusPagePrivateUser = 'ReadStatusPagePrivateUser',
-    
-        CreateProjectDomain = 'CreateProjectDomain',
-        DeleteProjectDomain = 'DeleteProjectDomain',
-        EditProjectDomain = 'EditProjectDomain',
-        ReadProjectDomain = 'ReadProjectDomain',
-    
-        CreateStatusPageHeaderLink = 'CreateStatusPageHeaderLink',
-        DeleteStatusPageHeaderLink = 'DeleteStatusPageHeaderLink',
-        EditStatusPageHeaderLink = 'EditStatusPageHeaderLink',
-        ReadStatusPageHeaderLink = 'ReadStatusPageHeaderLink',
-    
-        CreateStatusPageFooterLink = 'CreateStatusPageFooterLink',
-        DeleteStatusPageFooterLink = 'DeleteStatusPageFooterLink',
-        EditStatusPageFooterLink = 'EditStatusPageFooterLink',
-        ReadStatusPageFooterLink = 'ReadStatusPageFooterLink',
-    
-        CreateStatusPageResource = 'CreateStatusPageResource',
-        DeleteStatusPageResource = 'DeleteStatusPageResource',
-        EditStatusPageResource = 'EditStatusPageResource',
-        ReadStatusPageResource = 'ReadStatusPageResource',
-    
-        CreateStatusPageHistoryChartBarColorRule = 'CreateStatusPageHistoryChartBarColorRule',
-        DeleteStatusPageHistoryChartBarColorRule = 'DeleteStatusPageHistoryChartBarColorRule',
-        EditStatusPageHistoryChartBarColorRule = 'EditStatusPageHistoryChartBarColorRule',
-        ReadStatusPageHistoryChartBarColorRule = 'ReadStatusPageHistoryChartBarColorRule',
-    
-        CreateWorkflow = 'CreateWorkflow',
-        DeleteWorkflow = 'DeleteWorkflow',
-        EditWorkflow = 'EditWorkflow',
-        ReadWorkflow = 'ReadWorkflow',
-    
-        DeleteProject = 'DeleteProject',
-        EditProject = 'EditProject',
-        ReadProject = 'ReadProject',
-    
-        CreateWorkflowLog = 'CreateWorkflowLog',
-        DeleteWorkflowLog = 'DeleteWorkflowLog',
-        EditWorkflowLog = 'EditWorkflowLog',
-        ReadWorkflowLog = 'ReadWorkflowLog',
-    
-        CreateWorkflowVariable = 'CreateWorkflowVariable',
-        DeleteWorkflowVariable = 'DeleteWorkflowVariable',
-        EditWorkflowVariable = 'EditWorkflowVariable',
-        ReadWorkflowVariable = 'ReadWorkflowVariable',
-    
-        CreateStatusPageGroup = 'CreateStatusPageGroup',
-        DeleteStatusPageGroup = 'DeleteStatusPageGroup',
-        EditStatusPageGroup = 'EditStatusPageGroup',
-        ReadStatusPageGroup = 'ReadStatusPageGroup',
-    
-        CreateStatusPageDomain = 'CreateStatusPageDomain',
-        DeleteStatusPageDomain = 'DeleteStatusPageDomain',
-        EditStatusPageDomain = 'EditStatusPageDomain',
-        ReadStatusPageDomain = 'ReadStatusPageDomain',
-    
-        CreateMonitorGroup = 'CreateMonitorGroup',
-        DeleteMonitorGroup = 'DeleteMonitorGroup',
-        EditMonitorGroup = 'EditMonitorGroup',
-        ReadMonitorGroup = 'ReadMonitorGroup',
-    
-        CreateProjectSSO = 'CreateProjectSSO',
-        DeleteProjectSSO = 'DeleteProjectSSO',
-        EditProjectSSO = 'EditProjectSSO',
-        ReadProjectSSO = 'ReadProjectSSO',
-    
-        CreateStatusPageSSO = 'CreateStatusPageSSO',
-        DeleteStatusPageSSO = 'DeleteStatusPageSSO',
-        EditStatusPageSSO = 'EditStatusPageSSO',
-        ReadStatusPageSSO = 'ReadStatusPageSSO',
-    
-        // Label Permissions (Owner + Admin Permission by default)
-        CreateProjectLabel = 'CreateProjectLabel',
-        EditProjectLabel = 'EditProjectLabel',
-        ReadProjectLabel = 'ReadProjectLabel',
-        DeleteProjectLabel = 'DeleteProjectLabel',
-        AddLabelsToProjectResources = 'AddLabelsToProjectResources',
-    
-        // Scheduled Maintenance
-    
-        // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
-        CreateScheduledMaintenanceState = 'CreateScheduledMaintenanceState',
-        EditScheduledMaintenanceState = 'EditScheduledMaintenanceState',
-        ReadScheduledMaintenanceState = 'ReadScheduledMaintenanceState',
-        DeleteScheduledMaintenanceState = 'DeleteScheduledMaintenanceState',
-    
-        // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
-        CreateScheduledMaintenanceStateTimeline = 'CreateScheduledMaintenanceStateTimeline',
-        EditScheduledMaintenanceStateTimeline = 'EditScheduledMaintenanceStateTimeline',
-        ReadScheduledMaintenanceStateTimeline = 'ReadScheduledMaintenanceStateTimeline',
-        DeleteScheduledMaintenanceStateTimeline = 'DeleteScheduledMaintenanceStateTimeline',
-    
-        // Resource Permissions (Team Permission)
-        CreateScheduledMaintenanceInternalNote = 'CreateScheduledMaintenanceInternalNote',
-        EditScheduledMaintenanceInternalNote = 'EditScheduledMaintenanceInternalNote',
-        DeleteScheduledMaintenanceInternalNote = 'DeleteScheduledMaintenanceInternalNote',
-        ReadScheduledMaintenanceInternalNote = 'ReadScheduledMaintenanceInternalNote',
-    
-        CreateScheduledMaintenancePublicNote = 'CreateScheduledMaintenancePublicNote',
-        EditScheduledMaintenancePublicNote = 'EditScheduledMaintenancePublicNote',
-        DeleteScheduledMaintenancePublicNote = 'DeleteScheduledMaintenancePublicNote',
-        ReadScheduledMaintenancePublicNote = 'ReadScheduledMaintenancePublicNote',
-    
-        CreateProjectScheduledMaintenance = 'CreateProjectScheduledMaintenance',
-        DeleteProjectScheduledMaintenance = 'DeleteProjectScheduledMaintenance',
-        EditProjectScheduledMaintenance = 'EditProjectScheduledMaintenance',
-        ReadProjectScheduledMaintenance = 'ReadProjectScheduledMaintenance',
-    
-        // Incident Status Permissions (Owner + Admin Permission by default)
-        CreateIncidentState = 'CreateIncidentState',
-        EditIncidentState = 'EditIncidentState',
-        ReadIncidentState = 'ReadIncidentState',
-        DeleteIncidentState = 'DeleteIncidentState',
-    
-        // Incident Status Permissions (Owner + Admin Permission by default)
-        CreateIncidentStateTimeline = 'CreateIncidentStateTimeline',
-        EditIncidentStateTimeline = 'EditIncidentStateTimeline',
-        ReadIncidentStateTimeline = 'ReadIncidentStateTimeline',
-        DeleteIncidentStateTimeline = 'DeleteIncidentStateTimeline',
-    
-        // Incident Status Permissions (Owner + Admin Permission by default)
-        CreateMonitorStatusTimeline = 'CreateMonitorStatusTimeline',
-        EditMonitorStatusTimeline = 'EditMonitorStatusTimeline',
-        ReadMonitorStatusTimeline = 'ReadMonitorStatusTimeline',
-        DeleteMonitorStatusTimeline = 'DeleteMonitorStatusTimeline',
-    
-        // MonitorStatus Permissions (Owner + Admin Permission by default)
-        CreateProjectMonitorStatus = 'CreateProjectMonitorStatus',
-        EditProjectMonitorStatus = 'EditProjectMonitorStatus',
-        ReadProjectMonitorStatus = 'ReadProjectMonitorStatus',
-        DeleteProjectMonitorStatus = 'DeleteProjectMonitorStatus',
-    
-        // MonitorStatus Permissions (Owner + Admin Permission by default)
-        CreateStatusPageAnnouncement = 'CreateStatusPageAnnouncement',
-        EditStatusPageAnnouncement = 'EditStatusPageAnnouncement',
-        ReadStatusPageAnnouncement = 'ReadStatusPageAnnouncement',
-        DeleteStatusPageAnnouncement = 'DeleteStatusPageAnnouncement',
-    
-        // Resource Permissions (Team Permission)
-        CreateIncidentInternalNote = 'CreateIncidentInternalNote',
-        EditIncidentInternalNote = 'EditIncidentInternalNote',
-        DeleteIncidentInternalNote = 'DeleteIncidentInternalNote',
-        ReadIncidentInternalNote = 'ReadIncidentInternalNote',
-    
-        CreateIncidentPublicNote = 'CreateIncidentPublicNote',
-        EditIncidentPublicNote = 'EditIncidentPublicNote',
-        DeleteIncidentPublicNote = 'DeleteIncidentPublicNote',
-        ReadIncidentPublicNote = 'ReadIncidentPublicNote',
-    
-        CreateInvoices = 'CreateInvoices',
-        EditInvoices = 'EditInvoices',
-        DeleteInvoices = 'DeleteInvoices',
-        ReadInvoices = 'ReadInvoices',
-    
-        CreateBillingPaymentMethod = 'CreateBillingPaymentMethod',
-        EditBillingPaymentMethod = 'EditBillingPaymentMethod',
-        DeleteBillingPaymentMethod = 'DeleteBillingPaymentMethod',
-        ReadBillingPaymentMethod = 'ReadBillingPaymentMethod',
-    
-        CreateProjectMonitor = 'CreateProjectMonitor',
-        EditProjectMonitor = 'EditProjectMonitor',
-        DeleteProjectMonitor = 'DeleteProjectMonitor',
-        ReadProjectMonitor = 'ReadProjectMonitor',
-    
-        // Resource Permissions (Team Permission)
-        CreateProjectStatusPage = 'CreateProjectStatusPage',
-        EditProjectStatusPage = 'EditProjectStatusPage',
-        DeleteProjectStatusPage = 'DeleteProjectStatusPage',
-        ReadProjectStatusPage = 'ReadProjectStatusPage',
-    
-        // Resource Permissions (Team Permission)
-        CreateProjectOnCallDutyPolicy = 'CreateProjectOnCallDutyPolicy',
-        EditProjectOnCallDutyPolicy = 'EditProjectOnCallDutyPolicy',
-        DeleteProjectOnCallDutyPolicy = 'DeleteProjectOnCallDutyPolicy',
-        ReadProjectOnCallDutyPolicy = 'ReadProjectOnCallDutyPolicy',
-    
-        // Resource Permissions (Team Permission)
-        CreateProjectOnCallDutyPolicySchedule = 'CreateProjectOnCallDutyPolicySchedule',
-        EditProjectOnCallDutyPolicySchedule = 'EditProjectOnCallDutyPolicySchedule',
-        DeleteProjectOnCallDutyPolicySchedule = 'DeleteProjectOnCallDutyPolicySchedule',
-        ReadProjectOnCallDutyPolicySchedule = 'ReadProjectOnCallDutyPolicySchedule',
-    
-        ReadProjectOnCallDutyPolicyExecutionLogTimeline = 'ReadProjectOnCallDutyPolicyExecutionLogTimeline',
-        ReadProjectOnCallDutyPolicyExecutionLog = 'ReadProjectOnCallDutyPolicyExecutionLog',
-    
-        // Resource Permissions (Team Permission)
-        CreateProjectOnCallDutyPolicyEscalationRule = 'CreateProjectOnCallDutyPolicyEscalationRule',
-        EditProjectOnCallDutyPolicyEscalationRule = 'EditProjectOnCallDutyPolicyEscalationRule',
-        DeleteProjectOnCallDutyPolicyEscalationRule = 'DeleteProjectOnCallDutyPolicyEscalationRule',
-        ReadProjectOnCallDutyPolicyEscalationRule = 'ReadProjectOnCallDutyPolicyEscalationRule',
-    
-        // Resource Permissions (Team Permission)
-        CreateProjectOnCallDutyPolicyEscalationRuleUser = 'CreateProjectOnCallDutyPolicyEscalationRuleUser',
-        EditProjectOnCallDutyPolicyEscalationRuleUser = 'EditProjectOnCallDutyPolicyEscalationRuleUser',
-        DeleteProjectOnCallDutyPolicyEscalationRuleUser = 'DeleteProjectOnCallDutyPolicyEscalationRuleUser',
-        ReadProjectOnCallDutyPolicyEscalationRuleUser = 'ReadProjectOnCallDutyPolicyEscalationRuleUser',
-    
-        // Resource Permissions (Team Permission)
-        CreateProjectOnCallDutyPolicyEscalationRuleSchedule = 'CreateProjectOnCallDutyPolicyEscalationRuleSchedule',
-        EditProjectOnCallDutyPolicyEscalationRuleSchedule = 'EditProjectOnCallDutyPolicyEscalationRuleSchedule',
-        DeleteProjectOnCallDutyPolicyEscalationRuleSchedule = 'DeleteProjectOnCallDutyPolicyEscalationRuleSchedule',
-        ReadProjectOnCallDutyPolicyEscalationRuleSchedule = 'ReadProjectOnCallDutyPolicyEscalationRuleSchedule',
-    
-        // Monitor Secret Permissions
-        CreateMonitorSecret = 'CreateMonitorSecret',
-        EditMonitorSecret = 'EditMonitorSecret',
-        DeleteMonitorSecret = 'DeleteMonitorSecret',
-        ReadMonitorSecret = 'ReadMonitorSecret',
-    
-        CreateProjectOnCallDutyPolicyEscalationRuleTeam = 'CreateProjectOnCallDutyPolicyEscalationRuleTeam',
-        EditProjectOnCallDutyPolicyEscalationRuleTeam = 'EditProjectOnCallDutyPolicyEscalationRuleTeam',
-        DeleteProjectOnCallDutyPolicyEscalationRuleTeam = 'DeleteProjectOnCallDutyPolicyEscalationRuleTeam',
-        ReadProjectOnCallDutyPolicyEscalationRuleTeam = 'ReadProjectOnCallDutyPolicyEscalationRuleTeam',
-    
-        // Project SMTP Config (Team Permission)
-        CreateProjectSMTPConfig = 'CreateProjectSMTPConfig',
-        EditProjectSMTPConfig = 'EditProjectSMTPConfig',
-        DeleteProjectSMTPConfig = 'DeleteProjectSMTPConfig',
-        ReadProjectSMTPConfig = 'ReadProjectSMTPConfig',
-    
-        CreateProjectCallSMSConfig = 'CreateProjectCallSMSConfig',
-        EditProjectCallSMSConfig = 'EditProjectCallSMSConfig',
-        DeleteProjectCallSMSConfig = 'DeleteProjectCallSMSConfig',
-        ReadProjectCallSMSConfig = 'ReadProjectCallSMSConfig',
-    
-        // Project SMTP Config (Team Permission)
-        CreateIncidentSeverity = 'CreateIncidentSeverity',
-        EditIncidentSeverity = 'EditIncidentSeverity',
-        DeleteIncidentSeverity = 'DeleteIncidentSeverity',
-        ReadIncidentSeverity = 'ReadIncidentSeverity',
+    // Billing Permissions (Owner Permission)
+    CreateProjectApiKey = 'CreateProjectApiKey',
+    DeleteProjectApiKey = 'DeleteProjectApiKey',
+    ReadProjectApiKey = 'ReadProjectApiKey',
+    EditProjectApiKey = 'EditProjectApiKey',
+    EditProjectApiKeyPermissions = 'EditProjectApiKeyPermissions',
 
+    // Logs
+
+    CreateTelemetryServiceLog = 'CreateTelemetryServiceLog',
+    DeleteTelemetryServiceLog = 'DeleteTelemetryServiceLog',
+    EditTelemetryServiceLog = 'EditTelemetryServiceLog',
+    ReadTelemetryServiceLog = 'ReadTelemetryServiceLog',
+
+    // Spans
+
+    CreateTelemetryServiceTraces = 'CreateTelemetryServiceTraces',
+    DeleteTelemetryServiceTraces = 'DeleteTelemetryServiceTraces',
+    EditTelemetryServiceTraces = 'EditTelemetryServiceTraces',
+    ReadTelemetryServiceTraces = 'ReadTelemetryServiceTraces',
+
+    // Billing Permissions (Owner Permission)
+    ManageProjectBilling = 'ManageProjectBilling',
+
+    // Billing Permissions (Owner Permission)
+    CreateProjectTeam = 'CreateProjectTeam',
+    DeleteProjectTeam = 'DeleteProjectTeam',
+    ReadProjectTeam = 'ReadProjectTeam',
+    EditProjectTeam = 'EditProjectTeam',
+    InviteProjectTeamMembers = 'InviteProjectTeamMembers',
+    EditProjectTeamPermissions = 'EditProjectTeamPermissions',
+
+    CreateProjectProbe = 'CreateProjectProbe',
+    DeleteProjectProbe = 'DeleteProjectProbe',
+    EditProjectProbe = 'EditProjectProbe',
+    ReadProjectProbe = 'ReadProjectProbe',
+
+    CreateTelemetryService = 'CreateTelemetryService',
+    DeleteTelemetryService = 'DeleteTelemetryService',
+    EditTelemetryService = 'EditTelemetryService',
+    ReadTelemetryService = 'ReadTelemetryService',
+
+    CreateMonitorGroupResource = 'CreateMonitorGroupResource',
+    DeleteMonitorGroupResource = 'DeleteMonitorGroupResource',
+    EditMonitorGroupResource = 'EditMonitorGroupResource',
+    ReadMonitorGroupResource = 'ReadMonitorGroupResource',
+
+    CreateMonitorCustomField = 'CreateMonitorCustomField',
+    DeleteMonitorCustomField = 'DeleteMonitorCustomField',
+    EditMonitorCustomField = 'EditMonitorCustomField',
+    ReadMonitorCustomField = 'ReadMonitorCustomField',
+
+    CreateOnCallDutyPolicyCustomField = 'CreateOnCallDutyPolicyCustomField',
+    DeleteOnCallDutyPolicyCustomField = 'DeleteOnCallDutyPolicyCustomField',
+    EditOnCallDutyPolicyCustomField = 'EditOnCallDutyPolicyCustomField',
+    ReadOnCallDutyPolicyCustomField = 'ReadOnCallDutyPolicyCustomField',
+
+    CreateOnCallDutyPolicyScheduleLayer = 'CreateOnCallDutyPolicyScheduleLayer',
+    DeleteOnCallDutyPolicyScheduleLayer = 'DeleteOnCallDutyPolicyScheduleLayer',
+    EditOnCallDutyPolicyScheduleLayer = 'EditOnCallDutyPolicyScheduleLayer',
+    ReadOnCallDutyPolicyScheduleLayer = 'ReadOnCallDutyPolicyScheduleLayer',
+
+    CreateOnCallDutyPolicyScheduleLayerUser = 'CreateOnCallDutyPolicyScheduleLayerUser',
+    DeleteOnCallDutyPolicyScheduleLayerUser = 'DeleteOnCallDutyPolicyScheduleLayerUser',
+    EditOnCallDutyPolicyScheduleLayerUser = 'EditOnCallDutyPolicyScheduleLayerUser',
+    ReadOnCallDutyPolicyScheduleLayerUser = 'ReadOnCallDutyPolicyScheduleLayerUser',
+
+    CreateScheduledMaintenanceCustomField = 'CreateScheduledMaintenanceCustomField',
+    DeleteScheduledMaintenanceCustomField = 'DeleteScheduledMaintenanceCustomField',
+    EditScheduledMaintenanceCustomField = 'EditScheduledMaintenanceCustomField',
+    ReadScheduledMaintenanceCustomField = 'ReadScheduledMaintenanceCustomField',
+
+    CreateMonitorProbe = 'CreateMonitorProbe',
+    DeleteMonitorProbe = 'DeleteMonitorProbe',
+    EditMonitorProbe = 'EditMonitorProbe',
+    ReadMonitorProbe = 'ReadMonitorProbe',
+
+    ReadSmsLog = 'ReadSmsLog',
+    ReadEmailLog = 'ReadEmailLog',
+    ReadCallLog = 'ReadCallLog',
+
+    CreateIncidentOwnerTeam = 'CreateIncidentOwnerTeam',
+    DeleteIncidentOwnerTeam = 'DeleteIncidentOwnerTeam',
+    EditIncidentOwnerTeam = 'EditIncidentOwnerTeam',
+    ReadIncidentOwnerTeam = 'ReadIncidentOwnerTeam',
+
+    CreateIncidentOwnerUser = 'CreateIncidentOwner',
+    DeleteIncidentOwnerUser = 'DeleteIncidentOwnerUser',
+    EditIncidentOwnerUser = 'EditIncidentOwnerUser',
+    ReadIncidentOwnerUser = 'ReadIncidentOwnerUser',
+
+    CreateIncidentTemplate = 'CreateIncidentTemplate',
+    DeleteIncidentTemplate = 'DeleteIncidentTemplate',
+    EditIncidentTemplate = 'EditIncidentTemplate',
+    ReadIncidentTemplate = 'ReadIncidentTemplate',
+
+    CreateIncidentNoteTemplate = 'CreateIncidentNoteTemplate',
+    DeleteIncidentNoteTemplate = 'DeleteIncidentNoteTemplate',
+    EditIncidentNoteTemplate = 'EditIncidentNoteTemplate',
+    ReadIncidentNoteTemplate = 'ReadIncidentNoteTemplate',
+
+    CreateScheduledMaintenanceNoteTemplate = 'CreateScheduledMaintenanceNoteTemplate',
+    DeleteScheduledMaintenanceNoteTemplate = 'DeleteScheduledMaintenanceNoteTemplate',
+    EditScheduledMaintenanceNoteTemplate = 'EditScheduledMaintenanceNoteTemplate',
+    ReadScheduledMaintenanceNoteTemplate = 'ReadScheduledMaintenanceNoteTemplate',
+
+    CreateIncidentTemplateOwnerTeam = 'CreateIncidentTemplateOwnerTeam',
+    DeleteIncidentTemplateOwnerTeam = 'DeleteIncidentTemplateOwnerTeam',
+    EditIncidentTemplateOwnerTeam = 'EditIncidentTemplateOwnerTeam',
+    ReadIncidentTemplateOwnerTeam = 'ReadIncidentTemplateOwnerTeam',
+
+    CreateIncidentTemplateOwnerUser = 'CreateIncidentTemplateOwner',
+    DeleteIncidentTemplateOwnerUser = 'DeleteIncidentTemplateOwnerUser',
+    EditIncidentTemplateOwnerUser = 'EditIncidentTemplateOwnerUser',
+    ReadIncidentTemplateOwnerUser = 'ReadIncidentTemplateOwnerUser',
+
+    CreateScheduledMaintenanceOwnerTeam = 'CreateScheduledMaintenanceOwnerTeam',
+    DeleteScheduledMaintenanceOwnerTeam = 'DeleteScheduledMaintenanceOwnerTeam',
+    EditScheduledMaintenanceOwnerTeam = 'EditScheduledMaintenanceOwnerTeam',
+    ReadScheduledMaintenanceOwnerTeam = 'ReadScheduledMaintenanceOwnerTeam',
+
+    CreateScheduledMaintenanceOwnerUser = 'CreateScheduledMaintenanceOwner',
+    DeleteScheduledMaintenanceOwnerUser = 'DeleteScheduledMaintenanceOwnerUser',
+    EditScheduledMaintenanceOwnerUser = 'EditScheduledMaintenanceOwnerUser',
+    ReadScheduledMaintenanceOwnerUser = 'ReadScheduledMaintenanceOwnerUser',
+
+    CreateStatusPageOwnerTeam = 'CreateStatusPageOwnerTeam',
+    DeleteStatusPageOwnerTeam = 'DeleteStatusPageOwnerTeam',
+    EditStatusPageOwnerTeam = 'EditStatusPageOwnerTeam',
+    ReadStatusPageOwnerTeam = 'ReadStatusPageOwnerTeam',
+
+    CreateStatusPageOwnerUser = 'CreateStatusPageOwner',
+    DeleteStatusPageOwnerUser = 'DeleteStatusPageOwnerUser',
+    EditStatusPageOwnerUser = 'EditStatusPageOwnerUser',
+    ReadStatusPageOwnerUser = 'ReadStatusPageOwnerUser',
+
+    CreateMonitorOwnerTeam = 'CreateMonitorOwnerTeam',
+    DeleteMonitorOwnerTeam = 'DeleteMonitorOwnerTeam',
+    EditMonitorOwnerTeam = 'EditMonitorOwnerTeam',
+    ReadMonitorOwnerTeam = 'ReadMonitorOwnerTeam',
+
+    CreateMonitorOwnerUser = 'CreateMonitorOwner',
+    DeleteMonitorOwnerUser = 'DeleteMonitorOwnerUser',
+    EditMonitorOwnerUser = 'EditMonitorOwnerUser',
+    ReadMonitorOwnerUser = 'ReadMonitorOwnerUser',
+
+    CreateMonitorGroupOwnerTeam = 'CreateMonitorGroupOwnerTeam',
+    DeleteMonitorGroupOwnerTeam = 'DeleteMonitorGroupOwnerTeam',
+    EditMonitorGroupOwnerTeam = 'EditMonitorGroupOwnerTeam',
+    ReadMonitorGroupOwnerTeam = 'ReadMonitorGroupOwnerTeam',
+
+    CreateMonitorGroupOwnerUser = 'CreateMonitorGroupOwner',
+    DeleteMonitorGroupOwnerUser = 'DeleteMonitorGroupOwnerUser',
+    EditMonitorGroupOwnerUser = 'EditMonitorGroupOwnerUser',
+    ReadMonitorGroupOwnerUser = 'ReadMonitorGroupOwnerUser',
+
+    CreateStatusPageCustomField = 'CreateStatusPageCustomField',
+    DeleteStatusPageCustomField = 'DeleteStatusPageCustomField',
+    EditStatusPageCustomField = 'EditStatusPageCustomField',
+    ReadStatusPageCustomField = 'ReadStatusPageCustomField',
+
+    CreateIncidentCustomField = 'CreateIncidentCustomField',
+    DeleteIncidentCustomField = 'DeleteIncidentCustomField',
+    EditIncidentCustomField = 'EditIncidentCustomField',
+    ReadIncidentCustomField = 'ReadIncidentCustomField',
+
+    CreateProjectIncident = 'CreateProjectIncident',
+    DeleteProjectIncident = 'DeleteProjectIncident',
+    EditProjectIncident = 'EditProjectIncident',
+    ReadProjectIncident = 'ReadProjectIncident',
+
+    CreateStatusPageSubscriber = 'CreateStatusPageSubscriber',
+    DeleteStatusPageSubscriber = 'DeleteStatusPageSubscriber',
+    EditStatusPageSubscriber = 'EditStatusPageSubscriber',
+    ReadStatusPageSubscriber = 'ReadStatusPageSubscriber',
+
+    CreateStatusPagePrivateUser = 'CreateStatusPagePrivateUser',
+    DeleteStatusPagePrivateUser = 'DeleteStatusPagePrivateUser',
+    EditStatusPagePrivateUser = 'EditStatusPagePrivateUser',
+    ReadStatusPagePrivateUser = 'ReadStatusPagePrivateUser',
+
+    CreateProjectDomain = 'CreateProjectDomain',
+    DeleteProjectDomain = 'DeleteProjectDomain',
+    EditProjectDomain = 'EditProjectDomain',
+    ReadProjectDomain = 'ReadProjectDomain',
+
+    CreateStatusPageHeaderLink = 'CreateStatusPageHeaderLink',
+    DeleteStatusPageHeaderLink = 'DeleteStatusPageHeaderLink',
+    EditStatusPageHeaderLink = 'EditStatusPageHeaderLink',
+    ReadStatusPageHeaderLink = 'ReadStatusPageHeaderLink',
+
+    CreateStatusPageFooterLink = 'CreateStatusPageFooterLink',
+    DeleteStatusPageFooterLink = 'DeleteStatusPageFooterLink',
+    EditStatusPageFooterLink = 'EditStatusPageFooterLink',
+    ReadStatusPageFooterLink = 'ReadStatusPageFooterLink',
+
+    CreateStatusPageResource = 'CreateStatusPageResource',
+    DeleteStatusPageResource = 'DeleteStatusPageResource',
+    EditStatusPageResource = 'EditStatusPageResource',
+    ReadStatusPageResource = 'ReadStatusPageResource',
+
+    CreateStatusPageHistoryChartBarColorRule = 'CreateStatusPageHistoryChartBarColorRule',
+    DeleteStatusPageHistoryChartBarColorRule = 'DeleteStatusPageHistoryChartBarColorRule',
+    EditStatusPageHistoryChartBarColorRule = 'EditStatusPageHistoryChartBarColorRule',
+    ReadStatusPageHistoryChartBarColorRule = 'ReadStatusPageHistoryChartBarColorRule',
+
+    CreateWorkflow = 'CreateWorkflow',
+    DeleteWorkflow = 'DeleteWorkflow',
+    EditWorkflow = 'EditWorkflow',
+    ReadWorkflow = 'ReadWorkflow',
+
+    DeleteProject = 'DeleteProject',
+    EditProject = 'EditProject',
+    ReadProject = 'ReadProject',
+
+    CreateWorkflowLog = 'CreateWorkflowLog',
+    DeleteWorkflowLog = 'DeleteWorkflowLog',
+    EditWorkflowLog = 'EditWorkflowLog',
+    ReadWorkflowLog = 'ReadWorkflowLog',
+
+    CreateWorkflowVariable = 'CreateWorkflowVariable',
+    DeleteWorkflowVariable = 'DeleteWorkflowVariable',
+    EditWorkflowVariable = 'EditWorkflowVariable',
+    ReadWorkflowVariable = 'ReadWorkflowVariable',
+
+    CreateStatusPageGroup = 'CreateStatusPageGroup',
+    DeleteStatusPageGroup = 'DeleteStatusPageGroup',
+    EditStatusPageGroup = 'EditStatusPageGroup',
+    ReadStatusPageGroup = 'ReadStatusPageGroup',
+
+    CreateStatusPageDomain = 'CreateStatusPageDomain',
+    DeleteStatusPageDomain = 'DeleteStatusPageDomain',
+    EditStatusPageDomain = 'EditStatusPageDomain',
+    ReadStatusPageDomain = 'ReadStatusPageDomain',
+
+    CreateMonitorGroup = 'CreateMonitorGroup',
+    DeleteMonitorGroup = 'DeleteMonitorGroup',
+    EditMonitorGroup = 'EditMonitorGroup',
+    ReadMonitorGroup = 'ReadMonitorGroup',
+
+    CreateProjectSSO = 'CreateProjectSSO',
+    DeleteProjectSSO = 'DeleteProjectSSO',
+    EditProjectSSO = 'EditProjectSSO',
+    ReadProjectSSO = 'ReadProjectSSO',
+
+    CreateStatusPageSSO = 'CreateStatusPageSSO',
+    DeleteStatusPageSSO = 'DeleteStatusPageSSO',
+    EditStatusPageSSO = 'EditStatusPageSSO',
+    ReadStatusPageSSO = 'ReadStatusPageSSO',
+
+    // Label Permissions (Owner + Admin Permission by default)
+    CreateProjectLabel = 'CreateProjectLabel',
+    EditProjectLabel = 'EditProjectLabel',
+    ReadProjectLabel = 'ReadProjectLabel',
+    DeleteProjectLabel = 'DeleteProjectLabel',
+    AddLabelsToProjectResources = 'AddLabelsToProjectResources',
+
+    // Scheduled Maintenance
+
+    // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
+    CreateScheduledMaintenanceState = 'CreateScheduledMaintenanceState',
+    EditScheduledMaintenanceState = 'EditScheduledMaintenanceState',
+    ReadScheduledMaintenanceState = 'ReadScheduledMaintenanceState',
+    DeleteScheduledMaintenanceState = 'DeleteScheduledMaintenanceState',
+
+    // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
+    CreateScheduledMaintenanceStateTimeline = 'CreateScheduledMaintenanceStateTimeline',
+    EditScheduledMaintenanceStateTimeline = 'EditScheduledMaintenanceStateTimeline',
+    ReadScheduledMaintenanceStateTimeline = 'ReadScheduledMaintenanceStateTimeline',
+    DeleteScheduledMaintenanceStateTimeline = 'DeleteScheduledMaintenanceStateTimeline',
+
+    // Resource Permissions (Team Permission)
+    CreateScheduledMaintenanceInternalNote = 'CreateScheduledMaintenanceInternalNote',
+    EditScheduledMaintenanceInternalNote = 'EditScheduledMaintenanceInternalNote',
+    DeleteScheduledMaintenanceInternalNote = 'DeleteScheduledMaintenanceInternalNote',
+    ReadScheduledMaintenanceInternalNote = 'ReadScheduledMaintenanceInternalNote',
+
+    CreateScheduledMaintenancePublicNote = 'CreateScheduledMaintenancePublicNote',
+    EditScheduledMaintenancePublicNote = 'EditScheduledMaintenancePublicNote',
+    DeleteScheduledMaintenancePublicNote = 'DeleteScheduledMaintenancePublicNote',
+    ReadScheduledMaintenancePublicNote = 'ReadScheduledMaintenancePublicNote',
+
+    CreateProjectScheduledMaintenance = 'CreateProjectScheduledMaintenance',
+    DeleteProjectScheduledMaintenance = 'DeleteProjectScheduledMaintenance',
+    EditProjectScheduledMaintenance = 'EditProjectScheduledMaintenance',
+    ReadProjectScheduledMaintenance = 'ReadProjectScheduledMaintenance',
+
+    // Incident Status Permissions (Owner + Admin Permission by default)
+    CreateIncidentState = 'CreateIncidentState',
+    EditIncidentState = 'EditIncidentState',
+    ReadIncidentState = 'ReadIncidentState',
+    DeleteIncidentState = 'DeleteIncidentState',
+
+    // Incident Status Permissions (Owner + Admin Permission by default)
+    CreateIncidentStateTimeline = 'CreateIncidentStateTimeline',
+    EditIncidentStateTimeline = 'EditIncidentStateTimeline',
+    ReadIncidentStateTimeline = 'ReadIncidentStateTimeline',
+    DeleteIncidentStateTimeline = 'DeleteIncidentStateTimeline',
+
+    // Incident Status Permissions (Owner + Admin Permission by default)
+    CreateMonitorStatusTimeline = 'CreateMonitorStatusTimeline',
+    EditMonitorStatusTimeline = 'EditMonitorStatusTimeline',
+    ReadMonitorStatusTimeline = 'ReadMonitorStatusTimeline',
+    DeleteMonitorStatusTimeline = 'DeleteMonitorStatusTimeline',
+
+    // MonitorStatus Permissions (Owner + Admin Permission by default)
+    CreateProjectMonitorStatus = 'CreateProjectMonitorStatus',
+    EditProjectMonitorStatus = 'EditProjectMonitorStatus',
+    ReadProjectMonitorStatus = 'ReadProjectMonitorStatus',
+    DeleteProjectMonitorStatus = 'DeleteProjectMonitorStatus',
+
+    // MonitorStatus Permissions (Owner + Admin Permission by default)
+    CreateStatusPageAnnouncement = 'CreateStatusPageAnnouncement',
+    EditStatusPageAnnouncement = 'EditStatusPageAnnouncement',
+    ReadStatusPageAnnouncement = 'ReadStatusPageAnnouncement',
+    DeleteStatusPageAnnouncement = 'DeleteStatusPageAnnouncement',
+
+    // Resource Permissions (Team Permission)
+    CreateIncidentInternalNote = 'CreateIncidentInternalNote',
+    EditIncidentInternalNote = 'EditIncidentInternalNote',
+    DeleteIncidentInternalNote = 'DeleteIncidentInternalNote',
+    ReadIncidentInternalNote = 'ReadIncidentInternalNote',
+
+    CreateIncidentPublicNote = 'CreateIncidentPublicNote',
+    EditIncidentPublicNote = 'EditIncidentPublicNote',
+    DeleteIncidentPublicNote = 'DeleteIncidentPublicNote',
+    ReadIncidentPublicNote = 'ReadIncidentPublicNote',
+
+    CreateInvoices = 'CreateInvoices',
+    EditInvoices = 'EditInvoices',
+    DeleteInvoices = 'DeleteInvoices',
+    ReadInvoices = 'ReadInvoices',
+
+    CreateBillingPaymentMethod = 'CreateBillingPaymentMethod',
+    EditBillingPaymentMethod = 'EditBillingPaymentMethod',
+    DeleteBillingPaymentMethod = 'DeleteBillingPaymentMethod',
+    ReadBillingPaymentMethod = 'ReadBillingPaymentMethod',
+
+    CreateProjectMonitor = 'CreateProjectMonitor',
+    EditProjectMonitor = 'EditProjectMonitor',
+    DeleteProjectMonitor = 'DeleteProjectMonitor',
+    ReadProjectMonitor = 'ReadProjectMonitor',
+
+    // Resource Permissions (Team Permission)
+    CreateProjectStatusPage = 'CreateProjectStatusPage',
+    EditProjectStatusPage = 'EditProjectStatusPage',
+    DeleteProjectStatusPage = 'DeleteProjectStatusPage',
+    ReadProjectStatusPage = 'ReadProjectStatusPage',
+
+    // Resource Permissions (Team Permission)
+    CreateProjectOnCallDutyPolicy = 'CreateProjectOnCallDutyPolicy',
+    EditProjectOnCallDutyPolicy = 'EditProjectOnCallDutyPolicy',
+    DeleteProjectOnCallDutyPolicy = 'DeleteProjectOnCallDutyPolicy',
+    ReadProjectOnCallDutyPolicy = 'ReadProjectOnCallDutyPolicy',
+
+    // Resource Permissions (Team Permission)
+    CreateProjectOnCallDutyPolicySchedule = 'CreateProjectOnCallDutyPolicySchedule',
+    EditProjectOnCallDutyPolicySchedule = 'EditProjectOnCallDutyPolicySchedule',
+    DeleteProjectOnCallDutyPolicySchedule = 'DeleteProjectOnCallDutyPolicySchedule',
+    ReadProjectOnCallDutyPolicySchedule = 'ReadProjectOnCallDutyPolicySchedule',
+
+    ReadProjectOnCallDutyPolicyExecutionLogTimeline = 'ReadProjectOnCallDutyPolicyExecutionLogTimeline',
+    ReadProjectOnCallDutyPolicyExecutionLog = 'ReadProjectOnCallDutyPolicyExecutionLog',
+
+    // Resource Permissions (Team Permission)
+    CreateProjectOnCallDutyPolicyEscalationRule = 'CreateProjectOnCallDutyPolicyEscalationRule',
+    EditProjectOnCallDutyPolicyEscalationRule = 'EditProjectOnCallDutyPolicyEscalationRule',
+    DeleteProjectOnCallDutyPolicyEscalationRule = 'DeleteProjectOnCallDutyPolicyEscalationRule',
+    ReadProjectOnCallDutyPolicyEscalationRule = 'ReadProjectOnCallDutyPolicyEscalationRule',
+
+    // Resource Permissions (Team Permission)
+    CreateProjectOnCallDutyPolicyEscalationRuleUser = 'CreateProjectOnCallDutyPolicyEscalationRuleUser',
+    EditProjectOnCallDutyPolicyEscalationRuleUser = 'EditProjectOnCallDutyPolicyEscalationRuleUser',
+    DeleteProjectOnCallDutyPolicyEscalationRuleUser = 'DeleteProjectOnCallDutyPolicyEscalationRuleUser',
+    ReadProjectOnCallDutyPolicyEscalationRuleUser = 'ReadProjectOnCallDutyPolicyEscalationRuleUser',
+
+    // Resource Permissions (Team Permission)
+    CreateProjectOnCallDutyPolicyEscalationRuleSchedule = 'CreateProjectOnCallDutyPolicyEscalationRuleSchedule',
+    EditProjectOnCallDutyPolicyEscalationRuleSchedule = 'EditProjectOnCallDutyPolicyEscalationRuleSchedule',
+    DeleteProjectOnCallDutyPolicyEscalationRuleSchedule = 'DeleteProjectOnCallDutyPolicyEscalationRuleSchedule',
+    ReadProjectOnCallDutyPolicyEscalationRuleSchedule = 'ReadProjectOnCallDutyPolicyEscalationRuleSchedule',
+
+    // Monitor Secret Permissions
+    CreateMonitorSecret = 'CreateMonitorSecret',
+    EditMonitorSecret = 'EditMonitorSecret',
+    DeleteMonitorSecret = 'DeleteMonitorSecret',
+    ReadMonitorSecret = 'ReadMonitorSecret',
+
+    CreateProjectOnCallDutyPolicyEscalationRuleTeam = 'CreateProjectOnCallDutyPolicyEscalationRuleTeam',
+    EditProjectOnCallDutyPolicyEscalationRuleTeam = 'EditProjectOnCallDutyPolicyEscalationRuleTeam',
+    DeleteProjectOnCallDutyPolicyEscalationRuleTeam = 'DeleteProjectOnCallDutyPolicyEscalationRuleTeam',
+    ReadProjectOnCallDutyPolicyEscalationRuleTeam = 'ReadProjectOnCallDutyPolicyEscalationRuleTeam',
+
+    // Project SMTP Config (Team Permission)
+    CreateProjectSMTPConfig = 'CreateProjectSMTPConfig',
+    EditProjectSMTPConfig = 'EditProjectSMTPConfig',
+    DeleteProjectSMTPConfig = 'DeleteProjectSMTPConfig',
+    ReadProjectSMTPConfig = 'ReadProjectSMTPConfig',
+
+    CreateProjectCallSMSConfig = 'CreateProjectCallSMSConfig',
+    EditProjectCallSMSConfig = 'EditProjectCallSMSConfig',
+    DeleteProjectCallSMSConfig = 'DeleteProjectCallSMSConfig',
+    ReadProjectCallSMSConfig = 'ReadProjectCallSMSConfig',
+
+    // Project SMTP Config (Team Permission)
+    CreateIncidentSeverity = 'CreateIncidentSeverity',
+    EditIncidentSeverity = 'EditIncidentSeverity',
+    DeleteIncidentSeverity = 'DeleteIncidentSeverity',
+    ReadIncidentSeverity = 'ReadIncidentSeverity',
 }
 
 export class PermissionHelper {
@@ -1065,8 +1064,7 @@ export class PermissionHelper {
             },
 
             {
-                permission:
-                    Permission.CreateStatusPageHistoryChartBarColorRule,
+                permission: Permission.CreateStatusPageHistoryChartBarColorRule,
                 title: 'Create Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can create Status Page History Chart Bar Color Rule in this project.',
@@ -1074,8 +1072,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.DeleteStatusPageHistoryChartBarColorRule,
+                permission: Permission.DeleteStatusPageHistoryChartBarColorRule,
                 title: 'Delete Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can delete Status Page History Chart Bar Color Rule in this project.',
@@ -1083,8 +1080,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.EditStatusPageHistoryChartBarColorRule,
+                permission: Permission.EditStatusPageHistoryChartBarColorRule,
                 title: 'Edit Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can edit Status Page History Chart Bar Color Rule in this project.',
@@ -1092,8 +1088,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.ReadStatusPageHistoryChartBarColorRule,
+                permission: Permission.ReadStatusPageHistoryChartBarColorRule,
                 title: 'Read Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can read Status Page History Chart Bar Color Rule in this project.',
@@ -1739,8 +1734,7 @@ export class PermissionHelper {
             },
 
             {
-                permission:
-                    Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+                permission: Permission.ReadProjectOnCallDutyPolicyExecutionLog,
                 title: 'Read On-Call Duty Policy Execution Log',
                 description:
                     'This permission can read teams in on-call duty execution log.',
@@ -2185,8 +2179,7 @@ export class PermissionHelper {
             },
 
             {
-                permission:
-                    Permission.CreateOnCallDutyPolicyScheduleLayerUser,
+                permission: Permission.CreateOnCallDutyPolicyScheduleLayerUser,
                 title: 'Create On-Call Schedule Layer User',
                 description:
                     'This permission can create On-Call Schedule Layer User this project.',
@@ -2194,8 +2187,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.DeleteOnCallDutyPolicyScheduleLayerUser,
+                permission: Permission.DeleteOnCallDutyPolicyScheduleLayerUser,
                 title: 'Delete On-Call Schedule Layer User',
                 description:
                     'This permission can delete On-Call Schedule Layer User of this project.',
@@ -2601,8 +2593,7 @@ export class PermissionHelper {
             },
 
             {
-                permission:
-                    Permission.CreateScheduledMaintenanceNoteTemplate,
+                permission: Permission.CreateScheduledMaintenanceNoteTemplate,
                 title: 'Create Scheduled Maintenance Note Template',
                 description:
                     'This permission can create Scheduled Maintenance Note Template this project.',
@@ -2610,8 +2601,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.DeleteScheduledMaintenanceNoteTemplate,
+                permission: Permission.DeleteScheduledMaintenanceNoteTemplate,
                 title: 'Delete Scheduled Maintenance Note Template',
                 description:
                     'This permission can delete Scheduled Maintenance Note Template of this project.',
@@ -3166,8 +3156,7 @@ export class PermissionHelper {
             },
 
             {
-                permission:
-                    Permission.CreateScheduledMaintenanceStateTimeline,
+                permission: Permission.CreateScheduledMaintenanceStateTimeline,
                 title: 'Create Scheduled Maintenance State Timeline',
                 description:
                     'This permission can create Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
@@ -3175,8 +3164,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.DeleteScheduledMaintenanceStateTimeline,
+                permission: Permission.DeleteScheduledMaintenanceStateTimeline,
                 title: 'Delete Scheduled Maintenance State Timeline',
                 description:
                     'This permission can delete Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
@@ -3201,8 +3189,7 @@ export class PermissionHelper {
             },
 
             {
-                permission:
-                    Permission.CreateScheduledMaintenanceInternalNote,
+                permission: Permission.CreateScheduledMaintenanceInternalNote,
                 title: 'Create Scheduled Maintenance Internal Note',
                 description:
                     'This permission can create Scheduled Maintenance Internal Note this project.',
@@ -3210,8 +3197,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission:
-                    Permission.DeleteScheduledMaintenanceInternalNote,
+                permission: Permission.DeleteScheduledMaintenanceInternalNote,
                 title: 'Delete Scheduled Maintenance Internal Note',
                 description:
                     'This permission can delete Scheduled Maintenance Internal Note of this project.',
