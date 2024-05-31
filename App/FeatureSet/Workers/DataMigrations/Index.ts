@@ -56,7 +56,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new MoveGreenlockCertsToAcmeCerts(),
     new GenerateNewCertsForStatusPage(),
     new AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing(),
-    new RemoveCanFromPermissions()
+    new RemoveCanFromPermissions(),
 ];
 
 export default DataMigrations;
