@@ -1,5 +1,5 @@
 import logger from '../Utils/Logger';
-import { dataSourceOptions, testDataSourceOptions } from './PostgresConfig';
+import { dataSourceOptions, getTestDataSourceOptions } from './PostgresConfig';
 import Sleep from 'Common/Types/Sleep';
 import { DataSource, DataSourceOptions } from 'typeorm';
 
@@ -11,7 +11,7 @@ export default class Database {
     }
 
     public getTestDatasourceOptions(): DataSourceOptions {
-        return testDataSourceOptions;
+        return getTestDataSourceOptions();
     }
 
     public getDataSource(): DataSource | null {
