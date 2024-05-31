@@ -209,13 +209,15 @@ export class Service extends DatabaseService<Model> {
         _itemIdsBeforeDelete: ObjectID[]
     ): Promise<OnDelete<Model>> {
         for (const member of onDelete.carryForward) {
+            const teamMember: TeamMember = member as TeamMember;
+
             /// Refresh tokens.
             await AccessTokenService.refreshUserGlobalAccessPermission(
-                member.userId!
+                teamMember.userId!
             );
             await AccessTokenService.refreshUserTenantAccessPermission(
-                member.userId!,
-                member.data.projectId!
+                teamMember.userId!,
+                teamMember.projectId!
             );
         }
 
