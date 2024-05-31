@@ -52,7 +52,7 @@ export default class UserAPI extends BaseAPI<
                             permission.permission.toString() ===
                                 Permission.ProjectOwner.toString() ||
                             permission.permission.toString() ===
-                                Permission.CanCreateBillingPaymentMethod.toString()
+                                Permission.CreateBillingPaymentMethod.toString()
                         );
                     });
 

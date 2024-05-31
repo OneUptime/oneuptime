@@ -44,25 +44,25 @@ import {
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectOnCallDutyPolicySchedule,
+        Permission.CreateProjectOnCallDutyPolicySchedule,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectOnCallDutyPolicySchedule,
+        Permission.ReadProjectOnCallDutyPolicySchedule,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectOnCallDutyPolicySchedule,
+        Permission.DeleteProjectOnCallDutyPolicySchedule,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectOnCallDutyPolicySchedule,
+        Permission.EditProjectOnCallDutyPolicySchedule,
     ],
 })
 @CrudApiEndpoint(new Route('/on-call-duty-policy-schedule'))
@@ -84,13 +84,13 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [],
     })
@@ -121,13 +121,13 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [],
     })
@@ -152,19 +152,19 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicySchedule,
+            Permission.EditProjectOnCallDutyPolicySchedule,
         ],
     })
     @Index()
@@ -187,19 +187,19 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicySchedule,
+            Permission.EditProjectOnCallDutyPolicySchedule,
         ],
     })
     @TableColumn({
@@ -234,19 +234,19 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicySchedule,
+            Permission.EditProjectOnCallDutyPolicySchedule,
         ],
     })
     @TableColumn({
@@ -268,13 +268,13 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [],
     })
@@ -298,13 +298,13 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [],
     })
@@ -335,13 +335,13 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicySchedule,
+            Permission.CreateProjectOnCallDutyPolicySchedule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicySchedule,
+            Permission.ReadProjectOnCallDutyPolicySchedule,
         ],
         update: [],
     })

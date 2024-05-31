@@ -95,7 +95,7 @@ router.post(
 
             if (
                 permissions.includes(Permission.ProjectOwner) ||
-                permissions.includes(Permission.CanManageProjectBilling)
+                permissions.includes(Permission.ManageProjectBilling)
             ) {
                 await NotificationService.rechargeBalance(projectId, amount);
             } else {

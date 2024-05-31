@@ -36,25 +36,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateIncidentState,
+        Permission.CreateIncidentState,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadIncidentState,
+        Permission.ReadIncidentState,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteIncidentState,
+        Permission.DeleteIncidentState,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditIncidentState,
+        Permission.EditIncidentState,
     ],
 })
 @EnableWorkflow({
@@ -82,13 +82,13 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [],
     })
@@ -119,13 +119,13 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [],
     })
@@ -150,19 +150,19 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentState,
+            Permission.EditIncidentState,
         ],
     })
     @TableColumn({
@@ -186,7 +186,7 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [],
     })
@@ -209,19 +209,19 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentState,
+            Permission.EditIncidentState,
         ],
     })
     @TableColumn({
@@ -242,13 +242,13 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [],
     })
@@ -279,13 +279,13 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [],
     })
@@ -308,7 +308,7 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [],
     })
@@ -340,7 +340,7 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [],
     })
@@ -362,19 +362,19 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentState,
+            Permission.EditIncidentState,
         ],
     })
     @TableColumn({
@@ -399,19 +399,19 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentState,
+            Permission.EditIncidentState,
         ],
     })
     @TableColumn({
@@ -432,19 +432,19 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentState,
+            Permission.EditIncidentState,
         ],
     })
     @TableColumn({
@@ -465,19 +465,19 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentState,
+            Permission.EditIncidentState,
         ],
     })
     @TableColumn({
@@ -499,19 +499,19 @@ export default class IncidentState extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentState,
+            Permission.CreateIncidentState,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentState,
+            Permission.ReadIncidentState,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentState,
+            Permission.EditIncidentState,
         ],
     })
     @TableColumn({

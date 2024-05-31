@@ -25,25 +25,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+        Permission.CreateProjectOnCallDutyPolicyEscalationRule,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+        Permission.ReadProjectOnCallDutyPolicyEscalationRule,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectOnCallDutyPolicyEscalationRule,
+        Permission.DeleteProjectOnCallDutyPolicyEscalationRule,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+        Permission.EditProjectOnCallDutyPolicyEscalationRule,
     ],
 })
 @CrudApiEndpoint(new Route('/on-call-duty-policy-esclation-rule'))
@@ -64,13 +64,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [],
     })
@@ -101,13 +101,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [],
     })
@@ -132,13 +132,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [],
     })
@@ -169,13 +169,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [],
     })
@@ -200,19 +200,19 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+            Permission.EditProjectOnCallDutyPolicyEscalationRule,
         ],
     })
     @Index()
@@ -235,19 +235,19 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+            Permission.EditProjectOnCallDutyPolicyEscalationRule,
         ],
     })
     @TableColumn({
@@ -268,13 +268,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [],
     })
@@ -305,13 +305,13 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [],
     })
@@ -378,19 +378,19 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+            Permission.EditProjectOnCallDutyPolicyEscalationRule,
         ],
     })
     @Index()
@@ -413,19 +413,19 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
+            Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
+            Permission.ReadProjectOnCallDutyPolicyEscalationRule,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
+            Permission.EditProjectOnCallDutyPolicyEscalationRule,
         ],
     })
     @TableColumn({

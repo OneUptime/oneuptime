@@ -38,25 +38,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateStatusPageGroup,
+        Permission.CreateStatusPageGroup,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadStatusPageGroup,
+        Permission.ReadStatusPageGroup,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteStatusPageGroup,
+        Permission.DeleteStatusPageGroup,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditStatusPageGroup,
+        Permission.EditStatusPageGroup,
     ],
 })
 @EnableWorkflow({
@@ -84,13 +84,13 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [],
     })
@@ -121,13 +121,13 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [],
     })
@@ -152,13 +152,13 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [],
     })
@@ -189,13 +189,13 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [],
     })
@@ -219,19 +219,19 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageGroup,
+            Permission.EditStatusPageGroup,
         ],
     })
     @TableColumn({
@@ -255,7 +255,7 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [],
     })
@@ -278,19 +278,19 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageGroup,
+            Permission.EditStatusPageGroup,
         ],
     })
     @TableColumn({
@@ -311,13 +311,13 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [],
     })
@@ -348,13 +348,13 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [],
     })
@@ -376,19 +376,19 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageGroup,
+            Permission.EditStatusPageGroup,
         ],
     })
     @TableColumn({
@@ -408,19 +408,19 @@ export default class StatusPageGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageGroup,
+            Permission.CreateStatusPageGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageGroup,
+            Permission.ReadStatusPageGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageGroup,
+            Permission.EditStatusPageGroup,
         ],
     })
     @TableColumn({

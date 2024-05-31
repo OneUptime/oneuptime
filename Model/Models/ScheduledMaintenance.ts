@@ -44,25 +44,25 @@ import {
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectScheduledMaintenance,
+        Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectScheduledMaintenance,
+        Permission.ReadProjectScheduledMaintenance,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectScheduledMaintenance,
+        Permission.DeleteProjectScheduledMaintenance,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectScheduledMaintenance,
+        Permission.EditProjectScheduledMaintenance,
     ],
 })
 @CrudApiEndpoint(new Route('/scheduled-maintenance'))
@@ -89,13 +89,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -126,13 +126,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -157,19 +157,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @Index()
@@ -192,19 +192,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @TableColumn({
@@ -226,13 +226,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -256,13 +256,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -293,13 +293,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -366,19 +366,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @TableColumn({
@@ -412,19 +412,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @TableColumn({
@@ -458,19 +458,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @TableColumn({
@@ -505,19 +505,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @TableColumn({
@@ -546,19 +546,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @Index()
@@ -581,13 +581,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -617,19 +617,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @Index()
@@ -658,19 +658,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @Column({
@@ -690,19 +690,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @Column({
@@ -717,7 +717,7 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -738,13 +738,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -766,13 +766,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -795,13 +795,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })
@@ -824,19 +824,19 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectScheduledMaintenance,
+            Permission.EditProjectScheduledMaintenance,
         ],
     })
     @TableColumn({
@@ -857,13 +857,13 @@ export default class ScheduledMaintenance extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectScheduledMaintenance,
+            Permission.CreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectScheduledMaintenance,
+            Permission.ReadProjectScheduledMaintenance,
         ],
         update: [],
     })

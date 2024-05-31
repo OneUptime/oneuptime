@@ -20,15 +20,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 @AllowAccessIfSubscriptionIsUnpaid()
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectUser,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadBillingPaymentMethod,
+        Permission.ReadBillingPaymentMethod,
     ],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteBillingPaymentMethod],
+    delete: [Permission.ProjectOwner, Permission.DeleteBillingPaymentMethod],
     update: [],
 })
 @CrudApiEndpoint(new Route('/billing-payment-methods'))
@@ -48,14 +48,14 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [
             Permission.ProjectOwner,
 
-            Permission.CanCreateBillingPaymentMethod,
+            Permission.CreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectUser,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -85,14 +85,14 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [
             Permission.ProjectOwner,
 
-            Permission.CanCreateBillingPaymentMethod,
+            Permission.CreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -116,14 +116,14 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [
             Permission.ProjectOwner,
 
-            Permission.CanCreateBillingPaymentMethod,
+            Permission.CreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -153,14 +153,14 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [
             Permission.ProjectOwner,
 
-            Permission.CanCreateBillingPaymentMethod,
+            Permission.CreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -184,7 +184,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -217,7 +217,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -238,14 +238,14 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [
             Permission.ProjectOwner,
 
-            Permission.CanCreateBillingPaymentMethod,
+            Permission.CreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -265,7 +265,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -285,7 +285,7 @@ export default class BillingPaymentMethod extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -302,14 +302,14 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [
             Permission.ProjectOwner,
 
-            Permission.CanCreateBillingPaymentMethod,
+            Permission.CreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })
@@ -326,14 +326,14 @@ export default class BillingPaymentMethod extends BaseModel {
         create: [
             Permission.ProjectOwner,
 
-            Permission.CanCreateBillingPaymentMethod,
+            Permission.CreateBillingPaymentMethod,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.ProjectMember,
-            Permission.CanReadBillingPaymentMethod,
+            Permission.ReadBillingPaymentMethod,
         ],
         update: [],
     })

@@ -39,25 +39,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateStatusPagePrivateUser,
+        Permission.CreateStatusPagePrivateUser,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadStatusPagePrivateUser,
+        Permission.ReadStatusPagePrivateUser,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteStatusPagePrivateUser,
+        Permission.DeleteStatusPagePrivateUser,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditStatusPagePrivateUser,
+        Permission.EditStatusPagePrivateUser,
     ],
 })
 @EnableWorkflow({
@@ -84,13 +84,13 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })
@@ -121,13 +121,13 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })
@@ -152,13 +152,13 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })
@@ -189,13 +189,13 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })
@@ -219,19 +219,19 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPagePrivateUser,
+            Permission.EditStatusPagePrivateUser,
         ],
     })
     @TableColumn({
@@ -252,19 +252,19 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPagePrivateUser,
+            Permission.EditStatusPagePrivateUser,
         ],
     })
     @TableColumn({
@@ -328,13 +328,13 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })
@@ -365,13 +365,13 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })
@@ -394,7 +394,7 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })
@@ -425,13 +425,13 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPagePrivateUser,
+            Permission.CreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPagePrivateUser,
+            Permission.ReadStatusPagePrivateUser,
         ],
         update: [],
     })

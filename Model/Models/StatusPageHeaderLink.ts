@@ -30,25 +30,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateStatusPageHeaderLink,
+        Permission.CreateStatusPageHeaderLink,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadStatusPageHeaderLink,
+        Permission.ReadStatusPageHeaderLink,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteStatusPageHeaderLink,
+        Permission.DeleteStatusPageHeaderLink,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditStatusPageHeaderLink,
+        Permission.EditStatusPageHeaderLink,
     ],
 })
 @EnableWorkflow({
@@ -79,13 +79,13 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [],
     })
@@ -116,13 +116,13 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [],
     })
@@ -147,13 +147,13 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [],
     })
@@ -184,13 +184,13 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [],
     })
@@ -214,19 +214,19 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageHeaderLink,
+            Permission.EditStatusPageHeaderLink,
         ],
     })
     @TableColumn({
@@ -247,19 +247,19 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageHeaderLink,
+            Permission.EditStatusPageHeaderLink,
         ],
     })
     @TableColumn({
@@ -281,13 +281,13 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [],
     })
@@ -318,13 +318,13 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [],
     })
@@ -347,7 +347,7 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [],
     })
@@ -378,19 +378,19 @@ export default class StatusPageHeaderLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageHeaderLink,
+            Permission.CreateStatusPageHeaderLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageHeaderLink,
+            Permission.ReadStatusPageHeaderLink,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageHeaderLink,
+            Permission.EditStatusPageHeaderLink,
         ],
     })
     @TableColumn({

@@ -44,23 +44,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateProjectApiKey,
+        Permission.CreateProjectApiKey,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanReadProjectApiKey,
+        Permission.ReadProjectApiKey,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteProjectApiKey,
+        Permission.DeleteProjectApiKey,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditProjectApiKeyPermissions,
-        Permission.CanEditProjectApiKey,
+        Permission.EditProjectApiKeyPermissions,
+        Permission.EditProjectApiKey,
     ],
 })
 @TableMetadata({
@@ -75,12 +75,12 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
+            Permission.CreateProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [],
     })
@@ -110,12 +110,12 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
+            Permission.CreateProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [],
     })
@@ -139,17 +139,17 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
+            Permission.CreateProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectApiKey,
+            Permission.EditProjectApiKey,
         ],
     })
     @Index()
@@ -171,17 +171,17 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
+            Permission.CreateProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectApiKey,
+            Permission.EditProjectApiKey,
         ],
     })
     @TableColumn({
@@ -202,7 +202,7 @@ export default class ApiKey extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [],
     })
@@ -224,12 +224,12 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
+            Permission.CreateProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [],
     })
@@ -259,12 +259,12 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
+            Permission.CreateProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [],
     })
@@ -330,17 +330,17 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectApiKey,
+            Permission.CreateProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectApiKey,
+            Permission.EditProjectApiKey,
         ],
     })
     @TableColumn({
@@ -359,17 +359,17 @@ export default class ApiKey extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadProjectApiKey,
+            Permission.ReadProjectApiKey,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectApiKey,
+            Permission.EditProjectApiKey,
         ],
     })
     @Index()

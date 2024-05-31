@@ -45,25 +45,25 @@ import {
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateMonitorGroup,
+        Permission.CreateMonitorGroup,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadMonitorGroup,
+        Permission.ReadMonitorGroup,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteMonitorGroup,
+        Permission.DeleteMonitorGroup,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditMonitorGroup,
+        Permission.EditMonitorGroup,
     ],
 })
 @EnableWorkflow({
@@ -91,13 +91,13 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [],
     })
@@ -128,13 +128,13 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [],
     })
@@ -159,19 +159,19 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditMonitorGroup,
+            Permission.EditMonitorGroup,
         ],
     })
     @Index()
@@ -194,19 +194,19 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditMonitorGroup,
+            Permission.EditMonitorGroup,
         ],
     })
     @TableColumn({
@@ -228,13 +228,13 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [],
     })
@@ -258,13 +258,13 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [],
     })
@@ -295,13 +295,13 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [],
     })
@@ -368,19 +368,19 @@ export default class MonitorGroup extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorGroup,
+            Permission.CreateMonitorGroup,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorGroup,
+            Permission.ReadMonitorGroup,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditMonitorGroup,
+            Permission.EditMonitorGroup,
         ],
     })
     @TableColumn({

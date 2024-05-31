@@ -30,25 +30,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateStatusPageFooterLink,
+        Permission.CreateStatusPageFooterLink,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadStatusPageFooterLink,
+        Permission.ReadStatusPageFooterLink,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteStatusPageFooterLink,
+        Permission.DeleteStatusPageFooterLink,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditStatusPageFooterLink,
+        Permission.EditStatusPageFooterLink,
     ],
 })
 @EnableWorkflow({
@@ -79,13 +79,13 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [],
     })
@@ -116,13 +116,13 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [],
     })
@@ -147,13 +147,13 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [],
     })
@@ -184,13 +184,13 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [],
     })
@@ -214,19 +214,19 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageFooterLink,
+            Permission.EditStatusPageFooterLink,
         ],
     })
     @TableColumn({
@@ -247,19 +247,19 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageFooterLink,
+            Permission.EditStatusPageFooterLink,
         ],
     })
     @TableColumn({
@@ -281,13 +281,13 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [],
     })
@@ -318,13 +318,13 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [],
     })
@@ -347,7 +347,7 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [],
     })
@@ -378,19 +378,19 @@ export default class StatusPageFooterLink extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageFooterLink,
+            Permission.CreateStatusPageFooterLink,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageFooterLink,
+            Permission.ReadStatusPageFooterLink,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageFooterLink,
+            Permission.EditStatusPageFooterLink,
         ],
     })
     @TableColumn({

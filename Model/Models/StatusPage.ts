@@ -46,25 +46,25 @@ import {
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectStatusPage,
+        Permission.CreateProjectStatusPage,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectStatusPage,
+        Permission.ReadProjectStatusPage,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectStatusPage,
+        Permission.DeleteProjectStatusPage,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectStatusPage,
+        Permission.EditProjectStatusPage,
     ],
 })
 @EnableWorkflow({
@@ -91,13 +91,13 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [],
     })
@@ -128,13 +128,13 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [],
     })
@@ -160,19 +160,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @Index()
@@ -195,19 +195,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -228,19 +228,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -261,19 +261,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -295,13 +295,13 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [],
     })
@@ -325,13 +325,13 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [],
     })
@@ -362,19 +362,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -409,13 +409,13 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [],
     })
@@ -484,19 +484,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -525,19 +525,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -557,19 +557,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -598,19 +598,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -630,19 +630,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -671,19 +671,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -703,19 +703,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -740,19 +740,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -777,19 +777,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -814,19 +814,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -852,19 +852,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -889,19 +889,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -926,19 +926,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -964,19 +964,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -996,19 +996,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1028,19 +1028,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1065,19 +1065,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1102,19 +1102,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1134,19 +1134,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1167,20 +1167,20 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
             Permission.Public,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1203,19 +1203,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1245,19 +1245,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @Index()
@@ -1281,19 +1281,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1323,19 +1323,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @Index()
@@ -1359,13 +1359,13 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [],
     })
@@ -1389,19 +1389,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @Index()
@@ -1425,19 +1425,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @Index()
@@ -1461,19 +1461,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @Index()
@@ -1497,19 +1497,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @Index()
@@ -1532,19 +1532,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1569,19 +1569,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({
@@ -1606,19 +1606,19 @@ export default class StatusPage extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectStatusPage,
+            Permission.CreateProjectStatusPage,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectStatusPage,
+            Permission.ReadProjectStatusPage,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectStatusPage,
+            Permission.EditProjectStatusPage,
         ],
     })
     @TableColumn({

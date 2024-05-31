@@ -41,27 +41,27 @@ import {
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateProjectTeam,
-        Permission.CanEditProjectTeamPermissions,
+        Permission.CreateProjectTeam,
+        Permission.EditProjectTeamPermissions,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectTeam,
+        Permission.ReadProjectTeam,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteProjectTeam,
-        Permission.CanEditProjectTeamPermissions,
+        Permission.DeleteProjectTeam,
+        Permission.EditProjectTeamPermissions,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanInviteProjectTeamMembers,
-        Permission.CanEditProjectTeamPermissions,
-        Permission.CanEditProjectTeam,
+        Permission.InviteProjectTeamMembers,
+        Permission.EditProjectTeamPermissions,
+        Permission.EditProjectTeam,
     ],
 })
 @TenantColumn('projectId')
@@ -87,14 +87,14 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
+            Permission.CreateProjectTeam,
+            Permission.EditProjectTeamPermissions,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [],
     })
@@ -124,14 +124,14 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
+            Permission.CreateProjectTeam,
+            Permission.EditProjectTeamPermissions,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [],
     })
@@ -155,14 +155,14 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
+            Permission.CreateProjectTeam,
+            Permission.EditProjectTeamPermissions,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [],
     })
@@ -191,14 +191,14 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
+            Permission.CreateProjectTeam,
+            Permission.EditProjectTeamPermissions,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [],
     })
@@ -219,13 +219,13 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
+            Permission.CreateProjectTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [],
     })
@@ -255,13 +255,13 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
+            Permission.CreateProjectTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [],
     })
@@ -282,13 +282,13 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
+            Permission.CreateProjectTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [],
     })
@@ -336,21 +336,21 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
+            Permission.CreateProjectTeam,
+            Permission.EditProjectTeamPermissions,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanInviteProjectTeamMembers,
-            Permission.CanEditProjectTeamPermissions,
-            Permission.CanEditProjectTeam,
+            Permission.InviteProjectTeamMembers,
+            Permission.EditProjectTeamPermissions,
+            Permission.EditProjectTeam,
         ],
     })
     @TableColumn({
@@ -371,20 +371,20 @@ export default class TeamPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
+            Permission.CreateProjectTeam,
+            Permission.EditProjectTeamPermissions,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectTeam,
+            Permission.ReadProjectTeam,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectTeamPermissions,
-            Permission.CanEditProjectTeam,
+            Permission.EditProjectTeamPermissions,
+            Permission.EditProjectTeam,
         ],
     })
     @TableColumn({

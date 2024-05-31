@@ -35,415 +35,416 @@ enum Permission {
 
     Public = 'Public', // non-registered user. Everyone has this permission.
 
-    // Billing Permissions (Owner Permission)
-    CanCreateProjectApiKey = 'CanCreateProjectApiKey',
-    CanDeleteProjectApiKey = 'CanDeleteProjectApiKey',
-    CanReadProjectApiKey = 'CanReadProjectApiKey',
-    CanEditProjectApiKey = 'CanEditProjectApiKey',
-    CanEditProjectApiKeyPermissions = 'CanEditProjectApiKeyPermissions',
+        // Billing Permissions (Owner Permission)
+        CreateProjectApiKey = 'CreateProjectApiKey',
+        DeleteProjectApiKey = 'DeleteProjectApiKey',
+        ReadProjectApiKey = 'ReadProjectApiKey',
+        EditProjectApiKey = 'EditProjectApiKey',
+        EditProjectApiKeyPermissions = 'EditProjectApiKeyPermissions',
+    
+        // Logs
+    
+        CreateTelemetryServiceLog = 'CreateTelemetryServiceLog',
+        DeleteTelemetryServiceLog = 'DeleteTelemetryServiceLog',
+        EditTelemetryServiceLog = 'EditTelemetryServiceLog',
+        ReadTelemetryServiceLog = 'ReadTelemetryServiceLog',
+    
+        // Spans
+    
+        CreateTelemetryServiceTraces = 'CreateTelemetryServiceTraces',
+        DeleteTelemetryServiceTraces = 'DeleteTelemetryServiceTraces',
+        EditTelemetryServiceTraces = 'EditTelemetryServiceTraces',
+        ReadTelemetryServiceTraces = 'ReadTelemetryServiceTraces',
+    
+        // Billing Permissions (Owner Permission)
+        ManageProjectBilling = 'ManageProjectBilling',
+    
+        // Billing Permissions (Owner Permission)
+        CreateProjectTeam = 'CreateProjectTeam',
+        DeleteProjectTeam = 'DeleteProjectTeam',
+        ReadProjectTeam = 'ReadProjectTeam',
+        EditProjectTeam = 'EditProjectTeam',
+        InviteProjectTeamMembers = 'InviteProjectTeamMembers',
+        EditProjectTeamPermissions = 'EditProjectTeamPermissions',
+    
+        CreateProjectProbe = 'CreateProjectProbe',
+        DeleteProjectProbe = 'DeleteProjectProbe',
+        EditProjectProbe = 'EditProjectProbe',
+        ReadProjectProbe = 'ReadProjectProbe',
+    
+        CreateTelemetryService = 'CreateTelemetryService',
+        DeleteTelemetryService = 'DeleteTelemetryService',
+        EditTelemetryService = 'EditTelemetryService',
+        ReadTelemetryService = 'ReadTelemetryService',
+    
+        CreateMonitorGroupResource = 'CreateMonitorGroupResource',
+        DeleteMonitorGroupResource = 'DeleteMonitorGroupResource',
+        EditMonitorGroupResource = 'EditMonitorGroupResource',
+        ReadMonitorGroupResource = 'ReadMonitorGroupResource',
+    
+        CreateMonitorCustomField = 'CreateMonitorCustomField',
+        DeleteMonitorCustomField = 'DeleteMonitorCustomField',
+        EditMonitorCustomField = 'EditMonitorCustomField',
+        ReadMonitorCustomField = 'ReadMonitorCustomField',
+    
+        CreateOnCallDutyPolicyCustomField = 'CreateOnCallDutyPolicyCustomField',
+        DeleteOnCallDutyPolicyCustomField = 'DeleteOnCallDutyPolicyCustomField',
+        EditOnCallDutyPolicyCustomField = 'EditOnCallDutyPolicyCustomField',
+        ReadOnCallDutyPolicyCustomField = 'ReadOnCallDutyPolicyCustomField',
+    
+        CreateOnCallDutyPolicyScheduleLayer = 'CreateOnCallDutyPolicyScheduleLayer',
+        DeleteOnCallDutyPolicyScheduleLayer = 'DeleteOnCallDutyPolicyScheduleLayer',
+        EditOnCallDutyPolicyScheduleLayer = 'EditOnCallDutyPolicyScheduleLayer',
+        ReadOnCallDutyPolicyScheduleLayer = 'ReadOnCallDutyPolicyScheduleLayer',
+    
+        CreateOnCallDutyPolicyScheduleLayerUser = 'CreateOnCallDutyPolicyScheduleLayerUser',
+        DeleteOnCallDutyPolicyScheduleLayerUser = 'DeleteOnCallDutyPolicyScheduleLayerUser',
+        EditOnCallDutyPolicyScheduleLayerUser = 'EditOnCallDutyPolicyScheduleLayerUser',
+        ReadOnCallDutyPolicyScheduleLayerUser = 'ReadOnCallDutyPolicyScheduleLayerUser',
+    
+        CreateScheduledMaintenanceCustomField = 'CreateScheduledMaintenanceCustomField',
+        DeleteScheduledMaintenanceCustomField = 'DeleteScheduledMaintenanceCustomField',
+        EditScheduledMaintenanceCustomField = 'EditScheduledMaintenanceCustomField',
+        ReadScheduledMaintenanceCustomField = 'ReadScheduledMaintenanceCustomField',
+    
+        CreateMonitorProbe = 'CreateMonitorProbe',
+        DeleteMonitorProbe = 'DeleteMonitorProbe',
+        EditMonitorProbe = 'EditMonitorProbe',
+        ReadMonitorProbe = 'ReadMonitorProbe',
+    
+        ReadSmsLog = 'ReadSmsLog',
+        ReadEmailLog = 'ReadEmailLog',
+        ReadCallLog = 'ReadCallLog',
+    
+        CreateIncidentOwnerTeam = 'CreateIncidentOwnerTeam',
+        DeleteIncidentOwnerTeam = 'DeleteIncidentOwnerTeam',
+        EditIncidentOwnerTeam = 'EditIncidentOwnerTeam',
+        ReadIncidentOwnerTeam = 'ReadIncidentOwnerTeam',
+    
+        CreateIncidentOwnerUser = 'CreateIncidentOwner',
+        DeleteIncidentOwnerUser = 'DeleteIncidentOwnerUser',
+        EditIncidentOwnerUser = 'EditIncidentOwnerUser',
+        ReadIncidentOwnerUser = 'ReadIncidentOwnerUser',
+    
+        CreateIncidentTemplate = 'CreateIncidentTemplate',
+        DeleteIncidentTemplate = 'DeleteIncidentTemplate',
+        EditIncidentTemplate = 'EditIncidentTemplate',
+        ReadIncidentTemplate = 'ReadIncidentTemplate',
+    
+        CreateIncidentNoteTemplate = 'CreateIncidentNoteTemplate',
+        DeleteIncidentNoteTemplate = 'DeleteIncidentNoteTemplate',
+        EditIncidentNoteTemplate = 'EditIncidentNoteTemplate',
+        ReadIncidentNoteTemplate = 'ReadIncidentNoteTemplate',
+    
+        CreateScheduledMaintenanceNoteTemplate = 'CreateScheduledMaintenanceNoteTemplate',
+        DeleteScheduledMaintenanceNoteTemplate = 'DeleteScheduledMaintenanceNoteTemplate',
+        EditScheduledMaintenanceNoteTemplate = 'EditScheduledMaintenanceNoteTemplate',
+        ReadScheduledMaintenanceNoteTemplate = 'ReadScheduledMaintenanceNoteTemplate',
+    
+        CreateIncidentTemplateOwnerTeam = 'CreateIncidentTemplateOwnerTeam',
+        DeleteIncidentTemplateOwnerTeam = 'DeleteIncidentTemplateOwnerTeam',
+        EditIncidentTemplateOwnerTeam = 'EditIncidentTemplateOwnerTeam',
+        ReadIncidentTemplateOwnerTeam = 'ReadIncidentTemplateOwnerTeam',
+    
+        CreateIncidentTemplateOwnerUser = 'CreateIncidentTemplateOwner',
+        DeleteIncidentTemplateOwnerUser = 'DeleteIncidentTemplateOwnerUser',
+        EditIncidentTemplateOwnerUser = 'EditIncidentTemplateOwnerUser',
+        ReadIncidentTemplateOwnerUser = 'ReadIncidentTemplateOwnerUser',
+    
+        CreateScheduledMaintenanceOwnerTeam = 'CreateScheduledMaintenanceOwnerTeam',
+        DeleteScheduledMaintenanceOwnerTeam = 'DeleteScheduledMaintenanceOwnerTeam',
+        EditScheduledMaintenanceOwnerTeam = 'EditScheduledMaintenanceOwnerTeam',
+        ReadScheduledMaintenanceOwnerTeam = 'ReadScheduledMaintenanceOwnerTeam',
+    
+        CreateScheduledMaintenanceOwnerUser = 'CreateScheduledMaintenanceOwner',
+        DeleteScheduledMaintenanceOwnerUser = 'DeleteScheduledMaintenanceOwnerUser',
+        EditScheduledMaintenanceOwnerUser = 'EditScheduledMaintenanceOwnerUser',
+        ReadScheduledMaintenanceOwnerUser = 'ReadScheduledMaintenanceOwnerUser',
+    
+        CreateStatusPageOwnerTeam = 'CreateStatusPageOwnerTeam',
+        DeleteStatusPageOwnerTeam = 'DeleteStatusPageOwnerTeam',
+        EditStatusPageOwnerTeam = 'EditStatusPageOwnerTeam',
+        ReadStatusPageOwnerTeam = 'ReadStatusPageOwnerTeam',
+    
+        CreateStatusPageOwnerUser = 'CreateStatusPageOwner',
+        DeleteStatusPageOwnerUser = 'DeleteStatusPageOwnerUser',
+        EditStatusPageOwnerUser = 'EditStatusPageOwnerUser',
+        ReadStatusPageOwnerUser = 'ReadStatusPageOwnerUser',
+    
+        CreateMonitorOwnerTeam = 'CreateMonitorOwnerTeam',
+        DeleteMonitorOwnerTeam = 'DeleteMonitorOwnerTeam',
+        EditMonitorOwnerTeam = 'EditMonitorOwnerTeam',
+        ReadMonitorOwnerTeam = 'ReadMonitorOwnerTeam',
+    
+        CreateMonitorOwnerUser = 'CreateMonitorOwner',
+        DeleteMonitorOwnerUser = 'DeleteMonitorOwnerUser',
+        EditMonitorOwnerUser = 'EditMonitorOwnerUser',
+        ReadMonitorOwnerUser = 'ReadMonitorOwnerUser',
+    
+        CreateMonitorGroupOwnerTeam = 'CreateMonitorGroupOwnerTeam',
+        DeleteMonitorGroupOwnerTeam = 'DeleteMonitorGroupOwnerTeam',
+        EditMonitorGroupOwnerTeam = 'EditMonitorGroupOwnerTeam',
+        ReadMonitorGroupOwnerTeam = 'ReadMonitorGroupOwnerTeam',
+    
+        CreateMonitorGroupOwnerUser = 'CreateMonitorGroupOwner',
+        DeleteMonitorGroupOwnerUser = 'DeleteMonitorGroupOwnerUser',
+        EditMonitorGroupOwnerUser = 'EditMonitorGroupOwnerUser',
+        ReadMonitorGroupOwnerUser = 'ReadMonitorGroupOwnerUser',
+    
+        CreateStatusPageCustomField = 'CreateStatusPageCustomField',
+        DeleteStatusPageCustomField = 'DeleteStatusPageCustomField',
+        EditStatusPageCustomField = 'EditStatusPageCustomField',
+        ReadStatusPageCustomField = 'ReadStatusPageCustomField',
+    
+        CreateIncidentCustomField = 'CreateIncidentCustomField',
+        DeleteIncidentCustomField = 'DeleteIncidentCustomField',
+        EditIncidentCustomField = 'EditIncidentCustomField',
+        ReadIncidentCustomField = 'ReadIncidentCustomField',
+    
+        CreateProjectIncident = 'CreateProjectIncident',
+        DeleteProjectIncident = 'DeleteProjectIncident',
+        EditProjectIncident = 'EditProjectIncident',
+        ReadProjectIncident = 'ReadProjectIncident',
+    
+        CreateStatusPageSubscriber = 'CreateStatusPageSubscriber',
+        DeleteStatusPageSubscriber = 'DeleteStatusPageSubscriber',
+        EditStatusPageSubscriber = 'EditStatusPageSubscriber',
+        ReadStatusPageSubscriber = 'ReadStatusPageSubscriber',
+    
+        CreateStatusPagePrivateUser = 'CreateStatusPagePrivateUser',
+        DeleteStatusPagePrivateUser = 'DeleteStatusPagePrivateUser',
+        EditStatusPagePrivateUser = 'EditStatusPagePrivateUser',
+        ReadStatusPagePrivateUser = 'ReadStatusPagePrivateUser',
+    
+        CreateProjectDomain = 'CreateProjectDomain',
+        DeleteProjectDomain = 'DeleteProjectDomain',
+        EditProjectDomain = 'EditProjectDomain',
+        ReadProjectDomain = 'ReadProjectDomain',
+    
+        CreateStatusPageHeaderLink = 'CreateStatusPageHeaderLink',
+        DeleteStatusPageHeaderLink = 'DeleteStatusPageHeaderLink',
+        EditStatusPageHeaderLink = 'EditStatusPageHeaderLink',
+        ReadStatusPageHeaderLink = 'ReadStatusPageHeaderLink',
+    
+        CreateStatusPageFooterLink = 'CreateStatusPageFooterLink',
+        DeleteStatusPageFooterLink = 'DeleteStatusPageFooterLink',
+        EditStatusPageFooterLink = 'EditStatusPageFooterLink',
+        ReadStatusPageFooterLink = 'ReadStatusPageFooterLink',
+    
+        CreateStatusPageResource = 'CreateStatusPageResource',
+        DeleteStatusPageResource = 'DeleteStatusPageResource',
+        EditStatusPageResource = 'EditStatusPageResource',
+        ReadStatusPageResource = 'ReadStatusPageResource',
+    
+        CreateStatusPageHistoryChartBarColorRule = 'CreateStatusPageHistoryChartBarColorRule',
+        DeleteStatusPageHistoryChartBarColorRule = 'DeleteStatusPageHistoryChartBarColorRule',
+        EditStatusPageHistoryChartBarColorRule = 'EditStatusPageHistoryChartBarColorRule',
+        ReadStatusPageHistoryChartBarColorRule = 'ReadStatusPageHistoryChartBarColorRule',
+    
+        CreateWorkflow = 'CreateWorkflow',
+        DeleteWorkflow = 'DeleteWorkflow',
+        EditWorkflow = 'EditWorkflow',
+        ReadWorkflow = 'ReadWorkflow',
+    
+        DeleteProject = 'DeleteProject',
+        EditProject = 'EditProject',
+        ReadProject = 'ReadProject',
+    
+        CreateWorkflowLog = 'CreateWorkflowLog',
+        DeleteWorkflowLog = 'DeleteWorkflowLog',
+        EditWorkflowLog = 'EditWorkflowLog',
+        ReadWorkflowLog = 'ReadWorkflowLog',
+    
+        CreateWorkflowVariable = 'CreateWorkflowVariable',
+        DeleteWorkflowVariable = 'DeleteWorkflowVariable',
+        EditWorkflowVariable = 'EditWorkflowVariable',
+        ReadWorkflowVariable = 'ReadWorkflowVariable',
+    
+        CreateStatusPageGroup = 'CreateStatusPageGroup',
+        DeleteStatusPageGroup = 'DeleteStatusPageGroup',
+        EditStatusPageGroup = 'EditStatusPageGroup',
+        ReadStatusPageGroup = 'ReadStatusPageGroup',
+    
+        CreateStatusPageDomain = 'CreateStatusPageDomain',
+        DeleteStatusPageDomain = 'DeleteStatusPageDomain',
+        EditStatusPageDomain = 'EditStatusPageDomain',
+        ReadStatusPageDomain = 'ReadStatusPageDomain',
+    
+        CreateMonitorGroup = 'CreateMonitorGroup',
+        DeleteMonitorGroup = 'DeleteMonitorGroup',
+        EditMonitorGroup = 'EditMonitorGroup',
+        ReadMonitorGroup = 'ReadMonitorGroup',
+    
+        CreateProjectSSO = 'CreateProjectSSO',
+        DeleteProjectSSO = 'DeleteProjectSSO',
+        EditProjectSSO = 'EditProjectSSO',
+        ReadProjectSSO = 'ReadProjectSSO',
+    
+        CreateStatusPageSSO = 'CreateStatusPageSSO',
+        DeleteStatusPageSSO = 'DeleteStatusPageSSO',
+        EditStatusPageSSO = 'EditStatusPageSSO',
+        ReadStatusPageSSO = 'ReadStatusPageSSO',
+    
+        // Label Permissions (Owner + Admin Permission by default)
+        CreateProjectLabel = 'CreateProjectLabel',
+        EditProjectLabel = 'EditProjectLabel',
+        ReadProjectLabel = 'ReadProjectLabel',
+        DeleteProjectLabel = 'DeleteProjectLabel',
+        AddLabelsToProjectResources = 'AddLabelsToProjectResources',
+    
+        // Scheduled Maintenance
+    
+        // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
+        CreateScheduledMaintenanceState = 'CreateScheduledMaintenanceState',
+        EditScheduledMaintenanceState = 'EditScheduledMaintenanceState',
+        ReadScheduledMaintenanceState = 'ReadScheduledMaintenanceState',
+        DeleteScheduledMaintenanceState = 'DeleteScheduledMaintenanceState',
+    
+        // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
+        CreateScheduledMaintenanceStateTimeline = 'CreateScheduledMaintenanceStateTimeline',
+        EditScheduledMaintenanceStateTimeline = 'EditScheduledMaintenanceStateTimeline',
+        ReadScheduledMaintenanceStateTimeline = 'ReadScheduledMaintenanceStateTimeline',
+        DeleteScheduledMaintenanceStateTimeline = 'DeleteScheduledMaintenanceStateTimeline',
+    
+        // Resource Permissions (Team Permission)
+        CreateScheduledMaintenanceInternalNote = 'CreateScheduledMaintenanceInternalNote',
+        EditScheduledMaintenanceInternalNote = 'EditScheduledMaintenanceInternalNote',
+        DeleteScheduledMaintenanceInternalNote = 'DeleteScheduledMaintenanceInternalNote',
+        ReadScheduledMaintenanceInternalNote = 'ReadScheduledMaintenanceInternalNote',
+    
+        CreateScheduledMaintenancePublicNote = 'CreateScheduledMaintenancePublicNote',
+        EditScheduledMaintenancePublicNote = 'EditScheduledMaintenancePublicNote',
+        DeleteScheduledMaintenancePublicNote = 'DeleteScheduledMaintenancePublicNote',
+        ReadScheduledMaintenancePublicNote = 'ReadScheduledMaintenancePublicNote',
+    
+        CreateProjectScheduledMaintenance = 'CreateProjectScheduledMaintenance',
+        DeleteProjectScheduledMaintenance = 'DeleteProjectScheduledMaintenance',
+        EditProjectScheduledMaintenance = 'EditProjectScheduledMaintenance',
+        ReadProjectScheduledMaintenance = 'ReadProjectScheduledMaintenance',
+    
+        // Incident Status Permissions (Owner + Admin Permission by default)
+        CreateIncidentState = 'CreateIncidentState',
+        EditIncidentState = 'EditIncidentState',
+        ReadIncidentState = 'ReadIncidentState',
+        DeleteIncidentState = 'DeleteIncidentState',
+    
+        // Incident Status Permissions (Owner + Admin Permission by default)
+        CreateIncidentStateTimeline = 'CreateIncidentStateTimeline',
+        EditIncidentStateTimeline = 'EditIncidentStateTimeline',
+        ReadIncidentStateTimeline = 'ReadIncidentStateTimeline',
+        DeleteIncidentStateTimeline = 'DeleteIncidentStateTimeline',
+    
+        // Incident Status Permissions (Owner + Admin Permission by default)
+        CreateMonitorStatusTimeline = 'CreateMonitorStatusTimeline',
+        EditMonitorStatusTimeline = 'EditMonitorStatusTimeline',
+        ReadMonitorStatusTimeline = 'ReadMonitorStatusTimeline',
+        DeleteMonitorStatusTimeline = 'DeleteMonitorStatusTimeline',
+    
+        // MonitorStatus Permissions (Owner + Admin Permission by default)
+        CreateProjectMonitorStatus = 'CreateProjectMonitorStatus',
+        EditProjectMonitorStatus = 'EditProjectMonitorStatus',
+        ReadProjectMonitorStatus = 'ReadProjectMonitorStatus',
+        DeleteProjectMonitorStatus = 'DeleteProjectMonitorStatus',
+    
+        // MonitorStatus Permissions (Owner + Admin Permission by default)
+        CreateStatusPageAnnouncement = 'CreateStatusPageAnnouncement',
+        EditStatusPageAnnouncement = 'EditStatusPageAnnouncement',
+        ReadStatusPageAnnouncement = 'ReadStatusPageAnnouncement',
+        DeleteStatusPageAnnouncement = 'DeleteStatusPageAnnouncement',
+    
+        // Resource Permissions (Team Permission)
+        CreateIncidentInternalNote = 'CreateIncidentInternalNote',
+        EditIncidentInternalNote = 'EditIncidentInternalNote',
+        DeleteIncidentInternalNote = 'DeleteIncidentInternalNote',
+        ReadIncidentInternalNote = 'ReadIncidentInternalNote',
+    
+        CreateIncidentPublicNote = 'CreateIncidentPublicNote',
+        EditIncidentPublicNote = 'EditIncidentPublicNote',
+        DeleteIncidentPublicNote = 'DeleteIncidentPublicNote',
+        ReadIncidentPublicNote = 'ReadIncidentPublicNote',
+    
+        CreateInvoices = 'CreateInvoices',
+        EditInvoices = 'EditInvoices',
+        DeleteInvoices = 'DeleteInvoices',
+        ReadInvoices = 'ReadInvoices',
+    
+        CreateBillingPaymentMethod = 'CreateBillingPaymentMethod',
+        EditBillingPaymentMethod = 'EditBillingPaymentMethod',
+        DeleteBillingPaymentMethod = 'DeleteBillingPaymentMethod',
+        ReadBillingPaymentMethod = 'ReadBillingPaymentMethod',
+    
+        CreateProjectMonitor = 'CreateProjectMonitor',
+        EditProjectMonitor = 'EditProjectMonitor',
+        DeleteProjectMonitor = 'DeleteProjectMonitor',
+        ReadProjectMonitor = 'ReadProjectMonitor',
+    
+        // Resource Permissions (Team Permission)
+        CreateProjectStatusPage = 'CreateProjectStatusPage',
+        EditProjectStatusPage = 'EditProjectStatusPage',
+        DeleteProjectStatusPage = 'DeleteProjectStatusPage',
+        ReadProjectStatusPage = 'ReadProjectStatusPage',
+    
+        // Resource Permissions (Team Permission)
+        CreateProjectOnCallDutyPolicy = 'CreateProjectOnCallDutyPolicy',
+        EditProjectOnCallDutyPolicy = 'EditProjectOnCallDutyPolicy',
+        DeleteProjectOnCallDutyPolicy = 'DeleteProjectOnCallDutyPolicy',
+        ReadProjectOnCallDutyPolicy = 'ReadProjectOnCallDutyPolicy',
+    
+        // Resource Permissions (Team Permission)
+        CreateProjectOnCallDutyPolicySchedule = 'CreateProjectOnCallDutyPolicySchedule',
+        EditProjectOnCallDutyPolicySchedule = 'EditProjectOnCallDutyPolicySchedule',
+        DeleteProjectOnCallDutyPolicySchedule = 'DeleteProjectOnCallDutyPolicySchedule',
+        ReadProjectOnCallDutyPolicySchedule = 'ReadProjectOnCallDutyPolicySchedule',
+    
+        ReadProjectOnCallDutyPolicyExecutionLogTimeline = 'ReadProjectOnCallDutyPolicyExecutionLogTimeline',
+        ReadProjectOnCallDutyPolicyExecutionLog = 'ReadProjectOnCallDutyPolicyExecutionLog',
+    
+        // Resource Permissions (Team Permission)
+        CreateProjectOnCallDutyPolicyEscalationRule = 'CreateProjectOnCallDutyPolicyEscalationRule',
+        EditProjectOnCallDutyPolicyEscalationRule = 'EditProjectOnCallDutyPolicyEscalationRule',
+        DeleteProjectOnCallDutyPolicyEscalationRule = 'DeleteProjectOnCallDutyPolicyEscalationRule',
+        ReadProjectOnCallDutyPolicyEscalationRule = 'ReadProjectOnCallDutyPolicyEscalationRule',
+    
+        // Resource Permissions (Team Permission)
+        CreateProjectOnCallDutyPolicyEscalationRuleUser = 'CreateProjectOnCallDutyPolicyEscalationRuleUser',
+        EditProjectOnCallDutyPolicyEscalationRuleUser = 'EditProjectOnCallDutyPolicyEscalationRuleUser',
+        DeleteProjectOnCallDutyPolicyEscalationRuleUser = 'DeleteProjectOnCallDutyPolicyEscalationRuleUser',
+        ReadProjectOnCallDutyPolicyEscalationRuleUser = 'ReadProjectOnCallDutyPolicyEscalationRuleUser',
+    
+        // Resource Permissions (Team Permission)
+        CreateProjectOnCallDutyPolicyEscalationRuleSchedule = 'CreateProjectOnCallDutyPolicyEscalationRuleSchedule',
+        EditProjectOnCallDutyPolicyEscalationRuleSchedule = 'EditProjectOnCallDutyPolicyEscalationRuleSchedule',
+        DeleteProjectOnCallDutyPolicyEscalationRuleSchedule = 'DeleteProjectOnCallDutyPolicyEscalationRuleSchedule',
+        ReadProjectOnCallDutyPolicyEscalationRuleSchedule = 'ReadProjectOnCallDutyPolicyEscalationRuleSchedule',
+    
+        // Monitor Secret Permissions
+        CreateMonitorSecret = 'CreateMonitorSecret',
+        EditMonitorSecret = 'EditMonitorSecret',
+        DeleteMonitorSecret = 'DeleteMonitorSecret',
+        ReadMonitorSecret = 'ReadMonitorSecret',
+    
+        CreateProjectOnCallDutyPolicyEscalationRuleTeam = 'CreateProjectOnCallDutyPolicyEscalationRuleTeam',
+        EditProjectOnCallDutyPolicyEscalationRuleTeam = 'EditProjectOnCallDutyPolicyEscalationRuleTeam',
+        DeleteProjectOnCallDutyPolicyEscalationRuleTeam = 'DeleteProjectOnCallDutyPolicyEscalationRuleTeam',
+        ReadProjectOnCallDutyPolicyEscalationRuleTeam = 'ReadProjectOnCallDutyPolicyEscalationRuleTeam',
+    
+        // Project SMTP Config (Team Permission)
+        CreateProjectSMTPConfig = 'CreateProjectSMTPConfig',
+        EditProjectSMTPConfig = 'EditProjectSMTPConfig',
+        DeleteProjectSMTPConfig = 'DeleteProjectSMTPConfig',
+        ReadProjectSMTPConfig = 'ReadProjectSMTPConfig',
+    
+        CreateProjectCallSMSConfig = 'CreateProjectCallSMSConfig',
+        EditProjectCallSMSConfig = 'EditProjectCallSMSConfig',
+        DeleteProjectCallSMSConfig = 'DeleteProjectCallSMSConfig',
+        ReadProjectCallSMSConfig = 'ReadProjectCallSMSConfig',
+    
+        // Project SMTP Config (Team Permission)
+        CreateIncidentSeverity = 'CreateIncidentSeverity',
+        EditIncidentSeverity = 'EditIncidentSeverity',
+        DeleteIncidentSeverity = 'DeleteIncidentSeverity',
+        ReadIncidentSeverity = 'ReadIncidentSeverity',
 
-    // Logs
-
-    CanCreateTelemetryServiceLog = 'CanCreateTelemetryServiceLog',
-    CanDeleteTelemetryServiceLog = 'CanDeleteTelemetryServiceLog',
-    CanEditTelemetryServiceLog = 'CanEditTelemetryServiceLog',
-    CanReadTelemetryServiceLog = 'CanReadTelemetryServiceLog',
-
-    // Spans
-
-    CanCreateTelemetryServiceTraces = 'CanCreateTelemetryServiceTraces',
-    CanDeleteTelemetryServiceTraces = 'CanDeleteTelemetryServiceTraces',
-    CanEditTelemetryServiceTraces = 'CanEditTelemetryServiceTraces',
-    CanReadTelemetryServiceTraces = 'CanReadTelemetryServiceTraces',
-
-    // Billing Permissions (Owner Permission)
-    CanManageProjectBilling = 'CanManageProjectBilling',
-
-    // Billing Permissions (Owner Permission)
-    CanCreateProjectTeam = 'CanCreateProjectTeam',
-    CanDeleteProjectTeam = 'CanDeleteProjectTeam',
-    CanReadProjectTeam = 'CanReadProjectTeam',
-    CanEditProjectTeam = 'CanEditProjectTeam',
-    CanInviteProjectTeamMembers = 'CanInviteProjectTeamMembers',
-    CanEditProjectTeamPermissions = 'CanEditProjectTeamPermissions',
-
-    CanCreateProjectProbe = 'CanCreateProjectProbe',
-    CanDeleteProjectProbe = 'CanDeleteProjectProbe',
-    CanEditProjectProbe = 'CanEditProjectProbe',
-    CanReadProjectProbe = 'CanReadProjectProbe',
-
-    CanCreateTelemetryService = 'CanCreateTelemetryService',
-    CanDeleteTelemetryService = 'CanDeleteTelemetryService',
-    CanEditTelemetryService = 'CanEditTelemetryService',
-    CanReadTelemetryService = 'CanReadTelemetryService',
-
-    CanCreateMonitorGroupResource = 'CanCreateMonitorGroupResource',
-    CanDeleteMonitorGroupResource = 'CanDeleteMonitorGroupResource',
-    CanEditMonitorGroupResource = 'CanEditMonitorGroupResource',
-    CanReadMonitorGroupResource = 'CanReadMonitorGroupResource',
-
-    CanCreateMonitorCustomField = 'CanCreateMonitorCustomField',
-    CanDeleteMonitorCustomField = 'CanDeleteMonitorCustomField',
-    CanEditMonitorCustomField = 'CanEditMonitorCustomField',
-    CanReadMonitorCustomField = 'CanReadMonitorCustomField',
-
-    CanCreateOnCallDutyPolicyCustomField = 'CanCreateOnCallDutyPolicyCustomField',
-    CanDeleteOnCallDutyPolicyCustomField = 'CanDeleteOnCallDutyPolicyCustomField',
-    CanEditOnCallDutyPolicyCustomField = 'CanEditOnCallDutyPolicyCustomField',
-    CanReadOnCallDutyPolicyCustomField = 'CanReadOnCallDutyPolicyCustomField',
-
-    CanCreateOnCallDutyPolicyScheduleLayer = 'CanCreateOnCallDutyPolicyScheduleLayer',
-    CanDeleteOnCallDutyPolicyScheduleLayer = 'CanDeleteOnCallDutyPolicyScheduleLayer',
-    CanEditOnCallDutyPolicyScheduleLayer = 'CanEditOnCallDutyPolicyScheduleLayer',
-    CanReadOnCallDutyPolicyScheduleLayer = 'CanReadOnCallDutyPolicyScheduleLayer',
-
-    CanCreateOnCallDutyPolicyScheduleLayerUser = 'CanCreateOnCallDutyPolicyScheduleLayerUser',
-    CanDeleteOnCallDutyPolicyScheduleLayerUser = 'CanDeleteOnCallDutyPolicyScheduleLayerUser',
-    CanEditOnCallDutyPolicyScheduleLayerUser = 'CanEditOnCallDutyPolicyScheduleLayerUser',
-    CanReadOnCallDutyPolicyScheduleLayerUser = 'CanReadOnCallDutyPolicyScheduleLayerUser',
-
-    CanCreateScheduledMaintenanceCustomField = 'CanCreateScheduledMaintenanceCustomField',
-    CanDeleteScheduledMaintenanceCustomField = 'CanDeleteScheduledMaintenanceCustomField',
-    CanEditScheduledMaintenanceCustomField = 'CanEditScheduledMaintenanceCustomField',
-    CanReadScheduledMaintenanceCustomField = 'CanReadScheduledMaintenanceCustomField',
-
-    CanCreateMonitorProbe = 'CanCreateMonitorProbe',
-    CanDeleteMonitorProbe = 'CanDeleteMonitorProbe',
-    CanEditMonitorProbe = 'CanEditMonitorProbe',
-    CanReadMonitorProbe = 'CanReadMonitorProbe',
-
-    CanReadSmsLog = 'CanReadSmsLog',
-    CanReadEmailLog = 'CanReadEmailLog',
-    CanReadCallLog = 'CanReadCallLog',
-
-    CanCreateIncidentOwnerTeam = 'CanCreateIncidentOwnerTeam',
-    CanDeleteIncidentOwnerTeam = 'CanDeleteIncidentOwnerTeam',
-    CanEditIncidentOwnerTeam = 'CanEditIncidentOwnerTeam',
-    CanReadIncidentOwnerTeam = 'CanReadIncidentOwnerTeam',
-
-    CanCreateIncidentOwnerUser = 'CanCreateIncidentOwner',
-    CanDeleteIncidentOwnerUser = 'CanDeleteIncidentOwnerUser',
-    CanEditIncidentOwnerUser = 'CanEditIncidentOwnerUser',
-    CanReadIncidentOwnerUser = 'CanReadIncidentOwnerUser',
-
-    CanCreateIncidentTemplate = 'CanCreateIncidentTemplate',
-    CanDeleteIncidentTemplate = 'CanDeleteIncidentTemplate',
-    CanEditIncidentTemplate = 'CanEditIncidentTemplate',
-    CanReadIncidentTemplate = 'CanReadIncidentTemplate',
-
-    CanCreateIncidentNoteTemplate = 'CanCreateIncidentNoteTemplate',
-    CanDeleteIncidentNoteTemplate = 'CanDeleteIncidentNoteTemplate',
-    CanEditIncidentNoteTemplate = 'CanEditIncidentNoteTemplate',
-    CanReadIncidentNoteTemplate = 'CanReadIncidentNoteTemplate',
-
-    CanCreateScheduledMaintenanceNoteTemplate = 'CanCreateScheduledMaintenanceNoteTemplate',
-    CanDeleteScheduledMaintenanceNoteTemplate = 'CanDeleteScheduledMaintenanceNoteTemplate',
-    CanEditScheduledMaintenanceNoteTemplate = 'CanEditScheduledMaintenanceNoteTemplate',
-    CanReadScheduledMaintenanceNoteTemplate = 'CanReadScheduledMaintenanceNoteTemplate',
-
-    CanCreateIncidentTemplateOwnerTeam = 'CanCreateIncidentTemplateOwnerTeam',
-    CanDeleteIncidentTemplateOwnerTeam = 'CanDeleteIncidentTemplateOwnerTeam',
-    CanEditIncidentTemplateOwnerTeam = 'CanEditIncidentTemplateOwnerTeam',
-    CanReadIncidentTemplateOwnerTeam = 'CanReadIncidentTemplateOwnerTeam',
-
-    CanCreateIncidentTemplateOwnerUser = 'CanCreateIncidentTemplateOwner',
-    CanDeleteIncidentTemplateOwnerUser = 'CanDeleteIncidentTemplateOwnerUser',
-    CanEditIncidentTemplateOwnerUser = 'CanEditIncidentTemplateOwnerUser',
-    CanReadIncidentTemplateOwnerUser = 'CanReadIncidentTemplateOwnerUser',
-
-    CanCreateScheduledMaintenanceOwnerTeam = 'CanCreateScheduledMaintenanceOwnerTeam',
-    CanDeleteScheduledMaintenanceOwnerTeam = 'CanDeleteScheduledMaintenanceOwnerTeam',
-    CanEditScheduledMaintenanceOwnerTeam = 'CanEditScheduledMaintenanceOwnerTeam',
-    CanReadScheduledMaintenanceOwnerTeam = 'CanReadScheduledMaintenanceOwnerTeam',
-
-    CanCreateScheduledMaintenanceOwnerUser = 'CanCreateScheduledMaintenanceOwner',
-    CanDeleteScheduledMaintenanceOwnerUser = 'CanDeleteScheduledMaintenanceOwnerUser',
-    CanEditScheduledMaintenanceOwnerUser = 'CanEditScheduledMaintenanceOwnerUser',
-    CanReadScheduledMaintenanceOwnerUser = 'CanReadScheduledMaintenanceOwnerUser',
-
-    CanCreateStatusPageOwnerTeam = 'CanCreateStatusPageOwnerTeam',
-    CanDeleteStatusPageOwnerTeam = 'CanDeleteStatusPageOwnerTeam',
-    CanEditStatusPageOwnerTeam = 'CanEditStatusPageOwnerTeam',
-    CanReadStatusPageOwnerTeam = 'CanReadStatusPageOwnerTeam',
-
-    CanCreateStatusPageOwnerUser = 'CanCreateStatusPageOwner',
-    CanDeleteStatusPageOwnerUser = 'CanDeleteStatusPageOwnerUser',
-    CanEditStatusPageOwnerUser = 'CanEditStatusPageOwnerUser',
-    CanReadStatusPageOwnerUser = 'CanReadStatusPageOwnerUser',
-
-    CanCreateMonitorOwnerTeam = 'CanCreateMonitorOwnerTeam',
-    CanDeleteMonitorOwnerTeam = 'CanDeleteMonitorOwnerTeam',
-    CanEditMonitorOwnerTeam = 'CanEditMonitorOwnerTeam',
-    CanReadMonitorOwnerTeam = 'CanReadMonitorOwnerTeam',
-
-    CanCreateMonitorOwnerUser = 'CanCreateMonitorOwner',
-    CanDeleteMonitorOwnerUser = 'CanDeleteMonitorOwnerUser',
-    CanEditMonitorOwnerUser = 'CanEditMonitorOwnerUser',
-    CanReadMonitorOwnerUser = 'CanReadMonitorOwnerUser',
-
-    CanCreateMonitorGroupOwnerTeam = 'CanCreateMonitorGroupOwnerTeam',
-    CanDeleteMonitorGroupOwnerTeam = 'CanDeleteMonitorGroupOwnerTeam',
-    CanEditMonitorGroupOwnerTeam = 'CanEditMonitorGroupOwnerTeam',
-    CanReadMonitorGroupOwnerTeam = 'CanReadMonitorGroupOwnerTeam',
-
-    CanCreateMonitorGroupOwnerUser = 'CanCreateMonitorGroupOwner',
-    CanDeleteMonitorGroupOwnerUser = 'CanDeleteMonitorGroupOwnerUser',
-    CanEditMonitorGroupOwnerUser = 'CanEditMonitorGroupOwnerUser',
-    CanReadMonitorGroupOwnerUser = 'CanReadMonitorGroupOwnerUser',
-
-    CanCreateStatusPageCustomField = 'CanCreateStatusPageCustomField',
-    CanDeleteStatusPageCustomField = 'CanDeleteStatusPageCustomField',
-    CanEditStatusPageCustomField = 'CanEditStatusPageCustomField',
-    CanReadStatusPageCustomField = 'CanReadStatusPageCustomField',
-
-    CanCreateIncidentCustomField = 'CanCreateIncidentCustomField',
-    CanDeleteIncidentCustomField = 'CanDeleteIncidentCustomField',
-    CanEditIncidentCustomField = 'CanEditIncidentCustomField',
-    CanReadIncidentCustomField = 'CanReadIncidentCustomField',
-
-    CanCreateProjectIncident = 'CanCreateProjectIncident',
-    CanDeleteProjectIncident = 'CanDeleteProjectIncident',
-    CanEditProjectIncident = 'CanEditProjectIncident',
-    CanReadProjectIncident = 'CanReadProjectIncident',
-
-    CanCreateStatusPageSubscriber = 'CanCreateStatusPageSubscriber',
-    CanDeleteStatusPageSubscriber = 'CanDeleteStatusPageSubscriber',
-    CanEditStatusPageSubscriber = 'CanEditStatusPageSubscriber',
-    CanReadStatusPageSubscriber = 'CanReadStatusPageSubscriber',
-
-    CanCreateStatusPagePrivateUser = 'CanCreateStatusPagePrivateUser',
-    CanDeleteStatusPagePrivateUser = 'CanDeleteStatusPagePrivateUser',
-    CanEditStatusPagePrivateUser = 'CanEditStatusPagePrivateUser',
-    CanReadStatusPagePrivateUser = 'CanReadStatusPagePrivateUser',
-
-    CanCreateProjectDomain = 'CanCreateProjectDomain',
-    CanDeleteProjectDomain = 'CanDeleteProjectDomain',
-    CanEditProjectDomain = 'CanEditProjectDomain',
-    CanReadProjectDomain = 'CanReadProjectDomain',
-
-    CanCreateStatusPageHeaderLink = 'CanCreateStatusPageHeaderLink',
-    CanDeleteStatusPageHeaderLink = 'CanDeleteStatusPageHeaderLink',
-    CanEditStatusPageHeaderLink = 'CanEditStatusPageHeaderLink',
-    CanReadStatusPageHeaderLink = 'CanReadStatusPageHeaderLink',
-
-    CanCreateStatusPageFooterLink = 'CanCreateStatusPageFooterLink',
-    CanDeleteStatusPageFooterLink = 'CanDeleteStatusPageFooterLink',
-    CanEditStatusPageFooterLink = 'CanEditStatusPageFooterLink',
-    CanReadStatusPageFooterLink = 'CanReadStatusPageFooterLink',
-
-    CanCreateStatusPageResource = 'CanCreateStatusPageResource',
-    CanDeleteStatusPageResource = 'CanDeleteStatusPageResource',
-    CanEditStatusPageResource = 'CanEditStatusPageResource',
-    CanReadStatusPageResource = 'CanReadStatusPageResource',
-
-    CanCreateStatusPageHistoryChartBarColorRule = 'CanCreateStatusPageHistoryChartBarColorRule',
-    CanDeleteStatusPageHistoryChartBarColorRule = 'CanDeleteStatusPageHistoryChartBarColorRule',
-    CanEditStatusPageHistoryChartBarColorRule = 'CanEditStatusPageHistoryChartBarColorRule',
-    CanReadStatusPageHistoryChartBarColorRule = 'CanReadStatusPageHistoryChartBarColorRule',
-
-    CanCreateWorkflow = 'CanCreateWorkflow',
-    CanDeleteWorkflow = 'CanDeleteWorkflow',
-    CanEditWorkflow = 'CanEditWorkflow',
-    CanReadWorkflow = 'CanReadWorkflow',
-
-    CanDeleteProject = 'CanDeleteProject',
-    CanEditProject = 'CanEditProject',
-    CanReadProject = 'CanReadProject',
-
-    CanCreateWorkflowLog = 'CanCreateWorkflowLog',
-    CanDeleteWorkflowLog = 'CanDeleteWorkflowLog',
-    CanEditWorkflowLog = 'CanEditWorkflowLog',
-    CanReadWorkflowLog = 'CanReadWorkflowLog',
-
-    CanCreateWorkflowVariable = 'CanCreateWorkflowVariable',
-    CanDeleteWorkflowVariable = 'CanDeleteWorkflowVariable',
-    CanEditWorkflowVariable = 'CanEditWorkflowVariable',
-    CanReadWorkflowVariable = 'CanReadWorkflowVariable',
-
-    CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
-    CanDeleteStatusPageGroup = 'CanDeleteStatusPageGroup',
-    CanEditStatusPageGroup = 'CanEditStatusPageGroup',
-    CanReadStatusPageGroup = 'CanReadStatusPageGroup',
-
-    CanCreateStatusPageDomain = 'CanCreateStatusPageDomain',
-    CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
-    CanEditStatusPageDomain = 'CanEditStatusPageDomain',
-    CanReadStatusPageDomain = 'CanReadStatusPageDomain',
-
-    CanCreateMonitorGroup = 'CanCreateMonitorGroup',
-    CanDeleteMonitorGroup = 'CanDeleteMonitorGroup',
-    CanEditMonitorGroup = 'CanEditMonitorGroup',
-    CanReadMonitorGroup = 'CanReadMonitorGroup',
-
-    CanCreateProjectSSO = 'CanCreateProjectSSO',
-    CanDeleteProjectSSO = 'CanDeleteProjectSSO',
-    CanEditProjectSSO = 'CanEditProjectSSO',
-    CanReadProjectSSO = 'CanReadProjectSSO',
-
-    CanCreateStatusPageSSO = 'CanCreateStatusPageSSO',
-    CanDeleteStatusPageSSO = 'CanDeleteStatusPageSSO',
-    CanEditStatusPageSSO = 'CanEditStatusPageSSO',
-    CanReadStatusPageSSO = 'CanReadStatusPageSSO',
-
-    // Label Permissions (Owner + Admin Permission by default)
-    CanCreateProjectLabel = 'CanCreateProjectLabel',
-    CanEditProjectLabel = 'CanEditProjectLabel',
-    CanReadProjectLabel = 'CanReadProjectLabel',
-    CanDeleteProjectLabel = 'CanDeleteProjectLabel',
-    CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
-
-    // Scheduled Maintenance
-
-    // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
-    CanCreateScheduledMaintenanceState = 'CanCreateScheduledMaintenanceState',
-    CanEditScheduledMaintenanceState = 'CanEditScheduledMaintenanceState',
-    CanReadScheduledMaintenanceState = 'CanReadScheduledMaintenanceState',
-    CanDeleteScheduledMaintenanceState = 'CanDeleteScheduledMaintenanceState',
-
-    // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
-    CanCreateScheduledMaintenanceStateTimeline = 'CanCreateScheduledMaintenanceStateTimeline',
-    CanEditScheduledMaintenanceStateTimeline = 'CanEditScheduledMaintenanceStateTimeline',
-    CanReadScheduledMaintenanceStateTimeline = 'CanReadScheduledMaintenanceStateTimeline',
-    CanDeleteScheduledMaintenanceStateTimeline = 'CanDeleteScheduledMaintenanceStateTimeline',
-
-    // Resource Permissions (Team Permission)
-    CanCreateScheduledMaintenanceInternalNote = 'CanCreateScheduledMaintenanceInternalNote',
-    CanEditScheduledMaintenanceInternalNote = 'CanEditScheduledMaintenanceInternalNote',
-    CanDeleteScheduledMaintenanceInternalNote = 'CanDeleteScheduledMaintenanceInternalNote',
-    CanReadScheduledMaintenanceInternalNote = 'CanReadScheduledMaintenanceInternalNote',
-
-    CanCreateScheduledMaintenancePublicNote = 'CanCreateScheduledMaintenancePublicNote',
-    CanEditScheduledMaintenancePublicNote = 'CanEditScheduledMaintenancePublicNote',
-    CanDeleteScheduledMaintenancePublicNote = 'CanDeleteScheduledMaintenancePublicNote',
-    CanReadScheduledMaintenancePublicNote = 'CanReadScheduledMaintenancePublicNote',
-
-    CanCreateProjectScheduledMaintenance = 'CanCreateProjectScheduledMaintenance',
-    CanDeleteProjectScheduledMaintenance = 'CanDeleteProjectScheduledMaintenance',
-    CanEditProjectScheduledMaintenance = 'CanEditProjectScheduledMaintenance',
-    CanReadProjectScheduledMaintenance = 'CanReadProjectScheduledMaintenance',
-
-    // Incident Status Permissions (Owner + Admin Permission by default)
-    CanCreateIncidentState = 'CanCreateIncidentState',
-    CanEditIncidentState = 'CanEditIncidentState',
-    CanReadIncidentState = 'CanReadIncidentState',
-    CanDeleteIncidentState = 'CanDeleteIncidentState',
-
-    // Incident Status Permissions (Owner + Admin Permission by default)
-    CanCreateIncidentStateTimeline = 'CanCreateIncidentStateTimeline',
-    CanEditIncidentStateTimeline = 'CanEditIncidentStateTimeline',
-    CanReadIncidentStateTimeline = 'CanReadIncidentStateTimeline',
-    CanDeleteIncidentStateTimeline = 'CanDeleteIncidentStateTimeline',
-
-    // Incident Status Permissions (Owner + Admin Permission by default)
-    CanCreateMonitorStatusTimeline = 'CanCreateMonitorStatusTimeline',
-    CanEditMonitorStatusTimeline = 'CanEditMonitorStatusTimeline',
-    CanReadMonitorStatusTimeline = 'CanReadMonitorStatusTimeline',
-    CanDeleteMonitorStatusTimeline = 'CanDeleteMonitorStatusTimeline',
-
-    // MonitorStatus Permissions (Owner + Admin Permission by default)
-    CanCreateProjectMonitorStatus = 'CanCreateProjectMonitorStatus',
-    CanEditProjectMonitorStatus = 'CanEditProjectMonitorStatus',
-    CanReadProjectMonitorStatus = 'CanReadProjectMonitorStatus',
-    CanDeleteProjectMonitorStatus = 'CanDeleteProjectMonitorStatus',
-
-    // MonitorStatus Permissions (Owner + Admin Permission by default)
-    CanCreateStatusPageAnnouncement = 'CanCreateStatusPageAnnouncement',
-    CanEditStatusPageAnnouncement = 'CanEditStatusPageAnnouncement',
-    CanReadStatusPageAnnouncement = 'CanReadStatusPageAnnouncement',
-    CanDeleteStatusPageAnnouncement = 'CanDeleteStatusPageAnnouncement',
-
-    // Resource Permissions (Team Permission)
-    CanCreateIncidentInternalNote = 'CanCreateIncidentInternalNote',
-    CanEditIncidentInternalNote = 'CanEditIncidentInternalNote',
-    CanDeleteIncidentInternalNote = 'CanDeleteIncidentInternalNote',
-    CanReadIncidentInternalNote = 'CanReadIncidentInternalNote',
-
-    CanCreateIncidentPublicNote = 'CanCreateIncidentPublicNote',
-    CanEditIncidentPublicNote = 'CanEditIncidentPublicNote',
-    CanDeleteIncidentPublicNote = 'CanDeleteIncidentPublicNote',
-    CanReadIncidentPublicNote = 'CanReadIncidentPublicNote',
-
-    CanCreateInvoices = 'CanCreateInvoices',
-    CanEditInvoices = 'CanEditInvoices',
-    CanDeleteInvoices = 'CanDeleteInvoices',
-    CanReadInvoices = 'CanReadInvoices',
-
-    CanCreateBillingPaymentMethod = 'CanCreateBillingPaymentMethod',
-    CanEditBillingPaymentMethod = 'CanEditBillingPaymentMethod',
-    CanDeleteBillingPaymentMethod = 'CanDeleteBillingPaymentMethod',
-    CanReadBillingPaymentMethod = 'CanReadBillingPaymentMethod',
-
-    CanCreateProjectMonitor = 'CanCreateProjectMonitor',
-    CanEditProjectMonitor = 'CanEditProjectMonitor',
-    CanDeleteProjectMonitor = 'CanDeleteProjectMonitor',
-    CanReadProjectMonitor = 'CanReadProjectMonitor',
-
-    // Resource Permissions (Team Permission)
-    CanCreateProjectStatusPage = 'CanCreateProjectStatusPage',
-    CanEditProjectStatusPage = 'CanEditProjectStatusPage',
-    CanDeleteProjectStatusPage = 'CanDeleteProjectStatusPage',
-    CanReadProjectStatusPage = 'CanReadProjectStatusPage',
-
-    // Resource Permissions (Team Permission)
-    CanCreateProjectOnCallDutyPolicy = 'CanCreateProjectOnCallDutyPolicy',
-    CanEditProjectOnCallDutyPolicy = 'CanEditProjectOnCallDutyPolicy',
-    CanDeleteProjectOnCallDutyPolicy = 'CanDeleteProjectOnCallDutyPolicy',
-    CanReadProjectOnCallDutyPolicy = 'CanReadProjectOnCallDutyPolicy',
-
-    // Resource Permissions (Team Permission)
-    CanCreateProjectOnCallDutyPolicySchedule = 'CanCreateProjectOnCallDutyPolicySchedule',
-    CanEditProjectOnCallDutyPolicySchedule = 'CanEditProjectOnCallDutyPolicySchedule',
-    CanDeleteProjectOnCallDutyPolicySchedule = 'CanDeleteProjectOnCallDutyPolicySchedule',
-    CanReadProjectOnCallDutyPolicySchedule = 'CanReadProjectOnCallDutyPolicySchedule',
-
-    CanReadProjectOnCallDutyPolicyExecutionLogTimeline = 'CanReadProjectOnCallDutyPolicyExecutionLogTimeline',
-    CanReadProjectOnCallDutyPolicyExecutionLog = 'CanReadProjectOnCallDutyPolicyExecutionLog',
-
-    // Resource Permissions (Team Permission)
-    CanCreateProjectOnCallDutyPolicyEscalationRule = 'CanCreateProjectOnCallDutyPolicyEscalationRule',
-    CanEditProjectOnCallDutyPolicyEscalationRule = 'CanEditProjectOnCallDutyPolicyEscalationRule',
-    CanDeleteProjectOnCallDutyPolicyEscalationRule = 'CanDeleteProjectOnCallDutyPolicyEscalationRule',
-    CanReadProjectOnCallDutyPolicyEscalationRule = 'CanReadProjectOnCallDutyPolicyEscalationRule',
-
-    // Resource Permissions (Team Permission)
-    CanCreateProjectOnCallDutyPolicyEscalationRuleUser = 'CanCreateProjectOnCallDutyPolicyEscalationRuleUser',
-    CanEditProjectOnCallDutyPolicyEscalationRuleUser = 'CanEditProjectOnCallDutyPolicyEscalationRuleUser',
-    CanDeleteProjectOnCallDutyPolicyEscalationRuleUser = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleUser',
-    CanReadProjectOnCallDutyPolicyEscalationRuleUser = 'CanReadProjectOnCallDutyPolicyEscalationRuleUser',
-
-    // Resource Permissions (Team Permission)
-    CanCreateProjectOnCallDutyPolicyEscalationRuleSchedule = 'CanCreateProjectOnCallDutyPolicyEscalationRuleSchedule',
-    CanEditProjectOnCallDutyPolicyEscalationRuleSchedule = 'CanEditProjectOnCallDutyPolicyEscalationRuleSchedule',
-    CanDeleteProjectOnCallDutyPolicyEscalationRuleSchedule = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleSchedule',
-    CanReadProjectOnCallDutyPolicyEscalationRuleSchedule = 'CanReadProjectOnCallDutyPolicyEscalationRuleSchedule',
-
-    // Monitor Secret Permissions
-    CanCreateMonitorSecret = 'CanCreateMonitorSecret',
-    CanEditMonitorSecret = 'CanEditMonitorSecret',
-    CanDeleteMonitorSecret = 'CanDeleteMonitorSecret',
-    CanReadMonitorSecret = 'CanReadMonitorSecret',
-
-    CanCreateProjectOnCallDutyPolicyEscalationRuleTeam = 'CanCreateProjectOnCallDutyPolicyEscalationRuleTeam',
-    CanEditProjectOnCallDutyPolicyEscalationRuleTeam = 'CanEditProjectOnCallDutyPolicyEscalationRuleTeam',
-    CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam = 'CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam',
-    CanReadProjectOnCallDutyPolicyEscalationRuleTeam = 'CanReadProjectOnCallDutyPolicyEscalationRuleTeam',
-
-    // Project SMTP Config (Team Permission)
-    CanCreateProjectSMTPConfig = 'CanCreateProjectSMTPConfig',
-    CanEditProjectSMTPConfig = 'CanEditProjectSMTPConfig',
-    CanDeleteProjectSMTPConfig = 'CanDeleteProjectSMTPConfig',
-    CanReadProjectSMTPConfig = 'CanReadProjectSMTPConfig',
-
-    CanCreateProjectCallSMSConfig = 'CanCreateProjectCallSMSConfig',
-    CanEditProjectCallSMSConfig = 'CanEditProjectCallSMSConfig',
-    CanDeleteProjectCallSMSConfig = 'CanDeleteProjectCallSMSConfig',
-    CanReadProjectCallSMSConfig = 'CanReadProjectCallSMSConfig',
-
-    // Project SMTP Config (Team Permission)
-    CanCreateIncidentSeverity = 'CanCreateIncidentSeverity',
-    CanEditIncidentSeverity = 'CanEditIncidentSeverity',
-    CanDeleteIncidentSeverity = 'CanDeleteIncidentSeverity',
-    CanReadIncidentSeverity = 'CanReadIncidentSeverity',
 }
 
 export class PermissionHelper {
@@ -641,47 +642,47 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanManageProjectBilling,
-                title: 'Can Manage Billing',
+                permission: Permission.ManageProjectBilling,
+                title: 'Manage Billing',
                 description: 'This permission can update project billing.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanCreateProjectApiKey,
-                title: 'Can Create API Key',
+                permission: Permission.CreateProjectApiKey,
+                title: 'Create API Key',
                 description:
                     'This permission can create api keys of this project',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectApiKey,
-                title: 'Can Delete API Key',
+                permission: Permission.DeleteProjectApiKey,
+                title: 'Delete API Key',
                 description:
                     'This permission can delete api keys of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectApiKeyPermissions,
-                title: 'Can Edit API Key Permissions',
+                permission: Permission.EditProjectApiKeyPermissions,
+                title: 'Edit API Key Permissions',
                 description:
                     'This permission can edit api key permissions of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectApiKey,
-                title: 'Can Edit API Key',
+                permission: Permission.EditProjectApiKey,
+                title: 'Edit API Key',
                 description:
                     'This permission can edit api keys of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectApiKey,
-                title: 'Can Read API Key',
+                permission: Permission.ReadProjectApiKey,
+                title: 'Read API Key',
                 description:
                     'This permission can read api keys of this project.',
                 isAssignableToTenant: true,
@@ -689,70 +690,70 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectLabel,
-                title: 'Can Create Label',
+                permission: Permission.CreateProjectLabel,
+                title: 'Create Label',
                 description: 'This permission can create labels this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectLabel,
-                title: 'Can Delete Label',
+                permission: Permission.DeleteProjectLabel,
+                title: 'Delete Label',
                 description:
                     'This permission can delete labels of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanAddLabelsToProjectResources,
-                title: 'Can Add Label to Resources',
+                permission: Permission.AddLabelsToProjectResources,
+                title: 'Add Label to Resources',
                 description:
                     'This permission can add project labels to resources of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectLabel,
-                title: 'Can Edit Label',
+                permission: Permission.EditProjectLabel,
+                title: 'Edit Label',
                 description: 'This permission can edit labels of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectLabel,
-                title: 'Can Read Label',
+                permission: Permission.ReadProjectLabel,
+                title: 'Read Label',
                 description: 'This permission can read labels of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
 
             {
-                permission: Permission.CanCreateIncidentState,
-                title: 'Can Create Incident State',
+                permission: Permission.CreateIncidentState,
+                title: 'Create Incident State',
                 description:
                     'This permission can create incident states this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentState,
-                title: 'Can Delete Incident State',
+                permission: Permission.DeleteIncidentState,
+                title: 'Delete Incident State',
                 description:
                     'This permission can delete incident states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentState,
-                title: 'Can Edit Incident State',
+                permission: Permission.EditIncidentState,
+                title: 'Edit Incident State',
                 description:
                     'This permission can edit incident states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentState,
-                title: 'Can Read Incident State',
+                permission: Permission.ReadIncidentState,
+                title: 'Read Incident State',
                 description:
                     'This permission can read incident states of this project.',
                 isAssignableToTenant: true,
@@ -760,32 +761,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentStateTimeline,
-                title: 'Can Create Incident State Timeline',
+                permission: Permission.CreateIncidentStateTimeline,
+                title: 'Create Incident State Timeline',
                 description:
                     'This permission can create incident state history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentStateTimeline,
-                title: 'Can Delete Incident State Timeline',
+                permission: Permission.DeleteIncidentStateTimeline,
+                title: 'Delete Incident State Timeline',
                 description:
                     'This permission can delete incident state history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentStateTimeline,
-                title: 'Can Edit Incident State Timeline',
+                permission: Permission.EditIncidentStateTimeline,
+                title: 'Edit Incident State Timeline',
                 description:
                     'This permission can edit incident state history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentStateTimeline,
-                title: 'Can Read Incident State Timeline',
+                permission: Permission.ReadIncidentStateTimeline,
+                title: 'Read Incident State Timeline',
                 description:
                     'This permission can read incident state history of an incident in this project.',
                 isAssignableToTenant: true,
@@ -793,32 +794,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorStatusTimeline,
-                title: 'Can Create Monitor Status Timeline',
+                permission: Permission.CreateMonitorStatusTimeline,
+                title: 'Create Monitor Status Timeline',
                 description:
                     'This permission can create Monitor Status history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorStatusTimeline,
-                title: 'Can Delete Monitor Status Timeline',
+                permission: Permission.DeleteMonitorStatusTimeline,
+                title: 'Delete Monitor Status Timeline',
                 description:
                     'This permission can delete Monitor Status history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorStatusTimeline,
-                title: 'Can Edit Monitor Status Timeline',
+                permission: Permission.EditMonitorStatusTimeline,
+                title: 'Edit Monitor Status Timeline',
                 description:
                     'This permission can edit Monitor Status history of an incident in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorStatusTimeline,
-                title: 'Can Read Monitor Status Timeline',
+                permission: Permission.ReadMonitorStatusTimeline,
+                title: 'Read Monitor Status Timeline',
                 description:
                     'This permission can read Monitor Status history of an incident in this project.',
                 isAssignableToTenant: true,
@@ -826,8 +827,8 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanReadEmailLog,
-                title: 'Can Read Email Log',
+                permission: Permission.ReadEmailLog,
+                title: 'Read Email Log',
                 description:
                     'This permission can read email logs of the project.',
                 isAssignableToTenant: true,
@@ -835,32 +836,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectMonitorStatus,
-                title: 'Can Create Monitor Status',
+                permission: Permission.CreateProjectMonitorStatus,
+                title: 'Create Monitor Status',
                 description:
                     'This permission can create monitor statuses this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectMonitorStatus,
-                title: 'Can Delete Monitor Status',
+                permission: Permission.DeleteProjectMonitorStatus,
+                title: 'Delete Monitor Status',
                 description:
                     'This permission can delete monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectMonitorStatus,
-                title: 'Can Edit Monitor Status',
+                permission: Permission.EditProjectMonitorStatus,
+                title: 'Edit Monitor Status',
                 description:
                     'This permission can edit monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectMonitorStatus,
-                title: 'Can Read Monitor Status',
+                permission: Permission.ReadProjectMonitorStatus,
+                title: 'Read Monitor Status',
                 description:
                     'This permission can read monitor statuses of this project.',
                 isAssignableToTenant: true,
@@ -868,32 +869,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageAnnouncement,
-                title: 'Can Create Status Page Announcement',
+                permission: Permission.CreateStatusPageAnnouncement,
+                title: 'Create Status Page Announcement',
                 description:
                     'This permission can create Status Page Announcement this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageAnnouncement,
-                title: 'Can Delete Status Page Announcement',
+                permission: Permission.DeleteStatusPageAnnouncement,
+                title: 'Delete Status Page Announcement',
                 description:
                     'This permission can delete Status Page Announcement of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageAnnouncement,
-                title: 'Can Edit Status Page Announcement',
+                permission: Permission.EditStatusPageAnnouncement,
+                title: 'Edit Status Page Announcement',
                 description:
                     'This permission can edit Status Page Announcement of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageAnnouncement,
-                title: 'Can Read Status Page Announcement',
+                permission: Permission.ReadStatusPageAnnouncement,
+                title: 'Read Status Page Announcement',
                 description:
                     'This permission can read Status Page Announcement of this project.',
                 isAssignableToTenant: true,
@@ -901,32 +902,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageAnnouncement,
-                title: 'Can Create Monitor Status',
+                permission: Permission.CreateStatusPageAnnouncement,
+                title: 'Create Monitor Status',
                 description:
                     'This permission can create monitor statuses this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageAnnouncement,
-                title: 'Can Delete Monitor Status',
+                permission: Permission.DeleteStatusPageAnnouncement,
+                title: 'Delete Monitor Status',
                 description:
                     'This permission can delete monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageAnnouncement,
-                title: 'Can Edit Monitor Status',
+                permission: Permission.EditStatusPageAnnouncement,
+                title: 'Edit Monitor Status',
                 description:
                     'This permission can edit monitor statuses of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageAnnouncement,
-                title: 'Can Read Monitor Status',
+                permission: Permission.ReadStatusPageAnnouncement,
+                title: 'Read Monitor Status',
                 description:
                     'This permission can read monitor statuses of this project.',
                 isAssignableToTenant: true,
@@ -934,63 +935,63 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectDomain,
-                title: 'Can Create Domain',
+                permission: Permission.CreateProjectDomain,
+                title: 'Create Domain',
                 description:
                     'This permission can create Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectDomain,
-                title: 'Can Delete Domain',
+                permission: Permission.DeleteProjectDomain,
+                title: 'Delete Domain',
                 description:
                     'This permission can delete Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectDomain,
-                title: 'Can Edit Domain',
+                permission: Permission.EditProjectDomain,
+                title: 'Edit Domain',
                 description: 'This permission can edit Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectDomain,
-                title: 'Can Read Domain',
+                permission: Permission.ReadProjectDomain,
+                title: 'Read Domain',
                 description: 'This permission can read Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
 
             {
-                permission: Permission.CanCreateStatusPageHeaderLink,
-                title: 'Can Create Header Link',
+                permission: Permission.CreateStatusPageHeaderLink,
+                title: 'Create Header Link',
                 description:
                     'This permission can create Header Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageHeaderLink,
-                title: 'Can Delete Header Link',
+                permission: Permission.DeleteStatusPageHeaderLink,
+                title: 'Delete Header Link',
                 description:
                     'This permission can delete Header Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageHeaderLink,
-                title: 'Can Edit Header Link',
+                permission: Permission.EditStatusPageHeaderLink,
+                title: 'Edit Header Link',
                 description:
                     'This permission can edit Header Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageHeaderLink,
-                title: 'Can Read Header Link',
+                permission: Permission.ReadStatusPageHeaderLink,
+                title: 'Read Header Link',
                 description:
                     'This permission can read Header Link in this project.',
                 isAssignableToTenant: true,
@@ -998,32 +999,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageFooterLink,
-                title: 'Can Create Footer Link',
+                permission: Permission.CreateStatusPageFooterLink,
+                title: 'Create Footer Link',
                 description:
                     'This permission can create Footer Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageFooterLink,
-                title: 'Can Delete Footer Link',
+                permission: Permission.DeleteStatusPageFooterLink,
+                title: 'Delete Footer Link',
                 description:
                     'This permission can delete Footer Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageFooterLink,
-                title: 'Can Edit Footer Link',
+                permission: Permission.EditStatusPageFooterLink,
+                title: 'Edit Footer Link',
                 description:
                     'This permission can edit Footer Link in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageFooterLink,
-                title: 'Can Read Footer Link',
+                permission: Permission.ReadStatusPageFooterLink,
+                title: 'Read Footer Link',
                 description:
                     'This permission can read Footer Link in this project.',
                 isAssignableToTenant: true,
@@ -1031,32 +1032,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageResource,
-                title: 'Can Create Status Page Resource',
+                permission: Permission.CreateStatusPageResource,
+                title: 'Create Status Page Resource',
                 description:
                     'This permission can create Status Page Resource in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageResource,
-                title: 'Can Delete Status Page Resource',
+                permission: Permission.DeleteStatusPageResource,
+                title: 'Delete Status Page Resource',
                 description:
                     'This permission can delete Status Page Resource in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageResource,
-                title: 'Can Edit Status Page Resource',
+                permission: Permission.EditStatusPageResource,
+                title: 'Edit Status Page Resource',
                 description:
                     'This permission can edit Status Page Resource in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageResource,
-                title: 'Can Read Status Page Resource',
+                permission: Permission.ReadStatusPageResource,
+                title: 'Read Status Page Resource',
                 description:
                     'This permission can read Status Page Resource in this project.',
                 isAssignableToTenant: true,
@@ -1065,8 +1066,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateStatusPageHistoryChartBarColorRule,
-                title: 'Can Create Status Page History Chart Bar Color Rule',
+                    Permission.CreateStatusPageHistoryChartBarColorRule,
+                title: 'Create Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can create Status Page History Chart Bar Color Rule in this project.',
                 isAssignableToTenant: true,
@@ -1074,8 +1075,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteStatusPageHistoryChartBarColorRule,
-                title: 'Can Delete Status Page History Chart Bar Color Rule',
+                    Permission.DeleteStatusPageHistoryChartBarColorRule,
+                title: 'Delete Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can delete Status Page History Chart Bar Color Rule in this project.',
                 isAssignableToTenant: true,
@@ -1083,8 +1084,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanEditStatusPageHistoryChartBarColorRule,
-                title: 'Can Edit Status Page History Chart Bar Color Rule',
+                    Permission.EditStatusPageHistoryChartBarColorRule,
+                title: 'Edit Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can edit Status Page History Chart Bar Color Rule in this project.',
                 isAssignableToTenant: true,
@@ -1092,8 +1093,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanReadStatusPageHistoryChartBarColorRule,
-                title: 'Can Read Status Page History Chart Bar Color Rule',
+                    Permission.ReadStatusPageHistoryChartBarColorRule,
+                title: 'Read Status Page History Chart Bar Color Rule',
                 description:
                     'This permission can read Status Page History Chart Bar Color Rule in this project.',
                 isAssignableToTenant: true,
@@ -1101,32 +1102,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateWorkflow,
-                title: 'Can Create Workflow',
+                permission: Permission.CreateWorkflow,
+                title: 'Create Workflow',
                 description:
                     'This permission can create Workflow in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteWorkflow,
-                title: 'Can Delete Workflow',
+                permission: Permission.DeleteWorkflow,
+                title: 'Delete Workflow',
                 description:
                     'This permission can delete Workflow in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditWorkflow,
-                title: 'Can Edit Workflow',
+                permission: Permission.EditWorkflow,
+                title: 'Edit Workflow',
                 description:
                     'This permission can edit Workflow in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadWorkflow,
-                title: 'Can Read Workflow',
+                permission: Permission.ReadWorkflow,
+                title: 'Read Workflow',
                 description:
                     'This permission can read Workflow in this project.',
                 isAssignableToTenant: true,
@@ -1134,54 +1135,54 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanDeleteProject,
-                title: 'Can Delete Project',
+                permission: Permission.DeleteProject,
+                title: 'Delete Project',
                 description: 'This permission can delete Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProject,
-                title: 'Can Edit Project',
+                permission: Permission.EditProject,
+                title: 'Edit Project',
                 description: 'This permission can edit Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProject,
-                title: 'Can Read Project',
+                permission: Permission.ReadProject,
+                title: 'Read Project',
                 description: 'This permission can read this Project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
 
             {
-                permission: Permission.CanCreateWorkflowVariable,
-                title: 'Can Create Workflow Variables',
+                permission: Permission.CreateWorkflowVariable,
+                title: 'Create Workflow Variables',
                 description:
                     'This permission can create Workflow Variables in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteWorkflowVariable,
-                title: 'Can Delete Workflow Variables',
+                permission: Permission.DeleteWorkflowVariable,
+                title: 'Delete Workflow Variables',
                 description:
                     'This permission can delete Workflow Variables in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditWorkflowVariable,
-                title: 'Can Edit Workflow Variables',
+                permission: Permission.EditWorkflowVariable,
+                title: 'Edit Workflow Variables',
                 description:
                     'This permission can edit Workflow Variables in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadWorkflowVariable,
-                title: 'Can Read Workflow Variables',
+                permission: Permission.ReadWorkflowVariable,
+                title: 'Read Workflow Variables',
                 description:
                     'This permission can read Workflow Variables in this project.',
                 isAssignableToTenant: true,
@@ -1189,32 +1190,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateWorkflowLog,
-                title: 'Can Create Workflow Log',
+                permission: Permission.CreateWorkflowLog,
+                title: 'Create Workflow Log',
                 description:
                     'This permission can create Workflow Log in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteWorkflowLog,
-                title: 'Can Delete Workflow Log',
+                permission: Permission.DeleteWorkflowLog,
+                title: 'Delete Workflow Log',
                 description:
                     'This permission can delete Workflow Log in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditWorkflowLog,
-                title: 'Can Edit Workflow Log',
+                permission: Permission.EditWorkflowLog,
+                title: 'Edit Workflow Log',
                 description:
                     'This permission can edit Workflow Log in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadWorkflowLog,
-                title: 'Can Read Workflow Log',
+                permission: Permission.ReadWorkflowLog,
+                title: 'Read Workflow Log',
                 description:
                     'This permission can read Workflow Log in this project.',
                 isAssignableToTenant: true,
@@ -1222,32 +1223,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageGroup,
-                title: 'Can Create Status Page Group',
+                permission: Permission.CreateStatusPageGroup,
+                title: 'Create Status Page Group',
                 description:
                     'This permission can create Status Page Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageGroup,
-                title: 'Can Delete Status Page Group',
+                permission: Permission.DeleteStatusPageGroup,
+                title: 'Delete Status Page Group',
                 description:
                     'This permission can delete Status Page Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageGroup,
-                title: 'Can Edit Status Page Group',
+                permission: Permission.EditStatusPageGroup,
+                title: 'Edit Status Page Group',
                 description:
                     'This permission can edit Status Page Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageGroup,
-                title: 'Can Read Status Page Group',
+                permission: Permission.ReadStatusPageGroup,
+                title: 'Read Status Page Group',
                 description:
                     'This permission can read Status Page Group in this project.',
                 isAssignableToTenant: true,
@@ -1255,32 +1256,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageDomain,
-                title: 'Can Create Status Page Domain',
+                permission: Permission.CreateStatusPageDomain,
+                title: 'Create Status Page Domain',
                 description:
                     'This permission can create Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageDomain,
-                title: 'Can Delete Status Page Domain',
+                permission: Permission.DeleteStatusPageDomain,
+                title: 'Delete Status Page Domain',
                 description:
                     'This permission can delete Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageDomain,
-                title: 'Can Edit Status Page Domain',
+                permission: Permission.EditStatusPageDomain,
+                title: 'Edit Status Page Domain',
                 description:
                     'This permission can edit Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageDomain,
-                title: 'Can Read Status Page Domain',
+                permission: Permission.ReadStatusPageDomain,
+                title: 'Read Status Page Domain',
                 description:
                     'This permission can read Status Page Domain in this project.',
                 isAssignableToTenant: true,
@@ -1288,32 +1289,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorGroup,
-                title: 'Can Create Monitor Group',
+                permission: Permission.CreateMonitorGroup,
+                title: 'Create Monitor Group',
                 description:
                     'This permission can create Monitor Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteMonitorGroup,
-                title: 'Can Delete Monitor Group',
+                permission: Permission.DeleteMonitorGroup,
+                title: 'Delete Monitor Group',
                 description:
                     'This permission can delete Monitor Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditMonitorGroup,
-                title: 'Can Edit Monitor Group',
+                permission: Permission.EditMonitorGroup,
+                title: 'Edit Monitor Group',
                 description:
                     'This permission can edit Monitor Group in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadMonitorGroup,
-                title: 'Can Read Monitor Group',
+                permission: Permission.ReadMonitorGroup,
+                title: 'Read Monitor Group',
                 description:
                     'This permission can read Monitor Group in this project.',
                 isAssignableToTenant: true,
@@ -1321,32 +1322,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectSSO,
-                title: 'Can Create Project SSO',
+                permission: Permission.CreateProjectSSO,
+                title: 'Create Project SSO',
                 description:
                     'This permission can create Project SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectSSO,
-                title: 'Can Delete Project SSO',
+                permission: Permission.DeleteProjectSSO,
+                title: 'Delete Project SSO',
                 description:
                     'This permission can delete Project SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectSSO,
-                title: 'Can Edit Project SSO',
+                permission: Permission.EditProjectSSO,
+                title: 'Edit Project SSO',
                 description:
                     'This permission can edit Project SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectSSO,
-                title: 'Can Read Project SSO',
+                permission: Permission.ReadProjectSSO,
+                title: 'Read Project SSO',
                 description:
                     'This permission can read Project SSO in this project.',
                 isAssignableToTenant: true,
@@ -1354,32 +1355,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageSSO,
-                title: 'Can Create Status Page SSO',
+                permission: Permission.CreateStatusPageSSO,
+                title: 'Create Status Page SSO',
                 description:
                     'This permission can create Status Page SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageSSO,
-                title: 'Can Delete Status Page SSO',
+                permission: Permission.DeleteStatusPageSSO,
+                title: 'Delete Status Page SSO',
                 description:
                     'This permission can delete Status Page SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageSSO,
-                title: 'Can Edit Status Page SSO',
+                permission: Permission.EditStatusPageSSO,
+                title: 'Edit Status Page SSO',
                 description:
                     'This permission can edit Status Page SSO in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageSSO,
-                title: 'Can Read Status Page SSO',
+                permission: Permission.ReadStatusPageSSO,
+                title: 'Read Status Page SSO',
                 description:
                     'This permission can read Status Page SSO in this project.',
                 isAssignableToTenant: true,
@@ -1387,32 +1388,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectSMTPConfig,
-                title: 'Can Create SMTP Config',
+                permission: Permission.CreateProjectSMTPConfig,
+                title: 'Create SMTP Config',
                 description:
                     'This permission can create SMTP configs this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectSMTPConfig,
-                title: 'Can Delete SMTP Config',
+                permission: Permission.DeleteProjectSMTPConfig,
+                title: 'Delete SMTP Config',
                 description:
                     'This permission can delete SMTP configs of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectSMTPConfig,
-                title: 'Can Edit SMTP Config',
+                permission: Permission.EditProjectSMTPConfig,
+                title: 'Edit SMTP Config',
                 description:
                     'This permission can edit SMTP configs of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectSMTPConfig,
-                title: 'Can Read SMTP Config',
+                permission: Permission.ReadProjectSMTPConfig,
+                title: 'Read SMTP Config',
                 description:
                     'This permission can read SMTP configs of this project.',
                 isAssignableToTenant: true,
@@ -1420,32 +1421,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectCallSMSConfig,
-                title: 'Can Create Call and SMS',
+                permission: Permission.CreateProjectCallSMSConfig,
+                title: 'Create Call and SMS',
                 description:
                     'This permission can create Call and SMS this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectCallSMSConfig,
-                title: 'Can Delete Call and SMS',
+                permission: Permission.DeleteProjectCallSMSConfig,
+                title: 'Delete Call and SMS',
                 description:
                     'This permission can delete Call and SMS of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectCallSMSConfig,
-                title: 'Can Edit Call and SMS',
+                permission: Permission.EditProjectCallSMSConfig,
+                title: 'Edit Call and SMS',
                 description:
                     'This permission can edit Call and SMS of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectCallSMSConfig,
-                title: 'Can Read Call and SMS',
+                permission: Permission.ReadProjectCallSMSConfig,
+                title: 'Read Call and SMS',
                 description:
                     'This permission can read Call and SMS of this project.',
                 isAssignableToTenant: true,
@@ -1453,32 +1454,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageDomain,
-                title: 'Can Create Status Page Domain',
+                permission: Permission.CreateStatusPageDomain,
+                title: 'Create Status Page Domain',
                 description:
                     'This permission can create Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageDomain,
-                title: 'Can Delete Status Page Domain',
+                permission: Permission.DeleteStatusPageDomain,
+                title: 'Delete Status Page Domain',
                 description:
                     'This permission can delete Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageDomain,
-                title: 'Can Edit Status Page Domain',
+                permission: Permission.EditStatusPageDomain,
+                title: 'Edit Status Page Domain',
                 description:
                     'This permission can edit Status Page Domain in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageDomain,
-                title: 'Can Read Status Page Domain',
+                permission: Permission.ReadStatusPageDomain,
+                title: 'Read Status Page Domain',
                 description:
                     'This permission can read Status Page Domain in this project.',
                 isAssignableToTenant: true,
@@ -1486,32 +1487,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentSeverity,
-                title: 'Can Create Incident Severity',
+                permission: Permission.CreateIncidentSeverity,
+                title: 'Create Incident Severity',
                 description:
                     'This permission can create Incident Severity this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentSeverity,
-                title: 'Can Delete Incident Severity',
+                permission: Permission.DeleteIncidentSeverity,
+                title: 'Delete Incident Severity',
                 description:
                     'This permission can delete Incident Severity of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentSeverity,
-                title: 'Can Edit Incident Severity',
+                permission: Permission.EditIncidentSeverity,
+                title: 'Edit Incident Severity',
                 description:
                     'This permission can edit Incident Severity of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentSeverity,
-                title: 'Can Read Incident Severity',
+                permission: Permission.ReadIncidentSeverity,
+                title: 'Read Incident Severity',
                 description:
                     'This permission can read Incident Severity of this project.',
                 isAssignableToTenant: true,
@@ -1519,76 +1520,76 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectTeam,
-                title: 'Can Create Team',
+                permission: Permission.CreateProjectTeam,
+                title: 'Create Team',
                 description: 'This permission can create teams this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectTeam,
-                title: 'Can Delete Team',
+                permission: Permission.DeleteProjectTeam,
+                title: 'Delete Team',
                 description:
                     'This permission can delete teams of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanInviteProjectTeamMembers,
-                title: 'Can Invite New Members',
+                permission: Permission.InviteProjectTeamMembers,
+                title: 'Invite New Members',
                 description: 'This permission can invite users to the team.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectTeamPermissions,
-                title: 'Can Edit Team Permissions',
+                permission: Permission.EditProjectTeamPermissions,
+                title: 'Edit Team Permissions',
                 description:
                     'This permission can edit team permissions of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectTeam,
-                title: 'Can Edit Team',
+                permission: Permission.EditProjectTeam,
+                title: 'Edit Team',
                 description: 'This permission can edit teams of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectTeam,
-                title: 'Can Read Teams',
+                permission: Permission.ReadProjectTeam,
+                title: 'Read Teams',
                 description: 'This permission can read teams of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
 
             {
-                permission: Permission.CanCreateProjectMonitor,
-                title: 'Can Create Monitor',
+                permission: Permission.CreateProjectMonitor,
+                title: 'Create Monitor',
                 description: 'This permission can create monitor this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteProjectMonitor,
-                title: 'Can Delete Monitor',
+                permission: Permission.DeleteProjectMonitor,
+                title: 'Delete Monitor',
                 description:
                     'This permission can delete monitor of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditProjectMonitor,
-                title: 'Can Edit Monitor',
+                permission: Permission.EditProjectMonitor,
+                title: 'Edit Monitor',
                 description:
                     'This permission can edit monitor of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadProjectMonitor,
-                title: 'Can Read Monitor',
+                permission: Permission.ReadProjectMonitor,
+                title: 'Read Monitor',
                 description:
                     'This permission can read monitor of this project.',
                 isAssignableToTenant: true,
@@ -1596,32 +1597,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentInternalNote,
-                title: 'Can Create Incident Internal Note',
+                permission: Permission.CreateIncidentInternalNote,
+                title: 'Create Incident Internal Note',
                 description:
                     'This permission can create Incident Internal Note this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentInternalNote,
-                title: 'Can Delete Incident Internal Note',
+                permission: Permission.DeleteIncidentInternalNote,
+                title: 'Delete Incident Internal Note',
                 description:
                     'This permission can delete Incident Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentInternalNote,
-                title: 'Can Edit Incident Internal Note',
+                permission: Permission.EditIncidentInternalNote,
+                title: 'Edit Incident Internal Note',
                 description:
                     'This permission can edit Incident Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentInternalNote,
-                title: 'Can Read Incident Internal Note',
+                permission: Permission.ReadIncidentInternalNote,
+                title: 'Read Incident Internal Note',
                 description:
                     'This permission can read Incident Internal Note of this project.',
                 isAssignableToTenant: true,
@@ -1629,32 +1630,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentPublicNote,
-                title: 'Can Create Incident Status Page Note',
+                permission: Permission.CreateIncidentPublicNote,
+                title: 'Create Incident Status Page Note',
                 description:
                     'This permission can create Incident Status Page Note this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentPublicNote,
-                title: 'Can Delete Incident Status Page Note',
+                permission: Permission.DeleteIncidentPublicNote,
+                title: 'Delete Incident Status Page Note',
                 description:
                     'This permission can delete Incident Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentPublicNote,
-                title: 'Can Edit Incident Status Page Note',
+                permission: Permission.EditIncidentPublicNote,
+                title: 'Edit Incident Status Page Note',
                 description:
                     'This permission can edit Incident Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentPublicNote,
-                title: 'Can Read Incident Status Page Note',
+                permission: Permission.ReadIncidentPublicNote,
+                title: 'Read Incident Status Page Note',
                 description:
                     'This permission can read Incident Status Page Note of this project.',
                 isAssignableToTenant: true,
@@ -1662,32 +1663,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateInvoices,
-                title: 'Can Create Invoices',
+                permission: Permission.CreateInvoices,
+                title: 'Create Invoices',
                 description:
                     'This permission can create Invoices this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteInvoices,
-                title: 'Can Delete Invoices',
+                permission: Permission.DeleteInvoices,
+                title: 'Delete Invoices',
                 description:
                     'This permission can delete Invoices of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditInvoices,
-                title: 'Can Edit Invoices',
+                permission: Permission.EditInvoices,
+                title: 'Edit Invoices',
                 description:
                     'This permission can edit Invoices of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadInvoices,
-                title: 'Can Read Invoices',
+                permission: Permission.ReadInvoices,
+                title: 'Read Invoices',
                 description:
                     'This permission can read Invoices of this project.',
                 isAssignableToTenant: true,
@@ -1695,32 +1696,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateBillingPaymentMethod,
-                title: 'Can Create Payment Method',
+                permission: Permission.CreateBillingPaymentMethod,
+                title: 'Create Payment Method',
                 description:
                     'This permission can create Payment Method this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteBillingPaymentMethod,
-                title: 'Can Delete Payment Method',
+                permission: Permission.DeleteBillingPaymentMethod,
+                title: 'Delete Payment Method',
                 description:
                     'This permission can delete Payment Method of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditBillingPaymentMethod,
-                title: 'Can Edit Payment Method',
+                permission: Permission.EditBillingPaymentMethod,
+                title: 'Edit Payment Method',
                 description:
                     'This permission can edit Payment Method of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadBillingPaymentMethod,
-                title: 'Can Read Payment Method',
+                permission: Permission.ReadBillingPaymentMethod,
+                title: 'Read Payment Method',
                 description:
                     'This permission can read Payment Method of this project.',
                 isAssignableToTenant: true,
@@ -1729,8 +1730,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanReadProjectOnCallDutyPolicyExecutionLogTimeline,
-                title: 'Can Read On-Call Duty Policy Execution Log Timeline',
+                    Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+                title: 'Read On-Call Duty Policy Execution Log Timeline',
                 description:
                     'This permission can read teams in on-call duty execution log timeline.',
                 isAssignableToTenant: true,
@@ -1739,8 +1740,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanReadProjectOnCallDutyPolicyExecutionLog,
-                title: 'Can Read On-Call Duty Policy Execution Log',
+                    Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+                title: 'Read On-Call Duty Policy Execution Log',
                 description:
                     'This permission can read teams in on-call duty execution log.',
                 isAssignableToTenant: true,
@@ -1749,8 +1750,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleTeam,
-                title: 'Can Create On-Call Duty Policy Escalation Rule',
+                    Permission.CreateProjectOnCallDutyPolicyEscalationRuleTeam,
+                title: 'Create On-Call Duty Policy Escalation Rule',
                 description:
                     'This permission can create teams in on-call duty escalation rule this project.',
                 isAssignableToTenant: true,
@@ -1758,8 +1759,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleTeam,
-                title: 'Can Delete On-Call Duty Policy Escalation Rule Team',
+                    Permission.DeleteProjectOnCallDutyPolicyEscalationRuleTeam,
+                title: 'Delete On-Call Duty Policy Escalation Rule Team',
                 description:
                     'This permission can delete teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1767,8 +1768,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanEditProjectOnCallDutyPolicyEscalationRuleTeam,
-                title: 'Can Edit On-Call Duty Policy Escalation Rule Team',
+                    Permission.EditProjectOnCallDutyPolicyEscalationRuleTeam,
+                title: 'Edit On-Call Duty Policy Escalation Rule Team',
                 description:
                     'This permission can edit teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1776,8 +1777,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanReadProjectOnCallDutyPolicyEscalationRuleTeam,
-                title: 'Can Read On-Call Duty Policy Escalation Rule Team',
+                    Permission.ReadProjectOnCallDutyPolicyEscalationRuleTeam,
+                title: 'Read On-Call Duty Policy Escalation Rule Team',
                 description:
                     'This permission can read teams in on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1786,8 +1787,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleSchedule,
-                title: 'Can Create On-Call Duty Policy Escalation Rule Schedule',
+                    Permission.CreateProjectOnCallDutyPolicyEscalationRuleSchedule,
+                title: 'Create On-Call Duty Policy Escalation Rule Schedule',
                 description:
                     'This permission can create teams in on-call duty escalation rule schedule this project.',
                 isAssignableToTenant: true,
@@ -1795,8 +1796,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleSchedule,
-                title: 'Can Delete On-Call Duty Policy Escalation Rule Schedule',
+                    Permission.DeleteProjectOnCallDutyPolicyEscalationRuleSchedule,
+                title: 'Delete On-Call Duty Policy Escalation Rule Schedule',
                 description:
                     'This permission can delete teams in on-call duty escalation rule schedule of this project.',
                 isAssignableToTenant: true,
@@ -1804,8 +1805,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanEditProjectOnCallDutyPolicyEscalationRuleSchedule,
-                title: 'Can Edit On-Call Duty Policy Escalation Rule Schedule',
+                    Permission.EditProjectOnCallDutyPolicyEscalationRuleSchedule,
+                title: 'Edit On-Call Duty Policy Escalation Rule Schedule',
                 description:
                     'This permission can edit teams in on-call duty escalation rule schedule of this project.',
                 isAssignableToTenant: true,
@@ -1813,8 +1814,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanReadProjectOnCallDutyPolicyEscalationRuleSchedule,
-                title: 'Can Read On-Call Duty Policy Escalation Rule Schedule',
+                    Permission.ReadProjectOnCallDutyPolicyEscalationRuleSchedule,
+                title: 'Read On-Call Duty Policy Escalation Rule Schedule',
                 description:
                     'This permission can read teams in on-call duty escalation rule schedule of this project.',
                 isAssignableToTenant: true,
@@ -1822,29 +1823,29 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorSecret,
-                title: 'Can Create Monitor Secret',
+                permission: Permission.CreateMonitorSecret,
+                title: 'Create Monitor Secret',
                 description: 'This permission can create monitor secret.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorSecret,
-                title: 'Can Delete Monitor Secret',
+                permission: Permission.DeleteMonitorSecret,
+                title: 'Delete Monitor Secret',
                 description: 'This permission can delete monitor secret',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorSecret,
-                title: 'Can Edit Monitor Secret',
+                permission: Permission.EditMonitorSecret,
+                title: 'Edit Monitor Secret',
                 description: 'This permission can edit monitor secret.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorSecret,
-                title: 'Can Read Monitor Secret',
+                permission: Permission.ReadMonitorSecret,
+                title: 'Read Monitor Secret',
                 description: 'This permission can read monitor secret.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
@@ -1852,8 +1853,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateProjectOnCallDutyPolicyEscalationRuleUser,
-                title: 'Can Create On-Call Duty Policy Escalation Rule User',
+                    Permission.CreateProjectOnCallDutyPolicyEscalationRuleUser,
+                title: 'Create On-Call Duty Policy Escalation Rule User',
                 description:
                     'This permission can create on-call duty escalation rule this project.',
                 isAssignableToTenant: true,
@@ -1861,8 +1862,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteProjectOnCallDutyPolicyEscalationRuleUser,
-                title: 'Can Delete On-Call Duty Policy Escalation Rule User',
+                    Permission.DeleteProjectOnCallDutyPolicyEscalationRuleUser,
+                title: 'Delete On-Call Duty Policy Escalation Rule User',
                 description:
                     'This permission can delete on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1870,8 +1871,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanEditProjectOnCallDutyPolicyEscalationRuleUser,
-                title: 'Can Edit On-Call Duty Policy Escalation Rule User',
+                    Permission.EditProjectOnCallDutyPolicyEscalationRuleUser,
+                title: 'Edit On-Call Duty Policy Escalation Rule User',
                 description:
                     'This permission can edit on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1879,8 +1880,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanReadProjectOnCallDutyPolicyEscalationRuleUser,
-                title: 'Can Read On-Call Duty Policy Escalation Rule User',
+                    Permission.ReadProjectOnCallDutyPolicyEscalationRuleUser,
+                title: 'Read On-Call Duty Policy Escalation Rule User',
                 description:
                     'This permission can read on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1889,8 +1890,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateProjectOnCallDutyPolicyEscalationRule,
-                title: 'Can Create On-Call Duty Policy Escalation Rule',
+                    Permission.CreateProjectOnCallDutyPolicyEscalationRule,
+                title: 'Create On-Call Duty Policy Escalation Rule',
                 description:
                     'This permission can create on-call duty escalation rule this project.',
                 isAssignableToTenant: true,
@@ -1898,8 +1899,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteProjectOnCallDutyPolicyEscalationRule,
-                title: 'Can Delete On-Call Duty Policy Escalation Rule',
+                    Permission.DeleteProjectOnCallDutyPolicyEscalationRule,
+                title: 'Delete On-Call Duty Policy Escalation Rule',
                 description:
                     'This permission can delete on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1907,8 +1908,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanEditProjectOnCallDutyPolicyEscalationRule,
-                title: 'Can Edit On-Call Duty Policy Escalation Rule',
+                    Permission.EditProjectOnCallDutyPolicyEscalationRule,
+                title: 'Edit On-Call Duty Policy Escalation Rule',
                 description:
                     'This permission can edit on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1916,8 +1917,8 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanReadProjectOnCallDutyPolicyEscalationRule,
-                title: 'Can Read On-Call Duty Policy Escalation Rule',
+                    Permission.ReadProjectOnCallDutyPolicyEscalationRule,
+                title: 'Read On-Call Duty Policy Escalation Rule',
                 description:
                     'This permission can read on-call duty escalation rule of this project.',
                 isAssignableToTenant: true,
@@ -1925,32 +1926,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectOnCallDutyPolicy,
-                title: 'Can Create On-Call Duty Policy',
+                permission: Permission.CreateProjectOnCallDutyPolicy,
+                title: 'Create On-Call Duty Policy',
                 description:
                     'This permission can create on-call duty this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteProjectOnCallDutyPolicy,
-                title: 'Can Delete On-Call Duty Policy',
+                permission: Permission.DeleteProjectOnCallDutyPolicy,
+                title: 'Delete On-Call Duty Policy',
                 description:
                     'This permission can delete on-call duty of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditProjectOnCallDutyPolicy,
-                title: 'Can Edit On-Call Duty Policy',
+                permission: Permission.EditProjectOnCallDutyPolicy,
+                title: 'Edit On-Call Duty Policy',
                 description:
                     'This permission can edit on-call duty of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadProjectOnCallDutyPolicy,
-                title: 'Can Read On-Call Duty Policy',
+                permission: Permission.ReadProjectOnCallDutyPolicy,
+                title: 'Read On-Call Duty Policy',
                 description:
                     'This permission can read on-call duty of this project.',
                 isAssignableToTenant: true,
@@ -1958,32 +1959,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectOnCallDutyPolicySchedule,
-                title: 'Can Create On-Call Duty Policy Schedule',
+                permission: Permission.CreateProjectOnCallDutyPolicySchedule,
+                title: 'Create On-Call Duty Policy Schedule',
                 description:
                     'This permission can create on-call duty schedule this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteProjectOnCallDutyPolicySchedule,
-                title: 'Can Delete On-Call Duty Policy Schedule',
+                permission: Permission.DeleteProjectOnCallDutyPolicySchedule,
+                title: 'Delete On-Call Duty Policy Schedule',
                 description:
                     'This permission can delete on-call duty schedule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditProjectOnCallDutyPolicySchedule,
-                title: 'Can Edit On-Call Duty Policy Schedule',
+                permission: Permission.EditProjectOnCallDutyPolicySchedule,
+                title: 'Edit On-Call Duty Policy Schedule',
                 description:
                     'This permission can edit on-call duty schedule of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadProjectOnCallDutyPolicySchedule,
-                title: 'Can Read On-Call Duty Policy Schedule',
+                permission: Permission.ReadProjectOnCallDutyPolicySchedule,
+                title: 'Read On-Call Duty Policy Schedule',
                 description:
                     'This permission can read on-call duty schedule of this project.',
                 isAssignableToTenant: true,
@@ -1991,32 +1992,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectStatusPage,
-                title: 'Can Create Status Page',
+                permission: Permission.CreateProjectStatusPage,
+                title: 'Create Status Page',
                 description:
                     'This permission can create status pages this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteProjectStatusPage,
-                title: 'Can Delete Status Page',
+                permission: Permission.DeleteProjectStatusPage,
+                title: 'Delete Status Page',
                 description:
                     'This permission can delete status pages of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditProjectStatusPage,
-                title: 'Can Edit Status Page',
+                permission: Permission.EditProjectStatusPage,
+                title: 'Edit Status Page',
                 description:
                     'This permission can edit status pages of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadProjectStatusPage,
-                title: 'Can Read Status Page',
+                permission: Permission.ReadProjectStatusPage,
+                title: 'Read Status Page',
                 description:
                     'This permission can read status pages of this project.',
                 isAssignableToTenant: true,
@@ -2024,62 +2025,62 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectProbe,
-                title: 'Can Create Probe',
+                permission: Permission.CreateProjectProbe,
+                title: 'Create Probe',
                 description: 'This permission can create probe this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteProjectProbe,
-                title: 'Can Delete Probe',
+                permission: Permission.DeleteProjectProbe,
+                title: 'Delete Probe',
                 description:
                     'This permission can delete probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditProjectProbe,
-                title: 'Can Edit Probe',
+                permission: Permission.EditProjectProbe,
+                title: 'Edit Probe',
                 description: 'This permission can edit probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadProjectProbe,
-                title: 'Can Read Probe',
+                permission: Permission.ReadProjectProbe,
+                title: 'Read Probe',
                 description: 'This permission can read probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
 
             {
-                permission: Permission.CanCreateTelemetryService,
-                title: 'Can Create Telemetry Service',
+                permission: Permission.CreateTelemetryService,
+                title: 'Create Telemetry Service',
                 description:
                     'This permission can create Telemetry Service this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteTelemetryService,
-                title: 'Can Delete Telemetry Service',
+                permission: Permission.DeleteTelemetryService,
+                title: 'Delete Telemetry Service',
                 description:
                     'This permission can delete Telemetry Service of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditTelemetryService,
-                title: 'Can Edit Telemetry Service',
+                permission: Permission.EditTelemetryService,
+                title: 'Edit Telemetry Service',
                 description:
                     'This permission can edit Telemetry Service of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadTelemetryService,
-                title: 'Can Read Telemetry Service',
+                permission: Permission.ReadTelemetryService,
+                title: 'Read Telemetry Service',
                 description:
                     'This permission can read Service of this project.',
                 isAssignableToTenant: true,
@@ -2087,63 +2088,63 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorGroupResource,
-                title: 'Can Create Monitor Group Resource',
+                permission: Permission.CreateMonitorGroupResource,
+                title: 'Create Monitor Group Resource',
                 description:
                     'This permission can create monitor group resource.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorGroupResource,
-                title: 'Can Delete Monitor Group Resource',
+                permission: Permission.DeleteMonitorGroupResource,
+                title: 'Delete Monitor Group Resource',
                 description:
                     'This permission can delete monitor group resource.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorGroupResource,
-                title: 'Can Edit Monitor Group Resource',
+                permission: Permission.EditMonitorGroupResource,
+                title: 'Edit Monitor Group Resource',
                 description: 'This permission can edit monitor group resource.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorGroupResource,
-                title: 'Can Read Monitor Group Resource',
+                permission: Permission.ReadMonitorGroupResource,
+                title: 'Read Monitor Group Resource',
                 description: 'This permission can read monitor group resource.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
 
             {
-                permission: Permission.CanCreateOnCallDutyPolicyCustomField,
-                title: 'Can Create On-Call Policy Custom Field',
+                permission: Permission.CreateOnCallDutyPolicyCustomField,
+                title: 'Create On-Call Policy Custom Field',
                 description:
                     'This permission can create On-Call Policy Custom Field this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteOnCallDutyPolicyCustomField,
-                title: 'Can Delete On-Call Policy Custom Field',
+                permission: Permission.DeleteOnCallDutyPolicyCustomField,
+                title: 'Delete On-Call Policy Custom Field',
                 description:
                     'This permission can delete On-Call Policy Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditOnCallDutyPolicyCustomField,
-                title: 'Can Edit On-Call Policy Custom Field',
+                permission: Permission.EditOnCallDutyPolicyCustomField,
+                title: 'Edit On-Call Policy Custom Field',
                 description:
                     'This permission can edit On-Call Policy Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadOnCallDutyPolicyCustomField,
-                title: 'Can Read On-Call Policy Custom Field',
+                permission: Permission.ReadOnCallDutyPolicyCustomField,
+                title: 'Read On-Call Policy Custom Field',
                 description:
                     'This permission can read On-Call Policy Custom Field of this project.',
                 isAssignableToTenant: true,
@@ -2151,32 +2152,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateOnCallDutyPolicyScheduleLayer,
-                title: 'Can Create On-Call Schedule Layer',
+                permission: Permission.CreateOnCallDutyPolicyScheduleLayer,
+                title: 'Create On-Call Schedule Layer',
                 description:
                     'This permission can create On-Call Schedule Layer this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteOnCallDutyPolicyScheduleLayer,
-                title: 'Can Delete On-Call Schedule Layer',
+                permission: Permission.DeleteOnCallDutyPolicyScheduleLayer,
+                title: 'Delete On-Call Schedule Layer',
                 description:
                     'This permission can delete On-Call Schedule Layer of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditOnCallDutyPolicyScheduleLayer,
-                title: 'Can Edit On-Call Schedule Layer',
+                permission: Permission.EditOnCallDutyPolicyScheduleLayer,
+                title: 'Edit On-Call Schedule Layer',
                 description:
                     'This permission can edit On-Call Schedule Layer of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadOnCallDutyPolicyScheduleLayer,
-                title: 'Can Read On-Call Schedule Layer',
+                permission: Permission.ReadOnCallDutyPolicyScheduleLayer,
+                title: 'Read On-Call Schedule Layer',
                 description:
                     'This permission can read On-Call Schedule Layer of this project.',
                 isAssignableToTenant: true,
@@ -2185,8 +2186,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateOnCallDutyPolicyScheduleLayerUser,
-                title: 'Can Create On-Call Schedule Layer User',
+                    Permission.CreateOnCallDutyPolicyScheduleLayerUser,
+                title: 'Create On-Call Schedule Layer User',
                 description:
                     'This permission can create On-Call Schedule Layer User this project.',
                 isAssignableToTenant: true,
@@ -2194,24 +2195,24 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteOnCallDutyPolicyScheduleLayerUser,
-                title: 'Can Delete On-Call Schedule Layer User',
+                    Permission.DeleteOnCallDutyPolicyScheduleLayerUser,
+                title: 'Delete On-Call Schedule Layer User',
                 description:
                     'This permission can delete On-Call Schedule Layer User of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditOnCallDutyPolicyScheduleLayerUser,
-                title: 'Can Edit On-Call Schedule Layer User',
+                permission: Permission.EditOnCallDutyPolicyScheduleLayerUser,
+                title: 'Edit On-Call Schedule Layer User',
                 description:
                     'This permission can edit On-Call Schedule Layer User of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadOnCallDutyPolicyScheduleLayerUser,
-                title: 'Can Read On-Call Schedule Layer User',
+                permission: Permission.ReadOnCallDutyPolicyScheduleLayerUser,
+                title: 'Read On-Call Schedule Layer User',
                 description:
                     'This permission can read On-Call Schedule Layer User of this project.',
                 isAssignableToTenant: true,
@@ -2219,32 +2220,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorCustomField,
-                title: 'Can Create Monitor Custom Field',
+                permission: Permission.CreateMonitorCustomField,
+                title: 'Create Monitor Custom Field',
                 description:
                     'This permission can create Monitor Custom Field this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorCustomField,
-                title: 'Can Delete Monitor Custom Field',
+                permission: Permission.DeleteMonitorCustomField,
+                title: 'Delete Monitor Custom Field',
                 description:
                     'This permission can delete Monitor Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorCustomField,
-                title: 'Can Edit Monitor Custom Field',
+                permission: Permission.EditMonitorCustomField,
+                title: 'Edit Monitor Custom Field',
                 description:
                     'This permission can edit Monitor Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorCustomField,
-                title: 'Can Read Monitor Custom Field',
+                permission: Permission.ReadMonitorCustomField,
+                title: 'Read Monitor Custom Field',
                 description:
                     'This permission can read Monitor Custom Field of this project.',
                 isAssignableToTenant: true,
@@ -2252,32 +2253,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentCustomField,
-                title: 'Can Create Incident Custom Field',
+                permission: Permission.CreateIncidentCustomField,
+                title: 'Create Incident Custom Field',
                 description:
                     'This permission can create Incident Custom Field this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentCustomField,
-                title: 'Can Delete Incident Custom Field',
+                permission: Permission.DeleteIncidentCustomField,
+                title: 'Delete Incident Custom Field',
                 description:
                     'This permission can delete Incident Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentCustomField,
-                title: 'Can Edit Incident Custom Field',
+                permission: Permission.EditIncidentCustomField,
+                title: 'Edit Incident Custom Field',
                 description:
                     'This permission can edit Incident Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentCustomField,
-                title: 'Can Read Incident Custom Field',
+                permission: Permission.ReadIncidentCustomField,
+                title: 'Read Incident Custom Field',
                 description:
                     'This permission can read Incident Custom Field of this project.',
                 isAssignableToTenant: true,
@@ -2285,32 +2286,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageCustomField,
-                title: 'Can Create Status Page Custom Field',
+                permission: Permission.CreateStatusPageCustomField,
+                title: 'Create Status Page Custom Field',
                 description:
                     'This permission can create Status Page Custom Field this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageCustomField,
-                title: 'Can Delete Status Page Custom Field',
+                permission: Permission.DeleteStatusPageCustomField,
+                title: 'Delete Status Page Custom Field',
                 description:
                     'This permission can delete Status Page Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageCustomField,
-                title: 'Can Edit Status Page Custom Field',
+                permission: Permission.EditStatusPageCustomField,
+                title: 'Edit Status Page Custom Field',
                 description:
                     'This permission can edit Status Page Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageCustomField,
-                title: 'Can Read Status Page Custom Field',
+                permission: Permission.ReadStatusPageCustomField,
+                title: 'Read Status Page Custom Field',
                 description:
                     'This permission can read Status Page Custom Field of this project.',
                 isAssignableToTenant: true,
@@ -2318,32 +2319,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateScheduledMaintenanceCustomField,
-                title: 'Can Create Scheduled Maintenance Custom Field',
+                permission: Permission.CreateScheduledMaintenanceCustomField,
+                title: 'Create Scheduled Maintenance Custom Field',
                 description:
                     'This permission can create Scheduled Maintenance Custom Field this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteScheduledMaintenanceCustomField,
-                title: 'Can Delete Scheduled Maintenance Custom Field',
+                permission: Permission.DeleteScheduledMaintenanceCustomField,
+                title: 'Delete Scheduled Maintenance Custom Field',
                 description:
                     'This permission can delete Scheduled Maintenance Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenanceCustomField,
-                title: 'Can Edit Scheduled Maintenance Custom Field',
+                permission: Permission.EditScheduledMaintenanceCustomField,
+                title: 'Edit Scheduled Maintenance Custom Field',
                 description:
                     'This permission can edit Scheduled Maintenance Custom Field of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenanceCustomField,
-                title: 'Can Read Scheduled Maintenance Custom Field',
+                permission: Permission.ReadScheduledMaintenanceCustomField,
+                title: 'Read Scheduled Maintenance Custom Field',
                 description:
                     'This permission can read Scheduled Maintenance Custom Field of this project.',
                 isAssignableToTenant: true,
@@ -2351,8 +2352,8 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanReadSmsLog,
-                title: 'Can Read SMS Log',
+                permission: Permission.ReadSmsLog,
+                title: 'Read SMS Log',
                 description:
                     'This permission can read SMS Log of this project.',
                 isAssignableToTenant: true,
@@ -2360,8 +2361,8 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanReadCallLog,
-                title: 'Can Read Call Log',
+                permission: Permission.ReadCallLog,
+                title: 'Read Call Log',
                 description:
                     'This permission can read Call Logs of this project.',
                 isAssignableToTenant: true,
@@ -2369,32 +2370,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorProbe,
-                title: 'Can Create Monitor Probe',
+                permission: Permission.CreateMonitorProbe,
+                title: 'Create Monitor Probe',
                 description:
                     'This permission can create Monitor Probe this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorProbe,
-                title: 'Can Delete Monitor Probe',
+                permission: Permission.DeleteMonitorProbe,
+                title: 'Delete Monitor Probe',
                 description:
                     'This permission can delete Monitor Probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorProbe,
-                title: 'Can Edit Monitor Probe',
+                permission: Permission.EditMonitorProbe,
+                title: 'Edit Monitor Probe',
                 description:
                     'This permission can edit Monitor Probe of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorProbe,
-                title: 'Can Read Monitor Probe',
+                permission: Permission.ReadMonitorProbe,
+                title: 'Read Monitor Probe',
                 description:
                     'This permission can read Monitor Probe of this project.',
                 isAssignableToTenant: true,
@@ -2402,32 +2403,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateTelemetryServiceLog,
-                title: 'Can Create Telemetry Service Log',
+                permission: Permission.CreateTelemetryServiceLog,
+                title: 'Create Telemetry Service Log',
                 description:
                     'This permission can create Telemetry Service Log this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteTelemetryServiceLog,
-                title: 'Can Delete Telemetry Service Log',
+                permission: Permission.DeleteTelemetryServiceLog,
+                title: 'Delete Telemetry Service Log',
                 description:
                     'This permission can delete Telemetry Service Log of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditTelemetryServiceLog,
-                title: 'Can Edit Telemetry Service Log',
+                permission: Permission.EditTelemetryServiceLog,
+                title: 'Edit Telemetry Service Log',
                 description:
                     'This permission can edit Telemetry Service Log of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadTelemetryServiceLog,
-                title: 'Can Read Telemetry Service Log',
+                permission: Permission.ReadTelemetryServiceLog,
+                title: 'Read Telemetry Service Log',
                 description:
                     'This permission can read Telemetry Service Log of this project.',
                 isAssignableToTenant: true,
@@ -2435,32 +2436,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateTelemetryServiceTraces,
-                title: 'Can Create Telemetry Service Traces',
+                permission: Permission.CreateTelemetryServiceTraces,
+                title: 'Create Telemetry Service Traces',
                 description:
                     'This permission can create Telemetry Service Traces this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteTelemetryServiceTraces,
-                title: 'Can Delete Telemetry Service Traces',
+                permission: Permission.DeleteTelemetryServiceTraces,
+                title: 'Delete Telemetry Service Traces',
                 description:
                     'This permission can delete Telemetry Service Traces of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditTelemetryServiceTraces,
-                title: 'Can Edit Telemetry Service Traces',
+                permission: Permission.EditTelemetryServiceTraces,
+                title: 'Edit Telemetry Service Traces',
                 description:
                     'This permission can edit Telemetry Service Traces of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadTelemetryServiceTraces,
-                title: 'Can Read Telemetry Service Traces',
+                permission: Permission.ReadTelemetryServiceTraces,
+                title: 'Read Telemetry Service Traces',
                 description:
                     'This permission can read Telemetry Service Traces of this project.',
                 isAssignableToTenant: true,
@@ -2468,32 +2469,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateScheduledMaintenanceOwnerTeam,
-                title: 'Can Create Scheduled Maintenance Team Owner',
+                permission: Permission.CreateScheduledMaintenanceOwnerTeam,
+                title: 'Create Scheduled Maintenance Team Owner',
                 description:
                     'This permission can create Scheduled Maintenance Team Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteScheduledMaintenanceOwnerTeam,
-                title: 'Can Delete Scheduled Maintenance Team Owner',
+                permission: Permission.DeleteScheduledMaintenanceOwnerTeam,
+                title: 'Delete Scheduled Maintenance Team Owner',
                 description:
                     'This permission can delete Scheduled Maintenance Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenanceOwnerTeam,
-                title: 'Can Edit Scheduled Maintenance Team Owner',
+                permission: Permission.EditScheduledMaintenanceOwnerTeam,
+                title: 'Edit Scheduled Maintenance Team Owner',
                 description:
                     'This permission can edit Scheduled Maintenance Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenanceOwnerTeam,
-                title: 'Can Read Scheduled Maintenance Team Owner',
+                permission: Permission.ReadScheduledMaintenanceOwnerTeam,
+                title: 'Read Scheduled Maintenance Team Owner',
                 description:
                     'This permission can read Scheduled Maintenance Team Owner of this project.',
                 isAssignableToTenant: true,
@@ -2501,32 +2502,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateScheduledMaintenanceOwnerUser,
-                title: 'Can Create Scheduled Maintenance User Owner',
+                permission: Permission.CreateScheduledMaintenanceOwnerUser,
+                title: 'Create Scheduled Maintenance User Owner',
                 description:
                     'This permission can create Scheduled Maintenance User Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteScheduledMaintenanceOwnerUser,
-                title: 'Can Delete Scheduled Maintenance User Owner',
+                permission: Permission.DeleteScheduledMaintenanceOwnerUser,
+                title: 'Delete Scheduled Maintenance User Owner',
                 description:
                     'This permission can delete Scheduled Maintenance User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenanceOwnerUser,
-                title: 'Can Edit Scheduled Maintenance User Owner',
+                permission: Permission.EditScheduledMaintenanceOwnerUser,
+                title: 'Edit Scheduled Maintenance User Owner',
                 description:
                     'This permission can edit Scheduled Maintenance User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenanceOwnerUser,
-                title: 'Can Read Scheduled Maintenance User Owner',
+                permission: Permission.ReadScheduledMaintenanceOwnerUser,
+                title: 'Read Scheduled Maintenance User Owner',
                 description:
                     'This permission can read Scheduled Maintenance User Owner of this project.',
                 isAssignableToTenant: true,
@@ -2534,32 +2535,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentOwnerTeam,
-                title: 'Can Create Incident Team Owner',
+                permission: Permission.CreateIncidentOwnerTeam,
+                title: 'Create Incident Team Owner',
                 description:
                     'This permission can create Incident Team Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentOwnerTeam,
-                title: 'Can Delete Incident Team Owner',
+                permission: Permission.DeleteIncidentOwnerTeam,
+                title: 'Delete Incident Team Owner',
                 description:
                     'This permission can delete Incident Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentOwnerTeam,
-                title: 'Can Edit Incident Team Owner',
+                permission: Permission.EditIncidentOwnerTeam,
+                title: 'Edit Incident Team Owner',
                 description:
                     'This permission can edit Incident Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentOwnerTeam,
-                title: 'Can Read Incident Team Owner',
+                permission: Permission.ReadIncidentOwnerTeam,
+                title: 'Read Incident Team Owner',
                 description:
                     'This permission can read Incident Team Owner of this project.',
                 isAssignableToTenant: true,
@@ -2567,32 +2568,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentNoteTemplate,
-                title: 'Can Create Incident Note Template',
+                permission: Permission.CreateIncidentNoteTemplate,
+                title: 'Create Incident Note Template',
                 description:
                     'This permission can create Incident Note Template this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentNoteTemplate,
-                title: 'Can Delete Incident Note Template',
+                permission: Permission.DeleteIncidentNoteTemplate,
+                title: 'Delete Incident Note Template',
                 description:
                     'This permission can delete Incident Note Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentNoteTemplate,
-                title: 'Can Edit Incident Note Template',
+                permission: Permission.EditIncidentNoteTemplate,
+                title: 'Edit Incident Note Template',
                 description:
                     'This permission can edit Incident Note Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentNoteTemplate,
-                title: 'Can Read Incident Note Template',
+                permission: Permission.ReadIncidentNoteTemplate,
+                title: 'Read Incident Note Template',
                 description:
                     'This permission can read Incident Note Template of this project.',
                 isAssignableToTenant: true,
@@ -2601,8 +2602,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateScheduledMaintenanceNoteTemplate,
-                title: 'Can Create Scheduled Maintenance Note Template',
+                    Permission.CreateScheduledMaintenanceNoteTemplate,
+                title: 'Create Scheduled Maintenance Note Template',
                 description:
                     'This permission can create Scheduled Maintenance Note Template this project.',
                 isAssignableToTenant: true,
@@ -2610,24 +2611,24 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteScheduledMaintenanceNoteTemplate,
-                title: 'Can Delete Scheduled Maintenance Note Template',
+                    Permission.DeleteScheduledMaintenanceNoteTemplate,
+                title: 'Delete Scheduled Maintenance Note Template',
                 description:
                     'This permission can delete Scheduled Maintenance Note Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenanceNoteTemplate,
-                title: 'Can Edit Scheduled Maintenance Note Template',
+                permission: Permission.EditScheduledMaintenanceNoteTemplate,
+                title: 'Edit Scheduled Maintenance Note Template',
                 description:
                     'This permission can edit Scheduled Maintenance Note Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenanceNoteTemplate,
-                title: 'Can Read Scheduled Maintenance Note Template',
+                permission: Permission.ReadScheduledMaintenanceNoteTemplate,
+                title: 'Read Scheduled Maintenance Note Template',
                 description:
                     'This permission can read Scheduled Maintenance Note Template of this project.',
                 isAssignableToTenant: true,
@@ -2635,32 +2636,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentTemplate,
-                title: 'Can Create Incident Template',
+                permission: Permission.CreateIncidentTemplate,
+                title: 'Create Incident Template',
                 description:
                     'This permission can create Incident Template this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentTemplate,
-                title: 'Can Delete Incident Template',
+                permission: Permission.DeleteIncidentTemplate,
+                title: 'Delete Incident Template',
                 description:
                     'This permission can delete Incident Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentTemplate,
-                title: 'Can Edit Incident Template',
+                permission: Permission.EditIncidentTemplate,
+                title: 'Edit Incident Template',
                 description:
                     'This permission can edit Incident Template of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentTemplate,
-                title: 'Can Read Incident Template',
+                permission: Permission.ReadIncidentTemplate,
+                title: 'Read Incident Template',
                 description:
                     'This permission can read Incident Template of this project.',
                 isAssignableToTenant: true,
@@ -2668,32 +2669,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentOwnerUser,
-                title: 'Can Create Incident User Owner',
+                permission: Permission.CreateIncidentOwnerUser,
+                title: 'Create Incident User Owner',
                 description:
                     'This permission can create Incident User Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentOwnerUser,
-                title: 'Can Delete Incident User Owner',
+                permission: Permission.DeleteIncidentOwnerUser,
+                title: 'Delete Incident User Owner',
                 description:
                     'This permission can delete Incident User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentOwnerUser,
-                title: 'Can Edit Incident User Owner',
+                permission: Permission.EditIncidentOwnerUser,
+                title: 'Edit Incident User Owner',
                 description:
                     'This permission can edit Incident User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentOwnerUser,
-                title: 'Can Read Incident User Owner',
+                permission: Permission.ReadIncidentOwnerUser,
+                title: 'Read Incident User Owner',
                 description:
                     'This permission can read Incident User Owner of this project.',
                 isAssignableToTenant: true,
@@ -2701,32 +2702,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageOwnerTeam,
-                title: 'Can Create Status Page Team Owner',
+                permission: Permission.CreateStatusPageOwnerTeam,
+                title: 'Create Status Page Team Owner',
                 description:
                     'This permission can create Status Page Team Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageOwnerTeam,
-                title: 'Can Delete Status Page Team Owner',
+                permission: Permission.DeleteStatusPageOwnerTeam,
+                title: 'Delete Status Page Team Owner',
                 description:
                     'This permission can delete Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageOwnerTeam,
-                title: 'Can Edit Status Page Team Owner',
+                permission: Permission.EditStatusPageOwnerTeam,
+                title: 'Edit Status Page Team Owner',
                 description:
                     'This permission can edit Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageOwnerTeam,
-                title: 'Can Read Status Page Team Owner',
+                permission: Permission.ReadStatusPageOwnerTeam,
+                title: 'Read Status Page Team Owner',
                 description:
                     'This permission can read Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
@@ -2734,32 +2735,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentTemplateOwnerTeam,
-                title: 'Can Create IncidentTemplate Team Owner',
+                permission: Permission.CreateIncidentTemplateOwnerTeam,
+                title: 'Create IncidentTemplate Team Owner',
                 description:
                     'This permission can create IncidentTemplate Team Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentTemplateOwnerTeam,
-                title: 'Can Delete IncidentTemplate Team Owner',
+                permission: Permission.DeleteIncidentTemplateOwnerTeam,
+                title: 'Delete IncidentTemplate Team Owner',
                 description:
                     'This permission can delete IncidentTemplate Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentTemplateOwnerTeam,
-                title: 'Can Edit IncidentTemplate Team Owner',
+                permission: Permission.EditIncidentTemplateOwnerTeam,
+                title: 'Edit IncidentTemplate Team Owner',
                 description:
                     'This permission can edit IncidentTemplate Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentTemplateOwnerTeam,
-                title: 'Can Read IncidentTemplate Team Owner',
+                permission: Permission.ReadIncidentTemplateOwnerTeam,
+                title: 'Read IncidentTemplate Team Owner',
                 description:
                     'This permission can read IncidentTemplate Team Owner of this project.',
                 isAssignableToTenant: true,
@@ -2767,32 +2768,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateIncidentTemplateOwnerUser,
-                title: 'Can Create IncidentTemplate User Owner',
+                permission: Permission.CreateIncidentTemplateOwnerUser,
+                title: 'Create IncidentTemplate User Owner',
                 description:
                     'This permission can create IncidentTemplate User Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteIncidentTemplateOwnerUser,
-                title: 'Can Delete IncidentTemplate User Owner',
+                permission: Permission.DeleteIncidentTemplateOwnerUser,
+                title: 'Delete IncidentTemplate User Owner',
                 description:
                     'This permission can delete IncidentTemplate User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditIncidentTemplateOwnerUser,
-                title: 'Can Edit IncidentTemplate User Owner',
+                permission: Permission.EditIncidentTemplateOwnerUser,
+                title: 'Edit IncidentTemplate User Owner',
                 description:
                     'This permission can edit IncidentTemplate User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadIncidentTemplateOwnerUser,
-                title: 'Can Read IncidentTemplate User Owner',
+                permission: Permission.ReadIncidentTemplateOwnerUser,
+                title: 'Read IncidentTemplate User Owner',
                 description:
                     'This permission can read IncidentTemplate User Owner of this project.',
                 isAssignableToTenant: true,
@@ -2800,32 +2801,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageOwnerTeam,
-                title: 'Can Create Status Page Team Owner',
+                permission: Permission.CreateStatusPageOwnerTeam,
+                title: 'Create Status Page Team Owner',
                 description:
                     'This permission can create Status Page Team Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageOwnerTeam,
-                title: 'Can Delete Status Page Team Owner',
+                permission: Permission.DeleteStatusPageOwnerTeam,
+                title: 'Delete Status Page Team Owner',
                 description:
                     'This permission can delete Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageOwnerTeam,
-                title: 'Can Edit Status Page Team Owner',
+                permission: Permission.EditStatusPageOwnerTeam,
+                title: 'Edit Status Page Team Owner',
                 description:
                     'This permission can edit Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageOwnerTeam,
-                title: 'Can Read Status Page Team Owner',
+                permission: Permission.ReadStatusPageOwnerTeam,
+                title: 'Read Status Page Team Owner',
                 description:
                     'This permission can read Status Page Team Owner of this project.',
                 isAssignableToTenant: true,
@@ -2833,32 +2834,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageOwnerUser,
-                title: 'Can Create Status Page User Owner',
+                permission: Permission.CreateStatusPageOwnerUser,
+                title: 'Create Status Page User Owner',
                 description:
                     'This permission can create Status Page User Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageOwnerUser,
-                title: 'Can Delete Status Page User Owner',
+                permission: Permission.DeleteStatusPageOwnerUser,
+                title: 'Delete Status Page User Owner',
                 description:
                     'This permission can delete Status Page User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageOwnerUser,
-                title: 'Can Edit Status Page User Owner',
+                permission: Permission.EditStatusPageOwnerUser,
+                title: 'Edit Status Page User Owner',
                 description:
                     'This permission can edit Status Page User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageOwnerUser,
-                title: 'Can Read Status Page User Owner',
+                permission: Permission.ReadStatusPageOwnerUser,
+                title: 'Read Status Page User Owner',
                 description:
                     'This permission can read Status Page User Owner of this project.',
                 isAssignableToTenant: true,
@@ -2866,32 +2867,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorOwnerTeam,
-                title: 'Can Create Monitor Team Owner',
+                permission: Permission.CreateMonitorOwnerTeam,
+                title: 'Create Monitor Team Owner',
                 description:
                     'This permission can create Monitor Team Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorOwnerTeam,
-                title: 'Can Delete Monitor Team Owner',
+                permission: Permission.DeleteMonitorOwnerTeam,
+                title: 'Delete Monitor Team Owner',
                 description:
                     'This permission can delete Monitor Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorOwnerTeam,
-                title: 'Can Edit Monitor Team Owner',
+                permission: Permission.EditMonitorOwnerTeam,
+                title: 'Edit Monitor Team Owner',
                 description:
                     'This permission can edit Monitor Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorOwnerTeam,
-                title: 'Can Read Monitor Team Owner',
+                permission: Permission.ReadMonitorOwnerTeam,
+                title: 'Read Monitor Team Owner',
                 description:
                     'This permission can read Monitor Team Owner of this project.',
                 isAssignableToTenant: true,
@@ -2899,32 +2900,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorOwnerUser,
-                title: 'Can Create Monitor User Owner',
+                permission: Permission.CreateMonitorOwnerUser,
+                title: 'Create Monitor User Owner',
                 description:
                     'This permission can create Monitor User Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorOwnerUser,
-                title: 'Can Delete Monitor User Owner',
+                permission: Permission.DeleteMonitorOwnerUser,
+                title: 'Delete Monitor User Owner',
                 description:
                     'This permission can delete Monitor User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorOwnerUser,
-                title: 'Can Edit Monitor User Owner',
+                permission: Permission.EditMonitorOwnerUser,
+                title: 'Edit Monitor User Owner',
                 description:
                     'This permission can edit Monitor User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorOwnerUser,
-                title: 'Can Read Monitor User Owner',
+                permission: Permission.ReadMonitorOwnerUser,
+                title: 'Read Monitor User Owner',
                 description:
                     'This permission can read Monitor User Owner of this project.',
                 isAssignableToTenant: true,
@@ -2932,32 +2933,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorGroupOwnerTeam,
-                title: 'Can Create Monitor Group Team Owner',
+                permission: Permission.CreateMonitorGroupOwnerTeam,
+                title: 'Create Monitor Group Team Owner',
                 description:
                     'This permission can create Monitor Group Team Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorGroupOwnerTeam,
-                title: 'Can Delete Monitor Group Team Owner',
+                permission: Permission.DeleteMonitorGroupOwnerTeam,
+                title: 'Delete Monitor Group Team Owner',
                 description:
                     'This permission can delete Monitor Group Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorGroupOwnerTeam,
-                title: 'Can Edit Monitor Group Team Owner',
+                permission: Permission.EditMonitorGroupOwnerTeam,
+                title: 'Edit Monitor Group Team Owner',
                 description:
                     'This permission can edit Monitor Group Team Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorGroupOwnerTeam,
-                title: 'Can Read Monitor Group Team Owner',
+                permission: Permission.ReadMonitorGroupOwnerTeam,
+                title: 'Read Monitor Group Team Owner',
                 description:
                     'This permission can read Monitor Group Team Owner of this project.',
                 isAssignableToTenant: true,
@@ -2965,32 +2966,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateMonitorGroupOwnerUser,
-                title: 'Can Create Monitor Group User Owner',
+                permission: Permission.CreateMonitorGroupOwnerUser,
+                title: 'Create Monitor Group User Owner',
                 description:
                     'This permission can create Monitor Group User Owner this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteMonitorGroupOwnerUser,
-                title: 'Can Delete Monitor Group User Owner',
+                permission: Permission.DeleteMonitorGroupOwnerUser,
+                title: 'Delete Monitor Group User Owner',
                 description:
                     'This permission can delete Monitor Group User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditMonitorGroupOwnerUser,
-                title: 'Can Edit Monitor Group User Owner',
+                permission: Permission.EditMonitorGroupOwnerUser,
+                title: 'Edit Monitor Group User Owner',
                 description:
                     'This permission can edit Monitor Group User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadMonitorGroupOwnerUser,
-                title: 'Can Read Monitor Group User Owner',
+                permission: Permission.ReadMonitorGroupOwnerUser,
+                title: 'Read Monitor Group User Owner',
                 description:
                     'This permission can read Monitor Group User Owner of this project.',
                 isAssignableToTenant: true,
@@ -2998,32 +2999,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectIncident,
-                title: 'Can Create Incident',
+                permission: Permission.CreateProjectIncident,
+                title: 'Create Incident',
                 description:
                     'This permission can create incident this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteProjectIncident,
-                title: 'Can Delete Incident',
+                permission: Permission.DeleteProjectIncident,
+                title: 'Delete Incident',
                 description:
                     'This permission can delete incident of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditProjectIncident,
-                title: 'Can Edit Incident',
+                permission: Permission.EditProjectIncident,
+                title: 'Edit Incident',
                 description:
                     'This permission can edit incident of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadProjectIncident,
-                title: 'Can Read Incident',
+                permission: Permission.ReadProjectIncident,
+                title: 'Read Incident',
                 description:
                     'This permission can read incident of this project.',
                 isAssignableToTenant: true,
@@ -3031,32 +3032,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPageSubscriber,
-                title: 'Can Create Status Page Subscriber',
+                permission: Permission.CreateStatusPageSubscriber,
+                title: 'Create Status Page Subscriber',
                 description:
                     'This permission can create subscriber on status page this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPageSubscriber,
-                title: 'Can Delete Status Page Subscriber',
+                permission: Permission.DeleteStatusPageSubscriber,
+                title: 'Delete Status Page Subscriber',
                 description:
                     'This permission can delete subscriber on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPageSubscriber,
-                title: 'Can Edit Status Page Subscriber',
+                permission: Permission.EditStatusPageSubscriber,
+                title: 'Edit Status Page Subscriber',
                 description:
                     'This permission can edit subscriber on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPageSubscriber,
-                title: 'Can Read Status Page Subscriber',
+                permission: Permission.ReadStatusPageSubscriber,
+                title: 'Read Status Page Subscriber',
                 description:
                     'This permission can read subscriber on status page of this project.',
                 isAssignableToTenant: true,
@@ -3064,32 +3065,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateStatusPagePrivateUser,
-                title: 'Can Create Status Page Private User',
+                permission: Permission.CreateStatusPagePrivateUser,
+                title: 'Create Status Page Private User',
                 description:
                     'This permission can create private user on status page this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteStatusPagePrivateUser,
-                title: 'Can Delete Status Page PrivateUser',
+                permission: Permission.DeleteStatusPagePrivateUser,
+                title: 'Delete Status Page PrivateUser',
                 description:
                     'This permission can delete private user on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditStatusPagePrivateUser,
-                title: 'Can Edit Status Page PrivateUser',
+                permission: Permission.EditStatusPagePrivateUser,
+                title: 'Edit Status Page PrivateUser',
                 description:
                     'This permission can edit private user on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadStatusPagePrivateUser,
-                title: 'Can Read Status Page Private User',
+                permission: Permission.ReadStatusPagePrivateUser,
+                title: 'Read Status Page Private User',
                 description:
                     'This permission can read private user on status page of this project.',
                 isAssignableToTenant: true,
@@ -3099,32 +3100,32 @@ export class PermissionHelper {
             // Scheduled Maintenance Permissions.
 
             {
-                permission: Permission.CanCreateScheduledMaintenanceState,
-                title: 'Can Create Scheduled Maintenance State',
+                permission: Permission.CreateScheduledMaintenanceState,
+                title: 'Create Scheduled Maintenance State',
                 description:
                     'This permission can create Scheduled Maintenance states this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteScheduledMaintenanceState,
-                title: 'Can Delete Scheduled Maintenance State',
+                permission: Permission.DeleteScheduledMaintenanceState,
+                title: 'Delete Scheduled Maintenance State',
                 description:
                     'This permission can delete Scheduled Maintenance states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenanceState,
-                title: 'Can Edit Scheduled Maintenance State',
+                permission: Permission.EditScheduledMaintenanceState,
+                title: 'Edit Scheduled Maintenance State',
                 description:
                     'This permission can edit Scheduled Maintenance states of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenanceState,
-                title: 'Can Read Scheduled Maintenance State',
+                permission: Permission.ReadScheduledMaintenanceState,
+                title: 'Read Scheduled Maintenance State',
                 description:
                     'This permission can read Scheduled Maintenance states of this project.',
                 isAssignableToTenant: true,
@@ -3132,32 +3133,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectScheduledMaintenance,
-                title: 'Can Create Scheduled Maintenance',
+                permission: Permission.CreateProjectScheduledMaintenance,
+                title: 'Create Scheduled Maintenance',
                 description:
                     'This permission can create Scheduled Maintenance this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanDeleteProjectScheduledMaintenance,
-                title: 'Can Delete Scheduled Maintenance',
+                permission: Permission.DeleteProjectScheduledMaintenance,
+                title: 'Delete Scheduled Maintenance',
                 description:
                     'This permission can delete Scheduled Maintenance of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanEditProjectScheduledMaintenance,
-                title: 'Can Edit Scheduled Maintenance',
+                permission: Permission.EditProjectScheduledMaintenance,
+                title: 'Edit Scheduled Maintenance',
                 description:
                     'This permission can edit Scheduled Maintenance of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.CanReadProjectScheduledMaintenance,
-                title: 'Can Read Scheduled Maintenance',
+                permission: Permission.ReadProjectScheduledMaintenance,
+                title: 'Read Scheduled Maintenance',
                 description:
                     'This permission can read Scheduled Maintenance of this project.',
                 isAssignableToTenant: true,
@@ -3166,8 +3167,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateScheduledMaintenanceStateTimeline,
-                title: 'Can Create Scheduled Maintenance State Timeline',
+                    Permission.CreateScheduledMaintenanceStateTimeline,
+                title: 'Create Scheduled Maintenance State Timeline',
                 description:
                     'This permission can create Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
                 isAssignableToTenant: true,
@@ -3175,24 +3176,24 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteScheduledMaintenanceStateTimeline,
-                title: 'Can Delete Scheduled Maintenance State Timeline',
+                    Permission.DeleteScheduledMaintenanceStateTimeline,
+                title: 'Delete Scheduled Maintenance State Timeline',
                 description:
                     'This permission can delete Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenanceStateTimeline,
-                title: 'Can Edit Scheduled Maintenance State Timeline',
+                permission: Permission.EditScheduledMaintenanceStateTimeline,
+                title: 'Edit Scheduled Maintenance State Timeline',
                 description:
                     'This permission can edit Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenanceStateTimeline,
-                title: 'Can Read Scheduled Maintenance State Timeline',
+                permission: Permission.ReadScheduledMaintenanceStateTimeline,
+                title: 'Read Scheduled Maintenance State Timeline',
                 description:
                     'This permission can read Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
                 isAssignableToTenant: true,
@@ -3201,8 +3202,8 @@ export class PermissionHelper {
 
             {
                 permission:
-                    Permission.CanCreateScheduledMaintenanceInternalNote,
-                title: 'Can Create Scheduled Maintenance Internal Note',
+                    Permission.CreateScheduledMaintenanceInternalNote,
+                title: 'Create Scheduled Maintenance Internal Note',
                 description:
                     'This permission can create Scheduled Maintenance Internal Note this project.',
                 isAssignableToTenant: true,
@@ -3210,24 +3211,24 @@ export class PermissionHelper {
             },
             {
                 permission:
-                    Permission.CanDeleteScheduledMaintenanceInternalNote,
-                title: 'Can Delete Scheduled Maintenance Internal Note',
+                    Permission.DeleteScheduledMaintenanceInternalNote,
+                title: 'Delete Scheduled Maintenance Internal Note',
                 description:
                     'This permission can delete Scheduled Maintenance Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenanceInternalNote,
-                title: 'Can Edit Scheduled Maintenance Internal Note',
+                permission: Permission.EditScheduledMaintenanceInternalNote,
+                title: 'Edit Scheduled Maintenance Internal Note',
                 description:
                     'This permission can edit Scheduled Maintenance Internal Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenanceInternalNote,
-                title: 'Can Read Scheduled Maintenance Internal Note',
+                permission: Permission.ReadScheduledMaintenanceInternalNote,
+                title: 'Read Scheduled Maintenance Internal Note',
                 description:
                     'This permission can read Scheduled Maintenance Internal Note of this project.',
                 isAssignableToTenant: true,
@@ -3235,32 +3236,32 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateScheduledMaintenancePublicNote,
-                title: 'Can Create Scheduled Maintenance Status Page Note',
+                permission: Permission.CreateScheduledMaintenancePublicNote,
+                title: 'Create Scheduled Maintenance Status Page Note',
                 description:
                     'This permission can create Scheduled Maintenance Status Page Note this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteScheduledMaintenancePublicNote,
-                title: 'Can Delete Scheduled Maintenance Status Page Note',
+                permission: Permission.DeleteScheduledMaintenancePublicNote,
+                title: 'Delete Scheduled Maintenance Status Page Note',
                 description:
                     'This permission can delete Scheduled Maintenance Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanEditScheduledMaintenancePublicNote,
-                title: 'Can Edit Scheduled Maintenance Status Page Note',
+                permission: Permission.EditScheduledMaintenancePublicNote,
+                title: 'Edit Scheduled Maintenance Status Page Note',
                 description:
                     'This permission can edit Scheduled Maintenance Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanReadScheduledMaintenancePublicNote,
-                title: 'Can Read Scheduled Maintenance Status Page Note',
+                permission: Permission.ReadScheduledMaintenancePublicNote,
+                title: 'Read Scheduled Maintenance Status Page Note',
                 description:
                     'This permission can read Scheduled Maintenance Status Page Note of this project.',
                 isAssignableToTenant: true,

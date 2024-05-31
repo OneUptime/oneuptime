@@ -25,25 +25,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateScheduledMaintenanceNoteTemplate,
+        Permission.CreateScheduledMaintenanceNoteTemplate,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadScheduledMaintenanceNoteTemplate,
+        Permission.ReadScheduledMaintenanceNoteTemplate,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteScheduledMaintenanceNoteTemplate,
+        Permission.DeleteScheduledMaintenanceNoteTemplate,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditScheduledMaintenanceNoteTemplate,
+        Permission.EditScheduledMaintenanceNoteTemplate,
     ],
 })
 @CrudApiEndpoint(new Route('/scheduled-maintenance-note-template'))
@@ -70,13 +70,13 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenanceNoteTemplate,
+            Permission.CreateScheduledMaintenanceNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceNoteTemplate,
+            Permission.ReadScheduledMaintenanceNoteTemplate,
         ],
         update: [],
     })
@@ -107,13 +107,13 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenanceNoteTemplate,
+            Permission.CreateScheduledMaintenanceNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceNoteTemplate,
+            Permission.ReadScheduledMaintenanceNoteTemplate,
         ],
         update: [],
     })
@@ -138,19 +138,19 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenanceNoteTemplate,
+            Permission.CreateScheduledMaintenanceNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceNoteTemplate,
+            Permission.ReadScheduledMaintenanceNoteTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditScheduledMaintenanceNoteTemplate,
+            Permission.EditScheduledMaintenanceNoteTemplate,
         ],
     })
     @Index()
@@ -172,19 +172,19 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenanceNoteTemplate,
+            Permission.CreateScheduledMaintenanceNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceNoteTemplate,
+            Permission.ReadScheduledMaintenanceNoteTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditScheduledMaintenanceNoteTemplate,
+            Permission.EditScheduledMaintenanceNoteTemplate,
         ],
     })
     @TableColumn({
@@ -206,19 +206,19 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenanceNoteTemplate,
+            Permission.CreateScheduledMaintenanceNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceNoteTemplate,
+            Permission.ReadScheduledMaintenanceNoteTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditScheduledMaintenanceNoteTemplate,
+            Permission.EditScheduledMaintenanceNoteTemplate,
         ],
     })
     @TableColumn({
@@ -240,13 +240,13 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenanceNoteTemplate,
+            Permission.CreateScheduledMaintenanceNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceNoteTemplate,
+            Permission.ReadScheduledMaintenanceNoteTemplate,
         ],
         update: [],
     })
@@ -277,13 +277,13 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenanceNoteTemplate,
+            Permission.CreateScheduledMaintenanceNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceNoteTemplate,
+            Permission.ReadScheduledMaintenanceNoteTemplate,
         ],
         update: [],
     })

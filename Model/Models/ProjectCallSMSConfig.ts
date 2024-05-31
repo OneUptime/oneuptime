@@ -32,23 +32,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateProjectCallSMSConfig,
+        Permission.CreateProjectCallSMSConfig,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectCallSMSConfig,
+        Permission.ReadProjectCallSMSConfig,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteProjectCallSMSConfig,
+        Permission.DeleteProjectCallSMSConfig,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditProjectCallSMSConfig,
+        Permission.EditProjectCallSMSConfig,
     ],
 })
 @CrudApiEndpoint(new Route('/call-sms-config'))
@@ -68,13 +68,13 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [],
     })
@@ -104,13 +104,13 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [],
     })
@@ -134,18 +134,18 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectCallSMSConfig,
+            Permission.EditProjectCallSMSConfig,
         ],
     })
     @TableColumn({
@@ -167,7 +167,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [],
     })
@@ -189,18 +189,18 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectCallSMSConfig,
+            Permission.EditProjectCallSMSConfig,
         ],
     })
     @TableColumn({
@@ -220,13 +220,13 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [],
     })
@@ -256,13 +256,13 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [],
     })
@@ -285,7 +285,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [],
     })
@@ -317,7 +317,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [],
     })
@@ -340,18 +340,18 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectCallSMSConfig,
+            Permission.EditProjectCallSMSConfig,
         ],
     })
     @TableColumn({
@@ -371,18 +371,18 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectCallSMSConfig,
+            Permission.EditProjectCallSMSConfig,
         ],
     })
     @TableColumn({
@@ -402,18 +402,18 @@ export default class ProjectCallSMSConfig extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectCallSMSConfig,
+            Permission.CreateProjectCallSMSConfig,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectCallSMSConfig,
+            Permission.ReadProjectCallSMSConfig,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectCallSMSConfig,
+            Permission.EditProjectCallSMSConfig,
         ],
     })
     @TableColumn({

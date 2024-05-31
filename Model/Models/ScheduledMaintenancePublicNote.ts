@@ -27,25 +27,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateScheduledMaintenancePublicNote,
+        Permission.CreateScheduledMaintenancePublicNote,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadScheduledMaintenancePublicNote,
+        Permission.ReadScheduledMaintenancePublicNote,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteScheduledMaintenancePublicNote,
+        Permission.DeleteScheduledMaintenancePublicNote,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditScheduledMaintenancePublicNote,
+        Permission.EditScheduledMaintenancePublicNote,
     ],
 })
 @EnableWorkflow({
@@ -71,13 +71,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -108,13 +108,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -139,13 +139,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -176,13 +176,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -205,13 +205,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -242,13 +242,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -315,19 +315,19 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditScheduledMaintenancePublicNote,
+            Permission.EditScheduledMaintenancePublicNote,
         ],
     })
     @TableColumn({
@@ -348,7 +348,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -369,13 +369,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -396,13 +396,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [],
     })
@@ -426,19 +426,19 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateScheduledMaintenancePublicNote,
+            Permission.CreateScheduledMaintenancePublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenancePublicNote,
+            Permission.ReadScheduledMaintenancePublicNote,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditScheduledMaintenancePublicNote,
+            Permission.EditScheduledMaintenancePublicNote,
         ],
     })
     @TableColumn({

@@ -28,7 +28,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadSmsLog,
+        Permission.ReadSmsLog,
     ],
     delete: [],
     update: [],
@@ -58,7 +58,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })
@@ -90,7 +90,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })
@@ -116,7 +116,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })
@@ -142,7 +142,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })
@@ -168,7 +168,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })
@@ -191,7 +191,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })
@@ -215,7 +215,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })
@@ -239,7 +239,7 @@ export default class SmsLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadSmsLog,
+            Permission.ReadSmsLog,
         ],
         update: [],
     })

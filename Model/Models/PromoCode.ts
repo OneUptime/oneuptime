@@ -102,13 +102,13 @@ export default class PromoCode extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -138,13 +138,13 @@ export default class PromoCode extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -167,7 +167,7 @@ export default class PromoCode extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -199,7 +199,7 @@ export default class PromoCode extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -318,14 +318,14 @@ export default class PromoCode extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProject,
+            Permission.ReadProject,
             Permission.UnAuthorizedSsoUser,
             Permission.ProjectUser,
         ],
         update: [
             Permission.ProjectOwner,
-            Permission.CanManageProjectBilling,
-            Permission.CanEditProject,
+            Permission.ManageProjectBilling,
+            Permission.EditProject,
         ],
     })
     @TableColumn({

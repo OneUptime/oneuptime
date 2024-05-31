@@ -34,23 +34,23 @@ import {
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateMonitorSecret,
+        Permission.CreateMonitorSecret,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
 
-        Permission.CanReadMonitorSecret,
+        Permission.ReadMonitorSecret,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteMonitorSecret,
+        Permission.DeleteMonitorSecret,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditMonitorSecret,
+        Permission.EditMonitorSecret,
     ],
 })
 @EnableWorkflow({
@@ -76,13 +76,13 @@ export default class MonitorSecret extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorSecret,
+            Permission.CreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [],
     })
@@ -112,13 +112,13 @@ export default class MonitorSecret extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorSecret,
+            Permission.CreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [],
     })
@@ -143,19 +143,19 @@ export default class MonitorSecret extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanCreateMonitorSecret,
+            Permission.CreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanEditMonitorSecret,
+            Permission.EditMonitorSecret,
         ],
     })
     @TableColumn({
@@ -178,19 +178,19 @@ export default class MonitorSecret extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanCreateMonitorSecret,
+            Permission.CreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanEditMonitorSecret,
+            Permission.EditMonitorSecret,
         ],
     })
     @TableColumn({
@@ -211,7 +211,7 @@ export default class MonitorSecret extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanCreateMonitorSecret,
+            Permission.CreateMonitorSecret,
         ],
         read: [],
         update: [],
@@ -235,17 +235,17 @@ export default class MonitorSecret extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditMonitorSecret,
+            Permission.EditMonitorSecret,
         ],
     })
     @TableColumn({
@@ -278,13 +278,13 @@ export default class MonitorSecret extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorSecret,
+            Permission.CreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [],
     })
@@ -314,13 +314,13 @@ export default class MonitorSecret extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorSecret,
+            Permission.CreateMonitorSecret,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [],
     })
@@ -343,7 +343,7 @@ export default class MonitorSecret extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [],
     })
@@ -375,7 +375,7 @@ export default class MonitorSecret extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadMonitorSecret,
+            Permission.ReadMonitorSecret,
         ],
         update: [],
     })

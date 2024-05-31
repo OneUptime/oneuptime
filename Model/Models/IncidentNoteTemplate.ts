@@ -25,25 +25,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateIncidentNoteTemplate,
+        Permission.CreateIncidentNoteTemplate,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadIncidentNoteTemplate,
+        Permission.ReadIncidentNoteTemplate,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteIncidentNoteTemplate,
+        Permission.DeleteIncidentNoteTemplate,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditIncidentNoteTemplate,
+        Permission.EditIncidentNoteTemplate,
     ],
 })
 @CrudApiEndpoint(new Route('/incident-note-template'))
@@ -69,13 +69,13 @@ export default class IncidentNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentNoteTemplate,
+            Permission.CreateIncidentNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentNoteTemplate,
+            Permission.ReadIncidentNoteTemplate,
         ],
         update: [],
     })
@@ -106,13 +106,13 @@ export default class IncidentNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentNoteTemplate,
+            Permission.CreateIncidentNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentNoteTemplate,
+            Permission.ReadIncidentNoteTemplate,
         ],
         update: [],
     })
@@ -137,19 +137,19 @@ export default class IncidentNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentNoteTemplate,
+            Permission.CreateIncidentNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentNoteTemplate,
+            Permission.ReadIncidentNoteTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentNoteTemplate,
+            Permission.EditIncidentNoteTemplate,
         ],
     })
     @Index()
@@ -171,19 +171,19 @@ export default class IncidentNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentNoteTemplate,
+            Permission.CreateIncidentNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentNoteTemplate,
+            Permission.ReadIncidentNoteTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentNoteTemplate,
+            Permission.EditIncidentNoteTemplate,
         ],
     })
     @TableColumn({
@@ -205,19 +205,19 @@ export default class IncidentNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentNoteTemplate,
+            Permission.CreateIncidentNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentNoteTemplate,
+            Permission.ReadIncidentNoteTemplate,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentNoteTemplate,
+            Permission.EditIncidentNoteTemplate,
         ],
     })
     @TableColumn({
@@ -239,13 +239,13 @@ export default class IncidentNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentNoteTemplate,
+            Permission.CreateIncidentNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentNoteTemplate,
+            Permission.ReadIncidentNoteTemplate,
         ],
         update: [],
     })
@@ -276,13 +276,13 @@ export default class IncidentNoteTemplate extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentNoteTemplate,
+            Permission.CreateIncidentNoteTemplate,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentNoteTemplate,
+            Permission.ReadIncidentNoteTemplate,
         ],
         update: [],
     })

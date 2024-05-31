@@ -29,7 +29,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadEmailLog,
+        Permission.ReadEmailLog,
     ],
     delete: [],
     update: [],
@@ -59,7 +59,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -91,7 +91,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -117,7 +117,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -143,7 +143,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -169,7 +169,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -193,7 +193,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -217,7 +217,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -241,7 +241,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })
@@ -273,7 +273,7 @@ export default class EmailLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadEmailLog,
+            Permission.ReadEmailLog,
         ],
         update: [],
     })

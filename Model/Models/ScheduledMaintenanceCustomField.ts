@@ -33,23 +33,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateScheduledMaintenanceCustomField,
+        Permission.CreateScheduledMaintenanceCustomField,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadScheduledMaintenanceCustomField,
+        Permission.ReadScheduledMaintenanceCustomField,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteScheduledMaintenanceCustomField,
+        Permission.DeleteScheduledMaintenanceCustomField,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditScheduledMaintenanceCustomField,
+        Permission.EditScheduledMaintenanceCustomField,
     ],
 })
 @CrudApiEndpoint(new Route('/scheduled-maintenance-custom-field'))
@@ -68,13 +68,13 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CreateScheduledMaintenanceCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [],
     })
@@ -104,13 +104,13 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CreateScheduledMaintenanceCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [],
     })
@@ -134,18 +134,18 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CreateScheduledMaintenanceCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditScheduledMaintenanceCustomField,
+            Permission.EditScheduledMaintenanceCustomField,
         ],
     })
     @TableColumn({
@@ -167,18 +167,18 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CreateScheduledMaintenanceCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditScheduledMaintenanceCustomField,
+            Permission.EditScheduledMaintenanceCustomField,
         ],
     })
     @TableColumn({
@@ -199,13 +199,13 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CreateScheduledMaintenanceCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [],
     })
@@ -226,13 +226,13 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CreateScheduledMaintenanceCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [],
     })
@@ -262,13 +262,13 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateScheduledMaintenanceCustomField,
+            Permission.CreateScheduledMaintenanceCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [],
     })
@@ -291,7 +291,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [],
     })
@@ -323,7 +323,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadScheduledMaintenanceCustomField,
+            Permission.ReadScheduledMaintenanceCustomField,
         ],
         update: [],
     })

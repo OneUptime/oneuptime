@@ -33,23 +33,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateStatusPageCustomField,
+        Permission.CreateStatusPageCustomField,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadStatusPageCustomField,
+        Permission.ReadStatusPageCustomField,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteStatusPageCustomField,
+        Permission.DeleteStatusPageCustomField,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditStatusPageCustomField,
+        Permission.EditStatusPageCustomField,
     ],
 })
 @CrudApiEndpoint(new Route('/status-page-custom-field'))
@@ -68,13 +68,13 @@ export default class StatusPageCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageCustomField,
+            Permission.CreateStatusPageCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [],
     })
@@ -104,13 +104,13 @@ export default class StatusPageCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageCustomField,
+            Permission.CreateStatusPageCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [],
     })
@@ -134,18 +134,18 @@ export default class StatusPageCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageCustomField,
+            Permission.CreateStatusPageCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageCustomField,
+            Permission.EditStatusPageCustomField,
         ],
     })
     @TableColumn({
@@ -167,18 +167,18 @@ export default class StatusPageCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageCustomField,
+            Permission.CreateStatusPageCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageCustomField,
+            Permission.EditStatusPageCustomField,
         ],
     })
     @TableColumn({
@@ -199,13 +199,13 @@ export default class StatusPageCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageCustomField,
+            Permission.CreateStatusPageCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [],
     })
@@ -226,13 +226,13 @@ export default class StatusPageCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageCustomField,
+            Permission.CreateStatusPageCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [],
     })
@@ -262,13 +262,13 @@ export default class StatusPageCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageCustomField,
+            Permission.CreateStatusPageCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [],
     })
@@ -291,7 +291,7 @@ export default class StatusPageCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [],
     })
@@ -323,7 +323,7 @@ export default class StatusPageCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageCustomField,
+            Permission.ReadStatusPageCustomField,
         ],
         update: [],
     })

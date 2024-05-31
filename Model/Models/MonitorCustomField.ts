@@ -33,23 +33,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateMonitorCustomField,
+        Permission.CreateMonitorCustomField,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadMonitorCustomField,
+        Permission.ReadMonitorCustomField,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteMonitorCustomField,
+        Permission.DeleteMonitorCustomField,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditMonitorCustomField,
+        Permission.EditMonitorCustomField,
     ],
 })
 @CrudApiEndpoint(new Route('/monitor-custom-field'))
@@ -68,13 +68,13 @@ export default class MonitorCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorCustomField,
+            Permission.CreateMonitorCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [],
     })
@@ -104,13 +104,13 @@ export default class MonitorCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorCustomField,
+            Permission.CreateMonitorCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [],
     })
@@ -134,18 +134,18 @@ export default class MonitorCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorCustomField,
+            Permission.CreateMonitorCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditMonitorCustomField,
+            Permission.EditMonitorCustomField,
         ],
     })
     @TableColumn({
@@ -167,18 +167,18 @@ export default class MonitorCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorCustomField,
+            Permission.CreateMonitorCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditMonitorCustomField,
+            Permission.EditMonitorCustomField,
         ],
     })
     @TableColumn({
@@ -199,13 +199,13 @@ export default class MonitorCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorCustomField,
+            Permission.CreateMonitorCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [],
     })
@@ -226,13 +226,13 @@ export default class MonitorCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorCustomField,
+            Permission.CreateMonitorCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [],
     })
@@ -262,13 +262,13 @@ export default class MonitorCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorCustomField,
+            Permission.CreateMonitorCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [],
     })
@@ -291,7 +291,7 @@ export default class MonitorCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [],
     })
@@ -323,7 +323,7 @@ export default class MonitorCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorCustomField,
+            Permission.ReadMonitorCustomField,
         ],
         update: [],
     })

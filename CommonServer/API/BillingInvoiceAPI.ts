@@ -55,13 +55,13 @@ export default class UserAPI extends BaseAPI<
                             permission.permission.toString() ===
                                 Permission.ProjectOwner.toString() ||
                             permission.permission.toString() ===
-                                Permission.CanEditInvoices.toString()
+                                Permission.EditInvoices.toString()
                         );
                     });
 
                     if (userPermissions.length === 0) {
                         throw new BadDataException(
-                            `You need ${Permission.ProjectOwner} or ${Permission.CanEditInvoices} permission to pay invoices.`
+                            `You need ${Permission.ProjectOwner} or ${Permission.EditInvoices} permission to pay invoices.`
                         );
                     }
 

@@ -28,7 +28,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadCallLog,
+        Permission.ReadCallLog,
     ],
     delete: [],
     update: [],
@@ -58,7 +58,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })
@@ -90,7 +90,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })
@@ -116,7 +116,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })
@@ -142,7 +142,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })
@@ -168,7 +168,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })
@@ -191,7 +191,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })
@@ -215,7 +215,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })
@@ -239,7 +239,7 @@ export default class CallLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadCallLog,
+            Permission.ReadCallLog,
         ],
         update: [],
     })

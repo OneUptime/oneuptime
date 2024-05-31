@@ -26,23 +26,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateProjectDomain,
+        Permission.CreateProjectDomain,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectDomain,
+        Permission.ReadProjectDomain,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteProjectDomain,
+        Permission.DeleteProjectDomain,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditProjectDomain,
+        Permission.EditProjectDomain,
     ],
 })
 @CrudApiEndpoint(new Route('/domain'))
@@ -62,13 +62,13 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CreateProjectDomain,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })
@@ -98,13 +98,13 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CreateProjectDomain,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })
@@ -128,18 +128,18 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CreateProjectDomain,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectDomain,
+            Permission.EditProjectDomain,
         ],
     })
     @TableColumn({
@@ -164,7 +164,7 @@ export default class Domain extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })
@@ -186,13 +186,13 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CreateProjectDomain,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })
@@ -222,13 +222,13 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CreateProjectDomain,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })
@@ -251,7 +251,7 @@ export default class Domain extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })
@@ -283,7 +283,7 @@ export default class Domain extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })
@@ -306,12 +306,12 @@ export default class Domain extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditProjectDomain,
+            Permission.EditProjectDomain,
         ],
     })
     @TableColumn({
@@ -330,13 +330,13 @@ export default class Domain extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateProjectDomain,
+            Permission.CreateProjectDomain,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectDomain,
+            Permission.ReadProjectDomain,
         ],
         update: [],
     })

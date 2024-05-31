@@ -47,26 +47,26 @@ import {
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateStatusPageSubscriber,
+        Permission.CreateStatusPageSubscriber,
         Permission.Public,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadStatusPageSubscriber,
+        Permission.ReadStatusPageSubscriber,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteStatusPageSubscriber,
+        Permission.DeleteStatusPageSubscriber,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditStatusPageSubscriber,
+        Permission.EditStatusPageSubscriber,
     ],
 })
 @CrudApiEndpoint(new Route('/status-page-subscriber'))
@@ -87,13 +87,13 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [],
     })
@@ -124,13 +124,13 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [],
     })
@@ -155,13 +155,13 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [],
     })
@@ -192,13 +192,13 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [],
     })
@@ -222,20 +222,20 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
             Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageSubscriber,
+            Permission.EditStatusPageSubscriber,
         ],
     })
     @TableColumn({
@@ -257,20 +257,20 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
             Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageSubscriber,
+            Permission.EditStatusPageSubscriber,
         ],
     })
     @TableColumn({
@@ -292,20 +292,20 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
             Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageSubscriber,
+            Permission.EditStatusPageSubscriber,
         ],
     })
     @TableColumn({
@@ -326,13 +326,13 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [],
     })
@@ -363,13 +363,13 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [],
     })
@@ -392,7 +392,7 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [],
     })
@@ -441,20 +441,20 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
             Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageSubscriber,
+            Permission.EditStatusPageSubscriber,
         ],
     })
     @TableColumn({
@@ -474,20 +474,20 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
             Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageSubscriber,
+            Permission.EditStatusPageSubscriber,
         ],
     })
     @TableColumn({
@@ -508,20 +508,20 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSubscriber,
+            Permission.CreateStatusPageSubscriber,
             Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageSubscriber,
+            Permission.EditStatusPageSubscriber,
         ],
     })
     @TableColumn({

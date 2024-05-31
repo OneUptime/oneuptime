@@ -36,25 +36,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectLabel,
+        Permission.CreateProjectLabel,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectLabel,
+        Permission.ReadProjectLabel,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectLabel,
+        Permission.DeleteProjectLabel,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectLabel,
+        Permission.EditProjectLabel,
     ],
 })
 @EnableWorkflow({
@@ -82,13 +82,13 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -119,13 +119,13 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -150,19 +150,19 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectLabel,
+            Permission.EditProjectLabel,
         ],
     })
     @TableColumn({
@@ -186,7 +186,7 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -209,19 +209,19 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectLabel,
+            Permission.EditProjectLabel,
         ],
     })
     @TableColumn({
@@ -242,13 +242,13 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -279,13 +279,13 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -308,7 +308,7 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -340,7 +340,7 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [],
     })
@@ -362,19 +362,19 @@ export default class Label extends AccessControlModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectLabel,
+            Permission.CreateProjectLabel,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectLabel,
+            Permission.ReadProjectLabel,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectLabel,
+            Permission.EditProjectLabel,
         ],
     })
     @TableColumn({

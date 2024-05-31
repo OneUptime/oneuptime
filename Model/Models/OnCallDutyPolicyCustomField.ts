@@ -33,23 +33,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateOnCallDutyPolicyCustomField,
+        Permission.CreateOnCallDutyPolicyCustomField,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadOnCallDutyPolicyCustomField,
+        Permission.ReadOnCallDutyPolicyCustomField,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteOnCallDutyPolicyCustomField,
+        Permission.DeleteOnCallDutyPolicyCustomField,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditOnCallDutyPolicyCustomField,
+        Permission.EditOnCallDutyPolicyCustomField,
     ],
 })
 @CrudApiEndpoint(new Route('/on-call-duty-policy-custom-field'))
@@ -68,13 +68,13 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateOnCallDutyPolicyCustomField,
+            Permission.CreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -104,13 +104,13 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateOnCallDutyPolicyCustomField,
+            Permission.CreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -134,18 +134,18 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateOnCallDutyPolicyCustomField,
+            Permission.CreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditOnCallDutyPolicyCustomField,
+            Permission.EditOnCallDutyPolicyCustomField,
         ],
     })
     @TableColumn({
@@ -167,18 +167,18 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateOnCallDutyPolicyCustomField,
+            Permission.CreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditOnCallDutyPolicyCustomField,
+            Permission.EditOnCallDutyPolicyCustomField,
         ],
     })
     @TableColumn({
@@ -199,13 +199,13 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateOnCallDutyPolicyCustomField,
+            Permission.CreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -226,13 +226,13 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateOnCallDutyPolicyCustomField,
+            Permission.CreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -262,13 +262,13 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateOnCallDutyPolicyCustomField,
+            Permission.CreateOnCallDutyPolicyCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -291,7 +291,7 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })
@@ -323,7 +323,7 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadOnCallDutyPolicyCustomField,
+            Permission.ReadOnCallDutyPolicyCustomField,
         ],
         update: [],
     })

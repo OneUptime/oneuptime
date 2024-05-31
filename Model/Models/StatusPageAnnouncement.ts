@@ -45,25 +45,25 @@ import {
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateStatusPageAnnouncement,
+        Permission.CreateStatusPageAnnouncement,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadStatusPageAnnouncement,
+        Permission.ReadStatusPageAnnouncement,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteStatusPageAnnouncement,
+        Permission.DeleteStatusPageAnnouncement,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditStatusPageAnnouncement,
+        Permission.EditStatusPageAnnouncement,
     ],
 })
 @EnableWorkflow({
@@ -90,13 +90,13 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -127,13 +127,13 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -158,13 +158,13 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -199,19 +199,19 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageAnnouncement,
+            Permission.EditStatusPageAnnouncement,
         ],
     })
     @TableColumn({
@@ -238,19 +238,19 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageAnnouncement,
+            Permission.EditStatusPageAnnouncement,
         ],
     })
     @Column({
@@ -270,19 +270,19 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageAnnouncement,
+            Permission.EditStatusPageAnnouncement,
         ],
     })
     @Column({
@@ -296,19 +296,19 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditStatusPageAnnouncement,
+            Permission.EditStatusPageAnnouncement,
         ],
     })
     @TableColumn({
@@ -328,13 +328,13 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -365,13 +365,13 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -394,7 +394,7 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -444,7 +444,7 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -460,13 +460,13 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })
@@ -487,13 +487,13 @@ export default class StatusPageAnnouncement extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageAnnouncement,
+            Permission.CreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.ReadStatusPageAnnouncement,
         ],
         update: [],
     })

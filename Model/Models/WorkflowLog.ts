@@ -24,23 +24,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateWorkflowLog,
+        Permission.CreateWorkflowLog,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadWorkflowLog,
+        Permission.ReadWorkflowLog,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteWorkflowLog,
+        Permission.DeleteWorkflowLog,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditWorkflowLog,
+        Permission.EditWorkflowLog,
     ],
 })
 @CrudApiEndpoint(new Route('/workflow-log'))
@@ -61,7 +61,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })
@@ -93,7 +93,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })
@@ -119,7 +119,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })
@@ -150,7 +150,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })
@@ -175,7 +175,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })
@@ -197,7 +197,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })
@@ -219,7 +219,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })
@@ -241,7 +241,7 @@ export default class WorkflowLog extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadWorkflowLog,
+            Permission.ReadWorkflowLog,
         ],
         update: [],
     })

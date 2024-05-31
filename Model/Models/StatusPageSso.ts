@@ -36,24 +36,24 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateStatusPageSSO,
+        Permission.CreateStatusPageSSO,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectUser,
         Permission.Public,
         Permission.ProjectAdmin,
-        Permission.CanReadStatusPageSSO,
+        Permission.ReadStatusPageSSO,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteStatusPageSSO,
+        Permission.DeleteStatusPageSSO,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditStatusPageSSO,
+        Permission.EditStatusPageSSO,
     ],
 })
 @CrudApiEndpoint(new Route('/status-page-sso'))
@@ -72,14 +72,14 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.Public,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -109,14 +109,14 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.Public,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -141,13 +141,13 @@ export default class StatusPageSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -178,13 +178,13 @@ export default class StatusPageSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -207,19 +207,19 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.Public,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({
@@ -241,19 +241,19 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.Public,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({
@@ -271,18 +271,18 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({
@@ -301,18 +301,18 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({
@@ -331,19 +331,19 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
             Permission.ProjectUser,
             Permission.Public,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({
@@ -363,18 +363,18 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({
@@ -393,18 +393,18 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({
@@ -422,13 +422,13 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -458,13 +458,13 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -487,7 +487,7 @@ export default class StatusPageSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -519,7 +519,7 @@ export default class StatusPageSSO extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })
@@ -540,19 +540,19 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectUser,
             Permission.Public,
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditStatusPageSSO,
+            Permission.EditStatusPageSSO,
         ],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
@@ -567,13 +567,13 @@ export default class StatusPageSSO extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateStatusPageSSO,
+            Permission.CreateStatusPageSSO,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
 
-            Permission.CanReadStatusPageSSO,
+            Permission.ReadStatusPageSSO,
         ],
         update: [],
     })

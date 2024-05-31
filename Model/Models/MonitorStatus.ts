@@ -36,25 +36,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateProjectMonitorStatus,
+        Permission.CreateProjectMonitorStatus,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadProjectMonitorStatus,
+        Permission.ReadProjectMonitorStatus,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteProjectMonitorStatus,
+        Permission.DeleteProjectMonitorStatus,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditProjectMonitorStatus,
+        Permission.EditProjectMonitorStatus,
     ],
 })
 @EnableWorkflow({
@@ -82,13 +82,13 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [],
     })
@@ -119,13 +119,13 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [],
     })
@@ -150,19 +150,19 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitorStatus,
+            Permission.EditProjectMonitorStatus,
         ],
     })
     @TableColumn({
@@ -186,7 +186,7 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [],
     })
@@ -209,19 +209,19 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitorStatus,
+            Permission.EditProjectMonitorStatus,
         ],
     })
     @TableColumn({
@@ -242,13 +242,13 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [],
     })
@@ -279,13 +279,13 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [],
     })
@@ -308,7 +308,7 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [],
     })
@@ -340,7 +340,7 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [],
     })
@@ -362,19 +362,19 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitorStatus,
+            Permission.EditProjectMonitorStatus,
         ],
     })
     @TableColumn({
@@ -399,19 +399,19 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitorStatus,
+            Permission.EditProjectMonitorStatus,
         ],
     })
     @TableColumn({
@@ -432,19 +432,19 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitorStatus,
+            Permission.EditProjectMonitorStatus,
         ],
     })
     @TableColumn({
@@ -465,19 +465,19 @@ export default class MonitorStatus extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateProjectMonitorStatus,
+            Permission.CreateProjectMonitorStatus,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadProjectMonitorStatus,
+            Permission.ReadProjectMonitorStatus,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditProjectMonitorStatus,
+            Permission.EditProjectMonitorStatus,
         ],
     })
     @TableColumn({

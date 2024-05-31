@@ -27,25 +27,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanCreateIncidentPublicNote,
+        Permission.CreateIncidentPublicNote,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanDeleteIncidentPublicNote,
+        Permission.DeleteIncidentPublicNote,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanEditIncidentPublicNote,
+        Permission.EditIncidentPublicNote,
     ],
 })
 @EnableWorkflow({
@@ -71,13 +71,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -108,13 +108,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -139,13 +139,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -175,13 +175,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -204,13 +204,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -241,13 +241,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -314,19 +314,19 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentPublicNote,
+            Permission.EditIncidentPublicNote,
         ],
     })
     @TableColumn({
@@ -347,7 +347,7 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -368,13 +368,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -395,13 +395,13 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [],
     })
@@ -425,19 +425,19 @@ export default class IncidentPublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateIncidentPublicNote,
+            Permission.CreateIncidentPublicNote,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentPublicNote,
+            Permission.ReadIncidentPublicNote,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditIncidentPublicNote,
+            Permission.EditIncidentPublicNote,
         ],
     })
     @TableColumn({

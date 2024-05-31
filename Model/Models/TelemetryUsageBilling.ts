@@ -27,7 +27,7 @@ export const DEFAULT_RETENTION_IN_DAYS: number = 15;
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanManageProjectBilling,
+        Permission.ManageProjectBilling,
     ],
     delete: [],
     update: [],
@@ -50,7 +50,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -81,7 +81,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -106,7 +106,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -129,7 +129,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -152,7 +152,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -175,7 +175,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -198,7 +198,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -241,7 +241,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -272,7 +272,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -315,7 +315,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -346,7 +346,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -368,7 +368,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })
@@ -399,7 +399,7 @@ export default class TelemetryUsageBilling extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanManageProjectBilling,
+            Permission.ManageProjectBilling,
         ],
         update: [],
     })

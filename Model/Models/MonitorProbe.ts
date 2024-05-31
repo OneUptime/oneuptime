@@ -29,23 +29,23 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateMonitorProbe,
+        Permission.CreateMonitorProbe,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadMonitorProbe,
+        Permission.ReadMonitorProbe,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteMonitorProbe,
+        Permission.DeleteMonitorProbe,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditMonitorProbe,
+        Permission.EditMonitorProbe,
     ],
 })
 @EnableWorkflow({
@@ -71,13 +71,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -107,13 +107,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -137,13 +137,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -172,13 +172,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -201,13 +201,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -237,13 +237,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -268,13 +268,13 @@ export default class MonitorProbe extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
 
         update: [],
@@ -292,13 +292,13 @@ export default class MonitorProbe extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -314,13 +314,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -350,13 +350,13 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -379,7 +379,7 @@ export default class MonitorProbe extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -411,7 +411,7 @@ export default class MonitorProbe extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })
@@ -432,19 +432,19 @@ export default class MonitorProbe extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateMonitorProbe,
+            Permission.CreateMonitorProbe,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanEditMonitorProbe,
+            Permission.EditMonitorProbe,
         ],
     })
     @TableColumn({
@@ -466,7 +466,7 @@ export default class MonitorProbe extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadMonitorProbe,
+            Permission.ReadMonitorProbe,
         ],
         update: [],
     })

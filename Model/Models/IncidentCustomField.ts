@@ -33,23 +33,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanCreateIncidentCustomField,
+        Permission.CreateIncidentCustomField,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CanReadIncidentCustomField,
+        Permission.ReadIncidentCustomField,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanDeleteIncidentCustomField,
+        Permission.DeleteIncidentCustomField,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.CanEditIncidentCustomField,
+        Permission.EditIncidentCustomField,
     ],
 })
 @CrudApiEndpoint(new Route('/incident-custom-field'))
@@ -68,13 +68,13 @@ export default class IncidentCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateIncidentCustomField,
+            Permission.CreateIncidentCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [],
     })
@@ -104,13 +104,13 @@ export default class IncidentCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateIncidentCustomField,
+            Permission.CreateIncidentCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [],
     })
@@ -134,18 +134,18 @@ export default class IncidentCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateIncidentCustomField,
+            Permission.CreateIncidentCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditIncidentCustomField,
+            Permission.EditIncidentCustomField,
         ],
     })
     @TableColumn({
@@ -167,18 +167,18 @@ export default class IncidentCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateIncidentCustomField,
+            Permission.CreateIncidentCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanEditIncidentCustomField,
+            Permission.EditIncidentCustomField,
         ],
     })
     @TableColumn({
@@ -199,13 +199,13 @@ export default class IncidentCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateIncidentCustomField,
+            Permission.CreateIncidentCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [],
     })
@@ -226,13 +226,13 @@ export default class IncidentCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateIncidentCustomField,
+            Permission.CreateIncidentCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [],
     })
@@ -262,13 +262,13 @@ export default class IncidentCustomField extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.CanCreateIncidentCustomField,
+            Permission.CreateIncidentCustomField,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [],
     })
@@ -291,7 +291,7 @@ export default class IncidentCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [],
     })
@@ -323,7 +323,7 @@ export default class IncidentCustomField extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CanReadIncidentCustomField,
+            Permission.ReadIncidentCustomField,
         ],
         update: [],
     })
