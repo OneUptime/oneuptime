@@ -139,13 +139,21 @@ export class Service extends DatabaseService<Model> {
                 });
 
             for (const member of teamMembers) {
+                if (!member.userId) {
+                    throw new BadDataException('Invalid User ID');
+                }
+
+                if (!member.projectId) {
+                    throw new BadDataException('Invalid Project ID');
+                }
+
                 /// Refresh tokens.
                 await AccessTokenService.refreshUserGlobalAccessPermission(
-                    member.userId!
+                    member.userId
                 );
                 await AccessTokenService.refreshUserTenantAccessPermission(
-                    member.userId!,
-                    permission.projectId!
+                    member.userId,
+                    member.projectId
                 );
             }
         }
@@ -212,13 +220,21 @@ export class Service extends DatabaseService<Model> {
         for (const member of onDelete.carryForward) {
             const teamMember: TeamMember = member as TeamMember;
 
+            if (!teamMember.userId) {
+                throw new BadDataException('Invalid User ID');
+            }
+
+            if (!teamMember.projectId) {
+                throw new BadDataException('Invalid Project ID');
+            }
+
             /// Refresh tokens.
             await AccessTokenService.refreshUserGlobalAccessPermission(
-                teamMember.userId!
+                teamMember.userId
             );
             await AccessTokenService.refreshUserTenantAccessPermission(
-                teamMember.userId!,
-                teamMember.projectId!
+                teamMember.userId,
+                teamMember.projectId
             );
         }
 
