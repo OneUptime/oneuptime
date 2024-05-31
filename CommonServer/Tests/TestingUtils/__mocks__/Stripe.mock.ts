@@ -1,9 +1,6 @@
-// import libraries to mock (we do it here because of hoisting)
-// import the mock library
 import * as mock from 'jest-mock-extended';
-import Stripe from 'stripe';
 
-let mockStripe: jest.Mocked<Stripe> | null = null;
+let mockStripe: jest.Mocked<Stripe>;
 
 jest.mock('stripe', () => {
     mockStripe = mock.mockDeep<Stripe>();
@@ -11,6 +8,9 @@ jest.mock('stripe', () => {
         return mockStripe;
     });
 });
+
+// import libraries to mock (we do it here because of hoisting)
+import Stripe from 'stripe';
 
 // return the mocked library and the library itself
 export { mockStripe, Stripe };
