@@ -9,12 +9,6 @@
 {{- include "oneuptime.deployment" $harakaDeploymentArgs }}
 ---
 
-# OneUptime haraka Service
-{{- $harakaPorts := dict "port" $.Values.port.haraka -}}
-{{- $harakaServiceArgs := dict "ServiceName" "haraka" "Ports" $harakaPorts "Release" $.Release "Values" $.Values  -}}
-{{- include "oneuptime.service" $harakaServiceArgs }}
----
-
 apiVersion: v1
 kind: Service
 metadata:
