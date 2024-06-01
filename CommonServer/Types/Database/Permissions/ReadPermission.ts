@@ -17,7 +17,7 @@ export default class ReadPermission {
     public static async checkReadPermission<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
-        select: Select<TBaseModel>,
+        select: Select<TBaseModel> | null,
         props: DatabaseCommonInteractionProps
     ): Promise<CheckReadPermissionType<TBaseModel>> {
         const baseFunctionReturn: CheckPermissionBaseInterface<TBaseModel> =

@@ -17,9 +17,8 @@ import {
     OnFind,
     OnUpdate,
 } from '../Types/Database/Hooks';
-import ModelPermission, {
-    CheckReadPermissionType,
-} from '../Types/Database/Permissions/Index';
+import ModelPermission from '../Types/Database/Permissions/Index';
+import { CheckReadPermissionType } from '../Types/Database/Permissions/ReadPermission';
 import Query, { FindWhere } from '../Types/Database/Query';
 import QueryHelper from '../Types/Database/QueryHelper';
 import RelationSelect from '../Types/Database/RelationSelect';

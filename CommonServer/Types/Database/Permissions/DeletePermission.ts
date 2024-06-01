@@ -22,12 +22,14 @@ export default class DeletePermission {
         }
 
         if (!props.isRoot && !props.isMasterAdmin) {
+            // Does the user have permission to delete the object in this table? If no, then throw an error.
             TablePermission.checkTableLevelPermissions(
                 modelType,
                 props,
                 DatabaseRequestType.Delete
             );
 
+            // Add tenant scope to query.
             query = await TenantPermission.addTenantScopeToQuery(
                 modelType,
                 query,
@@ -36,6 +38,7 @@ export default class DeletePermission {
                 DatabaseRequestType.Delete
             );
 
+            // add access control ids to query
             query = await AccessControlUtil.addAccessControlIdsToQuery(
                 modelType,
                 query,

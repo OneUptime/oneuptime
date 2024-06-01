@@ -29,7 +29,9 @@ export default class TenantPermission {
         // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
         if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
             (query as any)[tenantColumn] = props.tenantId;
-        } else if (
+        }
+        // if model allows user query without tenant, and user column is present, and userId is present, then add userId to query.
+        else if (
             model.isUserQueryWithoutTenantAllowed() &&
             model.getUserColumn() &&
             props.userId
