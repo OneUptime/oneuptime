@@ -84,7 +84,6 @@ export default class ModelPermission {
         data: QueryDeepPartialEntity<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
-
         if (props.isRoot || props.isMasterAdmin) {
             return query;
         }
@@ -1132,7 +1131,6 @@ export default class ModelPermission {
         props: DatabaseCommonInteractionProps,
         type: DatabaseRequestType
     ): void {
-        
         this.checkIfUserIsLoggedIn(modelType, props, type);
 
         // 2nd CHECK: Does user have access to CRUD data on this model.
