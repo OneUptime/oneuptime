@@ -72,23 +72,13 @@ export default class BasePermission {
                 // check query permissions.
                 QueryPermission.checkQueryPermission(modelType, query, props);
 
-                // this is for labels.
-                if (model.getAccessControlColumn()) {
-                    const accessControlIds: Array<ObjectID> =
-                        AccessControlPermission.getAccessControlIdsForQuery(
-                            modelType,
-                            query,
-                            select,
-                            props,
-                            type
-                        );
-
-                    if (accessControlIds.length > 0) {
-                        (query as any)[
-                            model.getAccessControlColumn() as string
-                        ] = accessControlIds;
-                    }
-                }
+                query = await AccessControlPermission.addAccessControlIdsToQuery(
+                    modelType,
+                    query,
+                    select,
+                    props,
+                    type
+                );
 
                 /// Implement Related Permissions.
                 if (model.canAccessIfCanReadOn) {

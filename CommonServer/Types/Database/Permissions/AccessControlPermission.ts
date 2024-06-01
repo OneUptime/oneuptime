@@ -37,8 +37,7 @@ export default class AccessControlPermission {
                 );
 
             if (accessControlIds.length > 0) {
-                (query as any)[model.getAccessControlColumn() as string] =
-                    accessControlIds;
+                (query as any)[model.getAccessControlColumn() as string] = accessControlIds;
             }
         }
 

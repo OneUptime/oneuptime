@@ -112,6 +112,33 @@ export default class QueryHelper {
         );
     }
 
+    public static all(values: Array<string | ObjectID>): FindOperator<any> {
+        values = values.map((value: string | ObjectID) => {
+            return value.toString();
+        });
+        const rid: string = Text.generateRandomText(10);
+
+        if (!values || values.length === 0) {
+            return Raw(() => {
+                return `TRUE = FALSE`; // this will always return false
+            }, {});
+        }
+
+        return Raw(
+            (alias: string) => {
+                return `(${alias} = ALL(:${rid}))`;
+            },
+            {
+                [rid]: values,
+            }
+        );
+    }
+
+
+    public static any(values: Array<string | ObjectID>): FindOperator<any> {
+        return this.in(values); // any and in are the same
+    }
+
     public static in(values: Array<string | ObjectID>): FindOperator<any> {
         values = values.map((value: string | ObjectID) => {
             return value.toString();
