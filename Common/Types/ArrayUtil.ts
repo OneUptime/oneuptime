@@ -1,8 +1,30 @@
+import ObjectID from './ObjectID';
+
 export default class ArrayUtil {
     public static removeDuplicates(array: Array<any>): Array<any> {
         return array.filter((value: any, index: number, self: Array<any>) => {
             return self.indexOf(value) === index;
         });
+    }
+
+    public static removeDuplicatesFromObjectIDArray(
+        array: Array<ObjectID>
+    ): Array<ObjectID> {
+        const distinctIds: Array<ObjectID> = [];
+
+        for (const objectId of array) {
+            if (
+                distinctIds.filter((item: ObjectID) => {
+                    return item.toString() === objectId.toString();
+                }).length > 0
+            ) {
+                continue;
+            }
+
+            distinctIds.push(objectId);
+        }
+
+        return distinctIds;
     }
 
     public static isEqual(a: Array<any>, b: Array<any>): boolean {

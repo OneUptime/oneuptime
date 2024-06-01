@@ -19,7 +19,7 @@ import {
 } from '../Types/Database/Hooks';
 import ModelPermission, {
     CheckReadPermissionType,
-} from '../Types/Database/ModelPermission';
+} from '../Types/Database/Permissions/Index';
 import Query, { FindWhere } from '../Types/Database/Query';
 import QueryHelper from '../Types/Database/QueryHelper';
 import RelationSelect from '../Types/Database/RelationSelect';
