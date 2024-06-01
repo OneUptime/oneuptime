@@ -110,7 +110,7 @@ RunCron(
             const statusPageResources: Array<StatusPageResource> =
                 await StatusPageResourceService.findBy({
                     query: {
-                        monitorId: QueryHelper.in(
+                        monitorId: QueryHelper.any(
                             incident.monitors
                                 .filter((m: Monitor) => {
                                     return m._id;

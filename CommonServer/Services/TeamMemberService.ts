@@ -216,7 +216,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         const updateBy: UpdateBy<TeamMember> = onUpdate.updateBy;
         const items: Array<TeamMember> = await this.findBy({
             query: {
-                _id: QueryHelper.in(updatedItemIds),
+                _id: QueryHelper.any(updatedItemIds),
             },
             select: {
                 userId: true,
@@ -361,7 +361,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     ): Promise<Array<User>> {
         const members: Array<TeamMember> = await this.findBy({
             query: {
-                teamId: QueryHelper.in(teamIds),
+                teamId: QueryHelper.any(teamIds),
             },
             props: {
                 isRoot: true,

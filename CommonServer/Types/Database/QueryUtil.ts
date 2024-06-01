@@ -116,7 +116,7 @@ export default class QueryUtil {
                 query[key] instanceof InBetween &&
                 tableColumnMetadata
             ) {
-                query[key] = QueryHelper.inBetween(
+                query[key] = QueryHelper.anyBetween(
                     (query[key] as InBetween).startValue as any,
                     (query[key] as InBetween).endValue as any
                 ) as any;
@@ -133,7 +133,7 @@ export default class QueryUtil {
                 query[key] instanceof Includes &&
                 tableColumnMetadata
             ) {
-                query[key] = QueryHelper.in(
+                query[key] = QueryHelper.any(
                     (query[key] as Includes).values
                 ) as any;
             } else if (
@@ -158,7 +158,7 @@ export default class QueryUtil {
                 tableColumnMetadata &&
                 tableColumnMetadata.type !== TableColumnType.EntityArray
             ) {
-                query[key] = QueryHelper.in(
+                query[key] = QueryHelper.any(
                     query[key] as any
                 ) as FindOperator<any> as any;
             }
@@ -194,7 +194,7 @@ export default class QueryUtil {
                 ) as any;
 
                 (query as any)[key] = {
-                    _id: QueryHelper.in(query[key] as Array<string>),
+                    _id: QueryHelper.any(query[key] as Array<string>),
                 };
             }
         }

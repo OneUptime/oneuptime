@@ -278,7 +278,7 @@ export class AccessTokenService extends BaseService {
         const teamPermissions: Array<TeamPermission> =
             await TeamPermissionService.findBy({
                 query: {
-                    teamId: QueryHelper.in(teamIds),
+                    teamId: QueryHelper.any(teamIds),
                 },
                 select: {
                     permission: true,

@@ -60,14 +60,14 @@ export class Service extends DatabaseService<MonitorGroup> {
         const monitorStatusTimelines: Array<MonitorStatusTimeline> =
             await MonitorStatusTimelineService.findBy({
                 query: {
-                    monitorId: QueryHelper.in(
+                    monitorId: QueryHelper.any(
                         monitorGroupResources.map(
                             (monitorGroupResource: MonitorGroupResource) => {
                                 return monitorGroupResource.monitorId!;
                             }
                         )
                     ),
-                    createdAt: QueryHelper.inBetween(startDate, endDate),
+                    createdAt: QueryHelper.anyBetween(startDate, endDate),
                 },
                 select: {
                     createdAt: true,

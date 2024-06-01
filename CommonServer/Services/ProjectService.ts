@@ -215,7 +215,7 @@ export class Service extends DatabaseService<Model> {
             existingProjectWithSameNameCount = (
                 await this.countBy({
                     query: {
-                        _id: QueryHelper.in(
+                        _id: QueryHelper.any(
                             data.props.userGlobalAccessPermission?.projectIds.map(
                                 (item: ObjectID) => {
                                     return item.toString();

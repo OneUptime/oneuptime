@@ -733,10 +733,10 @@ export default class StatusPageAPI extends BaseAPI<
                         monitorStatusTimelines =
                             await MonitorStatusTimelineService.findBy({
                                 query: {
-                                    monitorId: QueryHelper.in(
+                                    monitorId: QueryHelper.any(
                                         monitorsOnStatusPageForTimeline
                                     ),
-                                    endsAt: QueryHelper.inBetween(
+                                    endsAt: QueryHelper.anyBetween(
                                         startDate,
                                         endDate
                                     ),
@@ -765,7 +765,7 @@ export default class StatusPageAPI extends BaseAPI<
                         monitorStatusTimelines = monitorStatusTimelines.concat(
                             await MonitorStatusTimelineService.findBy({
                                 query: {
-                                    monitorId: QueryHelper.in(
+                                    monitorId: QueryHelper.any(
                                         monitorsOnStatusPageForTimeline
                                     ),
                                     endsAt: QueryHelper.isNull(),
@@ -861,7 +861,7 @@ export default class StatusPageAPI extends BaseAPI<
                         activeIncidents = await IncidentService.findBy({
                             query: {
                                 monitors: monitorsOnStatusPage as any,
-                                currentIncidentStateId: QueryHelper.in(
+                                currentIncidentStateId: QueryHelper.any(
                                     unresolvedIncidentStateIds
                                 ),
                                 projectId: statusPage.projectId!,
@@ -890,7 +890,7 @@ export default class StatusPageAPI extends BaseAPI<
                         incidentPublicNotes =
                             await IncidentPublicNoteService.findBy({
                                 query: {
-                                    incidentId: QueryHelper.in(
+                                    incidentId: QueryHelper.any(
                                         incidentsOnStatusPage
                                     ),
                                     projectId: statusPage.projectId!,
@@ -918,7 +918,7 @@ export default class StatusPageAPI extends BaseAPI<
                         incidentStateTimelines =
                             await IncidentStateTimelineService.findBy({
                                 query: {
-                                    incidentId: QueryHelper.in(
+                                    incidentId: QueryHelper.any(
                                         incidentsOnStatusPage
                                     ),
                                     projectId: statusPage.projectId!,
@@ -1067,7 +1067,7 @@ export default class StatusPageAPI extends BaseAPI<
                         scheduledMaintenanceEventsPublicNotes =
                             await ScheduledMaintenancePublicNoteService.findBy({
                                 query: {
-                                    scheduledMaintenanceId: QueryHelper.in(
+                                    scheduledMaintenanceId: QueryHelper.any(
                                         scheduledMaintenanceEventsOnStatusPage
                                     ),
                                     projectId: statusPage.projectId!,
@@ -1096,7 +1096,7 @@ export default class StatusPageAPI extends BaseAPI<
                             await ScheduledMaintenanceStateTimelineService.findBy(
                                 {
                                     query: {
-                                        scheduledMaintenanceId: QueryHelper.in(
+                                        scheduledMaintenanceId: QueryHelper.any(
                                             scheduledMaintenanceEventsOnStatusPage
                                         ),
                                         projectId: statusPage.projectId!,
@@ -1545,7 +1545,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         let query: Query<ScheduledMaintenance> = {
-            startsAt: QueryHelper.inBetween(historyDays, today),
+            startsAt: QueryHelper.anyBetween(historyDays, today),
             statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
         };
@@ -1646,7 +1646,7 @@ export default class StatusPageAPI extends BaseAPI<
             scheduledMaintenanceEventsPublicNotes =
                 await ScheduledMaintenancePublicNoteService.findBy({
                     query: {
-                        scheduledMaintenanceId: QueryHelper.in(
+                        scheduledMaintenanceId: QueryHelper.any(
                             scheduledMaintenanceEventsOnStatusPage
                         ),
                         projectId: statusPage.projectId!,
@@ -1674,7 +1674,7 @@ export default class StatusPageAPI extends BaseAPI<
             scheduledMaintenanceStateTimelines =
                 await ScheduledMaintenanceStateTimelineService.findBy({
                     query: {
-                        scheduledMaintenanceId: QueryHelper.in(
+                        scheduledMaintenanceId: QueryHelper.any(
                             scheduledMaintenanceEventsOnStatusPage
                         ),
                         projectId: statusPage.projectId!,
@@ -1850,7 +1850,7 @@ export default class StatusPageAPI extends BaseAPI<
 
         let query: Query<StatusPageAnnouncement> = {
             statusPages: [statusPageId] as any,
-            showAnnouncementAt: QueryHelper.inBetween(historyDays, today),
+            showAnnouncementAt: QueryHelper.anyBetween(historyDays, today),
             projectId: statusPage.projectId!,
         };
 
@@ -2279,7 +2279,7 @@ export default class StatusPageAPI extends BaseAPI<
         let incidentQuery: Query<Incident> = {
             monitors: monitorsOnStatusPage as any,
             projectId: statusPage.projectId!,
-            createdAt: QueryHelper.inBetween(historyDays, today),
+            createdAt: QueryHelper.anyBetween(historyDays, today),
         };
 
         if (incidentId) {
@@ -2357,7 +2357,7 @@ export default class StatusPageAPI extends BaseAPI<
                 activeIncidents = await IncidentService.findBy({
                     query: {
                         monitors: monitorsOnStatusPage as any,
-                        currentIncidentStateId: QueryHelper.in(
+                        currentIncidentStateId: QueryHelper.any(
                             unresolvbedIncidentStateIds
                         ),
                         projectId: statusPage.projectId!,
@@ -2393,7 +2393,7 @@ export default class StatusPageAPI extends BaseAPI<
         if (incidentsOnStatusPage.length > 0) {
             incidentPublicNotes = await IncidentPublicNoteService.findBy({
                 query: {
-                    incidentId: QueryHelper.in(incidentsOnStatusPage),
+                    incidentId: QueryHelper.any(incidentsOnStatusPage),
                     projectId: statusPage.projectId!,
                 },
                 select: {
@@ -2417,7 +2417,7 @@ export default class StatusPageAPI extends BaseAPI<
         if (incidentsOnStatusPage.length > 0) {
             incidentStateTimelines = await IncidentStateTimelineService.findBy({
                 query: {
-                    incidentId: QueryHelper.in(incidentsOnStatusPage),
+                    incidentId: QueryHelper.any(incidentsOnStatusPage),
                     projectId: statusPage.projectId!,
                 },
                 select: {

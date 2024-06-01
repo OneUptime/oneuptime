@@ -65,7 +65,7 @@ RunCron(
             const statusPages: Array<StatusPage> =
                 await StatusPageService.findBy({
                     query: {
-                        _id: QueryHelper.in(
+                        _id: QueryHelper.any(
                             announcement.statusPages.map((sp: StatusPage) => {
                                 return sp.id!;
                             })

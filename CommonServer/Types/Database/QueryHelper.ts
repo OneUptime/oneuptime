@@ -139,7 +139,7 @@ export default class QueryHelper {
         return this.in(values); // any and in are the same
     }
 
-    public static in(values: Array<string | ObjectID>): FindOperator<any> {
+    private static in(values: Array<string | ObjectID>): FindOperator<any> {
         values = values.map((value: string | ObjectID) => {
             return value.toString();
         });

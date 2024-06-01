@@ -931,7 +931,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             if (items.length > 0) {
                 beforeDeleteBy.query = {
                     ...beforeDeleteBy.query,
-                    _id: QueryHelper.in(
+                    _id: QueryHelper.any(
                         items.map((i: TBaseModel) => {
                             return i.id!;
                         })
@@ -955,6 +955,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
+
+            debugger;
+
             if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
                 throw new BadDataException('Delete not allowed');
             }
@@ -993,28 +996,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 skip: beforeDeleteBy.skip.toNumber(),
                 limit: beforeDeleteBy.limit.toNumber(),
                 select: select,
-                props: { ...beforeDeleteBy.props, ignoreHooks: true },
-            });
-
-            await this._updateBy({
-                query: deleteBy.query,
-                data: {
-                    deletedByUserId: deleteBy.props.userId,
-                } as any,
-                limit: deleteBy.limit,
-                skip: deleteBy.skip,
                 props: {
-                    isRoot: true,
-                    ignoreHooks: true,
+                    isRoot:true, 
+                    ignoreHooks: true
                 },
             });
+
+            // We are hard deleting anyway. So, this does not make sense. Please uncomment if 
+            // we change the code to soft-delete.
+
+            // await this._updateBy({
+            //     query: deleteBy.query,
+            //     data: {
+            //         deletedByUserId: deleteBy.props.userId,
+            //     } as any,
+            //     limit: deleteBy.limit,
+            //     skip: deleteBy.skip,
+            //     props: {
+            //         isRoot: true,
+            //         ignoreHooks: true,
+            //     },
+            // });
 
             let numberOfDocsAffected: number = 0;
 
             if (items.length > 0) {
-                beforeDeleteBy.query = {
-                    ...beforeDeleteBy.query,
-                    _id: QueryHelper.in(
+                const query: Query<TBaseModel> = {
+                    _id: QueryHelper.any(
                         items.map((i: TBaseModel) => {
                             return i.id!;
                         })
@@ -1024,7 +1032,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 numberOfDocsAffected =
                     (
                         await this.getRepository().delete(
-                            beforeDeleteBy.query as any
+                            query as any
                         )
                     ).affected || 0;
             }

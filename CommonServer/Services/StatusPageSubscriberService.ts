@@ -284,7 +284,7 @@ export class Service extends DatabaseService<Model> {
     ): Promise<Array<StatusPage>> {
         return await StatusPageService.findBy({
             query: {
-                _id: QueryHelper.in(statusPageIds),
+                _id: QueryHelper.any(statusPageIds),
             },
             props: {
                 isRoot: true,

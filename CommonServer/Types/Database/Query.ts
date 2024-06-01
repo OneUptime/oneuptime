@@ -11,7 +11,7 @@ export declare type FindWhereProperty<Property> =
  * Used for find operations.
  */
 export declare type FindWhere<Entity> = {
-    [P in keyof Entity]?: FindWhereProperty<NonNullable<Entity[P]>>;
+    [P in keyof Entity]?: FindWhereProperty<NonNullable<Entity[P]>> | FindOperator<NonNullable<Entity[P]>>;
 };
 
 declare type Query<TBaseModel extends BaseModel> = FindWhere<TBaseModel>;

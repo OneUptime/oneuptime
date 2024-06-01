@@ -332,7 +332,7 @@ export default class UserMiddleware {
 
         const projects: Array<Project> = await ProjectService.findBy({
             query: {
-                _id: QueryHelper.in(
+                _id: QueryHelper.any(
                     projectIds.map((i: ObjectID) => {
                         return i.toString();
                     }) || []

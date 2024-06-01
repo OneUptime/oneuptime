@@ -85,7 +85,7 @@ RunCron(
             if (event.monitors && event.monitors.length > 0) {
                 statusPageResources = await StatusPageResourceService.findBy({
                     query: {
-                        monitorId: QueryHelper.in(
+                        monitorId: QueryHelper.any(
                             event.monitors
                                 .filter((m: Monitor) => {
                                     return m._id;
