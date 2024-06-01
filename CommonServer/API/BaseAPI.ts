@@ -369,10 +369,8 @@ export default class BaseAPI<
         delete (item as any)['createdAt'];
         delete (item as any)['updatedAt'];
 
-        await this.service.updateOneBy({
-            query: {
-                _id: objectIdString,
-            },
+        await this.service.updateOneById({
+            id: new ObjectID(objectIdString),
             data: item,
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });

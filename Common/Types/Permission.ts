@@ -1102,7 +1102,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create Workflow in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteWorkflow,
@@ -1289,7 +1289,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create Monitor Group in this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteMonitorGroup,
@@ -1564,7 +1564,7 @@ export class PermissionHelper {
                 title: 'Create Monitor',
                 description: 'This permission can create monitor this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteProjectMonitor,
@@ -1925,7 +1925,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create on-call duty this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteProjectOnCallDutyPolicy,
@@ -1958,7 +1958,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create on-call duty schedule this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteProjectOnCallDutyPolicySchedule,
@@ -1991,7 +1991,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create status pages this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteProjectStatusPage,
@@ -2054,7 +2054,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create Telemetry Service this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteTelemetryService,
@@ -2994,7 +2994,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create incident this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteProjectIncident,
@@ -3128,7 +3128,7 @@ export class PermissionHelper {
                 description:
                     'This permission can create Scheduled Maintenance this project.',
                 isAssignableToTenant: true,
-                isAccessControlPermission: true,
+                isAccessControlPermission: false,
             },
             {
                 permission: Permission.DeleteProjectScheduledMaintenance,
