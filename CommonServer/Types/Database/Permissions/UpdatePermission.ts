@@ -1,11 +1,11 @@
 import DatabaseRequestType from '../../BaseDatabase/DatabaseRequestType';
 import Query from '../Query';
+import BasePermission, { CheckPermissionBaseInterface } from './BasePermission';
+import ColumnPermissions from './ColumnPermission';
+import TablePermission from './TablePermission';
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import QueryDeepPartialEntity from 'Common/Types/Database/PartialEntity';
-import TablePermission from './TablePermission';
-import BasePermission, { CheckPermissionBaseInterface } from './BasePermission';
-import ColumnPermissions from './ColumnPermission';
 
 export default class UpdatePermission {
     public static async checkUpdatePermissions<TBaseModel extends BaseModel>(
