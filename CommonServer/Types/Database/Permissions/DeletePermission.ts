@@ -34,7 +34,7 @@ export default class DeletePermission {
 
         // if the control is here, then the user has table level permissions.
         const model: TBaseModel = new modelType();
-        const modelAccessControlColumnName = model.getAccessControlColumn();
+        const modelAccessControlColumnName: keyof TBaseModel | null = model.getAccessControlColumn();
 
         if (modelAccessControlColumnName) {
             const accessControlIdsWhcihUserHasAccessTo: Array<ObjectID> =

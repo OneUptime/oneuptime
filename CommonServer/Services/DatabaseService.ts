@@ -266,7 +266,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         createBy: CreateBy<TBaseModel>
     ): Promise<OnCreate<TBaseModel>> {
         // Private method that runs before create.
-        const projectIdColumn: string | null = this.model.getTenantColumn();
+        const projectIdColumn: keyof TBaseModel | null = this.model.getTenantColumn();
 
         if (projectIdColumn && createBy.props.tenantId) {
             (createBy.data as any)[projectIdColumn] = createBy.props.tenantId;
@@ -304,7 +304,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     protected async hash(data: TBaseModel): Promise<TBaseModel> {
-        const columns: Columns = data.getHashedColumns();
+        const columns: Columns<TBaseModel> = data.getHashedColumns();
 
         for (const key of columns.columns) {
             if (
@@ -1481,11 +1481,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             modelType: this.modelType,
             fetchModelWithAccessControlIds: async () => {
                 const selectModel: Select<TBaseModel> = {};
-                const accessControlColumn: string | null =
+                const accessControlColumn: keyof TBaseModel | null =
                     this.getModel().getAccessControlColumn();
 
                 if (accessControlColumn) {
-                    (selectModel as any)[accessControlColumn] = true;
+                    (selectModel)[accessControlColumn] = true;
                 }
 
                 return await this.findOneById({

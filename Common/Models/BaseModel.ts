@@ -108,10 +108,10 @@ export default class BaseModel extends BaseEntity {
     public enableDocumentation!: boolean;
     public isMasterAdminApiDocs!: boolean;
 
-    public currentUserCanAccessColumnBy!: string | null;
-    public labelsColumn!: string | null;
-    public slugifyColumn!: string | null;
-    public saveSlugToColumn!: string | null;
+    public currentUserCanAccessColumnBy!: keyof this | null;
+    public labelsColumn!: keyof this | null;
+    public slugifyColumn!: keyof this | null;
+    public saveSlugToColumn!: keyof this | null;
     public singularName!: string | null;
     public pluralName!: string | null;
 
@@ -128,9 +128,9 @@ export default class BaseModel extends BaseEntity {
     public crudApiPath!: Route | null;
 
     // If this resource is by projectId, which column does projectId belong to?
-    public tenantColumn!: string | null;
+    public tenantColumn!: keyof this | null;
 
-    public accessControlColumn!: string | null;
+    public accessControlColumn!: keyof this | null;
 
     public icon!: IconProp | null;
 
@@ -138,7 +138,7 @@ export default class BaseModel extends BaseEntity {
 
     public tableName!: string | null;
 
-    public canAccessIfCanReadOn!: string | null;
+    public canAccessIfCanReadOn!: keyof this | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -147,7 +147,7 @@ export default class BaseModel extends BaseEntity {
         }
     }
 
-    public getHashedColumns(): Columns {
+    public getHashedColumns(): Columns<this> {
         const dictionary: Dictionary<TableColumnMetadata> =
             getTableColumns(this);
         const columns: Array<string> = [];
@@ -185,7 +185,7 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-    public getTableColumns(): Columns {
+    public getTableColumns(): Columns<this> {
         return new Columns(Object.keys(getTableColumns(this)));
     }
 
@@ -203,7 +203,7 @@ export default class BaseModel extends BaseEntity {
         return dictionary[columnName] as TableColumnMetadata;
     }
 
-    public hasColumn(columnName: string): boolean {
+    public hasColumn(columnName: keyof this): boolean {
         return Boolean(getTableColumn(this, columnName));
     }
 
@@ -243,19 +243,19 @@ export default class BaseModel extends BaseEntity {
         return dictionary;
     }
 
-    public hasValue(columnName: string): boolean {
+    public hasValue(columnName: keyof this): boolean {
         return Boolean((this as any)[columnName]);
     }
 
-    public getValue<T extends DbTypes>(columnName: string): T {
-        return (this as any)[columnName] as T;
+    public getValue<T extends DbTypes>(columnName: keyof this): T {
+        return (this)[columnName] as T;
     }
 
-    public setValue<T extends DbTypes>(columnName: string, value: T): void {
+    public setValue<T extends DbTypes>(columnName: keyof this, value: T): void {
         (this as any)[columnName] = value;
     }
 
-    public removeValue(columnName: string): void {
+    public removeValue(columnName: keyof this): void {
         (this as any)[columnName] = undefined;
     }
 
@@ -267,10 +267,10 @@ export default class BaseModel extends BaseEntity {
             : null;
     }
 
-    public getUniqueColumns(): Columns {
+    public getUniqueColumns(): Columns<this> {
         const dictionary: Dictionary<TableColumnMetadata> =
             getTableColumns(this);
-        const columns: Array<string> = [];
+        const columns: Array<keyof this> = [];
         for (const key in dictionary) {
             if (dictionary[key]?.unique) {
                 columns.push(key);
@@ -280,7 +280,7 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-    public setSlugifyColumn(columnName: string): void {
+    public setSlugifyColumn(columnName: keyof this): void {
         this.slugifyColumn = columnName;
     }
 
@@ -296,7 +296,7 @@ export default class BaseModel extends BaseEntity {
         return this.totalItemsNumber;
     }
 
-    public getRequiredColumns(): Columns {
+    public getRequiredColumns(): Columns<this> {
         const dictionary: Dictionary<TableColumnMetadata> =
             getTableColumns(this);
         const columns: Array<string> = [];
@@ -306,10 +306,10 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return new Columns(columns);
+        return new Columns<this>(columns);
     }
 
-    public getSlugifyColumn(): string | null {
+    public getSlugifyColumn(): keyof this | null {
         return this.slugifyColumn;
     }
 
@@ -317,23 +317,23 @@ export default class BaseModel extends BaseEntity {
         return this.crudApiPath;
     }
 
-    public getSaveSlugToColumn(): string | null {
+    public getSaveSlugToColumn(): keyof this | null {
         return this.saveSlugToColumn;
     }
 
-    public getTenantColumn(): string | null {
+    public getTenantColumn(): keyof this | null {
         return this.tenantColumn;
     }
 
-    public getAccessControlColumn(): string | null {
+    public getAccessControlColumn(): keyof this | null {
         return this.accessControlColumn;
     }
 
-    public getUserColumn(): string | null {
+    public getUserColumn(): keyof this | null {
         return this.currentUserCanAccessColumnBy;
     }
 
-    public getLabelsColumn(): string | null {
+    public getLabelsColumn(): keyof this | null {
         return this.labelsColumn;
     }
 
@@ -347,12 +347,12 @@ export default class BaseModel extends BaseEntity {
         }
     }
 
-    public isDefaultValueColumn(columnName: string): boolean {
+    public isDefaultValueColumn(columnName: keyof this): boolean {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
 
     public getColumnValue(
-        columnName: string
+        columnName: keyof this
     ): JSONValue | BaseModel | Array<BaseModel> | null {
         if (getTableColumn(this, columnName) && (this as any)[columnName]) {
             return (this as any)[columnName] as JSONValue;
@@ -362,19 +362,19 @@ export default class BaseModel extends BaseEntity {
     }
 
     public setColumnValue(
-        columnName: string,
+        columnName: keyof this,
         value: JSONValue | BaseModel | Array<BaseModel>
     ): void {
         if (getTableColumn(this, columnName)) {
-            return ((this as any)[columnName] = value as any);
+            return ((this)[columnName] = value as any);
         }
     }
 
-    public isTableColumn(columnName: string): boolean {
+    public isTableColumn(columnName: keyof this): boolean {
         return Boolean(getTableColumn(this, columnName));
     }
 
-    public isEntityColumn(columnName: string): boolean {
+    public isEntityColumn(columnName: keyof this): boolean {
         const tableColumnType: TableColumnMetadata = getTableColumn(
             this,
             columnName
@@ -382,7 +382,7 @@ export default class BaseModel extends BaseEntity {
 
         if (!tableColumnType) {
             throw new BadDataException(
-                'TableColumnMetadata not found for ' + columnName + ' column'
+                `TableColumnMetadata not found for ${columnName.toString()} column`
             );
         }
 
@@ -392,7 +392,7 @@ export default class BaseModel extends BaseEntity {
         );
     }
 
-    public isHashedStringColumn(columnName: string): boolean {
+    public isHashedStringColumn(columnName: keyof this): boolean {
         const tableColumnType: TableColumnMetadata = getTableColumn(
             this,
             columnName
@@ -400,14 +400,14 @@ export default class BaseModel extends BaseEntity {
 
         if (!tableColumnType) {
             throw new BadDataException(
-                'TableColumnMetadata not found for ' + columnName + ' column'
+                `TableColumnMetadata not found for ${columnName.toString()} column`
             );
         }
 
         return Boolean(tableColumnType.type === TableColumnType.HashedString);
     }
 
-    public isFileColumn(columnName: string): boolean {
+    public isFileColumn(columnName: keyof this): boolean {
         const tableColumnType: TableColumnMetadata = getTableColumn(
             this,
             columnName
