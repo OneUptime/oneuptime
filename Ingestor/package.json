@@ -19,7 +19,7 @@
         "CommonServer": "file:../CommonServer",
         "ejs": "^3.1.10",
         "Model": "file:../Model",
-        "protobufjs": "^7.2.6",
+        "protobufjs": "^7.3.0",
         "ts-node": "^10.9.1"
     },
     "devDependencies": {
