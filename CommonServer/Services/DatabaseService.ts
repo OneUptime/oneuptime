@@ -955,7 +955,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-
             if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
                 throw new BadDataException('Delete not allowed');
             }
