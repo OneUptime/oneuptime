@@ -9,6 +9,26 @@ import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCo
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 export default class ModelPermission {
+    public static async checkDeletePermissionByModel<
+        TBaseModel extends BaseModel
+    >(data: {
+        modelType: { new (): TBaseModel };
+        fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+        props: DatabaseCommonInteractionProps;
+    }): Promise<void> {
+        return DeletePermission.checkDeletePermissionByModel(data);
+    }
+
+    public static async checkUpdatePermissionByModel<
+        TBaseModel extends BaseModel
+    >(data: {
+        modelType: { new (): TBaseModel };
+        fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+        props: DatabaseCommonInteractionProps;
+    }): Promise<void> {
+        return UpdatePermission.checkUpdatePermissionByModel(data);
+    }
+
     public static async checkDeleteQueryPermission<
         TBaseModel extends BaseModel
     >(

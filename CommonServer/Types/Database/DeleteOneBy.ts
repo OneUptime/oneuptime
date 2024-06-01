@@ -5,6 +5,6 @@ import User from 'Model/Models/User';
 
 export default interface DeleteOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
-    deletedByUser?: User;
+    deletedByUser?: User | undefined;
     props: DatabaseCommonInteractionProps;
 }

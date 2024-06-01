@@ -6,6 +6,7 @@ import ClusterKeyAuthorization from '../Middleware/ClusterKeyAuthorization';
 import CountBy from '../Types/Database/CountBy';
 import CreateBy from '../Types/Database/CreateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
+import DeleteById from '../Types/Database/DeleteById';
 import DeleteOneBy from '../Types/Database/DeleteOneBy';
 import FindBy from '../Types/Database/FindBy';
 import FindOneBy from '../Types/Database/FindOneBy';
@@ -884,6 +885,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
     }
 
+    public async deleteById(deleteById: DeleteById): Promise<number> {
+        await ModelPermission.checkDeletePermissionByModel({
+            modelType: this.modelType,
+            fetchModelWithAccessControlIds: async () => {
+                const selectModel: Select<TBaseModel> = {};
+                const accessControlColumn: string | null =
+                    this.getModel().getAccessControlColumn();
+
+                if (accessControlColumn) {
+                    (selectModel as any)[accessControlColumn] = true;
+                }
+
+                return await this.findOneById({
+                    id: deleteById.id,
+                    select: selectModel,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            },
+            props: deleteById.props,
+        });
+
+        return await this.deleteOneBy({
+            query: {
+                _id: deleteById.id.toString(),
+            } as any,
+            deletedByUser: deleteById.deletedByUser,
+            props: deleteById.props,
+        });
+    }
+
     public async deleteOneBy(
         deleteOneBy: DeleteOneBy<TBaseModel>
     ): Promise<number> {
@@ -1443,6 +1476,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         if (!updateById.id) {
             throw new BadDataException('updateById.id is required');
         }
+
+        await ModelPermission.checkUpdatePermissionByModel({
+            modelType: this.modelType,
+            fetchModelWithAccessControlIds: async () => {
+                const selectModel: Select<TBaseModel> = {};
+                const accessControlColumn: string | null =
+                    this.getModel().getAccessControlColumn();
+
+                if (accessControlColumn) {
+                    (selectModel as any)[accessControlColumn] = true;
+                }
+
+                return await this.findOneById({
+                    id: updateById.id,
+                    select: selectModel,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            },
+            props: updateById.props,
+        });
 
         await this.updateOneBy({
             query: {

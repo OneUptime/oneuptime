@@ -45,6 +45,30 @@ export default class AccessControlPermission {
         return query;
     }
 
+    public static getAccessControlIdsForModel(
+        modelType: BaseModelType,
+        props: DatabaseCommonInteractionProps,
+        type: DatabaseRequestType
+    ): Array<ObjectID> {
+        let labelIds: Array<ObjectID> = [];
+
+        // check model level permissions.
+
+        const modelLevelPermissions: Array<Permission> =
+            TablePermission.getTablePermission(modelType, type);
+
+        const modelLevelLabelIds: Array<ObjectID> =
+            this.getAccessControlIdsByPermissions(modelLevelPermissions, props);
+
+        labelIds = [...labelIds, ...modelLevelLabelIds];
+
+        // get distinct labelIds
+        const distinctLabelIds: Array<ObjectID> =
+            ArrayUtil.removeDuplicatesFromObjectIDArray(labelIds);
+
+        return distinctLabelIds;
+    }
+
     public static getAccessControlIdsForQuery<TBaseModel extends BaseModel>(
         modelType: BaseModelType,
         query: Query<TBaseModel>,
@@ -65,15 +89,7 @@ export default class AccessControlPermission {
             ];
         }
 
-        // check model level permissions.
-
-        const modelLevelPermissions: Array<Permission> =
-            TablePermission.getTablePermission(modelType, type);
-
-        const modelLevelLabelIds: Array<ObjectID> =
-            this.getAccessControlIdsByPermissions(modelLevelPermissions, props);
-
-        labelIds = [...labelIds, ...modelLevelLabelIds];
+        labelIds = this.getAccessControlIdsForModel(modelType, props, type);
 
         for (const column of columnsToCheckPermissionFor) {
             const accessControl: ColumnAccessControl | null =
