@@ -41,8 +41,12 @@ import UserType from 'Common/Types/UserType';
 import { FindOperator } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
-export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
+export interface CheckPermissionBaseInterface<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
+}
+
+export interface CheckReadPermissionType<TBaseModel extends BaseModel>
+    extends CheckPermissionBaseInterface<TBaseModel> {
     select: Select<TBaseModel> | null;
     relationSelect: RelationSelect<TBaseModel> | null;
 }
@@ -85,6 +89,7 @@ export default class ModelPermission {
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
         if (props.isRoot || props.isMasterAdmin) {
+            // If system is making this query then let the query run!
             return query;
         }
 
@@ -264,12 +269,15 @@ export default class ModelPermission {
         }
     }
 
-    public static async checkReadPermission<TBaseModel extends BaseModel>(
+    public static async checkPermissionBaseFunction<
+        TBaseModel extends BaseModel
+    >(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         select: Select<TBaseModel> | null,
-        props: DatabaseCommonInteractionProps
-    ): Promise<CheckReadPermissionType<TBaseModel>> {
+        props: DatabaseCommonInteractionProps,
+        type: DatabaseRequestType
+    ): Promise<CheckPermissionBaseInterface<TBaseModel>> {
         const model: BaseModel = new modelType();
 
         if (props.isRoot || props.isMasterAdmin) {
@@ -282,11 +290,7 @@ export default class ModelPermission {
 
         if (!props.isRoot && !props.isMasterAdmin) {
             //check if the user is logged in.
-            this.checkIfUserIsLoggedIn(
-                modelType,
-                props,
-                DatabaseRequestType.Read
-            );
+            this.checkIfUserIsLoggedIn(modelType, props, type);
 
             // add tenant scope.
             query = await this.addTenantScopeToQuery(
@@ -297,18 +301,13 @@ export default class ModelPermission {
             );
 
             // add user scope if any
-
             query = await this.addUserScopeToQuery(modelType, query, props);
 
             if (!props.isMultiTenantRequest) {
                 // We will check for this permission in recursive function.
 
                 // check model level permissions.
-                this.checkModelLevelPermissions(
-                    modelType,
-                    props,
-                    DatabaseRequestType.Read
-                );
+                this.checkModelLevelPermissions(modelType, props, type);
 
                 // We will check for this permission in recursive function.
                 // check query permissions.
@@ -376,6 +375,27 @@ export default class ModelPermission {
                 }
             }
         }
+
+        return { query };
+    }
+
+    public static async checkReadPermission<TBaseModel extends BaseModel>(
+        modelType: { new (): TBaseModel },
+        query: Query<TBaseModel>,
+        select: Select<TBaseModel> | null,
+        props: DatabaseCommonInteractionProps
+    ): Promise<CheckReadPermissionType<TBaseModel>> {
+        const baseFunctionReturn: CheckPermissionBaseInterface<TBaseModel> =
+            await this.checkPermissionBaseFunction(
+                modelType,
+                query,
+                select,
+                props,
+                DatabaseRequestType.Read
+            );
+
+        // upate query
+        query = baseFunctionReturn.query;
 
         query = this.serializeQuery(modelType, query);
         let relationSelect: RelationSelect<TBaseModel> = {};
@@ -1159,6 +1179,15 @@ export default class ModelPermission {
             );
         }
 
+        // check billing permissions and if the project is in active state.
+        this.checkBillingPermissions(modelType, props, type);
+    }
+
+    public static checkBillingPermissions(
+        modelType: BaseModelType,
+        props: DatabaseCommonInteractionProps,
+        type: DatabaseRequestType
+    ): void {
         /// Check billing permissions.
 
         if (IsBillingEnabled && props.currentPlan) {
