@@ -71,11 +71,13 @@ export default class ModelPermission {
                 props,
                 DatabaseRequestType.Delete
             );
+
             query = await this.addTenantScopeToQuery(
                 modelType,
                 query,
                 null,
-                props
+                props,
+                DatabaseRequestType.Delete
             );
         }
 
@@ -99,10 +101,16 @@ export default class ModelPermission {
             DatabaseRequestType.Update
         );
 
-        const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
-            await this.checkReadPermission(modelType, query, null, props);
+        const checkBasePermission: CheckPermissionBaseInterface<TBaseModel> =
+            await this.checkPermissionBaseFunction(
+                modelType,
+                query,
+                null,
+                props,
+                DatabaseRequestType.Update
+            );
 
-        query = checkReadPermissionType.query;
+        query = checkBasePermission.query;
 
         this.checkDataColumnPermissions(
             modelType,
@@ -297,7 +305,8 @@ export default class ModelPermission {
                 modelType,
                 query,
                 select,
-                props
+                props,
+                type
             );
 
             // add user scope if any
@@ -376,13 +385,15 @@ export default class ModelPermission {
             }
         }
 
+        query = this.serializeQuery(modelType, query);
+
         return { query };
     }
 
     public static async checkReadPermission<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
-        select: Select<TBaseModel> | null,
+        select: Select<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): Promise<CheckReadPermissionType<TBaseModel>> {
         const baseFunctionReturn: CheckPermissionBaseInterface<TBaseModel> =
@@ -397,7 +408,6 @@ export default class ModelPermission {
         // upate query
         query = baseFunctionReturn.query;
 
-        query = this.serializeQuery(modelType, query);
         let relationSelect: RelationSelect<TBaseModel> = {};
 
         if (select) {
@@ -903,7 +913,8 @@ export default class ModelPermission {
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         select: Select<TBaseModel> | null,
-        props: DatabaseCommonInteractionProps
+        props: DatabaseCommonInteractionProps,
+        type: DatabaseRequestType
     ): Promise<Query<TBaseModel>> {
         const model: BaseModel = new modelType();
 
@@ -952,8 +963,8 @@ export default class ModelPermission {
                 }
 
                 try {
-                    const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
-                        await this.checkReadPermission(
+                    const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
+                        await this.checkPermissionBaseFunction(
                             modelType,
                             query,
                             select,
@@ -963,10 +974,12 @@ export default class ModelPermission {
                                 tenantId: projectId,
                                 userTenantAccessPermission:
                                     props.userTenantAccessPermission,
-                            }
+                            },
+                            type
                         );
+
                     queries.push({
-                        ...(checkReadPermissionType.query as Query<TBaseModel>),
+                        ...checkBasePermissions.query,
                     });
                 } catch (e) {
                     // do nothing here. Ignore.
