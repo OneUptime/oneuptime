@@ -72,13 +72,14 @@ export default class BasePermission {
                 // check query permissions.
                 QueryPermission.checkQueryPermission(modelType, query, props);
 
-                query = await AccessControlPermission.addAccessControlIdsToQuery(
-                    modelType,
-                    query,
-                    select,
-                    props,
-                    type
-                );
+                query =
+                    await AccessControlPermission.addAccessControlIdsToQuery(
+                        modelType,
+                        query,
+                        select,
+                        props,
+                        type
+                    );
 
                 /// Implement Related Permissions.
                 if (model.canAccessIfCanReadOn) {

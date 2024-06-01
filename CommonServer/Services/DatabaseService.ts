@@ -956,8 +956,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
 
-            debugger;
-
             if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
                 throw new BadDataException('Delete not allowed');
             }
@@ -997,12 +995,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 limit: beforeDeleteBy.limit.toNumber(),
                 select: select,
                 props: {
-                    isRoot:true, // isRoot because query has already been checked for permissions.
-                    ignoreHooks: true
+                    isRoot: true, // isRoot because query has already been checked for permissions.
+                    ignoreHooks: true,
                 },
             });
 
-            // We are hard deleting anyway. So, this does not make sense. Please uncomment if 
+            // We are hard deleting anyway. So, this does not make sense. Please uncomment if
             // we change the code to soft-delete.
 
             // await this._updateBy({
@@ -1030,11 +1028,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 };
 
                 numberOfDocsAffected =
-                    (
-                        await this.getRepository().delete(
-                            query as any
-                        )
-                    ).affected || 0;
+                    (await this.getRepository().delete(query as any))
+                        .affected || 0;
             }
 
             // hit workflow.

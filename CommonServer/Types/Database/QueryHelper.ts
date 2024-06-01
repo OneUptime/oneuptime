@@ -134,7 +134,6 @@ export default class QueryHelper {
         );
     }
 
-
     public static any(values: Array<string | ObjectID>): FindOperator<any> {
         return this.in(values); // any and in are the same
     }
