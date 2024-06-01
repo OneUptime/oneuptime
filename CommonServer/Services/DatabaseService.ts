@@ -845,7 +845,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             };
 
             const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
-                await ModelPermission.checkReadPermission(
+                await ModelPermission.checkReadQueryPermission(
                     this.modelType,
                     query,
                     null,
@@ -901,11 +901,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 : await this.onBeforeDelete(deleteBy);
             const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
-            beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
-                this.modelType,
-                beforeDeleteBy.query,
-                deleteBy.props
-            );
+            beforeDeleteBy.query =
+                await ModelPermission.checkDeleteQueryPermission(
+                    this.modelType,
+                    beforeDeleteBy.query,
+                    deleteBy.props
+                );
 
             if (!(beforeDeleteBy.skip instanceof PositiveNumber)) {
                 beforeDeleteBy.skip = new PositiveNumber(beforeDeleteBy.skip);
@@ -967,11 +968,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
             const carryForward: any = onDelete.carryForward;
 
-            beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
-                this.modelType,
-                beforeDeleteBy.query,
-                deleteBy.props
-            );
+            beforeDeleteBy.query =
+                await ModelPermission.checkDeleteQueryPermission(
+                    this.modelType,
+                    beforeDeleteBy.query,
+                    deleteBy.props
+                );
 
             if (!(beforeDeleteBy.skip instanceof PositiveNumber)) {
                 beforeDeleteBy.skip = new PositiveNumber(beforeDeleteBy.skip);
@@ -1123,7 +1125,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 query: Query<TBaseModel>;
                 select: Select<TBaseModel> | null;
                 relationSelect: RelationSelect<TBaseModel> | null;
-            } = await ModelPermission.checkReadPermission(
+            } = await ModelPermission.checkReadQueryPermission(
                 this.modelType,
                 onBeforeFind.query,
                 onBeforeFind.select || null,
@@ -1296,12 +1298,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
             const carryForward: any = onUpdate.carryForward;
 
-            beforeUpdateBy.query = await ModelPermission.checkUpdatePermissions(
-                this.modelType,
-                beforeUpdateBy.query,
-                beforeUpdateBy.data,
-                beforeUpdateBy.props
-            );
+            beforeUpdateBy.query =
+                await ModelPermission.checkUpdateQueryPermissions(
+                    this.modelType,
+                    beforeUpdateBy.query,
+                    beforeUpdateBy.data,
+                    beforeUpdateBy.props
+                );
 
             const data: QueryDeepPartialEntity<TBaseModel> =
                 (await this.sanitizeCreateOrUpdate(
