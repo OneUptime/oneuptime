@@ -449,7 +449,7 @@ export class Service extends DatabaseService<Model> {
 
         const incidentCount: PositiveNumber = await this.countBy({
             query: {
-                monitors: QueryHelper.anyRelationArray([monitorId]),
+                monitors: QueryHelper.inRelationArray([monitorId]),
                 currentIncidentState: {
                     order: QueryHelper.lessThan(resolvedState?.order as number),
                 },

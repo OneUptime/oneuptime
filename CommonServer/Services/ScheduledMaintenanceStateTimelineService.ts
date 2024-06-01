@@ -324,7 +324,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         const count: PositiveNumber = await ScheduledMaintenanceService.countBy(
             {
                 query: {
-                    monitors: QueryHelper.anyRelationArray([id]),
+                    monitors: QueryHelper.inRelationArray([id]),
                     currentScheduledMaintenanceState: {
                         isOngoingState: true,
                     },

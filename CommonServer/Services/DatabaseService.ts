@@ -997,7 +997,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 limit: beforeDeleteBy.limit.toNumber(),
                 select: select,
                 props: {
-                    isRoot:true, 
+                    isRoot:true, // isRoot because query has already been checked for permissions.
                     ignoreHooks: true
                 },
             });
