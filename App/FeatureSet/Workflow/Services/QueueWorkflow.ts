@@ -121,7 +121,7 @@ export default class QueueWorkflow {
                 await WorkflowLogService.countBy({
                     query: {
                         projectId: workflow.projectId,
-                        createdAt: QueryHelper.anyBetween(startDate, endDate),
+                        createdAt: QueryHelper.inBetween(startDate, endDate),
                     },
                     props: {
                         isRoot: true,

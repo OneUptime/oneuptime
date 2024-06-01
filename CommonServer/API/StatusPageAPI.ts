@@ -736,7 +736,7 @@ export default class StatusPageAPI extends BaseAPI<
                                     monitorId: QueryHelper.any(
                                         monitorsOnStatusPageForTimeline
                                     ),
-                                    endsAt: QueryHelper.anyBetween(
+                                    endsAt: QueryHelper.inBetween(
                                         startDate,
                                         endDate
                                     ),
@@ -1545,7 +1545,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         let query: Query<ScheduledMaintenance> = {
-            startsAt: QueryHelper.anyBetween(historyDays, today),
+            startsAt: QueryHelper.inBetween(historyDays, today),
             statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
         };
@@ -1850,7 +1850,7 @@ export default class StatusPageAPI extends BaseAPI<
 
         let query: Query<StatusPageAnnouncement> = {
             statusPages: [statusPageId] as any,
-            showAnnouncementAt: QueryHelper.anyBetween(historyDays, today),
+            showAnnouncementAt: QueryHelper.inBetween(historyDays, today),
             projectId: statusPage.projectId!,
         };
 
@@ -2279,7 +2279,7 @@ export default class StatusPageAPI extends BaseAPI<
         let incidentQuery: Query<Incident> = {
             monitors: monitorsOnStatusPage as any,
             projectId: statusPage.projectId!,
-            createdAt: QueryHelper.anyBetween(historyDays, today),
+            createdAt: QueryHelper.inBetween(historyDays, today),
         };
 
         if (incidentId) {

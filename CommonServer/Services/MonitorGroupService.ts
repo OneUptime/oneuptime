@@ -67,7 +67,7 @@ export class Service extends DatabaseService<MonitorGroup> {
                             }
                         )
                     ),
-                    createdAt: QueryHelper.anyBetween(startDate, endDate),
+                    createdAt: QueryHelper.inBetween(startDate, endDate),
                 },
                 select: {
                     createdAt: true,

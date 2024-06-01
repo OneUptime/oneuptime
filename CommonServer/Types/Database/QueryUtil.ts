@@ -116,7 +116,7 @@ export default class QueryUtil {
                 query[key] instanceof InBetween &&
                 tableColumnMetadata
             ) {
-                query[key] = QueryHelper.anyBetween(
+                query[key] = QueryHelper.inBetween(
                     (query[key] as InBetween).startValue as any,
                     (query[key] as InBetween).endValue as any
                 ) as any;

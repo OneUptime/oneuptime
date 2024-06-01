@@ -80,7 +80,7 @@ export class Service extends DatabaseService<Model> {
                 productType: data.productType,
                 telemetryServiceId: data.telemetryServiceId,
                 isReportedToBillingProvider: false,
-                createdAt: QueryHelper.anyBetween(
+                createdAt: QueryHelper.inBetween(
                     OneUptimeDate.addRemoveDays(
                         OneUptimeDate.getCurrentDate(),
                         -1
