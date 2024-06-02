@@ -57,18 +57,7 @@ jest.mock('../../Infrastructure/GlobalCache', () => {
     };
 });
 
-jest.mock('../../Services/AccessTokenService', () => {
-    const actualModule: any = jest.requireActual(
-        '../../Services/AccessTokenService'
-    );
-    return {
-        __esModule: true,
-        default: actualModule.default,
-        refreshUserGlobalAccessPermission: jest.fn(),
-        refreshUserTenantAccessPermission: jest.fn(),
-    };
-});
-
+jest.mock('../../Services/AccessTokenService');
 jest.mock('../../Services/BillingService');
 jest.mock('../../Services/ProjectService');
 
@@ -122,15 +111,12 @@ describe('TeamMemberService', () => {
                     team
                 );
 
-            jest.spyOn(
-                AccessTokenService,
-                'refreshUserGlobalAccessPermission'
-            ).mockResolvedValue(null!);
-
-            jest.spyOn(
-                AccessTokenService,
-                'refreshUserTenantAccessPermission'
-            ).mockResolvedValue(null);
+            AccessTokenService.refreshUserGlobalAccessPermission = jest
+                .fn()
+                .mockResolvedValue(null);
+            AccessTokenService.refreshUserTenantAccessPermission = jest
+                .fn()
+                .mockResolvedValue(null);
 
             const teamMember: TeamMember = await teamMemberService.create(tm);
 
@@ -168,15 +154,12 @@ describe('TeamMemberService', () => {
                         team
                     );
 
-                jest.spyOn(
-                    AccessTokenService,
-                    'refreshUserGlobalAccessPermission'
-                ).mockResolvedValue(null!);
-
-                jest.spyOn(
-                    AccessTokenService,
-                    'refreshUserTenantAccessPermission'
-                ).mockResolvedValue(null);
+                AccessTokenService.refreshUserGlobalAccessPermission = jest
+                    .fn()
+                    .mockResolvedValue(null);
+                AccessTokenService.refreshUserTenantAccessPermission = jest
+                    .fn()
+                    .mockResolvedValue(null);
 
                 await teamMemberService.create(tm);
 
@@ -223,15 +206,12 @@ describe('TeamMemberService', () => {
                         { email: nonExistingUserEmail }
                     );
 
-                jest.spyOn(
-                    AccessTokenService,
-                    'refreshUserGlobalAccessPermission'
-                ).mockResolvedValue(null!);
-
-                jest.spyOn(
-                    AccessTokenService,
-                    'refreshUserTenantAccessPermission'
-                ).mockResolvedValue(null);
+                AccessTokenService.refreshUserGlobalAccessPermission = jest
+                    .fn()
+                    .mockResolvedValue(null);
+                AccessTokenService.refreshUserTenantAccessPermission = jest
+                    .fn()
+                    .mockResolvedValue(null);
 
                 await teamMemberService.create(tm);
 
@@ -323,15 +303,12 @@ describe('TeamMemberService', () => {
                     team
                 );
 
-            jest.spyOn(
-                AccessTokenService,
-                'refreshUserGlobalAccessPermission'
-            ).mockResolvedValue(null!);
-
-            jest.spyOn(
-                AccessTokenService,
-                'refreshUserTenantAccessPermission'
-            ).mockResolvedValue(null);
+            AccessTokenService.refreshUserGlobalAccessPermission = jest
+                .fn()
+                .mockResolvedValue(null);
+            AccessTokenService.refreshUserTenantAccessPermission = jest
+                .fn()
+                .mockResolvedValue(null);
 
             const teamMember: TeamMember = await teamMemberService.create(tm);
 
@@ -440,15 +417,12 @@ describe('TeamMemberService', () => {
                     team
                 );
 
-            jest.spyOn(
-                AccessTokenService,
-                'refreshUserGlobalAccessPermission'
-            ).mockResolvedValue(null!);
-
-            jest.spyOn(
-                AccessTokenService,
-                'refreshUserTenantAccessPermission'
-            ).mockResolvedValue(null);
+            AccessTokenService.refreshUserGlobalAccessPermission = jest
+                .fn()
+                .mockResolvedValue(null);
+            AccessTokenService.refreshUserTenantAccessPermission = jest
+                .fn()
+                .mockResolvedValue(null);
 
             const teamMember: TeamMember = await teamMemberService.create(tm);
 
@@ -781,6 +755,7 @@ describe('TeamMemberService', () => {
                 'Growth,growth_monthly_plan_id,growth_yearly_plan_id,9,99,2,14';
 
             const NUM_MEMBERS: number = 5;
+
             jest.spyOn(
                 teamMemberService,
                 'getUniqueTeamMemberCountInProject'
