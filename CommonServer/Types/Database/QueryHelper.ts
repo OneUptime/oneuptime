@@ -316,6 +316,23 @@ export default class QueryHelper {
         );
     }
 
+    public static notInBetween(
+        startValue: number | Date,
+        endValue: number | Date
+    ): FindOperator<any> {
+        const rid1: string = Text.generateRandomText(10);
+        const rid2: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `(${alias} < :${rid1} or ${alias} > :${rid2})`;
+            },
+            {
+                [rid1]: startValue,
+                [rid2]: endValue,
+            }
+        );
+    }
+
     public static queryJson(value: JSONObject): FindOperator<any> {
         // seed random text
         const values: JSONObject = {};
