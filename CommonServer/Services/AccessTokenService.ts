@@ -205,18 +205,21 @@ export class AccessTokenService extends BaseService {
         userPermissions.push({
             permission: Permission.CurrentUser,
             labelIds: [],
+            isBlockPermission: false,
             _type: 'UserPermission',
         });
 
         userPermissions.push({
             permission: Permission.UnAuthorizedSsoUser,
             labelIds: [],
+            isBlockPermission: false,
             _type: 'UserPermission',
         });
 
         const permission: UserTenantAccessPermission = {
             projectId,
             permissions: userPermissions,
+            isBlockPermission: false,
             _type: 'UserTenantAccessPermission',
         };
 
@@ -285,8 +288,8 @@ export class AccessTokenService extends BaseService {
                     labels: {
                         _id: true,
                     },
+                    isBlockPermission: true,
                 },
-
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {
@@ -306,6 +309,7 @@ export class AccessTokenService extends BaseService {
                 labelIds: teamPermission.labels.map((label: Label) => {
                     return label.id!;
                 }),
+                isBlockPermission: teamPermission.isBlockPermission,
                 _type: 'UserPermission',
             });
         }
