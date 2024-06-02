@@ -32,7 +32,6 @@ import React, {
     ReactElement,
 } from 'react';
 
-
 export enum PermissionType {
     AllowPermissions = 'AllowPermissions',
     BlockPermissions = 'BlockPermissions',
@@ -43,13 +42,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
+    type GetTeamPermissionTable = (data: {
+        permissionType: PermissionType;
+    }) => ReactElement;
 
-
-
-    const getTeamPermissionTable = (data: {
-        permissionType: PermissionType
+    const getTeamPermissionTable: GetTeamPermissionTable = (data: {
+        permissionType: PermissionType;
     }) => {
-
         const { permissionType } = data;
 
         const formRef: MutableRefObject<FormProps<FormValues<TeamPermission>>> =
@@ -57,196 +56,201 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 FormProps<FormValues<TeamPermission>>
             >() as MutableRefObject<FormProps<FormValues<TeamPermission>>>;
 
-        let tableTitle = 'Allow Permissions';
+        let tableTitle: string = 'Allow Permissions';
 
         if (permissionType === PermissionType.BlockPermissions) {
             tableTitle = 'Block Permissions';
         }
 
-        let tableDescription = 'Here you can manage allow permissions for this team.';
+        let tableDescription: string =
+            'Here you can manage allow permissions for this team.';
 
         if (permissionType === PermissionType.BlockPermissions) {
-            tableDescription = 'Here you can manage block permissions for this team. This will override any allow permissions set for this team.';
+            tableDescription =
+                'Here you can manage block permissions for this team. This will override any allow permissions set for this team.';
         }
 
-        return (<ModelTable<TeamPermission>
-            modelType={TeamPermission}
-            id={"table-team-permission-"+permissionType}
-            isDeleteable={true}
-            isEditable={true}
-            isCreateable={true}
-            name={"Settings > Team > Permissions-"+permissionType}
-            isViewable={false}
-            createEditFromRef={formRef}
-            query={{
-                teamId: modelId,
-                projectId: DashboardNavigation.getProjectId()?.toString(),
-                isBlockPermission: permissionType === PermissionType.BlockPermissions,
-            }}
-            onBeforeCreate={(
-                item: TeamPermission
-            ): Promise<TeamPermission> => {
-                if (!props.currentProject || !props.currentProject._id) {
-                    throw new BadDataException('Project ID cannot be null');
-                }
-                item.teamId = modelId;
-                item.projectId = new ObjectID(props.currentProject._id);
-                item.isBlockPermission = permissionType === PermissionType.BlockPermissions;
-                return Promise.resolve(item);
-            }}
-            cardProps={{
-                title: tableTitle,
-                description:
-                   tableDescription,
-            }}
-            noItemsMessage={'No permisisons created for this team so far.'}
-            formFields={[
-                {
-                    field: {
-                        permission: true,
+        return (
+            <ModelTable<TeamPermission>
+                modelType={TeamPermission}
+                id={'table-team-permission-' + permissionType}
+                isDeleteable={true}
+                isEditable={true}
+                isCreateable={true}
+                name={'Settings > Team > Permissions-' + permissionType}
+                isViewable={false}
+                createEditFromRef={formRef}
+                query={{
+                    teamId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    isBlockPermission:
+                        permissionType === PermissionType.BlockPermissions,
+                }}
+                onBeforeCreate={(
+                    item: TeamPermission
+                ): Promise<TeamPermission> => {
+                    if (!props.currentProject || !props.currentProject._id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+                    item.teamId = modelId;
+                    item.projectId = new ObjectID(props.currentProject._id);
+                    item.isBlockPermission =
+                        permissionType === PermissionType.BlockPermissions;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    title: tableTitle,
+                    description: tableDescription,
+                }}
+                noItemsMessage={'No permisisons created for this team so far.'}
+                formFields={[
+                    {
+                        field: {
+                            permission: true,
+                        },
+                        onChange: async (_value: any): Promise<void> => {
+                            await formRef.current.setFieldValue(
+                                'labels',
+                                [],
+                                true
+                            );
+                        },
+                        title: 'Permission',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Permission',
+                        dropdownOptions:
+                            PermissionUtil.projectPermissionsAsDropdownOptions(),
                     },
-                    onChange: async (_value: any): Promise<void> => {
-                        await formRef.current.setFieldValue(
-                            'labels',
-                            [],
-                            true
-                        );
-                    },
-                    title: 'Permission',
-                    fieldType: FormFieldSchemaType.Dropdown,
-                    required: true,
-                    placeholder: 'Permission',
-                    dropdownOptions:
-                        PermissionUtil.projectPermissionsAsDropdownOptions(),
-                },
-                {
-                    field: {
-                        labels: true,
-                    },
-                    title: 'Restrict to Labels',
-                    description:
-                        'If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.',
-                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                    dropdownModal: {
-                        type: Label,
-                        labelField: 'name',
-                        valueField: '_id',
-                    },
-                    showIf: (
-                        values: FormValues<TeamPermission>
-                    ): boolean => {
-                        if (!values['permission']) {
-                            return false;
-                        }
+                    {
+                        field: {
+                            labels: true,
+                        },
+                        title: 'Restrict to Labels',
+                        description:
+                            'If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        showIf: (
+                            values: FormValues<TeamPermission>
+                        ): boolean => {
+                            if (!values['permission']) {
+                                return false;
+                            }
 
-                        if (
-                            values['permission'] &&
-                            !PermissionHelper.isAccessControlPermission(
-                                values['permission'] as Permission
-                            )
-                        ) {
-                            return false;
-                        }
+                            if (
+                                values['permission'] &&
+                                !PermissionHelper.isAccessControlPermission(
+                                    values['permission'] as Permission
+                                )
+                            ) {
+                                return false;
+                            }
 
-                        return true;
+                            return true;
+                        },
+                        required: false,
+                        placeholder: 'Labels',
                     },
-                    required: false,
-                    placeholder: 'Labels',
-                },
-            ]}
-            showRefreshButton={true}
-            viewPageRoute={Navigation.getCurrentRoute()}
-            filters={[
-                {
-                    field: {
-                        permission: true,
+                ]}
+                showRefreshButton={true}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            permission: true,
+                        },
+                        type: FieldType.Text,
+                        title: 'Permission',
                     },
-                    type: FieldType.Text,
-                    title: 'Permission',
-                },
-                {
-                    field: {
-                        labels: {
-                            name: true,
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                            },
+                        },
+                        type: FieldType.EntityArray,
+                        title: 'Restrict to Labels',
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId:
+                                DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
                         },
                     },
-                    type: FieldType.EntityArray,
-                    title: 'Restrict to Labels',
-                    filterEntityType: Label,
-                    filterQuery: {
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    },
-                    filterDropdownField: {
-                        label: 'name',
-                        value: '_id',
-                    },
-                },
-            ]}
-            columns={[
-                {
-                    field: {
-                        permission: true,
-                    },
-                    title: 'Permission',
-                    type: FieldType.Text,
+                ]}
+                columns={[
+                    {
+                        field: {
+                            permission: true,
+                        },
+                        title: 'Permission',
+                        type: FieldType.Text,
 
-                    getElement: (item: TeamPermission): ReactElement => {
-                        return (
-                            <p>
-                                {PermissionHelper.getTitle(
+                        getElement: (item: TeamPermission): ReactElement => {
+                            return (
+                                <p>
+                                    {PermissionHelper.getTitle(
+                                        item['permission'] as Permission
+                                    )}
+                                </p>
+                            );
+                        },
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Restrict to Labels',
+                        type: FieldType.EntityArray,
+
+                        getElement: (item: TeamPermission): ReactElement => {
+                            if (
+                                item &&
+                                item['permission'] &&
+                                !PermissionHelper.isAccessControlPermission(
                                     item['permission'] as Permission
-                                )}
-                            </p>
-                        );
-                    },
-                },
-                {
-                    field: {
-                        labels: {
-                            name: true,
-                            color: true,
+                                )
+                            ) {
+                                return (
+                                    <p>
+                                        Restriction by labels cannot be applied
+                                        to this permission.
+                                    </p>
+                                );
+                            }
+
+                            if (
+                                !item['labels'] ||
+                                item['labels'].length === 0
+                            ) {
+                                return (
+                                    <p>
+                                        No restrictions has been applied to this
+                                        permission.
+                                    </p>
+                                );
+                            }
+
+                            return (
+                                <LabelsElement labels={item['labels'] || []} />
+                            );
                         },
                     },
-                    title: 'Restrict to Labels',
-                    type: FieldType.EntityArray,
-
-                    getElement: (item: TeamPermission): ReactElement => {
-                        if (
-                            item &&
-                            item['permission'] &&
-                            !PermissionHelper.isAccessControlPermission(
-                                item['permission'] as Permission
-                            )
-                        ) {
-                            return (
-                                <p>
-                                    Restriction by labels cannot be applied
-                                    to this permission.
-                                </p>
-                            );
-                        }
-
-                        if (
-                            !item['labels'] ||
-                            item['labels'].length === 0
-                        ) {
-                            return (
-                                <p>
-                                    No restrictions has been applied to this
-                                    permission.
-                                </p>
-                            );
-                        }
-
-                        return (
-                            <LabelsElement labels={item['labels'] || []} />
-                        );
-                    },
-                },
-            ]}
-        />)
-    }
+                ]}
+            />
+        );
+    };
 
     return (
         <Fragment>
@@ -416,10 +420,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             />
 
             {/* Team Permisison Table */}
-            {getTeamPermissionTable({permissionType: PermissionType.AllowPermissions})}
+            {getTeamPermissionTable({
+                permissionType: PermissionType.AllowPermissions,
+            })}
 
             {/* Team Block Permisison Table */}
-            {getTeamPermissionTable({permissionType: PermissionType.BlockPermissions})}
+            {getTeamPermissionTable({
+                permissionType: PermissionType.BlockPermissions,
+            })}
 
             {/* Delete Team */}
             <ModelDelete
