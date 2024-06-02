@@ -29,6 +29,15 @@ export default class Faker {
     }
 
     public static generatePhone(): Phone {
-        return new Phone(faker.phone.number());
+        let phoneNumber: string = faker.phone.number();
+        // remove "-" and " " from the phone number
+        phoneNumber = phoneNumber.replace(/-/g, '');
+
+        if (phoneNumber.includes(' ')) {
+            // get the first part, second part is usually the extension. We don't need that.
+            phoneNumber = phoneNumber.split(' ')[0] as string;
+        }
+
+        return new Phone(phoneNumber);
     }
 }
