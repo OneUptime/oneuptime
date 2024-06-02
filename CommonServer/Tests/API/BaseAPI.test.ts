@@ -628,12 +628,12 @@ describe('BaseAPI', () => {
         });
 
         it('should convert request param id to query', async () => {
-            await baseApiInstance.deleteItem(deleteRequest, res);
-
             const deleteOneBySpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance.service,
                 'deleteOneBy'
             );
+
+            await baseApiInstance.deleteItem(deleteRequest, res);
 
             expect(deleteOneBySpy).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -699,12 +699,14 @@ describe('BaseAPI', () => {
             };
 
             updateRequest.body.data = itemWithForbiddenFields;
-            await baseApiInstance.updateItem(updateRequest, updateResponse);
 
             const updateOneBySpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance.service,
                 'updateOneBy'
             );
+
+            await baseApiInstance.updateItem(updateRequest, updateResponse);
+
             expect(updateOneBySpy).toHaveBeenCalledWith(
                 expect.objectContaining({
                     data: { name: 'updatedName' },
