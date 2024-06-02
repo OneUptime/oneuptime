@@ -34,7 +34,8 @@ export default class DeletePermission {
 
         // if the control is here, then the user has table level permissions.
         const model: TBaseModel = new modelType();
-        const modelAccessControlColumnName: string | null = model.getAccessControlColumn();
+        const modelAccessControlColumnName: string | null =
+            model.getAccessControlColumn();
 
         if (modelAccessControlColumnName) {
             const accessControlIdsWhcihUserHasAccessTo: Array<ObjectID> =
@@ -58,7 +59,7 @@ export default class DeletePermission {
             const hasAccessToDelete: boolean = false;
 
             const accessControlIdsWhichUserHasAccessToAsStrings: Array<string> =
-                accessControlIdsWhcihUserHasAccessTo.map((id) => {
+                accessControlIdsWhcihUserHasAccessTo.map((id: ObjectID) => {
                     return id.toString();
                 }) || [];
 
@@ -83,7 +84,7 @@ export default class DeletePermission {
                     return;
                 }
 
-                const accessControlName = accessControl.getColumnValue(
+                const accessControlName: string = accessControl.getColumnValue(
                     'name'
                 ) as string;
 

@@ -101,8 +101,7 @@ export default class ColumnPermissions {
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
-        for (let key of Object.keys(data)) {
-
+        for (const key of Object.keys(data)) {
             if ((data as any)[key] === undefined) {
                 continue;
             }
