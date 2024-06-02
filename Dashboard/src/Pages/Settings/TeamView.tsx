@@ -235,9 +235,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    title: 'Team Permissions',
+                    title: 'Allow Permissions',
                     description:
-                        'Add different permisisons to this team to make it more granular.',
+                        'Here you can manage allow permissions for this team.',
                 }}
                 noItemsMessage={'No permisisons created for this team so far.'}
                 formFields={[
@@ -263,9 +263,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
-                        title: 'Labels ',
+                        title: 'Restrict to Labels',
                         description:
-                            'Labels on which this permissions will apply on. This is optional and an advanced feature.',
+                            'If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Label,
@@ -311,7 +311,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         type: FieldType.EntityArray,
-                        title: 'Labels',
+                        title: 'Restrict to Labels',
                         filterEntityType: Label,
                         filterQuery: {
                             projectId:
@@ -348,7 +348,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 color: true,
                             },
                         },
-                        title: 'Labels',
+                        title: 'Restrict to Labels',
                         type: FieldType.EntityArray,
 
                         getElement: (item: TeamPermission): ReactElement => {
@@ -361,10 +361,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <p>
-                                        Labels can not be attached to this
-                                        permission.
+                                        Restriction by labels cannot be applied to this permission.
                                     </p>
                                 );
+                            }
+
+                            if (!item['labels'] || item['labels'].length === 0) {
+                                return <p>
+                                    No restrictions has been applied to this permission.
+                                </p>
                             }
 
                             return (

@@ -149,9 +149,9 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isViewable={false}
                 cardProps={{
-                    title: 'API Key Permissions',
+                    title: 'Allow Permissions',
                     description:
-                        'Add different permisisons to API keys to make it more granular.',
+                        'Here you can manage allow permissions for this API Key.',
                 }}
                 noItemsMessage={
                     'No permisisons created for this API Key so far.'
@@ -180,9 +180,9 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
-                        title: 'Labels ',
+                        title: 'Restrict to Labels',
                         description:
-                            'Labels on which this permissions will apply on. This is optional and an advanced feature.',
+                            'If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Label,
@@ -227,7 +227,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                                 name: true,
                             },
                         },
-                        title: 'Labels',
+                        title: 'Restrict to Labels',
                         type: FieldType.EntityArray,
                         filterEntityType: Label,
                         filterQuery: {
@@ -265,7 +265,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                                 color: true,
                             },
                         },
-                        title: 'Labels',
+                        title: 'Restrict to Labels',
                         type: FieldType.EntityArray,
 
                         getElement: (item: ApiKeyPermission): ReactElement => {
@@ -278,10 +278,16 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <p>
-                                        Labels can not be attached to this
-                                        permission.
+                                        Restriction by labels cannot be applied to this permission.
                                     </p>
                                 );
+                            }
+
+
+                            if (!item['labels'] || item['labels'].length === 0) {
+                                return <p>
+                                    No restrictions has been applied to this permission.
+                                </p>
                             }
 
                             return (
