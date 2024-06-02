@@ -60,6 +60,8 @@ jest.mock('../../Services/DatabaseService', () => {
                 return { id: 'mock' };
             }),
             deleteOneBy: jest.fn(),
+            deleteById: jest.fn(),
+            updateById: jest.fn(),
             updateOneBy: jest.fn(),
             create: jest.fn().mockImplementation((...args: []) => {
                 return args;
@@ -556,7 +558,7 @@ describe('BaseAPI', () => {
     });
 
     describe('getItem', () => {
-        it('should call onBeforeDelete lifecycle method', async () => {
+        it('should call onBeforeGet lifecycle method', async () => {
             const onBeforeGetSpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance as any,
                 'onBeforeGet'
@@ -627,10 +629,12 @@ describe('BaseAPI', () => {
 
         it('should convert request param id to query', async () => {
             await baseApiInstance.deleteItem(deleteRequest, res);
+
             const deleteOneBySpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance.service,
                 'deleteOneBy'
             );
+
             expect(deleteOneBySpy).toHaveBeenCalledWith(
                 expect.objectContaining({
                     query: { _id: 'delete-me' },
