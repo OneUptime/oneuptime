@@ -7,7 +7,11 @@
             "babelConfig": false
         }
     },
-    "moduleFileExtensions": ["ts", "js", "json"],
+    "moduleFileExtensions": [
+        "ts",
+        "js",
+        "json"
+    ],
     "transform": {
         ".(ts|tsx)": "ts-jest"
     },
@@ -19,9 +23,14 @@
     "moduleNameMapper": {
         "axios": "axios/dist/node/axios.cjs"
     },
-    "coverageReporters": ["text", "lcov"],
+    "coverageReporters": [
+        "text",
+        "lcov"
+    ],
     "testRegex": "./Tests/(.*).test.ts",
-    "collectCoverageFrom": ["./**/*.(tsx||ts)"],
+    "collectCoverageFrom": [
+        "./**/*.(tsx||ts)"
+    ],
     "coverageThreshold": {
         "global": {
             "lines": 0,
@@ -29,5 +38,13 @@
             "branches": 0,
             "statements": 0
         }
-    }
+    },
+    "reporters": [
+        [
+            "default",
+            {
+                "summaryThreshold": 1
+            }
+        ]
+    ]
 }

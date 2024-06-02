@@ -48,27 +48,8 @@ jest.mock('../../Infrastructure/PostgresDatabase', () => {
 });
 
 // mock Redis
-jest.mock('../../Infrastructure/GlobalCache', () => {
-    return {
-        setJSON: jest.fn(),
-        getJSON: jest.fn(),
-        setString: jest.fn(),
-        getString: jest.fn(),
-    };
-});
-
-jest.mock('../../Services/AccessTokenService', () => {
-    const actualModule: any = jest.requireActual(
-        '../../Services/AccessTokenService'
-    );
-    return {
-        __esModule: true,
-        default: actualModule.default,
-        refreshUserGlobalAccessPermission: jest.fn(),
-        refreshUserTenantAccessPermission: jest.fn(),
-    };
-});
-
+jest.mock('../../Infrastructure/GlobalCache');
+jest.mock('../../Services/AccessTokenService');
 jest.mock('../../Services/BillingService');
 jest.mock('../../Services/ProjectService');
 

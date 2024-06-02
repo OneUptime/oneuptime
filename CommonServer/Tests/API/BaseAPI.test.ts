@@ -17,6 +17,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import GenericObject from 'Common/Types/GenericObject';
 import ObjectID from 'Common/Types/ObjectID';
@@ -490,11 +491,11 @@ describe('BaseAPI', () => {
             ).rejects.toThrow(BadRequestException);
         });
 
-        it('should throw BadRequestException if limit is less than 0', async () => {
+        it('should throw BadDataException if limit is less than 0', async () => {
             emptyRequest.query['limit'] = '-1';
             await expect(
                 baseApiInstance.getList(emptyRequest, res)
-            ).rejects.toThrow(BadRequestException);
+            ).rejects.toThrow(BadDataException);
         });
 
         it('should throw BadRequestException if limit is 0', async () => {
