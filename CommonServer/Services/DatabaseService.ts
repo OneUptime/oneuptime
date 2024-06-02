@@ -894,7 +894,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                     this.getModel().getAccessControlColumn();
 
                 if (accessControlColumn) {
-                    (selectModel as any)[accessControlColumn] = true;
+                    (selectModel as any)[accessControlColumn] = {
+                        _id: true,
+                        name: true,
+                    };
                 }
 
                 return await this.findOneById({
@@ -1485,7 +1488,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                     this.getModel().getAccessControlColumn();
 
                 if (accessControlColumn) {
-                    selectModel[accessControlColumn as keyof TBaseModel] = true;
+                    (selectModel as any)[accessControlColumn] = {
+                        _id: true,
+                        name: true,
+                    };
                 }
 
                 return await this.findOneById({
