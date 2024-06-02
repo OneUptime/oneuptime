@@ -61,11 +61,11 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         }
 
         let tableDescription: string =
-            'Here you can manage allow permissions for this team.';
+            'Here you can manage allow permissions for this API Key.';
 
         if (permissionType === PermissionType.BlockPermissions) {
             tableDescription =
-                'Here you can manage block permissions for this team. This will override any allow permissions set for this team.';
+                'Here you can manage block permissions for this API Key. This will override any allow permissions set for this API Key.';
         }
 
         {

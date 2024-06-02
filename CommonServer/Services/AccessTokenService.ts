@@ -124,6 +124,7 @@ export class AccessTokenService extends BaseService {
                     labels: {
                         _id: true,
                     },
+                    isBlockPermission: true,
                 },
 
                 limit: LIMIT_MAX,
@@ -145,6 +146,7 @@ export class AccessTokenService extends BaseService {
                 labelIds: apiPermission.labels.map((label: Label) => {
                     return label.id!;
                 }),
+                isBlockPermission: apiPermission.isBlockPermission,
                 _type: 'UserPermission',
             });
         }
