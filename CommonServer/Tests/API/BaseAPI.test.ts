@@ -700,14 +700,14 @@ describe('BaseAPI', () => {
 
             updateRequest.body.data = itemWithForbiddenFields;
 
-            const updateOneBySpy: jest.SpyInstance = jest.spyOn(
+            const updateOneByIdSpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance.service,
-                'updateOneBy'
+                'updateOneById'
             );
 
             await baseApiInstance.updateItem(updateRequest, updateResponse);
 
-            expect(updateOneBySpy).toHaveBeenCalledWith(
+            expect(updateOneByIdSpy).toHaveBeenCalledWith(
                 expect.objectContaining({
                     data: { name: 'updatedName' },
                 })
@@ -716,13 +716,15 @@ describe('BaseAPI', () => {
 
         it('should convert request param id to ObjectID for query', async () => {
             await baseApiInstance.updateItem(updateRequest, updateResponse);
+
             const updateOneBySpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance.service,
-                'updateOneBy'
+                'updateOneById'
             );
+
             expect(updateOneBySpy).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    query: { _id: 'update-me' },
+                    id: new ObjectID('update-me'),
                 })
             );
         });
@@ -731,10 +733,10 @@ describe('BaseAPI', () => {
             await baseApiInstance.updateItem(updateRequest, updateResponse);
             const updateOneBySpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance.service,
-                'updateOneBy'
+                'updateOneById'
             );
             expect(updateOneBySpy).toHaveBeenCalledWith({
-                query: { _id: 'update-me' },
+                id: new ObjectID('update-me'),
                 data: { name: 'updatedName' },
                 props: emptyProps,
             });
