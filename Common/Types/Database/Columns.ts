@@ -1,23 +1,21 @@
-import GenericObject from "../GenericObject";
-
-export default class Columns<T extends GenericObject> {
-    private _columns: Array<keyof T> = [];
-    public get columns(): Array<keyof T> {
+export default class Columns {
+    private _columns: Array<string> = [];
+    public get columns(): Array<string> {
         return this._columns;
     }
-    public set columns(v: Array<keyof T>) {
+    public set columns(v: Array<string>) {
         this._columns = v;
     }
 
-    public constructor(columns: Array<keyof T>) {
+    public constructor(columns: Array<string>) {
         this.columns = columns;
     }
 
-    public addColumn(columnName: keyof T): void {
+    public addColumn(columnName: string): void {
         this.columns.push(columnName);
     }
 
-    public hasColumn(columnName: keyof T): boolean {
+    public hasColumn(columnName: string): boolean {
         return this.columns.includes(columnName);
     }
 }

@@ -7,6 +7,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Model from 'Model/Models/Label';
 
 export class Service extends DatabaseService<Model> {
+    
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }

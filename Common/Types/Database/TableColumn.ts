@@ -28,17 +28,17 @@ export default (props: TableColumnMetadata): ReflectionMetadataType => {
 
 type GetTableColumnFunction = <T extends BaseModel>(
     target: T,
-    propertyKey: keyof T
+    propertyKey: string
 ) => TableColumnMetadata;
 
 export const getTableColumn: GetTableColumnFunction = <T extends BaseModel>(
     target: T,
-    propertyKey: keyof T
+    propertyKey: string
 ): TableColumnMetadata => {
     return Reflect.getMetadata(
         tableColumn,
         target,
-        propertyKey as string | symbol
+        propertyKey
     ) as TableColumnMetadata;
 };
 
