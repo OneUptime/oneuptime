@@ -33,6 +33,17 @@ export default class Faker {
         // remove "-" and " " from the phone number
         phoneNumber = phoneNumber.replace(/-/g, '');
 
+        // remove ( from the phone number
+        phoneNumber = phoneNumber.replace(/\(/g, '');
+
+        // remove ) from the phone number
+        phoneNumber = phoneNumber.replace(/\)/g, '');
+
+        // remove . from the phone number
+        phoneNumber = phoneNumber.replace(/\./g, '');
+
+        phoneNumber = phoneNumber.trim(); // remove leading and trailing spaces
+
         if (phoneNumber.includes(' ')) {
             // get the first part, second part is usually the extension. We don't need that.
             phoneNumber = phoneNumber.split(' ')[0] as string;

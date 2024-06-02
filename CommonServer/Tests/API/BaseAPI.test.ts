@@ -490,8 +490,15 @@ describe('BaseAPI', () => {
             ).rejects.toThrow(BadRequestException);
         });
 
-        it.skip('should throw BadRequestException if limit is less than 0', async () => {
+        it('should throw BadRequestException if limit is less than 0', async () => {
             emptyRequest.query['limit'] = '-1';
+            await expect(
+                baseApiInstance.getList(emptyRequest, res)
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('should throw BadRequestException if limit is 0', async () => {
+            emptyRequest.query['limit'] = '0';
             await expect(
                 baseApiInstance.getList(emptyRequest, res)
             ).rejects.toThrow(BadRequestException);
@@ -630,14 +637,14 @@ describe('BaseAPI', () => {
         it('should convert request param id to query', async () => {
             const deleteOneBySpy: jest.SpyInstance = jest.spyOn(
                 baseApiInstance.service,
-                'deleteOneBy'
+                'deleteOneById'
             );
 
             await baseApiInstance.deleteItem(deleteRequest, res);
 
             expect(deleteOneBySpy).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    query: { _id: 'delete-me' },
+                    id: new ObjectID('delete-me'),
                     props: emptyDatabaseCommonInteractionProps,
                 })
             );

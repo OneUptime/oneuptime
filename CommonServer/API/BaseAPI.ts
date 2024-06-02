@@ -235,6 +235,16 @@ export default class BaseAPI<
             );
         }
 
+        if (skip.toNumber() < 0) {
+            throw new BadRequestException(
+                'Skip should be greater than or equal to 0'
+            );
+        }
+
+        if (limit.toNumber() <= 0) {
+            throw new BadRequestException('Limit should be greater than 0');
+        }
+
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
