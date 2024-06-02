@@ -5,8 +5,6 @@ import ApiKey from './ApiKey';
 import ApiKeyPermission from './ApiKeyPermission';
 import BillingInvoice from './BillingInvoice';
 import BillingPaymentMethods from './BillingPaymentMethod';
-import BlockedApiKeyPermission from './BlockedApiKeyPermission';
-import BlockedTeamPermission from './BlockedTeamPermission';
 import CallLog from './CallLog';
 // Date migration
 import DataMigration from './DataMigration';
@@ -129,11 +127,9 @@ export default [
     Team,
     TeamMember,
     TeamPermission,
-    BlockedTeamPermission,
     ApiKey,
     Label,
     ApiKeyPermission,
-    BlockedApiKeyPermission,
     ProjectSmtpConfig,
     StatusPage,
 
