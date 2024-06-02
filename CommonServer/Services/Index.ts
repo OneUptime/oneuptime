@@ -9,6 +9,8 @@ import BaseService from './BaseService';
 import BillingInvoiceService from './BillingInvoiceService';
 import BillingPaymentMethodsService from './BillingPaymentMethodService';
 import BillingService from './BillingService';
+import BlockedApiKeyPermissionService from './BlockedApiKeyPermissionService';
+import BlockedTeamPermissionService from './BlockedTeamPermissionService';
 import CallLogService from './CallLogService';
 import CallService from './CallService';
 import DataMigrationService from './DataMigrationService';
@@ -128,6 +130,7 @@ const services: Array<BaseService> = [
     // Import all services in current folder here.
     AccessTokenService,
     ApiKeyPermissionService,
+    BlockedApiKeyPermissionService,
     ApiKeyService,
 
     BillingInvoiceService,
@@ -215,6 +218,7 @@ const services: Array<BaseService> = [
 
     TeamMemberService,
     TeamPermissionService,
+    BlockedTeamPermissionService,
     TeamService,
 
     UserService,
