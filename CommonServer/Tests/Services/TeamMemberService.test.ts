@@ -121,6 +121,17 @@ describe('TeamMemberService', () => {
                     new ObjectID(user._id!),
                     team
                 );
+
+            jest.spyOn(
+                AccessTokenService,
+                'refreshUserGlobalAccessPermission'
+            ).mockResolvedValue(null!);
+
+            jest.spyOn(
+                AccessTokenService,
+                'refreshUserTenantAccessPermission'
+            ).mockResolvedValue(null);
+
             const teamMember: TeamMember = await teamMemberService.create(tm);
 
             expect(teamMember.userId).toEqual(new ObjectID(user._id!));
@@ -156,6 +167,17 @@ describe('TeamMemberService', () => {
                         new ObjectID(user._id!),
                         team
                     );
+
+                jest.spyOn(
+                    AccessTokenService,
+                    'refreshUserGlobalAccessPermission'
+                ).mockResolvedValue(null!);
+
+                jest.spyOn(
+                    AccessTokenService,
+                    'refreshUserTenantAccessPermission'
+                ).mockResolvedValue(null);
+
                 await teamMemberService.create(tm);
 
                 await expect(teamMemberService.create(tm)).rejects.toThrow(
@@ -200,6 +222,17 @@ describe('TeamMemberService', () => {
                         team,
                         { email: nonExistingUserEmail }
                     );
+
+                jest.spyOn(
+                    AccessTokenService,
+                    'refreshUserGlobalAccessPermission'
+                ).mockResolvedValue(null!);
+
+                jest.spyOn(
+                    AccessTokenService,
+                    'refreshUserTenantAccessPermission'
+                ).mockResolvedValue(null);
+
                 await teamMemberService.create(tm);
 
                 expect(MailService.sendMail).toHaveBeenCalledWith(
@@ -289,6 +322,17 @@ describe('TeamMemberService', () => {
                     new ObjectID(user._id!),
                     team
                 );
+
+            jest.spyOn(
+                AccessTokenService,
+                'refreshUserGlobalAccessPermission'
+            ).mockResolvedValue(null!);
+
+            jest.spyOn(
+                AccessTokenService,
+                'refreshUserTenantAccessPermission'
+            ).mockResolvedValue(null);
+
             const teamMember: TeamMember = await teamMemberService.create(tm);
 
             expect(teamMember?.hasAcceptedInvitation).toBe(false);
@@ -395,6 +439,17 @@ describe('TeamMemberService', () => {
                     new ObjectID(user._id!),
                     team
                 );
+
+            jest.spyOn(
+                AccessTokenService,
+                'refreshUserGlobalAccessPermission'
+            ).mockResolvedValue(null!);
+
+            jest.spyOn(
+                AccessTokenService,
+                'refreshUserTenantAccessPermission'
+            ).mockResolvedValue(null);
+
             const teamMember: TeamMember = await teamMemberService.create(tm);
 
             // (2) delete team member
@@ -583,6 +638,7 @@ describe('TeamMemberService', () => {
                 new ObjectID(project._id!),
                 new ObjectID(user._id!)
             ).data.save();
+
             const teamMemberA1: CreateBy<TeamMember> =
                 TeamMemberServiceHelper.generateRandomTeamMember(
                     new ObjectID(project._id!),
