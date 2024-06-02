@@ -885,7 +885,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
     }
 
-    public async deleteById(deleteById: DeleteById): Promise<number> {
+    public async deleteOneById(deleteById: DeleteById): Promise<number> {
         await ModelPermission.checkDeletePermissionByModel({
             modelType: this.modelType,
             fetchModelWithAccessControlIds: async () => {

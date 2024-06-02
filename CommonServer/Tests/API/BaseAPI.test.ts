@@ -60,8 +60,8 @@ jest.mock('../../Services/DatabaseService', () => {
                 return { id: 'mock' };
             }),
             deleteOneBy: jest.fn(),
-            deleteById: jest.fn(),
-            updateById: jest.fn(),
+            deleteOneById: jest.fn(),
+            updateOneById: jest.fn(),
             updateOneBy: jest.fn(),
             create: jest.fn().mockImplementation((...args: []) => {
                 return args;

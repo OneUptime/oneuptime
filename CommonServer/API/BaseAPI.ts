@@ -342,7 +342,7 @@ export default class BaseAPI<
         await this.onBeforeDelete(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        await this.service.deleteById({
+        await this.service.deleteOneById({
             id: objectId,
             props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });
