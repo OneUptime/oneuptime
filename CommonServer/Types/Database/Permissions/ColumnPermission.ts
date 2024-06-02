@@ -90,7 +90,7 @@ export default class ColumnPermissions {
         const userPermissions: Array<UserPermission> =
             DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
 
-        const permissionColumns: Columns<TBaseModel> = this.getModelColumnsByPermissions(
+        const permissionColumns: Columns = this.getModelColumnsByPermissions(
             modelType,
             userPermissions,
             requestType
@@ -102,8 +102,6 @@ export default class ColumnPermissions {
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
         for (let key of Object.keys(data)) {
-
-            key = key as keyof TBaseModel; 
 
             if ((data as any)[key] === undefined) {
                 continue;
