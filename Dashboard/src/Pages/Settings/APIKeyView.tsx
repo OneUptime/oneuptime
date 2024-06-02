@@ -133,6 +133,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 query={{
                     apiKeyId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
+                    isBlockPermission: false,
                 }}
                 onBeforeCreate={(
                     item: ApiKeyPermission

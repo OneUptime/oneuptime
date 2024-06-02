@@ -413,4 +413,31 @@ export default class TeamPermission extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CreateProjectTeam,
+            Permission.EditProjectTeamPermissions,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadProjectTeam,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.EditProjectTeamPermissions,
+            Permission.EditProjectTeam,
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isBlockPermission?: boolean = undefined;
 }

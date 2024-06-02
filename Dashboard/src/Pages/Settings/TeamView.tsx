@@ -223,6 +223,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 query={{
                     teamId: modelId,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
+                    isBlockPermission: false,
                 }}
                 onBeforeCreate={(
                     item: TeamPermission

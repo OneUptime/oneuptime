@@ -409,4 +409,30 @@ export default class APIKeyPermission extends BaseModel {
         },
     })
     public labels?: Array<Label> = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CreateProjectApiKey,
+            Permission.EditProjectApiKeyPermissions,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ReadProjectApiKey,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.EditProjectApiKeyPermissions,
+            Permission.EditProjectApiKey,
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isBlockPermission?: boolean = undefined;
 }

@@ -3282,6 +3282,7 @@ export interface UserPermission extends JSONObject {
     _type: 'UserPermission';
     permission: Permission;
     labelIds: Array<ObjectID>;
+    isBlockPermission?: boolean | undefined;
 }
 
 export interface UserTenantAccessPermission extends JSONObject {
