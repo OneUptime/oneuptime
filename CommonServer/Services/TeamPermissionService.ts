@@ -28,6 +28,18 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
+        if (!createBy.data.projectId) {
+            throw new BadDataException(
+                'Project Id is required to create permission'
+            );
+        }
+
+        if (!createBy.data.permission) {
+            throw new BadDataException(
+                'Permission is required to create permission'
+            );
+        }
+
         // get team.
         const team: Team | null = await TeamService.findOneById({
             id: createBy.data.teamId!,
@@ -46,6 +58,28 @@ export class Service extends DatabaseService<Model> {
         if (!team.isPermissionsEditable) {
             throw new BadDataException(
                 'You cannot create new permissions for this team because this team is not editable'
+            );
+        }
+
+        // check if this permission is already assigned to this team and if yes then throw error.
+
+        const existingPermission: Model | null = await this.findOneBy({
+            query: {
+                teamId: createBy.data.teamId,
+                projectId: createBy.data.projectId,
+                permission: createBy.data.permission,
+            },
+            select: {
+                _id: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (existingPermission) {
+            throw new BadDataException(
+                'This permission is already assigned to this team'
             );
         }
 
