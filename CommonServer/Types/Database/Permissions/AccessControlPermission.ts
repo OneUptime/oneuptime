@@ -2,11 +2,14 @@ import DatabaseRequestType from '../../BaseDatabase/DatabaseRequestType';
 import Query from '../Query';
 import Select from '../Select';
 import TablePermission from './TablePermission';
+import AccessControlModel from 'Common/Models/AccessControlModel';
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import ArrayUtil from 'Common/Types/ArrayUtil';
 import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import ObjectID from 'Common/Types/ObjectID';
 import Permission, {
     PermissionHelper,
@@ -14,6 +17,102 @@ import Permission, {
 } from 'Common/Types/Permission';
 
 export default class AccessControlPermission {
+    public static async checkAccessControlPermissionByModel<
+        TBaseModel extends BaseModel
+    >(data: {
+        fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+        modelType: { new (): TBaseModel };
+        props: DatabaseCommonInteractionProps;
+        type: DatabaseRequestType;
+    }): Promise<void> {
+        const { modelType, props, type } = data;
+
+        if (props.isRoot || props.isMasterAdmin) {
+            return; // Root and master admin can delete anything.
+        }
+
+        // Check if the user has permission to delete the object in this table.
+        TablePermission.checkTableLevelPermissions(modelType, props, type);
+
+        // if the control is here, then the user has table level permissions.
+        const model: TBaseModel = new modelType();
+        const modelAccessControlColumnName: string | null =
+            model.getAccessControlColumn();
+
+        if (modelAccessControlColumnName) {
+            const accessControlIdsWhcihUserHasAccessTo: Array<ObjectID> =
+                this.getAccessControlIdsForModel(modelType, props, type);
+
+            if (accessControlIdsWhcihUserHasAccessTo.length === 0) {
+                return; // The user has access to all resources, if no labels are specified.
+            }
+
+            const fetchedModel: TBaseModel | null =
+                await data.fetchModelWithAccessControlIds();
+
+            if (!fetchedModel) {
+                throw new BadDataException(`${model.singularName} not found.`);
+            }
+
+            const hasAccessToDelete: boolean = false;
+
+            const accessControlIdsWhichUserHasAccessToAsStrings: Array<string> =
+                accessControlIdsWhcihUserHasAccessTo.map((id: ObjectID) => {
+                    return id.toString();
+                }) || [];
+
+            // Check if the object has any of these access control ids.  if not, then throw an error.
+            const modelAccessControl: Array<AccessControlModel> =
+                (fetchedModel.getColumnValue(
+                    modelAccessControlColumnName
+                ) as Array<AccessControlModel>) || [];
+
+            const modelAccessControlNames: Array<string> = [];
+
+            for (const accessControl of modelAccessControl) {
+                if (!accessControl.id) {
+                    continue;
+                }
+
+                if (
+                    accessControlIdsWhichUserHasAccessToAsStrings.includes(
+                        accessControl.id.toString()
+                    )
+                ) {
+                    return;
+                }
+
+                const accessControlName: string = accessControl.getColumnValue(
+                    'name'
+                ) as string;
+
+                if (accessControlName) {
+                    modelAccessControlNames.push(accessControlName);
+                }
+            }
+
+            if (!hasAccessToDelete) {
+                // The user does not have access to delete this object.
+
+                let errorString: string = `You do not have permission to ${type.toLowerCase()} this ${
+                    model.singularName
+                }.`;
+
+                if (modelAccessControlNames.length > 0) {
+                    errorString += ` You need to have one of the following labels: ${modelAccessControlNames.join(
+                        ', '
+                    )}.`;
+                } else {
+                    errorString = ` You do not have permission to ${type.toLowerCase()} ${
+                        model.singularName
+                    } without any labels.`;
+                }
+
+                throw new NotAuthorizedException(errorString);
+            }
+        }
+    }
+
     public static async addAccessControlIdsToQuery<
         TBaseModel extends BaseModel
     >(

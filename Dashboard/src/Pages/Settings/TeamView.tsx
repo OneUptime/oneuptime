@@ -361,15 +361,22 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             ) {
                                 return (
                                     <p>
-                                        Restriction by labels cannot be applied to this permission.
+                                        Restriction by labels cannot be applied
+                                        to this permission.
                                     </p>
                                 );
                             }
 
-                            if (!item['labels'] || item['labels'].length === 0) {
-                                return <p>
-                                    No restrictions has been applied to this permission.
-                                </p>
+                            if (
+                                !item['labels'] ||
+                                item['labels'].length === 0
+                            ) {
+                                return (
+                                    <p>
+                                        No restrictions has been applied to this
+                                        permission.
+                                    </p>
+                                );
                             }
 
                             return (
