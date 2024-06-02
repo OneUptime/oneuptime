@@ -17,7 +17,7 @@ export default class UpdatePermission {
         props: DatabaseCommonInteractionProps;
     }): Promise<void> {
         return AccessControlUtil.checkAccessControlPermissionByModel<TBaseModel>(
-            { ...data, type: DatabaseRequestType.Delete }
+            { ...data, type: DatabaseRequestType.Update }
         );
     }
 

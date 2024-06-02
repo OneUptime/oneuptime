@@ -21,17 +21,17 @@ export default class AccessControlPermission {
         TBaseModel extends BaseModel
     >(data: {
         fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
-        modelType: { new (): TBaseModel };
+        modelType: { new(): TBaseModel };
         props: DatabaseCommonInteractionProps;
         type: DatabaseRequestType;
     }): Promise<void> {
         const { modelType, props, type } = data;
 
         if (props.isRoot || props.isMasterAdmin) {
-            return; // Root and master admin can delete anything.
+            return; 
         }
 
-        // Check if the user has permission to delete the object in this table.
+        // Check if the user has permission to delete or update the object in this table.
         TablePermission.checkTableLevelPermissions(modelType, props, type);
 
         // if the control is here, then the user has table level permissions.
@@ -54,7 +54,7 @@ export default class AccessControlPermission {
                 throw new BadDataException(`${model.singularName} not found.`);
             }
 
-            const hasAccessToDelete: boolean = false;
+
 
             const accessControlIdsWhichUserHasAccessToAsStrings: Array<string> =
                 accessControlIdsWhcihUserHasAccessTo.map((id: ObjectID) => {
@@ -91,32 +91,27 @@ export default class AccessControlPermission {
                 }
             }
 
-            if (!hasAccessToDelete) {
-                // The user does not have access to delete this object.
-
-                let errorString: string = `You do not have permission to ${type.toLowerCase()} this ${
-                    model.singularName
+            let errorString: string = `You do not have permission to ${type.toLowerCase()} this ${model.singularName
                 }.`;
 
-                if (modelAccessControlNames.length > 0) {
-                    errorString += ` You need to have one of the following labels: ${modelAccessControlNames.join(
-                        ', '
-                    )}.`;
-                } else {
-                    errorString = ` You do not have permission to ${type.toLowerCase()} ${
-                        model.singularName
+            if (modelAccessControlNames.length > 0) {
+                errorString += ` You need to have one of the following labels: ${modelAccessControlNames.join(
+                    ', '
+                )}.`;
+            } else {
+                errorString = ` You do not have permission to ${type.toLowerCase()} ${model.singularName
                     } without any labels.`;
-                }
-
-                throw new NotAuthorizedException(errorString);
             }
+
+            throw new NotAuthorizedException(errorString);
         }
+
     }
 
     public static async addAccessControlIdsToQuery<
         TBaseModel extends BaseModel
     >(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         query: Query<TBaseModel>,
         select: Select<TBaseModel> | null,
         props: DatabaseCommonInteractionProps,
