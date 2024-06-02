@@ -17,7 +17,7 @@ export default class Faker {
         for (let i: number = 0; i < count; i++) {
             randomNumbers.push(Math.floor(Math.random() * 10)); // You can adjust the range as needed
         }
-        return randomNumbers.join('');
+        return randomNumbers.join('').substring(0, count);
     }
 
     public static generateUserFullName(): Name {
@@ -29,26 +29,6 @@ export default class Faker {
     }
 
     public static generatePhone(): Phone {
-        let phoneNumber: string = faker.phone.number();
-        // remove "-" and " " from the phone number
-        phoneNumber = phoneNumber.replace(/-/g, '');
-
-        // remove ( from the phone number
-        phoneNumber = phoneNumber.replace(/\(/g, '');
-
-        // remove ) from the phone number
-        phoneNumber = phoneNumber.replace(/\)/g, '');
-
-        // remove . from the phone number
-        phoneNumber = phoneNumber.replace(/\./g, '');
-
-        phoneNumber = phoneNumber.trim(); // remove leading and trailing spaces
-
-        if (phoneNumber.includes(' ')) {
-            // get the first part, second part is usually the extension. We don't need that.
-            phoneNumber = phoneNumber.split(' ')[0] as string;
-        }
-
-        return new Phone(phoneNumber);
+        return new Phone(this.randomNumbers(10));
     }
 }
