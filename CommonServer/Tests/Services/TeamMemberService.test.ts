@@ -116,8 +116,6 @@ describe('TeamMemberService', () => {
 
         describe('onBeforeCreate', () => {
             it('should throw exception if the user limit for a project is reached', async () => {
-                process.env['BILLING_ENABLED'] = 'true';
-
                 const SEATS_LIMIT: number = 5;
 
                 ProjectService.findOneById = jest.fn().mockResolvedValue({
