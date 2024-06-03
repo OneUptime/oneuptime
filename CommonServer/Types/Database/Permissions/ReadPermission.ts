@@ -128,8 +128,9 @@ export default class ReadPermission {
 
         const model: TBaseModel = new modelType();
 
-        (query as any)[model.getAccessControlColumn() as string] =
-            QueryHelper.notIn(labelIds);
+        (query as any)[model.getAccessControlColumn() as string] = {
+            _id: QueryHelper.notIn(labelIds),
+        };
 
         return { query };
     }
