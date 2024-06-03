@@ -982,3 +982,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: false
           prerelease: false
+          tag_name: 7.0.${{needs.generate-build-number.outputs.build_number}}
