@@ -971,6 +971,14 @@ jobs:
         run: goreleaser -v
 
       - name: Run GoReleaser
-        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=7.0.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=7.0.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
+      
+      # Upload binaries to github release
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            InfrastructureAgent/dist/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
