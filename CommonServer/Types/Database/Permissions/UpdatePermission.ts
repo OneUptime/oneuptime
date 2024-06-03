@@ -16,7 +16,11 @@ export default class UpdatePermission {
         modelType: { new (): TBaseModel };
         props: DatabaseCommonInteractionProps;
     }): Promise<void> {
-        return AccessControlUtil.checkAccessControlPermissionByModel<TBaseModel>(
+        await AccessControlUtil.checkAccessControlBlockPermissionByModel<TBaseModel>(
+            { ...data, type: DatabaseRequestType.Update }
+        );
+
+        await AccessControlUtil.checkAccessControlPermissionByModel<TBaseModel>(
             { ...data, type: DatabaseRequestType.Update }
         );
     }

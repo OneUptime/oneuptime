@@ -19,6 +19,115 @@ import Permission, {
 } from 'Common/Types/Permission';
 
 export default class AccessControlPermission {
+    public static async checkAccessControlBlockPermissionByModel<
+        TBaseModel extends BaseModel
+    >(data: {
+        fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+        modelType: { new (): TBaseModel };
+        type: DatabaseRequestType;
+        props: DatabaseCommonInteractionProps;
+    }): Promise<void> {
+        const { modelType, props, type } = data;
+
+        if (props.isRoot || props.isMasterAdmin) {
+            return;
+        }
+
+        TablePermission.checkTableLevelBlockPermissions(modelType, props, type);
+
+        const blockPermissionWithLabels: Array<UserPermission> =
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Block
+            ).filter((permission: UserPermission) => {
+                return permission.labelIds && permission.labelIds.length > 0;
+            });
+
+        if (blockPermissionWithLabels.length === 0) {
+            return;
+        }
+
+        const modelPermissions: Array<Permission> =
+            TablePermission.getTablePermission(modelType, type);
+
+        const blockPermissionsBelongToThisModel: Array<UserPermission> =
+            blockPermissionWithLabels.filter(
+                (blockPermission: UserPermission) => {
+                    let isModelPermission: boolean = false;
+
+                    for (const permission of modelPermissions) {
+                        if (
+                            permission.toString() ===
+                            blockPermission.permission.toString()
+                        ) {
+                            isModelPermission = true;
+                            break;
+                        }
+                    }
+
+                    return isModelPermission;
+                }
+            );
+
+        if (blockPermissionsBelongToThisModel.length === 0) {
+            return;
+        }
+
+        // now check if the user has any of these labels in the block list, for this we need to fetch the model first.
+        const fetchedModel: TBaseModel | null =
+            await data.fetchModelWithAccessControlIds();
+
+        if (!fetchedModel) {
+            throw new BadDataException(`${modelType.name} not found.`);
+        }
+
+        for (const blockPermissionBelongToThisModel of blockPermissionsBelongToThisModel) {
+            const blockPermissionLabelIds: Array<ObjectID> =
+                blockPermissionBelongToThisModel.labelIds || [];
+
+            const blockPermissionLabelIdAsString: Array<string> =
+                blockPermissionLabelIds.map((id: ObjectID) => {
+                    return id.toString();
+                });
+
+            if (blockPermissionLabelIds.length === 0) {
+                continue;
+            }
+
+            const model: TBaseModel = fetchedModel;
+
+            const modelAccessControlColumnName: string | null =
+                model.getAccessControlColumn();
+
+            if (modelAccessControlColumnName) {
+                const modelAccessControl: Array<AccessControlModel> =
+                    (model.getColumnValue(
+                        modelAccessControlColumnName
+                    ) as Array<AccessControlModel>) || [];
+
+                for (const accessControl of modelAccessControl) {
+                    if (!accessControl.id) {
+                        continue;
+                    }
+
+                    if (
+                        blockPermissionLabelIdAsString.includes(
+                            accessControl.id.toString()
+                        )
+                    ) {
+                        throw new NotAuthorizedException(
+                            `You are not authorized to ${type.toLowerCase()} this ${
+                                model.singularName
+                            } because ${
+                                blockPermissionBelongToThisModel.permission
+                            } is in your team's permission block list.`
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     public static async checkAccessControlPermissionByModel<
         TBaseModel extends BaseModel
     >(data: {

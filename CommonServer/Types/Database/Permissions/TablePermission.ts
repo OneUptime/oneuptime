@@ -77,4 +77,55 @@ export default class TablePermission {
             );
         }
     }
+
+    public static checkTableLevelBlockPermissions(
+        modelType: BaseModelType,
+        props: DatabaseCommonInteractionProps,
+        type: DatabaseRequestType
+    ): void {
+        // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
+        PublicPermission.checkIfUserIsLoggedIn(modelType, props, type);
+
+        // 2nd CHECK: Does user have access to CRUD data on this model.
+        const userPermissions: Array<UserPermission> =
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Block
+            );
+
+        const modelPermissions: Array<Permission> =
+            TablePermission.getTablePermission(modelType, type);
+
+        const intersectingPermissions: Array<Permission> =
+            PermissionHelper.getIntersectingPermissions(
+                userPermissions.map((userPermission: UserPermission) => {
+                    return userPermission.permission;
+                }) || [],
+                modelPermissions
+            );
+
+        if (intersectingPermissions && intersectingPermissions.length > 0) {
+            for (const permission of intersectingPermissions) {
+                const userPermission: UserPermission = userPermissions.find(
+                    (userPermission: UserPermission) => {
+                        return userPermission.permission === permission;
+                    }
+                ) as UserPermission;
+
+                if (
+                    userPermission &&
+                    (!userPermission.labelIds ||
+                        userPermission.labelIds.length === 0)
+                ) {
+                    throw new NotAuthorizedException(
+                        `You are not authorized to ${type} ${
+                            new modelType().singularName
+                        } because ${
+                            userPermission.permission
+                        } is in your team's permission block list.`
+                    );
+                }
+            }
+        }
+    }
 }

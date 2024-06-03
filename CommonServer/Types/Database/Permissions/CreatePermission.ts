@@ -15,6 +15,9 @@ export default class CreatePermission {
             return;
         }
 
+        // check block permissions, if any. Block permission get precedence over allow permissions.
+        this.checkCreateBlockPermissions(modelType, props);
+
         TablePermission.checkTableLevelPermissions(
             modelType,
             props,
@@ -31,12 +34,17 @@ export default class CreatePermission {
 
     public static checkCreateBlockPermissions<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
-        data: TBaseModel,
         props: DatabaseCommonInteractionProps
     ): void {
         // If system is making this query then let the query run!
         if (props.isRoot || props.isMasterAdmin) {
             return;
         }
+
+        TablePermission.checkTableLevelBlockPermissions(
+            modelType,
+            props,
+            DatabaseRequestType.Create
+        );
     }
 }

@@ -15,7 +15,12 @@ export default class DeletePermission {
         modelType: { new (): TBaseModel };
         props: DatabaseCommonInteractionProps;
     }): Promise<void> {
-        return AccessControlUtil.checkAccessControlPermissionByModel<TBaseModel>(
+        // check block permission first
+        await AccessControlUtil.checkAccessControlBlockPermissionByModel<TBaseModel>(
+            { ...data, type: DatabaseRequestType.Delete }
+        );
+
+        await AccessControlUtil.checkAccessControlPermissionByModel<TBaseModel>(
             { ...data, type: DatabaseRequestType.Delete }
         );
     }
