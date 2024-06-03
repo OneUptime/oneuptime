@@ -1,7 +1,9 @@
 import MonitorsElement from '../../Components/Monitor/Monitors';
 import DashboardNavigation from '../../Utils/Navigation';
 import PageComponentProps from '../PageComponentProps';
+import URL from 'Common/Types/API/URL';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -15,6 +17,14 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <Fragment>
+            <Banner
+                openInNewTab={true}
+                title="How to use Monitor Secrets?"
+                description="Learn how to use monitor secrets to store sensitive information like API keys, passwords, etc. that can be shared with monitors."
+                link={URL.fromString(
+                    'https://www.youtube.com/watch?v=V5eIpd_IPlU'
+                )}
+            />
             <ModelTable<MonitorSecret>
                 modelType={MonitorSecret}
                 query={{
