@@ -57,6 +57,7 @@ describe('TeamMemberService', () => {
     let teamMemberService!: TeamMemberService;
 
     let user!: User;
+    let user2!: User;
     let project!: Project;
     let team!: Team;
 
@@ -67,6 +68,9 @@ describe('TeamMemberService', () => {
 
         user = UserServiceHelper.generateRandomUser().data;
         user = await user.save();
+
+        user2 = UserServiceHelper.generateRandomUser().data;
+        user2 = await user2.save();
 
         project = ProjectServiceHelper.generateRandomProject(
             new ObjectID(user._id!)
@@ -112,6 +116,8 @@ describe('TeamMemberService', () => {
 
         describe('onBeforeCreate', () => {
             it('should throw exception if the user limit for a project is reached', async () => {
+                process.env['BILLING_ENABLED'] = 'true';
+
                 const SEATS_LIMIT: number = 5;
 
                 ProjectService.findOneById = jest.fn().mockResolvedValue({
@@ -126,6 +132,7 @@ describe('TeamMemberService', () => {
                         new ObjectID(user._id!),
                         team
                     );
+
                 await expect(teamMemberService.create(tm)).rejects.toThrow(
                     Errors.TeamMemberService.LIMIT_REACHED
                 );
@@ -734,6 +741,8 @@ describe('TeamMemberService', () => {
                 _id: PROJECT_ID,
             });
 
+            jest.spyOn(ProjectService, 'updateOneById').mockResolvedValue();
+
             await teamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
                 new ObjectID(PROJECT_ID)
             );
@@ -742,6 +751,7 @@ describe('TeamMemberService', () => {
                 SUBSCRIPTION_ID,
                 NUM_MEMBERS
             );
+
             expect(ProjectService.updateOneById).toHaveBeenCalledWith({
                 id: new ObjectID(PROJECT_ID),
                 data: { paymentProviderSubscriptionSeats: NUM_MEMBERS },
