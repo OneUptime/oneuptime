@@ -8,7 +8,9 @@ import BaseModel, {
 import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
 import ColumnBillingAccessControl from 'Common/Types/BaseDatabase/ColumnBillingAccessControl';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
+import DatabaseCommonInteractionPropsUtil, {
+    PermissionType,
+} from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Columns from 'Common/Types/Database/Columns';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -121,7 +123,10 @@ export default class ModelPermission {
     ): void {
         const model: BaseModel = new modelType();
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
 
         const permissionColumns: Columns = this.getModelColumnsByPermissions(
             modelType,
@@ -321,7 +326,10 @@ export default class ModelPermission {
         const model: BaseModel = new modelType();
 
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
 
         const canReadOnTheseColumns: Columns =
             this.getModelColumnsByPermissions(
@@ -519,7 +527,10 @@ export default class ModelPermission {
         const model: BaseModel = new modelType();
 
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
 
         const canReadOnTheseColumns: Columns =
             this.getModelColumnsByPermissions(
@@ -632,7 +643,10 @@ export default class ModelPermission {
 
         // 2nd CHECK: Does user have access to CRUD data on this model.
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
         const modelPermissions: Array<Permission> = this.getModelPermissions(
             modelType,
             type

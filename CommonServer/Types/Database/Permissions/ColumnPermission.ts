@@ -4,7 +4,9 @@ import BaseModel from 'Common/Models/BaseModel';
 import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import ColumnBillingAccessControl from 'Common/Types/BaseDatabase/ColumnBillingAccessControl';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
+import DatabaseCommonInteractionPropsUtil, {
+    PermissionType,
+} from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Columns from 'Common/Types/Database/Columns';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
@@ -88,7 +90,10 @@ export default class ColumnPermissions {
     ): void {
         const model: BaseModel = new modelType();
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
 
         const permissionColumns: Columns = this.getModelColumnsByPermissions(
             modelType,

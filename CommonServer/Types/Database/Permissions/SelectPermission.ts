@@ -3,7 +3,9 @@ import Select from '../Select';
 import ColumnPermissions from './ColumnPermission';
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
+import DatabaseCommonInteractionPropsUtil, {
+    PermissionType,
+} from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 import Columns from 'Common/Types/Database/Columns';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
@@ -18,7 +20,10 @@ export default class SelectPermission {
         const model: BaseModel = new modelType();
 
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
 
         const canReadOnTheseColumns: Columns =
             ColumnPermissions.getModelColumnsByPermissions(

@@ -1,9 +1,15 @@
 import Permission, { UserPermission } from '../Permission';
 import DatabaseCommonInteractionProps from './DatabaseCommonInteractionProps';
 
+export enum PermissionType {
+    Allow = 'Allow',
+    Block = 'Block',
+}
+
 export default class DatabaseCommonInteractionPropsUtil {
     public static getUserPermissions(
-        props: DatabaseCommonInteractionProps
+        props: DatabaseCommonInteractionProps,
+        permissionType: PermissionType
     ): Array<UserPermission> {
         // Check first if the user has Global Permissions.
         // Global permissions includes all the tenantId user has access to.
@@ -45,7 +51,10 @@ export default class DatabaseCommonInteractionPropsUtil {
 
         // Include global permission in userPermissions.
 
-        if (props.userGlobalAccessPermission) {
+        if (
+            props.userGlobalAccessPermission &&
+            permissionType === PermissionType.Allow
+        ) {
             /// take global permissions.
             userPermissions =
                 props.userGlobalAccessPermission.globalPermissions.map(
@@ -53,6 +62,7 @@ export default class DatabaseCommonInteractionPropsUtil {
                         return {
                             permission: permission,
                             labelIds: [],
+                            isBlockPermission: false,
                             _type: 'UserPermission',
                         };
                     }
@@ -63,8 +73,14 @@ export default class DatabaseCommonInteractionPropsUtil {
             // Include Tenant Permission in userPermissions.
             userPermissions = [
                 ...userPermissions,
-                ...(props.userTenantAccessPermission[props.tenantId.toString()]
-                    ?.permissions || []),
+                ...(props.userTenantAccessPermission[
+                    props.tenantId.toString()
+                ]?.permissions.filter((userPermission: UserPermission) => {
+                    return (
+                        userPermission.isBlockPermission ===
+                        (permissionType === PermissionType.Block)
+                    );
+                }) || []),
             ];
         }
 

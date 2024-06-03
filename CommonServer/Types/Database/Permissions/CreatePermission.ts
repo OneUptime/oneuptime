@@ -28,4 +28,15 @@ export default class CreatePermission {
             DatabaseRequestType.Create
         );
     }
+
+    public static checkCreateBlockPermissions<TBaseModel extends BaseModel>(
+        modelType: { new (): TBaseModel },
+        data: TBaseModel,
+        props: DatabaseCommonInteractionProps
+    ): void {
+        // If system is making this query then let the query run!
+        if (props.isRoot || props.isMasterAdmin) {
+            return;
+        }
+    }
 }

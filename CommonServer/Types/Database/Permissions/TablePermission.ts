@@ -3,7 +3,9 @@ import BillingPermissions from './BillingPermission';
 import PublicPermission from './PublicPermission';
 import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
+import DatabaseCommonInteractionPropsUtil, {
+    PermissionType,
+} from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import Permission, {
     PermissionHelper,
@@ -50,7 +52,10 @@ export default class TablePermission {
 
         // 2nd CHECK: Does user have access to CRUD data on this model.
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
 
         const modelPermissions: Array<Permission> =
             TablePermission.getTablePermission(modelType, type);

@@ -7,7 +7,9 @@ import BaseModel, { BaseModelType } from 'Common/Models/BaseModel';
 import ArrayUtil from 'Common/Types/ArrayUtil';
 import { ColumnAccessControl } from 'Common/Types/BaseDatabase/AccessControl';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import DatabaseCommonInteractionPropsUtil from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
+import DatabaseCommonInteractionPropsUtil, {
+    PermissionType,
+} from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import ObjectID from 'Common/Types/ObjectID';
@@ -234,7 +236,10 @@ export default class AccessControlPermission {
         props: DatabaseCommonInteractionProps
     ): Array<ObjectID> {
         const userPermissions: Array<UserPermission> =
-            DatabaseCommonInteractionPropsUtil.getUserPermissions(props);
+            DatabaseCommonInteractionPropsUtil.getUserPermissions(
+                props,
+                PermissionType.Allow
+            );
 
         const nonAccessControlPermissionPermission: Array<Permission> =
             PermissionHelper.getNonAccessControlPermissions(userPermissions);
