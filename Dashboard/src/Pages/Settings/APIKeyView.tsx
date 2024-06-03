@@ -4,9 +4,11 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import Banner from 'CommonUI/src/Components/Banner/Banner';
 import { FormProps } from 'CommonUI/src/Components/Forms/BasicForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
@@ -350,6 +352,13 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 onUpdateComplete={() => {
                     setRefresher(!refresher);
                 }}
+            />
+
+            <Banner
+                openInNewTab={true}
+                title="Questions about Permissions?"
+                description="Watch this 5 minute video to learn how permissions work in OneUptime."
+                link={URL.fromString('https://youtu.be/TzmaTe4sbCI')}
             />
 
             {/* Allow Permissions */}
