@@ -150,6 +150,13 @@ export default class AnalyticsDatabaseService<
 
             let countPositive: PositiveNumber = new PositiveNumber(strResult);
 
+            if (countBy.groupBy && Object.keys(countBy.groupBy).length > 0) {
+                // this usually happens when group by is used. In this case we count the total number of groups and not rows in those groups.
+                countPositive = new PositiveNumber(
+                    strResult.split('\n').length - 1
+                ); // -1 because the last line is empty.
+            }
+
             countPositive = await this.onCountSuccess(countPositive);
             return countPositive;
         } catch (error) {
