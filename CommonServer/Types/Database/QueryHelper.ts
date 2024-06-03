@@ -182,6 +182,30 @@ export default class QueryHelper {
         );
     }
 
+    public static notInOrNull(
+        values: Array<string | ObjectID>
+    ): FindOperator<any> {
+        values = values.map((value: string | ObjectID) => {
+            return value.toString();
+        });
+        const rid: string = Text.generateRandomText(10);
+
+        if (!values || values.length === 0) {
+            return Raw(() => {
+                return `TRUE = TRUE`; // this will always return true
+            }, {});
+        }
+
+        return Raw(
+            (alias: string) => {
+                return `(${alias} NOT IN (:...${rid}) or ${alias} IS NULL)`;
+            },
+            {
+                [rid]: values,
+            }
+        );
+    }
+
     public static inRelationArray(
         values: Array<BaseModel | ObjectID>
     ): Array<any> {
