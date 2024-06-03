@@ -1,16 +1,18 @@
 import DatabaseRequestType from '../../BaseDatabase/DatabaseRequestType';
 import Query from '../Query';
+import QueryHelper from '../QueryHelper';
 import RelationSelect from '../RelationSelect';
 import Select from '../Select';
 import SelectUtil from '../SelectUtil';
 import BasePermission, { CheckPermissionBaseInterface } from './BasePermission';
+import TablePermission from './TablePermission';
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import TablePermission from './TablePermission';
-import DatabaseCommonInteractionPropsUtil, { PermissionType } from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
-import Permission, { UserPermission } from 'Common/Types/Permission';
+import DatabaseCommonInteractionPropsUtil, {
+    PermissionType,
+} from 'Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil';
 import ObjectID from 'Common/Types/ObjectID';
-import QueryHelper from '../QueryHelper';
+import Permission, { UserPermission } from 'Common/Types/Permission';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel>
     extends CheckPermissionBaseInterface<TBaseModel> {
@@ -20,13 +22,12 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel>
 
 export default class ReadPermission {
     public static async checkReadPermission<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         select: Select<TBaseModel> | null,
         props: DatabaseCommonInteractionProps
     ): Promise<CheckReadPermissionType<TBaseModel>> {
-
-        // check block permission first. 
+        // check block permission first.
         await this.checkReadBlockPermission(modelType, query, props);
 
         const baseFunctionReturn: CheckPermissionBaseInterface<TBaseModel> =
@@ -55,9 +56,8 @@ export default class ReadPermission {
         return { query, select, relationSelect };
     }
 
-
     public static async checkReadBlockPermission<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): Promise<CheckPermissionBaseInterface<TBaseModel>> {
@@ -85,7 +85,10 @@ export default class ReadPermission {
         }
 
         const modelPermissions: Array<Permission> =
-            TablePermission.getTablePermission(modelType, DatabaseRequestType.Read);
+            TablePermission.getTablePermission(
+                modelType,
+                DatabaseRequestType.Read
+            );
 
         const blockPermissionsBelongToThisModel: Array<UserPermission> =
             blockPermissionWithLabels.filter(
@@ -107,14 +110,17 @@ export default class ReadPermission {
             );
 
         if (blockPermissionsBelongToThisModel.length === 0) {
-            return {query};
+            return { query };
         }
 
         let labelIds: Array<ObjectID> = [];
 
         for (const blockPermissionBelongToThisModel of blockPermissionsBelongToThisModel) {
             if (blockPermissionBelongToThisModel.labelIds) {
-                labelIds = [...labelIds, ...blockPermissionBelongToThisModel.labelIds];
+                labelIds = [
+                    ...labelIds,
+                    ...blockPermissionBelongToThisModel.labelIds,
+                ];
             }
         }
 
@@ -122,7 +128,8 @@ export default class ReadPermission {
 
         const model: TBaseModel = new modelType();
 
-        (query as any)[model.getAccessControlColumn() as string] = QueryHelper.notIn(labelIds);
+        (query as any)[model.getAccessControlColumn() as string] =
+            QueryHelper.notIn(labelIds);
 
         return { query };
     }
