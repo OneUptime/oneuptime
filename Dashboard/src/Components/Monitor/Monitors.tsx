@@ -14,6 +14,7 @@ const MonitorsElement: FunctionComponent<ComponentProps> = (
     return (
         <TableColumnListComponent
             items={props.monitors}
+            moreText="more monitors"
             getEachElement={(monitor: Monitor) => {
                 return (
                     <MonitorElement

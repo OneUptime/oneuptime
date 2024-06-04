@@ -43,6 +43,7 @@ import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import { getMaxLengthFromTableColumnType } from 'Common/Types/Database/ColumnLength';
 import Columns from 'Common/Types/Database/Columns';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
@@ -275,9 +276,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return await this.onBeforeCreate(createBy);
     }
 
-    protected async encrypt(data: TBaseModel): Promise<TBaseModel> {
-        for (const key of data.getEncryptedColumns().columns) {
-            if (!data.hasValue(key)) {
+    protected async encrypt(
+        data: TBaseModel | PartialEntity<TBaseModel>
+    ): Promise<TBaseModel | PartialEntity<TBaseModel>> {
+        for (const key of this.model.getEncryptedColumns().columns) {
+            if (!(data as any)[key]) {
                 continue;
             }
 
@@ -619,7 +622,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         await this.checkTotalItemsBy(_createdBy);
 
         // Encrypt data
-        data = await this.encrypt(data);
+        data = (await this.encrypt(data)) as TBaseModel;
 
         // hash data
         data = await this.hash(data);
@@ -1330,6 +1333,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
                 ? { updateBy, carryForward: [] }
                 : await this.onBeforeUpdate(updateBy);
+
+            // Encrypt data
+            updateBy.data = (await this.encrypt(
+                updateBy.data
+            )) as PartialEntity<TBaseModel>;
 
             const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
             const carryForward: any = onUpdate.carryForward;
