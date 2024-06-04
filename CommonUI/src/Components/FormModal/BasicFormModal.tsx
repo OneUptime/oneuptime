@@ -1,6 +1,7 @@
 import { ButtonStyleType } from '../Button/Button';
 import ButtonType from '../Button/ButtonTypes';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import BasicForm, {
     BaseComponentProps as BasicFormComponentProps,
 } from '../Forms/BasicForm';
@@ -11,6 +12,7 @@ import React, { ReactElement, useEffect, useRef, useState } from 'react';
 export interface ComponentProps<T extends GenericObject> {
     title: string;
     isLoading?: boolean | undefined;
+    error?: string | undefined;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
     onSubmit?: undefined | ((data: T) => void);
@@ -44,6 +46,8 @@ const BasicFormModal: <T extends GenericObject>(
         >
             <>
                 {isLoading && <ComponentLoader />}
+
+                {props.error && <ErrorMessage error={props.error} />}
 
                 {!isLoading && (
                     <BasicForm
