@@ -3,7 +3,7 @@ import Query from '../../Utils/BaseDatabase/Query';
 import Select from '../../Utils/BaseDatabase/Select';
 import Sort from '../../Utils/BaseDatabase/Sort';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
-import { FormType } from '../Forms/ModelForm';
+import { FormType, ModelField } from '../Forms/ModelForm';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import BaseModelTable, { BaseTableProps, ModalType } from './BaseModelTable';
 import { AnalyticsBaseModelType } from 'Common/AnalyticsModels/BaseModel';
@@ -157,7 +157,16 @@ const ModelTable: <TBaseModel extends BaseModel>(
                                 name: `create-${props.modelType.name}-from`,
                                 modelType: props.modelType,
                                 id: `create-${props.modelType.name}-from`,
-                                fields: props.formFields || [],
+                                fields:
+                                    props.formFields?.filter(
+                                        (field: ModelField<TBaseModel>) => {
+                                            // If the field has doNotShowWhenEditing set to true, then don't show it when editing
+                                            return !(
+                                                field.doNotShowWhenEditing &&
+                                                modelIdToEdit
+                                            );
+                                        }
+                                    ) || [],
                                 steps: props.formSteps || [],
                                 formType:
                                     modalType === ModalType.Create

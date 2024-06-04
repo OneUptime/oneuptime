@@ -205,6 +205,8 @@ export interface BaseTableProps<
 
     // bulk actions
     bulkActions?: BulkActionProps<TBaseModel> | undefined;
+
+    onShowFormType?: (formType: ModalType) => void;
 }
 
 export interface ComponentProps<
@@ -260,6 +262,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setModalType(ModalType.Create);
         }
     }, [props.showCreateForm]);
+
+    useEffect(() => {
+        if (props.onShowFormType) {
+            props.onShowFormType(modalType);
+        }
+    }, [props.modelType]);
 
     const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
         useState<number | null>(null);

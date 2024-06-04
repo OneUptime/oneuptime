@@ -74,6 +74,7 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                             secretValue: true,
                         },
                         title: 'Secret Value',
+                        doNotShowWhenEditing: true, // Do not show this field when editing
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder:

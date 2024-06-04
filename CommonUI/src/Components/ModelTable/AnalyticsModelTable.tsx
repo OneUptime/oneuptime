@@ -59,6 +59,7 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
                     onSuccess?: ((item: TBaseModel) => void) | undefined;
                     onClose?: (() => void) | undefined;
                 }): ReactElement => {
+                    // Analytics database like clickhuse dont support edit operations
                     throw new NotImplementedException();
                 },
 
