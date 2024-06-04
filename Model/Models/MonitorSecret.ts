@@ -218,11 +218,14 @@ export default class MonitorSecret extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-
             Permission.CreateMonitorSecret,
         ],
         read: [],
-        update: [],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.EditMonitorSecret,
+        ],
     })
     @TableColumn({
         required: false,
