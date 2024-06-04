@@ -1,4 +1,5 @@
 import StatusPageElement from './StatusPageLabel';
+import TableColumnListComponent from 'CommonUI/src/Components/TableColumnList/TableColumnListComponent';
 import StatusPage from 'Model/Models/StatusPage';
 import React, { FunctionComponent, ReactElement } from 'react';
 
@@ -10,26 +11,19 @@ export interface ComponentProps {
 const StatusPagesElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    if (!props.statusPages || props.statusPages.length === 0) {
-        return <p>No Status Pages.</p>;
-    }
-
     return (
-        <div>
-            {props.statusPages.map((statusPage: StatusPage, i: number) => {
+        <TableColumnListComponent
+            items={props.statusPages}
+            getEachElement={(statusPage: StatusPage) => {
                 return (
-                    <span key={i}>
-                        <StatusPageElement
-                            statusPage={statusPage}
-                            onNavigateComplete={props.onNavigateComplete}
-                        />
-                        {i !== props.statusPages.length - 1 && (
-                            <span>,&nbsp;</span>
-                        )}
-                    </span>
+                    <StatusPageElement
+                        statusPage={statusPage}
+                        onNavigateComplete={props.onNavigateComplete}
+                    />
                 );
-            })}
-        </div>
+            }}
+            noItemsMessage="No Status Page."
+        />
     );
 };
 

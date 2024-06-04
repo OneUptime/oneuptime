@@ -1,4 +1,5 @@
 import MonitorElement from './Monitor';
+import TableColumnListComponent from 'CommonUI/src/Components/TableColumnList/TableColumnListComponent';
 import Monitor from 'Model/Models/Monitor';
 import React, { FunctionComponent, ReactElement } from 'react';
 
@@ -10,26 +11,19 @@ export interface ComponentProps {
 const MonitorsElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    if (!props.monitors || props.monitors.length === 0) {
-        return <p>No monitors.</p>;
-    }
-
     return (
-        <div className="flex">
-            {props.monitors.map((monitor: Monitor, i: number) => {
+        <TableColumnListComponent
+            items={props.monitors}
+            getEachElement={(monitor: Monitor) => {
                 return (
-                    <span key={i} className="flex">
-                        <MonitorElement
-                            monitor={monitor}
-                            onNavigateComplete={props.onNavigateComplete}
-                        />
-                        {i !== props.monitors.length - 1 && (
-                            <span>,&nbsp;</span>
-                        )}
-                    </span>
+                    <MonitorElement
+                        monitor={monitor}
+                        onNavigateComplete={props.onNavigateComplete}
+                    />
                 );
-            })}
-        </div>
+            }}
+            noItemsMessage="No monitors."
+        />
     );
 };
 

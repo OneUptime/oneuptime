@@ -58,7 +58,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 <tr {...provided?.draggableProps} ref={provided?.innerRef}>
                     {props.enableDragAndDrop && (
                         <td
-                            className="ml-5 w-10"
+                            className="ml-5 w-10 align-top"
                             {...provided?.dragHandleProps}
                         >
                             <Icon
@@ -68,7 +68,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         </td>
                     )}
                     {props.isBulkActionsEnabled && (
-                        <td className="w-10" {...provided?.dragHandleProps}>
+                        <td
+                            className="w-10 py-3.5  align-top"
+                            {...provided?.dragHandleProps}
+                        >
                             <div className="ml-5">
                                 <CheckboxElement
                                     value={props.isItemSelected}
@@ -90,10 +93,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     {props.columns &&
                         props.columns.map((column: Column<T>, i: number) => {
                             let className: string =
-                                'whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6';
+                                'whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top';
                             if (i === props.columns.length - 1) {
                                 className =
-                                    'whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6';
+                                    'whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top';
                             }
                             return (
                                 <td
