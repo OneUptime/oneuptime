@@ -153,19 +153,41 @@ Usage:
 - name: REDIS_USERNAME
   value: default
 
+# Postgres configuration
+
 - name: DATABASE_HOST
+  {{- if $.Values.postgresql.enabled }}
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else }}
+  value: {{ $.Values.externalPostgres.host }}
+  {{- end }}
 - name: DATABASE_PORT 
+  {{- if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
+  {{- else }}
+  value: {{ printf "%s" $.Values.externalPostgres.port | squote }}
+  {{- end }}
 - name: DATABASE_USERNAME
+  {{- if $.Values.postgresql.enabled }}
   value: postgres
+  {{- else }}
+  value: {{ $.Values.externalPostgres.username }}
+  {{- end }}
 - name: DATABASE_PASSWORD 
+  {{- if $.Values.postgresql.enabled }}
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
         key: postgres-password
+  {{- else }}
+  value: {{ $.Values.externalPostgres.password }}
+  {{- end }}
 - name: DATABASE_DATABASE 
+  {{- if $.Values.postgresql.enabled }}
   value: {{ $.Values.postgresql.auth.database }}
+  {{- else }}
+  value: {{ $.Values.externalPostgres.database }}
+  {{- end }}
 
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
