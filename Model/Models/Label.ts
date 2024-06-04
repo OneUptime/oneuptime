@@ -35,7 +35,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.ProjectMember,
         Permission.CreateProjectLabel,
     ],
     read: [
@@ -47,13 +46,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.ProjectMember,
         Permission.DeleteProjectLabel,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.ProjectMember,
         Permission.EditProjectLabel,
     ],
 })
@@ -81,7 +78,6 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.CreateProjectLabel,
         ],
         read: [
@@ -118,7 +114,6 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.CreateProjectLabel,
         ],
         read: [
@@ -149,7 +144,6 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.CreateProjectLabel,
         ],
         read: [
@@ -161,7 +155,6 @@ export default class Label extends AccessControlModel {
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.EditProjectLabel,
         ],
     })
@@ -208,7 +201,6 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.CreateProjectLabel,
         ],
         read: [
@@ -220,7 +212,6 @@ export default class Label extends AccessControlModel {
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.EditProjectLabel,
         ],
     })
@@ -241,7 +232,6 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.CreateProjectLabel,
         ],
         read: [
@@ -278,7 +268,6 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.CreateProjectLabel,
         ],
         read: [
@@ -361,7 +350,6 @@ export default class Label extends AccessControlModel {
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.CreateProjectLabel,
         ],
         read: [
@@ -373,7 +361,6 @@ export default class Label extends AccessControlModel {
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
-            Permission.ProjectMember,
             Permission.EditProjectLabel,
         ],
     })
