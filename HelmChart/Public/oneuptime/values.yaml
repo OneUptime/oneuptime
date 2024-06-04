@@ -274,3 +274,8 @@ externalPostgres:
   username: 
   password: 
   database:
+  ssl:
+    enabled: false
+    ca: 
+    cert: 
+    key:

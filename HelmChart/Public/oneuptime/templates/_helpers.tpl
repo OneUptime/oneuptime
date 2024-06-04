@@ -165,7 +165,7 @@ Usage:
   {{- if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
   {{- else }}
-  value: {{ printf "%s" $.Values.externalPostgres.port | squote }}
+  value: {{ $.Values.externalPostgres.port | quote }}
   {{- end }}
 - name: DATABASE_USERNAME
   {{- if $.Values.postgresql.enabled }}
@@ -182,12 +182,39 @@ Usage:
   {{- else }}
   value: {{ $.Values.externalPostgres.password }}
   {{- end }}
-- name: DATABASE_DATABASE 
+- name: DATABASE_NAME 
   {{- if $.Values.postgresql.enabled }}
   value: {{ $.Values.postgresql.auth.database }}
   {{- else }}
   value: {{ $.Values.externalPostgres.database }}
   {{- end }}
+
+
+## DATABASE SSL BLOCK 
+{{- if $.Values.postgresql.enabled }}
+# do nothing here.
+{{- else }}
+{{- if $.Values.externalPostgres.ssl.enabled }}
+
+{{- if $.Values.externalPostgres.ssl.ca }}
+- name: DATABASE_SSL_CA
+  value: {{ printf "%s" $.Values.externalPostgres.ssl.ca | quote }}
+{{- end }}
+
+{{- if $.Values.externalPostgres.ssl.cert }}
+- name: DATABASE_SSL_CERT
+  value: {{ printf "%s" $.Values.externalPostgres.ssl.cert | quote }}
+{{- end }}
+
+{{- if $.Values.externalPostgres.ssl.key }}
+- name: DATABASE_SSL_KEY
+  value: {{ printf "%s" $.Values.externalPostgres.ssl.key | quote }}
+{{- end }}
+
+{{- end }}
+{{- end }}
+
+## DATABASE SSL ENDS HERE 
 
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
