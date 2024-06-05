@@ -51,7 +51,8 @@ postgresql:
     persistence:
       size: 25Gi
 
-clickhouse: 
+clickhouse:
+  enabled: true
   clusterDomain: *global-cluster-domain
   service:
     ports: 
@@ -69,7 +70,8 @@ clickhouse:
     db-init.sql: |
       CREATE DATABASE oneuptime;
 
-redis: 
+redis:
+  enabled: true
   clusterDomain: *global-cluster-domain
   architecture: standalone
   auth:

@@ -41,7 +41,9 @@ dependencies:
 - name: redis
   version: "18.19.1"
   repository: "https://charts.bitnami.com/bitnami"
+  condition: redis.enabled
 - name: clickhouse
   version: "5.1.0"
   repository: "https://charts.bitnami.com/bitnami"
+  condition: clickhouse.enabled
 
