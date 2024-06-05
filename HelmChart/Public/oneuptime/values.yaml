@@ -310,7 +310,7 @@ externalClickhouse:
   username: 
   password: 
   database: 
-  ssl:
+  tls:
     enabled: false
     # If this is enabled, please set either "ca"
     ca: 
