@@ -1,4 +1,5 @@
 import {
+    ClickHouseIsHostHttps,
     ClickhouseDatabase,
     ClickhouseHost,
     ClickhousePassword,
@@ -13,8 +14,10 @@ import { NodeClickHouseClientConfigOptions } from '@clickhouse/client/dist/clien
 
 export type ClickHouseClientConfigOptions = NodeClickHouseClientConfigOptions;
 
+const hostProtocol: string = ClickHouseIsHostHttps ? 'https' : 'http';
+
 const options: ClickHouseClientConfigOptions = {
-    host: `http://${ClickhouseHost.toString()}:${ClickhousePort.toNumber()}`,
+    host: `${hostProtocol}://${ClickhouseHost.toString()}:${ClickhousePort.toNumber()}`,
     username: ClickhouseUsername,
     password: ClickhousePassword,
     database: ClickhouseDatabase,

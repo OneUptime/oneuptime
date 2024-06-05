@@ -131,6 +131,13 @@ Usage:
   {{- else }}
   value: {{ $.Values.externalClickhouse.username }}
   {{- end }}
+
+- name: CLICKHOUSE_IS_HOST_HTTPS
+  {{- if $.Values.clickhouse.enabled }}
+  value: {{ false | squote }}
+  {{- else }}
+  value: {{ $.Values.externalClickhouse.isHostHttps | squote }}
+  {{- end }}
 - name: CLICKHOUSE_PASSWORD
   {{- if $.Values.clickhouse.enabled }}
   valueFrom: 
@@ -227,7 +234,7 @@ Usage:
   {{- if $.Values.redis.enabled }}
   value: {{ printf "0" | squote}}
   {{- else }}
-  value: {{ $.Values.externalRedis.database }}
+  value: {{ $.Values.externalRedis.database | quote }}
   {{- end }}
 - name: REDIS_USERNAME
   {{- if $.Values.redis.enabled }}

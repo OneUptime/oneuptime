@@ -176,6 +176,8 @@ clickhouse:
 
 externalClickhouse:
   host: 
+  # if you host is https then set this to true
+  isHostHttps: 
   port: 
   username: 
   password: 

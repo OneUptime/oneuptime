@@ -290,6 +290,7 @@ externalPostgres:
 externalRedis: 
   host: 
   port: 
+  username:
   password: 
   database: 
   tls:
@@ -303,8 +304,9 @@ externalRedis:
   
 ## External Clickhouse Configuration
 # You need to set clickhouse.enabled to false if you're using an external clickhouse database.
-externalClickhouse: 
+externalClickhouse:
   host: 
+  isHostHttps: false
   port: 
   username: 
   password: 

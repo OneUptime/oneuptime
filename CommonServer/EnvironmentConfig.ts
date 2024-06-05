@@ -179,6 +179,9 @@ export const ClickhouseTlsCert: string | undefined =
 export const ClickhouseTlsKey: string | undefined =
     process.env['CLICKHOUSE_TLS_KEY'] || undefined;
 
+export const ClickHouseIsHostHttps: boolean =
+    process.env['CLICKHOUSE_IS_HOST_HTTPS'] === 'true';
+
 export const ShouldClickhouseSslEnable: boolean = Boolean(
     ClickhouseTlsCa || (ClickhouseTlsCert && ClickhouseTlsKey)
 );
