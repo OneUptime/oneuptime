@@ -13,7 +13,7 @@ You also need to read postgres password which is stored in kubenretes secrets. Y
 
 ```
 # Username for Postgres user is `postgres`
-kubectl get secret/oneuptime-postgresql -o go-template='{{(index .data "postgres-password") | base64decode}}'
+echo $(kubectl get secret --namespace "default" oneuptime-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
 ```
 
 Important: Please ignore % in the end of the password output. 
@@ -21,7 +21,7 @@ Important: Please ignore % in the end of the password output.
 
 ```
 # Username for Postgres user is `oneuptime`
-kubectl get secret/oneuptime-postgresql -o go-template='{{(index .data "password") | base64decode}}'
+echo $(kubectl get secret --namespace "default" oneuptime-postgresql -o jsonpath="{.data.password}" | base64 -d)
 ```
 
 Important: Please ignore % in the end of the password output. 
