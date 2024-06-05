@@ -292,7 +292,7 @@ Usage:
   {{- end }}
 - name: DATABASE_USERNAME
   {{- if $.Values.postgresql.enabled }}
-  value: {{ $.Values.postgresql.auth.username }}
+  value: postgres
   {{- else }}
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
@@ -301,7 +301,7 @@ Usage:
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
-        key: password
+        key: postgres-password
   {{- else }}
   valueFrom: 
     secretKeyRef:
