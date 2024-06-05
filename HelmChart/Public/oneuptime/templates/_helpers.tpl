@@ -126,18 +126,75 @@ Usage:
   {{- end }}
 
 - name: CLICKHOUSE_USER
+  {{- if $.Values.clickhouse.enabled }}
   value: {{ $.Values.clickhouse.auth.username }}
+  {{- else }}
+  value: {{ $.Values.externalClickhouse.username }}
+  {{- end }}
 - name: CLICKHOUSE_PASSWORD
+  {{- if $.Values.clickhouse.enabled }}
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "clickhouse"  }}
         key: admin-password
+  {{- else }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
+        key: password
+  {{- end }}
 - name: CLICKHOUSE_HOST
+  {{- if $.Values.clickhouse.enabled }}
   value: {{ $.Release.Name }}-clickhouse.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else }}
+  value: {{ $.Values.externalClickhouse.host }}
+  {{- end }}
 - name: CLICKHOUSE_PORT
+  {{- if $.Values.clickhouse.enabled }}
   value: {{ printf "%s" $.Values.clickhouse.service.ports.http | squote }}
+  {{- else }}
+  value: {{ $.Values.externalClickhouse.port | quote }}
+  {{- end }}
 - name: CLICKHOUSE_DATABASE
+  {{- if $.Values.clickhouse.enabled }}
   value: {{ printf "oneuptime" | squote}}
+  {{- else }}
+  value: {{ $.Values.externalClickhouse.database }}
+  {{- end }}
+
+
+## REDIS SSL BLOCK 
+{{- if $.Values.clickhouse.enabled }}
+# do nothing here.
+{{- else }}
+{{- if $.Values.externalClickhouse.tls.enabled }}
+
+{{- if $.Values.externalClickhouse.tls.ca }}
+- name: CLICKHOUSE_TLS_CA
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
+        key: tls-ca
+{{- end }}
+
+{{- if $.Values.externalClickhouse.tls.cert }}
+- name: CLICKHOUSE_TLS_CERT
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
+        key: tls-cert
+{{- end }}
+
+{{- if $.Values.externalClickhouse.tls.key }}
+- name: CLICKHOUSE_TLS_KEY
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
+        key: tls-key
+{{- end }}
+{{- end }}
+{{- end }}
+
 
 
 
