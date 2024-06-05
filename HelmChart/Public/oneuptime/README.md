@@ -107,6 +107,37 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `oneuptimeIngress.className` | Ingress class name. Change this to your cloud providers ingress class | `nginx` |  |
 | `script.workflowScriptTimeoutInMs` | Timeout for workflow script | `5000` |  |
 
+
+## Using External Databases
+
+### Postgres
+
+If you would like to use an external postgres database, please add these env vars to your values.yaml file. 
+
+```yaml
+
+postgresql:
+  # Set Internal Postgres enabled to false, so we dont install the postgres database in your cluster
+  enabled: false 
+
+# External Postgres Configuration
+# You need to set postgresql.enabled to false if you're using an external postgres database.
+externalPostgres: 
+  host: 
+  port: 
+  username: 
+  password: 
+  database:
+  ssl:
+    enabled: false
+    # If this is enabled, please set either "ca" OR "cert" and "key".
+    ca: 
+
+    # Set this if "ca" is not set.
+    cert: 
+    key:
+```
+
 ## If you would like to use a custom domain for your status page, please add these env vars 
 
 

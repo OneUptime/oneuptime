@@ -169,7 +169,7 @@ Usage:
   {{- end }}
 - name: DATABASE_USERNAME
   {{- if $.Values.postgresql.enabled }}
-  value: postgres
+  value: {{ $.Values.postgresql.auth.username }}
   {{- else }}
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
@@ -178,9 +178,12 @@ Usage:
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
-        key: postgres-password
+        key: password
   {{- else }}
-  value: {{ $.Values.externalPostgres.password }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
+        key: password
   {{- end }}
 - name: DATABASE_NAME 
   {{- if $.Values.postgresql.enabled }}
@@ -198,17 +201,26 @@ Usage:
 
 {{- if $.Values.externalPostgres.ssl.ca }}
 - name: DATABASE_SSL_CA
-  value: {{ printf "%s" $.Values.externalPostgres.ssl.ca | quote }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
+        key: ssl-ca
 {{- end }}
 
 {{- if $.Values.externalPostgres.ssl.cert }}
 - name: DATABASE_SSL_CERT
-  value: {{ printf "%s" $.Values.externalPostgres.ssl.cert | quote }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
+        key: ssl-cert
 {{- end }}
 
 {{- if $.Values.externalPostgres.ssl.key }}
 - name: DATABASE_SSL_KEY
-  value: {{ printf "%s" $.Values.externalPostgres.ssl.key | quote }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
+        key: ssl-key
 {{- end }}
 
 {{- end }}
