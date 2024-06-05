@@ -276,6 +276,9 @@ externalPostgres:
   database:
   ssl:
     enabled: false
+    # If this is enabled, please set either "ca" OR "cert" and "key".
     ca: 
+
+    # Set this if "ca" is not set.
     cert: 
     key:

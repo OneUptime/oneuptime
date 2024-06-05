@@ -28,6 +28,7 @@ export const dataSourceOptions: DataSourceOptions = {
     migrationsTableName: 'migrations',
     migrations: Migrations,
     entities: Entities,
+    applicationName: 'oneuptime',
     ssl: ShouldDatabaseSslEnable
         ? {
               rejectUnauthorized: DatabaseRejectUnauthorized,
