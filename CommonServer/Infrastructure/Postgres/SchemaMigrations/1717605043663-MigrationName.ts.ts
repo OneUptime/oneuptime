@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table } from "typeorm";
 
 export default class InitialMigration implements MigrationInterface {
-    name = 'InitialMigration'
+    name = 'InitialMigration1717605043663'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
 

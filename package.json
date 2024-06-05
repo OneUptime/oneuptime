@@ -72,7 +72,7 @@
         "deploy-test": "kubectl config use-context oneuptime-test && helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/test.values.yaml",
         "template-deploy-test": "kubectl config use-context oneuptime-test && helm template  oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/test.values.yaml --debug",
         "deploy-prod": "kubectl config use-context oneuptime-prod && helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/prod.values.yaml",
-        "generate-postgres-migration": "export $(grep -v '^#' config.env | xargs) && node --require ts-node/register ./node_modules/typeorm/cli.js migration:generate ./CommonServer/Infrastructure/Postgres/Migrations/. -d ./CommonServer/Infrastructure/Postgres/LocalMigrationGenerationDataSource.ts"
+        "generate-postgres-migration": "export $(grep -v '^#' config.env | xargs) && node --require ts-node/register ./node_modules/typeorm/cli.js migration:generate ./CommonServer/Infrastructure/Postgres/SchemaMigrations/MigrationName -d ./CommonServer/Infrastructure/Postgres/LocalMigrationGenerationDataSource.ts"
     },
     "repository": {
         "type": "git",
