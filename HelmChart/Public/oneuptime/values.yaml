@@ -278,9 +278,42 @@ externalPostgres:
   database:
   ssl:
     enabled: false
-    # If this is enabled, please set either "ca" OR "cert" and "key".
+    # If this is enabled, please set either "ca"
     ca: 
+    # (optional)
+    cert: 
+    key:
 
-    # Set this if "ca" is not set.
+## External Redis Configuration
+# You need to set redis.enabled to false if you're using an external redis database.
+
+externalRedis: 
+  host: 
+  port: 
+  password: 
+  database: 
+  tls:
+    enabled: false
+    # If this is enabled, please set "ca" certificate.
+    ca:
+
+    # (optional)
+    cert: 
+    key:
+
+  
+## External Clickhouse Configuration
+# You need to set clickhouse.enabled to false if you're using an external clickhouse database.
+externalClickhouse: 
+  host: 
+  port: 
+  username: 
+  password: 
+  database: 
+  ssl:
+    enabled: false
+    # If this is enabled, please set either "ca"
+    ca: 
+    # (optional)
     cert: 
     key:

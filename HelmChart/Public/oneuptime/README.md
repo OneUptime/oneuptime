@@ -130,13 +130,66 @@ externalPostgres:
   database:
   ssl:
     enabled: false
-    # If this is enabled, please set either "ca" OR "cert" and "key".
+    # If this is enabled, please set either "ca"
     ca: 
 
-    # Set this if "ca" is not set.
+    # Optional
     cert: 
     key:
 ```
+
+### Redis
+
+If you would like to use an external redis database, please add these env vars to your values.yaml file. 
+
+```yaml
+
+redis:
+  # Set Internal Redis enabled to false, so we dont install the redis database in your cluster
+  enabled: false
+
+
+externalRedis: 
+  host: 
+  port: 
+  password: 
+  database: 
+  tls:
+    enabled: false
+    # If this is enabled, please set "ca" certificate.
+    ca:
+
+    # (optional)
+    cert: 
+    key:
+
+```
+
+### Clickhouse 
+
+If you would like to use an external clickhouse database, please add these env vars to your values.yaml file. 
+
+```yaml
+clickhouse: 
+  # Set Internal Clickhouse enabled to false, so we dont install the clickhouse database in your cluster
+  enabled: false
+
+externalClickhouse:
+  host: 
+  port: 
+  username: 
+  password: 
+  database:
+  tls:
+    enabled: false
+    # If this is enabled, please set either "ca"
+    ca: 
+
+    # Optional
+    cert: 
+    key:
+```
+
 
 ## If you would like to use a custom domain for your status page, please add these env vars 
 

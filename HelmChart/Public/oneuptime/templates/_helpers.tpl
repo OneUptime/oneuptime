@@ -139,19 +139,78 @@ Usage:
 - name: CLICKHOUSE_DATABASE
   value: {{ printf "oneuptime" | squote}}
 
+
+
+
 - name: REDIS_HOST
+  {{- if $.Values.redis.enabled }}
   value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  {{- else }}
+  value: {{ $.Values.externalRedis.host }}
+  {{- end }}
 - name: REDIS_PORT
+  {{- if $.Values.redis.enabled }}
   value: {{ printf "%s" $.Values.redis.master.service.ports.redis | quote }}
+  {{- else }}
+  value: {{ $.Values.externalRedis.port | quote }}
+  {{- end }}
 - name: REDIS_PASSWORD
+  {{- if $.Values.redis.enabled }}
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "redis"  }}
         key: redis-password
+  {{- else }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        key: password
+  {{- end }}
 - name: REDIS_DB
+  {{- if $.Values.redis.enabled }}
   value: {{ printf "0" | squote}}
+  {{- else }}
+  value: {{ $.Values.externalRedis.database }}
+  {{- end }}
 - name: REDIS_USERNAME
+  {{- if $.Values.redis.enabled }}
   value: default
+  {{- else }}
+  value: {{ $.Values.externalRedis.username }}
+  {{- end }}
+
+
+## REDIS SSL BLOCK 
+{{- if $.Values.redis.enabled }}
+# do nothing here.
+{{- else }}
+{{- if $.Values.externalRedis.tls.enabled }}
+
+{{- if $.Values.externalRedis.tls.ca }}
+- name: REDIS_TLS_CA
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        key: tls-ca
+{{- end }}
+
+{{- if $.Values.externalRedis.tls.cert }}
+- name: REDIS_TLS_CERT
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        key: tls-cert
+{{- end }}
+
+{{- if $.Values.externalRedis.tls.key }}
+- name: REDIS_TLS_KEY
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        key: tls-key
+{{- end }}
+{{- end }}
+{{- end }}
 
 # Postgres configuration
 

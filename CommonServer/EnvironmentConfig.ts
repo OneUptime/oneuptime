@@ -116,13 +116,21 @@ export const RedisDb: number = Number(process.env['REDIS_DB']) || 0;
 export const RedisUsername: string = process.env['REDIS_USERNAME'] || 'default';
 export const RedisPassword: string =
     process.env['REDIS_PASSWORD'] || 'password';
+
 export const RedisTlsCa: string | undefined =
     process.env['REDIS_TLS_CA'] || undefined;
+
+export const RedisTlsCert: string | undefined =
+    process.env['REDIS_TLS_CERT'] || undefined;
+
+export const RedisTlsKey: string | undefined =
+    process.env['REDIS_TLS_KEY'] || undefined;
+
 export const RedisTlsSentinelMode: boolean =
     process.env['REDIS_TLS_SENTINEL_MODE'] === 'true';
 
 export const ShouldRedisTlsEnable: boolean = Boolean(
-    RedisTlsCa || RedisTlsSentinelMode
+    RedisTlsCa || (RedisTlsCert && RedisTlsKey)
 );
 
 export const IsProduction: boolean =
@@ -161,6 +169,19 @@ export const ClickhousePassword: string =
 
 export const ClickhouseDatabase: string =
     process.env['CLICKHOUSE_DATABASE'] || 'oneuptime';
+
+export const ClickhouseTlsCa: string | undefined =
+    process.env['CLICKHOUSE_TLS_CA'] || undefined;
+
+export const ClickhouseTlsCert: string | undefined =
+    process.env['CLICKHOUSE_TLS_CERT'] || undefined;
+
+export const ClickhouseTlsKey: string | undefined =
+    process.env['CLICKHOUSE_TLS_KEY'] || undefined;
+
+export const ShouldClickhouseSslEnable: boolean = Boolean(
+    ClickhouseTlsCa || (ClickhouseTlsCert && ClickhouseTlsKey)
+);
 
 export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 

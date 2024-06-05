@@ -4,6 +4,8 @@ import {
     RedisPassword,
     RedisPort,
     RedisTlsCa,
+    RedisTlsCert,
+    RedisTlsKey,
     RedisTlsSentinelMode,
     RedisUsername,
     ShouldRedisTlsEnable,
@@ -44,7 +46,11 @@ export default abstract class Redis {
             };
 
             if (ShouldRedisTlsEnable) {
-                redisOptions.tls = { ca: RedisTlsCa };
+                redisOptions.tls = {
+                    ca: RedisTlsCa || undefined,
+                    cert: RedisTlsCert || undefined,
+                    key: RedisTlsKey || undefined,
+                };
             }
 
             this.client = new RedisClient(redisOptions);
