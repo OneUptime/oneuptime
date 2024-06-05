@@ -8,6 +8,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import URL from 'Common/Types/API/URL';
 import OneUptimeDate from 'Common/Types/Date';
 import { JSONArray } from 'Common/Types/JSON';
+import ProbeMonitorResponse from 'Common/Types/Probe/ProbeMonitorResponse';
 import Sleep from 'Common/Types/Sleep';
 import API from 'Common/Utils/API';
 import logger from 'CommonServer/Utils/Logger';
@@ -77,16 +78,37 @@ export default class FetchListAndProbe {
                 Monitor
             );
 
+            const probeMonitorPromises: Array<
+                Promise<Array<ProbeMonitorResponse | null>>
+            > = []; // Array of promises to probe monitors
+
             for (const monitor of monitors) {
-                try {
-                    await MonitorUtil.probeMonitor(monitor);
-                } catch (err) {
-                    logger.error('Error in probing monitor');
-                    logger.error('Monitor:');
-                    logger.error(monitor);
-                    logger.error('Error:');
-                    logger.error(err);
+                probeMonitorPromises.push(MonitorUtil.probeMonitor(monitor));
+            }
+
+            // all settled
+            // eslint-disable-next-line no-undef
+            const results: PromiseSettledResult<
+                (ProbeMonitorResponse | null)[]
+            >[] = await Promise.allSettled(probeMonitorPromises);
+
+            let resultIndex: number = 0;
+
+            for (const result of results) {
+                if (monitors && monitors[resultIndex]) {
+                    logger.debug('Monitor:');
+                    logger.debug(monitors[resultIndex]);
                 }
+
+                if (result.status === 'rejected') {
+                    logger.error('Error in probing monitor:');
+                    logger.error(result.reason);
+                } else {
+                    logger.debug('Probed monitor: ');
+                    logger.debug(result.value);
+                }
+
+                resultIndex++;
             }
         } catch (err) {
             logger.error('Error in fetching monitor list');
