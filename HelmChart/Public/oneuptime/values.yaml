@@ -306,6 +306,7 @@ externalRedis:
 # You need to set clickhouse.enabled to false if you're using an external clickhouse database.
 externalClickhouse:
   host: 
+  ## If the host is https, set this to true. Otherwise, set it to false.
   isHostHttps: false
   port: 
   username: 
