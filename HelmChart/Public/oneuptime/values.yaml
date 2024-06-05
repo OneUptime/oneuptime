@@ -296,7 +296,6 @@ externalRedis:
     enabled: false
     # If this is enabled, please set "ca" certificate.
     ca:
-
     # (optional)
     cert: 
     key:
