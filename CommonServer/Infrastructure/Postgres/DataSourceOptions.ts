@@ -1,4 +1,3 @@
-import DatabaseType from 'Common/Types/DatabaseType';
 import {
     DatabaseHost,
     DatabaseName,
@@ -11,9 +10,10 @@ import {
     DatabaseUsername,
     ShouldDatabaseSslEnable,
 } from '../../EnvironmentConfig';
-import { DataSourceOptions } from 'typeorm';
 import Migrations from './SchemaMigrations/Index';
+import DatabaseType from 'Common/Types/DatabaseType';
 import Entities from 'Model/Models/Index';
+import { DataSourceOptions } from 'typeorm';
 
 const dataSourceOptions: DataSourceOptions = {
     type: DatabaseType.Postgres,
@@ -29,11 +29,11 @@ const dataSourceOptions: DataSourceOptions = {
     applicationName: 'oneuptime',
     ssl: ShouldDatabaseSslEnable
         ? {
-            rejectUnauthorized: DatabaseRejectUnauthorized,
-            ca: DatabaseSslCa,
-            key: DatabaseSslKey,
-            cert: DatabaseSslCert,
-        }
+              rejectUnauthorized: DatabaseRejectUnauthorized,
+              ca: DatabaseSslCa,
+              key: DatabaseSslKey,
+              cert: DatabaseSslCert,
+          }
         : false,
     // logging: 'all',
     synchronize: false,

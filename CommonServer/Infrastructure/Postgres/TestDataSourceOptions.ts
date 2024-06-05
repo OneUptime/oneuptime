@@ -1,8 +1,8 @@
-import DatabaseType from "Common/Types/DatabaseType";
-import { DatabaseName } from "../../EnvironmentConfig";
-import Faker from "Common/Utils/Faker";
-import { DataSourceOptions } from "typeorm";
+import { DatabaseName } from '../../EnvironmentConfig';
+import DatabaseType from 'Common/Types/DatabaseType';
+import Faker from 'Common/Utils/Faker';
 import Entities from 'Model/Models/Index';
+import { DataSourceOptions } from 'typeorm';
 
 type GetTestDataSourceOptions = () => DataSourceOptions;
 
@@ -17,7 +17,7 @@ const getTestDataSourceOptions: GetTestDataSourceOptions =
             password: process.env['DATABASE_PASSWORD'] || 'password',
             database: DatabaseName + Faker.randomNumbers(16),
             entities: Entities,
-            synchronize: true
+            synchronize: true,
         };
     };
 
