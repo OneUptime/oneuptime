@@ -50,6 +50,18 @@ helm repo add oneuptime https://helm-chart.oneuptime.com/
 helm install my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
+
+## Upgrade Helm Chart
+
+```console
+
+# Update the chart repo 
+helm repo update
+
+# Upgrade the helm chart
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
 ## Uninstall Helm Chart
 
 ```console

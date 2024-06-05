@@ -274,7 +274,7 @@ externalPostgres:
   host: 
   port: 
   username: 
-  password: 
+  password:
   database:
   ssl:
     enabled: false
