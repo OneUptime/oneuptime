@@ -58,7 +58,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 <tr {...provided?.draggableProps} ref={provided?.innerRef}>
                     {props.enableDragAndDrop && (
                         <td
-                            className="ml-5 w-10 align-top"
+                            className="ml-5 py-4 w-10 align-top"
                             {...provided?.dragHandleProps}
                         >
                             <Icon
