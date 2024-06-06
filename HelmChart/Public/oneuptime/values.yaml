@@ -275,6 +275,11 @@ externalPostgres:
   port: 
   username: 
   password:
+  # If you're using existing secret for the password, please use this instaead of password. 
+  existingSecret:
+    name: 
+    # This is the key in the secret where the password is stored.
+    passwordKey:
   database:
   ssl:
     enabled: false
@@ -291,7 +296,12 @@ externalRedis:
   host: 
   port: 
   username:
-  password: 
+  password:
+  # If you're using existing secret for the password, please use this instaead of password. 
+  existingSecret:
+    name: 
+    # This is the key in the secret where the password is stored.
+    passwordKey: 
   database: 
   tls:
     enabled: false
@@ -310,7 +320,12 @@ externalClickhouse:
   isHostHttps: false
   port: 
   username: 
-  password: 
+  password:
+  # If you're using existing secret for the password, please use this instaead of password. 
+  existingSecret:
+    name: 
+    # This is the key in the secret where the password is stored.
+    passwordKey: 
   database: 
   tls:
     enabled: false

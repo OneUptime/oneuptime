@@ -145,10 +145,18 @@ Usage:
         name: {{ printf "%s-%s" $.Release.Name "clickhouse"  }}
         key: admin-password
   {{- else }}
+  {{- if $.Values.externalClickhouse.password }}
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: password
+  {{- end }}
+  {{- if $.Values.externalClickhouse.existingSecret.name }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s" $.Values.externalClickhouse.existingSecret.name }}
+        key: {{ $.Values.externalClickhouse.existingSecret.passwordKey }}
+  {{- end }}
   {{- end }}
 - name: CLICKHOUSE_HOST
   {{- if $.Values.clickhouse.enabled }}
@@ -225,10 +233,18 @@ Usage:
         name: {{ printf "%s-%s" $.Release.Name "redis"  }}
         key: redis-password
   {{- else }}
+  {{- if $.Values.externalRedis.password }}
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: password
+  {{- end }}
+  {{- if $.Values.externalRedis.existingSecret.name }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s" $.Values.externalRedis.existingSecret.name }}
+        key: {{ $.Values.externalRedis.existingSecret.passwordKey }}
+  {{- end }}
   {{- end }}
 - name: REDIS_DB
   {{- if $.Values.redis.enabled }}
@@ -303,10 +319,18 @@ Usage:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
         key: postgres-password
   {{- else }}
+  {{- if $.Values.externalPostgres.password }}
   valueFrom: 
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: password
+  {{- end }}
+  {{- if $.Values.externalPostgres.existingSecret.name }}
+  valueFrom: 
+    secretKeyRef:
+        name: {{ printf "%s" $.Values.externalPostgres.existingSecret.name }}
+        key: {{ $.Values.externalPostgres.existingSecret.passwordKey }}
+  {{- end }}
   {{- end }}
 - name: DATABASE_NAME 
   {{- if $.Values.postgresql.enabled }}
