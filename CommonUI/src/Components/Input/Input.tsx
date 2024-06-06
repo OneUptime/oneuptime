@@ -21,12 +21,12 @@ export enum InputType {
 }
 
 export interface ComponentProps {
-    initialValue?: undefined | string;
+    initialValue?: undefined | string | Date;
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?: undefined | ((value: string) => void);
-    value?: string | undefined;
+    value?: string | Date | undefined;
     readOnly?: boolean | undefined;
     disabled?: boolean | undefined;
     type?: InputType;
@@ -61,7 +61,7 @@ const Input: FunctionComponent<ComponentProps> = (
         className += ' bg-gray-100 text-gray-500 cursor-not-allowed';
     }
 
-    const [value, setValue] = useState<string>('');
+    const [value, setValue] = useState<string | Date>('');
     const [displayValue, setDisplayValue] = useState<string>('');
     const ref: any = useRef<any>(null);
 
@@ -89,7 +89,11 @@ const Input: FunctionComponent<ComponentProps> = (
                     Logger.error(e);
                 }
                 setDisplayValue(dateString);
-            } else if (value && value.includes && !value.includes(' - ')) {
+            } else if (
+                value &&
+                (value as any).includes &&
+                !(value as any).includes(' - ')
+            ) {
                 // " - " is for InBetween dates.
                 const date: Date = OneUptimeDate.fromString(value);
                 let dateString: string = '';
@@ -106,11 +110,14 @@ const Input: FunctionComponent<ComponentProps> = (
                     Logger.error(err);
                 }
                 setDisplayValue(dateString);
-            } else if (!value || (value.includes && !value.includes(' - '))) {
+            } else if (
+                !value ||
+                ((value as any).includes && !(value as any).includes(' - '))
+            ) {
                 setDisplayValue('');
             }
         } else {
-            setDisplayValue(value);
+            setDisplayValue(value as string);
         }
     }, [value]);
 

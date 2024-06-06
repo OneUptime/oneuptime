@@ -254,6 +254,13 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         value: '_id',
                     },
                 },
+                {
+                    title: 'Created At',
+                    type: FieldType.Date,
+                    field: {
+                        createdAt: true,
+                    },
+                },
             ]}
             columns={[
                 {

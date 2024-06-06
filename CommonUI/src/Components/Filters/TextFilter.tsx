@@ -34,13 +34,11 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
 
     if (
         !filter.filterDropdownOptions &&
-        (filter.type === FieldType.Date ||
-            filter.type === FieldType.Email ||
+        (filter.type === FieldType.Email ||
             filter.type === FieldType.Phone ||
             filter.type === FieldType.Name ||
             filter.type === FieldType.Port ||
             filter.type === FieldType.URL ||
-            filter.type === FieldType.DateTime ||
             filter.type === FieldType.ObjectID ||
             filter.type === FieldType.Text)
     ) {

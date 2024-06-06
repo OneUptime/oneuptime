@@ -1,6 +1,7 @@
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import BooleanFilter from './BooleanFilter';
+import DateFilter from './DateFilter';
 import DropdownFilter from './DropdownFilter';
 import EntityFilter from './EntityFilter';
 import JSONFilter from './JSONFilter';
@@ -73,6 +74,12 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                                     />
 
                                     <BooleanFilter
+                                        filter={filter}
+                                        filterData={props.filterData}
+                                        onFilterChanged={changeFilterData}
+                                    />
+
+                                    <DateFilter
                                         filter={filter}
                                         filterData={props.filterData}
                                         onFilterChanged={changeFilterData}
