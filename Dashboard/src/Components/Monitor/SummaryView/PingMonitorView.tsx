@@ -21,6 +21,18 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
         <div className="space-y-5">
             <div className="flex space-x-3">
                 <InfoCard
+                    className="w-full shadow-none border-2 border-gray-100 "
+                    title="Hostname or IP address"
+                    value={
+                        (props.probeMonitorResponse.monitorDestination?.toString() ||
+                            '') +
+                            (props.probeMonitorResponse.monitorDestinationPort?.toString() ||
+                                '') || '-'
+                    }
+                />
+            </div>
+            <div className="flex space-x-3">
+                <InfoCard
                     className="w-1/3 shadow-none border-2 border-gray-100 "
                     title="Status"
                     value={

@@ -48,6 +48,16 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
         <div className="space-y-5">
             <div className="flex space-x-3">
                 <InfoCard
+                    className="w-full shadow-none border-2 border-gray-100 "
+                    title="URL"
+                    value={
+                        props.probeMonitorResponse.monitorDestination?.toString() ||
+                        '-'
+                    }
+                />
+            </div>
+            <div className="flex space-x-3">
+                <InfoCard
                     className="w-1/3 shadow-none border-2 border-gray-100 "
                     title="Response Staus Code"
                     value={

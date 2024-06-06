@@ -144,6 +144,8 @@ export default class MonitorUtil {
                 return result;
             }
 
+            result.monitorDestination = monitorStep.data.monitorDestination;
+
             if (LocalCache.getString('PROBE', 'PING_MONITORING') === 'PORT') {
                 // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
 
@@ -188,6 +190,8 @@ export default class MonitorUtil {
                 return result;
             }
 
+            result.monitorDestination = monitorStep.data.monitorDestination;
+
             if (!monitorStep.data?.monitorDestinationPort) {
                 result.isOnline = false;
                 result.responseTimeInMs = 0;
@@ -195,6 +199,9 @@ export default class MonitorUtil {
 
                 return result;
             }
+
+            result.monitorDestinationPort =
+                monitorStep.data.monitorDestinationPort;
 
             const response: PortMonitorResponse | null = await PortMonitor.ping(
                 monitorStep.data?.monitorDestination,
@@ -263,6 +270,8 @@ export default class MonitorUtil {
                 return result;
             }
 
+            result.monitorDestination = monitorStep.data.monitorDestination;
+
             if (!monitorStep.data?.monitorDestination) {
                 result.isOnline = false;
                 result.responseTimeInMs = 0;
@@ -295,6 +304,8 @@ export default class MonitorUtil {
                 return result;
             }
 
+            result.monitorDestination = monitorStep.data.monitorDestination;
+
             const response: ProbeWebsiteResponse | null =
                 await WebsiteMonitor.ping(
                     monitorStep.data?.monitorDestination as URL,
@@ -321,6 +332,8 @@ export default class MonitorUtil {
             if (!monitorStep.data?.monitorDestination) {
                 return result;
             }
+
+            result.monitorDestination = monitorStep.data.monitorDestination;
 
             let requestBody: JSONObject | undefined = undefined;
             if (
