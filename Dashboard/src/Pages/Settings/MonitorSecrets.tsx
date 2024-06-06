@@ -11,7 +11,6 @@ import BasicFormModal from 'CommonUI/src/Components/FormModal/BasicFormModal';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import API from 'CommonUI/src/Utils/API/API';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
@@ -30,7 +29,6 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
         useState<MonitorSecret | null>(null);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string>('');
 
     return (
         <Fragment>
@@ -203,16 +201,13 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
                 <BasicFormModal
                     title={'Update Secret Value'}
                     isLoading={isLoading}
-                    error={error}
                     onClose={() => {
-                        setError('');
                         setIsLoading(false);
                         return setCurrentlyEditingItem(null);
                     }}
                     onSubmit={async (data: JSONObject) => {
                         try {
                             setIsLoading(true);
-                            setError('');
 
                             await ModelAPI.updateById<MonitorSecret>({
                                 modelType: MonitorSecret,
@@ -224,7 +219,7 @@ const MonitorSecrets: FunctionComponent<PageComponentProps> = (
 
                             setCurrentlyEditingItem(null);
                         } catch (err) {
-                            setError(API.getFriendlyMessage(err as Error));
+                            // do nothing
                         }
 
                         setIsLoading(false);

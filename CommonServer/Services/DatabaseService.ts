@@ -1389,7 +1389,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 skip: updateBy.skip.toNumber(),
                 limit: updateBy.limit.toNumber(),
                 select: selectColumns,
-                props: { ...beforeUpdateBy.props, ignoreHooks: true },
+                props: { isRoot: true, ignoreHooks: true },
             });
 
             for (const item of items) {
