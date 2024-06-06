@@ -10,7 +10,7 @@ then you should be able to access from the localhost and port 8123
 
 ```
 # Username for Postgres user is `oneuptime`
-kubectl get secret/oneuptime-clickhouse -o go-template='{{(index .data "admin-password") | base64decode}}'
+echo $(kubectl get secret --namespace "default" oneuptime-clickhouse -o jsonpath="{.data.admin-password}" | base64 -d)
 ```
 
 Important: Please ignore % in the end of the password output. 

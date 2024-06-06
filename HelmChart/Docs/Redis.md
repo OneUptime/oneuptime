@@ -3,7 +3,7 @@
 Get Redis Password
 
 ```bash
-kubectl get secret/oneuptime-redis -o go-template='{{(index .data "redis-password") | base64decode}}'
+echo $(kubectl get secret --namespace "default" oneuptime-redis -o jsonpath="{.data.redis-password}" | base64 -d)
 ```
 
 Please ignore % in the end of the password output.
