@@ -26,8 +26,9 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
                     value={
                         (props.probeMonitorResponse.monitorDestination?.toString() ||
                             '') +
-                            (props.probeMonitorResponse.monitorDestinationPort?.toString() ||
-                                '') || '-'
+                            (props.probeMonitorResponse.monitorDestinationPort?.toString()
+                                ? `:${props.probeMonitorResponse.monitorDestinationPort.toString()}`
+                                : '') || '-'
                     }
                 />
             </div>
