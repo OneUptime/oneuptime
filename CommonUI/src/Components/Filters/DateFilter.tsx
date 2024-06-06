@@ -30,6 +30,9 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
     const [startDateError, setStartDateError] = React.useState<string>('');
     const [endDateError, setEndDateError] = React.useState<string>('');
 
+    const [didSetInitialValue, setDidSetInitialValue] =
+        React.useState<boolean>(false);
+
     let inputType: InputType = InputType.TEXT;
 
     if (filter.type === FieldType.Date) {
@@ -42,6 +45,7 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
         // prefill the date filter if it is already set
 
         if (
+            !didSetInitialValue &&
             filterData[filter.key] &&
             filterData[filter.key] instanceof InBetween
         ) {
@@ -58,8 +62,10 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
                     OneUptimeDate.fromString(inBetween.endValue as string)
                 );
             }
+
+            setDidSetInitialValue(true);
         }
-    }, []);
+    }, [props.filterData]);
 
     useEffect(() => {
         if (startDateTime && endDateTime) {
@@ -219,7 +225,7 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
                             setStartDateTime(startDate);
                             setEndDateTime(endDate);
                         }}
-                        title="1 days"
+                        title="1 day"
                     />
 
                     <Button
@@ -240,41 +246,41 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
                         title="1 week"
                     />
 
-                    {filter.type === FieldType.Date && (
-                        <Button
-                            buttonStyle={ButtonStyleType.NORMAL}
-                            buttonSize={ButtonSize.Small}
-                            onClick={() => {
-                                // set it to past 1 week
-                                const endDate: Date =
-                                    OneUptimeDate.getCurrentDate();
-                                const startDate: Date =
-                                    OneUptimeDate.addRemoveDays(endDate, -14);
+                    <Button
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        buttonSize={ButtonSize.Small}
+                        onClick={() => {
+                            // set it to past 1 week
+                            const endDate: Date =
+                                OneUptimeDate.getCurrentDate();
+                            const startDate: Date = OneUptimeDate.addRemoveDays(
+                                endDate,
+                                -14
+                            );
 
-                                setStartDateTime(startDate);
-                                setEndDateTime(endDate);
-                            }}
-                            title="2 weeks"
-                        />
-                    )}
+                            setStartDateTime(startDate);
+                            setEndDateTime(endDate);
+                        }}
+                        title="2 weeks"
+                    />
 
-                    {filter.type === FieldType.Date && (
-                        <Button
-                            buttonStyle={ButtonStyleType.NORMAL}
-                            buttonSize={ButtonSize.Small}
-                            onClick={() => {
-                                // set it to past 1 week
-                                const endDate: Date =
-                                    OneUptimeDate.getCurrentDate();
-                                const startDate: Date =
-                                    OneUptimeDate.addRemoveDays(endDate, -21);
+                    <Button
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        buttonSize={ButtonSize.Small}
+                        onClick={() => {
+                            // set it to past 1 week
+                            const endDate: Date =
+                                OneUptimeDate.getCurrentDate();
+                            const startDate: Date = OneUptimeDate.addRemoveDays(
+                                endDate,
+                                -21
+                            );
 
-                                setStartDateTime(startDate);
-                                setEndDateTime(endDate);
-                            }}
-                            title="3 weeks"
-                        />
-                    )}
+                            setStartDateTime(startDate);
+                            setEndDateTime(endDate);
+                        }}
+                        title="3 weeks"
+                    />
 
                     <Button
                         buttonStyle={ButtonStyleType.NORMAL}
@@ -290,6 +296,22 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
                             setEndDateTime(endDate);
                         }}
                         title="1 month"
+                    />
+
+                    <Button
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        buttonSize={ButtonSize.Small}
+                        onClick={() => {
+                            // set it to past 1 month
+                            const endDate: Date =
+                                OneUptimeDate.getCurrentDate();
+                            const startDate: Date =
+                                OneUptimeDate.addRemoveMonths(endDate, -3);
+
+                            setStartDateTime(startDate);
+                            setEndDateTime(endDate);
+                        }}
+                        title="3 months"
                     />
                 </div>
             </div>
