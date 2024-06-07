@@ -597,8 +597,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             columns
                 .append(keyStatement)
                 .append(SQL` `)
-                .append(column.required ? this.toColumnType(column.type): (SQL`Nullable(`.append(this.toColumnType(column.type)).append(SQL`)`)));
-                
+                .append(
+                    column.required
+                        ? this.toColumnType(column.type)
+                        : SQL`Nullable(`
+                              .append(this.toColumnType(column.type))
+                              .append(SQL`)`)
+                );
+
             if (nestedModelColumns) {
                 columns.append(SQL` `).append(nestedModelColumns);
             }
@@ -659,7 +665,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         const statement: Statement = SQL`
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
             this.model.tableName
-        } ADD COLUMN IF NOT EXISTS `.append(this.toColumnsCreateStatement([column], false));
+        } ADD COLUMN IF NOT EXISTS `.append(
+            this.toColumnsCreateStatement([column], false)
+        );
 
         logger.debug(`${this.model.tableName} Add Column Statement`);
         logger.debug(statement);

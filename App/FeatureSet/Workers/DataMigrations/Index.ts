@@ -58,7 +58,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new GenerateNewCertsForStatusPage(),
     new AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing(),
     new RemoveCanFromPermissions(),
-    new AddUnitColumnToMetricsTable()
+    new AddUnitColumnToMetricsTable(),
 ];
 
 export default DataMigrations;
