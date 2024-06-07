@@ -1,9 +1,11 @@
 import { Logger, logs } from '@opentelemetry/api-logs';
+import { Counter } from '@opentelemetry/api/build/src/metrics/Metric';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
+import { Meter, MeterProvider } from '@opentelemetry/metrics';
 import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
 import { Resource } from '@opentelemetry/resources';
 import {
@@ -20,9 +22,13 @@ import Dictionary from 'Common/Types/Dictionary';
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
+const serviceName: string = process.env['SERVICE_NAME'] || 'oneuptime';
+
 export default class Telemetry {
     public static sdk: opentelemetry.NodeSDK | null = null;
     public static logger: Logger | null = null;
+
+    public static meter: Meter | null = null;
 
     public static getHeaders(): Dictionary<string> {
         if (!process.env['OPENTELEMETRY_EXPORTER_OTLP_HEADERS']) {
@@ -182,8 +188,32 @@ export default class Telemetry {
 
         return this.logger!;
     }
+
+    public static getMeter(): Meter {
+        if (!this.meter) {
+            this.meter = new MeterProvider().getMeter(serviceName);
+        }
+
+        return this.meter;
+    }
+
+    public static getCounter(data: {
+        name: string;
+        description: string;
+        labels: Dictionary<string>;
+    }): Counter {
+        const { name, description, labels } = data;
+
+        const counter = this.getMeter().createCounter(name, { description });
+
+        if (labels && Object.keys(labels).length > 0) {
+            counter.bind(labels);
+        }
+
+        return counter;
+    }
 }
 
 Telemetry.init({
-    serviceName: process.env['SERVICE_NAME'] || 'oneuptime',
+    serviceName: serviceName,
 });
