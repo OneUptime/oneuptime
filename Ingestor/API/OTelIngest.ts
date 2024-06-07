@@ -153,7 +153,7 @@ router.post(
                             span['status'] &&
                             (span['status'] as JSONObject)?.['code'] &&
                             typeof (span['status'] as JSONObject)?.['code'] ===
-                                'number'
+                            'number'
                         ) {
                             spanStatusCode = (span['status'] as JSONObject)?.[
                                 'code'
@@ -164,7 +164,7 @@ router.post(
                             span['status'] &&
                             (span['status'] as JSONObject)?.['code'] &&
                             typeof (span['status'] as JSONObject)?.['code'] ===
-                                'string'
+                            'string'
                         ) {
                             if (
                                 (span['status'] as JSONObject)?.['code'] ===
@@ -316,13 +316,13 @@ router.post(
                         const metricDescription: string = metric[
                             'description'
                         ] as string;
-                        
+
                         if (
                             metric['sum'] &&
                             (metric['sum'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['sum'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -356,9 +356,20 @@ router.post(
                                     datapoint['timeUnixNano'] as number
                                 );
 
-                                dbMetricSum.value = datapoint[
-                                    'asInt'
-                                ] as number;
+
+                                if (Object.keys(datapoint).includes('asInt')) {
+
+                                    dbMetricSum.value = datapoint[
+                                        'asInt'
+                                    ] as number;
+                                } else if (Object.keys(datapoint).includes('asDouble')) {
+                                    dbMetricSum.value = datapoint[
+                                        'asDouble'
+                                    ] as number;
+                                }
+
+
+
 
                                 dbMetricSum.attributes =
                                     OTelIngestService.getAttributes(
@@ -372,7 +383,7 @@ router.post(
                             (metric['gauge'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['gauge'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -406,9 +417,15 @@ router.post(
                                     datapoint['timeUnixNano'] as number
                                 );
 
-                                dbMetricGauge.value = datapoint[
-                                    'asInt'
-                                ] as number;
+                                if (Object.keys(datapoint).includes('asDouble')) {
+                                    dbMetricGauge.value = datapoint[
+                                        'asDouble'
+                                    ] as number;
+                                } else if (Object.keys(datapoint).includes('asInt')) {
+                                    dbMetricGauge.value = datapoint[
+                                        'asInt'
+                                    ] as number;
+                                }
 
                                 dbMetricGauge.attributes =
                                     OTelIngestService.getAttributes(
@@ -422,7 +439,7 @@ router.post(
                             (metric['histogram'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['histogram'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
