@@ -5,6 +5,7 @@ import OTelIngestService from '../Service/OTelIngest';
 import OneUptimeDate from 'Common/Types/Date';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
 import Text from 'Common/Types/Text';
 import LogService from 'CommonServer/Services/LogService';
@@ -319,7 +320,7 @@ router.post(
 
                         const metricUnit: string = metric['unit'] as string;
 
-                        const dbMetric: Metric = new Metric();
+                        let dbMetric: Metric = new Metric();
 
                         dbMetric.projectId = (
                             req as TelemetryRequest
@@ -330,16 +331,50 @@ router.post(
 
                         dbMetric.name = metricName;
                         dbMetric.description = metricDescription;
-                        dbMetric.unit = metricUnit;
 
-                        dbMetric.attributes = {
-                            ...OTelIngestService.getAttributes(
-                                metric['attributes'] as JSONArray
-                            ),
-                            resource: OTelIngestService.getAttributes(
-                                resourceMetric['attributes'] as JSONArray
-                            ),
-                        };
+                        if (metricUnit) {
+                            dbMetric.unit = metricUnit;
+                        }
+
+                        let attributesObject: JSONObject = {};
+
+                        if (
+                            metric['attributes'] &&
+                            metric['attributes'] instanceof Array &&
+                            metric['attributes'].length > 0
+                        ) {
+                            attributesObject = {
+                                ...OTelIngestService.getAttributes(
+                                    metric['attributes'] as JSONArray
+                                ),
+                            };
+                        }
+
+                        if (
+                            resourceMetric['attributes'] &&
+                            resourceMetric['attributes'] instanceof Array &&
+                            resourceMetric['attributes'].length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                ...OTelIngestService.getAttributes(
+                                    resourceMetric['attributes'] as JSONArray
+                                ),
+                            };
+                        }
+
+                        if (
+                            scopeMetric['scope'] &&
+                            Object.keys(scopeMetric['scope']).length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                ...((scopeMetric['scope'] as JSONObject) || {}),
+                            };
+                        }
+
+                        dbMetric.attributes =
+                            JSONFunctions.flattenObject(attributesObject);
 
                         if (
                             metric['sum'] &&
@@ -353,32 +388,11 @@ router.post(
                             for (const datapoint of (
                                 metric['sum'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                dbMetric.startTimeUnixNano = datapoint[
-                                    'startTimeUnixNano'
-                                ] as number;
-                                dbMetric.startTime = OneUptimeDate.fromUnixNano(
-                                    datapoint['startTimeUnixNano'] as number
-                                );
-
-                                dbMetric.timeUnixNano = datapoint[
-                                    'timeUnixNano'
-                                ] as number;
-                                dbMetric.time = OneUptimeDate.fromUnixNano(
-                                    datapoint['timeUnixNano'] as number
-                                );
-
-                                if (Object.keys(datapoint).includes('asInt')) {
-                                    dbMetric.value = datapoint[
-                                        'asInt'
-                                    ] as number;
-                                } else if (
-                                    Object.keys(datapoint).includes('asDouble')
-                                ) {
-                                    dbMetric.value = datapoint[
-                                        'asDouble'
-                                    ] as number;
-                                }
-
+                                dbMetric =
+                                    OTelIngestService.getMetricFromDatapoint(
+                                        dbMetric,
+                                        datapoint
+                                    );
                                 dbMetrics.push(dbMetric);
                             }
                         } else if (
@@ -393,34 +407,11 @@ router.post(
                             for (const datapoint of (
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                dbMetric.startTimeUnixNano = datapoint[
-                                    'startTimeUnixNano'
-                                ] as number;
-                                dbMetric.startTime = OneUptimeDate.fromUnixNano(
-                                    datapoint['startTimeUnixNano'] as number
-                                );
-
-                                dbMetric.timeUnixNano = datapoint[
-                                    'timeUnixNano'
-                                ] as number;
-                                dbMetric.time = OneUptimeDate.fromUnixNano(
-                                    datapoint['timeUnixNano'] as number
-                                );
-
-                                if (
-                                    Object.keys(datapoint).includes('asDouble')
-                                ) {
-                                    dbMetric.value = datapoint[
-                                        'asDouble'
-                                    ] as number;
-                                } else if (
-                                    Object.keys(datapoint).includes('asInt')
-                                ) {
-                                    dbMetric.value = datapoint[
-                                        'asInt'
-                                    ] as number;
-                                }
-
+                                dbMetric =
+                                    OTelIngestService.getMetricFromDatapoint(
+                                        dbMetric,
+                                        datapoint
+                                    );
                                 dbMetrics.push(dbMetric);
                             }
                         } else if (
@@ -435,33 +426,11 @@ router.post(
                             for (const datapoint of (
                                 metric['histogram'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                dbMetric.startTimeUnixNano = datapoint[
-                                    'startTimeUnixNano'
-                                ] as number;
-                                dbMetric.startTime = OneUptimeDate.fromUnixNano(
-                                    datapoint['startTimeUnixNano'] as number
-                                );
-
-                                dbMetric.timeUnixNano = datapoint[
-                                    'timeUnixNano'
-                                ] as number;
-                                dbMetric.time = OneUptimeDate.fromUnixNano(
-                                    datapoint['timeUnixNano'] as number
-                                );
-
-                                dbMetric.count = datapoint['count'] as number;
-                                dbMetric.sum = datapoint['sum'] as number;
-
-                                dbMetric.min = datapoint['min'] as number;
-                                dbMetric.max = datapoint['max'] as number;
-
-                                dbMetric.bucketCounts = datapoint[
-                                    'bucketCounts'
-                                ] as Array<number>;
-                                dbMetric.explicitBounds = datapoint[
-                                    'explicitBounds'
-                                ] as Array<number>;
-
+                                dbMetric =
+                                    OTelIngestService.getMetricFromDatapoint(
+                                        dbMetric,
+                                        datapoint
+                                    );
                                 dbMetrics.push(dbMetric);
                             }
                         } else {
