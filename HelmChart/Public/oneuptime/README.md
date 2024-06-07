@@ -139,7 +139,7 @@ externalPostgres:
   port: 
   username: 
   password: 
-  # If you're using existing secret for the password, please use this instead of password. 
+  # If you're using an existing secret for the password, please use this instead of password. 
   existingSecret:
     name: 
     # This is the key in the secret where the password is stored.
@@ -170,7 +170,7 @@ externalRedis:
   host: 
   port: 
   password: 
-  # If you're using existing secret for the password, please use this instead of password. 
+  # If you're using an existing secret for the password, please use this instead of password. 
   existingSecret:
     name: 
     # This is the key in the secret where the password is stored.
@@ -203,7 +203,7 @@ externalClickhouse:
   port: 
   username: 
   password: 
-  # If you're using existing secret for the password, please use this instead of password. 
+  # If you're using an existing secret for the password, please use this instead of password. 
   existingSecret:
     name: 
     # This is the key in the secret where the password is stored.
