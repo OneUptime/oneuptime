@@ -141,7 +141,7 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'unit',
                     title: 'Unit',
                     description: 'Unit of the Metric',
-                    required: true,
+                    required: false,
                     type: TableColumnType.Text,
                     accessControl: {
                         read: [
