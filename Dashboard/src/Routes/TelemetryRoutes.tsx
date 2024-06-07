@@ -48,6 +48,12 @@ const TelemetryServiceViewTrace: LazyExoticComponent<
     return import('../Pages/Telemetry/Services/View/Traces/View/Index');
 });
 
+const TelemetryServiceViewMetric: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/Telemetry/Services/View/Metrics/View/Index');
+});
+
 const TelemetryServiceViewMetrics: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -186,6 +192,25 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                                 pageRoute={
                                     RouteMap[
                                         PageMap.TELEMETRY_SERVICES_VIEW_TRACES
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.TELEMETRY_SERVICES_VIEW_METRIC,
+                        2
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <TelemetryServiceViewMetric
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.TELEMETRY_SERVICES_VIEW_METRIC
                                     ] as Route
                                 }
                             />

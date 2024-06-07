@@ -31,9 +31,9 @@ import {
 } from 'typeorm';
 
 @TableBillingAccessControl({
-    create: PlanSelect.Growth,
+    create: PlanSelect.Scale,
     read: PlanSelect.Free,
-    update: PlanSelect.Growth,
+    update: PlanSelect.Scale,
     delete: PlanSelect.Free,
 })
 @EnableDocumentation()
