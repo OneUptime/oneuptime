@@ -133,8 +133,8 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                 },
                                 {
                                     field: {
-                                        password: true,
-                                    },
+                                        confirmPassword: true,
+                                    } as any,
                                     validation: {
                                         minLength: 6,
                                         toMatchField: 'password',

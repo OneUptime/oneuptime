@@ -68,11 +68,12 @@ const RegisterPage: () => JSX.Element = () => {
                                     placeholder: 'New Password',
                                     title: 'New Password',
                                     required: true,
+                                    showEvenIfPermissionDoesNotExist: true,
                                 },
                                 {
                                     field: {
-                                        password: true,
-                                    },
+                                        confirmPassword: true,
+                                    } as any,
                                     validation: {
                                         minLength: 6,
                                         toMatchField: 'password',
@@ -82,6 +83,7 @@ const RegisterPage: () => JSX.Element = () => {
                                     title: 'Confirm Password',
                                     overrideFieldKey: 'confirmPassword',
                                     required: true,
+                                    showEvenIfPermissionDoesNotExist: true,
                                 },
                             ]}
                             createOrUpdateApiUrl={apiUrl}

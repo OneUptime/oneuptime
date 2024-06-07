@@ -2,6 +2,7 @@ import DashboardNavigation from '../../Utils/Navigation';
 import PageComponentProps from '../PageComponentProps';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import Project from 'Model/Models/Project';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
@@ -32,6 +33,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         },
                     },
                 ]}
+                onSaveSuccess={() => {
+                    Navigation.reload();
+                }}
                 modelDetailProps={{
                     modelType: Project,
                     id: 'model-detail-project',

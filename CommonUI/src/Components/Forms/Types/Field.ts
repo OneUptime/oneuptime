@@ -67,7 +67,7 @@ export default interface Field<TEntity> {
     validation?: {
         minLength?: number | undefined;
         maxLength?: number | undefined;
-        toMatchField?: string | undefined;
+        toMatchField?: keyof TEntity | undefined;
         noSpaces?: boolean | undefined;
         noSpecialCharacters?: boolean;
         noNumbers?: boolean | undefined;
