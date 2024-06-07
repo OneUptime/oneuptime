@@ -128,6 +128,46 @@ router.post(
                     for (const span of spans) {
                         const dbSpan: Span = new Span();
 
+                        // attrbibutes
+                        const attributesObject: JSONObject = {};
+
+                        if (
+                            resourceSpan['resource'] &&
+                            (resourceSpan['resource'] as JSONObject)[
+                                'attributes'
+                            ] &&
+                            (
+                                (resourceSpan['resource'] as JSONObject)[
+                                    'attributes'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            attributesObject['resource'] =
+                                OTelIngestService.getAttributes(
+                                    (resourceSpan['resource'] as JSONObject)[
+                                        'attributes'
+                                    ] as JSONArray
+                                );
+                        }
+
+                        // scope attributes
+
+                        if (
+                            scopeSpan['scope'] &&
+                            Object.keys(scopeSpan['scope']).length > 0
+                        ) {
+                            attributesObject['scope'] = scopeSpan[
+                                'scope'
+                            ] as JSONObject;
+                        }
+
+                        dbSpan.attributes = {
+                            ...attributesObject,
+                            ...OTelIngestService.getAttributes(
+                                span['attributes'] as JSONArray
+                            ),
+                        };
+
                         dbSpan.projectId = (req as TelemetryRequest).projectId;
                         dbSpan.serviceId = (req as TelemetryRequest).serviceId;
 
@@ -205,10 +245,6 @@ router.post(
                         dbSpan.name = span['name'] as string;
                         dbSpan.kind =
                             (span['kind'] as SpanKind) || SpanKind.Internal;
-
-                        dbSpan.attributes = OTelIngestService.getAttributes(
-                            span['attributes'] as JSONArray
-                        );
 
                         // add events
 
@@ -365,7 +401,7 @@ router.post(
                         ) {
                             attributesObject = {
                                 ...attributesObject,
-                                ...OTelIngestService.getAttributes(
+                                resource: OTelIngestService.getAttributes(
                                     (resourceMetric['resource'] as JSONObject)[
                                         'attributes'
                                     ] as JSONArray
@@ -379,13 +415,13 @@ router.post(
                         ) {
                             attributesObject = {
                                 ...attributesObject,
-                                ...{
-                                    scope:
-                                        (scopeMetric['scope'] as JSONObject) ||
-                                        {},
-                                },
+                                scope:
+                                    (scopeMetric['scope'] as JSONObject) || {},
                             };
                         }
+
+                        // add attributes
+                        dbMetric.attributes = attributesObject;
 
                         if (
                             metric['sum'] &&
@@ -525,6 +561,48 @@ router.post(
                         }
                         */
 
+                        //attributes
+
+                        let attributesObject: JSONObject = {};
+
+                        if (
+                            resourceLog['resource'] &&
+                            (resourceLog['resource'] as JSONObject)[
+                                'attributes'
+                            ] &&
+                            (
+                                (resourceLog['resource'] as JSONObject)[
+                                    'attributes'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                resource: OTelIngestService.getAttributes(
+                                    (resourceLog['resource'] as JSONObject)[
+                                        'attributes'
+                                    ] as JSONArray
+                                ),
+                            };
+                        }
+
+                        if (
+                            scopeLog['scope'] &&
+                            Object.keys(scopeLog['scope']).length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                scope: (scopeLog['scope'] as JSONObject) || {},
+                            };
+                        }
+
+                        dbLog.attributes = {
+                            ...attributesObject,
+                            ...OTelIngestService.getAttributes(
+                                log['attributes'] as JSONArray
+                            ),
+                        };
+
                         dbLog.projectId = (req as TelemetryRequest).projectId;
                         dbLog.serviceId = (req as TelemetryRequest).serviceId;
 
@@ -615,11 +693,6 @@ router.post(
                         );
                         dbLog.spanId = Text.convertBase64ToHex(
                             log['spanId'] as string
-                        );
-
-                        // We need to convert this to date.
-                        dbLog.attributes = OTelIngestService.getAttributes(
-                            log['attributes'] as JSONArray
                         );
 
                         dbLogs.push(dbLog);
