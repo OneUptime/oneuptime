@@ -153,7 +153,7 @@ router.post(
                             span['status'] &&
                             (span['status'] as JSONObject)?.['code'] &&
                             typeof (span['status'] as JSONObject)?.['code'] ===
-                            'number'
+                                'number'
                         ) {
                             spanStatusCode = (span['status'] as JSONObject)?.[
                                 'code'
@@ -164,7 +164,7 @@ router.post(
                             span['status'] &&
                             (span['status'] as JSONObject)?.['code'] &&
                             typeof (span['status'] as JSONObject)?.['code'] ===
-                            'string'
+                                'string'
                         ) {
                             if (
                                 (span['status'] as JSONObject)?.['code'] ===
@@ -317,191 +317,152 @@ router.post(
                             'description'
                         ] as string;
 
+                        const metricUnit: string = metric['unit'] as string;
+
+                        const dbMetric: Metric = new Metric();
+
+                        dbMetric.projectId = (
+                            req as TelemetryRequest
+                        ).projectId;
+                        dbMetric.serviceId = (
+                            req as TelemetryRequest
+                        ).serviceId;
+
+                        dbMetric.name = metricName;
+                        dbMetric.description = metricDescription;
+                        dbMetric.unit = metricUnit;
+
+                        dbMetric.attributes = {
+                            ...OTelIngestService.getAttributes(
+                                metric['attributes'] as JSONArray
+                            ),
+                            resource: OTelIngestService.getAttributes(
+                                resourceMetric['attributes'] as JSONArray
+                            ),
+                        };
+
                         if (
                             metric['sum'] &&
                             (metric['sum'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['sum'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
                             for (const datapoint of (
                                 metric['sum'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricSum: Metric = new Metric();
-
-                                dbMetricSum.projectId = (
-                                    req as TelemetryRequest
-                                ).projectId;
-                                dbMetricSum.serviceId = (
-                                    req as TelemetryRequest
-                                ).serviceId;
-
-                                dbMetricSum.name = metricName;
-                                dbMetricSum.description = metricDescription;
-
-                                dbMetricSum.startTimeUnixNano = datapoint[
+                                dbMetric.startTimeUnixNano = datapoint[
                                     'startTimeUnixNano'
                                 ] as number;
-                                dbMetricSum.startTime =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['startTimeUnixNano'] as number
-                                    );
+                                dbMetric.startTime = OneUptimeDate.fromUnixNano(
+                                    datapoint['startTimeUnixNano'] as number
+                                );
 
-                                dbMetricSum.timeUnixNano = datapoint[
+                                dbMetric.timeUnixNano = datapoint[
                                     'timeUnixNano'
                                 ] as number;
-                                dbMetricSum.time = OneUptimeDate.fromUnixNano(
+                                dbMetric.time = OneUptimeDate.fromUnixNano(
                                     datapoint['timeUnixNano'] as number
                                 );
 
-
                                 if (Object.keys(datapoint).includes('asInt')) {
-
-                                    dbMetricSum.value = datapoint[
+                                    dbMetric.value = datapoint[
                                         'asInt'
                                     ] as number;
-                                } else if (Object.keys(datapoint).includes('asDouble')) {
-                                    dbMetricSum.value = datapoint[
+                                } else if (
+                                    Object.keys(datapoint).includes('asDouble')
+                                ) {
+                                    dbMetric.value = datapoint[
                                         'asDouble'
                                     ] as number;
                                 }
 
-
-
-
-                                dbMetricSum.attributes =
-                                    OTelIngestService.getAttributes(
-                                        metric['attributes'] as JSONArray
-                                    );
-
-                                dbMetrics.push(dbMetricSum);
+                                dbMetrics.push(dbMetric);
                             }
                         } else if (
                             metric['gauge'] &&
                             (metric['gauge'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['gauge'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
                             for (const datapoint of (
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricGauge: Metric = new Metric();
-
-                                dbMetricGauge.projectId = (
-                                    req as TelemetryRequest
-                                ).projectId;
-                                dbMetricGauge.serviceId = (
-                                    req as TelemetryRequest
-                                ).serviceId;
-
-                                dbMetricGauge.name = metricName;
-                                dbMetricGauge.description = metricDescription;
-
-                                dbMetricGauge.startTimeUnixNano = datapoint[
+                                dbMetric.startTimeUnixNano = datapoint[
                                     'startTimeUnixNano'
                                 ] as number;
-                                dbMetricGauge.startTime =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['startTimeUnixNano'] as number
-                                    );
+                                dbMetric.startTime = OneUptimeDate.fromUnixNano(
+                                    datapoint['startTimeUnixNano'] as number
+                                );
 
-                                dbMetricGauge.timeUnixNano = datapoint[
+                                dbMetric.timeUnixNano = datapoint[
                                     'timeUnixNano'
                                 ] as number;
-                                dbMetricGauge.time = OneUptimeDate.fromUnixNano(
+                                dbMetric.time = OneUptimeDate.fromUnixNano(
                                     datapoint['timeUnixNano'] as number
                                 );
 
-                                if (Object.keys(datapoint).includes('asDouble')) {
-                                    dbMetricGauge.value = datapoint[
+                                if (
+                                    Object.keys(datapoint).includes('asDouble')
+                                ) {
+                                    dbMetric.value = datapoint[
                                         'asDouble'
                                     ] as number;
-                                } else if (Object.keys(datapoint).includes('asInt')) {
-                                    dbMetricGauge.value = datapoint[
+                                } else if (
+                                    Object.keys(datapoint).includes('asInt')
+                                ) {
+                                    dbMetric.value = datapoint[
                                         'asInt'
                                     ] as number;
                                 }
 
-                                dbMetricGauge.attributes =
-                                    OTelIngestService.getAttributes(
-                                        metric['attributes'] as JSONArray
-                                    );
-
-                                dbMetrics.push(dbMetricGauge);
+                                dbMetrics.push(dbMetric);
                             }
                         } else if (
                             metric['histogram'] &&
                             (metric['histogram'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['histogram'] as JSONObject)[
-                                'dataPoints'
+                                    'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
                             for (const datapoint of (
                                 metric['histogram'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricHistogram: Metric = new Metric();
-
-                                dbMetricHistogram.projectId = (
-                                    req as TelemetryRequest
-                                ).projectId;
-                                dbMetricHistogram.serviceId = (
-                                    req as TelemetryRequest
-                                ).serviceId;
-
-                                dbMetricHistogram.name = metricName;
-                                dbMetricHistogram.description =
-                                    metricDescription;
-
-                                dbMetricHistogram.startTimeUnixNano = datapoint[
+                                dbMetric.startTimeUnixNano = datapoint[
                                     'startTimeUnixNano'
                                 ] as number;
-                                dbMetricHistogram.startTime =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['startTimeUnixNano'] as number
-                                    );
+                                dbMetric.startTime = OneUptimeDate.fromUnixNano(
+                                    datapoint['startTimeUnixNano'] as number
+                                );
 
-                                dbMetricHistogram.timeUnixNano = datapoint[
+                                dbMetric.timeUnixNano = datapoint[
                                     'timeUnixNano'
                                 ] as number;
-                                dbMetricHistogram.time =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['timeUnixNano'] as number
-                                    );
+                                dbMetric.time = OneUptimeDate.fromUnixNano(
+                                    datapoint['timeUnixNano'] as number
+                                );
 
-                                dbMetricHistogram.count = datapoint[
-                                    'count'
-                                ] as number;
-                                dbMetricHistogram.sum = datapoint[
-                                    'sum'
-                                ] as number;
+                                dbMetric.count = datapoint['count'] as number;
+                                dbMetric.sum = datapoint['sum'] as number;
 
-                                dbMetricHistogram.min = datapoint[
-                                    'min'
-                                ] as number;
-                                dbMetricHistogram.max = datapoint[
-                                    'max'
-                                ] as number;
+                                dbMetric.min = datapoint['min'] as number;
+                                dbMetric.max = datapoint['max'] as number;
 
-                                dbMetricHistogram.bucketCounts = datapoint[
+                                dbMetric.bucketCounts = datapoint[
                                     'bucketCounts'
                                 ] as Array<number>;
-                                dbMetricHistogram.explicitBounds = datapoint[
+                                dbMetric.explicitBounds = datapoint[
                                     'explicitBounds'
                                 ] as Array<number>;
 
-                                // dbMetricHistogram.attributes =
-                                //     OTelIngestService.getKeyValues(
-                                //         metric['attributes'] as JSONArray
-                                //     );
-
-                                dbMetrics.push(dbMetricHistogram);
+                                dbMetrics.push(dbMetric);
                             }
                         } else {
                             logger.warn('Unknown metric type');

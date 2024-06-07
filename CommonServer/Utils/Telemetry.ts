@@ -1,3 +1,4 @@
+import OpenTelemetryAPI, { Meter } from '@opentelemetry/api';
 import { Logger, logs } from '@opentelemetry/api-logs';
 import { Counter } from '@opentelemetry/api/build/src/metrics/Metric';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
@@ -11,15 +12,15 @@ import {
     BatchLogRecordProcessor,
     LoggerProvider,
 } from '@opentelemetry/sdk-logs';
-import { PeriodicExportingMetricReader, MeterProvider } from '@opentelemetry/sdk-metrics';
+import {
+    MeterProvider,
+    PeriodicExportingMetricReader,
+} from '@opentelemetry/sdk-metrics';
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import { SpanExporter } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import URL from 'Common/Types/API/URL';
 import Dictionary from 'Common/Types/Dictionary';
-import OpenTelemetryAPI, { Meter } from '@opentelemetry/api';
-
-
 
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
@@ -214,9 +215,10 @@ export default class Telemetry {
     }): Counter {
         const { name, description } = data;
 
-        const counter = this.getMeter().createCounter(name, {
-            description: description,
-        });
+        const counter: Counter<opentelemetry.api.Attributes> =
+            this.getMeter().createCounter(name, {
+                description: description,
+            });
         return counter;
     }
 }

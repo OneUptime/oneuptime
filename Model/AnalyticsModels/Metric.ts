@@ -137,6 +137,29 @@ export default class Metric extends AnalyticsBaseModel {
                     },
                 }),
 
+                new AnalyticsTableColumn({
+                    key: 'unit',
+                    title: 'Unit',
+                    description: 'Unit of the Metric',
+                    required: true,
+                    type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.ReadTelemetryServiceLog,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CreateTelemetryServiceLog,
+                        ],
+                        update: [],
+                    },
+                }),
+
                 // this is end time.
                 new AnalyticsTableColumn({
                     key: 'time',
@@ -448,6 +471,14 @@ export default class Metric extends AnalyticsBaseModel {
 
     public set description(v: string | undefined) {
         this.setColumnValue('description', v);
+    }
+
+    public get unit(): string | undefined {
+        return this.getColumnValue('unit') as string | undefined;
+    }
+
+    public set unit(v: string | undefined) {
+        this.setColumnValue('unit', v);
     }
 
     public set serviceId(v: ObjectID | undefined) {

@@ -1,4 +1,5 @@
 import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class OTelIngestService {
     public static getAttributes(items: JSONArray): JSONObject {
@@ -22,6 +23,6 @@ export default class OTelIngestService {
             }
         }
 
-        return finalObj;
+        return JSONFunctions.flattenObject(finalObj);
     }
 }

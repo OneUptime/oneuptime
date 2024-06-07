@@ -29,9 +29,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
         serviceId: props.serviceId,
     });
 
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    // const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-    const [values, setValues] = React.useState<Metric[]>([]);
+    // const [values, setValues] = React.useState<Metric[]>([]);
 
     useEffect(() => {}, []);
 
