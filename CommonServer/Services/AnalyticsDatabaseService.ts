@@ -113,9 +113,17 @@ export default class AnalyticsDatabaseService<
 
         const dbResult: ExecResult<Stream> = await this.execute(statement);
 
-        const strResult: string = await StreamUtil.convertStreamToText(
+        let strResult: string = await StreamUtil.convertStreamToText(
             dbResult.stream
         );
+
+        // if strResult includes Nullable(type) then extract type.
+
+        if (strResult.includes('Nullable')) {
+            let type: string = strResult.split('Nullable(')[1] as string;
+            type = type.split(')')[0] as string;
+            strResult = type;
+        }
 
         return (
             (this.statementGenerator.toTableColumnType(

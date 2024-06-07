@@ -1,6 +1,9 @@
 import OpenTelemetryAPI, { Meter } from '@opentelemetry/api';
 import { Logger, logs } from '@opentelemetry/api-logs';
-import { Counter } from '@opentelemetry/api/build/src/metrics/Metric';
+import {
+    Counter,
+    MetricOptions,
+} from '@opentelemetry/api/build/src/metrics/Metric';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
@@ -212,13 +215,21 @@ export default class Telemetry {
     public static getCounter(data: {
         name: string;
         description: string;
+        unit?: string;
     }): Counter {
         const { name, description } = data;
 
+        const metricOptions: MetricOptions = {
+            description: description,
+        };
+
+        if (data.unit) {
+            metricOptions.unit = data.unit;
+        }
+
         const counter: Counter<opentelemetry.api.Attributes> =
-            this.getMeter().createCounter(name, {
-                description: description,
-            });
+            this.getMeter().createCounter(name, metricOptions);
+
         return counter;
     }
 }

@@ -676,8 +676,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toDropColumnStatement(columnName: string): string {
-        const statement: string = `
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
+        const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions()
+            .database!}.${
             this.model.tableName
         } DROP COLUMN IF EXISTS ${columnName}`;
 

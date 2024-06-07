@@ -306,7 +306,7 @@ export default class Metric extends AnalyticsBaseModel {
                     title: 'Sum',
                     description: 'Sum',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.Decimal,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -329,7 +329,7 @@ export default class Metric extends AnalyticsBaseModel {
                     title: 'Value',
                     description: 'Value',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.Decimal,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -352,7 +352,7 @@ export default class Metric extends AnalyticsBaseModel {
                     title: 'Min',
                     description: 'Min',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.Decimal,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -375,7 +375,7 @@ export default class Metric extends AnalyticsBaseModel {
                     title: 'Max',
                     description: 'Max',
                     required: false,
-                    type: TableColumnType.Number,
+                    type: TableColumnType.Decimal,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,

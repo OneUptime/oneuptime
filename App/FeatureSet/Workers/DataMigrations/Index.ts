@@ -17,6 +17,7 @@ import AddStartDateToScheduledEventsStateTimeline from './AddStartDateToSchedule
 import AddTelemetryServiceColor from './AddTelemetryServiceColor';
 import AddUnitColumnToMetricsTable from './AddUnitColumnToMetricsTable';
 import ChangeLogSeverityColumnTypeFromTextToNumber from './ChangeLogSeverityColumnTypeFromTextToNumber';
+import ChangeMetricColumnTypeToDecimal from './ChangeMetricColumnTypesToDecimal';
 import DataMigrationBase from './DataMigrationBase';
 import GenerateNewCertsForStatusPage from './GenerateNewCertsForStatusPage';
 import MigrateDefaultUserNotificationRule from './MigrateDefaultUserNotificationRule';
@@ -59,6 +60,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing(),
     new RemoveCanFromPermissions(),
     new AddUnitColumnToMetricsTable(),
+    new ChangeMetricColumnTypeToDecimal(),
 ];
 
 export default DataMigrations;
