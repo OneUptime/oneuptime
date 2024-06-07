@@ -19,35 +19,30 @@ export default class StatusAPI {
     public static statusCheckSuccessCounter = Telemetry.getCounter({
         name: 'status.check.success',
         description: 'Status check counter',
-        labels: {},
     });
 
     // ready counter
     public static stausReadySuccess = Telemetry.getCounter({
         name: 'status.ready.success',
         description: 'Ready check counter',
-        labels: {},
     });
     // live counter
 
     public static stausLiveSuccess = Telemetry.getCounter({
         name: 'status.live.success',
         description: 'Live check counter',
-        labels: {},
     });
 
     // ready failed counter
     public static stausReadyFailed = Telemetry.getCounter({
         name: 'status.ready.failed',
         description: 'Ready check counter',
-        labels: {},
     });
 
     // live failed counter
     public static stausLiveFailed = Telemetry.getCounter({
         name: 'status.live.failed',
         description: 'Live check counter',
-        labels: {},
     });
 
     public static init(options: StatusAPIOptions): ExpressRouter {

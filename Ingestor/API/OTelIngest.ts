@@ -316,7 +316,7 @@ router.post(
                         const metricDescription: string = metric[
                             'description'
                         ] as string;
-
+                        
                         if (
                             metric['sum'] &&
                             (metric['sum'] as JSONObject)['dataPoints'] &&

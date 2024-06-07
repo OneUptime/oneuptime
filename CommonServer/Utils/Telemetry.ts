@@ -5,19 +5,21 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray';
-import { Meter, MeterProvider } from '@opentelemetry/metrics';
 import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
 import { Resource } from '@opentelemetry/resources';
 import {
     BatchLogRecordProcessor,
     LoggerProvider,
 } from '@opentelemetry/sdk-logs';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { PeriodicExportingMetricReader, MeterProvider } from '@opentelemetry/sdk-metrics';
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import { SpanExporter } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import URL from 'Common/Types/API/URL';
 import Dictionary from 'Common/Types/Dictionary';
+import OpenTelemetryAPI, { Meter } from '@opentelemetry/api';
+
+
 
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
@@ -27,8 +29,8 @@ const serviceName: string = process.env['SERVICE_NAME'] || 'oneuptime';
 export default class Telemetry {
     public static sdk: opentelemetry.NodeSDK | null = null;
     public static logger: Logger | null = null;
-
     public static meter: Meter | null = null;
+    public static meterProvider: MeterProvider | null = null;
 
     public static getHeaders(): Dictionary<string> {
         if (!process.env['OPENTELEMETRY_EXPORTER_OTLP_HEADERS']) {
@@ -189,9 +191,18 @@ export default class Telemetry {
         return this.logger!;
     }
 
+    public static getMeterProvider(): MeterProvider {
+        if (!this.meterProvider) {
+            this.meterProvider = new MeterProvider();
+            OpenTelemetryAPI.metrics.setGlobalMeterProvider(this.meterProvider);
+        }
+
+        return this.meterProvider;
+    }
+
     public static getMeter(): Meter {
         if (!this.meter) {
-            this.meter = new MeterProvider().getMeter(serviceName);
+            this.meter = OpenTelemetryAPI.metrics.getMeter('default');
         }
 
         return this.meter;
@@ -200,16 +211,12 @@ export default class Telemetry {
     public static getCounter(data: {
         name: string;
         description: string;
-        labels: Dictionary<string>;
     }): Counter {
-        const { name, description, labels } = data;
+        const { name, description } = data;
 
-        const counter = this.getMeter().createCounter(name, { description });
-
-        if (labels && Object.keys(labels).length > 0) {
-            counter.bind(labels);
-        }
-
+        const counter = this.getMeter().createCounter(name, {
+            description: description,
+        });
         return counter;
     }
 }
