@@ -32,31 +32,59 @@ export default class OTelIngestService {
         dbMetric: Metric,
         datapoint: JSONObject
     ): Metric {
-        dbMetric.startTimeUnixNano = datapoint['startTimeUnixNano'] as number;
-        dbMetric.startTime = OneUptimeDate.fromUnixNano(
+        const newDbMetric: Metric = Metric.fromJSON(
+            dbMetric.toJSON(),
+            Metric
+        ) as Metric;
+
+        newDbMetric.startTimeUnixNano = datapoint[
+            'startTimeUnixNano'
+        ] as number;
+        newDbMetric.startTime = OneUptimeDate.fromUnixNano(
             datapoint['startTimeUnixNano'] as number
         );
 
-        dbMetric.timeUnixNano = datapoint['timeUnixNano'] as number;
-        dbMetric.time = OneUptimeDate.fromUnixNano(
+        newDbMetric.timeUnixNano = datapoint['timeUnixNano'] as number;
+        newDbMetric.time = OneUptimeDate.fromUnixNano(
             datapoint['timeUnixNano'] as number
         );
 
         if (Object.keys(datapoint).includes('asInt')) {
-            dbMetric.value = datapoint['asInt'] as number;
+            newDbMetric.value = datapoint['asInt'] as number;
         } else if (Object.keys(datapoint).includes('asDouble')) {
-            dbMetric.value = datapoint['asDouble'] as number;
+            newDbMetric.value = datapoint['asDouble'] as number;
         }
 
-        dbMetric.count = datapoint['count'] as number;
-        dbMetric.sum = datapoint['sum'] as number;
+        newDbMetric.count = datapoint['count'] as number;
+        newDbMetric.sum = datapoint['sum'] as number;
 
-        dbMetric.min = datapoint['min'] as number;
-        dbMetric.max = datapoint['max'] as number;
+        newDbMetric.min = datapoint['min'] as number;
+        newDbMetric.max = datapoint['max'] as number;
 
-        dbMetric.bucketCounts = datapoint['bucketCounts'] as Array<number>;
-        dbMetric.explicitBounds = datapoint['explicitBounds'] as Array<number>;
+        newDbMetric.bucketCounts = datapoint['bucketCounts'] as Array<number>;
+        newDbMetric.explicitBounds = datapoint[
+            'explicitBounds'
+        ] as Array<number>;
 
-        return dbMetric;
+        // attrbutes
+
+        if (Object.keys(datapoint).includes('attributes')) {
+            if (!newDbMetric.attributes) {
+                newDbMetric.attributes = {};
+            }
+
+            newDbMetric.attributes = {
+                ...(newDbMetric.attributes || {}),
+                ...this.getAttributes(datapoint['attributes'] as JSONArray),
+            };
+        }
+
+        if (newDbMetric.attributes) {
+            newDbMetric.attributes = JSONFunctions.flattenObject(
+                newDbMetric.attributes
+            );
+        }
+
+        return newDbMetric;
     }
 }

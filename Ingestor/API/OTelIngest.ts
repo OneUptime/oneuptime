@@ -5,7 +5,6 @@ import OTelIngestService from '../Service/OTelIngest';
 import OneUptimeDate from 'Common/Types/Date';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
 import ProductType from 'Common/Types/MeteredPlan/ProductType';
 import Text from 'Common/Types/Text';
 import LogService from 'CommonServer/Services/LogService';
@@ -320,7 +319,7 @@ router.post(
 
                         const metricUnit: string = metric['unit'] as string;
 
-                        let dbMetric: Metric = new Metric();
+                        const dbMetric: Metric = new Metric();
 
                         dbMetric.projectId = (
                             req as TelemetryRequest
@@ -351,14 +350,25 @@ router.post(
                         }
 
                         if (
-                            resourceMetric['attributes'] &&
-                            resourceMetric['attributes'] instanceof Array &&
-                            resourceMetric['attributes'].length > 0
+                            resourceMetric['resource'] &&
+                            (resourceMetric['resource'] as JSONObject)[
+                                'attributes'
+                            ] &&
+                            ((resourceMetric['resource'] as JSONObject)[
+                                'attributes'
+                            ] as JSONArray) instanceof Array &&
+                            (
+                                (resourceMetric['resource'] as JSONObject)[
+                                    'attributes'
+                                ] as JSONArray
+                            ).length > 0
                         ) {
                             attributesObject = {
                                 ...attributesObject,
                                 ...OTelIngestService.getAttributes(
-                                    resourceMetric['attributes'] as JSONArray
+                                    (resourceMetric['resource'] as JSONObject)[
+                                        'attributes'
+                                    ] as JSONArray
                                 ),
                             };
                         }
@@ -369,12 +379,13 @@ router.post(
                         ) {
                             attributesObject = {
                                 ...attributesObject,
-                                ...((scopeMetric['scope'] as JSONObject) || {}),
+                                ...{
+                                    scope:
+                                        (scopeMetric['scope'] as JSONObject) ||
+                                        {},
+                                },
                             };
                         }
-
-                        dbMetric.attributes =
-                            JSONFunctions.flattenObject(attributesObject);
 
                         if (
                             metric['sum'] &&
@@ -388,12 +399,13 @@ router.post(
                             for (const datapoint of (
                                 metric['sum'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                dbMetric =
+                                const sumMetric: Metric =
                                     OTelIngestService.getMetricFromDatapoint(
                                         dbMetric,
                                         datapoint
                                     );
-                                dbMetrics.push(dbMetric);
+
+                                dbMetrics.push(sumMetric);
                             }
                         } else if (
                             metric['gauge'] &&
@@ -407,12 +419,13 @@ router.post(
                             for (const datapoint of (
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                dbMetric =
+                                const guageMetric: Metric =
                                     OTelIngestService.getMetricFromDatapoint(
                                         dbMetric,
                                         datapoint
                                     );
-                                dbMetrics.push(dbMetric);
+
+                                dbMetrics.push(guageMetric);
                             }
                         } else if (
                             metric['histogram'] &&
@@ -426,12 +439,13 @@ router.post(
                             for (const datapoint of (
                                 metric['histogram'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                dbMetric =
+                                const histogramMetric: Metric =
                                     OTelIngestService.getMetricFromDatapoint(
                                         dbMetric,
                                         datapoint
                                     );
-                                dbMetrics.push(dbMetric);
+
+                                dbMetrics.push(histogramMetric);
                             }
                         } else {
                             logger.warn('Unknown metric type');
