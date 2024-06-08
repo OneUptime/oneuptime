@@ -2,7 +2,10 @@ import Loader from '../Components/Loader/Loader';
 import ComponentProps from '../Pages/PageComponentProps';
 import StatusPageViewLayout from '../Pages/ServiceCatalog/View/Layout';
 import PageMap from '../Utils/PageMap';
-import RouteMap, { RouteUtil, ServiceCatalogRoutePath } from '../Utils/RouteMap';
+import RouteMap, {
+    RouteUtil,
+    ServiceCatalogRoutePath,
+} from '../Utils/RouteMap';
 import Route from 'Common/Types/API/Route';
 import React, {
     FunctionComponent,
@@ -18,10 +21,11 @@ const ServiceCatalog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     lazy(() => {
         return import('../Pages/ServiceCatalog/ServiceCatalog');
     });
-const ServiceCatalogView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-    lazy(() => {
-        return import('../Pages/ServiceCatalog/View/Index');
-    });
+const ServiceCatalogView: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/ServiceCatalog/View/Index');
+});
 const ServiceCatalogViewDelete: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -34,7 +38,6 @@ const StatusPageViewOwners: LazyExoticComponent<
     return import('../Pages/ServiceCatalog/View/Owners');
 });
 
-
 const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -46,14 +49,18 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                     <Suspense fallback={Loader}>
                         <ServiceCatalog
                             {...props}
-                            pageRoute={RouteMap[PageMap.SERVICE_CATALOG] as Route}
+                            pageRoute={
+                                RouteMap[PageMap.SERVICE_CATALOG] as Route
+                            }
                         />
                     </Suspense>
                 }
             />
 
             <PageRoute
-                path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW] || ''}
+                path={
+                    ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW] || ''
+                }
                 element={<StatusPageViewLayout {...props} />}
             >
                 <PageRoute
@@ -63,13 +70,15 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                             <ServiceCatalogView
                                 {...props}
                                 pageRoute={
-                                    RouteMap[PageMap.SERVICE_CATALOG_VIEW] as Route
+                                    RouteMap[
+                                        PageMap.SERVICE_CATALOG_VIEW
+                                    ] as Route
                                 }
                             />
                         </Suspense>
                     }
                 />
-                
+
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
                         PageMap.SERVICE_CATALOG_VIEW_DELETE
@@ -87,7 +96,6 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                         </Suspense>
                     }
                 />
-              
 
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
@@ -106,8 +114,6 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                         </Suspense>
                     }
                 />
-
-               
             </PageRoute>
         </Routes>
     );

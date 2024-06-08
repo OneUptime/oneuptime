@@ -23,7 +23,6 @@ export const MonitorsRoutePath: Dictionary<string> = {
     [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
 };
 
-
 export const ServiceCatalogRoutePath: Dictionary<string> = {
     [PageMap.SERVICE_CATALOG_VIEW]: `${RouteParams.ModelID}`,
     [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -421,7 +420,6 @@ const RouteMap: Dictionary<Route> = {
             ]
         }`
     ),
-
 
     [PageMap.SERVICE_CATALOG_ROOT]: new Route(
         `/dashboard/${RouteParams.ProjectID}/service-catalog/*`

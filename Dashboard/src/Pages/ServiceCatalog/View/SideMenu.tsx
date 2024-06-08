@@ -15,7 +15,6 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
@@ -30,12 +29,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Info}
                 />
 
-               
                 <SideMenuItem
                     link={{
                         title: 'Owners',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SERVICE_CATALOG_VIEW_OWNERS] as Route,
+                            RouteMap[
+                                PageMap.SERVICE_CATALOG_VIEW_OWNERS
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}
@@ -43,13 +43,14 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-    
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
-                        title: 'Delete Status Page',
+                        title: 'Delete Service',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SERVICE_CATALOG_VIEW_DELETE] as Route,
+                            RouteMap[
+                                PageMap.SERVICE_CATALOG_VIEW_DELETE
+                            ] as Route,
                             { modelId: props.modelId }
                         ),
                     }}

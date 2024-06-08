@@ -41,6 +41,16 @@ import EmailVerificationTokenService, {
 import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
+
+
+import ServiceCatalogOwnerUserService, {
+    Service as ServiceCatalogOwnerUserServiceType,
+} from 'CommonServer/Services/ServiceCatalogOwnerUserService';
+
+import ServiceCatalogOwnerTeamService, {
+    Service as ServiceCatalogOwnerTeamServiceType,
+} from 'CommonServer/Services/ServiceCatalogOwnerTeamService';
+
 import IncidentInternalNoteService, {
     Service as IncidentInternalNoteServiceType,
 } from 'CommonServer/Services/IncidentInternalNoteService';
@@ -363,6 +373,8 @@ import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
+import ServiceCatalogOwnerTeam from 'Model/Models/ServiceCatalogOwnerTeam';
+import ServiceCatalogOwnerUser from 'Model/Models/ServiceCatalogOwnerUser';
 
 const BaseAPIFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
@@ -477,6 +489,24 @@ const BaseAPIFeatureSet: FeatureSet = {
             new BaseAPI<ServiceCatalog, ServiceCatalogServiceType>(
                 ServiceCatalog,
                 ServiceCatalogService
+            ).getRouter()
+        );
+
+        
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ServiceCatalogOwnerTeam, ServiceCatalogOwnerTeamServiceType>(
+                ServiceCatalogOwnerTeam,
+                ServiceCatalogOwnerTeamService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ServiceCatalogOwnerUser, ServiceCatalogOwnerUserServiceType>(
+                ServiceCatalogOwnerUser,
+                ServiceCatalogOwnerUserService
             ).getRouter()
         );
 

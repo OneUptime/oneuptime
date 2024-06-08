@@ -147,6 +147,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             <NavBarMenuItem
+                                title="Service Catalog"
+                                description="Manage your services and their dependencies."
+                                route={RouteUtil.populateRouteParams(
+                                    RouteMap[
+                                        PageMap.SERVICE_CATALOG
+                                    ] as Route
+                                )}
+                                icon={IconProp.SquareStack}
+                                onClick={() => {
+                                    forceHideMoreMenu();
+                                }}
+                            />
+
+                            <NavBarMenuItem
                                 title="Scheduled Maintenance"
                                 description="Manage your scheduled maintenance events."
                                 route={RouteUtil.populateRouteParams(

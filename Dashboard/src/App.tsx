@@ -22,6 +22,7 @@ import MonitorGroupRoutes from './Routes/MonitorGroupRoutes';
 import MonitorsRoutes from './Routes/MonitorsRoutes';
 import OnCallDutyRoutes from './Routes/OnCallDutyRoutes';
 import ScheduledMaintenanceEventsRoutes from './Routes/ScheduleMaintenaceEventsRoutes';
+import ServiceCatalogRoutes from './Routes/ServiceCatalogRoutes';
 import SettingsRoutes from './Routes/SettingsRoutes';
 import StatusPagesRoutes from './Routes/StatusPagesRoutes';
 import TelemetryRoutes from './Routes/TelemetryRoutes';
@@ -306,6 +307,12 @@ const App: () => JSX.Element = () => {
                 <PageRoute
                     path={RouteMap[PageMap.STATUS_PAGES_ROOT]?.toString() || ''}
                     element={<StatusPagesRoutes {...commonPageProps} />}
+                />
+
+                {/* Service Catalog */}
+                <PageRoute
+                    path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ''}
+                    element={<ServiceCatalogRoutes {...commonPageProps} />}
                 />
 
                 {/* Incidents */}
