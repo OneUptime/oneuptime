@@ -20,7 +20,7 @@ const ServiceCatalogDelete: FunctionComponent<PageComponentProps> = (
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
+                        RouteMap[PageMap.SERVICE_CATALOG] as Route
                     );
                 }}
             />
