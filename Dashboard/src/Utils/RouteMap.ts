@@ -23,6 +23,13 @@ export const MonitorsRoutePath: Dictionary<string> = {
     [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
 };
 
+
+export const ServiceCatalogRoutePath: Dictionary<string> = {
+    [PageMap.SERVICE_CATALOG_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+    [PageMap.SERVICE_CATALOG_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
     [PageMap.WORKFLOWS_LOGS]: 'logs',
     [PageMap.WORKFLOWS_VARIABLES]: 'variables',
@@ -412,6 +419,33 @@ const RouteMap: Dictionary<Route> = {
             ScheduledMaintenanceEventsRoutePath[
                 PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
             ]
+        }`
+    ),
+
+
+    [PageMap.SERVICE_CATALOG_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/service-catalog/*`
+    ),
+
+    [PageMap.SERVICE_CATALOG]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/service-catalog`
+    ),
+
+    [PageMap.SERVICE_CATALOG_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+            ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW]
+        }`
+    ),
+
+    [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+            ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_OWNERS]
+        }`
+    ),
+
+    [PageMap.SERVICE_CATALOG_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+            ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_DELETE]
         }`
     ),
 
