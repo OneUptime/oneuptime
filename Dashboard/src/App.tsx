@@ -311,7 +311,9 @@ const App: () => JSX.Element = () => {
 
                 {/* Service Catalog */}
                 <PageRoute
-                    path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ''}
+                    path={
+                        RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ''
+                    }
                     element={<ServiceCatalogRoutes {...commonPageProps} />}
                 />
 

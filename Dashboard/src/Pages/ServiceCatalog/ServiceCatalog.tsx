@@ -44,7 +44,8 @@ const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
                 isViewable={true}
                 cardProps={{
                     title: 'Service Catalog',
-                    description: 'List and manage services for this project here.',
+                    description:
+                        'List and manage services for this project here.',
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No services found.'}

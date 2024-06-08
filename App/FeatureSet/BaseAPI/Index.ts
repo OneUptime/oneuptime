@@ -41,16 +41,6 @@ import EmailVerificationTokenService, {
 import IncidentCustomFieldService, {
     Service as IncidentCustomFieldServiceType,
 } from 'CommonServer/Services/IncidentCustomFieldService';
-
-
-import ServiceCatalogOwnerUserService, {
-    Service as ServiceCatalogOwnerUserServiceType,
-} from 'CommonServer/Services/ServiceCatalogOwnerUserService';
-
-import ServiceCatalogOwnerTeamService, {
-    Service as ServiceCatalogOwnerTeamServiceType,
-} from 'CommonServer/Services/ServiceCatalogOwnerTeamService';
-
 import IncidentInternalNoteService, {
     Service as IncidentInternalNoteServiceType,
 } from 'CommonServer/Services/IncidentInternalNoteService';
@@ -204,6 +194,12 @@ import ScheduledMaintenanceStateService, {
 import ScheduledMaintenanceStateTimelineService, {
     Service as ScheduledMaintenanceStateTimelineServiceType,
 } from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
+import ServiceCatalogOwnerTeamService, {
+    Service as ServiceCatalogOwnerTeamServiceType,
+} from 'CommonServer/Services/ServiceCatalogOwnerTeamService';
+import ServiceCatalogOwnerUserService, {
+    Service as ServiceCatalogOwnerUserServiceType,
+} from 'CommonServer/Services/ServiceCatalogOwnerUserService';
 import ServiceCatalogService, {
     Service as ServiceCatalogServiceType,
 } from 'CommonServer/Services/ServiceCatalogService';
@@ -347,6 +343,8 @@ import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePub
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import ServiceCatalog from 'Model/Models/ServiceCatalog';
+import ServiceCatalogOwnerTeam from 'Model/Models/ServiceCatalogOwnerTeam';
+import ServiceCatalogOwnerUser from 'Model/Models/ServiceCatalogOwnerUser';
 import ShortLink from 'Model/Models/ShortLink';
 import SmsLog from 'Model/Models/SmsLog';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
@@ -373,8 +371,6 @@ import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
-import ServiceCatalogOwnerTeam from 'Model/Models/ServiceCatalogOwnerTeam';
-import ServiceCatalogOwnerUser from 'Model/Models/ServiceCatalogOwnerUser';
 
 const BaseAPIFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
@@ -492,11 +488,12 @@ const BaseAPIFeatureSet: FeatureSet = {
             ).getRouter()
         );
 
-        
-
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
-            new BaseAPI<ServiceCatalogOwnerTeam, ServiceCatalogOwnerTeamServiceType>(
+            new BaseAPI<
+                ServiceCatalogOwnerTeam,
+                ServiceCatalogOwnerTeamServiceType
+            >(
                 ServiceCatalogOwnerTeam,
                 ServiceCatalogOwnerTeamService
             ).getRouter()
@@ -504,7 +501,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
-            new BaseAPI<ServiceCatalogOwnerUser, ServiceCatalogOwnerUserServiceType>(
+            new BaseAPI<
+                ServiceCatalogOwnerUser,
+                ServiceCatalogOwnerUserServiceType
+            >(
                 ServiceCatalogOwnerUser,
                 ServiceCatalogOwnerUserService
             ).getRouter()

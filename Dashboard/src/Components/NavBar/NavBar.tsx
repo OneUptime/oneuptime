@@ -150,9 +150,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 title="Service Catalog"
                                 description="Manage your services and their dependencies."
                                 route={RouteUtil.populateRouteParams(
-                                    RouteMap[
-                                        PageMap.SERVICE_CATALOG
-                                    ] as Route
+                                    RouteMap[PageMap.SERVICE_CATALOG] as Route
                                 )}
                                 icon={IconProp.SquareStack}
                                 onClick={() => {
