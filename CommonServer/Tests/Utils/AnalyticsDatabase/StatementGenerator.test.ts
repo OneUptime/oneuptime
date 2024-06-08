@@ -230,12 +230,10 @@ describe('StatementGenerator', () => {
                 }),
             ]);
 
-            /* eslint-disable prettier/prettier */
-            expectStatement(statement, SQL`
-                column_1 String NOT NULL,
-                column_2 Int32 NULL
-            `);
-            /* eslint-enable prettier/prettier */
+            expectStatement(
+                statement,
+                SQL`column_1 String, column_2 Nullable(Int32)`
+            );
         });
 
         test('should support nested models', () => {
@@ -280,15 +278,10 @@ describe('StatementGenerator', () => {
                 }),
             ]);
 
-            /* eslint-disable prettier/prettier */
-            expectStatement(statement, SQL`
-                column_1 String NOT NULL,
-                column_2 Nested NULL (
-                    nested_column_1 String NOT NULL,
-                    nested_column_2 Int32 NULL
-                )
-            `);
-            /* eslint-enable prettier/prettier */
+            expectStatement(
+                statement,
+                SQL`column_1 String, column_2 Nullable(Nested) (nested_column_1 String, nested_column_2 Nullable(Int32))`
+            );
         });
 
         test('should not add NULL|NOT NULL to Array types', () => {
@@ -309,12 +302,10 @@ describe('StatementGenerator', () => {
                 }),
             ]);
 
-            /* eslint-disable prettier/prettier */
-            expectStatement(statement, SQL`
-                column_1 Array(String) NOT NULL,
-                column_2 Array(Int32) NULL
-            `);
-            /* eslint-enable prettier/prettier */
+            expectStatement(
+                statement,
+                SQL`column_1 Array(String), column_2 Nullable(Array(Int32))`
+            );
         });
     });
 

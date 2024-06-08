@@ -562,8 +562,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     public toColumnsCreateStatement(
-        tableColumns: Array<AnalyticsTableColumn>,
-        isNestedModel: boolean = false
+        tableColumns: Array<AnalyticsTableColumn>
     ): Statement {
         const columns: Statement = new Statement();
 
@@ -573,9 +572,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             if (i !== 0) {
                 columns.append(SQL`, `);
             }
-            if (isNestedModel) {
-                columns.append(SQL`    `);
-            }
 
             let nestedModelColumns: Statement | null = null;
 
@@ -583,8 +579,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 nestedModelColumns = SQL`(`
                     .append(
                         this.toColumnsCreateStatement(
-                            column.nestedModel!.tableColumns,
-                            true
+                            column.nestedModel!.tableColumns
                         )
                     )
                     .append(SQL`)`);
@@ -666,7 +661,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
             this.model.tableName
         } ADD COLUMN IF NOT EXISTS `.append(
-            this.toColumnsCreateStatement([column], false)
+            this.toColumnsCreateStatement([column])
         );
 
         logger.debug(`${this.model.tableName} Add Column Statement`);
