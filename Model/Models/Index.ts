@@ -79,6 +79,7 @@ import ScheduledMaintenanceOwnerUser from './ScheduledMaintenanceOwnerUser';
 import ScheduledMaintenancePublicNote from './ScheduledMaintenancePublicNote';
 import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeline';
+import ServiceCatalog from './ServiceCatalog';
 // Short link.
 import ShortLink from './ShortLink';
 // SMS
@@ -254,4 +255,6 @@ export default [
     AcmeCertificate,
 
     AcmeChallenge,
+
+    ServiceCatalog
 ];

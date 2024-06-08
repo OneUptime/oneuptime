@@ -79,6 +79,7 @@ import ScheduledMaintenancePublicNoteService from './ScheduledMaintenancePublicN
 import ScheduledMaintenanceService from './ScheduledMaintenanceService';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
 import ScheduledMaintenanceStateTimelineService from './ScheduledMaintenanceStateTimelineService';
+import ServiceCatalogService from './ServiceCatalogService';
 import ShortLinkService from './ShortLinkService';
 // SMS Log Service
 import SmsLogService from './SmsLogService';
@@ -246,6 +247,8 @@ const services: Array<BaseService> = [
 
     UsageBillingService,
     ProjectCallSMSConfigService,
+
+    ServiceCatalogService
 ];
 
 export const AnalyticsServices: Array<

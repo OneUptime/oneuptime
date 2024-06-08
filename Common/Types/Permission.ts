@@ -444,6 +444,12 @@ enum Permission {
     EditIncidentSeverity = 'EditIncidentSeverity',
     DeleteIncidentSeverity = 'DeleteIncidentSeverity',
     ReadIncidentSeverity = 'ReadIncidentSeverity',
+
+
+    CreateServiceCatalog = 'CreateServiceCatalog',
+    DeleteServiceCatalog = 'DeleteServiceCatalog',
+    EditServiceCatalog = 'EditServiceCatalog',
+    ReadServiceCatalog = 'ReadServiceCatalog',
 }
 
 export class PermissionHelper {
@@ -2425,6 +2431,40 @@ export class PermissionHelper {
                     'This permission can read Telemetry Service Log of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CreateServiceCatalog,
+                title: 'Create Service Catalog',
+                description:
+                    'This permission can create Service Catalog this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.DeleteServiceCatalog,
+                title: 'Delete Service Catalog',
+                description:
+                    'This permission can delete Service Catalog of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.EditServiceCatalog,
+                title: 'Edit Service Catalog',
+                description:
+                    'This permission can edit Service Catalog of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.ReadServiceCatalog,
+                title: 'Read Service Catalog',
+                description:
+                    'This permission can read Service Catalog of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
             },
 
             {
