@@ -79,6 +79,8 @@ import ScheduledMaintenancePublicNoteService from './ScheduledMaintenancePublicN
 import ScheduledMaintenanceService from './ScheduledMaintenanceService';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
 import ScheduledMaintenanceStateTimelineService from './ScheduledMaintenanceStateTimelineService';
+import ServiceCatalogOwnerTeamService from './ServiceCatalogOwnerTeamService';
+import ServiceCatalogOwnerUserService from './ServiceCatalogOwnerUserService';
 import ServiceCatalogService from './ServiceCatalogService';
 import ShortLinkService from './ShortLinkService';
 // SMS Log Service
@@ -119,8 +121,6 @@ import WorkflowLogService from './WorkflowLogService';
 import WorkflowService from './WorkflowService';
 import WorkflowVariablesService from './WorkflowVariableService';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import ServiceCatalogOwnerUserService from './ServiceCatalogOwnerUserService';
-import ServiceCatalogOwnerTeamService from './ServiceCatalogOwnerTeamService';
 
 const services: Array<BaseService> = [
     AcmeCertificateService,
@@ -252,7 +252,7 @@ const services: Array<BaseService> = [
 
     ServiceCatalogService,
     ServiceCatalogOwnerTeamService,
-    ServiceCatalogOwnerUserService
+    ServiceCatalogOwnerUserService,
 ];
 
 export const AnalyticsServices: Array<
