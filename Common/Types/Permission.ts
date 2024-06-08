@@ -445,7 +445,6 @@ enum Permission {
     DeleteIncidentSeverity = 'DeleteIncidentSeverity',
     ReadIncidentSeverity = 'ReadIncidentSeverity',
 
-
     CreateServiceCatalog = 'CreateServiceCatalog',
     DeleteServiceCatalog = 'DeleteServiceCatalog',
     EditServiceCatalog = 'EditServiceCatalog',
@@ -2432,7 +2431,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CreateServiceCatalog,

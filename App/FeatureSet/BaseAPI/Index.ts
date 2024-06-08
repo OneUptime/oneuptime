@@ -194,6 +194,9 @@ import ScheduledMaintenanceStateService, {
 import ScheduledMaintenanceStateTimelineService, {
     Service as ScheduledMaintenanceStateTimelineServiceType,
 } from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
+import ServiceCatalogService, {
+    Service as ServiceCatalogServiceType,
+} from 'CommonServer/Services/ServiceCatalogService';
 import ShortLinkService, {
     Service as ShortLinkServiceType,
 } from 'CommonServer/Services/ShortLinkService';
@@ -333,6 +336,7 @@ import ScheduledMaintenanceOwnerUser from 'Model/Models/ScheduledMaintenanceOwne
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import ServiceCatalog from 'Model/Models/ServiceCatalog';
 import ShortLink from 'Model/Models/ShortLink';
 import SmsLog from 'Model/Models/SmsLog';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
@@ -466,6 +470,14 @@ const BaseAPIFeatureSet: FeatureSet = {
                 MonitorGroupOwnerUser,
                 MonitorGroupOwnerUserServiceType
             >(MonitorGroupOwnerUser, MonitorGroupOwnerUserService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<ServiceCatalog, ServiceCatalogServiceType>(
+                ServiceCatalog,
+                ServiceCatalogService
+            ).getRouter()
         );
 
         app.use(

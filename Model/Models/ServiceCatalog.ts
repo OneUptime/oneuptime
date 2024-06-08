@@ -1,9 +1,9 @@
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import Label from './Label';
 import Project from './Project';
 import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import Color from 'Common/Types/Color';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
@@ -414,13 +414,13 @@ export default class ServiceCatalog extends BaseModel {
         { eager: false }
     )
     @JoinTable({
-        name: 'ServiceLabel',
+        name: 'ServiceCatalogLabel',
         inverseJoinColumn: {
             name: 'labelId',
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'ServiceCatalogId',
+            name: 'serviceCatalogId',
             referencedColumnName: '_id',
         },
     })
@@ -450,7 +450,7 @@ export default class ServiceCatalog extends BaseModel {
     @TableColumn({
         type: TableColumnType.Color,
         title: 'Service Color',
-        description: 'Color for this telemetry service',
+        description: 'Color for this service',
     })
     @Column({
         type: ColumnType.Color,

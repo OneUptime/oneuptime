@@ -256,5 +256,5 @@ export default [
 
     AcmeChallenge,
 
-    ServiceCatalog
+    ServiceCatalog,
 ];

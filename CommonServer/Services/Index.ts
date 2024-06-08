@@ -248,7 +248,7 @@ const services: Array<BaseService> = [
     UsageBillingService,
     ProjectCallSMSConfigService,
 
-    ServiceCatalogService
+    ServiceCatalogService,
 ];
 
 export const AnalyticsServices: Array<
