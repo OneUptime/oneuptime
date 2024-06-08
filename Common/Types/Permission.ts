@@ -171,6 +171,16 @@ enum Permission {
     EditStatusPageOwnerUser = 'EditStatusPageOwnerUser',
     ReadStatusPageOwnerUser = 'ReadStatusPageOwnerUser',
 
+    CreateServiceCatalogOwnerTeam = 'CreateServiceCatalogOwnerTeam',
+    DeleteServiceCatalogOwnerTeam = 'DeleteServiceCatalogOwnerTeam',
+    EditServiceCatalogOwnerTeam = 'EditServiceCatalogOwnerTeam',
+    ReadServiceCatalogOwnerTeam = 'ReadServiceCatalogOwnerTeam',
+
+    CreateServiceCatalogOwnerUser = 'CreateServiceCatalogOwner',
+    DeleteServiceCatalogOwnerUser = 'DeleteServiceCatalogOwnerUser',
+    EditServiceCatalogOwnerUser = 'EditServiceCatalogOwnerUser',
+    ReadServiceCatalogOwnerUser = 'ReadServiceCatalogOwnerUser',
+
     CreateMonitorOwnerTeam = 'CreateMonitorOwnerTeam',
     DeleteMonitorOwnerTeam = 'DeleteMonitorOwnerTeam',
     EditMonitorOwnerTeam = 'EditMonitorOwnerTeam',
@@ -2791,6 +2801,72 @@ export class PermissionHelper {
                 title: 'Read IncidentTemplate Team Owner',
                 description:
                     'This permission can read IncidentTemplate Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CreateServiceCatalogOwnerTeam,
+                title: 'Create Service Catalog Team Owner',
+                description:
+                    'This permission can create Service Catalog Team Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.DeleteServiceCatalogOwnerTeam,
+                title: 'Delete Service Catalog Team Owner',
+                description:
+                    'This permission can delete Service Catalog Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.EditServiceCatalogOwnerTeam,
+                title: 'Edit Service Catalog Team Owner',
+                description:
+                    'This permission can edit Service Catalog Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.ReadServiceCatalogOwnerTeam,
+                title: 'Read Service Catalog Team Owner',
+                description:
+                    'This permission can read Service Catalog Team Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CreateServiceCatalogOwnerUser,
+                title: 'Create Service Catalog User Owner',
+                description:
+                    'This permission can create Service Catalog User Owner this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.DeleteServiceCatalogOwnerUser,
+                title: 'Delete Service Catalog User Owner',
+                description:
+                    'This permission can delete Service Catalog User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.EditServiceCatalogOwnerUser,
+                title: 'Edit Service Catalog User Owner',
+                description:
+                    'This permission can edit Service Catalog User Owner of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.ReadServiceCatalogOwnerUser,
+                title: 'Read Service Catalog User Owner',
+                description:
+                    'This permission can read Service Catalog User Owner of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

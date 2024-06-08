@@ -1,5 +1,5 @@
 import Project from './Project';
-import StatusPage from './StatusPage';
+import ServiceCatalog from './ServiceCatalog';
 import Team from './Team';
 import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
@@ -20,7 +20,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 
-@CanAccessIfCanReadOn('statusPage')
+@CanAccessIfCanReadOn('serviceCatalog')
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -28,23 +28,23 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CreateStatusPageOwnerTeam,
+        Permission.CreateServiceCatalogOwnerTeam,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.ReadStatusPageOwnerTeam,
+        Permission.ReadServiceCatalogOwnerTeam,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.DeleteStatusPageOwnerTeam,
+        Permission.DeleteServiceCatalogOwnerTeam,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.EditStatusPageOwnerTeam,
+        Permission.EditServiceCatalogOwnerTeam,
     ],
 })
 @EnableWorkflow({
@@ -53,30 +53,30 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     update: true,
     read: true,
 })
-@CrudApiEndpoint(new Route('/status-page-owner-team'))
+@CrudApiEndpoint(new Route('/service-catalog-owner-team'))
 @TableMetadata({
-    tableName: 'StatusPageOwnerTeam',
-    singularName: 'Status Page Team Owner',
-    pluralName: 'Status Page Team Owners',
+    tableName: 'ServiceCatalogOwnerTeam',
+    singularName: 'Service Catalog Team Owner',
+    pluralName: 'Service Catalog Team Owners',
     icon: IconProp.Signal,
-    tableDescription: 'Add teams as owners to your Status Page.',
+    tableDescription: 'Add teams as owners to your Service Catalog.',
 })
 @Entity({
-    name: 'StatusPageOwnerTeam',
+    name: 'ServiceCatalogOwnerTeam',
 })
-export default class StatusPageOwnerTeam extends BaseModel {
+export default class ServiceCatalogOwnerTeam extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -107,13 +107,13 @@ export default class StatusPageOwnerTeam extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -138,13 +138,13 @@ export default class StatusPageOwnerTeam extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -175,13 +175,13 @@ export default class StatusPageOwnerTeam extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -205,27 +205,27 @@ export default class StatusPageOwnerTeam extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'statusPageId',
+        manyToOneRelationColumn: 'serviceCatalogId',
         type: TableColumnType.Entity,
-        modelType: StatusPage,
-        title: 'StatusPage',
+        modelType: ServiceCatalog,
+        title: 'ServiceCatalog',
         description:
-            'Relation to StatusPage Resource in which this object belongs',
+            'Relation to ServiceCatalog Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
-            return StatusPage;
+            return ServiceCatalog;
         },
         {
             eager: false,
@@ -234,21 +234,21 @@ export default class StatusPageOwnerTeam extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'statusPageId' })
-    public statusPage?: StatusPage = undefined;
+    @JoinColumn({ name: 'serviceCatalogId' })
+    public serviceCatalog?: ServiceCatalog = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -257,29 +257,29 @@ export default class StatusPageOwnerTeam extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'StatusPage ID',
+        title: 'ServiceCatalog ID',
         description:
-            'ID of your OneUptime StatusPage in which this object belongs',
+            'ID of your OneUptime ServiceCatalog in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public statusPageId?: ObjectID = undefined;
+    public serviceCatalogId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -310,13 +310,13 @@ export default class StatusPageOwnerTeam extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
+            Permission.CreateServiceCatalogOwnerTeam,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -339,7 +339,7 @@ export default class StatusPageOwnerTeam extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -371,7 +371,7 @@ export default class StatusPageOwnerTeam extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
+            Permission.ReadServiceCatalogOwnerTeam,
         ],
         update: [],
     })
@@ -387,34 +387,4 @@ export default class StatusPageOwnerTeam extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CreateStatusPageOwnerTeam,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.ReadStatusPageOwnerTeam,
-        ],
-        update: [],
-    })
-    @Index()
-    @TableColumn({
-        type: TableColumnType.Boolean,
-        required: true,
-        isDefaultValueColumn: true,
-        title: 'Are Owners Notified',
-        description: 'Are owners notified of this resource ownership?',
-    })
-    @Column({
-        type: ColumnType.Boolean,
-        nullable: false,
-        default: false,
-    })
-    public isOwnerNotified?: boolean = undefined;
 }

@@ -5,6 +5,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
@@ -18,6 +19,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 
+@CanAccessIfCanReadOn('statusPage')
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableAccessControl({

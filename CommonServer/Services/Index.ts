@@ -119,6 +119,8 @@ import WorkflowLogService from './WorkflowLogService';
 import WorkflowService from './WorkflowService';
 import WorkflowVariablesService from './WorkflowVariableService';
 import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
+import ServiceCatalogOwnerUserService from './ServiceCatalogOwnerUserService';
+import ServiceCatalogOwnerTeamService from './ServiceCatalogOwnerTeamService';
 
 const services: Array<BaseService> = [
     AcmeCertificateService,
@@ -249,6 +251,8 @@ const services: Array<BaseService> = [
     ProjectCallSMSConfigService,
 
     ServiceCatalogService,
+    ServiceCatalogOwnerTeamService,
+    ServiceCatalogOwnerUserService
 ];
 
 export const AnalyticsServices: Array<
