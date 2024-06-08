@@ -7,3 +7,4 @@ export * from './OnCallDutyBreadcrumbs';
 export * from './TelemetryBreadcrumbs';
 export * from './SettingsBreadcrumbs';
 export * from './MonitorGroupBreadcrumbs';
+export * from './ServiceCatalogBreadcrumbs';

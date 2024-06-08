@@ -1,13 +1,12 @@
 import LabelsElement from '../../../Components/Label/Labels';
 import PageComponentProps from '../../PageComponentProps';
-import StatusPagePreviewLink from './StatusPagePreviewLink';
 import ObjectID from 'Common/Types/ObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import StatusPage from 'Model/Models/StatusPage';
+import ServiceCatalog from 'Model/Models/ServiceCatalog';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
@@ -17,18 +16,16 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
 
     return (
         <Fragment>
-            <StatusPagePreviewLink modelId={modelId} />
-
-            {/* StatusPage View  */}
-            <CardModelDetail<StatusPage>
-                name="Status Page > Status Page Details"
+            {/* ServiceCatalog View  */}
+            <CardModelDetail<ServiceCatalog>
+                name="Service > Service Details"
                 cardProps={{
-                    title: 'Status Page Details',
+                    title: 'Service Details',
                     description: 'Here are more details for this status page.',
                 }}
                 formSteps={[
                     {
-                        title: 'Status Page Info',
+                        title: 'Service Info',
                         id: 'status-page-info',
                     },
                     {
@@ -46,7 +43,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                         stepId: 'status-page-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Status Page Name',
+                        placeholder: 'Service Name',
                         validation: {
                             minLength: 2,
                         },
@@ -81,20 +78,20 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
-                    modelType: StatusPage,
-                    id: 'model-detail-status-page',
+                    modelType: ServiceCatalog,
+                    id: 'model-detail-service-catalog',
                     fields: [
                         {
                             field: {
                                 _id: true,
                             },
-                            title: 'Status Page ID',
+                            title: 'Service ID',
                         },
                         {
                             field: {
                                 name: true,
                             },
-                            title: 'Status Page Name',
+                            title: 'Service Name',
                         },
                         {
                             field: {
@@ -105,7 +102,9 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Labels',
                             fieldType: FieldType.Element,
-                            getElement: (item: StatusPage): ReactElement => {
+                            getElement: (
+                                item: ServiceCatalog
+                            ): ReactElement => {
                                 return (
                                     <LabelsElement
                                         labels={item['labels'] || []}

@@ -4,23 +4,21 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import StatusPage from 'Model/Models/StatusPage';
+import ServiceCatalog from 'Model/Models/ServiceCatalog';
 import React, { FunctionComponent, ReactElement } from 'react';
 
-const StatusPages: FunctionComponent<PageComponentProps> = (
+const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Status Pages'}
+            title={'Service Catalog'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -29,31 +27,24 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Status Pages',
+                    title: 'Service Catalog',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.STATUS_PAGES] as Route
                     ),
                 },
             ]}
         >
-            <Banner
-                openInNewTab={true}
-                title="Need a demo of status pages?"
-                description="Watch this video which will help you build status page for your company in under 12 minutes."
-                link={URL.fromString('https://youtu.be/F6BNipy5VCk')}
-            />
-            <ModelTable<StatusPage>
-                modelType={StatusPage}
-                id="status-page-table"
+            <ModelTable<ServiceCatalog>
+                modelType={ServiceCatalog}
+                id="service-catalog-table"
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={true}
-                name="Status Pages"
+                name="Service Catalog"
                 isViewable={true}
                 cardProps={{
-                    title: 'Status Pages',
-                    description:
-                        'Here is a list of status pages for this project.',
+                    title: 'Service Catalog',
+                    description: 'Here is a list of services for this project.',
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No status pages found.'}
@@ -65,7 +56,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Status Page Name',
+                        placeholder: 'Service Name',
                         validation: {
                             minLength: 2,
                         },
@@ -142,7 +133,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: FieldType.EntityArray,
 
-                        getElement: (item: StatusPage): ReactElement => {
+                        getElement: (item: ServiceCatalog): ReactElement => {
                             return (
                                 <LabelsElement labels={item['labels'] || []} />
                             );
@@ -154,4 +145,4 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default StatusPages;
+export default ServiceCatalogPage;
