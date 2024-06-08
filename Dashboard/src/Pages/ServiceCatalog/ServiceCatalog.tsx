@@ -11,7 +11,8 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
 import ServiceCatalog from 'Model/Models/ServiceCatalog';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { Fragment, FunctionComponent, ReactElement } from 'react';
+import ServiceCatalogElement from '../../Components/ServiceCatalog/ServiceElement';
 
 const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -49,6 +50,9 @@ const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
                 }}
                 showViewIdButton={true}
                 noItemsMessage={'No services found.'}
+                selectMoreFields={{
+                    serviceColor: true,
+                }}
                 formFields={[
                     {
                         field: {
@@ -81,6 +85,7 @@ const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
+                        
                     },
                     {
                         field: {
@@ -115,7 +120,18 @@ const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: FieldType.Text,
+                        type: FieldType.Element,
+                        getElement: (
+                            service: ServiceCatalog
+                        ): ReactElement => {
+                            return (
+                                <Fragment>
+                                    <ServiceCatalogElement
+                                        serviceCatalog={service}
+                                    />
+                                </Fragment>
+                            );
+                        },
                     },
                     {
                         field: {
