@@ -27,6 +27,7 @@ export const ServiceCatalogRoutePath: Dictionary<string> = {
     [PageMap.SERVICE_CATALOG_VIEW]: `${RouteParams.ModelID}`,
     [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
     [PageMap.SERVICE_CATALOG_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -444,6 +445,12 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SERVICE_CATALOG_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/service-catalog/${
             ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_DELETE]
+        }`
+    ),
+
+    [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+            ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_SETTINGS]
         }`
     ),
 

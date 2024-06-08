@@ -32,6 +32,12 @@ const ServiceCatalogViewDelete: LazyExoticComponent<
     return import('../Pages/ServiceCatalog/View/Delete');
 });
 
+const ServiceCatalogViewSettings: LazyExoticComponent<
+    FunctionComponent<ComponentProps>
+> = lazy(() => {
+    return import('../Pages/ServiceCatalog/View/Settings');
+});
+
 const StatusPageViewOwners: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -90,6 +96,24 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                                 pageRoute={
                                     RouteMap[
                                         PageMap.SERVICE_CATALOG_VIEW_DELETE
+                                    ] as Route
+                                }
+                            />
+                        </Suspense>
+                    }
+                />
+
+                <PageRoute
+                    path={RouteUtil.getLastPathForKey(
+                        PageMap.SERVICE_CATALOG_VIEW_SETTINGS
+                    )}
+                    element={
+                        <Suspense fallback={Loader}>
+                            <ServiceCatalogViewSettings
+                                {...props}
+                                pageRoute={
+                                    RouteMap[
+                                        PageMap.SERVICE_CATALOG_VIEW_SETTINGS
                                     ] as Route
                                 }
                             />

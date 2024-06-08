@@ -24,6 +24,12 @@ export function getServiceCatalogBreadcrumbs(
             'View Service',
             'Delete Service',
         ]),
+        ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_SETTINGS, [
+            'Project',
+            'Service Catalog',
+            'View Service',
+            'Settings',
+        ]),
     };
     return breadcrumpLinksMap[path];
 }
