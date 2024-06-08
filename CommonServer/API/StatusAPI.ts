@@ -6,6 +6,7 @@ import Express, {
 } from '../Utils/Express';
 import logger from '../Utils/Logger';
 import Response from '../Utils/Response';
+import Telemetry from '../Utils/Telemetry';
 import Exception from 'Common/Types/Exception/Exception';
 import ServerException from 'Common/Types/Exception/ServerException';
 
@@ -15,6 +16,35 @@ export interface StatusAPIOptions {
 }
 
 export default class StatusAPI {
+    public static statusCheckSuccessCounter = Telemetry.getCounter({
+        name: 'status.check.success',
+        description: 'Status check counter',
+    });
+
+    // ready counter
+    public static stausReadySuccess = Telemetry.getCounter({
+        name: 'status.ready.success',
+        description: 'Ready check counter',
+    });
+    // live counter
+
+    public static stausLiveSuccess = Telemetry.getCounter({
+        name: 'status.live.success',
+        description: 'Live check counter',
+    });
+
+    // ready failed counter
+    public static stausReadyFailed = Telemetry.getCounter({
+        name: 'status.ready.failed',
+        description: 'Ready check counter',
+    });
+
+    // live failed counter
+    public static stausLiveFailed = Telemetry.getCounter({
+        name: 'status.live.failed',
+        description: 'Live check counter',
+    });
+
     public static init(options: StatusAPIOptions): ExpressRouter {
         const router: ExpressRouter = Express.getRouter();
 
@@ -27,6 +57,8 @@ export default class StatusAPI {
 
         // General status
         router.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
+            this.statusCheckSuccessCounter.add(1);
+
             logger.info('Status check: ok');
 
             Response.sendJsonObjectResponse(req, res, {
@@ -42,10 +74,12 @@ export default class StatusAPI {
                     logger.debug('Ready check');
                     await options.readyCheck();
                     logger.info('Ready check: ok');
+                    this.stausReadySuccess.add(1);
                     Response.sendJsonObjectResponse(req, res, {
                         status: 'ok',
                     });
                 } catch (e) {
+                    this.stausReadyFailed.add(1);
                     Response.sendErrorResponse(
                         req,
                         res,
@@ -65,10 +99,12 @@ export default class StatusAPI {
                     logger.debug('Live check');
                     await options.readyCheck();
                     logger.info('Live check: ok');
+                    this.stausLiveSuccess.add(1);
                     Response.sendJsonObjectResponse(req, res, {
                         status: 'ok',
                     });
                 } catch (e) {
+                    this.stausLiveFailed.add(1);
                     Response.sendErrorResponse(
                         req,
                         res,

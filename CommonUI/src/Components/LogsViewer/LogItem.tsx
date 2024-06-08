@@ -29,14 +29,26 @@ const LogItem: FunctionComponent<ComponentProps> = (
         );
     };
 
-    if (
-        props.log.severityText === LogSeverity.Warning ||
-        props.log.severityText === LogSeverity.Trace ||
-        props.log.severityText === LogSeverity.Debug
-    ) {
+    if (props.log.severityText === LogSeverity.Warning) {
         bodyColor = 'text-amber-400';
     } else if (props.log.severityText === LogSeverity.Error) {
         bodyColor = 'text-rose-400';
+    } else if (
+        props.log.severityText === LogSeverity.Trace ||
+        props.log.severityText === LogSeverity.Debug
+    ) {
+        bodyColor = 'text-slate-400';
+    }
+
+    let logBody: string = props.log.body?.toString() || '';
+
+    let isBodyInJSON: boolean = false;
+
+    try {
+        logBody = JSON.stringify(JSON.parse(logBody), null, 2);
+        isBodyInJSON = true;
+    } catch (e) {
+        isBodyInJSON = false;
     }
 
     if (isCollapsed) {
@@ -71,12 +83,12 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     </div>
                 )}
                 {props.log.severityText === LogSeverity.Trace && (
-                    <div className="text-amber-400 courier-prime flex-none">
+                    <div className="text-slate-400 courier-prime flex-none">
                         [TRACE] &nbsp;
                     </div>
                 )}
                 {props.log.severityText === LogSeverity.Debug && (
-                    <div className="text-amber-400 courier-prime flex-none">
+                    <div className="text-slate-400 courier-prime flex-none">
                         [DEBUG] &nbsp;
                     </div>
                 )}
@@ -92,7 +104,8 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 )}
 
                 <div className={`${bodyColor} courier-prime`}>
-                    {props.log.body?.toString()}
+                    {isBodyInJSON && <pre>{logBody}</pre>}
+                    {!isBodyInJSON && props.log.body?.toString()}
                 </div>
             </div>
         );
@@ -146,7 +159,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     <div className="font-medium text-slate-200 courier-prime mr-2">
                         SEVERITY:
                     </div>
-                    <div className="text-amber-400 courier-prime">
+                    <div className="text-slate-400 courier-prime">
                         [TRACE] &nbsp;
                     </div>
                 </div>
@@ -156,7 +169,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                     <div className="font-medium text-slate-200 courier-prime mr-2">
                         SEVERITY:
                     </div>
-                    <div className="text-amber-400 courier-prime">
+                    <div className="text-slate-400 courier-prime">
                         [DEBUG] &nbsp;
                     </div>
                 </div>
@@ -182,13 +195,22 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 </div>
             )}
 
-            <div className="flex">
-                <div className="font-medium text-slate-200 courier-prime mr-2">
-                    MESSAGE:&nbsp;
+            <div>
+                <div className="flex">
+                    <div className="font-medium text-slate-200 courier-prime mr-2">
+                        MESSAGE:&nbsp;
+                    </div>
+                    {!isBodyInJSON && (
+                        <div className={`${bodyColor} courier-prime`}>
+                            {props.log.body?.toString()}
+                        </div>
+                    )}
                 </div>
-                <div className={`${bodyColor} courier-prime`}>
-                    {props.log.body?.toString()}
-                </div>
+                {isBodyInJSON && (
+                    <pre className={`${bodyColor} courier-prime`}>
+                        {logBody}
+                    </pre>
+                )}
             </div>
 
             {props.log.traceId && (
@@ -216,13 +238,15 @@ const LogItem: FunctionComponent<ComponentProps> = (
             )}
 
             {props.log.attributes && (
-                <div className="flex">
-                    <div className="font-medium text-slate-200 courier-prime mr-2">
-                        ATTRIBUTES:
+                <div>
+                    <div className="flex">
+                        <div className="font-medium text-slate-200 courier-prime mr-2">
+                            ATTRIBUTES:
+                        </div>
                     </div>
-                    <div className={`${bodyColor} courier-prime`}>
+                    <pre className={`${bodyColor} courier-prime`}>
                         {JSON.stringify(props.log.attributes, null, 2)}
-                    </div>
+                    </pre>
                 </div>
             )}
         </div>

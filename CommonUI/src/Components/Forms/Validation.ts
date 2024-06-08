@@ -134,7 +134,7 @@ export default class Validation {
     public static validateMatchField<T extends GenericObject>(
         content: string | undefined,
         field: Field<T>,
-        entity: JSONObject
+        entity: FormValues<T>
     ): string | null {
         if (
             content &&
@@ -144,7 +144,9 @@ export default class Validation {
                 .toString()
                 .trim() !== content.trim()
         ) {
-            return `${field.title} should match ${field.validation?.toMatchField}`;
+            return `${field.title} should match ${
+                field.validation?.toMatchField as string
+            }`;
         }
         return null;
     }
@@ -239,7 +241,7 @@ export default class Validation {
         currentFormStepId?: string | null | undefined;
     }): Dictionary<string> {
         const errors: JSONObject = {};
-        const entries: JSONObject = { ...args.values } as JSONObject;
+        const entries: FormValues<T> = { ...args.values };
 
         for (const field of args.formFields) {
             if (
@@ -256,7 +258,9 @@ export default class Validation {
             const name: string = field.name;
 
             if (name in entries) {
-                const content: string | undefined = entries[name]?.toString();
+                const content: string | undefined = (entries as JSONObject)[
+                    name
+                ]?.toString();
 
                 // Check Required fields.
                 const resultRequired: string | null = this.validateRequired(

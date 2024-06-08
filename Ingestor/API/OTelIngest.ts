@@ -128,6 +128,46 @@ router.post(
                     for (const span of spans) {
                         const dbSpan: Span = new Span();
 
+                        // attrbibutes
+                        const attributesObject: JSONObject = {};
+
+                        if (
+                            resourceSpan['resource'] &&
+                            (resourceSpan['resource'] as JSONObject)[
+                                'attributes'
+                            ] &&
+                            (
+                                (resourceSpan['resource'] as JSONObject)[
+                                    'attributes'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            attributesObject['resource'] =
+                                OTelIngestService.getAttributes(
+                                    (resourceSpan['resource'] as JSONObject)[
+                                        'attributes'
+                                    ] as JSONArray
+                                );
+                        }
+
+                        // scope attributes
+
+                        if (
+                            scopeSpan['scope'] &&
+                            Object.keys(scopeSpan['scope']).length > 0
+                        ) {
+                            attributesObject['scope'] = scopeSpan[
+                                'scope'
+                            ] as JSONObject;
+                        }
+
+                        dbSpan.attributes = {
+                            ...attributesObject,
+                            ...OTelIngestService.getAttributes(
+                                span['attributes'] as JSONArray
+                            ),
+                        };
+
                         dbSpan.projectId = (req as TelemetryRequest).projectId;
                         dbSpan.serviceId = (req as TelemetryRequest).serviceId;
 
@@ -205,10 +245,6 @@ router.post(
                         dbSpan.name = span['name'] as string;
                         dbSpan.kind =
                             (span['kind'] as SpanKind) || SpanKind.Internal;
-
-                        dbSpan.attributes = OTelIngestService.getAttributes(
-                            span['attributes'] as JSONArray
-                        );
 
                         // add events
 
@@ -317,6 +353,76 @@ router.post(
                             'description'
                         ] as string;
 
+                        const metricUnit: string = metric['unit'] as string;
+
+                        const dbMetric: Metric = new Metric();
+
+                        dbMetric.projectId = (
+                            req as TelemetryRequest
+                        ).projectId;
+                        dbMetric.serviceId = (
+                            req as TelemetryRequest
+                        ).serviceId;
+
+                        dbMetric.name = metricName;
+                        dbMetric.description = metricDescription;
+
+                        if (metricUnit) {
+                            dbMetric.unit = metricUnit;
+                        }
+
+                        let attributesObject: JSONObject = {};
+
+                        if (
+                            metric['attributes'] &&
+                            metric['attributes'] instanceof Array &&
+                            metric['attributes'].length > 0
+                        ) {
+                            attributesObject = {
+                                ...OTelIngestService.getAttributes(
+                                    metric['attributes'] as JSONArray
+                                ),
+                            };
+                        }
+
+                        if (
+                            resourceMetric['resource'] &&
+                            (resourceMetric['resource'] as JSONObject)[
+                                'attributes'
+                            ] &&
+                            ((resourceMetric['resource'] as JSONObject)[
+                                'attributes'
+                            ] as JSONArray) instanceof Array &&
+                            (
+                                (resourceMetric['resource'] as JSONObject)[
+                                    'attributes'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                resource: OTelIngestService.getAttributes(
+                                    (resourceMetric['resource'] as JSONObject)[
+                                        'attributes'
+                                    ] as JSONArray
+                                ),
+                            };
+                        }
+
+                        if (
+                            scopeMetric['scope'] &&
+                            Object.keys(scopeMetric['scope']).length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                scope:
+                                    (scopeMetric['scope'] as JSONObject) || {},
+                            };
+                        }
+
+                        // add attributes
+                        dbMetric.attributes = attributesObject;
+
                         if (
                             metric['sum'] &&
                             (metric['sum'] as JSONObject)['dataPoints'] &&
@@ -329,43 +435,13 @@ router.post(
                             for (const datapoint of (
                                 metric['sum'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricSum: Metric = new Metric();
-
-                                dbMetricSum.projectId = (
-                                    req as TelemetryRequest
-                                ).projectId;
-                                dbMetricSum.serviceId = (
-                                    req as TelemetryRequest
-                                ).serviceId;
-
-                                dbMetricSum.name = metricName;
-                                dbMetricSum.description = metricDescription;
-
-                                dbMetricSum.startTimeUnixNano = datapoint[
-                                    'startTimeUnixNano'
-                                ] as number;
-                                dbMetricSum.startTime =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['startTimeUnixNano'] as number
+                                const sumMetric: Metric =
+                                    OTelIngestService.getMetricFromDatapoint(
+                                        dbMetric,
+                                        datapoint
                                     );
 
-                                dbMetricSum.timeUnixNano = datapoint[
-                                    'timeUnixNano'
-                                ] as number;
-                                dbMetricSum.time = OneUptimeDate.fromUnixNano(
-                                    datapoint['timeUnixNano'] as number
-                                );
-
-                                dbMetricSum.value = datapoint[
-                                    'asInt'
-                                ] as number;
-
-                                dbMetricSum.attributes =
-                                    OTelIngestService.getAttributes(
-                                        metric['attributes'] as JSONArray
-                                    );
-
-                                dbMetrics.push(dbMetricSum);
+                                dbMetrics.push(sumMetric);
                             }
                         } else if (
                             metric['gauge'] &&
@@ -379,43 +455,13 @@ router.post(
                             for (const datapoint of (
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricGauge: Metric = new Metric();
-
-                                dbMetricGauge.projectId = (
-                                    req as TelemetryRequest
-                                ).projectId;
-                                dbMetricGauge.serviceId = (
-                                    req as TelemetryRequest
-                                ).serviceId;
-
-                                dbMetricGauge.name = metricName;
-                                dbMetricGauge.description = metricDescription;
-
-                                dbMetricGauge.startTimeUnixNano = datapoint[
-                                    'startTimeUnixNano'
-                                ] as number;
-                                dbMetricGauge.startTime =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['startTimeUnixNano'] as number
+                                const guageMetric: Metric =
+                                    OTelIngestService.getMetricFromDatapoint(
+                                        dbMetric,
+                                        datapoint
                                     );
 
-                                dbMetricGauge.timeUnixNano = datapoint[
-                                    'timeUnixNano'
-                                ] as number;
-                                dbMetricGauge.time = OneUptimeDate.fromUnixNano(
-                                    datapoint['timeUnixNano'] as number
-                                );
-
-                                dbMetricGauge.value = datapoint[
-                                    'asInt'
-                                ] as number;
-
-                                dbMetricGauge.attributes =
-                                    OTelIngestService.getAttributes(
-                                        metric['attributes'] as JSONArray
-                                    );
-
-                                dbMetrics.push(dbMetricGauge);
+                                dbMetrics.push(guageMetric);
                             }
                         } else if (
                             metric['histogram'] &&
@@ -429,62 +475,13 @@ router.post(
                             for (const datapoint of (
                                 metric['histogram'] as JSONObject
                             )['dataPoints'] as JSONArray) {
-                                const dbMetricHistogram: Metric = new Metric();
-
-                                dbMetricHistogram.projectId = (
-                                    req as TelemetryRequest
-                                ).projectId;
-                                dbMetricHistogram.serviceId = (
-                                    req as TelemetryRequest
-                                ).serviceId;
-
-                                dbMetricHistogram.name = metricName;
-                                dbMetricHistogram.description =
-                                    metricDescription;
-
-                                dbMetricHistogram.startTimeUnixNano = datapoint[
-                                    'startTimeUnixNano'
-                                ] as number;
-                                dbMetricHistogram.startTime =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['startTimeUnixNano'] as number
+                                const histogramMetric: Metric =
+                                    OTelIngestService.getMetricFromDatapoint(
+                                        dbMetric,
+                                        datapoint
                                     );
 
-                                dbMetricHistogram.timeUnixNano = datapoint[
-                                    'timeUnixNano'
-                                ] as number;
-                                dbMetricHistogram.time =
-                                    OneUptimeDate.fromUnixNano(
-                                        datapoint['timeUnixNano'] as number
-                                    );
-
-                                dbMetricHistogram.count = datapoint[
-                                    'count'
-                                ] as number;
-                                dbMetricHistogram.sum = datapoint[
-                                    'sum'
-                                ] as number;
-
-                                dbMetricHistogram.min = datapoint[
-                                    'min'
-                                ] as number;
-                                dbMetricHistogram.max = datapoint[
-                                    'max'
-                                ] as number;
-
-                                dbMetricHistogram.bucketCounts = datapoint[
-                                    'bucketCounts'
-                                ] as Array<number>;
-                                dbMetricHistogram.explicitBounds = datapoint[
-                                    'explicitBounds'
-                                ] as Array<number>;
-
-                                // dbMetricHistogram.attributes =
-                                //     OTelIngestService.getKeyValues(
-                                //         metric['attributes'] as JSONArray
-                                //     );
-
-                                dbMetrics.push(dbMetricHistogram);
+                                dbMetrics.push(histogramMetric);
                             }
                         } else {
                             logger.warn('Unknown metric type');
@@ -563,6 +560,48 @@ router.post(
                             "observedTimeUnixNano":"1698069643739368000"
                         }
                         */
+
+                        //attributes
+
+                        let attributesObject: JSONObject = {};
+
+                        if (
+                            resourceLog['resource'] &&
+                            (resourceLog['resource'] as JSONObject)[
+                                'attributes'
+                            ] &&
+                            (
+                                (resourceLog['resource'] as JSONObject)[
+                                    'attributes'
+                                ] as JSONArray
+                            ).length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                resource: OTelIngestService.getAttributes(
+                                    (resourceLog['resource'] as JSONObject)[
+                                        'attributes'
+                                    ] as JSONArray
+                                ),
+                            };
+                        }
+
+                        if (
+                            scopeLog['scope'] &&
+                            Object.keys(scopeLog['scope']).length > 0
+                        ) {
+                            attributesObject = {
+                                ...attributesObject,
+                                scope: (scopeLog['scope'] as JSONObject) || {},
+                            };
+                        }
+
+                        dbLog.attributes = {
+                            ...attributesObject,
+                            ...OTelIngestService.getAttributes(
+                                log['attributes'] as JSONArray
+                            ),
+                        };
 
                         dbLog.projectId = (req as TelemetryRequest).projectId;
                         dbLog.serviceId = (req as TelemetryRequest).serviceId;
@@ -654,11 +693,6 @@ router.post(
                         );
                         dbLog.spanId = Text.convertBase64ToHex(
                             log['spanId'] as string
-                        );
-
-                        // We need to convert this to date.
-                        dbLog.attributes = OTelIngestService.getAttributes(
-                            log['attributes'] as JSONArray
                         );
 
                         dbLogs.push(dbLog);

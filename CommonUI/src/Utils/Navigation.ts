@@ -108,12 +108,16 @@ abstract class Navigation {
         return pathname.split('/')[getFromFirstRoute || 1];
     }
 
-    public static getLastParamAsObjectID(getFromLastRoute?: number): ObjectID {
+    public static getLastParamAsString(getFromLastRoute?: number): string {
         const param: Route | null = URL.fromString(
             window.location.href
         ).getLastRoute(getFromLastRoute);
 
-        return new ObjectID(param?.toString().replace('/', '') || '');
+        return param?.toString().replace('/', '') || '';
+    }
+
+    public static getLastParamAsObjectID(getFromLastRoute?: number): ObjectID {
+        return new ObjectID(this.getLastParamAsString(getFromLastRoute));
     }
 
     public static getCurrentRoute(): Route {

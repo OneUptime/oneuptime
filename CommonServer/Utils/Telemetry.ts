@@ -1,4 +1,9 @@
+import OpenTelemetryAPI, { Meter } from '@opentelemetry/api';
 import { Logger, logs } from '@opentelemetry/api-logs';
+import {
+    Counter,
+    MetricOptions,
+} from '@opentelemetry/api/build/src/metrics/Metric';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
@@ -10,7 +15,10 @@ import {
     BatchLogRecordProcessor,
     LoggerProvider,
 } from '@opentelemetry/sdk-logs';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import {
+    MeterProvider,
+    PeriodicExportingMetricReader,
+} from '@opentelemetry/sdk-metrics';
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import { SpanExporter } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
@@ -20,9 +28,13 @@ import Dictionary from 'Common/Types/Dictionary';
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
+const serviceName: string = process.env['SERVICE_NAME'] || 'oneuptime';
+
 export default class Telemetry {
     public static sdk: opentelemetry.NodeSDK | null = null;
     public static logger: Logger | null = null;
+    public static meter: Meter | null = null;
+    public static meterProvider: MeterProvider | null = null;
 
     public static getHeaders(): Dictionary<string> {
         if (!process.env['OPENTELEMETRY_EXPORTER_OTLP_HEADERS']) {
@@ -182,8 +194,46 @@ export default class Telemetry {
 
         return this.logger!;
     }
+
+    public static getMeterProvider(): MeterProvider {
+        if (!this.meterProvider) {
+            this.meterProvider = new MeterProvider();
+            OpenTelemetryAPI.metrics.setGlobalMeterProvider(this.meterProvider);
+        }
+
+        return this.meterProvider;
+    }
+
+    public static getMeter(): Meter {
+        if (!this.meter) {
+            this.meter = OpenTelemetryAPI.metrics.getMeter('default');
+        }
+
+        return this.meter;
+    }
+
+    public static getCounter(data: {
+        name: string;
+        description: string;
+        unit?: string;
+    }): Counter {
+        const { name, description } = data;
+
+        const metricOptions: MetricOptions = {
+            description: description,
+        };
+
+        if (data.unit) {
+            metricOptions.unit = data.unit;
+        }
+
+        const counter: Counter<opentelemetry.api.Attributes> =
+            this.getMeter().createCounter(name, metricOptions);
+
+        return counter;
+    }
 }
 
 Telemetry.init({
-    serviceName: process.env['SERVICE_NAME'] || 'oneuptime',
+    serviceName: serviceName,
 });
