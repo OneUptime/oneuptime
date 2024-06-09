@@ -40,7 +40,7 @@ const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={true}
-                name="Git Repository"
+                name="Git Repositories"
                 isViewable={true}
                 cardProps={{
                     title: 'Git Repository',
