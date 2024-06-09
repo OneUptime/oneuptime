@@ -8,6 +8,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 import CodeRepository from 'Model/Models/CodeRepository';
 import Label from 'Model/Models/Label';
 import React, { FunctionComponent, ReactElement } from 'react';
@@ -46,7 +47,7 @@ const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
                     description:
                         'Git repositores where the AI Copilot can improve your code.',
                 }}
-                viewPageRoute={RouteMap[PageMap.AI_COPILOT_CODE_REPOSITORY]}
+                viewPageRoute={new Route(Navigation.getCurrentRoute().toString()+"/code-repository")}
                 showViewIdButton={true}
                 noItemsMessage={'No repositories found.'}
                 formFields={[

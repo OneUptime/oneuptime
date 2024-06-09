@@ -320,7 +320,7 @@ const App: () => JSX.Element = () => {
 
                 {/** AI Copilot */}
                 <PageRoute
-                    path={RouteMap[PageMap.AI_COPILOT]?.toString() || ''}
+                    path={RouteMap[PageMap.AI_COPILOT_ROOT]?.toString() || ''}
                     element={<AICopilotRoutes {...commonPageProps} />}
                 />
 
