@@ -495,7 +495,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const permissions: Array<Permission> | null =
             PermissionUtil.getAllPermissions();
 
-        if (
+        let showActionsColumn: boolean = Boolean(
             (permissions &&
                 ((props.isDeleteable &&
                     model.hasDeletePermissions(permissions)) ||
@@ -503,9 +503,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         model.hasUpdatePermissions(permissions)) ||
                     (props.isViewable &&
                         model.hasReadPermissions(permissions)))) ||
-            (props.actionButtons && props.actionButtons.length > 0) ||
-            props.showViewIdButton
-        ) {
+                (props.actionButtons && props.actionButtons.length > 0) ||
+                props.showViewIdButton
+        );
+
+        if (User.isMasterAdmin()) {
+            if (
+                (props.actionButtons && props.actionButtons.length > 0) ||
+                props.showViewIdButton
+            ) {
+                showActionsColumn = true;
+            }
+        }
+
+        if (showActionsColumn) {
             columns.push({
                 title: 'Actions',
                 type: FieldType.Actions,
@@ -1108,7 +1119,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 });
             }
 
-            if (props.isEditable && model.hasUpdatePermissions(permissions)) {
+            if (
+                props.isEditable &&
+                (model.hasUpdatePermissions(permissions) ||
+                    User.isMasterAdmin())
+            ) {
                 actionsSchema.push({
                     title: props.editButtonText || 'Edit',
                     buttonStyleType: ButtonStyleType.OUTLINE,
@@ -1134,7 +1149,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 });
             }
 
-            if (props.isDeleteable && model.hasDeletePermissions(permissions)) {
+            if (
+                props.isDeleteable &&
+                (model.hasDeletePermissions(permissions) ||
+                    User.isMasterAdmin())
+            ) {
                 actionsSchema.push({
                     title: props.deleteButtonText || 'Delete',
                     icon: IconProp.Trash,
