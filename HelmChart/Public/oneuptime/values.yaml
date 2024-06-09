@@ -217,10 +217,12 @@ nodeSelector:
 logLevel: INFO
 
 # Enable cleanup cron jobs
+# Please do not enable this in producton. This is only for development purposes.
 cronJobs:
   cleanup:
     enabled: false
   e2e:
+    # Please do not enable this in producton. This is only for development purposes.
     enabled: false
     isUserRegistered: false
     registeredUserEmail: 
