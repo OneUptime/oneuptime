@@ -436,23 +436,27 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/ai-copilot`
     ),
 
+    [PageMap.AI_COPILOT_CODE_REPOSITORY]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository`
+    ),
+
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository${
-            ServiceCatalogRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository/${
+            CodeRepositoryRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]
         }`
     ),
 
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository${
-            ServiceCatalogRoutePath[
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository/${
+            CodeRepositoryRoutePath[
                 PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
             ]
         }`
     ),
 
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository${
-            ServiceCatalogRoutePath[
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository/${
+            CodeRepositoryRoutePath[
                 PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
             ]
         }`
