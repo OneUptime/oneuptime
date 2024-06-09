@@ -197,12 +197,16 @@ import ScheduledMaintenanceStateTimelineService, {
 import ServiceCatalogOwnerTeamService, {
     Service as ServiceCatalogOwnerTeamServiceType,
 } from 'CommonServer/Services/ServiceCatalogOwnerTeamService';
+
 import ServiceCatalogOwnerUserService, {
     Service as ServiceCatalogOwnerUserServiceType,
 } from 'CommonServer/Services/ServiceCatalogOwnerUserService';
 import ServiceCatalogService, {
     Service as ServiceCatalogServiceType,
 } from 'CommonServer/Services/ServiceCatalogService';
+import CodeRepositoryService, {
+    Service as CodeRepositoryServiceType,
+} from 'CommonServer/Services/CodeRepositoryService';
 import ShortLinkService, {
     Service as ShortLinkServiceType,
 } from 'CommonServer/Services/ShortLinkService';
@@ -371,6 +375,7 @@ import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
+import CodeRepository from 'Model/Models/CodeRepository';
 
 const BaseAPIFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
@@ -485,6 +490,14 @@ const BaseAPIFeatureSet: FeatureSet = {
             new BaseAPI<ServiceCatalog, ServiceCatalogServiceType>(
                 ServiceCatalog,
                 ServiceCatalogService
+            ).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<CodeRepository, CodeRepositoryServiceType>(
+                CodeRepository,
+                CodeRepositoryService
             ).getRouter()
         );
 

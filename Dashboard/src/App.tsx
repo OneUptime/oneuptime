@@ -15,6 +15,7 @@ import Welcome from './Pages/Onboarding/Welcome';
 import PageComponentProps from './Pages/PageComponentProps';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
+import AICopilotRoutes from './Routes/AICopilotRoutes';
 import IncidentsRoutes from './Routes/IncidentsRoutes';
 //Routes
 import InitRoutes from './Routes/InitRoutes';
@@ -315,6 +316,12 @@ const App: () => JSX.Element = () => {
                         RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ''
                     }
                     element={<ServiceCatalogRoutes {...commonPageProps} />}
+                />
+
+                {/** AI Copilot */}
+                <PageRoute
+                    path={RouteMap[PageMap.AI_COPILOT]?.toString() || ''}
+                    element={<AICopilotRoutes {...commonPageProps} />}
                 />
 
                 {/* Incidents */}

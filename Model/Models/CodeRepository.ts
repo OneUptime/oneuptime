@@ -419,7 +419,7 @@ export default class CodeRepository extends BaseModel {
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'CodeRepositoryId',
+            name: 'codeRepositoryId',
             referencedColumnName: '_id',
         },
     })

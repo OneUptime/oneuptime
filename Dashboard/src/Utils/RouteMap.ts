@@ -30,6 +30,12 @@ export const ServiceCatalogRoutePath: Dictionary<string> = {
     [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
+export const CodeRepositoryRoutePath: Dictionary<string> = {
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: `${RouteParams.ModelID}`,
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
     [PageMap.WORKFLOWS_LOGS]: 'logs',
     [PageMap.WORKFLOWS_VARIABLES]: 'variables',
@@ -418,6 +424,36 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
             ScheduledMaintenanceEventsRoutePath[
                 PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+            ]
+        }`
+    ),
+
+    [PageMap.AI_COPILOT_ROOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/*`
+    ),
+
+    [PageMap.AI_COPILOT]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot`
+    ),
+
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository${
+            ServiceCatalogRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]
+        }`
+    ),
+
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository${
+            ServiceCatalogRoutePath[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
+            ]
+        }`
+    ),
+
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository${
+            ServiceCatalogRoutePath[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
             ]
         }`
     ),

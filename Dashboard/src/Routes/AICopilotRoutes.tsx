@@ -1,10 +1,10 @@
 import Loader from '../Components/Loader/Loader';
+import CodeRepositoryViewLayout from '../Pages/AICopilot/CodeRepository/View/Layout';
 import ComponentProps from '../Pages/PageComponentProps';
-import StatusPageViewLayout from '../Pages/ServiceCatalog/View/Layout';
 import PageMap from '../Utils/PageMap';
 import RouteMap, {
+    CodeRepositoryRoutePath,
     RouteUtil,
-    ServiceCatalogRoutePath,
 } from '../Utils/RouteMap';
 import Route from 'Common/Types/API/Route';
 import React, {
@@ -17,47 +17,42 @@ import React, {
 import { Route as PageRoute, Routes } from 'react-router-dom';
 
 // Pages
-const ServiceCatalog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-    lazy(() => {
-        return import('../Pages/ServiceCatalog/ServiceCatalog');
-    });
-const ServiceCatalogView: LazyExoticComponent<
+const AiCopilot: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
+    () => {
+        return import('../Pages/AICopilot/Index');
+    }
+);
+
+const CodeRepositoryView: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Index');
-});
-const ServiceCatalogViewDelete: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
-> = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Delete');
+    return import('../Pages/AICopilot/CodeRepository/View/Index');
 });
 
-const ServiceCatalogViewSettings: LazyExoticComponent<
+const CodeRepositoryViewDelete: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Settings');
+    return import('../Pages/AICopilot/CodeRepository/View/Delete');
 });
 
-const ServiceCatalogViewOwners: LazyExoticComponent<
+const CodeRepositoryViewSettings: LazyExoticComponent<
     FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Owners');
+    return import('../Pages/AICopilot/CodeRepository/View/Settings');
 });
 
-const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
+const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
         <Routes>
             <PageRoute
-                path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG] || ''}
+                path={CodeRepositoryRoutePath[PageMap.AI_COPILOT] || ''}
                 element={
                     <Suspense fallback={Loader}>
-                        <ServiceCatalog
+                        <AiCopilot
                             {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SERVICE_CATALOG] as Route
-                            }
+                            pageRoute={RouteMap[PageMap.AI_COPILOT] as Route}
                         />
                     </Suspense>
                 }
@@ -65,19 +60,21 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
 
             <PageRoute
                 path={
-                    ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW] || ''
+                    CodeRepositoryRoutePath[
+                        PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW
+                    ] || ''
                 }
-                element={<StatusPageViewLayout {...props} />}
+                element={<CodeRepositoryViewLayout {...props} />}
             >
                 <PageRoute
                     index
                     element={
                         <Suspense fallback={Loader}>
-                            <ServiceCatalogView
+                            <CodeRepositoryView
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW
+                                        PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW
                                     ] as Route
                                 }
                             />
@@ -87,15 +84,16 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
 
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
-                        PageMap.SERVICE_CATALOG_VIEW_DELETE
+                        PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
                     )}
                     element={
                         <Suspense fallback={Loader}>
-                            <ServiceCatalogViewDelete
+                            <CodeRepositoryViewDelete
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW_DELETE
+                                        PageMap
+                                            .AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
                                     ] as Route
                                 }
                             />
@@ -105,33 +103,16 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
 
                 <PageRoute
                     path={RouteUtil.getLastPathForKey(
-                        PageMap.SERVICE_CATALOG_VIEW_SETTINGS
+                        PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
                     )}
                     element={
                         <Suspense fallback={Loader}>
-                            <ServiceCatalogViewSettings
+                            <CodeRepositoryViewSettings
                                 {...props}
                                 pageRoute={
                                     RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW_SETTINGS
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.SERVICE_CATALOG_VIEW_OWNERS
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <ServiceCatalogViewOwners
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW_OWNERS
+                                        PageMap
+                                            .AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
                                     ] as Route
                                 }
                             />
@@ -143,4 +124,4 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default ServiceCatalogRoutes;
+export default CodeRepositoryRoutes;
