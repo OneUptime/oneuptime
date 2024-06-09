@@ -459,6 +459,11 @@ enum Permission {
     DeleteServiceCatalog = 'DeleteServiceCatalog',
     EditServiceCatalog = 'EditServiceCatalog',
     ReadServiceCatalog = 'ReadServiceCatalog',
+
+    CreateCodeRepository = 'CreateCodeRepository',
+    DeleteCodeRepository = 'DeleteCodeRepository',
+    EditCodeRepository = 'EditCodeRepository',
+    ReadCodeRepository = 'ReadCodeRepository',
 }
 
 export class PermissionHelper {
@@ -2440,6 +2445,39 @@ export class PermissionHelper {
                     'This permission can read Telemetry Service Log of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CreateCodeRepository,
+                title: 'Create Code Repository',
+                description:
+                    'This permission can create Code Repository this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.DeleteCodeRepository,
+                title: 'Delete Code Repository',
+                description:
+                    'This permission can delete Code Repository of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.EditCodeRepository,
+                title: 'Edit Code Repository',
+                description:
+                    'This permission can edit Code Repository of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.ReadCodeRepository,
+                title: 'Read Code Repository',
+                description:
+                    'This permission can read Code Repository of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
             },
 
             {
