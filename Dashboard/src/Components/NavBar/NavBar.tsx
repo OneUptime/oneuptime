@@ -146,7 +146,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ),
                             }}
                         >
-                            {/* <NavBarMenuItem
+                            <NavBarMenuItem
                                 title="AI Copilot"
                                 description="Fix and improve your code automatically."
                                 route={RouteUtil.populateRouteParams(
@@ -156,7 +156,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                     forceHideMoreMenu();
                                 }}
-                            /> */}
+                            />
 
                             <NavBarMenuItem
                                 title="Service Catalog"
