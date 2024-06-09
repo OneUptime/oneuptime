@@ -29,6 +29,9 @@ import ApiKeyService, {
 import CallLogService, {
     Service as CallLogServiceType,
 } from 'CommonServer/Services/CallLogService';
+import CodeRepositoryService, {
+    Service as CodeRepositoryServiceType,
+} from 'CommonServer/Services/CodeRepositoryService';
 import DomainService, {
     Service as DomainServiceType,
 } from 'CommonServer/Services/DomainService';
@@ -197,16 +200,12 @@ import ScheduledMaintenanceStateTimelineService, {
 import ServiceCatalogOwnerTeamService, {
     Service as ServiceCatalogOwnerTeamServiceType,
 } from 'CommonServer/Services/ServiceCatalogOwnerTeamService';
-
 import ServiceCatalogOwnerUserService, {
     Service as ServiceCatalogOwnerUserServiceType,
 } from 'CommonServer/Services/ServiceCatalogOwnerUserService';
 import ServiceCatalogService, {
     Service as ServiceCatalogServiceType,
 } from 'CommonServer/Services/ServiceCatalogService';
-import CodeRepositoryService, {
-    Service as CodeRepositoryServiceType,
-} from 'CommonServer/Services/CodeRepositoryService';
 import ShortLinkService, {
     Service as ShortLinkServiceType,
 } from 'CommonServer/Services/ShortLinkService';
@@ -294,6 +293,7 @@ import Span from 'Model/AnalyticsModels/Span';
 import ApiKey from 'Model/Models/ApiKey';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import CallLog from 'Model/Models/CallLog';
+import CodeRepository from 'Model/Models/CodeRepository';
 import Domain from 'Model/Models/Domain';
 import EmailLog from 'Model/Models/EmailLog';
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
@@ -375,7 +375,6 @@ import UserOnCallLog from 'Model/Models/UserOnCallLog';
 import Workflow from 'Model/Models/Workflow';
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
-import CodeRepository from 'Model/Models/CodeRepository';
 
 const BaseAPIFeatureSet: FeatureSet = {
     init: async (): Promise<void> => {
