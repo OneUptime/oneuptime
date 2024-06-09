@@ -47,7 +47,12 @@ const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
                     description:
                         'Git repositores where the AI Copilot can improve your code.',
                 }}
-                viewPageRoute={new Route(Navigation.getCurrentRoute().toString()+"/code-repository")}
+                viewPageRoute={
+                    new Route(
+                        Navigation.getCurrentRoute().toString() +
+                            '/code-repository'
+                    )
+                }
                 showViewIdButton={true}
                 noItemsMessage={'No repositories found.'}
                 formFields={[
