@@ -20,7 +20,7 @@ const CodeRepositoryDelete: FunctionComponent<PageComponentProps> = (
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(
-                        RouteMap[PageMap.SERVICE_CATALOG] as Route
+                        RouteMap[PageMap.AI_COPILOT_CODE_REPOSITORY] as Route
                     );
                 }}
             />

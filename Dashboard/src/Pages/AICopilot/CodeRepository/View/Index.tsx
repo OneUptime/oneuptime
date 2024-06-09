@@ -18,15 +18,15 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
         <Fragment>
             {/* CodeRepository View  */}
             <CardModelDetail<CodeRepository>
-                name="Service > Service Details"
+                name="Git Repository > Repository Details"
                 cardProps={{
-                    title: 'Service Details',
-                    description: 'Here are more details for this status page.',
+                    title: 'Repository Details',
+                    description: 'Here are more details for this repository.',
                 }}
                 formSteps={[
                     {
-                        title: 'Service Info',
-                        id: 'status-page-info',
+                        title: 'Repository Info',
+                        id: 'repository-info',
                     },
                     {
                         title: 'Labels',
@@ -40,7 +40,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        stepId: 'status-page-info',
+                        stepId: 'repository-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Service Name',
@@ -52,7 +52,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                        stepId: 'status-page-info',
+                        stepId: 'repository-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
@@ -117,6 +117,13 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                                 description: true,
                             },
                             title: 'Description',
+                        },
+                        {
+                            field: {
+                                secretToken: true,
+                            },
+                            title: 'Secret Token',
+                            fieldType: FieldType.HiddenText,
                         },
                     ],
                     modelId: modelId,

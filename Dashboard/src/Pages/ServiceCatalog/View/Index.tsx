@@ -21,12 +21,12 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                 name="Service > Service Details"
                 cardProps={{
                     title: 'Service Details',
-                    description: 'Here are more details for this status page.',
+                    description: 'Here are more details for this service.',
                 }}
                 formSteps={[
                     {
                         title: 'Service Info',
-                        id: 'status-page-info',
+                        id: 'service-info',
                     },
                     {
                         title: 'Labels',
@@ -40,7 +40,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        stepId: 'status-page-info',
+                        stepId: 'service-info',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Service Name',
@@ -52,7 +52,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                         field: {
                             description: true,
                         },
-                        stepId: 'status-page-info',
+                        stepId: 'service-info',
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,

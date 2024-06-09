@@ -31,9 +31,9 @@ export const ServiceCatalogRoutePath: Dictionary<string> = {
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
-    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: `${RouteParams.ModelID}`,
-    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
-    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: `code-repository/${RouteParams.ModelID}`,
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: `code-repository/${RouteParams.ModelID}/delete`,
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: `code-repository/${RouteParams.ModelID}/settings`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -441,13 +441,13 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository/${
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
             CodeRepositoryRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]
         }`
     ),
 
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository/${
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
             CodeRepositoryRoutePath[
                 PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
             ]
@@ -455,7 +455,7 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository/${
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
             CodeRepositoryRoutePath[
                 PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
             ]
