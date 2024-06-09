@@ -889,7 +889,7 @@ jobs:
           node-version: 18.3.0
       - run: cd HelmChart && cd Tests && bash index.sh
 
-  test-e2e-release-saas: 
+  test-e2e-test-saas: 
     runs-on: ubuntu-latest
     needs: [test-helm-chart]
     env:
@@ -942,7 +942,7 @@ jobs:
           retention-days: 7
     
     
-  test-e2e-release-self-hosted: 
+  test-e2e-test-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
     needs: [test-helm-chart]
