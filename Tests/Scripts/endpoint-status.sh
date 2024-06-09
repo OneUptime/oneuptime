@@ -28,7 +28,7 @@ while [ $retries -lt $max_retries ]; do
         echo "✅ $name endpoint is up ($endpoint_url)"
         exit 0  # Exit the script with success status
     else
-        echo "$name $endpoint_url returned HTTP $http_status, retrying in $retry_interval seconds. Usually takes few minutes for the app to boot."
+        echo "$name $endpoint_url returned HTTP $http_status, retrying in $retry_interval seconds. Usually takes few minutes to boot."
         sleep $retry_interval
         retries=$((retries + 1))
     fi
